@@ -27,10 +27,11 @@ jobs:
           fi
       - name: go vet
         run: go vet ./...
+      # Run via `go run` so golangci-lint is compiled with the runner's Go
+      # toolchain (the prebuilt release binaries are built with an older Go and
+      # refuse a module targeting a newer Go language version).
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: v2.1.6
+        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
 
   test:
     name: Test (race) — ${{ matrix.os }}
