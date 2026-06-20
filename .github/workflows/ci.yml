@@ -51,13 +51,16 @@ jobs:
           go-version-file: go.mod
           cache: true
       # The race detector requires cgo; the CI runners provide a C toolchain.
-      # The cgo-only GUI binary (cmd/gosched-gui) needs OpenGL and is verified by
-      # the dedicated `gui` job, so it is excluded here.
+      # Excluded here (verified by the dedicated `gui` job instead):
+      #  - cmd/gosched-gui: cgo-only, needs OpenGL.
+      #  - gui: the Fyne widget package; `-race` flags races inside Fyne's own
+      #    font cache (go-text/typesetting), not our code.
+      # The pure-Go gui/viewmodel package stays race-tested.
       - name: go test -race
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race $(go list ./... | grep -v '/cmd/gosched-gui')
+        run: go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
 
   coverage:
     name: Coverage gate (core packages ≥80%)
