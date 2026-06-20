@@ -20,6 +20,7 @@ import (
 	"github.com/shruggietech/go-scheduler/internal/ipc"
 	"github.com/shruggietech/go-scheduler/internal/service"
 	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-scheduler/internal/trigger"
 )
 
 func main() {
@@ -62,8 +63,11 @@ func runDaemon(ctx context.Context, configPath string) error {
 	}
 	defer ln.Close()
 
-	// Scheduling engine.
+	// Scheduling engine + event-trigger dispatcher.
 	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
+	disp := trigger.New(st, eng.FireEvent, log)
+	eng.SetCompletionHook(disp.OnCompletion)
+	eng.SetStartupHook(disp.RecoverPending)
 	engErr := make(chan error, 1)
 	go func() { engErr <- eng.Start(ctx) }()
 

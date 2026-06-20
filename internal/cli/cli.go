@@ -57,6 +57,7 @@ func newRoot() *cobra.Command {
 	root.AddCommand(
 		newTaskCmd(),
 		newGroupCmd(),
+		newTriggerCmd(),
 		newRunsCmd(),
 		newAlertsCmd(),
 		newServiceCmd(),

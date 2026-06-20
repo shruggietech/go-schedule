@@ -55,5 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     [--tree]/enable/disable/rm`.
   - Verified end-to-end: 3-level hierarchy, cascade disable, cycle rejection.
   - Note: the GUI group tree (T055) is deferred until the US2 GUI exists.
+- **User Story 4 — Event triggers (Phase 6, tasks T056–T061):**
+  - `internal/trigger` — completion-event dispatcher: matches a source task's
+    success/failure/any outcome to triggers and fires target tasks, with durable
+    de-duplication (window + key) and at-least-once recovery across restarts.
+  - `internal/store` — triggers and a dedup ledger (claim/mark-executed/pending),
+    schema migration v2.
+  - Engine wiring: a completion hook fires triggers after each run; a startup hook
+    recovers unexecuted events. New `FireEvent` dispatches targets as event runs.
+  - Local API: trigger CRUD; CLI: `trigger add/list/rm`.
+  - Verified end-to-end: source completion fires the target once (recorded as an
+    `event` run); duplicates within the window are de-duplicated.
+  - Note: the GUI trigger editor field (T062) is deferred until the US2 GUI exists.
 
 [Unreleased]: https://github.com/shruggietech/go-scheduler/commits/main

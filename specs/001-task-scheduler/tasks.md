@@ -170,16 +170,16 @@ duplicate completion within the window → B does not run again; verify delivery
 
 ### Tests for User Story 4
 
-- [ ] T056 [P] [US4] Unit-test dedup ledger (window/key collapse, executed flag) in `internal/trigger/dedup_test.go`
-- [ ] T057 [US4] Integration-test completion → single run; duplicate-in-window → no second run; at-least-once across restart, in `test/integration/triggers_test.go`
+- [x] T056 [P] [US4] Unit-test dedup ledger (window/key collapse, executed flag) in `internal/trigger/dedup_test.go`
+- [x] T057 [US4] Integration-test completion → single run; duplicate-in-window → no second run; at-least-once across restart, in `test/integration/triggers_test.go`
 
 ### Implementation for User Story 4
 
-- [ ] T058 [P] [US4] Implement Trigger + DedupLedger models and store in `internal/trigger/model.go` and `internal/store/trigger.go`
-- [ ] T059 [US4] Implement completion-event emission + trigger evaluation + at-least-once delivery with dedup in `internal/trigger/dispatcher.go` (wired into engine)
-- [ ] T060 [US4] Implement API trigger endpoints in `internal/api/server/triggers.go`
-- [ ] T061 [US4] Implement CLI `gosched trigger add/list/rm` in `internal/cli/trigger.go`
-- [ ] T062 [US4] Add trigger configuration to the GUI task editor in `gui/editor.go`
+- [x] T058 [P] [US4] Implement Trigger + DedupLedger models and store in `internal/trigger/model.go` and `internal/store/trigger.go`
+- [x] T059 [US4] Implement completion-event emission + trigger evaluation + at-least-once delivery with dedup in `internal/trigger/dispatcher.go` (wired into engine)
+- [x] T060 [US4] Implement API trigger endpoints in `internal/api/server/triggers.go`
+- [x] T061 [US4] Implement CLI `gosched trigger add/list/rm` in `internal/cli/trigger.go`
+- [ ] T062 [US4] (deferred until US2 GUI exists) Add trigger configuration to the GUI task editor in `gui/editor.go`
 
 **Checkpoint**: US1–US4 independently functional.
 

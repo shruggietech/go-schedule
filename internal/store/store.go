@@ -118,6 +118,29 @@ CREATE TABLE IF NOT EXISTS alerts (
 CREATE INDEX IF NOT EXISTS idx_alerts_ack ON alerts(acknowledged);
 `,
 	},
+	{
+		version: 2,
+		stmts: `
+CREATE TABLE IF NOT EXISTS triggers (
+	id              TEXT PRIMARY KEY,
+	source_task_id  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	target_task_id  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	on_outcome      TEXT NOT NULL DEFAULT 'success',
+	dedup_key       TEXT NOT NULL DEFAULT '',
+	dedup_window_ns INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_triggers_source ON triggers(source_task_id);
+
+CREATE TABLE IF NOT EXISTS dedup_ledger (
+	trigger_id    TEXT NOT NULL REFERENCES triggers(id) ON DELETE CASCADE,
+	dedup_key     TEXT NOT NULL,
+	first_seen_at TEXT NOT NULL,
+	executed      INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY (trigger_id, dedup_key)
+);
+CREATE INDEX IF NOT EXISTS idx_dedup_executed ON dedup_ledger(executed);
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

@@ -142,6 +142,35 @@ type Run struct {
 	Trigger      RunTrigger `json:"trigger"`
 }
 
+// TriggerOutcome selects which source-task outcomes fire an event trigger.
+type TriggerOutcome string
+
+const (
+	OnSuccess TriggerOutcome = "success"
+	OnFailure TriggerOutcome = "failure"
+	OnAny     TriggerOutcome = "any"
+)
+
+// Trigger fires a target task when a source task completes (v1 event source).
+// At-least-once delivery is de-duplicated within DedupWindow by DedupKey.
+type Trigger struct {
+	ID           string         `json:"id"`
+	SourceTaskID string         `json:"source_task_id"`
+	TargetTaskID string         `json:"target_task_id"`
+	OnOutcome    TriggerOutcome `json:"on_outcome"`
+	DedupKey     string         `json:"dedup_key,omitempty"` // empty => per source-run
+	DedupWindow  time.Duration  `json:"dedup_window"`
+}
+
+// DedupLedger records a delivered logical event so repeats within the window
+// collapse to a single execution.
+type DedupLedger struct {
+	TriggerID   string    `json:"trigger_id"`
+	DedupKey    string    `json:"dedup_key"`
+	FirstSeenAt time.Time `json:"first_seen_at"`
+	Executed    bool      `json:"executed"`
+}
+
 // Alert is a surfaced condition shown in the GUI and reflected in logs.
 type Alert struct {
 	ID           string        `json:"id"`
