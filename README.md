@@ -36,7 +36,8 @@ Implemented (✅) and planned:
   single-instance guarded.
 - ✅ **Material Design desktop GUI** — calendar/schedule views, guided task editor with live
   schedule preview, group tree, trigger config, and live alerts. Opening the GUI never leaves a
-  visible console window (`gosched gui`).
+  visible console window (`gosched gui`). New to the task editor? See the
+  [GUI field reference](docs/gui-fields.md).
 
 ## Architecture
 
@@ -88,6 +89,9 @@ sudo ./gosched service start
 ```
 
 **Windows users:** see the step-by-step [Windows install guide](docs/INSTALL-windows.md).
+
+Once the GUI is open, the [GUI field reference](docs/gui-fields.md) explains what every field in
+the task editor accepts.
 
 ## Development
 
