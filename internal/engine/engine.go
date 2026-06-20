@@ -49,7 +49,6 @@ type Engine struct {
 	onRun        func(domain.Run)
 	onCompletion func(sourceTaskID string, outcome domain.RunOutcome, eventKey string, now time.Time)
 	onStartup    func()
-	cycleCh      chan time.Time // optional test observation of processed cycles
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -96,13 +95,6 @@ func (e *Engine) FireEvent(targetTaskID string) {
 	e.dispatch(task, e.clk.Now(), domain.TriggerEvent)
 }
 
-// enableCycleObservation wires a channel the loop signals after each processing
-// cycle. Test-only.
-func (e *Engine) enableCycleObservation() <-chan time.Time {
-	e.cycleCh = make(chan time.Time, 64)
-	return e.cycleCh
-}
-
 // Reload asks the loop to recompute schedules from the store (call after tasks
 // change). Non-blocking and coalesced.
 func (e *Engine) Reload() {
@@ -143,9 +135,6 @@ func (e *Engine) Start(ctx context.Context) error {
 			e.recompute(e.clk.Now())
 		case now := <-wake:
 			e.runDue(now)
-			if e.cycleCh != nil {
-				e.cycleCh <- now
-			}
 		}
 	}
 }

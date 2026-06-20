@@ -50,7 +50,7 @@ func mainErr(configPath string) error {
 	if err != nil {
 		return err
 	}
-	defer lk.Release()
+	defer func() { _ = lk.Release() }()
 
 	// Run under the service manager when launched as a service; otherwise this
 	// runs in the foreground until interrupted.

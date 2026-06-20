@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build, package, and checksum all platforms
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          LDFLAGS="-s -w -X github.com/shruggietech/go-scheduler/internal/buildinfo.Version=${VERSION}"
+          mkdir -p dist
+
+          # The daemon (goschedd) and CLI (gosched) are cgo-free and cross-compile
+          # cleanly. The desktop GUI (gosched-gui) requires a per-OS native build
+          # (Fyne/OpenGL) and is not part of these cross-compiled archives yet.
+          targets="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"
+          for target in $targets; do
+            os=${target%/*}; arch=${target#*/}
+            ext=""; [ "$os" = "windows" ] && ext=".exe"
+
+            stage="go-scheduler_${VERSION}_${os}_${arch}"
+            mkdir -p "$stage"
+            echo "==> $os/$arch"
+            GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o "$stage/goschedd${ext}" ./cmd/goschedd
+            GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o "$stage/gosched${ext}" ./cmd/gosched
+            cp README.md LICENSE CHANGELOG.md "$stage/"
+
+            if [ "$os" = "windows" ]; then
+              zip -qr "dist/${stage}.zip" "$stage"
+            else
+              tar -czf "dist/${stage}.tar.gz" "$stage"
+            fi
+            rm -rf "$stage"
+          done
+
+          ( cd dist && sha256sum * > SHA256SUMS.txt )
+          echo "--- artifacts ---"; ls -la dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            Cross-platform **go-scheduler** binaries (daemon `goschedd` + CLI `gosched`).
+
+            Each archive contains both binaries plus README, LICENSE, and CHANGELOG.
+            Verify downloads against `SHA256SUMS.txt`.
+
+            Install: extract the archive for your platform, then register the service:
+
+            ```
+            sudo ./gosched service install   # admin/root required
+            sudo ./gosched service start
+            ```
+
+            > The Material Design desktop GUI (`gosched-gui`) requires a per-OS native
+            > build (Fyne/OpenGL) and is not yet included in these archives.
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/SHA256SUMS.txt
