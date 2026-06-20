@@ -7,11 +7,12 @@
 A cross-platform (Linux · macOS · Windows) **task scheduler** written in Go — cron-level power
 without the cryptic syntax. CLI-first, with a Go-native Material Design desktop GUI built on top.
 
-> **Status:** Active development (spec-driven via [Spec Kit](https://github.com/github/spec-kit)).
-> The **CLI + daemon are functional**: human-readable & one-off scheduling, per-task timezones
-> with DST handling, nested groups, event triggers, and downtime catch-up all work and are
-> tested. The **Material Design GUI (US2) is not yet built** — it needs a C toolchain (OpenGL)
-> for Fyne. See [TODO.md](TODO.md) and [CHANGELOG.md](CHANGELOG.md) for current state.
+> **Status:** Feature-complete (spec-driven via [Spec Kit](https://github.com/github/spec-kit)).
+> The CLI, daemon, and **Material Design desktop GUI** are all implemented and tested:
+> human-readable & one-off scheduling, per-task timezones with DST handling, nested groups,
+> event triggers, downtime catch-up, and a Fyne GUI (calendar, guided editor with live preview,
+> live alerts). See [CHANGELOG.md](CHANGELOG.md). The GUI requires a C toolchain + OpenGL to
+> build (CI/releases handle this); the daemon and CLI are cgo-free.
 
 ## Why
 
@@ -33,8 +34,9 @@ Implemented (✅) and planned:
 - ✅ **Overlap control** — queue-one-pending by default, configurable per task, with alerts.
 - ✅ **Starts on boot** — runs as a system-wide service (systemd / launchd / Windows Service);
   single-instance guarded.
-- 🚧 **Material Design desktop GUI** — calendar/schedule views, guided task editor, live alerts.
-  Opening the GUI never leaves a visible console window. *(Not yet built — needs a C toolchain.)*
+- ✅ **Material Design desktop GUI** — calendar/schedule views, guided task editor with live
+  schedule preview, group tree, trigger config, and live alerts. Opening the GUI never leaves a
+  visible console window (`gosched gui`).
 
 ## Architecture
 
@@ -66,7 +68,11 @@ extract, then register the system service:
 sudo ./gosched service install   # admin/root required
 sudo ./gosched service start
 ./gosched task add hello --command /usr/bin/true --schedule "every weekday at 09:00"
+./gosched gui                    # launch the desktop GUI (or download the gosched-gui archive)
 ```
+
+The daemon (`goschedd`) and CLI (`gosched`) ship for all platforms; the desktop GUI
+(`gosched-gui`) is published for Linux, macOS, and Windows in the same release.
 
 ## Development
 

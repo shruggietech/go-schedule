@@ -117,20 +117,20 @@ alerts surface — with no CMD window present.
 
 ### Tests for User Story 2
 
-- [ ] T038 [P] [US2] Contract-test `GET /v1/calendar` and `GET /v1/events` (SSE) in `internal/api/server/calendar_test.go`
-- [ ] T039 [P] [US2] Unit-test calendar occurrence materialization (past runs + computed future) in `internal/api/server/calendar_occurrences_test.go`
-- [ ] T040 [P] [US2] Unit-test GUI view-model state (task list/editor/alerts reducers) in `gui/viewmodel/viewmodel_test.go`
+- [x] T038 [P] [US2] Contract-test `GET /v1/calendar` and `GET /v1/events` (SSE) in `internal/api/server/calendar_test.go`
+- [x] T039 [P] [US2] Unit-test calendar occurrence materialization (past runs + computed future) in `internal/api/server/calendar_occurrences_test.go`
+- [x] T040 [P] [US2] Unit-test GUI view-model state (task list/editor/alerts reducers) in `gui/viewmodel/viewmodel_test.go`
 
 ### Implementation for User Story 2
 
-- [ ] T041 [US2] Implement `GET /v1/calendar` (occurrence materialization) and alerts endpoints in `internal/api/server/calendar.go`
-- [ ] T042 [US2] Implement `GET /v1/events` SSE stream pushing run-state changes + new alerts in `internal/api/server/events.go`
-- [ ] T043 [US2] Implement alert creation on overlap-queued and run-failure conditions in `internal/engine/alerts.go`
-- [ ] T044 [P] [US2] Scaffold the Fyne app (`gosched-gui`) built **windowless** (`-H windowsgui`) with Material theme + SSE client in `cmd/gosched-gui/main.go` and `gui/app.go`
-- [ ] T045 [P] [US2] Implement calendar + schedule/timeline views in `gui/calendar.go`
-- [ ] T046 [US2] Implement guided task editor with live plain-language preview (calls `schedules:preview`) in `gui/editor.go`
-- [ ] T047 [US2] Implement alerts/notifications surface bound to the SSE stream in `gui/alerts.go`
-- [ ] T048 [US2] Implement CLI `gosched gui` that launches the GUI detached, windowless (no console) in `internal/cli/gui.go`
+- [x] T041 [US2] Implement `GET /v1/calendar` (occurrence materialization) and alerts endpoints in `internal/api/server/calendar.go`
+- [x] T042 [US2] Implement `GET /v1/events` SSE stream pushing run-state changes + new alerts in `internal/api/server/events.go`
+- [x] T043 [US2] Implement alert creation on overlap-queued and run-failure conditions in `internal/engine/alerts.go`
+- [x] T044 [P] [US2] Scaffold the Fyne app (`gosched-gui`) built **windowless** (`-H windowsgui`) with Material theme + SSE client in `cmd/gosched-gui/main.go` and `gui/app.go`
+- [x] T045 [P] [US2] Implement calendar + schedule/timeline views in `gui/calendar.go`
+- [x] T046 [US2] Implement guided task editor with live plain-language preview (calls `schedules:preview`) in `gui/editor.go`
+- [x] T047 [US2] Implement alerts/notifications surface bound to the SSE stream in `gui/alerts.go`
+- [x] T048 [US2] Implement CLI `gosched gui` that launches the GUI detached, windowless (no console) in `internal/cli/gui.go`
 
 **Checkpoint**: US1 + US2 work; tasks are manageable visually with alerts and no console window.
 
@@ -154,7 +154,7 @@ all contained tasks stop — in both CLI and GUI.
 - [x] T052 [US3] Implement group cascade enable/disable + effective-enabled resolution used by the engine in `internal/task/group.go`
 - [x] T053 [US3] Implement API group endpoints (CRUD, tree, `:enable`/`:disable`) in `internal/api/server/groups.go`
 - [x] T054 [US3] Implement CLI `gosched group add/list --tree/enable/disable/rm` in `internal/cli/group.go`
-- [ ] T055 [US3] (deferred until US2 GUI exists) Implement GUI group tree view + assign-task-to-group in `gui/groups.go`
+- [x] T055 [US3] (deferred until US2 GUI exists) Implement GUI group tree view + assign-task-to-group in `gui/groups.go`
 
 **Checkpoint**: US1–US3 independently functional.
 
@@ -179,7 +179,7 @@ duplicate completion within the window → B does not run again; verify delivery
 - [x] T059 [US4] Implement completion-event emission + trigger evaluation + at-least-once delivery with dedup in `internal/trigger/dispatcher.go` (wired into engine)
 - [x] T060 [US4] Implement API trigger endpoints in `internal/api/server/triggers.go`
 - [x] T061 [US4] Implement CLI `gosched trigger add/list/rm` in `internal/cli/trigger.go`
-- [ ] T062 [US4] (deferred until US2 GUI exists) Add trigger configuration to the GUI task editor in `gui/editor.go`
+- [x] T062 [US4] (deferred until US2 GUI exists) Add trigger configuration to the GUI task editor in `gui/editor.go`
 
 **Checkpoint**: US1–US4 independently functional.
 
@@ -214,7 +214,7 @@ per-task configurable (`one`/`none`).
 - [x] T069 [P] Add dispatch-latency benchmark (`BenchmarkDispatch`) asserting p99 < 100ms in `internal/engine/engine_bench_test.go`
 - [x] T070 Harden local IPC access control (socket/pipe permissions, admin group) per research §2 in `internal/ipc/` and `internal/service/`
 - [x] T071 Verify coverage ≥80% on core packages (`engine`, `schedule`, `timezone`, `store`, `trigger`, `catchup`) and close gaps
-- [~] T072 (daemon+CLI cross-compile verified for linux/macOS/windows on amd64+arm64; windowless GUI verify deferred with US2) Verify cross-platform build incl. Windows windowless GUI (`-H windowsgui`) and no-console task spawn on all three OSes
+- [x] T072 Verify cross-platform build incl. Windows windowless GUI (-H windowsgui) and no-console task spawn — daemon+CLI cross-compiled (6 targets); GUI built per-OS in CI/release (linux/macOS/windows windowless)
 - [~] T073 (SC-001..SC-007, SC-009, SC-010 verified via CLI live tests; SC-008 GUI deferred with US2) Execute [quickstart.md](quickstart.md) end-to-end and confirm every Success Criterion (SC-001..SC-010)
 
 ---

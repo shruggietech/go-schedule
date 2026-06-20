@@ -88,5 +88,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Deferred (need the US2 GUI): windowless-GUI verification (T072) and the GUI
     success criterion SC-008 (T073). Other success criteria verified via live CLI
     tests.
+- **User Story 2 — Material Design desktop GUI (Phase 4, tasks T038–T048, T055, T062):**
+  - `gui/` — Fyne desktop app with tabs for Tasks, Schedule (calendar/timeline),
+    Groups (tree), Triggers, and Alerts, using Fyne's Material-style theme. The
+    guided task editor shows a live plain-language schedule preview (FR-006); the
+    alerts panel updates live and carries an unacknowledged badge.
+  - `internal/events` — in-process pub/sub broker; API `GET /v1/events` streams
+    run/alert events over SSE and `GET /v1/calendar` materializes occurrences.
+  - `gui/viewmodel` — pure, unit-tested GUI state; the Fyne widget layer is
+    cgo-free and unit-tested headlessly. Only `cmd/gosched-gui` (the OpenGL
+    window) needs cgo; a cgo-free stub keeps `go build ./...` working everywhere.
+  - CI builds the GUI with cgo + OpenGL and runs the headless GUI tests; releases
+    publish `gosched-gui` for Linux, macOS, and Windows (windowless on Windows).
 
 [Unreleased]: https://github.com/shruggietech/go-scheduler/commits/main

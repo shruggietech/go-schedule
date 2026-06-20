@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build & publish release binaries
+  binaries:
+    name: Build & publish release binaries (daemon + CLI)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,3 +78,64 @@ jobs:
             dist/*.tar.gz
             dist/*.zip
             dist/SHA256SUMS.txt
+
+  gui:
+    name: Build & publish GUI (${{ matrix.os }})
+    needs: binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: ""
+            ldflags: ""
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: ""
+            ldflags: ""
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: ".exe"
+            ldflags: "-H windowsgui"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install Fyne build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      - name: Build the desktop GUI (cgo)
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          LD="-s -w -X github.com/shruggietech/go-scheduler/internal/buildinfo.Version=${VERSION} ${{ matrix.ldflags }}"
+          stage="go-scheduler-gui_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          mkdir -p "$stage"
+          go build -ldflags "$LD" -o "$stage/gosched-gui${{ matrix.ext }}" ./cmd/gosched-gui
+          cp README.md LICENSE CHANGELOG.md "$stage/"
+          mkdir -p dist
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            7z a "dist/${stage}.zip" "$stage" >/dev/null
+          else
+            tar -czf "dist/${stage}.tar.gz" "$stage"
+          fi
+          ls -la dist
+
+      - name: Attach GUI artifact to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
