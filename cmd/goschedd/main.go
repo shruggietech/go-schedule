@@ -10,6 +10,7 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/shruggietech/go-scheduler/internal/api/server"
@@ -18,6 +19,7 @@ import (
 	"github.com/shruggietech/go-scheduler/internal/engine"
 	"github.com/shruggietech/go-scheduler/internal/executor"
 	"github.com/shruggietech/go-scheduler/internal/ipc"
+	"github.com/shruggietech/go-scheduler/internal/lock"
 	"github.com/shruggietech/go-scheduler/internal/service"
 	"github.com/shruggietech/go-scheduler/internal/store"
 	"github.com/shruggietech/go-scheduler/internal/trigger"
@@ -27,27 +29,37 @@ func main() {
 	configPath := flag.String("config", "", "path to config file (optional)")
 	flag.Parse()
 
-	// Run under the service manager when launched as a service; otherwise this
-	// runs in the foreground until interrupted.
-	err := service.Run(func(ctx context.Context) error {
-		return runDaemon(ctx, *configPath)
-	})
-	if err != nil {
+	if err := mainErr(*configPath); err != nil {
 		os.Stderr.WriteString("goschedd: " + err.Error() + "\n")
 		os.Exit(1)
 	}
 }
 
-func runDaemon(ctx context.Context, configPath string) error {
+func mainErr(configPath string) error {
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
-
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		return err
 	}
 
+	// Single-instance guard, acquired before the service machinery so a second
+	// daemon fails fast (a second scheduler would double-execute every task).
+	lk, err := lock.Acquire(filepath.Join(cfg.DataDir, "goschedd.lock"))
+	if err != nil {
+		return err
+	}
+	defer lk.Release()
+
+	// Run under the service manager when launched as a service; otherwise this
+	// runs in the foreground until interrupted.
+	return service.Run(func(ctx context.Context) error {
+		return runDaemon(ctx, cfg)
+	})
+}
+
+func runDaemon(ctx context.Context, cfg config.Config) error {
 	log := config.NewLogger(cfg, os.Stdout)
 
 	st, err := store.Open(cfg.DBPath())

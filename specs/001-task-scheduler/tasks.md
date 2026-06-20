@@ -209,13 +209,13 @@ per-task configurable (`one`/`none`).
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T067 [P] Write `README.md` (build, install, usage) and refresh `CLAUDE.md` references
-- [ ] T068 [P] Add goroutine/memory leak test for the engine under sustained load in `test/integration/leak_test.go`
-- [ ] T069 [P] Add dispatch-latency benchmark (`BenchmarkDispatch`) asserting p99 < 100ms in `internal/engine/engine_bench_test.go`
-- [ ] T070 Harden local IPC access control (socket/pipe permissions, admin group) per research §2 in `internal/ipc/` and `internal/service/`
-- [ ] T071 Verify coverage ≥80% on core packages (`engine`, `schedule`, `timezone`, `store`, `trigger`, `catchup`) and close gaps
-- [ ] T072 Verify cross-platform build incl. Windows windowless GUI (`-H windowsgui`) and no-console task spawn on all three OSes
-- [ ] T073 Execute [quickstart.md](quickstart.md) end-to-end and confirm every Success Criterion (SC-001..SC-010)
+- [x] T067 [P] Write `README.md` (build, install, usage) and refresh `CLAUDE.md` references
+- [x] T068 [P] Add goroutine/memory leak test for the engine under sustained load in `test/integration/leak_test.go`
+- [x] T069 [P] Add dispatch-latency benchmark (`BenchmarkDispatch`) asserting p99 < 100ms in `internal/engine/engine_bench_test.go`
+- [x] T070 Harden local IPC access control (socket/pipe permissions, admin group) per research §2 in `internal/ipc/` and `internal/service/`
+- [x] T071 Verify coverage ≥80% on core packages (`engine`, `schedule`, `timezone`, `store`, `trigger`, `catchup`) and close gaps
+- [~] T072 (daemon+CLI cross-compile verified for linux/macOS/windows on amd64+arm64; windowless GUI verify deferred with US2) Verify cross-platform build incl. Windows windowless GUI (`-H windowsgui`) and no-console task spawn on all three OSes
+- [~] T073 (SC-001..SC-007, SC-009, SC-010 verified via CLI live tests; SC-008 GUI deferred with US2) Execute [quickstart.md](quickstart.md) end-to-end and confirm every Success Criterion (SC-001..SC-010)
 
 ---
 

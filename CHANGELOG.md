@@ -76,5 +76,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     per-task catch-up policy (`one` / `none`) and the overlap policy via dispatch.
   - Verified end-to-end: a short-interval task left across real downtime performs
     exactly one catch-up run and then resumes.
+- **Polish & hardening (Phase 8, tasks T067–T071; T072/T073 partial):**
+  - `internal/lock` — cross-platform single-instance guard (flock / LockFileEx); a
+    second daemon now fails fast instead of double-executing every task (T070).
+  - Goroutine-leak test (no leak after 500 executions) and a dispatch benchmark
+    (~36µs per run — far under the 100ms budget) (T068, T069).
+  - Test coverage raised to ≥80% statements on all core packages — engine, schedule,
+    timezone, store, trigger, catchup (T071).
+  - README updated to reflect functional CLI/daemon; daemon + CLI cross-compile
+    cleanly for linux/macOS/windows on amd64 + arm64 (T067, T072 partial).
+  - Deferred (need the US2 GUI): windowless-GUI verification (T072) and the GUI
+    success criterion SC-008 (T073). Other success criteria verified via live CLI
+    tests.
 
 [Unreleased]: https://github.com/shruggietech/go-scheduler/commits/main

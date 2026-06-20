@@ -131,3 +131,54 @@ func TestRecoverPending_RefiresUnexecuted(t *testing.T) {
 		t.Fatalf("recovery should be idempotent after marking executed, got %d", fc.count())
 	}
 }
+
+func TestRecoverPending_SkipsClaimWithMissingTrigger(t *testing.T) {
+	st, _, _, tr := setup(t, 5*time.Minute)
+	// Claim an event, then delete the trigger before recovery runs.
+	if _, err := st.ClaimEvent(tr.ID, "orphan", tr.DedupWindow, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteTrigger(tr.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	fc := &fireCounter{}
+	d := New(st, fc.Fire, quiet())
+	d.RecoverPending() // GetTrigger fails → entry skipped, no panic, no fire
+
+	if fc.count() != 0 {
+		t.Fatalf("recovery should skip a claim whose trigger no longer exists, got %d", fc.count())
+	}
+}
+
+func TestDispatcher_StoreErrorsHandledGracefully(t *testing.T) {
+	st, a, _, _ := setup(t, time.Minute)
+	fc := &fireCounter{}
+	d := New(st, fc.Fire, quiet())
+
+	// Closing the store makes subsequent queries fail; the dispatcher must log
+	// and return rather than panic or fire.
+	_ = st.Close()
+	d.OnCompletion(a.ID, domain.OutcomeSuccess, "evt", time.Now().UTC())
+	d.RecoverPending()
+
+	if fc.count() != 0 {
+		t.Fatalf("no targets should fire when the store errors, got %d", fc.count())
+	}
+}
+
+func TestOnCompletion_OnAnyMatchesFailure(t *testing.T) {
+	st, a, b, tr := setup(t, time.Minute)
+	// Switch the trigger to OnAny by recreating it.
+	_ = st.DeleteTrigger(tr.ID)
+	any := &domain.Trigger{SourceTaskID: a.ID, TargetTaskID: b.ID, OnOutcome: domain.OnAny, DedupWindow: time.Minute}
+	if err := st.CreateTrigger(any); err != nil {
+		t.Fatal(err)
+	}
+	fc := &fireCounter{}
+	d := New(st, fc.Fire, quiet())
+	d.OnCompletion(a.ID, domain.OutcomeFailure, "evt", time.Now().UTC())
+	if fc.count() != 1 {
+		t.Fatalf("OnAny should fire on failure, got %d", fc.count())
+	}
+}
