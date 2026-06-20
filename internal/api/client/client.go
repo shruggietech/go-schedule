@@ -34,6 +34,16 @@ func New(endpoint string) *Client {
 // endpoint instead.
 const baseURL = "http://ipc"
 
+// StatusError is returned for non-2xx API responses, carrying the API error
+// envelope's code and field so callers (e.g. the CLI) can map them to exit codes.
+type StatusError struct {
+	Code    string
+	Field   string
+	Message string
+}
+
+func (e *StatusError) Error() string { return e.Message }
+
 // Health calls GET /v1/health.
 func (c *Client) Health(ctx context.Context) (server.HealthResponse, error) {
 	var out server.HealthResponse

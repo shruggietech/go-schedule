@@ -224,6 +224,21 @@ func (s *Store) CreateTask(t *domain.Task) error {
 	return nil
 }
 
+// UpdateTask persists changes to a task's mutable fields.
+func (s *Store) UpdateTask(t *domain.Task) error {
+	t.UpdatedAt = time.Now().UTC()
+	argsJSON, _ := json.Marshal(t.Args)
+	envJSON, _ := json.Marshal(t.Env)
+	res, err := s.db.Exec(
+		`UPDATE tasks SET name=?,group_id=?,command=?,args_json=?,working_dir=?,env_json=?,run_as=?,
+		 enabled=?,timezone=?,schedule_id=?,overlap_policy=?,catchup_policy=?,state=?,updated_at=? WHERE id=?`,
+		t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON), t.RunAs,
+		boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy), string(t.CatchupPolicy),
+		string(t.State), fmtTime(t.UpdatedAt), t.ID,
+	)
+	return affected(res, err, "update task")
+}
+
 // GetTask returns the task by id, or ErrNotFound.
 func (s *Store) GetTask(id string) (domain.Task, error) {
 	row := s.db.QueryRow(taskSelect+` WHERE id=?`, id)

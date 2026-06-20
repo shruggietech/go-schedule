@@ -29,6 +29,14 @@ func (f *FakeClock) Now() time.Time {
 	return f.now
 }
 
+// Waiters returns the number of pending timers/After channels. Tests use it to
+// wait until code under test has armed its timer before advancing.
+func (f *FakeClock) Waiters() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.wakers)
+}
+
 // After returns a channel that fires once virtual time reaches now+d.
 func (f *FakeClock) After(d time.Duration) <-chan time.Time {
 	f.mu.Lock()

@@ -12,16 +12,24 @@ import (
 	"github.com/shruggietech/go-scheduler/internal/store"
 )
 
+// Scheduler is the subset of the engine the API needs. It may be nil in tests
+// that exercise only persistence-backed endpoints.
+type Scheduler interface {
+	Reload()
+	RunNow(taskID string) error
+}
+
 // Server holds dependencies and the route mux.
 type Server struct {
 	store *store.Store
+	sched Scheduler
 	log   *slog.Logger
 	mux   *http.ServeMux
 }
 
-// New constructs a Server and registers routes.
-func New(st *store.Store, log *slog.Logger) *Server {
-	s := &Server{store: st, log: log, mux: http.NewServeMux()}
+// New constructs a Server and registers routes. sched may be nil.
+func New(st *store.Store, sched Scheduler, log *slog.Logger) *Server {
+	s := &Server{store: st, sched: sched, log: log, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -31,6 +39,22 @@ func (s *Server) Handler() http.Handler { return s.mux }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/health", s.handleHealth)
+
+	s.mux.HandleFunc("GET /v1/tasks", s.handleListTasks)
+	s.mux.HandleFunc("POST /v1/tasks", s.handleCreateTask)
+	s.mux.HandleFunc("GET /v1/tasks/{id}", s.handleGetTask)
+	s.mux.HandleFunc("PATCH /v1/tasks/{id}", s.handleUpdateTask)
+	s.mux.HandleFunc("DELETE /v1/tasks/{id}", s.handleDeleteTask)
+	s.mux.HandleFunc("POST /v1/tasks/{id}/enable", s.handleEnableTask)
+	s.mux.HandleFunc("POST /v1/tasks/{id}/disable", s.handleDisableTask)
+	s.mux.HandleFunc("POST /v1/tasks/{id}/run-now", s.handleRunNow)
+
+	s.mux.HandleFunc("POST /v1/schedules/preview", s.handlePreview)
+
+	s.mux.HandleFunc("GET /v1/runs", s.handleListRuns)
+	s.mux.HandleFunc("GET /v1/alerts", s.handleListAlerts)
+	s.mux.HandleFunc("POST /v1/alerts/{id}/ack", s.handleAckAlert)
+
 	// Fallback: unmatched routes return the consistent error envelope.
 	s.mux.HandleFunc("/", s.handleNotFound)
 }

@@ -10,13 +10,15 @@ import (
 	"flag"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/shruggietech/go-scheduler/internal/api/server"
+	"github.com/shruggietech/go-scheduler/internal/clock"
 	"github.com/shruggietech/go-scheduler/internal/config"
+	"github.com/shruggietech/go-scheduler/internal/engine"
+	"github.com/shruggietech/go-scheduler/internal/executor"
 	"github.com/shruggietech/go-scheduler/internal/ipc"
+	"github.com/shruggietech/go-scheduler/internal/service"
 	"github.com/shruggietech/go-scheduler/internal/store"
 )
 
@@ -24,14 +26,18 @@ func main() {
 	configPath := flag.String("config", "", "path to config file (optional)")
 	flag.Parse()
 
-	if err := run(*configPath); err != nil {
-		// Daemon errors go to stderr; structured logs go to the configured sink.
+	// Run under the service manager when launched as a service; otherwise this
+	// runs in the foreground until interrupted.
+	err := service.Run(func(ctx context.Context) error {
+		return runDaemon(ctx, *configPath)
+	})
+	if err != nil {
 		os.Stderr.WriteString("goschedd: " + err.Error() + "\n")
 		os.Exit(1)
 	}
 }
 
-func run(configPath string) error {
+func runDaemon(ctx context.Context, configPath string) error {
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
@@ -56,14 +62,15 @@ func run(configPath string) error {
 	}
 	defer ln.Close()
 
+	// Scheduling engine.
+	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
+	engErr := make(chan error, 1)
+	go func() { engErr <- eng.Start(ctx) }()
+
 	srv := &http.Server{
-		Handler:           server.New(st, log).Handler(),
+		Handler:           server.New(st, eng, log).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-
-	// Graceful shutdown on SIGINT/SIGTERM.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	serveErr := make(chan error, 1)
 	go func() {
@@ -80,8 +87,12 @@ func run(configPath string) error {
 		log.Info("shutting down")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		return srv.Shutdown(shutdownCtx)
+		err := srv.Shutdown(shutdownCtx)
+		<-engErr // wait for engine to drain in-flight runs
+		return err
 	case err := <-serveErr:
+		return err
+	case err := <-engErr:
 		return err
 	}
 }

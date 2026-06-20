@@ -78,8 +78,8 @@ and confirm resumption.
 - [x] T022 [P] [US1] Unit-test one-off scheduling + past-time rejection + post-run `completed` state in `internal/schedule/oneoff_test.go`
 - [x] T023 [P] [US1] Unit-test timezone + DST resolution (next-valid spring-forward, first-occurrence fall-back) in `internal/timezone/dst_test.go`
 - [x] T024 [P] [US1] Unit-test all three overlap policies — `queue_one` (queue once, warn, drop extras), `skip`, `allow_concurrent` — in `internal/engine/overlap_test.go`
-- [ ] T025 [P] [US1] Contract-test `POST /v1/tasks`, `POST /v1/schedules:preview`, `POST /v1/tasks/{id}:run-now` in `internal/api/server/tasks_test.go`
-- [ ] T026 [US1] Integration-test: create recurring + one-off task → fake clock advances → correct runs recorded; restart daemon → schedule resumes, in `test/integration/scheduling_test.go`
+- [x] T025 [P] [US1] Contract-test `POST /v1/tasks`, `POST /v1/schedules:preview`, `POST /v1/tasks/{id}:run-now` in `internal/api/server/tasks_test.go`
+- [x] T026 [US1] Integration-test: create recurring + one-off task → fake clock advances → correct runs recorded; restart daemon → schedule resumes, in `test/integration/scheduling_test.go`
 - [x] T074 [P] [US1] **Cron-parity equivalence suite** (SC-002): map representative cron patterns to human-readable configs and assert matching run times in `internal/schedule/cronparity_test.go`
 
 ### Implementation for User Story 1
@@ -91,12 +91,12 @@ and confirm resumption.
 - [x] T031 [US1] Implement all three configurable overlap policies — `queue_one` (default: queue one pending + warning log + Alert creation hook), `skip`, and `allow_concurrent` — in `internal/engine/overlap.go`
 - [x] T032 [US1] Implement executor: spawn command **windowless** (CREATE_NO_WINDOW/HideWindow), capture stdout/stderr (bounded), write Run record, in `internal/executor/executor.go`
 - [x] T033 [US1] Wire one-off completion → task `state=completed` (no re-arm) in `internal/engine/engine.go`
-- [ ] T034 [US1] Implement API task endpoints (`/v1/tasks` CRUD, `:run-now`, `:enable`/`:disable`, `schedules:preview`) in `internal/api/server/tasks.go`
-- [ ] T035 [US1] Implement CLI `gosched task add/list/show/edit/enable/disable/rm/run-now` with `--json`, stdout/stderr split, exit codes (cobra) in `cmd/gosched/` and `internal/cli/task.go`
-- [ ] T036 [US1] Implement `gosched service install/uninstall/start/stop/status` (kardianos/service, system-wide, boot registration) in `internal/service/service.go` and `internal/cli/service.go`
-- [ ] T037 [US1] Integrate the engine into the daemon run loop (replace placeholder) and start it from the service entrypoint in `cmd/goschedd/main.go`
-- [ ] T075 [US1] Implement run-history + alerts **query** API (`GET /v1/runs` with filters, `GET /v1/alerts`, `POST /v1/alerts/{id}:ack`) in `internal/api/server/runs.go` (G2)
-- [ ] T076 [US1] Implement CLI `gosched runs` and `gosched alerts [--unacked] / alerts ack <id>` (cobra, `--json`) in `internal/cli/runs.go` (G2)
+- [x] T034 [US1] Implement API task endpoints (`/v1/tasks` CRUD, `:run-now`, `:enable`/`:disable`, `schedules:preview`) in `internal/api/server/tasks.go`
+- [x] T035 [US1] Implement CLI `gosched task add/list/show/edit/enable/disable/rm/run-now` with `--json`, stdout/stderr split, exit codes (cobra) in `cmd/gosched/` and `internal/cli/task.go`
+- [x] T036 [US1] Implement `gosched service install/uninstall/start/stop/status` (kardianos/service, system-wide, boot registration) in `internal/service/service.go` and `internal/cli/service.go`
+- [x] T037 [US1] Integrate the engine into the daemon run loop (replace placeholder) and start it from the service entrypoint in `cmd/goschedd/main.go`
+- [x] T075 [US1] Implement run-history + alerts **query** API (`GET /v1/runs` with filters, `GET /v1/alerts`, `POST /v1/alerts/{id}:ack`) in `internal/api/server/runs.go` (G2)
+- [x] T076 [US1] Implement CLI `gosched runs` and `gosched alerts [--unacked] / alerts ack <id>` (cobra, `--json`) in `internal/cli/runs.go` (G2)
 - [x] T077 [US1] Implement per-task `run_as` impersonation behind build tags (`internal/executor/runas_windows.go`, `runas_unix.go`); default to the service account; validate the account at task-create time (G4)
 - [x] T078 [P] [US1] Unit/integration-test `run_as` (impersonation applied, invalid account rejected, default fallback) in `internal/executor/runas_test.go` (G4)
 

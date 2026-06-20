@@ -27,5 +27,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `internal/api` — local HTTP/JSON API server (health, error envelope) and shared client.
   - `cmd/goschedd` (daemon) and `cmd/gosched` (CLI): the daemon serves health over IPC and the
     CLI reaches it — end-to-end architecture verified.
+- **User Story 1 — MVP (Phase 3, tasks T020–T037, T074–T078):**
+  - `internal/timezone` — IANA resolution and DST rules (next-valid spring-forward,
+    first-occurrence fall-back), verified against 2026 US transitions.
+  - `internal/schedule` — RFC 5545 RRULE recurrence (rrule-go), one-off, and a human-readable
+    parser with plain-language summaries (no cron syntax); cron-parity suite.
+  - `internal/engine` — timer-driven scheduling loop over an injected clock, bounded worker
+    pool, one-off completion, failure alerts; overlap policies (queue_one / skip /
+    allow_concurrent) with warning + alert.
+  - `internal/executor` — windowless command execution with bounded output capture; build-tagged
+    `run_as` (Unix credential impersonation; rejected on Windows for now).
+  - Local API: task CRUD + edit (PATCH), `schedules/preview`, `run-now`, enable/disable, and
+    run/alert queries. Full cobra CLI: `task`, `runs`, `alerts`, `service`, `gui`, with `--json`
+    and contract-compliant exit codes.
+  - `internal/service` — cross-platform system-service control (install/start/stop/status) via
+    kardianos; the daemon runs under the OS service manager (start on boot).
+  - Verified end-to-end: create recurring + one-off tasks via CLI, run them, inspect history and
+    failure alerts; DST handled correctly across the year.
 
 [Unreleased]: https://github.com/shruggietech/go-scheduler/commits/main

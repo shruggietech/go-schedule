@@ -24,7 +24,7 @@ type OverlapPolicy string
 
 const (
 	OverlapQueueOne        OverlapPolicy = "queue_one" // default: queue exactly one pending run
-	OverlapSkip            OverlapPolicy = "skip"       // skip the new trigger
+	OverlapSkip            OverlapPolicy = "skip"      // skip the new trigger
 	OverlapAllowConcurrent OverlapPolicy = "allow_concurrent"
 )
 
