@@ -13,6 +13,10 @@ jobs:
   lint:
     name: Lint & vet
     runs-on: ubuntu-latest
+    # CGO off so the cgo-only GUI entry point resolves to its stub (the OpenGL
+    # driver is not installed on this job); the rest of the tree is cgo-free.
+    env:
+      CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -47,14 +51,20 @@ jobs:
           go-version-file: go.mod
           cache: true
       # The race detector requires cgo; the CI runners provide a C toolchain.
+      # The cgo-only GUI binary (cmd/gosched-gui) needs OpenGL and is verified by
+      # the dedicated `gui` job, so it is excluded here.
       - name: go test -race
+        shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./...
+        run: go test -race $(go list ./... | grep -v '/cmd/gosched-gui')
 
   coverage:
     name: Coverage gate (core packages ≥80%)
     runs-on: ubuntu-latest
+    # Core packages are cgo-free; CGO off avoids needing the GUI's OpenGL libs.
+    env:
+      CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
