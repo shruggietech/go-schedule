@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/config"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/events"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 func TestCalendar_PastAndScheduled(t *testing.T) {
@@ -72,7 +72,7 @@ func TestEvents_StreamsAlert(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	broker := events.NewBroker()
-	s := New(st, nil, broker, config.NewLogger(config.Default(), discard{}))
+	s := New(st, nil, broker, nil, config.NewLogger(config.Default(), discard{}))
 
 	srv := httptest.NewServer(s.Handler())
 	defer srv.Close()

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // ErrNotFound is returned when a requested entity does not exist.

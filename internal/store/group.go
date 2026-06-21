@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/task"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/task"
 )
 
 // ErrCycle is returned when an operation would create a group cycle.

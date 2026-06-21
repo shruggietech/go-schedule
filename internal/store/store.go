@@ -141,6 +141,16 @@ CREATE TABLE IF NOT EXISTS dedup_ledger (
 CREATE INDEX IF NOT EXISTS idx_dedup_executed ON dedup_ledger(executed);
 `,
 	},
+	{
+		// v3: remove the Triggers feature entirely. DROP ... IF EXISTS is a no-op
+		// on databases that never held triggers. dedup_ledger is dropped first
+		// because it has a foreign key into triggers.
+		version: 3,
+		stmts: `
+DROP TABLE IF EXISTS dedup_ledger;
+DROP TABLE IF EXISTS triggers;
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-scheduler/internal/platform"
+	"github.com/shruggietech/go-schedule/internal/platform"
 )
 
 func newGUICmd() *cobra.Command {

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/clock"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/engine"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/clock"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/engine"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 // recordingRunner returns a success Run without doing real work, so the engine's

@@ -3,7 +3,7 @@ package engine
 import (
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // dispatch applies the task's overlap policy and either runs the task now,

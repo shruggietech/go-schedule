@@ -3,7 +3,7 @@ package engine
 import (
 	"fmt"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // RunNow triggers an immediate manual run of the task, honoring its overlap

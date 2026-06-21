@@ -11,11 +11,11 @@ import (
 
 	"fyne.io/fyne/v2/app"
 
-	"github.com/shruggietech/go-scheduler/gui"
-	"github.com/shruggietech/go-scheduler/internal/api/client"
-	"github.com/shruggietech/go-scheduler/internal/autostart"
-	"github.com/shruggietech/go-scheduler/internal/config"
-	"github.com/shruggietech/go-scheduler/internal/ipc"
+	"github.com/shruggietech/go-schedule/gui"
+	"github.com/shruggietech/go-schedule/internal/api/client"
+	"github.com/shruggietech/go-schedule/internal/autostart"
+	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
 // Compile-time check that the API client satisfies the GUI's Backend.
@@ -35,6 +35,6 @@ func main() {
 	)
 	cancel()
 
-	a := app.NewWithID("tech.shruggie.goscheduler")
+	a := app.NewWithID("tech.shruggie.goschedule")
 	gui.NewUI(a, c).Run()
 }

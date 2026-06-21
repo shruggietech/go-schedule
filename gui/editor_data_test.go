@@ -3,7 +3,7 @@ package gui
 import (
 	"testing"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func TestPolicyLabelRoundTrip(t *testing.T) {

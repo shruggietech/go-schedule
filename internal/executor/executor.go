@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/platform"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/platform"
 )
 
 // Executor runs commands and produces Run records.

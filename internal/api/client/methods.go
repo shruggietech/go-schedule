@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // CreateTask creates a task and returns its detail.

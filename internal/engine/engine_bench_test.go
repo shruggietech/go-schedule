@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/clock"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/schedule"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/clock"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 // noopRunner returns a success run without doing work, isolating scheduling

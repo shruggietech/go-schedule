@@ -45,8 +45,9 @@ func newRunsCmd() *cobra.Command {
 func newAlertsCmd() *cobra.Command {
 	var unacked bool
 	cmd := &cobra.Command{
-		Use:   "alerts",
-		Short: "Show alerts",
+		Use:        "alerts",
+		Short:      "Show alerts (deprecated: see `logs`)",
+		Deprecated: "use `gosched logs` for the unified log view; `alerts` will be removed in a future release.",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			ctx, cancel := reqCtx()
 			defer cancel()

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/events"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 // GetCalendar returns calendar occurrences in [from, to].

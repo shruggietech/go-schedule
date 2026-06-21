@@ -1,4 +1,4 @@
-module github.com/shruggietech/go-scheduler
+module github.com/shruggietech/go-schedule
 
 go 1.25.0
 

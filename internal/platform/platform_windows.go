@@ -18,7 +18,7 @@ func dataDir() string {
 	if base == "" {
 		base = `C:\ProgramData`
 	}
-	return filepath.Join(base, "goscheduler")
+	return filepath.Join(base, "goschedule")
 }
 
 func hideConsole(cmd *exec.Cmd) {

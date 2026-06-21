@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func hourly(anchor time.Time) domain.Schedule {

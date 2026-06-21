@@ -5,6 +5,9 @@ import (
 	"log/slog"
 )
 
+// SlogLevel returns the configured minimum log level.
+func (c Config) SlogLevel() slog.Level { return parseLevel(c.LogLevel) }
+
 // NewLogger builds a structured slog.Logger from the configuration. Per the
 // constitution's UX-consistency principle, logging is structured with
 // consistent levels and fields across all components.

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func openMem(t *testing.T) *Store {
@@ -15,6 +15,49 @@ func openMem(t *testing.T) *Store {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	return st
+}
+
+// TestMigration_V3RemovesTriggers verifies migration v3 drops the triggers
+// feature tables and the store opens cleanly (the v1/v2 migrations create the
+// tables; v3 drops them, so a freshly opened DB must not have them).
+func TestMigration_V3RemovesTriggers(t *testing.T) {
+	st := openMem(t)
+
+	for _, tbl := range []string{"triggers", "dedup_ledger"} {
+		var name string
+		err := st.db.QueryRow(
+			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, tbl,
+		).Scan(&name)
+		if err == nil {
+			t.Errorf("table %q should have been dropped by migration v3", tbl)
+		}
+	}
+
+	var version int
+	if err := st.db.QueryRow(`SELECT COALESCE(MAX(version),0) FROM schema_version`).Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version < 3 {
+		t.Fatalf("schema version = %d, want >= 3", version)
+	}
+}
+
+// TestMigration_V3IdempotentReopen verifies re-opening an already-migrated
+// database is a clean no-op (the DROP ... IF EXISTS guards in v3 do not error,
+// and v3 is not re-applied).
+func TestMigration_V3IdempotentReopen(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/goschedule.db"
+	st1, err := Open(path)
+	if err != nil {
+		t.Fatalf("first open: %v", err)
+	}
+	_ = st1.Close()
+	st2, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen of migrated db should be a clean no-op: %v", err)
+	}
+	_ = st2.Close()
 }
 
 func TestGroups_RenameReparentTreeAndChain(t *testing.T) {
@@ -57,64 +100,6 @@ func TestGroups_RenameReparentTreeAndChain(t *testing.T) {
 	}
 	if ok, _ := st.GroupChainEnabled(""); !ok {
 		t.Fatal("empty group is always enabled")
-	}
-}
-
-func TestTriggers_CRUDAndDedup(t *testing.T) {
-	st := openMem(t)
-	// Need two tasks for FK.
-	mk := func(name string) string {
-		sch := &domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: "FREQ=MINUTELY;INTERVAL=1"}
-		_ = st.CreateSchedule(sch)
-		task := &domain.Task{Name: name, Command: "x", Timezone: "UTC", ScheduleID: sch.ID, State: domain.TaskActive}
-		_ = st.CreateTask(task)
-		return task.ID
-	}
-	a, b := mk("A"), mk("B")
-
-	tr := &domain.Trigger{SourceTaskID: a, TargetTaskID: b, DedupWindow: time.Minute}
-	if err := st.CreateTrigger(tr); err != nil {
-		t.Fatal(err)
-	}
-	if tr.OnOutcome != domain.OnSuccess {
-		t.Fatalf("default outcome should be success, got %q", tr.OnOutcome)
-	}
-
-	if got, _ := st.ListTriggers(); len(got) != 1 {
-		t.Fatalf("ListTriggers = %d, want 1", len(got))
-	}
-	if got, _ := st.ListTriggersBySource(a); len(got) != 1 {
-		t.Fatalf("ListTriggersBySource = %d, want 1", len(got))
-	}
-	if g, err := st.GetTrigger(tr.ID); err != nil || g.ID != tr.ID {
-		t.Fatalf("GetTrigger: %v", err)
-	}
-	if _, err := st.GetTrigger("missing"); err != ErrNotFound {
-		t.Fatalf("expected ErrNotFound, got %v", err)
-	}
-
-	now := time.Now().UTC()
-	if ok, _ := st.ClaimEvent(tr.ID, "k", time.Minute, now); !ok {
-		t.Fatal("first claim should succeed")
-	}
-	if ok, _ := st.ClaimEvent(tr.ID, "k", time.Minute, now.Add(30*time.Second)); ok {
-		t.Fatal("claim within window should be deduped")
-	}
-	if ok, _ := st.ClaimEvent(tr.ID, "k", time.Minute, now.Add(2*time.Minute)); !ok {
-		t.Fatal("claim after window should succeed (new event)")
-	}
-	if err := st.MarkExecuted(tr.ID, "k"); err != nil {
-		t.Fatal(err)
-	}
-	if p, _ := st.PendingClaims(); len(p) != 0 {
-		t.Fatalf("no pending claims expected after MarkExecuted, got %d", len(p))
-	}
-
-	if err := st.DeleteTrigger(tr.ID); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.DeleteTrigger("missing"); err != ErrNotFound {
-		t.Fatalf("delete missing should be ErrNotFound, got %v", err)
 	}
 }
 

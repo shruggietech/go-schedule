@@ -8,9 +8,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/shruggietech/go-scheduler/internal/buildinfo"
-	"github.com/shruggietech/go-scheduler/internal/events"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/internal/logbus"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 // Scheduler is the subset of the engine the API needs. It may be nil in tests
@@ -25,14 +26,15 @@ type Server struct {
 	store  *store.Store
 	sched  Scheduler
 	broker *events.Broker
+	logs   *logbus.Ring
 	log    *slog.Logger
 	mux    *http.ServeMux
 }
 
-// New constructs a Server and registers routes. sched and broker may be nil
-// (e.g. in tests that exercise only persistence-backed endpoints).
-func New(st *store.Store, sched Scheduler, broker *events.Broker, log *slog.Logger) *Server {
-	s := &Server{store: st, sched: sched, broker: broker, log: log, mux: http.NewServeMux()}
+// New constructs a Server and registers routes. sched, broker, and logs may be
+// nil (e.g. in tests that exercise only persistence-backed endpoints).
+func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, log *slog.Logger) *Server {
+	s := &Server{store: st, sched: sched, broker: broker, logs: logs, log: log, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -60,15 +62,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/groups/{id}/enable", s.handleEnableGroup)
 	s.mux.HandleFunc("POST /v1/groups/{id}/disable", s.handleDisableGroup)
 
-	s.mux.HandleFunc("GET /v1/triggers", s.handleListTriggers)
-	s.mux.HandleFunc("POST /v1/triggers", s.handleCreateTrigger)
-	s.mux.HandleFunc("DELETE /v1/triggers/{id}", s.handleDeleteTrigger)
-
 	s.mux.HandleFunc("POST /v1/schedules/preview", s.handlePreview)
 
 	s.mux.HandleFunc("GET /v1/runs", s.handleListRuns)
 	s.mux.HandleFunc("GET /v1/alerts", s.handleListAlerts)
 	s.mux.HandleFunc("POST /v1/alerts/{id}/ack", s.handleAckAlert)
+	s.mux.HandleFunc("GET /v1/logs", s.handleListLogs)
 
 	s.mux.HandleFunc("GET /v1/calendar", s.handleCalendar)
 	s.mux.HandleFunc("GET /v1/events", s.handleEvents)

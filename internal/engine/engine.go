@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/catchup"
-	"github.com/shruggietech/go-scheduler/internal/clock"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/schedule"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/catchup"
+	"github.com/shruggietech/go-schedule/internal/clock"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 // Runner executes a task and returns its Run record. The executor implements it;
@@ -43,13 +43,11 @@ type Engine struct {
 	running map[string]bool
 	queued  map[string]time.Time // queued pending run's scheduled time, by task ID
 
-	reload       chan struct{}
-	runCtx       context.Context
-	runWG        sync.WaitGroup // tracks in-flight runs for graceful drain
-	onRun        func(domain.Run)
-	onAlert      func(domain.Alert)
-	onCompletion func(sourceTaskID string, outcome domain.RunOutcome, eventKey string, now time.Time)
-	onStartup    func()
+	reload  chan struct{}
+	runCtx  context.Context
+	runWG   sync.WaitGroup // tracks in-flight runs for graceful drain
+	onRun   func(domain.Run)
+	onAlert func(domain.Alert)
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -79,27 +77,6 @@ func (e *Engine) SetOnRun(f func(domain.Run)) { e.onRun = f }
 // stream alerts to GUI clients).
 func (e *Engine) SetOnAlert(f func(domain.Alert)) { e.onAlert = f }
 
-// SetCompletionHook registers a callback invoked after a run completes with a
-// success/failure outcome (used to fire event triggers). eventKey is the run ID.
-func (e *Engine) SetCompletionHook(f func(sourceTaskID string, outcome domain.RunOutcome, eventKey string, now time.Time)) {
-	e.onCompletion = f
-}
-
-// SetStartupHook registers a callback invoked once when the loop starts, after
-// the run context is established (used for at-least-once trigger recovery).
-func (e *Engine) SetStartupHook(f func()) { e.onStartup = f }
-
-// FireEvent dispatches a target task as an event-triggered run, honoring its
-// overlap policy.
-func (e *Engine) FireEvent(targetTaskID string) {
-	task, err := e.store.GetTask(targetTaskID)
-	if err != nil {
-		e.log.Error("engine: fire event target", "task", targetTaskID, "err", err)
-		return
-	}
-	e.dispatch(task, e.clk.Now(), domain.TriggerEvent)
-}
-
 // Reload asks the loop to recompute schedules from the store (call after tasks
 // change). Non-blocking and coalesced.
 func (e *Engine) Reload() {
@@ -115,9 +92,6 @@ func (e *Engine) Start(ctx context.Context) error {
 	e.runCtx = ctx
 	e.recompute(e.clk.Now())
 	e.runCatchup(e.clk.Now())
-	if e.onStartup != nil {
-		e.onStartup()
-	}
 	for {
 		d, has := e.untilNext(e.clk.Now())
 		var wake <-chan time.Time
@@ -306,10 +280,6 @@ func (e *Engine) recordRun(run domain.Run) {
 	}
 	if e.onRun != nil {
 		e.onRun(run)
-	}
-	// Fire event triggers on real completions (not queued/skipped markers).
-	if e.onCompletion != nil && (run.Outcome == domain.OutcomeSuccess || run.Outcome == domain.OutcomeFailure) {
-		e.onCompletion(run.TaskID, run.Outcome, run.ID, e.clk.Now())
 	}
 }
 

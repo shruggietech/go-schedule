@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/shruggietech/go-scheduler/internal/config"
+	"github.com/shruggietech/go-schedule/internal/config"
 )
 
 func defaultEndpoint(cfg config.Config) string {

@@ -10,9 +10,9 @@ import (
 
 func dataDir() string {
 	if runtime.GOOS == "darwin" {
-		return "/Library/Application Support/goscheduler"
+		return "/Library/Application Support/goschedule"
 	}
-	return "/var/lib/goscheduler"
+	return "/var/lib/goschedule"
 }
 
 // hideConsole is a no-op on Unix: child processes do not create console windows.

@@ -14,11 +14,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-scheduler/internal/api/client"
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/buildinfo"
-	"github.com/shruggietech/go-scheduler/internal/config"
-	"github.com/shruggietech/go-scheduler/internal/ipc"
+	"github.com/shruggietech/go-schedule/internal/api/client"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
 // errUsage marks validation/usage failures so Execute can return exit code 2.
@@ -57,8 +57,8 @@ func newRoot() *cobra.Command {
 	root.AddCommand(
 		newTaskCmd(),
 		newGroupCmd(),
-		newTriggerCmd(),
 		newRunsCmd(),
+		newLogsCmd(),
 		newAlertsCmd(),
 		newServiceCmd(),
 		newGUICmd(),

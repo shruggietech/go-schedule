@@ -8,22 +8,24 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/clock"
-	"github.com/shruggietech/go-scheduler/internal/config"
-	"github.com/shruggietech/go-scheduler/internal/engine"
-	"github.com/shruggietech/go-scheduler/internal/events"
-	"github.com/shruggietech/go-scheduler/internal/executor"
-	"github.com/shruggietech/go-scheduler/internal/ipc"
-	"github.com/shruggietech/go-scheduler/internal/lock"
-	"github.com/shruggietech/go-scheduler/internal/service"
-	"github.com/shruggietech/go-scheduler/internal/store"
-	"github.com/shruggietech/go-scheduler/internal/trigger"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/clock"
+	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/engine"
+	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/internal/executor"
+	"github.com/shruggietech/go-schedule/internal/ipc"
+	"github.com/shruggietech/go-schedule/internal/lock"
+	"github.com/shruggietech/go-schedule/internal/logbus"
+	"github.com/shruggietech/go-schedule/internal/service"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 func main() {
@@ -41,6 +43,10 @@ func mainErr(configPath string) error {
 	if err != nil {
 		return err
 	}
+	// Best-effort one-time move of a pre-rebrand (goscheduler) data directory onto
+	// the new (goschedule) location. Runs before the data dir is created so a fresh
+	// install is detected correctly. Non-fatal by design.
+	config.MigrateLegacyPaths(cfg, config.NewLogger(cfg, os.Stdout))
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		return err
 	}
@@ -61,7 +67,19 @@ func mainErr(configPath string) error {
 }
 
 func runDaemon(ctx context.Context, cfg config.Config) error {
-	log := config.NewLogger(cfg, os.Stdout)
+	// Live-event broker doubles as the log publisher, so it is created first.
+	broker := events.NewBroker()
+
+	// Log pipeline: a teeing slog handler writes every record to a rotating
+	// on-disk JSONL file, a bounded in-memory ring (served by GET /v1/logs), and
+	// the broker (live stream). It also echoes to stdout for foreground/dev runs.
+	ring := logbus.NewRing(cfg.LogRingSize)
+	rw, err := logbus.NewRotatingWriter(cfg.LogPath(), int64(cfg.LogMaxSizeBytes), cfg.LogMaxFiles)
+	if err != nil {
+		return err
+	}
+	defer rw.Close()
+	log := slog.New(logbus.NewHandler(cfg.SlogLevel(), ring, io.MultiWriter(os.Stdout, rw), broker))
 
 	st, err := store.Open(cfg.DBPath())
 	if err != nil {
@@ -76,19 +94,15 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	}
 	defer ln.Close()
 
-	// Scheduling engine + event-trigger dispatcher + live-event broker.
-	broker := events.NewBroker()
+	// Scheduling engine wired to the broker for run/alert streaming.
 	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
 	eng.SetOnRun(broker.PublishRun)
 	eng.SetOnAlert(broker.PublishAlert)
-	disp := trigger.New(st, eng.FireEvent, log)
-	eng.SetCompletionHook(disp.OnCompletion)
-	eng.SetStartupHook(disp.RecoverPending)
 	engErr := make(chan error, 1)
 	go func() { engErr <- eng.Start(ctx) }()
 
 	srv := &http.Server{
-		Handler:           server.New(st, eng, broker, log).Handler(),
+		Handler:           server.New(st, eng, broker, ring, log).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

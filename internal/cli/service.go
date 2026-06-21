@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-scheduler/internal/service"
+	"github.com/shruggietech/go-schedule/internal/service"
 )
 
 func newServiceCmd() *cobra.Command {

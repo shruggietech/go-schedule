@@ -3,7 +3,7 @@ package gui
 import (
 	"strings"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // This file holds presentation-only data for the task editor: the human-readable

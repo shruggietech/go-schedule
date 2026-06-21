@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func (a *App) buildTasksTab() fyne.CanvasObject {
@@ -70,8 +70,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 			}, a.win)
 		})
 	})
-	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
-
-	toolbar := container.NewHBox(newBtn, editBtn, runBtn, toggleBtn, delBtn, refreshBtn)
+	// No manual Refresh: the view updates live from the event stream (FR-023).
+	toolbar := container.NewHBox(newBtn, editBtn, runBtn, toggleBtn, delBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, list)
 }

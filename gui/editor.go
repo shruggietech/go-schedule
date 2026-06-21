@@ -12,10 +12,10 @@ import (
 	"fyne.io/fyne/v2/widget"
 	xwidget "fyne.io/x/fyne/widget"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/schedule"
-	"github.com/shruggietech/go-scheduler/internal/timezone"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // taskEditor holds the widgets and live state of the New Task / Edit Task dialog.
@@ -363,7 +363,7 @@ func (e *taskEditor) updatePreview() {
 	}
 	s := e.effectiveSchedule()
 	if s == "" {
-		e.schedPreview.SetText("Type a schedule above to see upcoming runs")
+		e.schedPreview.SetText("Type a schedule to see upcoming runs")
 		return
 	}
 	if _, err := schedule.Parse(s, e.tzName(), time.Now()); err != nil {

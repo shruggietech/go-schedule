@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/executor"
-	"github.com/shruggietech/go-scheduler/internal/schedule"
-	"github.com/shruggietech/go-scheduler/internal/store"
-	"github.com/shruggietech/go-scheduler/internal/timezone"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/executor"
+	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // TaskCreateRequest is the body for POST /v1/tasks. Provide either Schedule
@@ -114,6 +114,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.reload()
+	s.publishTaskCreated(*task)
 	writeJSON(w, http.StatusCreated, s.taskDetail(*task, sch, now))
 }
 
@@ -141,11 +142,13 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteTask(w http.ResponseWriter, r *http.Request) {
-	if err := s.store.DeleteTask(r.PathValue("id")); err != nil {
+	id := r.PathValue("id")
+	if err := s.store.DeleteTask(id); err != nil {
 		s.notFoundOr(w, err)
 		return
 	}
 	s.reload()
+	s.publishTaskDeleted(id)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -153,11 +156,13 @@ func (s *Server) handleEnableTask(w http.ResponseWriter, r *http.Request)  { s.s
 func (s *Server) handleDisableTask(w http.ResponseWriter, r *http.Request) { s.setEnabled(w, r, false) }
 
 func (s *Server) setEnabled(w http.ResponseWriter, r *http.Request, enabled bool) {
-	if err := s.store.SetTaskEnabled(r.PathValue("id"), enabled); err != nil {
+	id := r.PathValue("id")
+	if err := s.store.SetTaskEnabled(id, enabled); err != nil {
 		s.notFoundOr(w, err)
 		return
 	}
 	s.reload()
+	s.publishTaskUpdated(id)
 	w.WriteHeader(http.StatusNoContent)
 }
 

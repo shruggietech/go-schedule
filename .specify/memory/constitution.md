@@ -24,7 +24,7 @@ Templates requiring updates:
 Deferred TODOs: None
 -->
 
-# go-scheduler Constitution
+# go-schedule Constitution
 
 ## Core Principles
 
