@@ -50,7 +50,7 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 	}
 	a.registerRefresher(refresh)
 
-	addBtn := widget.NewButtonWithIcon("New Group", theme.ContentAddIcon(), func() {
+	addBtn := newToolbarButton("New Group", theme.ContentAddIcon(), func() {
 		nameEntry := widget.NewEntry()
 		parent := selected // selected group becomes parent if set
 		parentNote := "top-level"
@@ -71,12 +71,12 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 			})
 		}, a.win).Show()
 	})
-	toggleBtn := widget.NewButton("Enable/Disable", func() {
+	toggleBtn := newToolbarButtonPlain("Enable/Disable", func() {
 		if g, ok := byID[selected]; ok {
 			a.run(func(ctx context.Context) error { return a.backend.SetGroupEnabled(ctx, g.ID, !g.Enabled) })
 		}
 	})
-	delBtn := widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), func() {
+	delBtn := newToolbarButton("Delete", theme.DeleteIcon(), func() {
 		if g, ok := byID[selected]; ok {
 			dialog.ShowConfirm("Delete group", "Delete "+g.Name+" (children cascade)?", func(yes bool) {
 				if yes {
@@ -85,7 +85,7 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 			}, a.win)
 		}
 	})
-	refreshBtn := widget.NewButtonWithIcon("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
+	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
 
 	toolbar := container.NewHBox(addBtn, toggleBtn, delBtn, refreshBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, tree)

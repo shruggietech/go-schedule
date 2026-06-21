@@ -49,19 +49,19 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 		}
 	}
 
-	newBtn := widget.NewButtonWithIcon("New", theme.ContentAddIcon(), func() { a.showTaskEditor(nil) })
-	editBtn := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {
+	newBtn := newToolbarButton("New", theme.ContentAddIcon(), func() { a.showTaskEditor(nil) })
+	editBtn := newToolbarButton("Edit", theme.DocumentCreateIcon(), func() {
 		withSel(func(t domain.Task) { a.showTaskEditor(&t) })
 	})
-	runBtn := widget.NewButtonWithIcon("Run now", theme.MediaPlayIcon(), func() {
+	runBtn := newToolbarButton("Run now", theme.MediaPlayIcon(), func() {
 		withSel(func(t domain.Task) { a.run(func(ctx context.Context) error { return a.backend.RunNow(ctx, t.ID) }) })
 	})
-	toggleBtn := widget.NewButton("Enable/Disable", func() {
+	toggleBtn := newToolbarButtonPlain("Enable/Disable", func() {
 		withSel(func(t domain.Task) {
 			a.run(func(ctx context.Context) error { return a.backend.SetTaskEnabled(ctx, t.ID, !t.Enabled) })
 		})
 	})
-	delBtn := widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), func() {
+	delBtn := newToolbarButton("Delete", theme.DeleteIcon(), func() {
 		withSel(func(t domain.Task) {
 			dialog.ShowConfirm("Delete task", "Delete "+t.Name+"?", func(ok bool) {
 				if ok {
@@ -70,7 +70,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 			}, a.win)
 		})
 	})
-	refreshBtn := widget.NewButtonWithIcon("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
+	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
 
 	toolbar := container.NewHBox(newBtn, editBtn, runBtn, toggleBtn, delBtn, refreshBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, list)

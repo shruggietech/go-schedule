@@ -140,8 +140,12 @@ func TestEditor_CommandPreview(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	e.command.SetText("cmd")
 	e.args.SetText("/c\necho hello world")
-	if got := e.cmdPreview.Text; !strings.Contains(got, `cmd /c "echo hello world"`) {
+	got := e.cmdPreviewString()
+	if !strings.Contains(got, `cmd /c "echo hello world"`) {
 		t.Fatalf("cmd preview = %q", got)
+	}
+	if strings.Contains(got, "Will run") {
+		t.Fatalf("cmd preview should not have a 'Will run:' prefix: %q", got)
 	}
 }
 
@@ -149,6 +153,53 @@ func TestEditor_EmptyScheduleShowsGuidance(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	if got := e.schedPreview.Text; !strings.Contains(strings.ToLower(got), "type a schedule") {
 		t.Fatalf("empty schedule preview = %q, want guidance", got)
+	}
+}
+
+// --- 003: Help toggle ----------------------------------------------------
+
+func TestEditor_HelpToggle(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.schedule.SetText("every 15 minutes")
+
+	if !e.previewContent.Visible() || e.helpContent.Visible() {
+		t.Fatal("right pane should start on Preview")
+	}
+	e.toggleHelp()
+	if e.previewContent.Visible() || !e.helpContent.Visible() {
+		t.Fatal("toggle should show Help, hide Preview")
+	}
+	e.toggleHelp()
+	if !e.previewContent.Visible() || e.helpContent.Visible() {
+		t.Fatal("toggle back should restore Preview")
+	}
+	if e.schedule.Text != "every 15 minutes" {
+		t.Fatalf("input lost across Help toggle: %q", e.schedule.Text)
+	}
+}
+
+// --- 003: dirty detection drives Cancel confirm --------------------------
+
+func TestEditor_DirtyDetection(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	if e.isDirty() {
+		t.Fatal("fresh New form should not be dirty")
+	}
+	e.name.SetText("something")
+	if !e.isDirty() {
+		t.Fatal("editing a field should mark the form dirty")
+	}
+}
+
+func TestEditor_DirtyDetection_EditBaseline(t *testing.T) {
+	task := &domain.Task{ID: "t1", Name: "nightly", Command: "cmd", Timezone: "UTC"}
+	e, _ := newTestEditor(t, task)
+	if e.isDirty() {
+		t.Fatal("unchanged Edit form should not be dirty (baseline = prefilled values)")
+	}
+	e.command.SetText("python")
+	if !e.isDirty() {
+		t.Fatal("changing a prefilled field should mark the form dirty")
 	}
 }
 

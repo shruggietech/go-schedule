@@ -39,13 +39,13 @@ func (a *App) buildAlertsTab() fyne.CanvasObject {
 	}
 	a.registerRefresher(refresh)
 
-	ackBtn := widget.NewButtonWithIcon("Acknowledge", theme.ConfirmIcon(), func() {
+	ackBtn := newToolbarButton("Acknowledge", theme.ConfirmIcon(), func() {
 		if selected >= 0 && selected < len(alerts) {
 			id := alerts[selected].ID
 			a.run(func(ctx context.Context) error { return a.backend.AckAlert(ctx, id) })
 		}
 	})
-	refreshBtn := widget.NewButtonWithIcon("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
+	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
 
 	toolbar := container.NewHBox(ackBtn, refreshBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, list)

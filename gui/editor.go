@@ -40,11 +40,18 @@ type taskEditor struct {
 	oneOffTime *widget.Entry
 	oneOffEcho *widget.Label
 
-	schedPreview *widget.Label // schedule summary + next runs (recurring only)
-	cmdPreview   *widget.Label // resolved command line (always)
-	previewBox   *fyne.Container
-	whenForm     *widget.Form    // current When form (rebuilt fresh each time)
-	whenHolder   *fyne.Container // stable parent that holds the current whenForm
+	schedPreview *widget.Label    // schedule summary + next runs (recurring only)
+	cmdPreview   *widget.RichText // resolved command line as a code block
+	whenForm     *widget.Form     // current When form (rebuilt fresh each time)
+	whenHolder   *fyne.Container  // stable parent that holds the current whenForm
+
+	// Right pane: shows the Preview by default, or Help when toggled.
+	rightHolder    *fyne.Container
+	previewContent fyne.CanvasObject
+	helpContent    fyne.CanvasObject
+	rightTitle     *widget.Label
+	helpToggle     *cursorButton
+	helpVisible    bool
 
 	// Advanced
 	overlap *widget.Select
@@ -53,8 +60,18 @@ type taskEditor struct {
 	save          *cursorButton
 	cancelHandler func() // dismisses the dialog; nil in tests
 
-	ready       bool // true once build() has wired the layout; gates OnChanged callbacks
-	previewSync bool // tests set this to fetch the schedule preview synchronously
+	baseline    editorSnapshot // field values at open, for dirty detection
+	ready       bool           // true once build() has wired the layout; gates OnChanged callbacks
+	previewSync bool           // tests set this to fetch the schedule preview synchronously
+}
+
+// editorSnapshot captures the editor's field values so Cancel can detect unsaved
+// changes (FR-011/FR-012).
+type editorSnapshot struct {
+	name, command, args, tz, mode string
+	schedule, startAt             string
+	oneOffDate, oneOffTime        string
+	overlap, catchup              string
 }
 
 const (
@@ -79,7 +96,7 @@ func (a *App) showTaskEditor(existing *domain.Task) {
 		d.Hide()
 	}
 	e.cancelHandler = d.Hide
-	d.Resize(fyne.NewSize(600, 760))
+	d.Resize(fyne.NewSize(1180, 720)) // ~2× width for the two-pane layout (FR-002)
 	d.Show()
 }
 
@@ -111,7 +128,7 @@ func newTaskEditor(a *App, existing *domain.Task) *taskEditor {
 
 	e.schedPreview = widget.NewLabel("")
 	e.schedPreview.Wrapping = fyne.TextWrapWord
-	e.cmdPreview = widget.NewLabel("")
+	e.cmdPreview = widget.NewRichText()
 	e.cmdPreview.Wrapping = fyne.TextWrapWord
 
 	e.overlap = widget.NewSelect(overlapLabels(), nil)
@@ -129,7 +146,7 @@ func newTaskEditor(a *App, existing *domain.Task) *taskEditor {
 // --- construction --------------------------------------------------------
 
 func (e *taskEditor) build() *fyne.Container {
-	// Section: What to run
+	// Left pane: the form sections.
 	runForm := widget.NewForm(
 		requiredItem("Name", e.name),
 		requiredItem("Command", e.command),
@@ -138,31 +155,21 @@ func (e *taskEditor) build() *fyne.Container {
 	argsItem.HintText = "One argument per line" // persistent caption (FR-020)
 	runForm.AppendItem(argsItem)
 
-	// Section: When. rebuildWhen swaps a freshly-built form into whenHolder on
-	// every change; a fresh widget.Form (rather than mutating Items in place)
-	// guarantees every row — including conditionally-shown ones like Start at —
-	// gets a renderer.
-	e.previewBox = container.NewVBox(e.schedPreview, e.cmdPreview)
+	// rebuildWhen swaps a freshly-built form into whenHolder on every change; a
+	// fresh widget.Form (rather than mutating Items in place) guarantees every row
+	// — including conditionally-shown ones like Start at — gets a renderer.
 	e.whenHolder = container.NewStack()
 	e.ready = true
 	e.rebuildWhen()
 
-	// Section: Advanced Settings (collapsed by default).
+	// Advanced Settings: custom collapsible (▶ collapsed / ▼ expanded), FR-009.
 	advForm := widget.NewForm(
 		widget.NewFormItem("Overlap", e.overlap),
 		widget.NewFormItem("Catch-up", e.catchup),
 	)
-	advanced := widget.NewAccordion(widget.NewAccordionItem("Advanced Settings", advForm))
-	// Item starts collapsed (Open defaults to false).
+	advanced := newCollapsible("Advanced Settings", advForm)
 
-	cancel := newCursorButton("Cancel", theme.CancelIcon(), widget.MediumImportance, func() {
-		if e.cancelHandler != nil {
-			e.cancelHandler()
-		}
-	})
-	footer := container.NewHBox(layoutSpacer(), cancel, e.save)
-
-	body := container.NewVBox(
+	left := container.NewVScroll(container.NewVBox(
 		sectionHeader("What to run"),
 		runForm,
 		widget.NewSeparator(),
@@ -170,10 +177,88 @@ func (e *taskEditor) build() *fyne.Container {
 		e.whenHolder,
 		widget.NewSeparator(),
 		advanced,
-	)
+	))
+
+	// Right pane: Preview (default) / Help.
+	right := e.buildRightPane()
+
+	// Two equal halves (FR-002/FR-003).
+	split := container.NewGridWithColumns(2, left, right)
+
+	// Footer: right-aligned Save/Cancel (FR-010); Cancel guards unsaved input.
+	cancel := newCursorButton("Cancel", theme.CancelIcon(), widget.MediumImportance, e.requestCancel)
+	footer := container.NewBorder(nil, nil, nil, container.NewHBox(cancel, e.save))
+
+	e.baseline = e.snapshot()
 	e.updatePreview()
 	e.revalidate()
-	return container.NewBorder(nil, footer, nil, nil, container.NewVScroll(body))
+	return container.NewBorder(nil, footer, nil, nil, split)
+}
+
+// buildRightPane assembles the right half: a header with the pane title and the
+// Help/Preview toggle, over a holder that swaps between the live Preview and the
+// Help guidance (FR-003/FR-004).
+func (e *taskEditor) buildRightPane() fyne.CanvasObject {
+	e.previewContent = container.NewVScroll(container.NewVBox(e.schedPreview, e.cmdPreview))
+	e.helpContent = helpView()
+	e.helpContent.Hide()
+	e.rightHolder = container.NewStack(e.previewContent, e.helpContent)
+
+	e.rightTitle = sectionHeader("Preview")
+	e.helpToggle = newCursorButton("Help", theme.HelpIcon(), widget.LowImportance, e.toggleHelp)
+	header := container.NewBorder(nil, nil, e.rightTitle, e.helpToggle)
+	return container.NewBorder(header, nil, nil, nil, e.rightHolder)
+}
+
+// toggleHelp swaps the right pane between Preview and Help without rebuilding the
+// form, so inputs and the computed preview persist (FR-005).
+func (e *taskEditor) toggleHelp() {
+	e.helpVisible = !e.helpVisible
+	if e.helpVisible {
+		e.rightTitle.SetText("Help")
+		e.helpToggle.SetText("Preview")
+		e.previewContent.Hide()
+		e.helpContent.Show()
+	} else {
+		e.rightTitle.SetText("Preview")
+		e.helpToggle.SetText("Help")
+		e.helpContent.Hide()
+		e.previewContent.Show()
+	}
+}
+
+// snapshot captures current field values for dirty detection.
+func (e *taskEditor) snapshot() editorSnapshot {
+	return editorSnapshot{
+		name: e.name.Text, command: e.command.Text, args: e.args.Text, tz: e.tz.Text,
+		mode: e.mode.Selected, schedule: e.schedule.Text, startAt: e.startAt.Text,
+		oneOffDate: e.oneOffDate.Text, oneOffTime: e.oneOffTime.Text,
+		overlap: e.overlap.Selected, catchup: e.catchup.Selected,
+	}
+}
+
+// isDirty reports whether any field changed from its baseline at open (FR-011).
+func (e *taskEditor) isDirty() bool { return e.snapshot() != e.baseline }
+
+// requestCancel closes immediately for an untouched form, else confirms first
+// (FR-011/FR-012).
+func (e *taskEditor) requestCancel() {
+	if !e.isDirty() {
+		e.doCancel()
+		return
+	}
+	dialog.NewConfirm("Discard changes?", "You have unsaved changes. Discard them?",
+		func(ok bool) {
+			if ok {
+				e.doCancel()
+			}
+		}, e.app.win).Show()
+}
+
+func (e *taskEditor) doCancel() {
+	if e.cancelHandler != nil {
+		e.cancelHandler()
+	}
 }
 
 // rebuildWhen recomputes the "When" form rows for the current Mode, showing only
@@ -193,7 +278,7 @@ func (e *taskEditor) rebuildWhen() {
 		)
 	} else {
 		e.schedPreview.Show()
-		scheduleRow := container.NewBorder(nil, nil, nil, e.examplesButton(), e.schedule)
+		scheduleRow := container.NewBorder(nil, nil, nil, nil, e.schedule)
 		schedItem := requiredItem("Schedule", scheduleRow)
 		if e.existing != nil {
 			schedItem = widget.NewFormItem("Schedule", scheduleRow) // optional on edit (blank = keep)
@@ -205,7 +290,6 @@ func (e *taskEditor) rebuildWhen() {
 				"Optional anchor for the first cycle, e.g. 09:00"))
 		}
 	}
-	items = append(items, widget.NewFormItem("Preview", e.previewBox))
 	e.whenForm = widget.NewForm(items...)
 	e.whenHolder.Objects = []fyne.CanvasObject{e.whenForm}
 	e.whenHolder.Refresh()
@@ -318,13 +402,31 @@ func (e *taskEditor) fetchSchedulePreview(s string) {
 	fyne.Do(set)
 }
 
+// updateCmdPreview renders the resolved command line as a monospace code block
+// with no prefix (FR-007/FR-008), or muted guidance text when empty.
 func (e *taskEditor) updateCmdPreview() {
 	line := commandLinePreview(e.command.Text, splitArgs(e.args.Text))
 	if line == "" {
-		e.cmdPreview.SetText("Enter a command to see what will run")
-		return
+		e.cmdPreview.Segments = []widget.RichTextSegment{
+			&widget.TextSegment{Style: widget.RichTextStyleInline, Text: "Enter a command to see what will run"},
+		}
+	} else {
+		e.cmdPreview.Segments = []widget.RichTextSegment{
+			&widget.TextSegment{Style: widget.RichTextStyleCodeBlock, Text: line},
+		}
 	}
-	e.cmdPreview.SetText("Will run: " + line)
+	e.cmdPreview.Refresh()
+}
+
+// cmdPreviewString returns the current command-preview text (for tests).
+func (e *taskEditor) cmdPreviewString() string {
+	var b strings.Builder
+	for _, s := range e.cmdPreview.Segments {
+		if ts, ok := s.(*widget.TextSegment); ok {
+			b.WriteString(ts.Text)
+		}
+	}
+	return b.String()
 }
 
 func (e *taskEditor) updateOneOffEcho() {
@@ -436,12 +538,6 @@ func (e *taskEditor) oneOffInstant() (time.Time, error) {
 	return time.ParseInLocation("2006-01-02 15:04", date+" "+tod, loc)
 }
 
-func (e *taskEditor) examplesButton() *cursorButton {
-	return newCursorButton("Examples", theme.HelpIcon(), widget.LowImportance, func() {
-		dialog.ShowCustom("Schedule examples", "Close", scheduleExamples(), e.app.win)
-	})
-}
-
 // datePickerButton opens a graphical month calendar; choosing a day fills the
 // one-off Date field, so the user need not type the date by hand (FR-015).
 func (e *taskEditor) datePickerButton() *cursorButton {
@@ -497,20 +593,42 @@ func nonEmptyValidator(field string) func(string) error {
 	}
 }
 
-func layoutSpacer() fyne.CanvasObject { return widget.NewLabel("") }
+// helpView is the in-modal Help content: a field-by-field guide with examples
+// (FR-004). It replaces the old per-field Examples popup.
+func helpView() fyne.CanvasObject {
+	md := `## Task editor help
 
-func scheduleExamples() fyne.CanvasObject {
-	md := `**Intervals:** every 15 minutes · every 30s · every 2 hours · every 3 days · every week
+**Name** — a label to identify the task. _e.g._ ` + "`nightly-backup`" + `
 
-**Interval with a start anchor (sub-daily only):** every 15 minutes starting at 09:00 · every 2 hours from 8am
+**Command** — the program to run (just the executable, not a full command line).
+_e.g._ ` + "`cmd`" + `, ` + "`python`" + `, ` + "`C:\\Windows\\System32\\notepad.exe`" + `
 
-**Daily with a time:** every day at 09:00
+**Arguments** — one argument per line; each line is passed as a separate argument.
+For ` + "`cmd /c echo hi`" + ` enter ` + "`/c`" + ` on one line and ` + "`echo hi`" + ` on the next.
 
-**Weekday / weekend sets:** weekdays at 9:00 AM · weekends at 18:00
+**Timezone** — ` + "`Local`" + ` or an IANA name (` + "`UTC`" + `, ` + "`America/New_York`" + `).
+Schedules are interpreted here; storage is UTC with DST handled.
 
-**A single weekday:** every monday at 9am
+**Mode** — _Recurring_ fires repeatedly on a Schedule; _One-off_ fires once at a date+time.
 
-**Monthly ordinals:** 3rd wednesday monthly at 14:00 · last friday of the month`
+**Schedule** _(Recurring)_ — a plain-language phrase:
+- Intervals: ` + "`every 15 minutes`" + `, ` + "`every 30s`" + `, ` + "`every 2 hours`" + `, ` + "`every 3 days`" + `, ` + "`every week`" + `
+- Daily with a time: ` + "`every day at 09:00`" + `
+- Weekday/weekend sets: ` + "`weekdays at 9:00 AM`" + `, ` + "`weekends at 18:00`" + `
+- A single weekday: ` + "`every monday at 9am`" + `
+- Monthly ordinals: ` + "`3rd wednesday monthly at 14:00`" + `, ` + "`last friday of the month`" + `
+
+**Start at** _(sub-daily intervals)_ — aligns the first cycle. ` + "`every 15 minutes`" + ` with
+Start at ` + "`09:00`" + ` runs at :00/:15/:30/:45. You can also type it inline:
+` + "`every 15 minutes starting at 09:00`" + `.
+
+**One-off date / time** — pick a future date and time (in the task's timezone); use the calendar
+button to choose the date.
+
+**Overlap** — what to do if a run is still going when the next is due: _Queue one run_ (default),
+_Skip this run_, or _Allow concurrent runs_.
+
+**Catch-up** — after downtime: _Run once to catch up_ (default) or _Skip missed runs_.`
 	r := widget.NewRichTextFromMarkdown(md)
 	r.Wrapping = fyne.TextWrapWord
 	return container.NewVScroll(r)

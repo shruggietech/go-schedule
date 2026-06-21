@@ -54,14 +54,14 @@ func (a *App) buildTriggersTab() fyne.CanvasObject {
 	}
 	a.registerRefresher(load)
 
-	addBtn := widget.NewButtonWithIcon("New Trigger", theme.ContentAddIcon(), func() { a.showTriggerEditor() })
-	delBtn := widget.NewButtonWithIcon("Delete", theme.DeleteIcon(), func() {
+	addBtn := newToolbarButton("New Trigger", theme.ContentAddIcon(), func() { a.showTriggerEditor() })
+	delBtn := newToolbarButton("Delete", theme.DeleteIcon(), func() {
 		if selected >= 0 && selected < len(triggers) {
 			id := triggers[selected].ID
 			a.run(func(ctx context.Context) error { return a.backend.DeleteTrigger(ctx, id) })
 		}
 	})
-	refreshBtn := widget.NewButtonWithIcon("Refresh", theme.ViewRefreshIcon(), load)
+	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), load)
 
 	toolbar := container.NewHBox(addBtn, delBtn, refreshBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, list)

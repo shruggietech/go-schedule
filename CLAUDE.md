@@ -14,7 +14,8 @@ Governing documents:
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
-- Plan: `specs/002-gui-task-editor-ux/plan.md` (GUI task-editor UX overhaul + interval anchor)
+- Plan: `specs/003-gui-editor-refinements/plan.md` (GUI editor refinements: maximized window, two-pane modal + Help, code-block preview, custom collapsible, cancel-confirm, app-wide pointer cursor)
+- Prior: `specs/002-gui-task-editor-ux/plan.md` (GUI task-editor UX overhaul + interval anchor)
 
 Key conventions: internal scheduling in UTC; per-task IANA timezone with DST (next-valid /
 first-occurrence); recurrence via RFC 5545 RRULE (rrule-go) behind a human-readable layer;

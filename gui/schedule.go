@@ -66,7 +66,7 @@ func (a *App) buildScheduleTab() fyne.CanvasObject {
 		load()
 	})
 	rangeSel.SetSelected("7 days")
-	refreshBtn := widget.NewButtonWithIcon("Refresh", theme.ViewRefreshIcon(), load)
+	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), load)
 
 	toolbar := container.NewHBox(widget.NewLabel("Window:"), rangeSel, refreshBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, list)

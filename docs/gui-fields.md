@@ -4,10 +4,14 @@ This page explains every field in the desktop GUI's **New Task** / **Edit Task**
 what it accepts, what's required, and what each option means. It's the GUI counterpart to the
 CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](../specs/001-task-scheduler/contracts/cli.md).
 
-The dialog is grouped into three sections: **What to run** (Name, Command, Arguments), **When**
-(Timezone, Mode, the relevant time field, and the live Preview), and a collapsible **Advanced
-Settings** (Overlap, Catch-up) that starts closed. Required fields are marked with a `*` and the
-**Save** button stays disabled until every required field is valid.
+The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run**
+(Name, Command, Arguments), **When** (Timezone, Mode, the relevant time field), and a collapsible
+**Advanced Settings** (Overlap, Catch-up) that starts closed — its disclosure arrow points ▶ when
+collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a
+**Help** button that swaps it to a field-by-field guide (and back). Required fields are marked with
+a `*`, and the **Save** button (bottom-right, next to **Cancel**) stays disabled until every
+required field is valid. Clicking **Cancel** after you've typed something asks for confirmation
+before discarding.
 
 ## At a glance
 
@@ -29,9 +33,9 @@ Settings** (Overlap, Catch-up) that starts closed. Required fields are marked wi
 Switching Mode keeps whatever you already typed in either field. When editing an existing task,
 leaving the time field blank keeps the task's current schedule.
 
-**Live Preview.** Below the time fields, the Preview shows two things at once: a plain-language
-summary of the schedule with the next few run times, and a **"Will run:"** line showing the exact
-command and arguments as they will be invoked.
+**Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of
+the schedule with the next few run times, and the exact command and arguments as they will be
+invoked, rendered as a monospace code block.
 
 **Overlap and Catch-up** are shown with friendly labels but stored as the same underlying policy
 values (`queue_one`/`skip`/`allow_concurrent` and `one`/`none`) used by the CLI and API.
@@ -104,9 +108,10 @@ Hours are 0–23, minutes 0–59.
 > interval, so `every 15 minutes at 09:00` is **rejected**. The `at <time>` clause is only valid
 > for daily-or-coarser schedules (`every day`, `weekdays`, `every monday`, monthly ordinals).
 
-As you type a valid Schedule, the **Preview** row fills in with a plain-English summary plus the
-next few run times — a quick way to confirm your phrase parsed the way you meant. A **Examples**
-button next to the field opens the full list of supported phrasings.
+As you type a valid Schedule, the **Preview** pane fills in with a plain-English summary plus the
+next few run times — a quick way to confirm your phrase parsed the way you meant. The **Help**
+button (top of the right pane) shows the full list of supported phrasings and a guide to every
+field.
 
 ### Start at *(sub-daily intervals only)*
 
