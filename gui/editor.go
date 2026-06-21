@@ -363,7 +363,7 @@ func (e *taskEditor) updatePreview() {
 	}
 	s := e.effectiveSchedule()
 	if s == "" {
-		e.schedPreview.SetText("Type a schedule above to see upcoming runs")
+		e.schedPreview.SetText("Type a schedule to see upcoming runs")
 		return
 	}
 	if _, err := schedule.Parse(s, e.tzName(), time.Now()); err != nil {
