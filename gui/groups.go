@@ -9,9 +9,9 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/task"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/task"
 )
 
 // buildGroupsTab renders the group hierarchy as a tree with enable/disable and
@@ -85,9 +85,8 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 			}, a.win)
 		}
 	})
-	refreshBtn := newToolbarButton("Refresh", theme.ViewRefreshIcon(), func() { a.refreshAll() })
-
-	toolbar := container.NewHBox(addBtn, toggleBtn, delBtn, refreshBtn)
+	// No manual Refresh: the view updates live from the event stream (FR-023).
+	toolbar := container.NewHBox(addBtn, toggleBtn, delBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, tree)
 }
 

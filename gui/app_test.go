@@ -2,12 +2,16 @@ package gui
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/events"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
+
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 // fakeBackend implements Backend with in-memory data for headless UI tests.
@@ -15,7 +19,7 @@ type fakeBackend struct {
 	tasks      []domain.Task
 	groups     []domain.Group
 	alerts     []domain.Alert
-	triggers   []domain.Trigger
+	logs       []domain.LogRecord
 	created    int
 	lastCreate server.TaskCreateRequest
 }
@@ -26,6 +30,9 @@ func (f *fakeBackend) ListTasks(context.Context, string, string) ([]domain.Task,
 func (f *fakeBackend) ListGroups(context.Context) ([]domain.Group, error) { return f.groups, nil }
 func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
 	return f.alerts, nil
+}
+func (f *fakeBackend) ListLogs(context.Context, string, int) ([]domain.LogRecord, error) {
+	return f.logs, nil
 }
 func (f *fakeBackend) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
 	f.created++
@@ -46,12 +53,7 @@ func (f *fakeBackend) CreateGroup(context.Context, server.GroupCreateRequest) (d
 }
 func (f *fakeBackend) SetGroupEnabled(context.Context, string, bool) error { return nil }
 func (f *fakeBackend) DeleteGroup(context.Context, string) error           { return nil }
-func (f *fakeBackend) CreateTrigger(context.Context, server.TriggerCreateRequest) (domain.Trigger, error) {
-	return domain.Trigger{}, nil
-}
-func (f *fakeBackend) ListTriggers(context.Context) ([]domain.Trigger, error) { return f.triggers, nil }
-func (f *fakeBackend) DeleteTrigger(context.Context, string) error            { return nil }
-func (f *fakeBackend) AckAlert(context.Context, string) error                 { return nil }
+func (f *fakeBackend) AckAlert(context.Context, string) error              { return nil }
 func (f *fakeBackend) GetCalendar(context.Context, time.Time, time.Time) (server.CalendarResponse, error) {
 	return server.CalendarResponse{}, nil
 }
@@ -67,7 +69,7 @@ func TestUI_BuildsAllTabs(t *testing.T) {
 		alerts: []domain.Alert{{ID: "a1", Kind: domain.AlertRunFailed, Message: "boom"}},
 	})
 
-	want := []string{"Tasks", "Schedule", "Groups", "Triggers", "Alerts"}
+	want := []string{"Tasks", "Schedule", "Groups", "Logs"}
 	if len(ui.tabs.Items) != len(want) {
 		t.Fatalf("want %d tabs, got %d", len(want), len(ui.tabs.Items))
 	}
@@ -75,6 +77,38 @@ func TestUI_BuildsAllTabs(t *testing.T) {
 		if ui.tabs.Items[i].Text != w {
 			t.Fatalf("tab %d = %q, want %q", i, ui.tabs.Items[i].Text, w)
 		}
+	}
+}
+
+func TestUI_WindowTitleIsBranded(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	if got := ui.win.Title(); got != "go-schedule" {
+		t.Fatalf("window title = %q, want %q", got, "go-schedule")
+	}
+}
+
+func TestUI_NoRefreshControls(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	// Walk the whole object tree; no button/label should read "Refresh" (FR-023).
+	var walk func(o fyne.CanvasObject)
+	walk = func(o fyne.CanvasObject) {
+		switch w := o.(type) {
+		case *cursorButton:
+			if strings.Contains(w.Text, "Refresh") {
+				t.Errorf("found a Refresh control: %q", w.Text)
+			}
+		case *widget.Button:
+			if strings.Contains(w.Text, "Refresh") {
+				t.Errorf("found a Refresh button: %q", w.Text)
+			}
+		case *fyne.Container:
+			for _, c := range w.Objects {
+				walk(c)
+			}
+		}
+	}
+	for _, tab := range ui.tabs.Items {
+		walk(tab.Content)
 	}
 }
 
@@ -87,14 +121,14 @@ func TestUI_TaskEditorBuilds(t *testing.T) {
 	}
 }
 
-func TestUI_AlertBadgeReflectsUnacked(t *testing.T) {
+func TestUI_LogsBadgeReflectsUnacked(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
 	// Drive the badge synchronously: the production OnChange marshals through
 	// fyne.Do on another goroutine, which would race with the assertion below.
 	ui.model.OnChange = nil
 	ui.model.ApplyEvent(events.Event{Kind: events.KindAlert, Alert: &domain.Alert{ID: "x", Acknowledged: false}})
-	ui.updateAlertBadge()
-	if ui.alertsTab.Text != "Alerts (1)" {
-		t.Fatalf("alert badge = %q, want Alerts (1)", ui.alertsTab.Text)
+	ui.updateLogsBadge()
+	if ui.logsTab.Text != "Logs (1)" {
+		t.Fatalf("logs badge = %q, want Logs (1)", ui.logsTab.Text)
 	}
 }

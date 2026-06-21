@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/executor"
-	"github.com/shruggietech/go-scheduler/internal/schedule"
-	"github.com/shruggietech/go-scheduler/internal/timezone"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/executor"
+	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // TaskUpdateRequest carries optional task fields. Empty/nil fields are left
@@ -130,5 +130,6 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.reload()
+	s.publishTaskUpdated(task.ID)
 	writeJSON(w, http.StatusOK, s.taskDetail(task, sch, now))
 }

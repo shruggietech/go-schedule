@@ -3,7 +3,7 @@
 // over this transport, so neither a TCP port nor network exposure is required.
 package ipc
 
-import "github.com/shruggietech/go-scheduler/internal/config"
+import "github.com/shruggietech/go-schedule/internal/config"
 
 // Endpoint resolves the IPC endpoint (socket path or pipe name) from config,
 // falling back to the platform default when unset.

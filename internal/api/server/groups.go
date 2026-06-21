@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 // GroupCreateRequest is the body for POST /v1/groups.
@@ -38,6 +38,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.reload()
+	s.publishGroupCreated(*g)
 	writeJSON(w, http.StatusCreated, g)
 }
 
@@ -100,15 +101,18 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
+	s.publishGroupUpdated(id)
 	writeJSON(w, http.StatusOK, g)
 }
 
 func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
-	if err := s.store.DeleteGroup(r.PathValue("id")); err != nil {
+	id := r.PathValue("id")
+	if err := s.store.DeleteGroup(id); err != nil {
 		s.notFoundOr(w, err)
 		return
 	}
 	s.reload()
+	s.publishGroupDeleted(id)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -121,11 +125,13 @@ func (s *Server) handleDisableGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) setGroupEnabled(w http.ResponseWriter, r *http.Request, enabled bool) {
-	if err := s.store.SetGroupEnabled(r.PathValue("id"), enabled); err != nil {
+	id := r.PathValue("id")
+	if err := s.store.SetGroupEnabled(id, enabled); err != nil {
 		s.notFoundOr(w, err)
 		return
 	}
 	s.reload() // cascade affects which tasks are eligible to run
+	s.publishGroupUpdated(id)
 	w.WriteHeader(http.StatusNoContent)
 }
 

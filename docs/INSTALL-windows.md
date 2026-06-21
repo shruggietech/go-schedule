@@ -1,80 +1,81 @@
-# Installing go-scheduler on Windows
+# Installing go-schedule on Windows
 
-## Quick start (desktop) — one download
+go-schedule installs as a **formal Windows application** via an `.msi` package. It puts the program
+in *Program Files*, runs the scheduler as an auto-starting **Windows service**, and adds a
+Start-Menu shortcut. There is no "extract a zip and run an exe from Downloads" step.
 
-1. From the [latest release](https://github.com/shruggietech/go-scheduler/releases/latest),
-   download **`go-scheduler-desktop_<ver>_windows_amd64.zip`**. It is self-contained — it
-   includes the GUI **and** the daemon and CLI:
+## Install
 
-   ```
-   gosched-gui.exe   # the desktop app
-   goschedd.exe      # the background daemon (started automatically)
-   gosched.exe       # the command-line tool (optional)
-   ```
+1. From the [latest release](https://github.com/shruggietech/go-schedule/releases/latest),
+   download **`go-schedule_<ver>_windows_amd64.msi`**.
 
 2. (Recommended) Verify the download against `SHA256SUMS.txt`:
 
    ```powershell
-   Get-FileHash .\go-scheduler-desktop_*_windows_amd64.zip -Algorithm SHA256
+   Get-FileHash .\go-schedule_*_windows_amd64.msi -Algorithm SHA256
    ```
 
-3. Extract the zip (keep all three `.exe` files together in one folder).
+3. **Double-click the `.msi`** and complete the wizard. Windows will prompt for administrator
+   approval (UAC) — this is required because the installer registers a system service. Approve it.
 
-4. **Run `gosched-gui.exe`.** That's it — the GUI starts the background daemon automatically the
-   first time it can't find one running, so there's no setup. No console window appears.
+That's it. The installer:
 
-The background daemon keeps running after you close the window, so your scheduled tasks keep
-firing. To stop it, use Task Manager (end `goschedd.exe`) or `.\gosched.exe service stop` if you
-installed it as a service (below).
+- installs `gosched-gui.exe`, `goschedd.exe`, and `gosched.exe` to
+  `C:\Program Files\go-schedule\`;
+- registers **`goschedd`** as a Windows service set to **start automatically** (so your tasks run
+  in the background and survive reboots, even with no one logged in);
+- adds a **go-schedule** shortcut to the Start Menu.
 
-## Start on boot (optional)
+Launch **go-schedule** from the Start Menu to open the desktop app. It connects to the already-
+running service (it does not start a second copy) and never shows a console window.
 
-The auto-started daemon runs until the machine is restarted. If you want your tasks to keep
-running **across reboots without anyone logging in**, install it as a Windows service. Open
-**PowerShell as Administrator**, `cd` into the folder, then:
+> Data location: tasks and logs live under `C:\ProgramData\goschedule\` (the database
+> `goschedule.db` and the `logs\` folder). This is created automatically on first run.
 
-```powershell
-.\gosched.exe service install     # registers the Windows service (admin required)
-.\gosched.exe service start
-.\gosched.exe service status      # expect: running
-```
+## Upgrading
 
-Once the service is installed, the GUI detects it and reuses it (it won't start a second
-daemon — a single-instance lock prevents that).
+Download the newer `.msi` and run it — it performs an in-place major upgrade (the old version is
+removed and the new one installed). Your data under `C:\ProgramData\goschedule\` is preserved.
 
 ## Using the CLI (optional)
 
-```powershell
-.\gosched.exe health              # daemon ok (version ...)
-
-# A recurring task (quote the schedule)
-.\gosched.exe task add backup --command "C:\Windows\System32\cmd.exe" --arg "/c" --arg "echo backup" --schedule "every weekday at 09:00"
-
-# A one-off reminder
-.\gosched.exe task add bday --command "C:\Windows\System32\cmd.exe" --arg "/c" --arg "echo happy birthday" --at "2026-08-04T09:00:00Z"
-
-.\gosched.exe task list
-.\gosched.exe runs                # run history
-.\gosched.exe alerts --unacked    # overlaps, failures, missed runs
-```
-
-## Removing it
+The CLI is installed alongside the app. Open PowerShell:
 
 ```powershell
-.\gosched.exe service stop
-.\gosched.exe service uninstall   # admin required (only if you installed the service)
+& "C:\Program Files\go-schedule\gosched.exe" health
+& "C:\Program Files\go-schedule\gosched.exe" service status   # expect: running
+
+# A recurring task
+& "C:\Program Files\go-schedule\gosched.exe" task add backup `
+  --command "C:\Windows\System32\cmd.exe" --arg "/c" --arg "echo backup" `
+  --schedule "every weekday at 09:00"
+
+& "C:\Program Files\go-schedule\gosched.exe" task list
+& "C:\Program Files\go-schedule\gosched.exe" logs --severity error   # recent error logs
 ```
 
-Then delete the folder.
+(Add `C:\Program Files\go-schedule\` to your `PATH` to drop the full path.)
+
+## Uninstalling
+
+Use **Settings → Apps → Installed apps → go-schedule → Uninstall** (or *Apps & features*). This
+stops and removes the service, deletes the program files, and removes the Start-Menu shortcut.
+
+Your data under `C:\ProgramData\goschedule\` is **left in place** so a later reinstall keeps your
+tasks. To remove it completely, delete that folder manually after uninstalling:
+
+```powershell
+Remove-Item -Recurse -Force "C:\ProgramData\goschedule"
+```
 
 ## Troubleshooting
 
-- **The GUI opens but shows nothing / "daemon unreachable"** → the daemon didn't start. Make
-  sure `goschedd.exe` is in the same folder as `gosched-gui.exe`. You can start it manually with
-  `.\gosched.exe service start` (if installed) or just rerun `gosched-gui.exe`.
-- **`service install` fails with an access/privilege error** → run PowerShell **as
-  Administrator**.
-- **SmartScreen / antivirus warning** → these binaries are unsigned. Verify the SHA-256 hash and
-  allow it if it matches.
-- **Tasks aren't running after a reboot** → the auto-started daemon does not survive reboots;
-  install the service (see *Start on boot*) for that.
+- **UAC / "Do you want to allow this app to make changes?"** → expected; the service install needs
+  elevation. If you decline, the install cancels cleanly (nothing is partially installed).
+- **SmartScreen / antivirus warning** → the installer is currently unsigned. Verify the SHA-256
+  hash against `SHA256SUMS.txt` and choose *More info → Run anyway* if it matches.
+- **The GUI opens but says "daemon unreachable"** → check the service:
+  `& "C:\Program Files\go-schedule\gosched.exe" service status`. Start it with
+  `service start` if needed (run PowerShell as Administrator).
+- **Where are the logs?** → `C:\ProgramData\goschedule\logs\goschedule.log` (and rotated
+  siblings), or open the **Logs** view in the app.

@@ -10,8 +10,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/ipc"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
 // Client talks to the daemon over the IPC endpoint.

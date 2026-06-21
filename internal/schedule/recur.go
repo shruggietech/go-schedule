@@ -10,8 +10,8 @@ import (
 
 	"github.com/teambition/rrule-go"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/timezone"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // NewOneOff builds a one-off schedule that fires once at runAt (stored UTC).

@@ -1,4 +1,4 @@
-# go-scheduler — developer tasks
+# go-schedule — developer tasks
 # The GUI binary (gosched-gui) requires a C toolchain + OpenGL (Fyne); the daemon
 # and CLI are cgo-free. Targets below operate on the whole module.
 

@@ -9,8 +9,8 @@ import (
 
 	"github.com/teambition/rrule-go"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/timezone"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // anchorTOD is a parsed "starting at"/"from" anchor time-of-day for a sub-daily

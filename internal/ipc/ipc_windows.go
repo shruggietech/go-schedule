@@ -9,7 +9,7 @@ import (
 
 	"github.com/Microsoft/go-winio"
 
-	"github.com/shruggietech/go-scheduler/internal/config"
+	"github.com/shruggietech/go-schedule/internal/config"
 )
 
 func defaultEndpoint(_ config.Config) string {

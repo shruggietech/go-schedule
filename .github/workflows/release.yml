@@ -25,29 +25,24 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME}"
-          LDFLAGS="-s -w -X github.com/shruggietech/go-scheduler/internal/buildinfo.Version=${VERSION}"
+          LDFLAGS="-s -w -X github.com/shruggietech/go-schedule/internal/buildinfo.Version=${VERSION}"
           mkdir -p dist
 
           # The daemon (goschedd) and CLI (gosched) are cgo-free and cross-compile
-          # cleanly. The desktop GUI (gosched-gui) requires a per-OS native build
-          # (Fyne/OpenGL) and is not part of these cross-compiled archives yet.
-          targets="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"
+          # cleanly for Linux/macOS (servers / headless). Windows is distributed
+          # exclusively as a formal .msi (built in the gui job), so it is NOT
+          # cross-compiled into a portable archive here.
+          targets="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64"
           for target in $targets; do
             os=${target%/*}; arch=${target#*/}
-            ext=""; [ "$os" = "windows" ] && ext=".exe"
 
-            stage="go-scheduler_${VERSION}_${os}_${arch}"
+            stage="go-schedule_${VERSION}_${os}_${arch}"
             mkdir -p "$stage"
             echo "==> $os/$arch"
-            GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o "$stage/goschedd${ext}" ./cmd/goschedd
-            GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o "$stage/gosched${ext}" ./cmd/gosched
+            GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o "$stage/goschedd" ./cmd/goschedd
+            GOOS=$os GOARCH=$arch go build -ldflags "$LDFLAGS" -o "$stage/gosched" ./cmd/gosched
             cp README.md LICENSE CHANGELOG.md "$stage/"
-
-            if [ "$os" = "windows" ]; then
-              zip -qr "dist/${stage}.zip" "$stage"
-            else
-              tar -czf "dist/${stage}.tar.gz" "$stage"
-            fi
+            tar -czf "dist/${stage}.tar.gz" "$stage"
             rm -rf "$stage"
           done
 
@@ -60,25 +55,28 @@ jobs:
           name: ${{ github.ref_name }}
           generate_release_notes: true
           body: |
-            Cross-platform **go-scheduler**.
+            Cross-platform **go-schedule**.
 
-            **Desktop users — download `go-scheduler-desktop_<os>_<arch>`.** It is
-            self-contained (GUI + daemon + CLI). Just run `gosched-gui` — it starts the
-            background daemon automatically the first time, no setup required.
+            **Windows — download `go-schedule_<ver>_windows_amd64.msi`.** A formal system
+            installer: it installs to Program Files, registers the background service
+            (auto-start), and adds a Start-Menu shortcut. No extracting, no running an exe
+            from Downloads. Uninstall via Apps & features.
 
-            **Servers / headless — download `go-scheduler_<os>_<arch>`** (daemon + CLI only).
-            Register it to start on boot:
+            **macOS desktop — download `go-schedule-desktop_<ver>_darwin_<arch>`** (GUI +
+            daemon + CLI). **Linux/macOS servers / headless — download
+            `go-schedule_<ver>_<os>_<arch>`** (daemon + CLI only). Register it to start on
+            boot:
 
             ```
             sudo ./gosched service install   # admin/root required
             sudo ./gosched service start
             ```
 
-            Verify downloads against `SHA256SUMS.txt`. See the README for details and the
-            Windows install guide.
+            Verify downloads against `SHA256SUMS.txt`. See the README and the Windows install
+            guide for details.
           files: |
             dist/*.tar.gz
-            dist/*.zip
+            dist/*.msi
             dist/SHA256SUMS.txt
 
   gui:
@@ -132,6 +130,14 @@ jobs:
             -o=cmd/gosched-gui/resource_windows_amd64.syso \
             cmd/gosched-gui/versioninfo.json
 
+      # WiX v5 builds the Windows .msi from build/windows/goschedule.wxs.
+      - name: Install WiX Toolset (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          dotnet tool install --global wix --version 5.*
+          wix --version
+
       - name: Build the self-contained desktop bundle (GUI + daemon + CLI)
         shell: bash
         env:
@@ -140,8 +146,8 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          BASE="-s -w -X github.com/shruggietech/go-scheduler/internal/buildinfo.Version=${VERSION}"
-          stage="go-scheduler-desktop_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          BASE="-s -w -X github.com/shruggietech/go-schedule/internal/buildinfo.Version=${VERSION}"
+          stage="go-schedule-desktop_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p "$stage"
           # GUI: windowless on Windows. It auto-starts the daemon if none is running.
           go build -ldflags "$BASE ${{ matrix.ldflags }}" -o "$stage/gosched-gui${{ matrix.ext }}" ./cmd/gosched-gui
@@ -176,10 +182,10 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>CFBundleName</key><string>go-scheduler</string>
-            <key>CFBundleDisplayName</key><string>go-scheduler</string>
+            <key>CFBundleName</key><string>go-schedule</string>
+            <key>CFBundleDisplayName</key><string>go-schedule</string>
             <key>CFBundleExecutable</key><string>gosched-gui</string>
-            <key>CFBundleIdentifier</key><string>tech.shruggie.goscheduler</string>
+            <key>CFBundleIdentifier</key><string>tech.shruggie.goschedule</string>
             <key>CFBundleShortVersionString</key><string>${VERSION#v}</string>
             <key>CFBundleIconFile</key><string>icon.icns</string>
             <key>CFBundlePackageType</key><string>APPL</string>
@@ -190,7 +196,14 @@ jobs:
           fi
           mkdir -p dist
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            7z a "dist/${stage}.zip" "$stage" >/dev/null
+            # Windows ships ONLY as a formal .msi (no portable zip). The three exes
+            # were built into "$stage"; hand that folder to WiX as the stage dir.
+            pwsh build/windows/verify_wxs.ps1 -StageDir "$stage"
+            VER_NUMERIC="${VERSION#v}"
+            wix build build/windows/goschedule.wxs -arch x64 \
+              -d Version="${VER_NUMERIC}" \
+              -d StageDir="$(pwd -W 2>/dev/null || pwd)/${stage}" \
+              -o "dist/go-schedule_${VERSION}_windows_amd64.msi"
           else
             tar -czf "dist/${stage}.tar.gz" "$stage"
           fi

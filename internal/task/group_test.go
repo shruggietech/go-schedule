@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // Hierarchy: root -> child -> leaf, plus a sibling "other".

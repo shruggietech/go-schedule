@@ -13,7 +13,7 @@ import (
 
 const (
 	svcName        = "goschedd"
-	svcDisplayName = "go-scheduler"
+	svcDisplayName = "go-schedule"
 	svcDescription = "Cross-platform task scheduler daemon"
 )
 

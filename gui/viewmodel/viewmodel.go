@@ -8,8 +8,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/events"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 // API is the subset of the API client the view-model needs (injectable for tests).
@@ -17,6 +17,7 @@ type API interface {
 	ListTasks(ctx context.Context, group, state string) ([]domain.Task, error)
 	ListGroups(ctx context.Context) ([]domain.Group, error)
 	ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, error)
+	ListLogs(ctx context.Context, severity string, limit int) ([]domain.LogRecord, error)
 }
 
 // State is a snapshot of what the GUI displays.
@@ -24,10 +25,14 @@ type State struct {
 	Tasks      []domain.Task
 	Groups     []domain.Group
 	Alerts     []domain.Alert
+	Logs       []domain.LogRecord
 	RecentRuns []domain.Run
 }
 
-const maxRecentRuns = 50
+const (
+	maxRecentRuns = 50
+	maxLogs       = 1000
+)
 
 // Model owns the GUI state and refreshes it from the API.
 type Model struct {
@@ -63,10 +68,15 @@ func (m *Model) Refresh(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	logs, err := m.api.ListLogs(ctx, "", maxLogs)
+	if err != nil {
+		return err
+	}
 	m.mu.Lock()
 	m.st.Tasks = tasks
 	m.st.Groups = groups
 	m.st.Alerts = alerts
+	m.st.Logs = logs
 	m.mu.Unlock()
 	m.notify()
 	return nil
@@ -88,6 +98,22 @@ func (m *Model) ApplyEvent(e events.Event) {
 				runs = runs[:maxRecentRuns]
 			}
 			m.st.RecentRuns = runs
+		}
+	case events.KindLog:
+		if e.Log != nil && !containsLog(m.st.Logs, e.Log.ID) {
+			logs := append([]domain.LogRecord{*e.Log}, m.st.Logs...)
+			if len(logs) > maxLogs {
+				logs = logs[:maxLogs]
+			}
+			m.st.Logs = logs
+		}
+	case events.KindTask:
+		if e.Task != nil {
+			m.st.Tasks = applyTaskEvent(m.st.Tasks, e.Task)
+		}
+	case events.KindGroup:
+		if e.Group != nil {
+			m.st.Groups = applyGroupEvent(m.st.Groups, e.Group)
 		}
 	}
 	m.mu.Unlock()
@@ -120,4 +146,60 @@ func containsAlert(alerts []domain.Alert, id string) bool {
 		}
 	}
 	return false
+}
+
+func containsLog(logs []domain.LogRecord, id string) bool {
+	for _, l := range logs {
+		if l.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// applyTaskEvent folds a task change into the slice: upsert on created/updated,
+// remove on deleted. A nil Task on update is ignored (a Refresh will reconcile).
+func applyTaskEvent(tasks []domain.Task, ev *events.TaskEvent) []domain.Task {
+	if ev.Verb == events.VerbDeleted {
+		out := tasks[:0]
+		for _, t := range tasks {
+			if t.ID != ev.ID {
+				out = append(out, t)
+			}
+		}
+		return out
+	}
+	if ev.Task == nil {
+		return tasks
+	}
+	for i, t := range tasks {
+		if t.ID == ev.ID {
+			tasks[i] = *ev.Task
+			return tasks
+		}
+	}
+	return append([]domain.Task{*ev.Task}, tasks...)
+}
+
+// applyGroupEvent folds a group change into the slice (upsert/remove).
+func applyGroupEvent(groups []domain.Group, ev *events.GroupEvent) []domain.Group {
+	if ev.Verb == events.VerbDeleted {
+		out := groups[:0]
+		for _, g := range groups {
+			if g.ID != ev.ID {
+				out = append(out, g)
+			}
+		}
+		return out
+	}
+	if ev.Group == nil {
+		return groups
+	}
+	for i, g := range groups {
+		if g.ID == ev.ID {
+			groups[i] = *ev.Group
+			return groups
+		}
+	}
+	return append([]domain.Group{*ev.Group}, groups...)
 }

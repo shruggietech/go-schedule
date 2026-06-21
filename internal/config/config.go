@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/platform"
+	"github.com/shruggietech/go-schedule/internal/platform"
 )
 
 // Config is the complete, documented configuration for the daemon. All fields
@@ -35,6 +35,14 @@ type Config struct {
 	OutputCapBytes int `json:"output_cap_bytes"`
 	// WorkerPoolSize bounds concurrent task executions.
 	WorkerPoolSize int `json:"worker_pool_size"`
+	// LogFilePath is the on-disk JSONL log file. Empty => <DataDir>/logs/goschedule.log.
+	LogFilePath string `json:"log_file_path"`
+	// LogMaxSizeBytes is the rotation threshold per log file.
+	LogMaxSizeBytes int `json:"log_max_size_bytes"`
+	// LogMaxFiles is the number of rotated log files retained (bounds disk use).
+	LogMaxFiles int `json:"log_max_files"`
+	// LogRingSize is the number of recent records kept in memory for GET /v1/logs.
+	LogRingSize int `json:"log_ring_size"`
 }
 
 // Default returns the built-in configuration.
@@ -49,11 +57,22 @@ func Default() Config {
 		LogFormat:       "json",
 		OutputCapBytes:  1 << 20, // 1 MiB
 		WorkerPoolSize:  16,
+		LogMaxSizeBytes: 10 << 20, // 10 MiB
+		LogMaxFiles:     5,
+		LogRingSize:     1000,
 	}
 }
 
 // DBPath returns the database file path derived from DataDir.
-func (c Config) DBPath() string { return filepath.Join(c.DataDir, "goscheduler.db") }
+func (c Config) DBPath() string { return filepath.Join(c.DataDir, "goschedule.db") }
+
+// LogPath returns the resolved log file path (LogFilePath or the DataDir default).
+func (c Config) LogPath() string {
+	if c.LogFilePath != "" {
+		return c.LogFilePath
+	}
+	return filepath.Join(c.DataDir, "logs", "goschedule.log")
+}
 
 var (
 	validLevels  = map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
@@ -77,6 +96,15 @@ func (c Config) Validate() error {
 	}
 	if c.WorkerPoolSize <= 0 {
 		return fmt.Errorf("config: worker_pool_size must be positive, got %d", c.WorkerPoolSize)
+	}
+	if c.LogMaxSizeBytes <= 0 {
+		return fmt.Errorf("config: log_max_size_bytes must be positive, got %d", c.LogMaxSizeBytes)
+	}
+	if c.LogMaxFiles <= 0 {
+		return fmt.Errorf("config: log_max_files must be positive, got %d", c.LogMaxFiles)
+	}
+	if c.LogRingSize <= 0 {
+		return fmt.Errorf("config: log_ring_size must be positive, got %d", c.LogRingSize)
 	}
 	if err := validateTimezone(c.DefaultTimezone); err != nil {
 		return err

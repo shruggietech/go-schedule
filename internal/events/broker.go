@@ -7,7 +7,7 @@ package events
 import (
 	"sync"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // Kind classifies an event.
@@ -16,13 +16,42 @@ type Kind string
 const (
 	KindRun   Kind = "run"
 	KindAlert Kind = "alert"
+	KindLog   Kind = "log"
+	KindTask  Kind = "task"
+	KindGroup Kind = "group"
 )
+
+// Verb describes a change to an entity in a task/group event.
+type Verb string
+
+const (
+	VerbCreated Verb = "created"
+	VerbUpdated Verb = "updated"
+	VerbDeleted Verb = "deleted"
+)
+
+// TaskEvent describes a task change. Task is nil for deletions (only ID is set).
+type TaskEvent struct {
+	Verb Verb         `json:"verb"`
+	ID   string       `json:"id"`
+	Task *domain.Task `json:"task,omitempty"`
+}
+
+// GroupEvent describes a group change. Group is nil for deletions (only ID set).
+type GroupEvent struct {
+	Verb  Verb          `json:"verb"`
+	ID    string        `json:"id"`
+	Group *domain.Group `json:"group,omitempty"`
+}
 
 // Event is a single notification delivered to subscribers.
 type Event struct {
-	Kind  Kind          `json:"kind"`
-	Run   *domain.Run   `json:"run,omitempty"`
-	Alert *domain.Alert `json:"alert,omitempty"`
+	Kind  Kind              `json:"kind"`
+	Run   *domain.Run       `json:"run,omitempty"`
+	Alert *domain.Alert     `json:"alert,omitempty"`
+	Log   *domain.LogRecord `json:"log,omitempty"`
+	Task  *TaskEvent        `json:"task,omitempty"`
+	Group *GroupEvent       `json:"group,omitempty"`
 }
 
 // Broker fans out events to all current subscribers.
@@ -74,6 +103,19 @@ func (b *Broker) PublishRun(r domain.Run) { b.Publish(Event{Kind: KindRun, Run: 
 
 // PublishAlert is a convenience for alert events.
 func (b *Broker) PublishAlert(a domain.Alert) { b.Publish(Event{Kind: KindAlert, Alert: &a}) }
+
+// PublishLog is a convenience for log events (satisfies logbus.Publisher).
+func (b *Broker) PublishLog(r domain.LogRecord) { b.Publish(Event{Kind: KindLog, Log: &r}) }
+
+// PublishTask is a convenience for task-change events.
+func (b *Broker) PublishTask(verb Verb, id string, t *domain.Task) {
+	b.Publish(Event{Kind: KindTask, Task: &TaskEvent{Verb: verb, ID: id, Task: t}})
+}
+
+// PublishGroup is a convenience for group-change events.
+func (b *Broker) PublishGroup(verb Verb, id string, g *domain.Group) {
+	b.Publish(Event{Kind: KindGroup, Group: &GroupEvent{Verb: verb, ID: id, Group: g}})
+}
 
 // SubscriberCount reports the number of active subscribers (for tests/metrics).
 func (b *Broker) SubscriberCount() int {

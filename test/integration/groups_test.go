@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/clock"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/engine"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/clock"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/engine"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 // TestGroups_NestingAndCascade covers US3: a 3-level group hierarchy, and that

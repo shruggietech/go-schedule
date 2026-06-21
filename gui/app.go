@@ -1,4 +1,4 @@
-// Package gui implements the go-scheduler desktop GUI with Fyne. Its widget
+// Package gui implements the go-schedule desktop GUI with Fyne. Its widget
 // construction is cgo-free (Fyne's headless test driver renders without OpenGL),
 // so the UI is unit-tested here; only the real windowed application entry point
 // (cmd/gosched-gui) imports the GL driver and requires cgo.
@@ -15,10 +15,10 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 
-	"github.com/shruggietech/go-scheduler/gui/viewmodel"
-	"github.com/shruggietech/go-scheduler/internal/api/server"
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/events"
+	"github.com/shruggietech/go-schedule/gui/viewmodel"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 // Backend is everything the GUI needs from the daemon. The API client satisfies
@@ -37,10 +37,6 @@ type Backend interface {
 	SetGroupEnabled(ctx context.Context, id string, enabled bool) error
 	DeleteGroup(ctx context.Context, id string) error
 
-	CreateTrigger(ctx context.Context, req server.TriggerCreateRequest) (domain.Trigger, error)
-	ListTriggers(ctx context.Context) ([]domain.Trigger, error)
-	DeleteTrigger(ctx context.Context, id string) error
-
 	AckAlert(ctx context.Context, id string) error
 	GetCalendar(ctx context.Context, from, to time.Time) (server.CalendarResponse, error)
 	StreamEvents(ctx context.Context, onEvent func(events.Event)) error
@@ -54,7 +50,7 @@ type App struct {
 	model   *viewmodel.Model
 
 	tabs       *container.AppTabs
-	alertsTab  *container.TabItem
+	logsTab    *container.TabItem
 	refreshers []func()
 }
 
@@ -67,7 +63,7 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 		model:   viewmodel.New(backend),
 	}
 	fyneApp.SetIcon(appIcon)
-	a.win = fyneApp.NewWindow("go-scheduler")
+	a.win = fyneApp.NewWindow("go-schedule")
 	a.win.SetIcon(windowIcon) // crisp small tile for the title bar (see icon.go)
 	// Open at the screen work area (maximized appearance), respecting the taskbar
 	// (FR-001). Falls back to a generous size where the work area is unknown.
@@ -85,10 +81,9 @@ func (a *App) buildRoot() fyne.CanvasObject {
 		container.NewTabItem("Tasks", a.buildTasksTab()),
 		container.NewTabItem("Schedule", a.buildScheduleTab()),
 		container.NewTabItem("Groups", a.buildGroupsTab()),
-		container.NewTabItem("Triggers", a.buildTriggersTab()),
 	)
-	a.alertsTab = container.NewTabItem("Alerts", a.buildAlertsTab())
-	a.tabs.Append(a.alertsTab)
+	a.logsTab = container.NewTabItem("Logs", a.buildLogsTab())
+	a.tabs.Append(a.logsTab)
 	a.tabs.SetTabLocation(container.TabLocationLeading)
 	return a.tabs
 }
@@ -129,26 +124,31 @@ func (a *App) streamEvents() {
 			return
 		}
 		time.Sleep(2 * time.Second) // reconnect backoff
+		// Re-sync from scratch before resuming the stream so any events missed
+		// while disconnected are reconciled (FR-024). Folding is idempotent.
+		a.refreshAll()
 	}
 }
 
-// onModelChange refreshes the alert badge and alert list when state changes.
+// onModelChange refreshes the logs badge and every tab's view when state changes.
 func (a *App) onModelChange() {
-	a.updateAlertBadge()
+	a.updateLogsBadge()
 	for _, r := range a.refreshers {
 		r()
 	}
 }
 
-func (a *App) updateAlertBadge() {
-	if a.alertsTab == nil {
+// updateLogsBadge shows the count of unacknowledged alerts (the actionable
+// subset of logs) on the Logs tab.
+func (a *App) updateLogsBadge() {
+	if a.logsTab == nil {
 		return
 	}
 	n := a.model.UnacknowledgedAlerts()
 	if n > 0 {
-		a.alertsTab.Text = "Alerts (" + itoa(n) + ")"
+		a.logsTab.Text = "Logs (" + itoa(n) + ")"
 	} else {
-		a.alertsTab.Text = "Alerts"
+		a.logsTab.Text = "Logs"
 	}
 	if a.tabs != nil {
 		a.tabs.Refresh()

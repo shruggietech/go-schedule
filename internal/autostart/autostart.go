@@ -16,7 +16,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/platform"
+	"github.com/shruggietech/go-schedule/internal/platform"
 )
 
 // pollInterval is how often EnsureRunning re-checks readiness after spawning.

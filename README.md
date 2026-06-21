@@ -1,7 +1,7 @@
-# go-scheduler
+# go-schedule
 
-[![CI](https://github.com/shruggietech/go-scheduler/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-scheduler/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/shruggietech/go-scheduler)](https://github.com/shruggietech/go-scheduler/releases/latest)
+[![CI](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/shruggietech/go-schedule)](https://github.com/shruggietech/go-schedule/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 A cross-platform (Linux · macOS · Windows) **task scheduler** written in Go — cron-level power
@@ -10,14 +10,14 @@ without the cryptic syntax. CLI-first, with a Go-native Material Design desktop 
 > **Status:** Feature-complete (spec-driven via [Spec Kit](https://github.com/github/spec-kit)).
 > The CLI, daemon, and **Material Design desktop GUI** are all implemented and tested:
 > human-readable & one-off scheduling, per-task timezones with DST handling, nested groups,
-> event triggers, downtime catch-up, and a Fyne GUI (calendar, guided editor with live preview,
-> live alerts). See [CHANGELOG.md](CHANGELOG.md). The GUI requires a C toolchain + OpenGL to
+> downtime catch-up, and a Fyne GUI (calendar, guided editor with live preview, real-time
+> logs). See [CHANGELOG.md](CHANGELOG.md). The GUI requires a C toolchain + OpenGL to
 > build (CI/releases handle this); the daemon and CLI are cgo-free.
 
 ## Why
 
 `cron` is powerful but its `*/15 * * * *` syntax is hard to read and easy to get wrong.
-go-scheduler gives you the same scheduling power expressed in plain language — "every 15 minutes",
+go-schedule gives you the same scheduling power expressed in plain language — "every 15 minutes",
 "every weekday at 9:00 AM", "the 3rd Wednesday of each month", or a single one-off run — with a
 calendar/timeline GUI for managing it all.
 
@@ -29,13 +29,12 @@ Implemented (✅) and planned:
 - ✅ **Cron parity** — anything cron can express, this can too (intervals, ordinal weekdays, etc.).
 - ✅ **Per-task timezones** with correct Daylight Saving Time handling; UTC backend.
 - ✅ **Nested task groups** (groups within groups) with cascading enable/disable.
-- ✅ **Event triggers** — run a task when another task completes (at-least-once, with dedup).
 - ✅ **Downtime catch-up** — one catch-up run per task after missed runs, then resume.
 - ✅ **Overlap control** — queue-one-pending by default, configurable per task, with alerts.
 - ✅ **Starts on boot** — runs as a system-wide service (systemd / launchd / Windows Service);
   single-instance guarded.
 - ✅ **Material Design desktop GUI** — calendar/schedule views, guided task editor with live
-  schedule preview, group tree, trigger config, and live alerts. Opening the GUI never leaves a
+  schedule preview, group tree, and a real-time logs view. Opening the GUI never leaves a
   visible console window (`gosched gui`). New to the task editor? See the
   [GUI field reference](docs/gui-fields.md).
 
@@ -53,28 +52,29 @@ See [specs/001-task-scheduler/plan.md](specs/001-task-scheduler/plan.md) for the
 
 ```text
 cmd/        goschedd (daemon) · gosched (CLI) · gosched-gui (Fyne GUI)
-internal/   engine · schedule · task · trigger · store · executor · catchup · timezone · api · ipc · service · config · platform
-gui/        Fyne views (calendar, editor, alerts, groups)
+internal/   engine · schedule · task · store · executor · catchup · timezone · api · ipc · service · config · platform
+gui/        Fyne views (schedule list + calendar, editor, logs, groups)
 specs/      spec-driven development artifacts (spec, plan, tasks, contracts)
 ```
 
 ## Install
 
-Each [release](https://github.com/shruggietech/go-scheduler/releases/latest) ships two kinds of
-archive. Verify downloads against `SHA256SUMS.txt`.
+Each [release](https://github.com/shruggietech/go-schedule/releases/latest) ships installers and
+archives per platform. Verify downloads against `SHA256SUMS.txt`.
 
-### Desktop (recommended) — one self-contained download
+### Windows (recommended) — formal `.msi` installer
 
-`go-scheduler-desktop_<ver>_<os>_<arch>` bundles the **GUI + daemon + CLI** together (Linux,
-macOS, Windows). Extract it and run the GUI — it **auto-starts the background daemon** the first
-time, so there's nothing to configure:
+Download **`go-schedule_<ver>_windows_amd64.msi`** and run it. It installs to *Program Files*,
+registers the background scheduler as an **auto-starting Windows service**, and adds a Start-Menu
+shortcut — no extracting a zip or running an exe from Downloads. Launch **go-schedule** from the
+Start Menu; uninstall via *Apps & features*. Full steps: the
+[Windows install guide](docs/INSTALL-windows.md).
 
-```sh
-./gosched-gui        # Linux & Windows: opens the window; starts the daemon if needed
-```
+### macOS desktop — one self-contained download
 
-On **macOS** the GUI ships as `gosched-gui.app` (the daemon and CLI live inside it), so launch it
-the Mac way:
+`go-schedule-desktop_<ver>_darwin_<arch>` bundles the **GUI + daemon + CLI** together. The GUI
+ships as `gosched-gui.app` (the daemon and CLI live inside it) and **auto-starts the background
+daemon** the first time, so there's nothing to configure:
 
 ```sh
 open gosched-gui.app
@@ -85,7 +85,7 @@ open gosched-gui.app
 
 ### Server / headless — daemon + CLI only
 
-`go-scheduler_<ver>_<os>_<arch>` contains just `goschedd` + `gosched` (all platforms, amd64 +
+`go-schedule_<ver>_<os>_<arch>` contains just `goschedd` + `gosched` (Linux & macOS, amd64 +
 arm64). Register the service to start on boot:
 
 ```sh

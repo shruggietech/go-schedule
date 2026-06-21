@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func TestGroups_CreateNestAndCascadeRoutes(t *testing.T) {

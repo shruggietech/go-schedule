@@ -7,7 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Rebranded `go-scheduler` → `go-schedule`** (`specs/004-rebrand-gui-overhaul/`): module path,
+  build/release config, user-facing strings, and on-disk identity (data dir `goschedule`, DB
+  `goschedule.db`, logs under `goschedule/logs/`). The daemon performs a best-effort one-time move
+  of a pre-rebrand `goscheduler` data directory on startup (non-fatal; never deletes data).
+- **Windows is now distributed as a formal `.msi`** built with WiX v5
+  (`build/windows/goschedule.wxs`): installs to Program Files, registers `goschedd` as an
+  auto-start Windows service, adds a Start-Menu shortcut, and uninstalls cleanly (user data under
+  `C:\ProgramData\goschedule` is preserved). The portable Windows zip and "run the exe" flow are
+  removed; the Windows install guide was rewritten.
+- **GUI "Alerts" replaced by a unified "Logs" view**: a new `internal/logbus` slog handler tees
+  every daemon log record to a rotating on-disk JSONL file (`logs/goschedule.log`), a bounded
+  in-memory ring (served by `GET /v1/logs`), and the live event stream. The view merges daemon
+  logs and scheduler alerts, with severity filters, click-through detail, and "Dismiss All". A new
+  `gosched logs` CLI command mirrors it (`alerts` is deprecated).
+- **GUI updates in real time across all views**: the event broker now also publishes task/group
+  change events from the API mutation handlers, the view-model folds them, and the GUI
+  re-synchronizes on stream reconnect. All manual **Refresh** controls were removed.
+
 ### Added
+
+- **Calendar view under Schedule**: a toggleable month-grid view over the existing calendar API,
+  alongside the agenda list; the selected window is preserved across toggles and it updates live.
+
+### Removed
+
+- **Event Triggers feature removed entirely** (GUI tab, CLI commands, API routes/client, engine
+  dispatcher, store tables, and domain types). Store **migration v3** drops the `triggers` and
+  `dedup_ledger` tables (a no-op on databases that never had them).
+
+### Added (earlier)
 
 - Spec-driven development scaffolding via Spec Kit:
   - Project constitution (v1.0.0) — code quality, testing standards, UX consistency, performance.
@@ -109,4 +140,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-scheduler/commits/main
+[Unreleased]: https://github.com/shruggietech/go-schedule/commits/main

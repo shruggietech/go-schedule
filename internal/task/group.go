@@ -4,7 +4,7 @@
 // without a database; the store loads groups and delegates here.
 package task
 
-import "github.com/shruggietech/go-scheduler/internal/domain"
+import "github.com/shruggietech/go-schedule/internal/domain"
 
 // ByID indexes groups by their ID.
 func ByID(groups []domain.Group) map[string]domain.Group {

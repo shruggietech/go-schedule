@@ -76,7 +76,7 @@ jobs:
           cache: true
       - name: Measure core-package statement coverage
         run: |
-          go test -coverpkg=./internal/engine,./internal/schedule,./internal/timezone,./internal/store,./internal/trigger,./internal/catchup \
+          go test -coverpkg=./internal/engine,./internal/schedule,./internal/timezone,./internal/store,./internal/catchup,./internal/logbus \
             ./... -coverprofile=cover.out >/dev/null
           python3 - <<'PY'
           import collections, sys
@@ -94,7 +94,7 @@ jobs:
               pkg[short][1] += n
               if c > 0:
                   pkg[short][0] += n
-          core = ['engine', 'schedule', 'timezone', 'store', 'trigger', 'catchup']
+          core = ['engine', 'schedule', 'timezone', 'store', 'catchup', 'logbus']
           failed = False
           for p in core:
               cov, tot = pkg[p]

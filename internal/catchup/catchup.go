@@ -8,8 +8,8 @@ package catchup
 import (
 	"time"
 
-	"github.com/shruggietech/go-scheduler/internal/domain"
-	"github.com/shruggietech/go-scheduler/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/schedule"
 )
 
 // Decision is the outcome of evaluating catch-up for a task.

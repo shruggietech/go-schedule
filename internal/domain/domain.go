@@ -142,33 +142,19 @@ type Run struct {
 	Trigger      RunTrigger `json:"trigger"`
 }
 
-// TriggerOutcome selects which source-task outcomes fire an event trigger.
-type TriggerOutcome string
-
-const (
-	OnSuccess TriggerOutcome = "success"
-	OnFailure TriggerOutcome = "failure"
-	OnAny     TriggerOutcome = "any"
-)
-
-// Trigger fires a target task when a source task completes (v1 event source).
-// At-least-once delivery is de-duplicated within DedupWindow by DedupKey.
-type Trigger struct {
-	ID           string         `json:"id"`
-	SourceTaskID string         `json:"source_task_id"`
-	TargetTaskID string         `json:"target_task_id"`
-	OnOutcome    TriggerOutcome `json:"on_outcome"`
-	DedupKey     string         `json:"dedup_key,omitempty"` // empty => per source-run
-	DedupWindow  time.Duration  `json:"dedup_window"`
-}
-
-// DedupLedger records a delivered logical event so repeats within the window
-// collapse to a single execution.
-type DedupLedger struct {
-	TriggerID   string    `json:"trigger_id"`
-	DedupKey    string    `json:"dedup_key"`
-	FirstSeenAt time.Time `json:"first_seen_at"`
-	Executed    bool      `json:"executed"`
+// LogRecord is a single structured log entry surfaced in the GUI Logs view and
+// persisted to the on-disk log file. It is produced by the daemon's slog handler
+// (see internal/logbus); it is not stored in SQLite. Attrs holds the structured
+// slog attributes that form the "cause/context" detail.
+type LogRecord struct {
+	ID       string         `json:"id"`
+	Time     time.Time      `json:"time"`
+	Severity AlertSeverity  `json:"severity"` // info | warning | error
+	Source   string         `json:"source,omitempty"`
+	Message  string         `json:"message"`
+	TaskID   string         `json:"task_id,omitempty"`
+	RunID    string         `json:"run_id,omitempty"`
+	Attrs    map[string]any `json:"attrs,omitempty"`
 }
 
 // Alert is a surfaced condition shown in the GUI and reflected in logs.

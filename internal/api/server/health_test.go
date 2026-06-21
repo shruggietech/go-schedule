@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/shruggietech/go-scheduler/internal/config"
-	"github.com/shruggietech/go-scheduler/internal/store"
+	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 func newTestServer(t *testing.T) *Server {
@@ -18,7 +18,7 @@ func newTestServer(t *testing.T) *Server {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	log := config.NewLogger(config.Default(), discard{})
-	return New(st, nil, nil, log)
+	return New(st, nil, nil, nil, log)
 }
 
 func TestHealth_OK(t *testing.T) {
