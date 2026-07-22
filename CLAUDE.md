@@ -80,6 +80,28 @@ and the Fyne widget package (races there are inside Fyne's own font cache, not
 this project's code); `gui/viewmodel` stays race-tested and the GUI is covered
 by the headless run. Core packages must stay at or above 80 percent coverage.
 
+Two local-environment traps, neither of which indicates a problem with the repo:
+
+- **golangci-lint refuses to start** with "the Go language version (go1.x) used
+  to build golangci-lint is lower than the targeted Go version". Your *base* Go
+  toolchain is older than the `go` line in `go.mod`. `go version` can still
+  report the newer one, because `GOTOOLCHAIN=auto` upgrades transparently inside
+  this repo — but `go run <linter>@<ver>` builds the linter under *its* go.mod,
+  which the older base toolchain already satisfies, so no upgrade happens and the
+  linter is compiled with the older version. Either upgrade the base Go install
+  to match `go.mod`, or force it for that one command:
+
+  ```bash
+  GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+  ```
+
+  Do not "fix" this by editing `.golangci.yml` or `go.mod` — CI installs the Go
+  version from `go.mod` as its base toolchain and the pinned setup passes there.
+- **The race run needs a C toolchain.** `-race` requires cgo, so a machine with
+  no `gcc` on `PATH` fails with `cgo: C compiler "gcc" not found` before any test
+  runs. Install a C toolchain (MSYS2/MinGW-w64 on Windows) or rely on CI for the
+  race gate, and say so explicitly rather than reporting the suite as passing.
+
 ## Non-negotiables
 
 - Safety-critical test surfaces are never weakened or skipped: clock injection

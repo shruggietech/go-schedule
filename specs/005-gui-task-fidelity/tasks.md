@@ -334,8 +334,13 @@ build it.
       (R2), and the tri-state `group_id` contract change (R5).
 - [x] T045 Confirm core-package coverage stays at or above 80% and no exported
       addition lacks a doc comment (principles I and II).
-- [ ] T046 Run the full CI-parity suite from [quickstart.md](quickstart.md) in
+- [x] T046 Run the full CI-parity suite from [quickstart.md](quickstart.md) in
       the **foreground**, watched to completion — never backgrounded.
+      *Status*: `gofmt` clean, `go vet` clean, `golangci-lint@v2.1.6` reports
+      **0 issues**, full test suite passes. The one command not run is the
+      `-race` suite: `-race` requires cgo and this machine has no C compiler
+      (`cgo: C compiler "gcc" not found`). CI runs it as the merge gate. Both
+      local traps are now documented in `CLAUDE.md`.
 - [x] T046a Re-run the `/speckit-analyze` coverage check: every FR and every
       buildable SC maps to at least one task. Findings E1, E2, E3, F1, and C1
       from the 2026-07-22 analysis are resolved by T023a, T040a, T017a, the
