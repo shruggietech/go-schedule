@@ -10,12 +10,11 @@ decision policy and are binding on `tasks.md`.
 ## R1 — How the operator's schedule phrase is recovered
 
 **Decision**: Persist the phrase on the schedule record (new `expression`
-column, migration v4), and add a read-time renderer that reconstructs an
-equivalent phrase from the stored RRULE for records written before the upgrade.
-Both, not either.
+column, migration v4). Nothing reconstructs phrases for schedules stored before
+this feature.
 
-**Rationale**: The stored `human_summary` is not re-parseable, so it cannot be
-the recovery path. Confirmed by reading the parsers in
+**Rationale**: The stored `human_summary` cannot serve as the recovery path — it
+is not re-parseable. Confirmed by reading the parsers in
 [`internal/schedule/parse.go`](../../internal/schedule/parse.go):
 
 | Stored `human_summary` | Re-parses? | Why |
@@ -25,55 +24,29 @@ the recovery path. Confirmed by reading the parsers in
 | `Every weekend day` | **no** | `reDayset` requires `weekends` |
 | `The 3rd Wednesday of every month at 14:00` | **no** | `reOrdinal` requires a leading ordinal |
 
-Persistence alone leaves every already-installed database blank on edit — which
-is the reported defect, unfixed for the people who reported it. The renderer
-alone cannot distinguish an explicit first-cycle anchor from the creation-time
-default (see R3), so it would fabricate anchors. Together they cover both
-populations exactly.
+So the phrase has to be retained at creation time. `schedule.Parse` is the only
+producer of recurring schedules (verified: the sole call sites are the create,
+update, and preview handlers), so retaining it there covers every recurring
+schedule the system can make.
+
+**Superseded — recovery for pre-existing rows (2026-07-22).** This decision
+originally also specified `schedule.Render`, an RRULE→phrase inverse applied at
+read time to serve schedules stored before the `expression` column existed. That
+was built on a wrong premise: the issues were filed against v0.3.0, and the
+design inferred an installed base that must not be broken. There is none — the
+software has no working deployments, and the only databases in existence are the
+maintainers' own, all non-functional. The renderer (~180 lines plus its
+round-trip test suite) served exclusively that phantom population, so it and the
+read-time backfill were removed. A database predating the column now shows a
+blank schedule field on edit, which means "keep unchanged" and is harmless.
 
 **Alternatives considered**:
 
-- *Persist only*: rejected — leaves v0.3.0 installations unfixed (SC-001 names
-  pre-existing tasks explicitly).
-- *Render only, no migration*: rejected — anchor ambiguity (R3), and it makes
-  the operator's own wording unrecoverable forever.
 - *Re-render `human_summary` into parseable wording*: rejected — changes an
-  existing user-visible string for every task, for no gain over rendering from
-  the RRULE, which is the authoritative artifact anyway.
-
-## R2 — When derivation runs *(closes CHK004)*
-
-**Decision**: On read, in the API layer, never written back to the database.
-`Server.taskDetail` fills `Expression` from the renderer when the stored column
-is empty. The database is not rewritten.
-
-**Rationale**: Backfilling during migration would require running Go code inside
-the migration step; the migration framework at
-[`internal/store/store.go:44`](../../internal/store/store.go:44) takes SQL text
-only (`migration{version int; stmts string}`), so a backfill would mean
-restructuring the migration mechanism — a change to a safety-critical surface
-for a derived, reproducible value. Deriving on read keeps the migration a single
-`ALTER TABLE`, keeps derivation logic in one testable function, and means a
-future improvement to the renderer immediately benefits existing rows rather
-than being frozen into a one-time backfill. The cost — recomputing a short
-string per task detail request — is negligible and off the dispatch path.
-
-**Alternatives considered**: backfill in migration (rejected: forces a
-code-executing migration mechanism); backfill lazily on next task update
-(rejected: leaves the value absent until an unrelated write, and makes a read
-path mutate state).
-
-## R3 — Why no anchor is ever derived
-
-**Decision**: `Render` never emits a `starting at` clause.
-
-**Rationale**: `finish()` in `parse.go` stores `Anchor = now` for every
-non-anchored schedule and `Anchor = <the stated wall time>` for anchored ones.
-Both land in the same column with no discriminator. Deriving an anchor would
-therefore put a time the operator never typed into the Start-at field of every
-sub-daily interval task, and re-saving would harden that accident into the
-schedule. Omitting it is safe: a blank Start-at with a blank Schedule leaves the
-stored schedule untouched, so existing anchors survive. This is FR-005.
+  existing user-visible string for every task and still would not recover the
+  operator's own words.
+- *Reconstruct from the RRULE at read time*: implemented, then removed. See the
+  superseded note above.
 
 ## R4 — Migration safety *(closes CHK005 and CHK006)*
 
@@ -170,28 +143,6 @@ only the GUI's interface omits it. Caching a schedule per task in the view-model
 would add a second staleness surface that the event stream would have to keep
 coherent, for data needed only while one dialog is open. A single fetch at open
 is simpler and always current.
-
-## R10 — Rendering vocabulary coverage
-
-**Decision**: `Render` inverts exactly the four parser shapes and returns `""`
-for anything else.
-
-| Stored RRULE shape | Rendered phrase |
-|---|---|
-| `FREQ=<unit>LY;INTERVAL=n` | `every n <unit>` |
-| … with `BYHOUR`/`BYMINUTE` | … ` at HH:MM` |
-| `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR` | `weekdays` |
-| `FREQ=WEEKLY;BYDAY=SA,SU` | `weekends` |
-| `FREQ=WEEKLY;BYDAY=<one day>` | `every <day>` |
-| `FREQ=MONTHLY;BYDAY=+nDD` / `-1DD` | `nth <day> monthly` / `last <day> monthly` |
-| anything else | `""` |
-
-**Rationale**: The system can only ever have written these shapes, so this is
-total over real data (spec Assumptions). Returning `""` rather than guessing
-satisfies FR-003's "supply nothing rather than a guess". The correctness
-property is mechanical and must be tested as such: for every phrase in the
-existing `parse_test.go` table, `Parse → Render → Parse` must yield an identical
-RRULE (FR-004).
 
 ## R11 — Mode switching on an existing task *(FR-011b)*
 

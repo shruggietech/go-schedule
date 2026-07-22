@@ -13,11 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opening a task for editing always displayed Mode as *Recurring* with the Schedule and one-off
   date/time fields blank, regardless of how the task was actually scheduled. The dialog now fetches
   the task's schedule and shows its real mode, its schedule phrase, or its one-off date and time in
-  the task's own timezone. Saving an untouched dialog leaves the schedule byte-identical. Tasks
-  created before this release are covered too: where no phrase was stored, an equivalent one is
-  derived from the recurrence. Switching Mode now requires the new mode's timing, closing a hole
-  where an empty date/time silently kept a recurring schedule on a task the user believed was
-  one-off. Changing only a task's timezone now re-interprets its recurrence in the new zone.
+  the task's own timezone. Saving an untouched dialog leaves the schedule byte-identical.
+  Switching Mode now requires the new mode's timing, closing a hole where an empty date/time
+  silently kept a recurring schedule on a task the user believed was one-off. Changing only a
+  task's timezone now re-interprets its recurrence in the new zone.
 - **Groups were unusable from the GUI** ([#3](https://github.com/shruggietech/go-schedule/issues/3)):
   there was no way to put a task into a group without the CLI, and no way at all — from any client —
   to take one back out, because an empty group value meant "leave unchanged". The task editor now
@@ -43,14 +42,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exists solely so a client can show the user their own wording again. Pinned by an explicit
   upgrade test asserting a v3 database migrates with every schedule row otherwise unchanged and
   re-opens as a no-op.
-- **2026-07-22** — Phrases for schedules stored before v4 are derived from the RRULE **on read**
-  (`schedule.Render`, applied in the API's task-detail helper), not backfilled during the
-  migration. The migration runner takes SQL text only, so a backfill would have meant restructuring
-  a safety-critical mechanism to compute a value that is derived and reproducible. Deriving on read
-  keeps the migration a single `ALTER TABLE` and means the derivation can improve later instead of
-  being frozen into a one-time write. `Render` returns nothing rather than guessing when a
-  recurrence falls outside the phrase vocabulary, and never synthesizes a `starting at` anchor,
-  because a stored anchor cannot be distinguished from the creation timestamp.
+- **2026-07-22** — Nothing reconstructs schedule phrases for rows stored before the `expression`
+  column existed. An earlier revision of this work added `schedule.Render`, an RRULE→phrase
+  inverse applied at read time, so already-installed databases would also show their schedule on
+  edit. That was built on a wrong premise — the defects were filed against v0.3.0 and the design
+  inferred an installed base to protect. There is none: the software has no working deployments
+  and the only databases in existence are the maintainers' own, none of them functional. The
+  renderer and its round-trip test suite served exclusively that phantom population and were
+  removed. `schedule.Parse` is the only producer of recurring schedules, so every schedule created
+  from here on retains its phrase; a database predating the column shows a blank schedule field on
+  edit, which means "keep unchanged" and is harmless. Migration v4 is kept — it is what creates the
+  column, and folding it into the v1 `CREATE TABLE` would leave existing databases at
+  `schema_version = 3` with the column silently absent, failing every schedule query.
 - **2026-07-22** — `TaskUpdateRequest.GroupID` becomes `*string` so group membership can carry
   three intents: nil leaves it unchanged, `""` removes the task from its group, and an id assigns
   it. Previously `""` meant "unchanged" and un-grouping was unreachable from every client. This

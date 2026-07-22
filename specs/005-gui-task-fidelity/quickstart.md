@@ -45,7 +45,7 @@ or above 80% coverage.
 
 | Check | Command | Proves |
 |---|---|---|
-| Phrase round-trip | `go test ./internal/schedule/ -run 'Render'` | FR-004: `Parse → Render → Parse` preserves the RRULE for every supported phrase |
+| Phrase retention | `go test ./internal/schedule/ -run 'Expression'` | FR-001: the phrase the user typed is retained on the schedule and survives storage |
 | Migration safety | `go test ./internal/store/ -run 'Migrat'` | FR-002/FR-024: a v3 database upgrades with every schedule row intact, and re-opening is a no-op |
 | Group tri-state | `go test ./internal/api/server/ -run 'Group'` | FR-014/FR-016: omitted / empty / named behave as specified, unknown IDs are 400 |
 | Editor prefill | `go test ./gui/ -run 'Prefill\|Editor'` | FR-006/FR-007/FR-008/FR-011b: mode, phrase, one-off date+time, clean-dirty state, mode-switch gating |
@@ -55,20 +55,16 @@ or above 80% coverage.
 
 Start the daemon, then `gosched-gui`.
 
-### A. Pre-existing database *(the reported defect, SC-001)*
+Start from an empty database. There is no installed base to preserve, so no
+upgrade path needs walking through — delete any existing `goschedule.db` first.
 
-Use a database created before this change — either a real v0.3.0 profile or one
-produced by checking out `main`, creating a few tasks, and returning to this
-branch.
+### A. Round-trip fidelity *(the reported defect, SC-001/SC-002)*
 
-1. Open a recurring task for editing.
-   **Expect**: Mode `Recurring`, Schedule populated with an equivalent phrase.
-   **Fail if**: Schedule is blank.
+1. Create a recurring task `weekdays at 09:00`. Reopen it for editing.
+   **Expect**: Mode `Recurring`, Schedule showing `weekdays at 09:00`.
+   **Fail if**: Schedule is blank or Mode is wrong.
 2. Save without touching anything. Note the task's next run before and after.
-   **Expect**: identical (SC-002, SC-007).
-
-### B. Round-trip fidelity
-
+   **Expect**: identical (SC-002).
 3. Create a recurring task `every 15 minutes starting at 09:00`. Reopen it.
    **Expect**: Schedule `every 15 minutes`, Start at `09:00`, not doubled and not
    dropped.
@@ -82,7 +78,7 @@ branch.
 7. On a recurring task, change only the timezone and save.
    **Expect**: next runs move to the new zone (FR-011).
 
-### C. Group assignment
+### B. Group assignment
 
 8. Create group `Parent`, then `Child` under it.
 9. Create a task and assign it to `Child` from the editor.
@@ -103,7 +99,7 @@ branch.
 15. Assign the task back to `Parent`, disable `Parent`.
     **Expect**: the task is suppressed by the existing cascade (Story 2).
 
-### D. Cross-client agreement
+### C. Cross-client agreement
 
 16. `gosched task list` — group membership matches the GUI.
 17. `gosched task edit <id> --group ""` — the task ungroups, and the GUI reflects

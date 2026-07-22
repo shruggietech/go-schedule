@@ -83,20 +83,11 @@ The `schedule` object in `TaskResponse` gains one field:
 
 - `expression` is the phrase the schedule was created from — re-submittable as
   the `schedule` field of a create or update.
-- Omitted (empty) when: the schedule is one-off, the row predates migration v4
-  *and* its recurrence is outside the renderable vocabulary, or the schedule is
-  of kind `event`.
-- For a pre-v4 row whose recurrence *is* renderable, the server supplies a
-  derived equivalent — same recurrence, possibly different wording from what the
-  operator originally typed (§FR-003, §FR-004).
+- Omitted (empty) when the schedule is one-off, of kind `event`, or was stored
+  before migration v4. Nothing reconstructs it in that last case — an empty
+  `schedule` on update means "leave the schedule unchanged".
 - **Never an execution input.** Clients round-trip it; the engine ignores it
   (§FR-011a).
-
-### Invariant
-
-For any `expression` the server emits, re-submitting it under the same timezone
-MUST produce an identical `rrule`. This is mechanically testable and is the
-acceptance test for the renderer (§FR-004).
 
 ### Compatibility
 

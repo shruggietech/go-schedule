@@ -94,13 +94,10 @@ edit path with no group work whatsoever.
    anchor, **When** the operator opens it for editing, **Then** the anchor is
    shown in the field dedicated to it and re-saving does not duplicate or drop
    it.
-6. **Given** a task created before this feature shipped, in an already-installed
-   database, **When** the operator opens it for editing, **Then** the Schedule
-   field is populated with an equivalent phrase rather than left blank.
-7. **Given** a recurring task, **When** the operator changes only its timezone
+6. **Given** a recurring task, **When** the operator changes only its timezone
    and saves, **Then** the recurrence is re-interpreted in the new timezone
    rather than remaining anchored to the old one.
-8. **Given** a recurring task open for editing, **When** the operator switches
+7. **Given** a recurring task open for editing, **When** the operator switches
    Mode to "One-off" but leaves the date and time empty, **Then** saving is
    blocked until they supply them.
 
@@ -204,11 +201,6 @@ relocates.
 
 ### Edge Cases
 
-- A task whose stored schedule cannot be expressed as a phrase (a schedule form
-  the phrase vocabulary does not cover): the editor must not fabricate a wrong
-  phrase. It leaves the field empty, still shows the operator what the schedule
-  is in a read-only form, and a blank field on save leaves the schedule
-  untouched.
 - The operator switches an existing task from recurring to one-off, or back,
   without filling in the new mode's timing: saving is blocked until they do,
   because there is no existing schedule of the new kind to fall back on
@@ -220,9 +212,6 @@ relocates.
 - A one-off task whose fire time has already passed: reopening it shows the
   stored past date and time, and the existing rule that a one-off must be in the
   future applies only when the operator actually changes it.
-- A sub-daily interval task with no explicit anchor: the editor must not invent
-  an anchor value the operator never typed, because the stored anchor is
-  indistinguishable from the moment the task was created.
 - Assigning a task to a group that no longer exists (deleted between the dialog
   opening and the save): the operator gets a clear, actionable message naming the
   field, not a generic failure.
@@ -246,18 +235,9 @@ relocates.
 - **FR-001**: The system MUST retain, for every recurring schedule it creates,
   the human-readable phrase the schedule was created from, and MUST make that
   phrase available when the task is retrieved.
-- **FR-002**: The system MUST preserve all existing stored schedules unchanged
-  when it upgrades: no task's timing may shift as a result of this feature, and
-  the upgrade MUST be forward-only and non-destructive.
-- **FR-003**: For schedules stored before this feature, where no phrase was
-  retained, the system MUST derive an equivalent phrase from the stored
-  recurrence when one can be derived, and MUST supply nothing rather than a
-  guess when it cannot.
-- **FR-004**: A derived phrase MUST describe the same recurrence as the schedule
-  it was derived from — re-submitting it MUST produce an identical recurrence.
-- **FR-005**: The system MUST NOT derive a first-cycle anchor for interval
-  schedules, because a stored anchor cannot be distinguished from the task's
-  creation moment.
+- **FR-002**: The schema change that stores the phrase MUST be forward-only and
+  non-destructive: applying it MUST NOT read, rewrite, or drop any existing
+  value, and no stored task timing may shift as a result.
 - **FR-006**: The task editor MUST populate its mode, schedule phrase, one-off
   date, one-off time, and first-cycle anchor fields from the task's actual
   schedule when an existing task is opened.
@@ -269,9 +249,6 @@ relocates.
 - **FR-009**: When the editor cannot obtain a task's schedule, it MUST still
   open, MUST leave the schedule fields empty, and MUST tell the operator that the
   current schedule could not be read.
-- **FR-010**: Where the editor shows an empty schedule phrase, it MUST still
-  display the schedule's plain-language summary so the operator can see what is
-  currently set.
 - **FR-011**: Changing only a task's timezone MUST re-interpret its recurrence in
   the new timezone.
 - **FR-011a**: The retained phrase MUST NOT influence execution. The stored
@@ -317,8 +294,11 @@ relocates.
 
 - **FR-023**: Every defect fixed by this feature MUST ship with a regression test
   that fails before the fix and passes after it.
-- **FR-024**: The upgrade path for stored schedules MUST be covered by a test
-  proving that pre-existing schedules survive it intact.
+- **FR-024**: The schema change MUST be covered by a test proving the
+  forward-only, non-destructive property of FR-002 — that stored schedules
+  survive it intact and that applying it twice is a no-op. This holds
+  independently of whether any deployment currently has data worth keeping; it
+  guards the mechanism, which the constitution names a safety-critical surface.
 
 ### Key Entities
 
@@ -339,8 +319,8 @@ relocates.
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of tasks — recurring, one-off, and those created before this
-  feature — display their actual mode when opened for editing.
+- **SC-001**: 100% of tasks, recurring and one-off, display their actual mode and
+  timing when opened for editing.
 - **SC-002**: 100% of tasks opened for editing and saved without modification
   have identical upcoming run times before and after.
 - **SC-003**: An operator can create a group, put a task in it, and confirm the
@@ -351,8 +331,8 @@ relocates.
   hierarchy view — under its group or under the ungrouped area.
 - **SC-006**: Group membership changes are visible in every affected view within
   one second of being made, with no manual refresh.
-- **SC-007**: Upgrading an installation that already contains tasks changes zero
-  upcoming run times.
+- **SC-007**: Applying the schema change to a database that already contains
+  tasks changes zero upcoming run times.
 - **SC-008**: The two reported defects are reproducible before the change and not
   reproducible after it, demonstrated by tests.
 
@@ -360,11 +340,17 @@ relocates.
 
 - The operator is a single local user administering their own machine; there is
   no multi-user or permission dimension to group membership.
+- **There is no installed base to carry forward.** The software has no working
+  deployments; the only databases that exist are the maintainers' own, and none
+  of them is functional. So this feature does not reconstruct phrases for
+  schedules stored before it shipped — every recurring schedule is created
+  through the parser, which retains its phrase, and a database predating that
+  simply shows a blank schedule field on edit (which means "keep unchanged" and
+  is harmless). FR-002 and FR-024 still hold: they guard the schema-change
+  *mechanism*, which the constitution names safety-critical and which matters as
+  soon as there is a real user.
 - The existing plain-language schedule vocabulary is the vocabulary for retained
-  and derived phrases. This feature adds no new schedule forms.
-- Recurrence forms this feature must derive phrases for are exactly those the
-  system itself can create; hand-authored recurrences outside that vocabulary are
-  expected to yield no phrase, which is an accepted outcome (FR-003).
+  phrases. This feature adds no new schedule forms.
 - One-off schedules need no retained phrase: their date and time are recovered
   from the stored instant.
 - The existing live-update mechanism already carries task changes to the views,

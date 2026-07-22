@@ -23,6 +23,20 @@ func newTaskFor(t *testing.T, s *Server, req TaskCreateRequest) TaskResponse {
 	return resp
 }
 
+// getTask fetches a task's detail through the API.
+func getTask(t *testing.T, s *Server, id string) TaskResponse {
+	t.Helper()
+	rec := doJSON(t, s, http.MethodGet, "/v1/tasks/"+id, nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get task: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var resp TaskResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	return resp
+}
+
 func newGroupFor(t *testing.T, s *Server, name string) domain.Group {
 	t.Helper()
 	rec := doJSON(t, s, http.MethodPost, "/v1/groups", GroupCreateRequest{Name: name})

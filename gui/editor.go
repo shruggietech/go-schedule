@@ -29,9 +29,6 @@ type taskEditor struct {
 	// task). Leaving the timing fields blank means "keep the existing schedule",
 	// which is only meaningful while the selected mode still matches this one.
 	storedMode string
-	// storedSummary is the schedule's plain-language summary, shown in the
-	// preview when no re-submittable phrase is available.
-	storedSummary string
 	// scheduleUnreadable is set when an edit was opened without the task's
 	// schedule (the detail lookup failed), so the preview can say so.
 	scheduleUnreadable bool
@@ -408,7 +405,6 @@ func (e *taskEditor) prefillSchedule() {
 		e.storedMode = modeRecurring
 		e.scheduleUnreadable = true
 	}
-	e.storedSummary = sch.HumanSummary
 	e.mode.SetSelected(e.storedMode)
 }
 
@@ -445,18 +441,12 @@ func (e *taskEditor) updatePreview() {
 	}
 	s := e.effectiveSchedule()
 	if s == "" {
-		switch {
-		case e.scheduleUnreadable:
+		if e.scheduleUnreadable {
 			e.schedPreview.SetText("⚠ Could not read this task's current schedule." +
 				"\nLeave Schedule blank to keep it unchanged.")
-		case e.storedSummary != "":
-			// No re-submittable phrase, but the user can still read what the
-			// task is currently set to (FR-010).
-			e.schedPreview.SetText("Currently: " + e.storedSummary +
-				"\nLeave Schedule blank to keep it unchanged.")
-		default:
-			e.schedPreview.SetText("Type a schedule to see upcoming runs")
+			return
 		}
+		e.schedPreview.SetText("Type a schedule to see upcoming runs")
 		return
 	}
 	if _, err := schedule.Parse(s, e.tzName(), time.Now()); err != nil {

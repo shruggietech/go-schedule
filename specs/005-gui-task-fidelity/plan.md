@@ -13,9 +13,8 @@ GUI cannot see data the daemon already holds.
 **Schedule fidelity.** The task editor hardcodes Mode to *Recurring* and leaves
 the timing fields blank because the cached task row carries no schedule and the
 stored `human_summary` is not re-parseable. Fix: persist the operator's phrase on
-the schedule (`expression`, migration v4), add a read-time RRULE→phrase renderer
-so already-installed databases are fixed too, and have the editor fetch task
-detail and prefill from it.
+the schedule (`expression`, migration v4) and have the editor fetch task detail
+and prefill from it.
 
 **Group assignment.** Groups cannot be populated from the GUI at all, and no
 client can un-group a task because an empty group value means "unchanged". Fix:
@@ -45,7 +44,7 @@ table-driven parser tests in `internal/schedule`
 (Unix socket / Windows named pipe)
 
 **Performance Goals**: unchanged — dispatch latency p99 < 100ms. This feature
-adds nothing to the dispatch path; the renderer runs on task-detail reads only.
+adds nothing to the dispatch path.
 
 **Constraints**: persisted schedules migrate forward non-destructively and no
 stored timing may move (FR-002/SC-007); the retained phrase is inert with
@@ -63,10 +62,10 @@ Constitution v1.1.0.
 
 | Principle | Gate | Initial | Post-design |
 |---|---|---|---|
-| I. Code Quality | `gofmt`/`go vet`/`golangci-lint` clean; doc comments on exported items; wrapped errors; documented goroutine lifecycles | PASS — new exported `schedule.Render` and the `Expression` field get doc comments stating contract; no new goroutines | PASS |
+| I. Code Quality | `gofmt`/`go vet`/`golangci-lint` clean; doc comments on exported items; wrapped errors; documented goroutine lifecycles | PASS — the new `Expression` field carries a doc comment stating its contract; no new goroutines | PASS |
 | II. Testing (NON-NEGOTIABLE) | tests alongside; regression test failing before each fix; injected clock; `-race`; ≥80% coverage on core packages | PASS — every FR maps to a named test in [quickstart.md](quickstart.md); migration-survival test is mandatory | PASS |
 | III. UX Consistency | consistent CLI verb-noun and flags; actionable errors naming the field; explicit timezone handling | PASS — `--group ""` extends an existing flag rather than adding one; unknown group returns a field-named validation error (R6); lookup-failure message names the safe action (R7) | PASS |
-| IV. Performance | measured dispatch budget; no regression >10%; no leaks | PASS — nothing added to the dispatch path; renderer is a short string operation on task-detail reads | PASS |
+| IV. Performance | measured dispatch budget; no regression >10%; no leaks | PASS — nothing added to the dispatch path | PASS |
 | V. Autonomous Build-Phase Execution | spec'd through spec-kit; `analyze` not skipped; one halt before push | PASS — full sequence run; decisions recorded here and in research.md | PASS |
 
 ### Safety-critical surfaces touched
@@ -119,12 +118,8 @@ internal/
 ├── store/
 │   ├── store.go                  # + migration v4 (ALTER TABLE schedules ADD COLUMN expression)
 │   └── crud.go                   # + expression in schedule INSERT/SELECT
-├── schedule/
-│   ├── parse.go                  # Parse sets Expression in finish()
-│   └── render.go                 # NEW — Render: RRULE → parseable phrase
-├── api/server/
-│   ├── tasks.go                  # taskDetail backfills Expression via Render
-│   └── update.go                 # GroupID *string tri-state + group existence validation
+├── schedule/parse.go             # Parse sets Expression in finish()
+├── api/server/update.go          # GroupID *string tri-state + group existence validation
 └── cli/task.go                   # --group tri-state via Flags().Changed
 
 gui/
@@ -136,10 +131,9 @@ gui/
 ```
 
 **Structure Decision**: The existing layout is unchanged — this is a defect fix
-inside an established architecture, not a new component. One new file
-(`internal/schedule/render.go`) holds the inverse of `parse.go` beside it. Group
-choice-list helpers go in `gui/editor_data.go`, which already exists to keep
-presentation data out of widget wiring.
+inside an established architecture, not a new component, and it adds no new
+source file. Group choice-list helpers go in `gui/editor_data.go`, which already
+exists to keep presentation data out of widget wiring.
 
 ## Phase 2 handoff
 
@@ -148,7 +142,7 @@ respect:
 
 1. `domain` → `store` → `schedule` before any API change (the `Expression` field
    must exist and persist before anything reads it).
-2. `schedule.Render` before the API backfill that calls it.
+2. Reserved (an earlier revision derived phrases for pre-existing rows; removed).
 3. The `GroupID *string` change is a compile-breaking edit: server, CLI, GUI, and
    server tests must land in one task, not spread across several.
 4. GUI work depends on `GetTask` being on the `Backend` interface and the fake

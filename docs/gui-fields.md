@@ -40,10 +40,9 @@ can see what the task is currently set to before changing anything. Saving witho
 fields leaves the schedule exactly as it was. If you *switch* Mode, the new mode's time fields
 become required — there is no existing schedule of the new kind to fall back on.
 
-Tasks created before this was added may show a canonical rephrasing of their schedule rather than
-your original wording (`weekdays at 09:00` for `Weekdays At 9 AM`); it describes the same
-recurrence. A schedule that predates the change and cannot be phrased at all leaves the field
-blank, with the current schedule shown in the Preview pane instead — leaving it blank keeps it.
+Tasks created before this was added have no stored schedule phrase, so their Schedule field opens
+blank. That is safe — a blank field keeps the existing schedule — and typing a new phrase replaces
+it.
 
 **Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of
 the schedule with the next few run times, and the exact command and arguments as they will be

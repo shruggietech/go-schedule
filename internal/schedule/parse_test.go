@@ -112,3 +112,20 @@ func TestParse_TimeOfDayVariants(t *testing.T) {
 		}
 	}
 }
+
+// TestParse_RetainsExpression pins the round-trip half of the parser's contract:
+// the phrase the user typed is kept on the schedule so an editing client can put
+// their own words back in front of them. It never feeds back into evaluation.
+func TestParse_RetainsExpression(t *testing.T) {
+	sch, err := Parse("  Weekdays at 09:00  ", "UTC", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sch.Expression != "Weekdays at 09:00" {
+		t.Errorf("Expression = %q, want the trimmed original phrase", sch.Expression)
+	}
+	// One-offs carry no phrase: their time is recovered from RunAt.
+	if got := NewOneOff(now).Expression; got != "" {
+		t.Errorf("one-off Expression = %q, want empty", got)
+	}
+}

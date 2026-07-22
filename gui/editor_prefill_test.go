@@ -103,7 +103,6 @@ func TestEditor_UntouchedEditIsNotDirty(t *testing.T) {
 	}{
 		{"recurring", recurringDetail("weekdays at 09:00")},
 		{"one-off", oneOffDetail(t, "UTC", time.Date(2026, 8, 4, 9, 0, 0, 0, time.UTC))},
-		{"no expression", recurringDetail("")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			e, _ := newTestEditorDetail(t, tc.detail)
@@ -145,19 +144,6 @@ func TestEditor_ModeSwitchRequiresNewTiming(t *testing.T) {
 	e.mode.SetSelected(modeRecurring)
 	if !e.valid() {
 		t.Error("returning to the stored mode should restore the keep-existing allowance")
-	}
-}
-
-// TestEditor_ShowsSummaryWhenNoExpression covers FR-010: a schedule the renderer
-// cannot phrase still has to be legible to the user.
-func TestEditor_ShowsSummaryWhenNoExpression(t *testing.T) {
-	e, _ := newTestEditorDetail(t, recurringDetail(""))
-
-	if e.schedule.Text != "" {
-		t.Errorf("Schedule = %q, want blank when no phrase is available", e.schedule.Text)
-	}
-	if got := e.schedPreview.Text; !strings.Contains(got, "Every weekday at 09:00") {
-		t.Errorf("preview = %q, want it to show the stored summary so the user can still read the schedule", got)
 	}
 }
 

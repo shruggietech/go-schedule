@@ -71,16 +71,13 @@ tri-state expressible. Every user story depends on some part of this.
       in `internal/schedule/parse.go` — one place covers all four parse branches.
       Extend `parse_test.go` to assert the phrase is captured. `NewOneOff` in
       `recur.go` is deliberately left alone (data-model.md).
-- [x] T006 [FOUND] Write `internal/schedule/render_test.go` **first, and observe
-      it fail**: for every phrase in the existing `parse_test.go` table, assert
-      `Parse → Render → Parse` yields an identical `RRULE` (FR-004); assert
-      `Render` returns `""` for an unrecognized RRULE and for `event` kind
-      (FR-003); assert **no** output ever contains `starting at` (FR-005, R3).
-- [x] T007 [FOUND] Implement `schedule.Render(sch domain.Schedule, tzName string) string`
-      in the new file `internal/schedule/render.go`, inverting the four parser
-      shapes per the table in research.md R10. Exported doc comment states it is
-      a best-effort inverse that returns `""` rather than guessing. Makes T006
-      pass.
+- ~~T006 / T007 — build `schedule.Render`, an RRULE→phrase inverse, so schedules
+  stored before the `expression` column existed could still be shown.~~
+  **Removed 2026-07-22.** Built on a wrong premise: there is no installed base.
+  The software has no working deployments and the only databases are the
+  maintainers' own, none functional. `render.go` and `render_test.go` are
+  deleted; the phrase-retention assertion moved into `parse_test.go`. See
+  research.md R1 (superseded note).
 
 ### Contract: tri-state group membership
 
@@ -122,9 +119,11 @@ times are identical. No group work involved.
 > failure is a **compile** error, not an assertion failure. That is the correct
 > red state here — do not "fix" it by reordering T021 ahead of the tests.
 
-- [x] T011 [P] [US1] `internal/api/server/tasks_test.go`: `taskDetail` fills
-      `Expression` from `Render` when the stored column is empty, and leaves a
-      stored non-empty value alone (FR-003, R2).
+- [x] T011 [P] [US1] `internal/api/server/expression_test.go`: the phrase a
+      schedule was created from is served on task detail and survives a round
+      trip through storage; a one-off is served with no phrase (FR-001).
+      *(Originally asserted a `Render` backfill for legacy rows; narrowed when
+      the renderer was removed.)*
 - [x] T012 [P] [US1] `internal/api/server/update_test.go`: changing only the
       timezone and resubmitting the phrase re-anchors the recurrence in the new
       zone (FR-011). Note this requirement is satisfied *as a consequence of*
@@ -144,8 +143,11 @@ times are identical. No group work involved.
 - [x] T016 [P] [US1] `gui/editor_test.go`: switching Mode on an existing task
       with the new mode's timing fields empty leaves Save disabled; not switching
       Mode still allows a blank schedule to mean "keep existing" (FR-011b, R11).
-- [x] T017 [P] [US1] `gui/editor_test.go`: with an empty `Expression`, Schedule
-      stays blank and the preview shows the schedule's `HumanSummary` (FR-010).
+- ~~T017 — with an empty `Expression`, show the schedule's `HumanSummary` in the
+  preview (FR-010).~~ **Removed 2026-07-22** with FR-010: `Parse` is the only
+  producer of recurring schedules and always retains the phrase, so an empty
+  `Expression` on a recurring schedule is unreachable. The separate
+  "schedule could not be read" path (FR-009) still exists and is still tested.
 - [x] T017a [P] [US1] `internal/api/server/update_test.go`: create a task, then
       submit an update carrying **no** schedule and no `at` (the untouched-save
       shape), and assert the schedule ID and the computed next-run times are
@@ -155,10 +157,9 @@ times are identical. No group work involved.
 
 ### Implementation for User Story 1
 
-- [x] T018 [US1] In `internal/api/server/tasks.go`, have `taskDetail` fill
-      `sch.Expression = schedule.Render(sch, task.Timezone)` when it is empty —
-      one place, covering create, get, and update responses. Never write it back
-      to the store (R2). Makes T011 pass.
+- ~~T018 — have `taskDetail` fill `Expression` via `Render` when empty.~~
+  **Removed 2026-07-22** with the renderer. `taskDetail` is unchanged from
+  `main`; the phrase reaches clients straight from storage.
 - [x] T019 [US1] Add `GetTask(ctx, id) (server.TaskResponse, error)` to the
       `Backend` interface in `gui/app.go` and to the fake in `gui/app_test.go`.
       **Do this before any other GUI task** or every `gui/` test fails to
@@ -179,12 +180,9 @@ times are identical. No group work involved.
 - [x] T023 [US1] Scope the blank-keeps-existing allowance in `valid()` in
       `gui/editor.go` to "mode unchanged from the stored mode" rather than
       `existing == nil` (FR-011b, R11). Makes T016 pass.
-- [x] T023a [US1] In `gui/editor.go`, when the prefilled `Expression` is empty
-      but a schedule exists, seed the schedule-preview label with the schedule's
-      `HumanSummary` instead of the "Type a schedule to see upcoming runs"
-      placeholder, so the operator can still read what is currently set (FR-010).
-      Makes T017 pass. *(analyze finding E1 — this requirement had a test but no
-      implementation task)*
+- ~~T023a — seed the preview with `HumanSummary` when `Expression` is empty.~~
+  **Removed 2026-07-22** with T017 and FR-010. (This task was itself added to
+  close analyze finding E1; removing the requirement removes the gap.)
 
 **Checkpoint**: US1 fully functional and independently testable. This alone is a
 shippable fix for issue #4.

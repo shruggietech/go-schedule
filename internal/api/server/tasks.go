@@ -214,13 +214,6 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) taskDetail(task domain.Task, sch domain.Schedule, now time.Time) TaskResponse {
 	runs, _ := schedule.UpcomingRuns(sch, task.Timezone, now, 5)
-	// Schedules stored before migration v4 carry no phrase, so an editing client
-	// would have nothing to put in the schedule field. Derive an equivalent one
-	// from the rule for the response only — never written back, so the stored
-	// row (and the user's original wording, once it exists) stays authoritative.
-	if sch.Expression == "" {
-		sch.Expression = schedule.Render(sch, task.Timezone)
-	}
 	return TaskResponse{Task: task, Schedule: sch, NextRuns: runs}
 }
 
