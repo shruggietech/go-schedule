@@ -33,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   principle V (**v1.1.0**) is the governing law; `CLAUDE.md` carries the standing authorization,
   the CI-parity verification commands, and the non-negotiable safety-critical test surfaces.
 
+### Removed
+
+- **The pre-rebrand data-directory migration** (`config.MigrateLegacyPaths`, added in 0.3.0):
+  the daemon no longer moves a `goscheduler` data directory onto the `goschedule` name at
+  startup. Nothing on disk is deleted — an existing `goscheduler` directory is simply left
+  alone and ignored, and the daemon creates a fresh `goschedule` beside it.
+
 ### Decisions
 
 - **2026-07-22** — Store migration **v4** adds `schedules.expression`, retaining the human-readable
@@ -42,6 +49,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exists solely so a client can show the user their own wording again. Pinned by an explicit
   upgrade test asserting a v3 database migrates with every schedule row otherwise unchanged and
   re-opens as a no-op.
+- **2026-07-22** — The pre-rebrand path migration is removed for the same reason as the schedule
+  renderer below: it carries data forward from an installed base that does not exist. Unlike the
+  renderer it was not merely inert. Inspecting the one machine where it would still fire found
+  `C:\ProgramData\goscheduler` holding a `schema_version = 2` database — one *disabled* task, 24
+  runs of which **all 24 failed**, 24 `run_failed` alerts, and no groups, spanning 45 minutes on
+  2026-06-20. Keeping the migration would rename that directory onto the new name and run store
+  migrations v3 and v4 over it, importing a broken database into an otherwise clean install.
+  Removing it is non-destructive: the legacy directory is left untouched for manual recovery or
+  deletion, and the daemon starts fresh.
 - **2026-07-22** — Nothing reconstructs schedule phrases for rows stored before the `expression`
   column existed. An earlier revision of this work added `schedule.Render`, an RRULE→phrase
   inverse applied at read time, so already-installed databases would also show their schedule on

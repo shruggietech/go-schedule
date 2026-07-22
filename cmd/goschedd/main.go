@@ -43,10 +43,6 @@ func mainErr(configPath string) error {
 	if err != nil {
 		return err
 	}
-	// Best-effort one-time move of a pre-rebrand (goscheduler) data directory onto
-	// the new (goschedule) location. Runs before the data dir is created so a fresh
-	// install is detected correctly. Non-fatal by design.
-	config.MigrateLegacyPaths(cfg, config.NewLogger(cfg, os.Stdout))
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		return err
 	}
