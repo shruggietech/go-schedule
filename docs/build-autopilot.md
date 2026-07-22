@@ -148,18 +148,23 @@ The agent halts to the user only when one of these holds:
 
 ## Branching and integration
 
-This project integrates through pull requests: `main` is protected by
-convention and the constitution forbids direct pushes to it. Autopilot commits
-the feature onto a working branch named for the feature (for example
-`005-catchup-hardening`), never onto `main`.
+This project is trunk-based. Autopilot commits the feature directly onto local
+`main`; there are no feature branches and no pull requests. A pull request on a
+one-to-two developer project is review ceremony with no reviewer — the halt
+below is where a human actually looks at the work.
 
-The single halt therefore precedes both the branch push and the pull request.
-Nothing is pushed and no pull request is opened without explicit authorization.
-Once authorized, the branch is pushed and the pull request opened against
-`main`, and CI is the merge gate.
+The single halt therefore precedes the push to `main`. Nothing is pushed
+without explicit authorization.
 
-If the operator explicitly directs the work onto `main` instead, that
-instruction governs for that run, and the halt still precedes the push.
+CI runs on every push to `main`, but it reports after the push rather than
+blocking a merge. The local CI-parity run is the real gate: it must be green
+before the halt, and a red run that cannot be fixed within the feature is
+itself a halt, never something to push and sort out afterwards.
+
+If the harness or a spec-kit kickoff creates a working branch anyway, fold it
+onto `main` before the halt — rebase or fast-forward, verify the result is
+exactly what ships, and delete the branch only after confirming its commits are
+on `main`. An unmergeable branch is a halt, not a silent deletion.
 
 ## The pre-push halt breakdown
 
@@ -171,14 +176,14 @@ At the single halt, the agent presents:
 - The verification results for gofmt, vet, lint, race tests, and GUI tests, with
   evidence of pass or fail.
 - Any deviations or open risks against the feature's acceptance criteria.
-- The exact `git push` command (and pull-request intent) awaiting authorization.
+- The exact `git push` command awaiting authorization.
 
 ## Always-halt guardrails
 
 These hold regardless of the decision policy:
 
-- Never `git push`, open a pull request, tag a release, or run the release
-  workflow without explicit authorization.
+- Never `git push`, tag a release, or run the release workflow without explicit
+  authorization.
 - Never weaken or skip the `/speckit-analyze` gate.
 - Never weaken or skip the safety-critical test surfaces of this project:
   - Clock discipline: engine code takes time through the injected `Clock`

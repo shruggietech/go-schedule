@@ -2,13 +2,24 @@
 SYNC IMPACT REPORT
 ==================
 Version change: (template) → 1.0.0; amended 1.0.0 → 1.1.0 (2026-07-22, principle V
-  adopting the Build-Phase Autopilot Protocol).
+  adopting the Build-Phase Autopilot Protocol); amended 1.1.0 → 2.0.0 (2026-07-22,
+  removing the pull-request integration requirement in favor of trunk-based
+  development).
 Bump rationale: Initial ratification of the project constitution (MAJOR baseline).
   The 1.1.0 amendment adds a new principle (MINOR): autonomous build-phase
   execution. It grants autonomy of execution only and relaxes no existing
   principle or quality gate.
+  The 2.0.0 amendment removes a mandated integration gate — every change landing
+  via pull request, with no direct pushes to the default branch — which is a
+  backward-incompatible governance removal (MAJOR). The requirement never matched
+  practice on this one-to-two developer project. No principle is weakened: the
+  single pre-push halt is retained as the sole human review point and the
+  local CI-parity requirement is strengthened, since CI now reports after a push
+  to main rather than blocking a merge.
 
-Modified principles: N/A (initial adoption)
+Modified principles:
+  - V. Autonomous Build-Phase Execution (2026-07-22, v2.0.0 — the mandatory halt
+    now precedes the push to main rather than a branch push and pull request)
 Added principles:
   - I. Code Quality
   - II. Testing Standards (NON-NEGOTIABLE)
@@ -19,16 +30,22 @@ Added sections:
   - Engineering Constraints
   - Development Workflow & Quality Gates
   - Governance
+Modified sections (2026-07-22, v2.0.0):
+  - Development Workflow & Quality Gates (trunk-based; PR requirement removed;
+    deviations recorded in the commit message rather than a PR description)
+  - Governance (Authority, Guiding decisions, Amendment procedure, Compliance
+    review — all re-anchored from PR review onto the pre-push halt)
 
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (Constitution Check gates align with v1.0.0;
-     the gate is dynamic and needs no edit for principle V)
+  ✅ .specify/templates/plan-template.md (Constitution Check gates are dynamic;
+     no edit required for either amendment)
   ✅ .specify/templates/spec-template.md (no mandatory-section changes required)
   ✅ .specify/templates/tasks-template.md (principle-driven task categories covered)
-  ✅ CLAUDE.md (references constitution as governing document; carries the standing
-     autopilot authorization added in v1.1.0)
-  ✅ docs/build-autopilot.md (the principle V procedure; consistent with these
-     principles)
+  ✅ CLAUDE.md (Integration workflow section rewritten for trunk-based, v2.0.0)
+  ✅ docs/build-autopilot.md (Branching and integration + halt breakdown +
+     guardrails rewritten for trunk-based, v2.0.0)
+  ✅ .github/workflows/ci.yml (no change needed — already triggers on push to
+     main, so CI keeps running without pull_request events)
 
 Deferred TODOs: None
 -->
@@ -137,10 +154,9 @@ to run end to end without per-step authorization.
   architecture-affecting. It halts to the user only when no option is clearly best on an
   irreversible or architecture-defining choice, when the feature's intent is genuinely
   ambiguous, or when a CRITICAL conflict needs a human decision.
-- Exactly one halt per feature is mandatory: before anything leaves the machine (the
-  branch push and the pull request), with a breakdown of notable decisions and what was
-  built. Pushing, opening a pull request, tagging, and cutting a release always require
-  explicit authorization.
+- Exactly one halt per feature is mandatory: before anything leaves the machine (the push
+  to `main`), with a breakdown of notable decisions and what was built. Pushing, tagging,
+  and cutting a release always require explicit authorization.
 - Every feature MUST still be spec'd through spec-kit before implementation. The
   `/speckit-analyze` gate MUST NOT be skipped or weakened.
 
@@ -148,8 +164,7 @@ to run end to end without per-step authorization.
 approved as recommended, so the per-step pause cost time without adding review value.
 Concentrating review at a single pre-push halt keeps the human gate where it actually
 matters. This principle grants autonomy of execution only: it does not relax
-principles I through IV, the CI quality gates, or the pull-request integration
-requirement below.
+principles I through IV or the CI quality gates below.
 
 ## Engineering Constraints
 
@@ -169,16 +184,19 @@ requirement below.
   principle V): one kickoff runs the spec-kit sequence end to end, the agent decides
   routine questions itself and records the rationale, and it halts once before anything
   is pushed.
-- Every change lands via pull request; no direct pushes to the default branch. Autopilot
-  commits onto a feature branch and its single halt precedes both the push and the pull
-  request.
-- CI MUST pass before merge and MUST enforce: `gofmt`/`go vet`, linter, `go test -race`,
-  coverage thresholds, and benchmark regression checks for performance-sensitive packages.
-  The agent MUST run these CI-parity checks locally before the halt, in the foreground and
-  watched to completion, never backgrounded and polled.
-- Code review MUST verify compliance with all five core principles. A reviewer MUST block any
-  change that weakens a principle without recorded justification.
-- Any deviation from a principle MUST be documented in the PR description under a
+- Development is trunk-based. Work is committed directly onto `main`; there are no feature
+  branches and no pull requests. This is a one-to-two developer project, where a pull
+  request is review ceremony with no reviewer — the single pre-push halt is where a human
+  actually looks at the work, and it is not improved by wrapping it in a PR.
+- CI MUST pass and MUST enforce: `gofmt`/`go vet`, linter, `go test -race`, coverage
+  thresholds, and benchmark regression checks for performance-sensitive packages. It runs on
+  every push to `main`. Because CI is a backstop that reports *after* the push rather than a
+  gate that blocks one, the agent MUST run these CI-parity checks locally before the halt, in
+  the foreground and watched to completion, never backgrounded and polled. A red local run is
+  a halt, not something to push and sort out afterwards.
+- The single pre-push halt MUST verify compliance with all five core principles, and MUST
+  surface any change that weakens one without recorded justification.
+- Any deviation from a principle MUST be recorded in the commit message under a
   "Complexity / Deviation" note explaining why a simpler compliant approach was rejected.
 
 ## Governance
@@ -187,25 +205,25 @@ This constitution supersedes ad-hoc practices and conventions. When a technical 
 conflicts with these principles, the principles win unless an explicit, recorded amendment
 changes them.
 
-- **Authority**: All PRs, reviews, and design documents MUST verify compliance with the five
-  core principles and the constraints above. Reviewers act as the enforcement mechanism;
-  CI gates act as the automated backstop.
+- **Authority**: The pre-push halt, commit messages, and design documents MUST verify
+  compliance with the five core principles and the constraints above. The halt is the
+  enforcement mechanism; CI is the automated backstop.
 - **Guiding decisions**: Technical and implementation choices (architecture, dependencies,
   data structures, interface design) MUST be evaluated against the principles. The default
   bias is the simplest design that satisfies all four; added complexity MUST be justified in
   writing against a named principle (typically Performance or Testing) and recorded in the
-  PR.
+  commit message and, where it is architecture-affecting, in `CHANGELOG.md`.
 - **Amendment procedure**: Amendments require (1) a written proposal describing the change and
-  rationale, (2) review approval, and (3) a synchronized update of dependent templates and
+  rationale, (2) operator approval, and (3) a synchronized update of dependent templates and
   guidance docs. The Sync Impact Report at the top of this file MUST be updated on every
   amendment.
 - **Versioning policy**: This constitution is versioned with semantic versioning.
   MAJOR = backward-incompatible governance/principle removals or redefinitions;
   MINOR = a new principle/section or materially expanded guidance;
   PATCH = clarifications and non-semantic refinements.
-- **Compliance review**: Compliance is checked at every PR. Periodically (at minimum each
-  release), maintainers MUST review whether the principles still reflect reality and amend
-  rather than let practice silently drift.
+- **Compliance review**: Compliance is checked at every pre-push halt. Periodically (at
+  minimum each release), maintainers MUST review whether the principles still reflect reality
+  and amend rather than let practice silently drift.
 - **Runtime guidance**: Use `CLAUDE.md`, `docs/build-autopilot.md`, and `.specify/` templates
   for day-to-day development guidance; those documents MUST stay consistent with this
   constitution. Where they appear to conflict with it, the constitution wins.
@@ -217,5 +235,15 @@ changes them.
   the full spec-kit sequence with one mandatory halt before anything is pushed. Autonomy of
   execution only: principles I through IV, the CI quality gates, and the pull-request
   integration requirement are unchanged. Mirrored in `CLAUDE.md`.
+- 2026-07-22, v2.0.0: **removed the pull-request integration requirement.** Development is
+  trunk-based: work is committed directly onto `main`, with no feature branches and no pull
+  requests. The requirement never described this project's practice — it is a one-to-two
+  developer project that has never used pull requests for review, and a PR with no reviewer
+  is ceremony that adds latency without adding scrutiny. Removing a mandated gate is a
+  backward-incompatible governance change, hence MAJOR. Nothing else is relaxed: the single
+  pre-push halt remains mandatory and becomes the sole human review point, CI still runs on
+  every push to `main`, and the local CI-parity requirement is *strengthened* — with no PR
+  to block a bad merge, a red local run must halt rather than be pushed and sorted out
+  afterwards. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-22
+**Version**: 2.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-22

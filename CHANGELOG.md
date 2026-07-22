@@ -33,6 +33,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   principle V (**v1.1.0**) is the governing law; `CLAUDE.md` carries the standing authorization,
   the CI-parity verification commands, and the non-negotiable safety-critical test surfaces.
 
+### Changed
+
+- **Development is trunk-based; the pull-request requirement is gone**
+  (**constitution v2.0.0**). Work is committed directly onto `main` — no feature branches, no
+  pull requests. The old requirement ("every change lands via pull request; no direct pushes to
+  the default branch") never described how this project actually works: it has one-to-two
+  developers, has never used pull requests for review, and a PR with no reviewer adds latency
+  without adding scrutiny. Nothing is relaxed. The single pre-push halt is retained and becomes
+  the sole human review point; deviations from a principle are recorded in the commit message
+  rather than a PR description; and the local CI-parity requirement is *strengthened*, because
+  CI now reports after a push to `main` instead of blocking a merge — a red local run is a halt,
+  not something to push and sort out afterwards. `.github/workflows/ci.yml` needed no change: it
+  already triggers on push to `main`. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
+
 ### Removed
 
 - **The pre-rebrand data-directory migration** (`config.MigrateLegacyPaths`, added in 0.3.0):
@@ -76,10 +90,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reuses the convention already set by `GroupUpdateRequest.Parent` rather than introducing a
   sentinel value that could collide with a real group id. Wire-compatible: omission still means
   unchanged, and the CLI preserves that by only sending the field when `--group` is passed.
-- **2026-07-22** — Autopilot halts before the *branch push and pull request*, not before a push
+- **2026-07-22** — ~~Autopilot halts before the *branch push and pull request*, not before a push
   to `main`. The constitution forbids direct pushes to the default branch, so the halt is placed
   at the last point before work leaves the machine. This diverges deliberately from the
-  trunk-based variant of the protocol used in other projects.
+  trunk-based variant of the protocol used in other projects.~~ **Superseded the same day** by
+  the constitution v2.0.0 amendment below: the project is trunk-based and the halt precedes the
+  push to `main`.
 - **2026-07-22** — Autopilot's standing scope is features traceable to
   `specs/001-task-scheduler/spec.md` and the `TODO.md` roadmap. This project has no separate
   build-sequence document, so the master spec plus the roadmap serve that role. Any other work

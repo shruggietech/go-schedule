@@ -43,10 +43,15 @@ skills until `specify integration upgrade claude` restores them.
 
 ## Integration workflow
 
-Work integrates through pull requests. Autopilot commits onto a feature branch
-named for the feature (for example `005-catchup-hardening`), never onto `main`;
-the constitution forbids direct pushes to the default branch. The single halt
-precedes both the branch push and the pull request, and CI is the merge gate.
+Development is trunk-based. Work is committed directly onto `main` — no feature
+branches, no pull requests. This is a one-to-two developer project; a pull
+request with no reviewer is ceremony, and the single pre-push halt is where a
+human actually reviews the work.
+
+The halt therefore precedes the push to `main`. CI runs on every push, but it
+reports *after* the fact rather than blocking a merge, so the local CI-parity
+run is the real gate: it must be green before the halt, and a red run is a halt
+in itself rather than something to push and sort out afterwards.
 
 ## Running verification (read before verifying)
 
@@ -127,7 +132,7 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 # go-schedule — Active Plan
 
 Governing documents:
-- Constitution: `.specify/memory/constitution.md` (v1.1.0 — code quality, testing, UX, performance, autopilot)
+- Constitution: `.specify/memory/constitution.md` (v2.0.0 — code quality, testing, UX, performance, autopilot; trunk-based)
 - Spec: `specs/001-task-scheduler/spec.md`
 - Plan: `specs/001-task-scheduler/plan.md`
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
