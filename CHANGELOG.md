@@ -54,6 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   startup. Nothing on disk is deleted — an existing `goscheduler` directory is simply left
   alone and ignored, and the daemon creates a fresh `goschedule` beside it.
 
+### Fixed (CI)
+
+- **The coverage gate could fail for code that no longer exists.** `.github/workflows/ci.yml`
+  measured core-package coverage with `go test -coverpkg=<six packages> ./...` and no
+  `-count=1`. Under `-coverpkg` every test binary is instrumented for all six target packages,
+  so a cached test result replays a coverage profile enumerating the file set as it stood when
+  that result was cached. Packages whose own sources are unchanged are served from the cache
+  (`actions/setup-go` restores it via `cache: true`) and drag stale blocks — including blocks
+  belonging to deleted files — into the merged profile. Deleting a well-covered file therefore
+  left its statements in the denominator with nothing covering them. Observed on the first push
+  after `internal/schedule/render.go` was removed: `schedule` reported 50.5% against an 80%
+  gate, exactly `168/333` where 333 is the current 191 statements plus the deleted file's 142.
+  Adding `-count=1` to that step fixes it.
+
 ### Decisions
 
 - **2026-07-22** — Store migration **v4** adds `schedules.expression`, retaining the human-readable
@@ -63,6 +77,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exists solely so a client can show the user their own wording again. Pinned by an explicit
   upgrade test asserting a v3 database migrates with every schedule row otherwise unchanged and
   re-opens as a no-op.
+- **2026-07-22** — **Pinned artifact changed**: `.github/workflows/ci.yml` gains `-count=1` on the
+  coverage-gate command. Pinned artifacts change only with a dated decision, hence this entry. The
+  gate was measuring a denominator that included deleted files, because `-coverpkg` plus Go's test
+  cache replays stale coverage profiles from packages whose own sources did not change. This is a
+  correctness fix to the measurement, not a relaxation: the 80% threshold, the six core packages,
+  and the aggregation script are all unchanged, and the gate now measures the tree as it actually
+  is. Verified by reproducing the gate locally on both Windows and Linux, which agree at
+  `schedule` 88.0% / `store` 86.8%.
 - **2026-07-22** — The pre-rebrand path migration is removed for the same reason as the schedule
   renderer below: it carries data forward from an installed base that does not exist. Unlike the
   renderer it was not merely inert. Inspecting the one machine where it would still fire found

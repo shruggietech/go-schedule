@@ -75,8 +75,15 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Measure core-package statement coverage
+        # -count=1 defeats the test cache. Under -coverpkg every test binary is
+        # instrumented for all six target packages, so a cached result replays a
+        # coverage profile enumerating the file set as it was when that result
+        # was cached. A package whose own sources did not change is served from
+        # cache and drags stale blocks — including blocks for deleted files —
+        # into the merged profile, inflating the denominator and failing the
+        # gate for code that no longer exists.
         run: |
-          go test -coverpkg=./internal/engine,./internal/schedule,./internal/timezone,./internal/store,./internal/catchup,./internal/logbus \
+          go test -count=1 -coverpkg=./internal/engine,./internal/schedule,./internal/timezone,./internal/store,./internal/catchup,./internal/logbus \
             ./... -coverprofile=cover.out >/dev/null
           python3 - <<'PY'
           import collections, sys
