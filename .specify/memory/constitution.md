@@ -1,8 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (template) → 1.0.0
+Version change: (template) → 1.0.0; amended 1.0.0 → 1.1.0 (2026-07-22, principle V
+  adopting the Build-Phase Autopilot Protocol).
 Bump rationale: Initial ratification of the project constitution (MAJOR baseline).
+  The 1.1.0 amendment adds a new principle (MINOR): autonomous build-phase
+  execution. It grants autonomy of execution only and relaxes no existing
+  principle or quality gate.
 
 Modified principles: N/A (initial adoption)
 Added principles:
@@ -10,16 +14,21 @@ Added principles:
   - II. Testing Standards (NON-NEGOTIABLE)
   - III. User Experience Consistency
   - IV. Performance Requirements
+  - V. Autonomous Build-Phase Execution (added 2026-07-22, v1.1.0)
 Added sections:
   - Engineering Constraints
   - Development Workflow & Quality Gates
   - Governance
 
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (Constitution Check gates align with v1.0.0)
+  ✅ .specify/templates/plan-template.md (Constitution Check gates align with v1.0.0;
+     the gate is dynamic and needs no edit for principle V)
   ✅ .specify/templates/spec-template.md (no mandatory-section changes required)
   ✅ .specify/templates/tasks-template.md (principle-driven task categories covered)
-  ✅ CLAUDE.md (references constitution as governing document)
+  ✅ CLAUDE.md (references constitution as governing document; carries the standing
+     autopilot authorization added in v1.1.0)
+  ✅ docs/build-autopilot.md (the principle V procedure; consistent with these
+     principles)
 
 Deferred TODOs: None
 -->
@@ -109,6 +118,39 @@ The scheduler MUST be efficient and meet stated timing and resource budgets.
 erodes trust. Performance is therefore a measured, budgeted, and continuously verified
 property rather than an afterthought.
 
+### V. Autonomous Build-Phase Execution
+
+Build-phase work runs under the Build-Phase Autopilot Protocol
+(`docs/build-autopilot.md`): a single verbal kickoff authorizes the full spec-kit
+sequence (specify, clarify, checklist, plan, tasks, analyze, implement, verify, commit)
+to run end to end without per-step authorization.
+
+- The standing authorization covers features traceable to the master specification
+  (`specs/001-task-scheduler/spec.md`) and the roadmap (`TODO.md`), plus any feature or
+  task the operator explicitly places under autopilot by request. An explicit request
+  authorizes autopilot for the named work and is itself the renewal; absent one, work
+  outside that scope stays in normal interactive mode.
+- The agent decides routine questions itself: it enumerates the alternatives, evaluates
+  them against this constitution, the master specification, and the feature's scope and
+  acceptance criteria, picks the best, proceeds, and records the rationale in the
+  feature's `plan.md` or `spec.md` and in `CHANGELOG.md` when the choice is
+  architecture-affecting. It halts to the user only when no option is clearly best on an
+  irreversible or architecture-defining choice, when the feature's intent is genuinely
+  ambiguous, or when a CRITICAL conflict needs a human decision.
+- Exactly one halt per feature is mandatory: before anything leaves the machine (the
+  branch push and the pull request), with a breakdown of notable decisions and what was
+  built. Pushing, opening a pull request, tagging, and cutting a release always require
+  explicit authorization.
+- Every feature MUST still be spec'd through spec-kit before implementation. The
+  `/speckit-analyze` gate MUST NOT be skipped or weakened.
+
+**Rationale**: In practice the routine decisions raised between spec-kit steps were
+approved as recommended, so the per-step pause cost time without adding review value.
+Concentrating review at a single pre-push halt keeps the human gate where it actually
+matters. This principle grants autonomy of execution only: it does not relax
+principles I through IV, the CI quality gates, or the pull-request integration
+requirement below.
+
 ## Engineering Constraints
 
 - Language and tooling: Go (latest stable minor release), managed with Go modules. Avoid
@@ -123,10 +165,18 @@ property rather than an afterthought.
 
 ## Development Workflow & Quality Gates
 
-- Every change lands via pull request; no direct pushes to the default branch.
+- Features run under the Build-Phase Autopilot Protocol (`docs/build-autopilot.md`, see
+  principle V): one kickoff runs the spec-kit sequence end to end, the agent decides
+  routine questions itself and records the rationale, and it halts once before anything
+  is pushed.
+- Every change lands via pull request; no direct pushes to the default branch. Autopilot
+  commits onto a feature branch and its single halt precedes both the push and the pull
+  request.
 - CI MUST pass before merge and MUST enforce: `gofmt`/`go vet`, linter, `go test -race`,
   coverage thresholds, and benchmark regression checks for performance-sensitive packages.
-- Code review MUST verify compliance with all four core principles. A reviewer MUST block any
+  The agent MUST run these CI-parity checks locally before the halt, in the foreground and
+  watched to completion, never backgrounded and polled.
+- Code review MUST verify compliance with all five core principles. A reviewer MUST block any
   change that weakens a principle without recorded justification.
 - Any deviation from a principle MUST be documented in the PR description under a
   "Complexity / Deviation" note explaining why a simpler compliant approach was rejected.
@@ -137,7 +187,7 @@ This constitution supersedes ad-hoc practices and conventions. When a technical 
 conflicts with these principles, the principles win unless an explicit, recorded amendment
 changes them.
 
-- **Authority**: All PRs, reviews, and design documents MUST verify compliance with the four
+- **Authority**: All PRs, reviews, and design documents MUST verify compliance with the five
   core principles and the constraints above. Reviewers act as the enforcement mechanism;
   CI gates act as the automated backstop.
 - **Guiding decisions**: Technical and implementation choices (architecture, dependencies,
@@ -156,7 +206,16 @@ changes them.
 - **Compliance review**: Compliance is checked at every PR. Periodically (at minimum each
   release), maintainers MUST review whether the principles still reflect reality and amend
   rather than let practice silently drift.
-- **Runtime guidance**: Use `CLAUDE.md` and `.specify/` templates for day-to-day development
-  guidance; those documents MUST stay consistent with this constitution.
+- **Runtime guidance**: Use `CLAUDE.md`, `docs/build-autopilot.md`, and `.specify/` templates
+  for day-to-day development guidance; those documents MUST stay consistent with this
+  constitution. Where they appear to conflict with it, the constitution wins.
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-06-19
+**Amendments**:
+
+- 2026-07-22, v1.1.0: added principle V (Autonomous Build-Phase Execution), adopting the
+  Build-Phase Autopilot Protocol at `docs/build-autopilot.md`. A single kickoff authorizes
+  the full spec-kit sequence with one mandatory halt before anything is pushed. Autonomy of
+  execution only: principles I through IV, the CI quality gates, and the pull-request
+  integration requirement are unchanged. Mirrored in `CLAUDE.md`.
+
+**Version**: 1.1.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-22

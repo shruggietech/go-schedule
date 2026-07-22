@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Build-Phase Autopilot Protocol** (`docs/build-autopilot.md`): the operating procedure for
+  running a spec-kit feature end to end on one verbal kickoff, with the routine decisions made
+  and recorded by the agent and exactly one halt before anything is pushed. Constitution
+  principle V (**v1.1.0**) is the governing law; `CLAUDE.md` carries the standing authorization,
+  the CI-parity verification commands, and the non-negotiable safety-critical test surfaces.
+
+### Decisions
+
+- **2026-07-22** — Autopilot halts before the *branch push and pull request*, not before a push
+  to `main`. The constitution forbids direct pushes to the default branch, so the halt is placed
+  at the last point before work leaves the machine. This diverges deliberately from the
+  trunk-based variant of the protocol used in other projects.
+- **2026-07-22** — Autopilot's standing scope is features traceable to
+  `specs/001-task-scheduler/spec.md` and the `TODO.md` roadmap. This project has no separate
+  build-sequence document, so the master spec plus the roadmap serve that role. Any other work
+  can still be placed under autopilot by explicit operator request, which is itself the renewal.
+- **2026-07-22** — The safety-critical test surfaces that autopilot may never weaken are named
+  explicitly for this project: clock injection, timezone/DST resolution, forward-only store
+  migrations, restart and catch-up recovery, goroutine termination under the race detector, and
+  local IPC access control. Autopilot grants autonomy of execution only and relaxes no quality
+  gate.
+- **2026-07-22** — `.claude/` stays gitignored (the agent folder may hold credentials). The
+  `/speckit-*` command skills the protocol drives are therefore per-clone local state, restored
+  with `specify integration upgrade claude`; this is recorded as a precondition in the protocol
+  rather than by tracking the folder.
+
 ## [0.3.0] - 2026-06-21
 
 ### Changed
@@ -140,4 +170,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/shruggietech/go-schedule/releases/tag/v0.3.0
