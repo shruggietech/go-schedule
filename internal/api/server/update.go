@@ -2,20 +2,27 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/executor"
 	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/store"
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // TaskUpdateRequest carries optional task fields. Empty/nil fields are left
 // unchanged. Providing Schedule or At replaces the task's schedule.
+//
+// GroupID is a pointer because group membership needs three distinct intents,
+// and an empty string cannot carry two of them: nil leaves membership
+// unchanged, a pointer to "" removes the task from all groups, and a pointer to
+// an id assigns it. (Same convention as GroupUpdateRequest.Parent.)
 type TaskUpdateRequest struct {
 	Name          string            `json:"name,omitempty"`
-	GroupID       string            `json:"group_id,omitempty"`
+	GroupID       *string           `json:"group_id,omitempty"`
 	Command       string            `json:"command,omitempty"`
 	Args          []string          `json:"args,omitempty"`
 	WorkingDir    string            `json:"working_dir,omitempty"`
@@ -56,8 +63,21 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	if req.Env != nil {
 		task.Env = req.Env
 	}
-	if req.GroupID != "" {
-		task.GroupID = req.GroupID
+	if req.GroupID != nil {
+		// "" clears membership; a named group must exist, or this is the
+		// caller's mistake and belongs in a validation error rather than a
+		// foreign-key failure.
+		if *req.GroupID != "" {
+			if _, err := s.store.GetGroup(*req.GroupID); err != nil {
+				if errors.Is(err, store.ErrNotFound) {
+					writeError(w, http.StatusBadRequest, CodeValidation, "group_id", "group not found")
+					return
+				}
+				s.internal(w, err)
+				return
+			}
+		}
+		task.GroupID = *req.GroupID
 	}
 	if req.RunAs != "" {
 		if err := executor.ValidateRunAs(req.RunAs); err != nil {

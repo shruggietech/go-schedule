@@ -151,6 +151,18 @@ DROP TABLE IF EXISTS dedup_ledger;
 DROP TABLE IF EXISTS triggers;
 `,
 	},
+	{
+		// v4: retain the human-readable phrase a recurring schedule was parsed
+		// from, so a client can put the user's own words back into the field
+		// they typed them into. Additive with a total default: no existing
+		// column, row, or value is read or rewritten, so no stored timing moves.
+		// Pre-v4 rows keep the empty default and are served a phrase derived
+		// from their RRULE at read time (see schedule.Render).
+		version: 4,
+		stmts: `
+ALTER TABLE schedules ADD COLUMN expression TEXT NOT NULL DEFAULT '';
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

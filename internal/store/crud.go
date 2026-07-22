@@ -165,9 +165,9 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 		sch.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO schedules(id,kind,rrule,anchor,run_at,trigger_id,human_summary) VALUES(?,?,?,?,?,?,?)`,
+		`INSERT INTO schedules(id,kind,rrule,anchor,run_at,trigger_id,human_summary,expression) VALUES(?,?,?,?,?,?,?,?)`,
 		sch.ID, string(sch.Kind), nullStr(sch.RRULE), fmtTimePtr(sch.Anchor), fmtTimePtr(sch.RunAt),
-		nullStr(sch.TriggerID), sch.HumanSummary,
+		nullStr(sch.TriggerID), sch.HumanSummary, sch.Expression,
 	)
 	if err != nil {
 		return fmt.Errorf("store: create schedule: %w", err)
@@ -177,12 +177,12 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 
 // GetSchedule returns the schedule by id, or ErrNotFound.
 func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
-	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,run_at,trigger_id,human_summary FROM schedules WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,run_at,trigger_id,human_summary,expression FROM schedules WHERE id=?`, id)
 	var sch domain.Schedule
 	var rrule, trigger sql.NullString
 	var anchor, runAt sql.NullString
 	var kind string
-	if err := row.Scan(&sch.ID, &kind, &rrule, &anchor, &runAt, &trigger, &sch.HumanSummary); err != nil {
+	if err := row.Scan(&sch.ID, &kind, &rrule, &anchor, &runAt, &trigger, &sch.HumanSummary, &sch.Expression); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Schedule{}, ErrNotFound
 		}

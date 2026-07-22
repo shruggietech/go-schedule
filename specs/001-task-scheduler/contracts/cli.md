@@ -23,6 +23,10 @@ Verb-noun command tree (cobra). Global rules (constitution UX-consistency princi
 - `--schedule <spec>` accepts human-readable forms (e.g. `"every 15m"`, `"weekdays at 09:00"`,
   `"3rd wednesday monthly at 14:00"`). The CLI echoes the resulting plain-language summary before
   confirming (FR-006). `--at` creates a one-off (FR-004a); a past `--at` is rejected with exit 2.
+- `--group` on `task edit` carries three distinct intents. Omitting the flag leaves membership
+  unchanged; `--group <id>` assigns the task to that group; `--group ""` removes it from its group
+  entirely. An unknown group id is a validation failure (exit 2) naming the `group_id` field, not
+  an internal error.
 
 ## Group commands
 

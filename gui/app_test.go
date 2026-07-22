@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,6 +23,38 @@ type fakeBackend struct {
 	logs       []domain.LogRecord
 	created    int
 	lastCreate server.TaskCreateRequest
+
+	// details keyed by task ID; GetTask serves these and records failures.
+	details    map[string]server.TaskResponse
+	getTaskErr error
+
+	// Updates are recorded under mu: App.run dispatches them on a goroutine, so
+	// a test reading them races the UI unless both sides synchronize.
+	mu         sync.Mutex
+	updated    int
+	lastUpdate server.TaskUpdateRequest
+	lastUpdID  string
+}
+
+// lastUpdateCall returns the recorded update count and the most recent request.
+func (f *fakeBackend) lastUpdateCall() (int, string, server.TaskUpdateRequest) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.updated, f.lastUpdID, f.lastUpdate
+}
+
+// waitFor polls cond until it holds or the test times out, so tests can await an
+// asynchronous backend call without sleeping for a fixed duration.
+func waitFor(t *testing.T, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if cond() {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatal("timed out waiting for the expected backend call")
 }
 
 func (f *fakeBackend) ListTasks(context.Context, string, string) ([]domain.Task, error) {
@@ -39,7 +72,26 @@ func (f *fakeBackend) CreateTask(_ context.Context, req server.TaskCreateRequest
 	f.lastCreate = req
 	return server.TaskResponse{}, nil
 }
-func (f *fakeBackend) UpdateTask(context.Context, string, server.TaskUpdateRequest) (server.TaskResponse, error) {
+func (f *fakeBackend) GetTask(_ context.Context, id string) (server.TaskResponse, error) {
+	if f.getTaskErr != nil {
+		return server.TaskResponse{}, f.getTaskErr
+	}
+	if d, ok := f.details[id]; ok {
+		return d, nil
+	}
+	for _, t := range f.tasks {
+		if t.ID == id {
+			return server.TaskResponse{Task: t}, nil
+		}
+	}
+	return server.TaskResponse{}, nil
+}
+func (f *fakeBackend) UpdateTask(_ context.Context, id string, req server.TaskUpdateRequest) (server.TaskResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.updated++
+	f.lastUpdID = id
+	f.lastUpdate = req
 	return server.TaskResponse{}, nil
 }
 func (f *fakeBackend) DeleteTask(context.Context, string) error           { return nil }

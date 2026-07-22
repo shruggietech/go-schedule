@@ -5,16 +5,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // newTestEditor builds a wired editor (ready == true) against a fake backend.
+// existing is nil for a create; a task alone stands in for an edit whose
+// schedule is irrelevant to the test.
 func newTestEditor(t *testing.T, existing *domain.Task) (*taskEditor, *fakeBackend) {
+	t.Helper()
+	var detail *server.TaskResponse
+	if existing != nil {
+		detail = &server.TaskResponse{Task: *existing}
+	}
+	return newTestEditorDetail(t, detail)
+}
+
+// newTestEditorDetail builds a wired editor from full task detail, for tests
+// that care about the stored schedule.
+func newTestEditorDetail(t *testing.T, detail *server.TaskResponse) (*taskEditor, *fakeBackend) {
 	t.Helper()
 	fb := &fakeBackend{}
 	ui := NewUI(testApp, fb)
-	e := newTaskEditor(ui, existing)
+	e := newTaskEditor(ui, detail)
 	e.previewSync = true // deterministic: no cross-test goroutines/fyne.Do
 	e.build()            // wires layout, sets ready
 	return e, fb

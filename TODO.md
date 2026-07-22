@@ -22,6 +22,8 @@ High-level roadmap. The authoritative, dependency-ordered task list lives in
 
 ## Polish & cross-cutting
 
+- [ ] **GUI task fidelity** — task editor prefills the task's real mode/schedule/one-off time;
+      group assignment reachable from the GUI (`specs/005-gui-task-fidelity/`, issues #3 and #4)
 - [ ] README/build docs, goroutine-leak test, dispatch-latency benchmark (p99 < 100ms)
 - [ ] Harden local IPC access control (socket/pipe permissions, admin group)
 - [ ] Verify ≥80% coverage on core packages

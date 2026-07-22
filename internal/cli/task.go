@@ -18,6 +18,17 @@ func newTaskCmd() *cobra.Command {
 	return cmd
 }
 
+// groupIntent maps the --group flag onto the API's three-way group membership
+// intent. Omitting the flag leaves membership alone (nil), which is the
+// long-standing behavior of `task edit`; passing it explicitly assigns the given
+// group, or removes the task from its group when the value is empty.
+func groupIntent(cmd *cobra.Command, group string) *string {
+	if !cmd.Flags().Changed("group") {
+		return nil
+	}
+	return &group
+}
+
 func taskEdit() *cobra.Command {
 	var command, cwd, group, tz, sched, at, overlap, catchup string
 	var args, env []string
@@ -25,7 +36,7 @@ func taskEdit() *cobra.Command {
 		Use:   "edit <id>",
 		Short: "Modify a task (only provided fields change)",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error {
+		RunE: func(cmd *cobra.Command, a []string) error {
 			if sched != "" && at != "" {
 				return fmt.Errorf("%w: provide at most one of --schedule or --at", errUsage)
 			}
@@ -34,9 +45,10 @@ func taskEdit() *cobra.Command {
 				return fmt.Errorf("%w: %v", errUsage, err)
 			}
 			req := server.TaskUpdateRequest{
-				Command: command, Args: args, WorkingDir: cwd, Env: envMap, GroupID: group,
+				Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
 			}
+			req.GroupID = groupIntent(cmd, group)
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
 				if err != nil {
@@ -63,7 +75,7 @@ func taskEdit() *cobra.Command {
 	f.StringArrayVar(&args, "arg", nil, "argument (repeatable; replaces existing)")
 	f.StringVar(&cwd, "cwd", "", "working directory")
 	f.StringArrayVar(&env, "env", nil, "environment variable KEY=VALUE (repeatable; replaces existing)")
-	f.StringVar(&group, "group", "", "group ID")
+	f.StringVar(&group, "group", "", `group ID (pass "" to remove the task from its group)`)
 	f.StringVar(&tz, "tz", "", "IANA timezone")
 	f.StringVar(&sched, "schedule", "", "new human-readable recurrence")
 	f.StringVar(&at, "at", "", "new one-off run time (RFC3339)")

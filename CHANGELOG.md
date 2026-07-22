@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Task editor showed the wrong schedule** ([#4](https://github.com/shruggietech/go-schedule/issues/4)):
+  opening a task for editing always displayed Mode as *Recurring* with the Schedule and one-off
+  date/time fields blank, regardless of how the task was actually scheduled. The dialog now fetches
+  the task's schedule and shows its real mode, its schedule phrase, or its one-off date and time in
+  the task's own timezone. Saving an untouched dialog leaves the schedule byte-identical. Tasks
+  created before this release are covered too: where no phrase was stored, an equivalent one is
+  derived from the recurrence. Switching Mode now requires the new mode's timing, closing a hole
+  where an empty date/time silently kept a recurring schedule on a task the user believed was
+  one-off. Changing only a task's timezone now re-interprets its recurrence in the new zone.
+- **Groups were unusable from the GUI** ([#3](https://github.com/shruggietech/go-schedule/issues/3)):
+  there was no way to put a task into a group without the CLI, and no way at all — from any client —
+  to take one back out, because an empty group value meant "leave unchanged". The task editor now
+  has a Group field (including `(none)`), the Groups tab shows each group's member tasks plus an
+  always-present **Ungrouped** area and a **Move to group…** action, and the task list shows each
+  task's group. `gosched task edit --group ""` un-groups a task; omitting `--group` still leaves
+  membership unchanged.
+
 ### Added
 
 - **Build-Phase Autopilot Protocol** (`docs/build-autopilot.md`): the operating procedure for
@@ -17,6 +36,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-07-22** — Store migration **v4** adds `schedules.expression`, retaining the human-readable
+  phrase a recurring schedule was parsed from. Forward-only and non-destructive: one column with a
+  total default, no existing value read or rewritten, so no stored timing moves. The phrase is
+  inert with respect to execution — `RRULE` remains the only input the engine evaluates — and
+  exists solely so a client can show the user their own wording again. Pinned by an explicit
+  upgrade test asserting a v3 database migrates with every schedule row otherwise unchanged and
+  re-opens as a no-op.
+- **2026-07-22** — Phrases for schedules stored before v4 are derived from the RRULE **on read**
+  (`schedule.Render`, applied in the API's task-detail helper), not backfilled during the
+  migration. The migration runner takes SQL text only, so a backfill would have meant restructuring
+  a safety-critical mechanism to compute a value that is derived and reproducible. Deriving on read
+  keeps the migration a single `ALTER TABLE` and means the derivation can improve later instead of
+  being frozen into a one-time write. `Render` returns nothing rather than guessing when a
+  recurrence falls outside the phrase vocabulary, and never synthesizes a `starting at` anchor,
+  because a stored anchor cannot be distinguished from the creation timestamp.
+- **2026-07-22** — `TaskUpdateRequest.GroupID` becomes `*string` so group membership can carry
+  three intents: nil leaves it unchanged, `""` removes the task from its group, and an id assigns
+  it. Previously `""` meant "unchanged" and un-grouping was unreachable from every client. This
+  reuses the convention already set by `GroupUpdateRequest.Parent` rather than introducing a
+  sentinel value that could collide with a real group id. Wire-compatible: omission still means
+  unchanged, and the CLI preserves that by only sending the field when `--group` is passed.
 - **2026-07-22** — Autopilot halts before the *branch push and pull request*, not before a push
   to `main`. The constitution forbids direct pushes to the default branch, so the halt is placed
   at the last point before work leaves the machine. This diverges deliberately from the

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/task"
 )
 
 // This file holds presentation-only data for the task editor: the human-readable
@@ -79,6 +80,81 @@ func catchupLabel(v domain.CatchupPolicy) string {
 		}
 	}
 	return catchupChoices[0].label
+}
+
+// --- group choices -------------------------------------------------------
+
+// groupNoneLabel is the choice meaning "this task belongs to no group". It is
+// always offered, so removing a task from its group is reachable wherever a
+// group can be chosen.
+const groupNoneLabel = "(none)"
+
+// groupChoiceLabels builds the ordered choice list for every group picker in the
+// app: groupNoneLabel first, then one entry per group rendered as its full path
+// through the hierarchy ("Backups / Nightly"). Paths rather than bare names,
+// because two groups at different levels may share a name and a bare list would
+// make them indistinguishable.
+//
+// This is the single source for group choices — the task editor and the Groups
+// tab's move action both use it, so the two paths to the same operation cannot
+// drift apart.
+func groupChoiceLabels(groups []domain.Group) []string {
+	out := []string{groupNoneLabel}
+	var walk func(nodes []*task.TreeNode, prefix string)
+	walk = func(nodes []*task.TreeNode, prefix string) {
+		for _, n := range nodes {
+			path := n.Group.Name
+			if prefix != "" {
+				path = prefix + groupPathSep + n.Group.Name
+			}
+			out = append(out, path)
+			walk(n.Children, path)
+		}
+	}
+	walk(task.BuildForest(groups), "")
+	return out
+}
+
+const groupPathSep = " / "
+
+// groupLabelForID renders a group ID as its choice label. An empty or
+// unresolvable ID reads as groupNoneLabel: a dangling reference is presented as
+// "ungrouped" rather than raised as an error (FR-019a).
+func groupLabelForID(id string, groups []domain.Group) string {
+	if id == "" {
+		return groupNoneLabel
+	}
+	byID := task.ByID(groups)
+	g, ok := byID[id]
+	if !ok {
+		return groupNoneLabel
+	}
+	path := g.Name
+	// Walk up to the root, guarding against a malformed cycle by bounding the
+	// climb to the number of groups.
+	for i := 0; i < len(groups) && g.ParentID != ""; i++ {
+		parent, ok := byID[g.ParentID]
+		if !ok {
+			break
+		}
+		path = parent.Name + groupPathSep + path
+		g = parent
+	}
+	return path
+}
+
+// groupIDForLabel maps a choice label back to its group ID; groupNoneLabel and
+// any unknown label yield the empty ID.
+func groupIDForLabel(label string, groups []domain.Group) string {
+	if label == "" || label == groupNoneLabel {
+		return ""
+	}
+	for _, g := range groups {
+		if groupLabelForID(g.ID, groups) == label {
+			return g.ID
+		}
+	}
+	return ""
 }
 
 // commonZones seeds the timezone SelectEntry. It is a curated, ordered subset of

@@ -10,8 +10,40 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
+
+// taskRowText renders one task-list row. It names the task's group so
+// membership is visible without opening the editor; an ungrouped task simply
+// omits that column rather than showing a placeholder.
+func taskRowText(t domain.Task, groups []domain.Group) string {
+	row := fmt.Sprintf("%s   [%s]   %s   %s",
+		t.Name, t.State, boolStr(t.Enabled, "enabled", "disabled"), t.Timezone)
+	if label := groupLabelForID(t.GroupID, groups); label != groupNoneLabel {
+		row += "   " + label
+	}
+	return row
+}
+
+// taskDetailFor fetches a task's full detail (task + schedule) so the editor can
+// show what the task is actually set to. The cached task list carries no
+// schedule, so this is the only way to populate the timing fields.
+//
+// A failed lookup is degraded, never fatal: the caller falls back to the task it
+// already holds, with no schedule attached, so an unrelated edit (renaming,
+// fixing a command) is not blocked by a transient read failure. The editor then
+// leaves the timing fields blank — which on save keeps the stored schedule — and
+// says so (FR-009).
+func (a *App) taskDetailFor(t domain.Task) *server.TaskResponse {
+	ctx, cancel := a.bgCtx()
+	defer cancel()
+	detail, err := a.backend.GetTask(ctx, t.ID)
+	if err != nil {
+		return &server.TaskResponse{Task: t}
+	}
+	return &detail
+}
 
 func (a *App) buildTasksTab() fyne.CanvasObject {
 	var tasks []domain.Task
@@ -21,9 +53,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 		func() int { return len(tasks) },
 		func() fyne.CanvasObject { return widget.NewLabel("template") },
 		func(i widget.ListItemID, o fyne.CanvasObject) {
-			t := tasks[i]
-			o.(*widget.Label).SetText(fmt.Sprintf("%s   [%s]   %s   %s",
-				t.Name, t.State, boolStr(t.Enabled, "enabled", "disabled"), t.Timezone))
+			o.(*widget.Label).SetText(taskRowText(tasks[i], a.model.Snapshot().Groups))
 		},
 	)
 	list.OnSelected = func(id widget.ListItemID) { selected = id }
@@ -51,7 +81,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 
 	newBtn := newToolbarButton("New", theme.ContentAddIcon(), func() { a.showTaskEditor(nil) })
 	editBtn := newToolbarButton("Edit", theme.DocumentCreateIcon(), func() {
-		withSel(func(t domain.Task) { a.showTaskEditor(&t) })
+		withSel(func(t domain.Task) { a.showTaskEditor(a.taskDetailFor(t)) })
 	})
 	runBtn := newToolbarButton("Run now", theme.MediaPlayIcon(), func() {
 		withSel(func(t domain.Task) { a.run(func(ctx context.Context) error { return a.backend.RunNow(ctx, t.ID) }) })

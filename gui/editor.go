@@ -23,12 +23,27 @@ import (
 // out so they can be unit-tested headlessly without showing the dialog.
 type taskEditor struct {
 	app      *App
-	existing *domain.Task // nil for a new task
+	detail   *server.TaskResponse // nil for a new task; carries the stored schedule
+	existing *domain.Task         // nil for a new task
+	// storedMode is the mode the task is actually saved with (empty for a new
+	// task). Leaving the timing fields blank means "keep the existing schedule",
+	// which is only meaningful while the selected mode still matches this one.
+	storedMode string
+	// storedSummary is the schedule's plain-language summary, shown in the
+	// preview when no re-submittable phrase is available.
+	storedSummary string
+	// scheduleUnreadable is set when an edit was opened without the task's
+	// schedule (the detail lookup failed), so the preview can say so.
+	scheduleUnreadable bool
 
 	// What to run
 	name    *widget.Entry
 	command *widget.Entry
 	args    *widget.Entry
+	group   *widget.Select
+	// groups is the snapshot the group choices were built from, so labels map
+	// back to IDs against the same data the user saw.
+	groups []domain.Group
 
 	// When
 	tz       *widget.SelectEntry
@@ -71,7 +86,7 @@ type editorSnapshot struct {
 	name, command, args, tz, mode string
 	schedule, startAt             string
 	oneOffDate, oneOffTime        string
-	overlap, catchup              string
+	overlap, catchup, group       string
 }
 
 const (
@@ -81,13 +96,15 @@ const (
 
 // showTaskEditor opens the guided create/edit dialog. A live preview of both the
 // schedule (plain-language summary + next runs) and the resolved command line is
-// shown as the user types (FR-006/FR-007/FR-008). existing is nil for a new task.
-func (a *App) showTaskEditor(existing *domain.Task) {
-	e := newTaskEditor(a, existing)
+// shown as the user types (FR-006/FR-007/FR-008). detail is nil for a new task;
+// for an edit it carries the task and its schedule so the dialog can show what
+// the task is actually set to.
+func (a *App) showTaskEditor(detail *server.TaskResponse) {
+	e := newTaskEditor(a, detail)
 	body := e.build()
 
 	title := "New Task"
-	if existing != nil {
+	if detail != nil {
 		title = "Edit Task"
 	}
 	d := dialog.NewCustomWithoutButtons(title, body, a.win)
@@ -100,13 +117,21 @@ func (a *App) showTaskEditor(existing *domain.Task) {
 	d.Show()
 }
 
-func newTaskEditor(a *App, existing *domain.Task) *taskEditor {
-	e := &taskEditor{app: a, existing: existing}
+func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
+	e := &taskEditor{app: a, detail: detail}
+	if detail != nil {
+		task := detail.Task
+		e.existing = &task
+	}
 
 	e.name = widget.NewEntry()
 	e.command = widget.NewEntry()
 	e.args = widget.NewMultiLineEntry()
 	e.args.SetPlaceHolder("one argument per line")
+
+	e.groups = a.model.Snapshot().Groups
+	e.group = widget.NewSelect(groupChoiceLabels(e.groups), nil)
+	e.group.SetSelected(groupNoneLabel)
 
 	e.tz = widget.NewSelectEntry(commonZones)
 	e.tz.SetText("Local")
@@ -154,6 +179,9 @@ func (e *taskEditor) build() *fyne.Container {
 	argsItem := widget.NewFormItem("Arguments", e.args)
 	argsItem.HintText = "One argument per line" // persistent caption (FR-020)
 	runForm.AppendItem(argsItem)
+	groupItem := widget.NewFormItem("Group", e.group)
+	groupItem.HintText = "Groups can be enabled or disabled together"
+	runForm.AppendItem(groupItem)
 
 	// rebuildWhen swaps a freshly-built form into whenHolder on every change; a
 	// fresh widget.Form (rather than mutating Items in place) guarantees every row
@@ -234,6 +262,7 @@ func (e *taskEditor) snapshot() editorSnapshot {
 		mode: e.mode.Selected, schedule: e.schedule.Text, startAt: e.startAt.Text,
 		oneOffDate: e.oneOffDate.Text, oneOffTime: e.oneOffTime.Text,
 		overlap: e.overlap.Selected, catchup: e.catchup.Selected,
+		group: e.group.Selected,
 	}
 }
 
@@ -314,6 +343,7 @@ func (e *taskEditor) wireValidators() {
 	e.command.OnChanged = func(string) { e.updateCmdPreview(); e.onChange(false) }
 	e.args.OnChanged = func(string) { e.updateCmdPreview(); e.onChange(false) }
 	e.tz.OnChanged = func(string) { e.onChange(false) }
+	e.group.OnChanged = func(string) { e.onChange(false) }
 	e.oneOffDate.OnChanged = func(string) { e.updateOneOffEcho(); e.onChange(false) }
 	e.oneOffTime.OnChanged = func(string) { e.updateOneOffEcho(); e.onChange(false) }
 }
@@ -346,9 +376,61 @@ func (e *taskEditor) prefill() {
 	}
 	e.overlap.SetSelected(overlapLabel(t.OverlapPolicy))
 	e.catchup.SetSelected(catchupLabel(t.CatchupPolicy))
-	// The task row carries no schedule phrase; leave Schedule blank (an empty
-	// schedule on update keeps the existing one) and default to Recurring.
-	e.mode.SetSelected(modeRecurring)
+	e.group.SetSelected(groupLabelForID(t.GroupID, e.groups))
+	e.prefillSchedule()
+}
+
+// prefillSchedule populates Mode and the timing fields from the task's stored
+// schedule (FR-006/FR-007). A task whose schedule could not be read — or whose
+// recurrence has no expressible phrase — falls back to Recurring with the timing
+// fields blank, which on save means "keep the existing schedule".
+func (e *taskEditor) prefillSchedule() {
+	sch := e.detail.Schedule
+	switch {
+	case sch.Kind == domain.ScheduleOneOff && sch.RunAt != nil:
+		e.storedMode = modeOneOff
+		loc, err := timezone.Resolve(e.tzName())
+		if err != nil {
+			loc = time.UTC
+		}
+		local := sch.RunAt.In(loc)
+		e.oneOffDate.SetText(local.Format("2006-01-02"))
+		e.oneOffTime.SetText(local.Format("15:04"))
+	case sch.Kind == domain.ScheduleRecurring:
+		e.storedMode = modeRecurring
+		phrase, anchor := splitAnchorClause(sch.Expression)
+		e.schedule.SetText(phrase)
+		e.startAt.SetText(anchor)
+	default:
+		// A stored task always has a schedule, so a missing one means the detail
+		// lookup failed. Leave everything blank (a save is then a no-op on the
+		// schedule) and tell the user rather than implying the task has none.
+		e.storedMode = modeRecurring
+		e.scheduleUnreadable = true
+	}
+	e.storedSummary = sch.HumanSummary
+	e.mode.SetSelected(e.storedMode)
+}
+
+// splitAnchorClause separates a sub-daily interval phrase from its trailing
+// "starting at HH:MM" / "from HH:MM" clause, so the anchor lands in the field
+// dedicated to it and effectiveSchedule reassembles the identical phrase rather
+// than appending a second clause.
+func splitAnchorClause(expr string) (phrase, anchor string) {
+	expr = strings.TrimSpace(expr)
+	lower := strings.ToLower(expr)
+	for _, sep := range []string{" starting at ", " from "} {
+		if i := strings.LastIndex(lower, sep); i >= 0 {
+			head := strings.TrimSpace(expr[:i])
+			tail := strings.TrimSpace(expr[i+len(sep):])
+			// Only split when the remainder is genuinely an anchored interval;
+			// otherwise the clause is part of the phrase itself.
+			if schedule.IsSubDailyInterval(head) && tail != "" {
+				return head, tail
+			}
+		}
+	}
+	return expr, ""
 }
 
 // --- previews ------------------------------------------------------------
@@ -363,7 +445,18 @@ func (e *taskEditor) updatePreview() {
 	}
 	s := e.effectiveSchedule()
 	if s == "" {
-		e.schedPreview.SetText("Type a schedule to see upcoming runs")
+		switch {
+		case e.scheduleUnreadable:
+			e.schedPreview.SetText("⚠ Could not read this task's current schedule." +
+				"\nLeave Schedule blank to keep it unchanged.")
+		case e.storedSummary != "":
+			// No re-submittable phrase, but the user can still read what the
+			// task is currently set to (FR-010).
+			e.schedPreview.SetText("Currently: " + e.storedSummary +
+				"\nLeave Schedule blank to keep it unchanged.")
+		default:
+			e.schedPreview.SetText("Type a schedule to see upcoming runs")
+		}
 		return
 	}
 	if _, err := schedule.Parse(s, e.tzName(), time.Now()); err != nil {
@@ -461,12 +554,16 @@ func (e *taskEditor) valid() bool {
 	if _, err := timezone.Resolve(e.tzName()); err != nil {
 		return false
 	}
-	creating := e.existing == nil
+	// Leaving the timing blank means "keep the existing schedule". That is only
+	// meaningful for an edit whose mode still matches the stored one: after a
+	// mode switch there is no existing schedule of the new kind to keep, so the
+	// new mode's timing becomes required (FR-011b).
+	mayKeepExisting := e.existing != nil && e.mode.Selected == e.storedMode
 	if e.mode.Selected == modeOneOff {
 		t, err := e.oneOffInstant()
 		switch {
 		case err != nil:
-			return !creating && e.oneOffBlank() // edit + blank = keep existing
+			return mayKeepExisting && e.oneOffBlank()
 		default:
 			return t.After(time.Now())
 		}
@@ -474,7 +571,7 @@ func (e *taskEditor) valid() bool {
 	// Recurring.
 	s := e.effectiveSchedule()
 	if s == "" {
-		return !creating // edit + blank = keep existing
+		return mayKeepExisting
 	}
 	_, err := schedule.Parse(s, e.tzName(), time.Now())
 	return err == nil
@@ -499,7 +596,23 @@ func (e *taskEditor) buildForm() taskForm {
 			f.at = t.Format(time.RFC3339)
 		}
 	}
+	f.groupID = e.groupIntent()
 	return f
+}
+
+// groupIntent maps the Group selection onto the API's three-way intent. Picking
+// "(none)" is a deliberate removal only when the task actually had a group;
+// otherwise it is the unchanged state and must not emit a pointless write.
+func (e *taskEditor) groupIntent() *string {
+	id := groupIDForLabel(e.group.Selected, e.groups)
+	if id == "" {
+		if e.existing == nil || e.existing.GroupID == "" {
+			return nil
+		}
+		empty := ""
+		return &empty
+	}
+	return &id
 }
 
 // --- helpers -------------------------------------------------------------
@@ -638,6 +751,10 @@ _Skip this run_, or _Allow concurrent runs_.
 type taskForm struct {
 	name, command, tz, mode, schedule, at, overlap, catchup string
 	args                                                    []string
+	// groupID carries the three-way membership intent: nil leaves it unchanged,
+	// a pointer to "" removes the task from its group, and a pointer to an id
+	// assigns it.
+	groupID *string
 }
 
 func (a *App) submitTask(existing *domain.Task, f taskForm) {
@@ -657,6 +774,9 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 				Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
 				OverlapPolicy: f.overlap, CatchupPolicy: f.catchup,
 			}
+			if f.groupID != nil {
+				req.GroupID = *f.groupID
+			}
 			if atPtr != nil {
 				req.At = atPtr
 			} else {
@@ -667,7 +787,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 		}
 		req := server.TaskUpdateRequest{
 			Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
-			OverlapPolicy: f.overlap, CatchupPolicy: f.catchup,
+			OverlapPolicy: f.overlap, CatchupPolicy: f.catchup, GroupID: f.groupID,
 		}
 		if atPtr != nil {
 			req.At = atPtr

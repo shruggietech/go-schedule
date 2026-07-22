@@ -37,18 +37,22 @@ func Parse(input, tzName string, now time.Time) (domain.Schedule, error) {
 	if s == "" {
 		return domain.Schedule{}, fmt.Errorf("schedule: empty schedule expression")
 	}
+	// The trimmed input is retained on the returned Schedule so a client can
+	// show the user their own phrase again when editing (domain.Schedule.
+	// Expression). It never feeds back into evaluation.
+	expr := strings.TrimSpace(input)
 
 	if sch, ok, err := parseOrdinal(s); ok || err != nil {
-		return finish(sch, tzName, now, nil, err)
+		return finish(sch, tzName, now, nil, expr, err)
 	}
 	if sch, ok, err := parseDayset(s); ok || err != nil {
-		return finish(sch, tzName, now, nil, err)
+		return finish(sch, tzName, now, nil, expr, err)
 	}
 	if sch, ok, err := parseEveryWeekday(s); ok || err != nil {
-		return finish(sch, tzName, now, nil, err)
+		return finish(sch, tzName, now, nil, expr, err)
 	}
 	if sch, anchor, ok, err := parseInterval(s); ok || err != nil {
-		return finish(sch, tzName, now, anchor, err)
+		return finish(sch, tzName, now, anchor, expr, err)
 	}
 	return domain.Schedule{}, fmt.Errorf("schedule: could not understand %q (try forms like \"every 15 minutes\", \"weekdays at 09:00\", \"3rd wednesday monthly at 14:00\")", input)
 }
@@ -56,7 +60,8 @@ func Parse(input, tzName string, now time.Time) (domain.Schedule, error) {
 // finish validates the constructed RRULE, sets anchor/kind, and returns. When anchor is non-nil
 // (an explicit "starting at"/"from" clause), the anchor instant is that wall time in the task
 // timezone on the current day; otherwise the anchor defaults to now (creation-aligned).
-func finish(sch domain.Schedule, tzName string, now time.Time, anchor *anchorTOD, err error) (domain.Schedule, error) {
+// expr is the user's original phrase, retained for round-tripping only.
+func finish(sch domain.Schedule, tzName string, now time.Time, anchor *anchorTOD, expr string, err error) (domain.Schedule, error) {
 	if err != nil {
 		return domain.Schedule{}, err
 	}
@@ -64,6 +69,7 @@ func finish(sch domain.Schedule, tzName string, now time.Time, anchor *anchorTOD
 		return domain.Schedule{}, fmt.Errorf("schedule: built invalid rule %q: %w", sch.RRULE, perr)
 	}
 	sch.Kind = domain.ScheduleRecurring
+	sch.Expression = expr
 	if anchor == nil {
 		a := now.UTC()
 		sch.Anchor = &a

@@ -27,6 +27,10 @@ type Backend interface {
 	viewmodel.API // ListTasks, ListGroups, ListAlerts
 
 	CreateTask(ctx context.Context, req server.TaskCreateRequest) (server.TaskResponse, error)
+	// GetTask returns the full task detail including its schedule. The cached
+	// task list carries no schedule, so the editor fetches detail on open to
+	// show what a task is actually set to.
+	GetTask(ctx context.Context, id string) (server.TaskResponse, error)
 	UpdateTask(ctx context.Context, id string, req server.TaskUpdateRequest) (server.TaskResponse, error)
 	DeleteTask(ctx context.Context, id string) error
 	SetTaskEnabled(ctx context.Context, id string, enabled bool) error

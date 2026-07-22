@@ -20,6 +20,7 @@ before discarding.
 | **Name** | yes | any text label | — |
 | **Command** | yes | a single executable (name or full path) | — |
 | **Arguments** | no | one argument per line | empty |
+| **Group** | no | `(none)`, or a group shown by its path (`Backups / Nightly`) | `(none)` |
 | **Timezone** | no | searchable list of common zones, or any IANA name / `Local` | `Local` |
 | **Mode** | yes | `Recurring` or `One-off` | `Recurring` |
 | **Schedule** | when Recurring (create) | human-readable phrase (see below) | — |
@@ -32,6 +33,17 @@ before discarding.
 **Start at**) field is shown and the one-off inputs are hidden; in `One-off` mode it's the reverse.
 Switching Mode keeps whatever you already typed in either field. When editing an existing task,
 leaving the time field blank keeps the task's current schedule.
+
+**Editing shows the task as it actually is.** Opening an existing task fills in its real Mode and
+either its schedule phrase or its one-off date and time, shown in the task's own timezone, so you
+can see what the task is currently set to before changing anything. Saving without touching those
+fields leaves the schedule exactly as it was. If you *switch* Mode, the new mode's time fields
+become required — there is no existing schedule of the new kind to fall back on.
+
+Tasks created before this was added may show a canonical rephrasing of their schedule rather than
+your original wording (`weekdays at 09:00` for `Weekdays At 9 AM`); it describes the same
+recurrence. A schedule that predates the change and cannot be phrased at all leaves the field
+blank, with the current schedule shown in the Preview pane instead — leaving it blank keeps it.
 
 **Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of
 the schedule with the next few run times, and the exact command and arguments as they will be
@@ -66,6 +78,21 @@ To run the equivalent of `cmd /c echo hello`:
 /c
 echo hello
 ```
+
+## Group
+
+Which group the task belongs to, or `(none)` for no group. Groups can be enabled and disabled as a
+unit, and disabling a group suppresses every task inside it and inside its subgroups.
+
+- Groups are listed by their full path (`Backups / Nightly`), so two groups with the same name at
+  different levels are distinguishable.
+- Choose `(none)` to take a task back out of its group. It then appears under **Ungrouped** in the
+  Groups tab.
+- Create groups in the **Groups** tab; this field only assigns to existing ones.
+- You can also move a task from the Groups tab: select it under its group and use
+  **Move to group…**. Both paths offer the same choices.
+- The equivalent CLI form is `gosched task add --group <id>` / `gosched task edit --group <id>`,
+  and `gosched task edit --group ""` to un-group. Omitting `--group` leaves membership unchanged.
 
 ## Timezone
 

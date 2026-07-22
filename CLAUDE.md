@@ -111,7 +111,8 @@ Governing documents:
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
-- Plan: `specs/004-rebrand-gui-overhaul/plan.md` (rename go-scheduler→go-schedule; Windows .msi install w/ auto-start service; Alerts→unified Logs view w/ filters + on-disk JSONL + detail; remove Triggers entirely (migration v3); real-time GUI via broker task/group/log events (drop manual Refresh); toggleable calendar view under Schedule)
+- Plan: `specs/005-gui-task-fidelity/plan.md` (fix issues #4 and #3: task editor prefills real mode/schedule/one-off date+time via a persisted schedule `expression` (migration v4) plus an RRULE→phrase renderer for pre-upgrade databases; group assignment from the GUI via a tri-state `group_id` (`*string`: nil unchanged / "" ungroup / id assign), an editor group selector, and a Groups tree showing member tasks and an always-present Ungrouped node)
+- Prior: `specs/004-rebrand-gui-overhaul/plan.md` (rename go-scheduler→go-schedule; Windows .msi install w/ auto-start service; Alerts→unified Logs view w/ filters + on-disk JSONL + detail; remove Triggers entirely (migration v3); real-time GUI via broker task/group/log events (drop manual Refresh); toggleable calendar view under Schedule)
 - Prior: `specs/003-gui-editor-refinements/plan.md` (GUI editor refinements: maximized window, two-pane modal + Help, code-block preview, custom collapsible, cancel-confirm, app-wide pointer cursor)
 - Prior: `specs/002-gui-task-editor-ux/plan.md` (GUI task-editor UX overhaul + interval anchor)
 <!-- SPECKIT END -->

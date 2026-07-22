@@ -119,6 +119,14 @@ type Task struct {
 
 // Schedule is the timing definition for a task. Exactly one of (RRULE+Anchor),
 // RunAt, or TriggerID is populated, matching Kind. All times are UTC.
+//
+// Three fields carry timing text and are easy to confuse:
+//   - RRULE is authoritative — the only timing input the engine evaluates.
+//   - HumanSummary is what the system says back to the user ("Every weekday at
+//     09:00"). Display only, and deliberately not re-parseable.
+//   - Expression is what the user typed ("weekdays at 09:00"). It exists so a
+//     client can put the user's own words back into the field they typed them
+//     into, and is inert with respect to execution.
 type Schedule struct {
 	ID           string       `json:"id"`
 	Kind         ScheduleKind `json:"kind"`
@@ -127,6 +135,12 @@ type Schedule struct {
 	RunAt        *time.Time   `json:"run_at,omitempty"`
 	TriggerID    string       `json:"trigger_id,omitempty"`
 	HumanSummary string       `json:"human_summary"`
+	// Expression is the human-readable phrase this schedule was parsed from,
+	// suitable for re-submission. Empty for one-off schedules (their time is
+	// recovered from RunAt), for rows written before store migration v4, and for
+	// any recurrence outside the phrase vocabulary. Never an execution input:
+	// nothing on the scheduling path may read it.
+	Expression string `json:"expression,omitempty"`
 }
 
 // Run is a single execution record (append-only history).
