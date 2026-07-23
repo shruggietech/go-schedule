@@ -77,6 +77,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exists solely so a client can show the user their own wording again. Pinned by an explicit
   upgrade test asserting a v3 database migrates with every schedule row otherwise unchanged and
   re-opens as a no-op.
+- **2026-07-22** — **Pinned artifact changed**: the coverage gate moves out of
+  `.github/workflows/ci.yml` into `scripts/coverage-gate.sh`, and CI now invokes that script.
+  Previously the gate existed only as inline Python in the workflow, so there was no way to run
+  it locally without transcribing it — which is exactly how a push went out that CI then
+  rejected: the local check used `go test -cover` (per-package) while the gate measures
+  cross-package coverage with `-coverpkg`, two different numbers. One implementation removes the
+  drift and makes the gate a first-class CI-parity command in `CLAUDE.md`. Written in POSIX `sh`
+  + `awk` rather than Python so it runs unchanged in Git Bash on Windows, in WSL, and on the
+  runner; the previous inline version required `python3`, which is absent on a stock Windows
+  workstation. Threshold, package list, and aggregation semantics are unchanged, and the awk
+  aggregation was verified to reproduce the Python output exactly. Both the pass path (exit 0)
+  and the fail path (exit 1 at a raised threshold) were exercised on Windows and Linux.
 - **2026-07-22** — **Pinned artifact changed**: `.github/workflows/ci.yml` gains `-count=1` on the
   coverage-gate command. Pinned artifacts change only with a dated decision, hence this entry. The
   gate was measuring a denominator that included deleted files, because `-coverpkg` plus Go's test

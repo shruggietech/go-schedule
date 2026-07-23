@@ -74,44 +74,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      # Runs the same script contributors run locally (see CLAUDE.md). One
+      # implementation, so the local check and the CI check cannot drift into
+      # measuring different things.
       - name: Measure core-package statement coverage
-        # -count=1 defeats the test cache. Under -coverpkg every test binary is
-        # instrumented for all six target packages, so a cached result replays a
-        # coverage profile enumerating the file set as it was when that result
-        # was cached. A package whose own sources did not change is served from
-        # cache and drags stale blocks — including blocks for deleted files —
-        # into the merged profile, inflating the denominator and failing the
-        # gate for code that no longer exists.
-        run: |
-          go test -count=1 -coverpkg=./internal/engine,./internal/schedule,./internal/timezone,./internal/store,./internal/catchup,./internal/logbus \
-            ./... -coverprofile=cover.out >/dev/null
-          python3 - <<'PY'
-          import collections, sys
-          blocks = {}
-          for line in open('cover.out').readlines()[1:]:
-              line = line.strip()
-              if not line:
-                  continue
-              key, n, c = line.rsplit(' ', 2)
-              n, c = int(n), int(c)
-              blocks[key] = (n, max(blocks.get(key, (n, 0))[1], c))
-          pkg = collections.defaultdict(lambda: [0, 0])
-          for key, (n, c) in blocks.items():
-              short = key.split('internal/')[1].split('/')[0]
-              pkg[short][1] += n
-              if c > 0:
-                  pkg[short][0] += n
-          core = ['engine', 'schedule', 'timezone', 'store', 'catchup', 'logbus']
-          failed = False
-          for p in core:
-              cov, tot = pkg[p]
-              pct = 100 * cov / tot if tot else 0
-              status = 'OK' if pct >= 80 else 'FAIL'
-              if pct < 80:
-                  failed = True
-              print(f"{p:10}{pct:6.1f}%  {status}")
-          sys.exit(1 if failed else 0)
-          PY
+        run: sh scripts/coverage-gate.sh
 
   build:
     name: Cross-compile (daemon + CLI)

@@ -80,10 +80,22 @@ CGO_ENABLED=1 go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
 go test ./gui/...
 ```
 
+```bash
+sh scripts/coverage-gate.sh
+```
+
 `gofmt` must print nothing. The race run excludes the cgo-only GUI entry point
 and the Fyne widget package (races there are inside Fyne's own font cache, not
 this project's code); `gui/viewmodel` stays race-tested and the GUI is covered
-by the headless run. Core packages must stay at or above 80 percent coverage.
+by the headless run.
+
+`scripts/coverage-gate.sh` is the core-package coverage gate: the six core
+packages must stay at or above 80 percent. CI runs this exact script, so the
+local result and the CI result are the same measurement rather than two
+approximations of one — do not substitute `go test -cover`, which reports
+per-package coverage and will disagree, because the gate measures cross-package
+coverage with `-coverpkg` (a package's statements count as covered when *any*
+test in the tree reaches them).
 
 Two local-environment traps, neither of which indicates a problem with the repo:
 
