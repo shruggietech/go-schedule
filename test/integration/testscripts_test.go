@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // twin is one of the two matched implementations of a script.
@@ -185,9 +186,53 @@ func TestScriptsHeartbeatSingleShot(t *testing.T) {
 	}
 }
 
-// TestScriptsHeartbeatBoundaryDrift: declaring an interval enables a
-// boundary-sourced drift figure, and it is labelled as such.
-func TestScriptsHeartbeatBoundaryDrift(t *testing.T) {
+// TestScriptsHeartbeatAnchorDrift: supplying an anchor plus an interval yields
+// a true dispatch-latency figure, labelled with its source.
+func TestScriptsHeartbeatAnchorDrift(t *testing.T) {
+	sqlite := requireSqlite(t)
+	script := map[string]string{
+		"powershell": scriptPath(t, "Test-Heartbeat.ps1"),
+		"posix":      scriptPath(t, "Test-Heartbeat.sh"),
+	}
+	anchor := time.Now().UTC().Add(-5 * time.Minute).Format("2006-01-02T15:04:05Z")
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			_, code := runScript(t, tw, dir, script[tw.name],
+				tw.flag("interval-seconds"), "60", tw.flag("anchor-iso"), anchor)
+			if code != 0 {
+				t.Fatalf("expected exit 0, got %d", code)
+			}
+			db := filepath.Join(dir, "heartbeat.db")
+			if got := queryScalar(t, sqlite, db, "SELECT expected_source FROM beat;"); got != "anchor" {
+				t.Errorf("expected_source = %q, want %q", got, "anchor")
+			}
+			if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM beat WHERE drift_ms IS NOT NULL;"); n != 1 {
+				t.Error("drift should be recorded when an anchor and interval are supplied")
+			}
+			// The anchor is exactly 5 intervals back, so the reconstructed grid
+			// lands on "now" and drift is just startup cost. Anything near a
+			// whole interval would mean the grid arithmetic picked wrong k.
+			if ms := queryInt(t, sqlite, db, "SELECT ABS(drift_ms) FROM beat;"); ms > 30000 {
+				t.Errorf("drift %dms is more than half the interval; grid arithmetic is wrong", ms)
+			}
+		})
+	}
+}
+
+// TestScriptsNoAnchorMeansNoDrift is the regression test for the defect that
+// v0.5.1 fixes. Before it, an interval alone caused the run's start to be
+// snapped to the nearest interval boundary counted from the Unix epoch. That is
+// correct only when the schedule happens to sit on that grid -- and this
+// scheduler anchors interval schedules to task creation time, so a task created
+// at :06 fires at :06 forever and epoch snapping reported a constant ~6s
+// "drift" for a scheduler that was in fact on time to within a quarter second.
+//
+// Reporting nothing is the correct behavior here. A confident wrong number is
+// worse than an absent one, because nothing about its presentation tells you
+// which one you got.
+func TestScriptsNoAnchorMeansNoDrift(t *testing.T) {
 	sqlite := requireSqlite(t)
 	script := map[string]string{
 		"powershell": scriptPath(t, "Test-Heartbeat.ps1"),
@@ -197,21 +242,91 @@ func TestScriptsHeartbeatBoundaryDrift(t *testing.T) {
 		t.Run(tw.name, func(t *testing.T) {
 			requireTwin(t, tw)
 			dir := t.TempDir()
-			_, code := runScript(t, tw, dir, script[tw.name], tw.flag("interval-seconds"), "60")
-			if code != 0 {
+			// An interval but no anchor: the exact shape that used to lie.
+			if _, code := runScript(t, tw, dir, script[tw.name],
+				tw.flag("interval-seconds"), "60"); code != 0 {
 				t.Fatalf("expected exit 0, got %d", code)
 			}
 			db := filepath.Join(dir, "heartbeat.db")
-			if got := queryScalar(t, sqlite, db, "SELECT expected_source FROM beat;"); got != "boundary" {
-				t.Errorf("expected_source = %q, want %q", got, "boundary")
+			if got := queryScalar(t, sqlite, db, "SELECT expected_source FROM beat;"); got != "none" {
+				t.Errorf("expected_source = %q, want %q -- an interval alone must not "+
+					"produce a drift figure, because epoch snapping cannot know the "+
+					"schedule's phase", got, "none")
 			}
-			if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM beat WHERE drift_ms IS NOT NULL;"); n != 1 {
-				t.Error("drift should be recorded when an interval is declared")
+			if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM beat WHERE drift_ms IS NOT NULL;"); n != 0 {
+				t.Error("drift must be absent without an anchor, not fabricated from the epoch grid")
 			}
-			// Snapping to the nearest 60s boundary bounds the magnitude at 30s.
-			// A larger value would mean the snap picked the wrong boundary.
-			if ms := queryInt(t, sqlite, db, "SELECT ABS(drift_ms) FROM beat;"); ms > 30000 {
-				t.Errorf("boundary drift %dms exceeds half the interval; snapping is wrong", ms)
+			// And the interval is still recorded, because gap detection needs it.
+			if n := queryInt(t, sqlite, db, "SELECT interval_seconds FROM beat;"); n != 60 {
+				t.Errorf("interval_seconds = %d, want 60", n)
+			}
+		})
+	}
+}
+
+// TestScriptsReadTimeAnchor: drift computed at read time from raw start
+// timestamps. This is the primary path, because the anchor cannot be known
+// before the task exists -- the scheduler derives an interval schedule's phase
+// from the task's creation moment, so supplying it to the recorder is a
+// chicken-and-egg problem. Deriving at read time also means a wrong anchor is
+// recoverable: re-run the query, do not re-run the experiment.
+func TestScriptsReadTimeAnchor(t *testing.T) {
+	requireSqlite(t)
+	beat := map[string]string{
+		"powershell": scriptPath(t, "Test-Heartbeat.ps1"),
+		"posix":      scriptPath(t, "Test-Heartbeat.sh"),
+	}
+	reader := map[string]string{
+		"powershell": scriptPath(t, "Test-ReadTestDB.ps1"),
+		"posix":      scriptPath(t, "Test-ReadTestDB.sh"),
+	}
+	anchor := time.Now().UTC().Add(-10 * time.Minute).Format("2006-01-02T15:04:05Z")
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			// Recorded with NO anchor -- the ordinary case.
+			if _, code := runScript(t, tw, dir, beat[tw.name],
+				tw.flag("interval-seconds"), "60"); code != 0 {
+				t.Fatalf("recording failed with exit %d", code)
+			}
+			out, code := runScript(t, tw, dir, reader[tw.name],
+				tw.flag("query"), "drift", tw.flag("interval-seconds"), "60",
+				tw.flag("anchor-iso"), anchor, tw.flag("quiet"))
+			if code != 0 {
+				t.Fatalf("read-time drift exited %d: %s", code, out)
+			}
+			if !strings.Contains(out, "read-time") {
+				t.Errorf("drift output should identify itself as read-time derived; got: %s", out)
+			}
+		})
+	}
+}
+
+// TestScriptsAnchorNeedsInterval: an anchor without an interval cannot
+// reconstruct a grid, and saying so is better than guessing one.
+func TestScriptsAnchorNeedsInterval(t *testing.T) {
+	requireSqlite(t)
+	beat := map[string]string{
+		"powershell": scriptPath(t, "Test-Heartbeat.ps1"),
+		"posix":      scriptPath(t, "Test-Heartbeat.sh"),
+	}
+	reader := map[string]string{
+		"powershell": scriptPath(t, "Test-ReadTestDB.ps1"),
+		"posix":      scriptPath(t, "Test-ReadTestDB.sh"),
+	}
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			// Seed one beat with no interval, so none can be inferred either.
+			if _, code := runScript(t, tw, dir, beat[tw.name]); code != 0 {
+				t.Fatalf("recording failed with exit %d", code)
+			}
+			_, code := runScript(t, tw, dir, reader[tw.name],
+				tw.flag("query"), "drift", tw.flag("anchor-iso"), "2026-07-23T12:00:00Z")
+			if code != 2 {
+				t.Errorf("anchor without a usable interval: exit = %d, want 2", code)
 			}
 		})
 	}
@@ -355,11 +470,11 @@ func TestScriptsTwinParity(t *testing.T) {
 
 	dir := t.TempDir()
 	if _, code := runScript(t, ps, dir, scriptPath(t, "Test-Heartbeat.ps1"),
-		"-IntervalSeconds", "60", "-Label", "parity"); code != 0 {
+		"-IntervalSeconds", "60", "-Label", "parity", "-AnchorIso", "2026-07-23T12:00:00Z"); code != 0 {
 		t.Fatalf("powershell twin exited %d", code)
 	}
 	if _, code := runScript(t, posix, dir, scriptPath(t, "Test-Heartbeat.sh"),
-		"--interval-seconds", "60", "--label", "parity"); code != 0 {
+		"--interval-seconds", "60", "--label", "parity", "--anchor-iso", "2026-07-23T12:00:00Z"); code != 0 {
 		t.Fatalf("posix twin exited %d", code)
 	}
 
@@ -437,7 +552,7 @@ func TestScriptsReaderQueries(t *testing.T) {
 		"posix":      scriptPath(t, "Test-Heartbeat.sh"),
 	}
 	heartbeatQueries := []string{
-		"summary", "recent", "cadence", "drift", "overlaps",
+		"summary", "recent", "cadence", "drift", "jitter", "overlaps",
 		"failures", "restarts", "hosts", "schema",
 	}
 	for _, tw := range allTwins() {

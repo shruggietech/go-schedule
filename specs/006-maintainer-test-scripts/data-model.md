@@ -47,7 +47,7 @@ One row per completed heartbeat run. Written once, at the end of the run (FR-021
 | `finished_ms` | INTEGER NOT NULL | | Run end, immediately before the write. |
 | `duration_ms` | INTEGER NOT NULL | | `finished_ms - started_ms`. Stored rather than computed so the overlap query stays a plain join. |
 | `expected_ms` | INTEGER | yes | Expected firing moment. `NULL` when no source was available. |
-| `expected_source` | TEXT NOT NULL | | One of `env`, `boundary`, `none`. Never absent — a drift figure without its provenance is the thing FR-003 forbids. |
+| `expected_source` | TEXT NOT NULL | | One of `env`, `anchor`, `none` (`boundary` is legacy, pre-0.5.1, and readable but never written). Never absent — a drift figure without its provenance is the thing FR-003 forbids. |
 | `drift_ms` | INTEGER | yes | `started_ms - expected_ms`. `NULL` exactly when `expected_ms` is. Positive means late. |
 | `interval_seconds` | INTEGER | yes | The interval the caller declared; the basis of `boundary` snapping and of the reliability check. |
 | `exit_code` | INTEGER NOT NULL | | What the process returned to the scheduler. `0` on the normal path. |
@@ -71,9 +71,11 @@ One row per completed heartbeat run. Written once, at the end of the run (FR-021
 - *Gap*: an inter-beat interval exceeding twice `interval_seconds`.
 - *Overlap*: two beats whose `[started_ms, finished_ms]` ranges intersect. Decidable only
   because both endpoints are stored — the reason FR-002 requires the finish moment.
-- *Unreliable drift*: `expected_source = 'boundary'` and
-  `abs(drift_ms) > interval_seconds * 250`. Reported as unreliable rather than as fact,
-  because past that magnitude a late firing and an early next one are indistinguishable.
+- *Jitter*: variation of `started_ms % interval_ms` around its own mean. Computable
+  without an anchor, but blind to uniform lateness — a scheduler consistently late by a
+  fixed amount has zero jitter.
+- *Legacy drift*: rows with `expected_source = 'boundary'` were written before 0.5.1 by
+  epoch-grid snapping. They record phase offset, not latency, and the reader flags them.
 
 ---
 

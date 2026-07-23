@@ -56,6 +56,18 @@
     output says that it was inferred.
     Alias: i
 
+.PARAMETER AnchorIso
+    One real firing time of the schedule, RFC 3339, from `gosched task show`.
+    With -IntervalSeconds this makes -Query drift compute true dispatch latency
+    at read time, from the raw start timestamps.
+
+    Read time is the right place for this. The anchor cannot be known before the
+    task exists, because this scheduler derives it from the task's creation
+    moment -- so passing it to the recorder is a chicken-and-egg problem. Drift
+    is a derived quantity; deriving it when the anchor is actually knowable
+    costs nothing and works on beats already recorded.
+    Alias: a
+
 .PARAMETER SqliteExe
     Explicit path to sqlite3. Highest precedence in the search order.
 
@@ -116,6 +128,10 @@ Param(
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias("i")]
     [int]$IntervalSeconds = 0,
+
+    [Parameter(Mandatory=$false,ParameterSetName='Default')]
+    [Alias("a")]
+    [string]$AnchorIso = '',
 
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [string]$SqliteExe = '',
@@ -186,11 +202,14 @@ GROUP BY secs ORDER BY n DESC, secs ASC LIMIT 1;
 
     $ThisScriptPath = $MyInvocation.MyCommand.Path
 
+    $script:AnchorMs = $null
+
     $script:Queries = @{
         'summary' = @{ Db = 'both'; Question = 'How many records, over what period, from how many sessions and hosts?' }
         'recent'  = @{ Db = 'both'; Question = 'What are the most recent records?' }
         'cadence' = @{ Db = 'heartbeat'; Question = 'What were the observed intervals (min/p50/p95/p99/max)?' }
-        'drift'   = @{ Db = 'heartbeat'; Question = 'How far from expected did firings land, by expected-source?' }
+        'drift'   = @{ Db = 'heartbeat'; Question = 'True dispatch latency, by expected-source (needs an anchor).' }
+        'jitter'  = @{ Db = 'heartbeat'; Question = 'Variation around the observed firing phase (no anchor needed).' }
         'gaps'    = @{ Db = 'heartbeat'; Question = 'Which expected firings were missed or badly delayed?' }
         'overlaps'= @{ Db = 'heartbeat'; Question = 'Which runs overlapped in time?' }
         'failures'= @{ Db = 'heartbeat'; Question = 'Which runs reported failure?' }
@@ -229,14 +248,14 @@ GROUP BY secs ORDER BY n DESC, secs ASC LIMIT 1;
     }
     Write-Log ("database: {0}" -f $dbPath)
 
-    $isHeartbeat = ($Query -in @('cadence','drift','gaps','overlaps','failures','restarts')) -or
+    $isHeartbeat = ($Query -in @('cadence','drift','jitter','gaps','overlaps','failures','restarts')) -or
                    ($Database -eq 'heartbeat')
     $mode = switch ($Format) { 'Json' { 'json' } 'Csv' { 'csv' } default { 'box' } }
 
     # Interval resolution, and saying which it was.
     $intervalUsed = $IntervalSeconds
     $intervalInferred = $false
-    if ($intervalUsed -le 0 -and $Query -in @('gaps','drift')) {
+    if ($intervalUsed -le 0 -and $Query -in @('gaps','drift','jitter')) {
         $intervalUsed = Get-InferredInterval -DbPath $dbPath
         $intervalInferred = $true
         if ($intervalUsed -gt 0) {
@@ -244,6 +263,20 @@ GROUP BY secs ORDER BY n DESC, secs ASC LIMIT 1;
         } else {
             Write-Log "interval not supplied and could not be inferred (too few records)" -Level Warn
         }
+    }
+
+    if ($AnchorIso) {
+        if ($intervalUsed -le 0) {
+            Write-Log "-AnchorIso needs -IntervalSeconds to reconstruct the firing grid." -Level Error
+            exit 2
+        }
+        try {
+            $script:AnchorMs = [long]([DateTimeOffset]::Parse($AnchorIso)).ToUnixTimeMilliseconds()
+        } catch {
+            Write-Log ("-AnchorIso '{0}' is not a parseable timestamp." -f $AnchorIso) -Level Error
+            exit 2
+        }
+        Write-Log ("drift derived at read time from anchor {0} and interval {1}s" -f $AnchorIso, $intervalUsed)
     }
 
     $sql = switch ($Query) {
@@ -285,6 +318,24 @@ FROM d WHERE delta IS NOT NULL;
 '@
         }
         'drift' {
+            if ($script:AnchorMs -ne $null) {
+                # Read-time derivation from raw start timestamps: reconstruct the
+                # anchor + k*interval grid and measure each start against it.
+                $im = [long]$intervalUsed * 1000
+                $an = $script:AnchorMs
+@"
+WITH g AS (
+  SELECT started_ms,
+         started_ms - (CAST(ROUND((started_ms - $an) * 1.0 / $im) AS INTEGER) * $im + $an) AS d
+  FROM beat)
+SELECT 'anchor (read-time)' AS source,
+       COUNT(*) AS n,
+       MIN(d) AS min_ms,
+       CAST(AVG(d) AS INTEGER) AS mean_ms,
+       MAX(ABS(d)) AS max_abs_ms
+FROM g;
+"@
+            } else {
 @'
 SELECT expected_source,
        COUNT(*) AS n,
@@ -296,6 +347,25 @@ WHERE drift_ms IS NOT NULL
 GROUP BY expected_source
 ORDER BY expected_source;
 '@
+            }
+        }
+        'jitter' {
+            if ($intervalUsed -le 0) {
+                Write-Log "jitter needs an interval; pass -IntervalSeconds" -Level Error
+                exit 2
+            }
+            $im = [long]$intervalUsed * 1000
+@"
+WITH o AS (
+  SELECT started_ms % $im AS off FROM beat WHERE interval_seconds IS NOT NULL),
+     a AS (SELECT AVG(off) AS phase FROM o)
+SELECT COUNT(*) AS n,
+       CAST((SELECT phase FROM a) AS INTEGER) AS phase_ms,
+       CAST(MIN(off) - (SELECT phase FROM a) AS INTEGER) AS min_ms,
+       CAST(MAX(off) - (SELECT phase FROM a) AS INTEGER) AS max_ms,
+       CAST(MAX(off) - MIN(off) AS INTEGER) AS spread_ms
+FROM o;
+"@
         }
         'gaps' {
             $threshold = if ($intervalUsed -gt 0) { $intervalUsed * 2000 } else { 0 }
@@ -368,13 +438,19 @@ ORDER BY p.protocol, p.port LIMIT $Limit;
     if ($Query -eq 'drift') {
         Get-ExcludedNote -DbPath $dbPath `
             -CountSql "SELECT COUNT(*) FROM beat WHERE drift_ms IS NULL;" `
-            -Reason "no expected moment was available, so drift is not computable for them"
-        if ($intervalUsed -gt 0) {
-            $q = [long]$intervalUsed * 250
-            Get-ExcludedNote -DbPath $dbPath `
-                -CountSql "SELECT COUNT(*) FROM beat WHERE expected_source='boundary' AND ABS(drift_ms) > $q;" `
-                -Reason "boundary-derived drift exceeds a quarter of the interval and is NOT reliable at that magnitude"
-        }
+            -Reason "no expected moment was available (record with -AnchorIso to measure latency); try -Query jitter"
+        # Legacy rows written before v0.5.1 used epoch-boundary snapping, which
+        # is only correct for a schedule that happens to sit on that grid. This
+        # scheduler anchors interval schedules to task creation time, so those
+        # figures are dominated by a constant phase offset and are not latency.
+        Get-ExcludedNote -DbPath $dbPath `
+            -CountSql "SELECT COUNT(*) FROM beat WHERE expected_source='boundary';" `
+            -Reason "LEGACY epoch-boundary rows from before v0.5.1 -- these are phase offset, NOT latency; re-record with -AnchorIso"
+    }
+    if ($Query -eq 'jitter') {
+        Write-Log "jitter measures variation around the schedule's OWN observed phase." -Level Warn
+        Write-Log "It cannot detect uniform lateness: a scheduler consistently late by a" -Level Warn
+        Write-Log "fixed amount has zero jitter. For absolute latency, record with -AnchorIso." -Level Warn
     }
     if ($Query -eq 'gaps' -and $intervalInferred) {
         Write-Log "the interval above was inferred, not supplied -- treat the result accordingly" -Level Warn

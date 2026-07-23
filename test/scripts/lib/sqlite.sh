@@ -312,7 +312,7 @@ PRAGMA busy_timeout=5000;
 
 init_heartbeat_schema() {
     sqlite_exec "$1" list "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','1');
+INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','2');
 CREATE TABLE IF NOT EXISTS beat (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id TEXT NOT NULL,
@@ -326,7 +326,7 @@ CREATE TABLE IF NOT EXISTS beat (
   finished_ms INTEGER NOT NULL,
   duration_ms INTEGER NOT NULL,
   expected_ms INTEGER,
-  expected_source TEXT NOT NULL CHECK (expected_source IN ('env','boundary','none')),
+  expected_source TEXT NOT NULL CHECK (expected_source IN ('env','anchor','boundary','none')),
   drift_ms INTEGER,
   interval_seconds INTEGER,
   exit_code INTEGER NOT NULL,

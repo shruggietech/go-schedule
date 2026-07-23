@@ -112,7 +112,8 @@ tests its own `sleep`, not the scheduler.
 | PowerShell | POSIX | Default | Meaning |
 |---|---|---|---|
 | `-Database` / `-d` | `--database` / `-d` | `heartbeat` | Name or path |
-| `-IntervalSeconds` / `-i` | `--interval-seconds` / `-i` | none | Declared schedule interval; enables drift and gap detection |
+| `-IntervalSeconds` / `-i` | `--interval-seconds` / `-i` | none | Declared schedule interval; enables gap detection, and drift when paired with an anchor |
+| `-AnchorIso` / `-a` | `--anchor-iso` / `-a` | none | One real firing time (RFC 3339) from `gosched task show`; with the interval this yields true latency |
 | `-Label` / `-l` | `--label` / `-l` | none | Tag recorded on each beat |
 | `-Loop` / `-r` | `--loop` / `-r` | off | Opt-in bounded continuous mode |
 | `-MaxBeats` / `-m` | `--max-beats` / `-m` | none | Stop after N beats |
@@ -166,7 +167,8 @@ attribute a socket to a process. That is normal, not a defect.
 | `-List` / `-n` | `--list` / `-n` | off | List queries and exit |
 | `-Format` / `-f` | `--format` / `-f` | `Table` | `Table`, `Json`, `Csv` |
 | `-Limit` / `-m` | `--limit` / `-m` | 20 | Row cap |
-| `-IntervalSeconds` / `-i` | `--interval-seconds` / `-i` | inferred | Interval for gap and reliability checks |
+| `-IntervalSeconds` / `-i` | `--interval-seconds` / `-i` | inferred | Interval for gap, jitter, and drift |
+| `-AnchorIso` / `-a` | `--anchor-iso` / `-a` | none | One real firing time from `gosched task show`; with the interval makes `drift` report true latency |
 
 > `-Query` uses the alias `-k`, not `-Q`. PowerShell aliases are
 > case-insensitive, so `-Q` would collide with `-Quiet`. `-Loop` uses `-r` for
@@ -177,7 +179,8 @@ attribute a socket to a process. That is normal, not a defect.
 | `summary` | both | How many records, over what period, from how many sessions and hosts? |
 | `recent` | both | What are the most recent records? |
 | `cadence` | heartbeat | What were the observed intervals? |
-| `drift` | heartbeat | How far from expected did firings land, by source? |
+| `drift` | heartbeat | True dispatch latency, by source. Needs an anchor. |
+| `jitter` | heartbeat | Variation around the schedule's own observed phase. No anchor needed. |
 | `gaps` | heartbeat | Which expected firings were missed or badly delayed? |
 | `overlaps` | heartbeat | Which runs overlapped in time? |
 | `failures` | heartbeat | Which runs reported failure? |
@@ -218,7 +221,7 @@ per year. A snapshot with children is ~2 KB, so hourly is ~18 MB per year.
 ### Does it fire on time?
 
 ```bash
-gosched task add "hb-verify" --command pwsh --arg -File --arg test/scripts/Test-Heartbeat.ps1 --arg -IntervalSeconds --arg 60 --schedule "every 1 minute"
+gosched task add "hb-verify" --command pwsh --arg -File --arg test/scripts/Test-Heartbeat.ps1 --arg -IntervalSeconds --arg 60 --arg -AnchorIso --arg 2026-07-23T12:08:06Z --schedule "every 1 minute"
 ```
 
 Wait ten minutes, then:
@@ -280,7 +283,7 @@ record survived the failure; the alert proves the daemon saw it.
 
 ## How drift is derived
 
-**Drift here is derived, not reported by the scheduler.** The executor passes a
+**Drift is derived, not reported by the scheduler.** The executor passes a
 spawned task the inherited environment plus the task's own configured variables
 and nothing else — no scheduled time, no run ID. So the expected moment comes
 from one of three sources, in strict precedence, and the source is recorded on
@@ -289,21 +292,80 @@ every beat:
 | Source | Meaning |
 |---|---|
 | `env` | `GOSCHED_SCHEDULED_TIME` from the environment. Not set today; the tier exists so a future release is consumed with no change here. |
-| `boundary` | The run's start snapped to the nearest `-IntervalSeconds` boundary. **This is the working path.** |
+| `anchor` | `-AnchorIso` plus `-IntervalSeconds`. **This is the working path.** |
 | `none` | Neither available. No drift recorded, and the reader excludes the beat. |
 
-Boundary snapping works because a wall-clock-aligned schedule ("every 1 minute"
-fires at `:00`) has the boundary *as* its expected moment, so the difference is
-genuine absolute dispatch latency rather than mere jitter. It stays unambiguous
-while drift is well under half the interval — 100 ms against 60 s is three orders
-of magnitude of headroom. Past a quarter of the interval the reader flags the
-figure as unreliable rather than reporting it as fact, because beyond that a late
-firing and an early next one are not distinguishable.
+### Getting the anchor — pass it to the *reader*
 
-The rejected alternative is worth knowing: inferring drift from the *observed
-cadence* measures jitter, so a scheduler that is uniformly five seconds late
-scores perfectly. That is the single defect class this feature most needs to
-catch.
+Any single real firing time works: they all sit on the same
+`anchor + k × interval` grid.
+
+**The anchor cannot be known before the task exists.** This scheduler derives an
+interval schedule's phase from the task's creation moment, so you only learn the
+anchor by creating the task and then asking. Passing it to the recorder is a
+chicken-and-egg problem — that is why drift is derived at *read* time:
+
+```bash
+gosched task add "hb-verify" --command pwsh --arg -File --arg test/scripts/Test-Heartbeat.ps1 --arg -IntervalSeconds --arg 60 --schedule "every 1 minute"
+```
+
+```bash
+gosched task show <task-id>
+```
+
+Take any value from `next runs`, let the task run a while, then:
+
+```bash
+pwsh -File test/scripts/Test-ReadTestDB.ps1 -Query drift -IntervalSeconds 60 -AnchorIso 2026-07-23T12:35:11Z
+```
+
+Now `drift` is genuine dispatch latency — how far each run's start landed from
+the moment the schedule said it would fire. Because it is computed from the raw
+start timestamps, it works on beats **already recorded**, and you can re-run it
+with a corrected anchor if you got it wrong the first time.
+
+A measured example from this machine: `261–312 ms` mean `286 ms`, against the
+`6505 ms` the pre-0.5.1 code reported for the same kind of schedule.
+
+`Test-Heartbeat` also accepts `-AnchorIso`, which records the drift at write
+time. Use it only when you genuinely know the firing grid in advance — a
+fixed-time schedule, say. For interval schedules, prefer the reader.
+
+### Why there is no epoch-boundary tier
+
+Versions before 0.5.1 accepted an interval alone and snapped the run's start to
+the nearest multiple of that interval **counted from the Unix epoch**. That is
+correct only if the schedule happens to sit on the epoch grid — and this
+scheduler anchors an interval schedule to the **task's creation time**. A task
+created at `:06` fires at `:06` forever.
+
+The result was a constant phase offset reported as though it were lateness. A
+measured example: a task firing at `:06` produced drift of 6505, 6262, 6254 ms —
+apparently 64× over the project's 100 ms dispatch budget. The same run's
+`cadence` query showed intervals of 59757–60006 ms, meaning the scheduler was on
+time to within a quarter of a second. The 6.4 s was entirely the `:06` anchor.
+
+That tier is gone. Without an anchor, no drift is recorded at all. **Reporting
+nothing is better than reporting a confident wrong number**, because nothing in
+the presentation of the wrong number tells you which one you got.
+
+### When you have no anchor: `jitter`
+
+```bash
+pwsh -File test/scripts/Test-ReadTestDB.ps1 -Query jitter -IntervalSeconds 60
+```
+
+`jitter` derives the schedule's phase from the data itself and reports the
+variation around it — `phase_ms` (the offset it found) plus the min, max, and
+spread around that offset.
+
+**It cannot detect uniform lateness.** A scheduler consistently five seconds late
+has a perfectly stable phase and therefore zero jitter. Jitter bounds the
+*variability* of dispatch; only an anchor gives you the absolute figure. The
+reader states this on every `jitter` run rather than leaving you to remember it.
+
+Legacy `boundary` rows recorded before 0.5.1 are still readable, but the `drift`
+query flags them explicitly as phase offset rather than latency.
 
 ## Exit codes
 
@@ -358,13 +420,16 @@ you named is how you debug the wrong binary for an hour.
 `ip` nor `ifconfig` exists there. Use the PowerShell twin, which uses
 `Get-NetIPAddress`. The snapshot is still recorded.
 
-**Drift looks enormous** — check that `-IntervalSeconds` matches the schedule you
-actually registered. A mismatched interval snaps to the wrong boundary. The
-reader flags values past a quarter of the interval for this reason.
+**Drift looks enormous** — check the anchor. `-AnchorIso` must be a real firing
+time of *that* schedule, and `-IntervalSeconds` must match it. A wrong anchor
+shifts the whole grid. If you are seeing a large, suspiciously *constant* drift,
+that is the signature of a phase error rather than a late scheduler — compare
+against `-Query cadence`, which is anchor-independent.
 
 **`drift` returns no rows** — every beat had `expected_source = 'none'`, meaning
-no interval was declared. The excluded-count warning tells you how many. Pass
-`-IntervalSeconds` when recording, not just when reading.
+no anchor was supplied at record time. The excluded-count warning says how many.
+Pass `-AnchorIso` *and* `-IntervalSeconds` when recording, not when reading. If
+the beats are already recorded and you cannot re-run, use `-Query jitter`.
 
 **Contention errors under `allow_concurrent`** — the scripts use WAL with a
 5-second busy timeout and three retries. Exhausting that is reported as a

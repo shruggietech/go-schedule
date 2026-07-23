@@ -18,14 +18,22 @@
       env       GOSCHED_SCHEDULED_TIME from the environment. The executor does
                 not currently set this; the tier exists so that a future release
                 which does is consumed with no change here.
-      boundary  The run's start snapped to the nearest boundary of
-                -IntervalSeconds. This is the working path. For a wall-clock
-                aligned schedule ("every 1 minute" fires at :00) the boundary
-                IS the expected moment, so the difference is genuine absolute
-                dispatch latency rather than mere jitter.
+      anchor    -AnchorIso plus -IntervalSeconds. One real firing time from
+                the schedule reconstructs the whole grid (anchor + k*interval),
+                so the difference is genuine absolute dispatch latency. Get the
+                anchor from `gosched task show <id>`.
       none      Neither available. No expected moment and no drift are recorded,
                 and the reader excludes the beat from drift statistics. A drift
                 of zero for an unmeasurable run would be worse than nothing.
+
+    There is deliberately no epoch-boundary tier. Snapping to the nearest
+    multiple of the interval from the Unix epoch is correct only if the schedule
+    happens to sit on that grid -- and this scheduler anchors an interval
+    schedule to the task's creation time, so "every 1 minute" created at :06
+    fires at :06 forever. Epoch snapping then reports a constant offset as
+    though it were lateness, indistinguishable from the real thing. An earlier
+    version did exactly that and reported ~6.4s of "drift" for a scheduler that
+    was in fact firing within a quarter second.
 
     The beat is written once, at the end of the run. Two writes per beat would
     double database contention to buy a mid-flight-crash record that a
@@ -41,15 +49,22 @@
     Alias: d
 
 .PARAMETER IntervalSeconds
-    The schedule interval you registered this task with. Supplying it enables
-    boundary-sourced drift and the reader's missed-firing detection. Without it
-    drift is not measurable and is recorded as absent.
+    The schedule interval you registered this task with. Enables the reader's
+    missed-firing detection, and -- together with -AnchorIso -- drift. On its
+    own it is NOT enough to measure drift; see -AnchorIso.
     Alias: i
 
 .PARAMETER Label
     Free-form tag recorded on each beat, so several scheduled tasks can share
     one database and stay distinguishable.
     Alias: l
+
+.PARAMETER AnchorIso
+    Any one firing time from the schedule, RFC 3339, taken from
+    `gosched task show <id>` next-runs. Combined with -IntervalSeconds this
+    reconstructs the full firing grid, so drift becomes true dispatch latency.
+    Without it no drift is recorded at all -- see the note in the description.
+    Alias: a
 
 .PARAMETER Loop
     Opt-in continuous mode ("repeat"). Bounded by -MaxBeats, -DurationSeconds,
@@ -100,8 +115,9 @@
     Record a single beat. The cheapest possible confidence check.
 
 .EXAMPLE
-    .\Test-Heartbeat.ps1 -IntervalSeconds 60 -Label prod-check
-    What a task registered with "every 1 minute" should invoke. Enables drift.
+    .\Test-Heartbeat.ps1 -IntervalSeconds 60 -AnchorIso 2026-07-23T12:08:06Z
+    What a task registered with "every 1 minute" should invoke. The anchor comes
+    from `gosched task show`; together they yield true dispatch latency.
 
 .EXAMPLE
     .\Test-Heartbeat.ps1 -SleepSeconds 90 -IntervalSeconds 60
@@ -128,6 +144,10 @@ Param(
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias("l")]
     [string]$Label = '',
+
+    [Parameter(Mandatory=$false,ParameterSetName='Default')]
+    [Alias("a")]
+    [string]$AnchorIso = '',
 
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias("r")]
@@ -173,13 +193,25 @@ Param(
     }
 
     function Resolve-ExpectedMoment {
-        # Returns a hashtable: Source ('env'|'boundary'|'none'), ExpectedMs, DriftMs.
+        # Returns a hashtable: Source ('env'|'anchor'|'none'), ExpectedMs, DriftMs.
         # Precedence is strict, so a future release that starts exporting the
         # scheduled time is picked up here without any other change.
+        #
+        # There is deliberately no epoch-boundary tier. Snapping to the nearest
+        # multiple of the interval from the Unix epoch is only correct when the
+        # schedule happens to be aligned to that grid, and this scheduler
+        # anchors an interval schedule to the task's creation time -- so
+        # "every 1 minute" created at :06 fires at :06 forever. Epoch snapping
+        # then reports a constant ~6s "drift" that is pure phase offset, not
+        # lateness, and the script has no way to tell the two apart. A
+        # measurement that is right only when you got lucky is worse than no
+        # measurement, because it is reported with the same confidence either
+        # way. Supply -AnchorIso to get a real one.
         [CmdletBinding()]
         Param(
             [Parameter(Mandatory=$true)][long]$StartedMs,
-            [Parameter(Mandatory=$true)][int]$Interval
+            [Parameter(Mandatory=$true)][int]$Interval,
+            [Parameter(Mandatory=$false)][string]$Anchor
         )
         if ($env:GOSCHED_SCHEDULED_TIME) {
             try {
@@ -190,10 +222,19 @@ Param(
                 Write-Log "GOSCHED_SCHEDULED_TIME set but unparseable; ignoring it." -Level Warn
             }
         }
-        if ($Interval -gt 0) {
+        if ($Anchor -and $Interval -gt 0) {
+            try {
+                $anchorMs = [long]([DateTimeOffset]::Parse($Anchor)).ToUnixTimeMilliseconds()
+            } catch {
+                Write-Log ("-AnchorIso '{0}' is not a parseable timestamp." -f $Anchor) -Level Error
+                exit 2
+            }
+            # Any firing time from the schedule works as the anchor: they all
+            # sit on the same anchor + k*interval grid, k signed.
             $intervalMs = [long]$Interval * 1000
-            $snapped = [long]([math]::Round([double]$StartedMs / $intervalMs) * $intervalMs)
-            return @{ Source = 'boundary'; ExpectedMs = $snapped; DriftMs = ($StartedMs - $snapped) }
+            $k = [long][math]::Round([double]($StartedMs - $anchorMs) / $intervalMs)
+            $expected = $anchorMs + ($k * $intervalMs)
+            return @{ Source = 'anchor'; ExpectedMs = $expected; DriftMs = ($StartedMs - $expected) }
         }
         return @{ Source = 'none'; ExpectedMs = $null; DriftMs = $null }
     }
@@ -218,7 +259,7 @@ Param(
             [Parameter(Mandatory=$true)][long]$FinishedMs,
             [Parameter(Mandatory=$true)][int]$ExitCode
         )
-        $expected = Resolve-ExpectedMoment -StartedMs $StartedMs -Interval $IntervalSeconds
+        $expected = Resolve-ExpectedMoment -StartedMs $StartedMs -Interval $IntervalSeconds -Anchor $AnchorIso
         $startedIso = ([DateTimeOffset]::FromUnixTimeMilliseconds($StartedMs)).ToLocalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffzzz')
 
         $sql = @'

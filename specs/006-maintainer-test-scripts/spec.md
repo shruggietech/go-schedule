@@ -52,6 +52,21 @@ stays well below half the interval — a condition whose violation the missed-fi
 already reports. Tier one is kept ahead of it so that if a future release does inject the
 scheduled moment, these scripts consume it with no change.
 
+> **SUPERSEDED 2026-07-23 (v0.5.1).** Option (c) as written above was wrong, and the
+> end-to-end walkthrough proved it. The premise — "for a wall-clock-aligned interval
+> schedule" — does not hold: this scheduler anchors an interval schedule to the *task's
+> creation time*, not to the wall-clock grid, so a task created at `:06` fires at `:06`
+> forever. Epoch snapping then measures the phase offset, not lateness. Observed: drift of
+> 6505 / 6262 / 6254 ms against a `cadence` of 59757–60006 ms — a scheduler on time to
+> within a quarter second, reported as 64× over its budget.
+>
+> The correction is FR-003b. Boundary snapping is removed entirely and replaced by a
+> caller-supplied **anchor**: one real firing time from `gosched task show` reconstructs the
+> whole `anchor + k × interval` grid, giving true latency. With no anchor, no drift is
+> recorded — the reader offers `jitter` instead, explicitly labelled as blind to uniform
+> lateness. The reasoning that rejected option (a) still stands and is precisely why the
+> fix is an anchor rather than a fallback to cadence inference.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Prove the scheduler fires on time (Priority: P1)
@@ -226,12 +241,19 @@ are present and no credential-bearing configuration file came with them.
   than an inference from start times alone.
 - **FR-003**: Each beat MUST record its expected moment, the difference between its actual
   and expected moments, and **which of three sources the expected moment came from**:
-  a scheduler-supplied environment value; a snap to the nearest boundary of the
-  caller-supplied interval; or none available. A drift figure MUST never be presented
+  a scheduler-supplied environment value; a caller-supplied **anchor** (one real
+  firing time) combined with the interval; or none available. A drift figure MUST never be presented
   without its source, so that an inferred figure is not mistaken for a measured one.
 - **FR-003a**: The three sources MUST be consulted in that order of precedence, so that a
   future release supplying the scheduled moment directly is consumed without changing these
   scripts.
+- **FR-003b**: The expected moment MUST NOT be derived by snapping to an interval grid
+  counted from the epoch. That is correct only when a schedule happens to sit on that grid,
+  and this scheduler anchors interval schedules to task creation time — so the result is a
+  constant phase offset presented as lateness, with nothing to distinguish it from the real
+  thing. When no anchor is available, no drift is recorded at all. *(Amended 2026-07-23
+  after end-to-end verification found the original rule reporting ~6.4 s of "drift" for a
+  scheduler firing on time to within a quarter second.)*
 - **FR-004**: The heartbeat script MUST offer an opt-in continuous mode bounded by a maximum
   beat count, a maximum duration, or both. **Whichever bound is reached first ends the loop.**
   When the caller supplies neither, a default maximum duration MUST still apply — continuous

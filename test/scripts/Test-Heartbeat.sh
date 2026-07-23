@@ -14,9 +14,18 @@
 #   env       GOSCHED_SCHEDULED_TIME from the environment (not set by the
 #             current executor; the tier exists so a future release is consumed
 #             with no change here)
-#   boundary  the run's start snapped to the nearest --interval-seconds boundary
+#   anchor    --anchor-iso plus --interval-seconds. One real firing time from
+#             the schedule reconstructs the whole grid (anchor + k*interval), so
+#             the difference is genuine dispatch latency. Get it from
+#             `gosched task show <id>`.
 #   none      neither available; no drift is recorded, and the reader excludes
 #             the beat rather than reporting a meaningless zero
+#
+# There is deliberately no epoch-boundary tier. Snapping to the nearest multiple
+# of the interval from the Unix epoch is correct only if the schedule sits on
+# that grid, and this scheduler anchors interval schedules to task creation
+# time -- so "every 1 minute" created at :06 fires at :06 forever, and epoch
+# snapping reports a constant offset as though it were lateness.
 #
 # Exit codes: 0 success, 1 runtime failure, 2 usage error / unmet prerequisite.
 # Full documentation: docs/test-scripts.md
@@ -29,6 +38,7 @@ set -euo pipefail
 DATABASE="heartbeat"
 INTERVAL_SECONDS=0
 LABEL=""
+ANCHOR_ISO=""
 LOOP=0
 MAX_BEATS=0
 DURATION_SECONDS=0
@@ -46,7 +56,10 @@ usage() {
 Usage: Test-Heartbeat.sh [options]
 
   -d, --database NAME|PATH    'heartbeat' or an explicit path (default: heartbeat)
-  -i, --interval-seconds N    declared schedule interval; enables boundary drift
+  -i, --interval-seconds N    declared schedule interval (gap detection; with
+                              --anchor-iso also enables drift)
+  -a, --anchor-iso TS         one firing time from the schedule, RFC 3339, from
+                              `gosched task show`; with -i yields true drift
   -l, --label TEXT            tag recorded on each beat
   -r, --loop                  opt-in bounded continuous mode
   -m, --max-beats N           stop after N beats
@@ -65,6 +78,7 @@ while [ $# -gt 0 ]; do
         -d|--database)         DATABASE="$2"; shift 2 ;;
         -i|--interval-seconds) INTERVAL_SECONDS="$2"; shift 2 ;;
         -l|--label)            LABEL="$2"; shift 2 ;;
+        -a|--anchor-iso)       ANCHOR_ISO="$2"; shift 2 ;;
         -r|--loop)             LOOP=1; shift ;;
         -m|--max-beats)        MAX_BEATS="$2"; shift 2 ;;
         -t|--duration-seconds) DURATION_SECONDS="$2"; shift 2 ;;
@@ -97,7 +111,7 @@ SESSION_ID="$(od -An -N16 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n' || date +%
 resolve_expected() {
     # Echoes "SOURCE EXPECTED_MS DRIFT_MS"; EXPECTED/DRIFT are __NULL__ when
     # no source is available.
-    local started="$1" expected drift interval_ms snapped
+    local started="$1" expected drift interval_ms anchor_ms delta k
     if [ -n "${GOSCHED_SCHEDULED_TIME:-}" ]; then
         expected="$(date -d "$GOSCHED_SCHEDULED_TIME" +%s000 2>/dev/null || true)"
         if [ -n "$expected" ]; then
@@ -106,10 +120,24 @@ resolve_expected() {
         fi
         log WARN "GOSCHED_SCHEDULED_TIME set but unparseable; ignoring it."
     fi
-    if [ "$INTERVAL_SECONDS" -gt 0 ]; then
+    if [ -n "$ANCHOR_ISO" ] && [ "$INTERVAL_SECONDS" -gt 0 ]; then
+        anchor_ms="$(date -d "$ANCHOR_ISO" +%s 2>/dev/null || true)"
+        if [ -z "$anchor_ms" ]; then
+            log ERROR "--anchor-iso '$ANCHOR_ISO' is not a parseable timestamp."
+            exit 2
+        fi
+        anchor_ms=$((anchor_ms * 1000))
         interval_ms=$((INTERVAL_SECONDS * 1000))
-        snapped=$(( ((started + interval_ms / 2) / interval_ms) * interval_ms ))
-        printf 'boundary %s %s\n' "$snapped" "$((started - snapped))"
+        # Any firing time works as the anchor: they all sit on the same
+        # anchor + k*interval grid, k signed. Round half away from zero.
+        delta=$((started - anchor_ms))
+        if [ "$delta" -ge 0 ]; then
+            k=$(( (delta + interval_ms / 2) / interval_ms ))
+        else
+            k=$(( (delta - interval_ms / 2) / interval_ms ))
+        fi
+        expected=$((anchor_ms + k * interval_ms))
+        printf 'anchor %s %s\n' "$expected" "$((started - expected))"
         return 0
     fi
     printf 'none __NULL__ __NULL__\n'

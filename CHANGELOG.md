@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-23
+
+**The drift measurement in 0.5.0 was wrong, and this fixes it.** Tooling only —
+the daemon, CLI, GUI, and stored schema are untouched, so 0.5.0 and 0.5.1 ship
+identical program binaries.
+
+### Fixed
+
+- **Dispatch drift reported a schedule's phase offset as though it were lateness.**
+  0.5.0 accepted `-IntervalSeconds` alone and snapped each run's start to the nearest
+  multiple of that interval *counted from the Unix epoch*. That is correct only when a
+  schedule happens to sit on the epoch grid — and this scheduler anchors an interval
+  schedule to the **task's creation time**, so a task created at `:06` fires at `:06`
+  forever.
+
+  Measured on a live daemon: drift of 6505 / 6262 / 6254 ms, apparently 64x over the
+  project's 100 ms dispatch budget, while the same run's `cadence` query showed intervals
+  of 59757–60006 ms. The scheduler was on time to within a quarter second; the 6.4 s was
+  entirely the `:06` anchor. The figure was not merely imprecise, it was measuring a
+  different quantity, and nothing in its presentation said so.
+
+  Epoch snapping is removed. Drift now comes from a caller-supplied **anchor** — one real
+  firing time from `gosched task show` — which reconstructs the whole `anchor + k x interval`
+  grid. With no anchor, **no drift is recorded at all**: reporting nothing is better than
+  reporting a confident wrong number, because nothing about a wrong number's presentation
+  tells you which one you got. Verified after the fix on the same daemon: 259–312 ms, mean
+  277 ms, against an independent `cadence` of 59949–59998 ms. The two agree.
+
+### Added
+
+- **`-AnchorIso` / `--anchor-iso` on `Test-ReadTestDB`**, which is now the primary path.
+  The anchor cannot be known before the task exists — the scheduler derives an interval
+  schedule's phase from the task's creation moment, so supplying it to the recorder is a
+  chicken-and-egg problem. Drift is a derived quantity, so it is derived at read time from
+  the raw start timestamps. This works on beats **already recorded**, and a wrong anchor is
+  fixed by re-running the query rather than re-running the experiment.
+- **`-AnchorIso` / `--anchor-iso` on `Test-Heartbeat`**, for the case where the firing grid
+  genuinely is known in advance (a fixed-time schedule). Records `expected_source = 'anchor'`.
+- **A `jitter` query**, for when no anchor is available. It derives the schedule's phase from
+  the data and reports variation around it. The reader states on every run that jitter
+  **cannot detect uniform lateness** — a scheduler consistently late by a fixed amount has
+  zero jitter — because that limitation is the whole reason an anchor exists.
+
+### Changed
+
+- Heartbeat schema version 2. `expected_source` admits `anchor`; `boundary` remains
+  readable so pre-0.5.1 databases still open, but is never written. The `drift` query flags
+  any legacy `boundary` rows as phase offset rather than latency. Forward-only and
+  non-destructive, per the constitution.
+
+### Decisions
+
+- **2026-07-23** — **Drift is derived at read time, not write time.** Three options were
+  considered: keep epoch snapping and document the caveat (rejected — a caveat does not stop
+  a wrong number being read as a right one); take the anchor at record time (rejected as the
+  primary path — the anchor is unknowable until the task exists, and a wrong one is only
+  fixable by discarding the data and starting over); derive at read time from raw
+  timestamps. The third was chosen because the recorder already stores everything needed,
+  the anchor is knowable by then, and the computation is re-runnable. The record-time option
+  is retained as a secondary path for genuinely known grids.
+- **2026-07-23** — **This defect was found by walking the quickstart end to end against a
+  live daemon**, which was the one verification task left outstanding at the 0.5.0 halt. No
+  unit test would have caught it: every unit test agreed with the implementation, because
+  both shared the same wrong assumption about how schedules are anchored. The lesson is
+  recorded in the spec's Clarifications section as a superseded decision rather than edited
+  away, so the reasoning that produced the error stays visible next to its correction.
+
 ## [0.5.0] - 2026-07-23
 
 Maintainer tooling and repository configuration only. The daemon, CLI, GUI, and

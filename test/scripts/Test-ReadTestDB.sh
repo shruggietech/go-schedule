@@ -26,6 +26,7 @@ DO_LIST=0
 FORMAT="Table"
 LIMIT=20
 INTERVAL_SECONDS=0
+ANCHOR_ISO=""
 EXPLICIT_SQLITE=""
 DO_INSTALL=0
 
@@ -40,6 +41,9 @@ Test-ReadTestDB.sh -- canned inspection queries over the test databases.
   -m, --limit N              row cap for row-returning queries (default: 20)
   -i, --interval-seconds N   expected interval for gap and reliability checks;
                              inferred when omitted, and the output says so
+  -a, --anchor-iso TS        one real firing time (RFC 3339) from
+                             `gosched task show`; with -i makes --query drift
+                             compute true latency at read time
       --sqlite-exe PATH      explicit sqlite3 path
       --install-sqlite       download+verify the pinned sqlite3
   -q, --quiet                suppress informational output
@@ -52,7 +56,8 @@ list_queries() {
 Available queries (--query NAME):
 
   cadence    [heartbeat] What were the observed intervals?
-  drift      [heartbeat] How far from expected did firings land, by expected-source?
+  drift      [heartbeat] True dispatch latency, by expected-source (needs an anchor).
+  jitter     [heartbeat] Variation around the observed firing phase (no anchor needed).
   failures   [heartbeat] Which runs reported failure?
   gaps       [heartbeat] Which expected firings were missed or badly delayed?
   hosts      [both     ] Which hosts and users produced records?
@@ -75,6 +80,7 @@ while [ $# -gt 0 ]; do
         -f|--format)           FORMAT="$2"; shift 2 ;;
         -m|--limit)            LIMIT="$2"; shift 2 ;;
         -i|--interval-seconds) INTERVAL_SECONDS="$2"; shift 2 ;;
+        -a|--anchor-iso)       ANCHOR_ISO="$2"; shift 2 ;;
         --sqlite-exe)          EXPLICIT_SQLITE="$2"; shift 2 ;;
         --install-sqlite)      DO_INSTALL=1; shift ;;
         -q|--quiet)            LOG_QUIET=1; shift ;;
@@ -86,7 +92,7 @@ done
 [ "$DO_LIST" -eq 1 ] && { list_queries; exit 0; }
 
 case "$QUERY" in
-    summary|recent|cadence|drift|gaps|overlaps|failures|restarts|hosts|listeners|schema) ;;
+    summary|recent|cadence|drift|jitter|gaps|overlaps|failures|restarts|hosts|listeners|schema) ;;
     *) die_usage "Unknown query '$QUERY'. Use --list to see the available queries." ;;
 esac
 case "$LIMIT" in ''|*[!0-9]*) die_usage "--limit must be a positive integer." ;; esac
@@ -98,7 +104,7 @@ DB_PATH="$(resolve_test_database "$DATABASE")"
 log INFO "database: $DB_PATH"
 
 IS_HEARTBEAT=0
-case "$QUERY" in cadence|drift|gaps|overlaps|failures|restarts) IS_HEARTBEAT=1 ;; esac
+case "$QUERY" in cadence|drift|jitter|gaps|overlaps|failures|restarts) IS_HEARTBEAT=1 ;; esac
 [ "$DATABASE" = "heartbeat" ] && IS_HEARTBEAT=1
 
 case "$FORMAT" in
@@ -115,7 +121,7 @@ INTERVAL_USED="$INTERVAL_SECONDS"
 INTERVAL_INFERRED=0
 if [ "$INTERVAL_USED" -le 0 ]; then
     case "$QUERY" in
-        gaps|drift)
+        gaps|drift|jitter)
             INTERVAL_USED="$(sqlite_exec "$DB_PATH" list \
 "SELECT CAST(ROUND(delta/1000.0) AS INTEGER) FROM
  (SELECT started_ms - LAG(started_ms) OVER (ORDER BY started_ms) AS delta FROM beat)
@@ -132,6 +138,15 @@ if [ "$INTERVAL_USED" -le 0 ]; then
     esac
 fi
 
+ANCHOR_MS=""
+if [ -n "$ANCHOR_ISO" ]; then
+    [ "$INTERVAL_USED" -gt 0 ] || die_usage "--anchor-iso needs --interval-seconds to reconstruct the firing grid."
+    ANCHOR_MS="$(date -d "$ANCHOR_ISO" +%s 2>/dev/null || true)"
+    [ -n "$ANCHOR_MS" ] || die_usage "--anchor-iso '$ANCHOR_ISO' is not a parseable timestamp."
+    ANCHOR_MS=$((ANCHOR_MS * 1000))
+    log INFO "drift derived at read time from anchor $ANCHOR_ISO and interval ${INTERVAL_USED}s"
+fi
+
 report_excluded() {
     # A query that drops rows must say so. Silence reads as "nothing was
     # dropped", which is a different and stronger claim.
@@ -144,12 +159,18 @@ report_excluded() {
 
 if [ "$QUERY" = "drift" ]; then
     report_excluded "SELECT COUNT(*) FROM beat WHERE drift_ms IS NULL;" \
-        "no expected moment was available, so drift is not computable for them"
-    if [ "$INTERVAL_USED" -gt 0 ]; then
-        report_excluded \
-            "SELECT COUNT(*) FROM beat WHERE expected_source='boundary' AND ABS(drift_ms) > $((INTERVAL_USED * 250));" \
-            "boundary-derived drift exceeds a quarter of the interval and is NOT reliable at that magnitude"
-    fi
+        "no expected moment was available (record with --anchor-iso to measure latency); try --query jitter"
+    # Legacy rows written before v0.5.1 used epoch-boundary snapping, which is
+    # only correct for a schedule that happens to sit on that grid. This
+    # scheduler anchors interval schedules to task creation time, so those
+    # figures are dominated by a constant phase offset and are not latency.
+    report_excluded "SELECT COUNT(*) FROM beat WHERE expected_source='boundary';" \
+        "LEGACY epoch-boundary rows from before v0.5.1 -- these are phase offset, NOT latency; re-record with --anchor-iso"
+fi
+if [ "$QUERY" = "jitter" ]; then
+    log WARN "jitter measures variation around the schedule's OWN observed phase."
+    log WARN "It cannot detect uniform lateness: a scheduler consistently late by a"
+    log WARN "fixed amount has zero jitter. For absolute latency, record with --anchor-iso."
 fi
 if [ "$QUERY" = "gaps" ] && [ "$INTERVAL_INFERRED" -eq 1 ]; then
     log WARN "the interval above was inferred, not supplied -- treat the result accordingly"
@@ -181,9 +202,28 @@ case "$QUERY" in
  SELECT COUNT(*) AS intervals, MIN(delta) AS min_ms, CAST(AVG(delta) AS INTEGER) AS mean_ms,
  MAX(delta) AS max_ms FROM d WHERE delta IS NOT NULL;" ;;
     drift)
-        SQL="SELECT expected_source, COUNT(*) AS n, MIN(drift_ms) AS min_ms,
+        if [ -n "$ANCHOR_MS" ]; then
+            # Read-time derivation from raw start timestamps: reconstruct the
+            # anchor + k*interval grid and measure each start against it.
+            IM=$((INTERVAL_USED * 1000))
+            SQL="WITH g AS (SELECT started_ms,
+ started_ms - (CAST(ROUND((started_ms - $ANCHOR_MS) * 1.0 / $IM) AS INTEGER) * $IM + $ANCHOR_MS) AS d
+ FROM beat)
+ SELECT 'anchor (read-time)' AS source, COUNT(*) AS n, MIN(d) AS min_ms,
+ CAST(AVG(d) AS INTEGER) AS mean_ms, MAX(ABS(d)) AS max_abs_ms FROM g;"
+        else
+            SQL="SELECT expected_source, COUNT(*) AS n, MIN(drift_ms) AS min_ms,
  CAST(AVG(drift_ms) AS INTEGER) AS mean_ms, MAX(ABS(drift_ms)) AS max_abs_ms
- FROM beat WHERE drift_ms IS NOT NULL GROUP BY expected_source ORDER BY expected_source;" ;;
+ FROM beat WHERE drift_ms IS NOT NULL GROUP BY expected_source ORDER BY expected_source;"
+        fi ;;
+    jitter)
+        [ "$INTERVAL_USED" -gt 0 ] || die_usage "jitter needs an interval; pass --interval-seconds"
+        SQL="WITH o AS (SELECT started_ms % $((INTERVAL_USED * 1000)) AS off FROM beat
+ WHERE interval_seconds IS NOT NULL), a AS (SELECT AVG(off) AS phase FROM o)
+ SELECT COUNT(*) AS n, CAST((SELECT phase FROM a) AS INTEGER) AS phase_ms,
+ CAST(MIN(off)-(SELECT phase FROM a) AS INTEGER) AS min_ms,
+ CAST(MAX(off)-(SELECT phase FROM a) AS INTEGER) AS max_ms,
+ CAST(MAX(off)-MIN(off) AS INTEGER) AS spread_ms FROM o;" ;;
     gaps)
         [ "$INTERVAL_USED" -gt 0 ] || die_usage "cannot detect gaps without an interval; pass --interval-seconds"
         SQL="WITH d AS (SELECT started_iso, started_ms,
