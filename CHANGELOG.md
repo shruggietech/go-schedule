@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Pinned artifact — `.github/workflows/release.yml` (2026-07-23).** The
+  `readme-badge` job now rewrites *two* README version strings on each `v*.*.*`
+  tag, not one. Alongside the static release-badge line it also rewrites the
+  quick-start's illustrative `gosched health` output line — `daemon ok (version
+  X.Y.Z)` — to the tag's version (leading `v` stripped, matching
+  `buildinfo.Version`'s form) via a second `sed` anchored on `daemon ok
+  (version `, committed and pushed in the same commit as the badge bump. That
+  line was previously untouched by the release automation and so drifted one
+  release behind after every tag (it was hand-fixed for v0.7.0 and again for
+  v0.8.0). A no-match is a no-op — `sed` still exits `0`, so the drift-fix can
+  never fail a release, preserving the job's standalone-and-non-blocking design.
+  The job and its step were renamed from "badge" to "version lines" to reflect
+  the widened scope.
+
+### Decisions
+
+- **2026-07-23** — **The release automation syncs the two version strings the
+  README bakes in, and only those two.** README carries three kinds of version
+  reference: the release badge, the `gosched health` sample output, and the
+  `<ver>` placeholders in the download table. The first two are concrete and must
+  track the current release, so both are now rewritten on tag. The third is a
+  deliberately generic placeholder that teaches the *shape* of an asset filename
+  (`go-schedule_<ver>_<os>_<arch>`); substituting a real version there would
+  imply a single download rather than a family and is intentionally left alone.
+  The `daemon ok` line strips the leading `v` because that is the form the daemon
+  actually prints (`buildinfo.Version`) and the form the README already used.
+
 ## [0.8.0] - 2026-07-23
 
 ### Added

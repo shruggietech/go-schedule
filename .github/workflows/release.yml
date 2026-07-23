@@ -16,14 +16,14 @@ jobs:
   # token pool is starved. This job rewrites the baked-in version on each tag.
   # Standalone (no `needs`): a badge-bump failure must not fail the release.
   readme-badge:
-    name: Bump the static README release badge to this tag
+    name: Bump the static README version lines to this tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Rewrite and commit the badge line
+      - name: Rewrite and commit the README version lines
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME}"
@@ -34,14 +34,23 @@ jobs:
           # Replace the whole Release-badge line by its anchor. '#' delimiter so
           # the URL slashes need no escaping; only the pattern side is a regex.
           sed -i -E "s#^\[!\[Release\]\(https://img\.shields\.io/badge/release-.*#${LINE}#" README.md
+          # Keep the quick-start's illustrative `gosched health` output line
+          # (`daemon ok (version X.Y.Z)`) in sync too; the badge job used to touch
+          # only the badge, so this line drifted a release behind on every tag.
+          # buildinfo.Version has no leading 'v' and the README follows that form,
+          # so strip it. The anchor '\(' matches the literal '(' (ERE), and '.*'
+          # swallows the old version and the trailing ')'. A no-match leaves the
+          # line untouched — sed still exits 0, so a drift-fix never fails a release.
+          PLAIN="${VERSION#v}"
+          sed -i -E "s#^daemon ok \(version .*#daemon ok (version ${PLAIN})#" README.md
           if git diff --quiet -- README.md; then
-            echo "Badge already current for ${VERSION}."
+            echo "README version lines already current for ${VERSION}."
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "docs: bump README release badge to ${VERSION}"
+          git commit -m "docs: sync README badge and health version to ${VERSION}"
           git push origin HEAD:main
 
   binaries:
