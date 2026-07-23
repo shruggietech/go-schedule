@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-23
+
+Maintainer tooling and repository configuration only. The daemon, CLI, GUI, and
+stored schema are untouched -- 0.4.1 and 0.5.0 ship identical program binaries.
+The minor bump reflects new tracked tooling and two pinned-artifact changes, not
+a behavior change in the scheduler.
+
 ### Added
 
 - **Maintainer test scripts** (`test/scripts/`, documented in
@@ -34,11 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   admits every agent file nobody thought of, an allowlist admits only what was named. Verified
   before commit with `git status --porcelain -uall .claude`, which listed skills and nothing else.
 - **2026-07-23** — **Pinned artifact changed**: `.gitattributes` gains an LF exemption for
-  `test/scripts/**/*.ps1`. The existing `*.ps1 text eol=crlf` rule is justified in-file as
+  `test/scripts/**/*.ps1` and `.claude/skills/**/*.ps1`. The existing `*.ps1 text eol=crlf` rule
+  is justified in-file as
   "Windows-only scripts keep CRLF", but these particular `.ps1` files are cross-platform by
   design — they run under `pwsh` 7 on Linux and macOS — so that rationale does not reach them,
   and the ShruggieTech compliance checker they are authored against requires LF. Scoped as
-  narrowly as possible rather than flipping the global rule.
+  narrowly as possible rather than flipping the global rule. The skills path is included for a
+  second-order reason found while staging: the vendored `shruggie-powershell` skill ships the very
+  checker that enforces LF, so storing its own scripts and examples as CRLF would have made them
+  fail their own compliance check on a fresh clone.
 - **2026-07-23** — **Dispatch drift is derived, not reported, and every figure carries its
   source.** Inspecting `internal/executor/executor.go` established that a spawned task receives
   the inherited environment plus its own configured variables and nothing scheduler-generated —
