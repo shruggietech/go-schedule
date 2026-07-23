@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **README release badge no longer breaks on shields.io token starvation
+  (2026-07-23).** The badge used shields.io's dynamic
+  `img.shields.io/github/v/release` endpoint, which calls the GitHub API
+  server-side from shields.io's shared token pool; when that pool is exhausted
+  the badge renders the literal error `Unable to select next GitHub token from
+  pool` instead of the version. It is now a static `badge/release-vX.Y.Z-blue`
+  URL (no API call, so the error is structurally impossible), matching the
+  License badge.
+
+### Changed
+
+- **Pinned artifact — `.github/workflows/release.yml` (2026-07-23).** Added a
+  standalone `readme-badge` job that, on each `v*.*.*` tag push, rewrites the
+  static README release badge to the tag version and commits it back to `main`
+  as `github-actions[bot]`. The job carries no `needs`, so a badge-bump failure
+  (e.g. branch protection) cannot fail the release artifacts.
+
 ## [0.7.0] - 2026-07-23
 
 ### Added

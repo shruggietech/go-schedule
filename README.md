@@ -1,7 +1,7 @@
 # go-schedule
 
 [![CI](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/shruggietech/go-schedule)](https://github.com/shruggietech/go-schedule/releases/latest)
+[![Release](https://img.shields.io/badge/release-v0.7.0-blue)](https://github.com/shruggietech/go-schedule/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **A cross-platform task scheduler with cron's power and none of its syntax.**\

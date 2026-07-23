@@ -9,6 +9,41 @@ permissions:
   contents: write
 
 jobs:
+  # Keep the README's static release badge current. The badge is a static
+  # shields.io `badge/` URL (no server-side GitHub-API call), so it can never
+  # render the "Unable to select next GitHub token from pool" error that the
+  # dynamic `/github/v/release` endpoint produces whenever shields.io's shared
+  # token pool is starved. This job rewrites the baked-in version on each tag.
+  # Standalone (no `needs`): a badge-bump failure must not fail the release.
+  readme-badge:
+    name: Bump the static README release badge to this tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rewrite and commit the badge line
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          # shields.io static-badge escaping: a literal '-' in the message
+          # becomes '--'. Semver rarely carries one (prereleases do: v1.0.0-rc1).
+          MSG="${VERSION//-/--}"
+          LINE="[![Release](https://img.shields.io/badge/release-${MSG}-blue)](https://github.com/shruggietech/go-schedule/releases/latest)"
+          # Replace the whole Release-badge line by its anchor. '#' delimiter so
+          # the URL slashes need no escaping; only the pattern side is a regex.
+          sed -i -E "s#^\[!\[Release\]\(https://img\.shields\.io/badge/release-.*#${LINE}#" README.md
+          if git diff --quiet -- README.md; then
+            echo "Badge already current for ${VERSION}."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: bump README release badge to ${VERSION}"
+          git push origin HEAD:main
+
   binaries:
     name: Build & publish release binaries (daemon + CLI)
     runs-on: ubuntu-latest
