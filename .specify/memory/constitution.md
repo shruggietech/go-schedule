@@ -4,7 +4,8 @@ SYNC IMPACT REPORT
 Version change: (template) → 1.0.0; amended 1.0.0 → 1.1.0 (2026-07-22, principle V
   adopting the Build-Phase Autopilot Protocol); amended 1.1.0 → 2.0.0 (2026-07-22,
   removing the pull-request integration requirement in favor of trunk-based
-  development).
+  development); amended 2.0.0 → 2.0.1 (2026-07-23, retiring `TODO.md` in favor of
+  the GitHub issue tracker as the roadmap).
 Bump rationale: Initial ratification of the project constitution (MAJOR baseline).
   The 1.1.0 amendment adds a new principle (MINOR): autonomous build-phase
   execution. It grants autonomy of execution only and relaxes no existing
@@ -16,6 +17,10 @@ Bump rationale: Initial ratification of the project constitution (MAJOR baseline
   single pre-push halt is retained as the sole human review point and the
   local CI-parity requirement is strengthened, since CI now reports after a push
   to main rather than blocking a merge.
+  The 2.0.1 amendment is a PATCH clarification: `TODO.md` was retired and the roadmap
+  of open work moved to the GitHub issue tracker, so principle V now names the tracker
+  as the second source of traceable scope. The substance of the standing authorization
+  is unchanged — only the artifact that holds the roadmap.
 
 Modified principles:
   - V. Autonomous Build-Phase Execution (2026-07-22, v2.0.0 — the mandatory halt
@@ -143,7 +148,8 @@ sequence (specify, clarify, checklist, plan, tasks, analyze, implement, verify, 
 to run end to end without per-step authorization.
 
 - The standing authorization covers features traceable to the master specification
-  (`specs/001-task-scheduler/spec.md`) and the roadmap (`TODO.md`), plus any feature or
+  (`specs/001-task-scheduler/spec.md`) or to an open issue on the GitHub tracker, which
+  is where the roadmap of remaining work lives, plus any feature or
   task the operator explicitly places under autopilot by request. An explicit request
   authorizes autopilot for the named work and is itself the renewal; absent one, work
   outside that scope stays in normal interactive mode.
@@ -245,5 +251,13 @@ changes them.
   every push to `main`, and the local CI-parity requirement is *strengthened* — with no PR
   to block a bad merge, a red local run must halt rather than be pushed and sorted out
   afterwards. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
+- 2026-07-23, v2.0.1: **retired `TODO.md`; the roadmap is now the GitHub issue tracker.**
+  Principle V's standing authorization previously named `TODO.md` as the second source
+  of traceable scope alongside the master specification. That file duplicated, in prose
+  a reader had to be told to look at, work that belongs in the tracker where it can be
+  labelled, discussed, and closed; its eight remaining open items were filed as issues
+  #13 through #20 and the file was removed. This is a PATCH clarification: what
+  autopilot may run without further authorization is unchanged, only where that scope
+  is recorded. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
 
-**Version**: 2.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-22
+**Version**: 2.0.1 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-23

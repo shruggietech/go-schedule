@@ -14,10 +14,10 @@ they appear to conflict, the constitution wins.
 ## Purpose
 
 Every feature runs the same spec-kit sequence. Feature scope traces to the
-master specification (`specs/001-task-scheduler/spec.md`) and the ordered
-roadmap (`TODO.md`, whose authoritative task list is
-`specs/001-task-scheduler/tasks.md`); the per-feature `specs/NNN-name/` tree is
-where a feature is actually specified. The default agent behavior pauses for
+master specification (`specs/001-task-scheduler/spec.md`, whose authoritative
+task list is `specs/001-task-scheduler/tasks.md`) or to an open issue on the
+GitHub tracker, which is where the roadmap of remaining work lives; the
+per-feature `specs/NNN-name/` tree is where a feature is actually specified. The default agent behavior pauses for
 authorization between each step and raises routine decisions to the user that,
 in practice, are approved as recommended.
 
@@ -64,7 +64,7 @@ The agent runs these steps in order, with no halt between them:
 
 1. `/speckit-specify` creates `specs/NNN-*/`, `spec.md`, and
    `checklists/requirements.md`, drawing scope from the relevant sections of the
-   master specification and the roadmap.
+   master specification and the issue it traces to.
 2. `/speckit-clarify` runs under the decision policy below. The agent answers
    clarification questions itself from the feature spec, the constitution, the
    master specification, and the feature's stated scope and acceptance criteria.
@@ -143,7 +143,7 @@ The agent halts to the user only when one of these holds:
 - No option is clearly best and the choice is materially irreversible or
   architecture-defining.
 - The feature's intent or scope is genuinely ambiguous in the master
-  specification and the roadmap.
+  specification and in the issue it traces to.
 - A constitution CRITICAL conflict cannot be resolved without a human decision.
 
 ## Branching and integration
@@ -212,13 +212,14 @@ authorization.
 ## Scope and expiry
 
 Autopilot is valid for features traceable to `specs/001-task-scheduler/spec.md`
-and the roadmap in `TODO.md`. It also applies to any other feature or task when
+or to an open issue on the GitHub tracker, which is where the roadmap of
+remaining work lives. It also applies to any other feature or task when
 the operator explicitly requests an autopilot run (for example "run the MSI
 signing work under autopilot" or "autopilot this"). Such an explicit request
 authorizes autopilot for the named work and is itself the renewal.
 
-Absent an explicit request, work not traceable to the master specification or
-the roadmap falls back to normal interactive mode. When the master specification
+Absent an explicit request, work not traceable to the master specification or an
+open issue falls back to normal interactive mode. When the master specification
 is superseded by a new version, the standing authorization lapses and requires
 renewal against the new document; per-request autopilot remains available
 regardless.

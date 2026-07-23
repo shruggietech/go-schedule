@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`TODO.md` removed; the roadmap is now the GitHub issue tracker.** The file
+  had become a second, worse issue tracker: eight open items written as prose
+  bullets that could not be labelled, discussed, assigned, or closed, in a
+  document a reader had to be pointed at. Its "Delivered" section duplicated
+  `CHANGELOG.md`, and its "Open" section duplicated nothing — that was the
+  problem, since the work it described was invisible to anyone browsing issues.
+
+  Each remaining item was filed with the context needed to act on it rather than
+  transcribed: **#13** IPC access control (records that `config.AdminGroup`
+  already exists and is inert, and that the Windows `AU` ACE is load-bearing for
+  the non-elevated case), **#14** benchmarks and the p99 budget, **#15** signing
+  and notarization, **#16** end-to-end verification of the `PATH` fix, and the
+  four deferred post-v1 items as **#17**–**#20**, each marked deferred rather
+  than rejected.
+
+  One item was corrected in the move. `TODO.md` claimed a goroutine-leak test
+  and a dispatch benchmark did not exist; both do —
+  `test/integration/leak_test.go` and `internal/engine/engine_bench_test.go`.
+  What is actually missing is that nothing runs the benchmarks (no CI job
+  invokes `-bench`) and that `testing.B` reports a mean while the constitution
+  budgets a p99. #14 states the real gap.
+
+### Decisions
+
+- **2026-07-23** — **The roadmap moves to the issue tracker rather than being
+  reorganized in place.** The alternative was to keep `TODO.md` as a curated
+  index pointing at issues, which reads tidy and reintroduces the failure it was
+  meant to fix: a second list to keep in sync, silently wrong the first time an
+  issue closes without someone remembering the file. `gh issue list` is
+  generated from the state itself and cannot drift. References in `CLAUDE.md`,
+  `docs/build-autopilot.md`, and the constitution now name the tracker;
+  historical `CHANGELOG.md` and `specs/` entries mentioning `TODO.md` were left
+  alone, because they are records of what happened and not instructions.
+
+- **2026-07-23** — **Constitution amended to v2.0.1** (PATCH). Principle V's
+  standing autopilot authorization named `TODO.md` as the second source of
+  traceable scope; it now names the issue tracker. What autopilot may run
+  without further authorization is unchanged — only where that scope is
+  recorded — which is a clarification rather than a governance change.
+
 ## [0.6.0] - 2026-07-23
 
 **The documented commands now work as written, and an ordinary user can ask

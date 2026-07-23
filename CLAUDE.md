@@ -4,14 +4,15 @@ Cross-platform (Linux/macOS/Windows) task scheduler in Go. A system-wide daemon
 (`goschedd`) hosts the scheduling engine, SQLite store, and executor; the CLI
 (`gosched`) and the Go-native Fyne GUI (`gosched-gui`) are thin clients over a
 local IPC API (Unix socket / Windows named pipe). The master specification is
-`specs/001-task-scheduler/spec.md`; the ordered roadmap is `TODO.md`, whose
-authoritative task list is `specs/001-task-scheduler/tasks.md`. Per-feature
-specs live under `specs/NNN-name/`.
+`specs/001-task-scheduler/spec.md`, whose authoritative task list is
+`specs/001-task-scheduler/tasks.md`; that scope is delivered, and the roadmap of
+work still open is the GitHub issue tracker (`gh issue list`). Per-feature specs
+live under `specs/NNN-name/`.
 
 ## Build-phase autopilot
 
-Standing authorization: every feature traceable to the master specification and
-the roadmap runs under the Build-Phase Autopilot Protocol. A verbal kickoff
+Standing authorization: every feature traceable to the master specification or
+to an open issue runs under the Build-Phase Autopilot Protocol. A verbal kickoff
 ("kick off the catch-up feature", "run the next feature", "autopilot this")
 authorizes the full spec-kit feature sequence end to end (specify, clarify,
 checklist, plan, tasks, analyze, implement, verify, commit) with no pause for
@@ -33,7 +34,7 @@ explicit authorization.
 
 The full procedure is `docs/build-autopilot.md`; the governing principle is
 constitution principle V. This applies to features traceable to the master
-specification and the roadmap, and to any feature or task the operator
+specification or an open issue, and to any feature or task the operator
 explicitly places under autopilot; unrelated requests with no such kickoff use
 normal interactive mode.
 
