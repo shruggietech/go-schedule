@@ -121,3 +121,28 @@ jobs:
         env:
           CGO_ENABLED: "1"
         run: go test ./gui/...
+
+  bench:
+    name: Engine benchmarks (artifact only)
+    runs-on: ubuntu-latest
+    # Informational signal, not a gate: this job runs the engine benchmarks and
+    # publishes their output for review. The enforced dispatch-latency gate is
+    # the p99 assertion TestDispatchLatencyP99 (run in the `test` job above), not
+    # a benchmark-delta comparison here. The engine package is cgo-free.
+    env:
+      CGO_ENABLED: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      # -run '^$' matches no tests, so only benchmarks execute (the functional
+      # suite is not re-run here). -benchmem surfaces per-op allocations.
+      - name: Run engine benchmarks
+        run: go test -run '^$' -bench . -benchmem ./internal/engine/... | tee bench.txt
+      - name: Upload benchmark output
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-benchmarks
+          path: bench.txt
