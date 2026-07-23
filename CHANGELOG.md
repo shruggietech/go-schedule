@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-23
+
 ### Added
 
 - **The p99 dispatch-latency budget is now measured and enforced, and the engine
@@ -938,7 +940,8 @@ that a pre-rebrand `goscheduler` data directory is no longer picked up — see
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/shruggietech/go-schedule/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/shruggietech/go-schedule/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shruggietech/go-schedule/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/shruggietech/go-schedule/compare/v0.5.2...v0.5.3
