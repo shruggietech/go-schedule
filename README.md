@@ -100,6 +100,10 @@ sudo ./gosched service start
 Once the GUI is open, the [GUI field reference](docs/gui-fields.md) explains what every field in
 the task editor accepts.
 
+**Verifying an install:** the [maintainer test scripts](docs/test-scripts.md) let you prove the
+scheduler actually fires on time, survives restarts, catches up after downtime, and honors its
+overlap policies — with evidence, not a hopeful glance at a log.
+
 ## Development
 
 Spec-driven via Spec Kit. The source of truth lives under

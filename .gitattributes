@@ -3,6 +3,19 @@
 
 # Windows-only scripts keep CRLF.
 *.ps1 text eol=crlf
+
+# ...except the maintainer test scripts, which are cross-platform by design: they
+# run under pwsh 7 on Linux and macOS as well as Windows, so the "Windows-only"
+# rationale above does not apply to them. They follow the ShruggieTech PowerShell
+# standard, whose compliance checker requires LF. More specific rule wins.
+test/scripts/*.ps1 text eol=lf
+test/scripts/lib/*.ps1 text eol=lf
+
+# Same exemption for the vendored agent skills. The ShruggieTech PowerShell
+# standard requires LF and ships a checker that enforces it; storing that
+# skill's own scripts and examples as CRLF would make them fail their own
+# compliance check on a fresh clone.
+.claude/skills/**/*.ps1 text eol=lf
 *.cmd text eol=crlf
 *.bat text eol=crlf
 

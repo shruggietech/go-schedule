@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "Pinned sqlite3 command-line tools for the opt-in installer used by the",
+    "maintainer test scripts. See docs/test-scripts.md.",
+    "",
+    "The sha256 values below were computed from bytes actually downloaded from",
+    "sqlite.org on the pinned_date. They are not transcribed from anywhere and",
+    "are not guesses. If a download ever fails to match, that is a hard failure:",
+    "the artifact is deleted and the installer exits non-zero. Never 'fix' a",
+    "mismatch by updating the hash to whatever arrived -- that converts the one",
+    "check standing between a maintainer and a substituted binary into a",
+    "rubber stamp.",
+    "",
+    "sqlite.org publishes SHA3-256 on its download page rather than SHA-256.",
+    "Neither Get-FileHash nor a baseline POSIX toolchain computes SHA3 without",
+    "extra dependencies, so we pin SHA-256 computed locally. To refresh: download",
+    "each URL, verify the upstream SHA3-256 on https://sqlite.org/download.html by",
+    "hand, then record the local SHA-256 here along with a new pinned_date.",
+    "",
+    "min_version is 3.33.0 because the scripts require '.param set' (3.32.0, for",
+    "bound parameters -- string-interpolated SQL over hostnames and usernames is",
+    "both an injection vector and a plain bug for any user named O'Brien) and",
+    "'.mode json' (3.33.0, for machine-readable reader output)."
+  ],
+  "min_version": "3.33.0",
+  "pinned_version": "3.47.2",
+  "pinned_date": "2026-07-23",
+  "upstream_download_page": "https://sqlite.org/download.html",
+  "platforms": {
+    "windows-x64": {
+      "url": "https://sqlite.org/2024/sqlite-tools-win-x64-3470200.zip",
+      "sha256": "8c7fffbf4eec1f43e63153cca6deb018e4360d4d6b0d99bbdd2a541c53b7fa1c",
+      "archive": "zip",
+      "binary": "sqlite3.exe"
+    },
+    "linux-x64": {
+      "url": "https://sqlite.org/2024/sqlite-tools-linux-x64-3470200.zip",
+      "sha256": "9043648ac1186308c212c82d32327f0f1351fdf9dfb56a2a58bcf9bc947e3f90",
+      "archive": "zip",
+      "binary": "sqlite3"
+    },
+    "darwin-x64": {
+      "url": "https://sqlite.org/2024/sqlite-tools-osx-x64-3470200.zip",
+      "sha256": "5f7d782ded38a56377eb34b38a8020e9c2c6f908109c904fe4e032f4a8ea54d0",
+      "archive": "zip",
+      "binary": "sqlite3"
+    },
+    "darwin-arm64": {
+      "_note": "sqlite.org publishes no arm64 macOS build (verified 404 on 2026-07-23). Apple Silicon uses the x64 build under Rosetta 2. If Rosetta is absent the installer fails and the package-manager path is the answer.",
+      "url": "https://sqlite.org/2024/sqlite-tools-osx-x64-3470200.zip",
+      "sha256": "5f7d782ded38a56377eb34b38a8020e9c2c6f908109c904fe4e032f4a8ea54d0",
+      "archive": "zip",
+      "binary": "sqlite3"
+    }
+  },
+  "package_manager_hint": {
+    "windows": "winget install SQLite.SQLite",
+    "linux": "sudo apt install sqlite3   (or dnf/pacman equivalent)",
+    "darwin": "brew install sqlite"
+  }
+}

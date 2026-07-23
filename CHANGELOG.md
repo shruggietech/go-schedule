@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Maintainer test scripts** (`test/scripts/`, documented in
+  [`docs/test-scripts.md`](docs/test-scripts.md)). Three cross-platform script pairs — a
+  PowerShell `.ps1` and a POSIX `.sh` twin each — that let a maintainer prove an installed
+  `goschedd` actually fires on time, survives restarts, catches up after downtime, and honors
+  its overlap policies. `Test-Heartbeat` records one beat per invocation into `heartbeat.db`
+  with a measured dispatch drift; `Test-GetSystemInfo` records host snapshots into `system.db`;
+  `Test-ReadTestDB` reads either back through eleven canned queries. `gosched runs` could say
+  a task ran, but not how late it was, nor that a firing you expected never happened — those
+  are the two questions this answers.
+- **`.claude/skills/` is now tracked**, so a fresh clone arrives with the `/speckit-*` commands
+  and the house-standard skills already present. `docs/build-autopilot.md` had named the
+  missing-commands-on-a-fresh-clone problem as a setup failure; this closes it. Vendored:
+  `shruggie-powershell`, `shruggie-markdown`, `shruggie-speckit`, `gh-fix-ci`, and a new
+  project-native `go-schedule-verify` carrying the CI-parity procedure, its coverage-gate
+  semantics, and both local-environment traps.
+
+### Decisions
+
+- **2026-07-23** — **Pinned artifact changed**: `.gitignore` moves from ignoring all of
+  `.claude/` to `.claude/*` plus `!.claude/skills/`, and adds `test/scripts/.bin/`. Expressed as
+  exclude-everything-then-narrowly-admit rather than a denylist, because the excluded material is
+  credential-bearing by assumption and the two failure directions are not symmetric: a denylist
+  admits every agent file nobody thought of, an allowlist admits only what was named. Verified
+  before commit with `git status --porcelain -uall .claude`, which listed skills and nothing else.
+- **2026-07-23** — **Pinned artifact changed**: `.gitattributes` gains an LF exemption for
+  `test/scripts/**/*.ps1`. The existing `*.ps1 text eol=crlf` rule is justified in-file as
+  "Windows-only scripts keep CRLF", but these particular `.ps1` files are cross-platform by
+  design — they run under `pwsh` 7 on Linux and macOS — so that rationale does not reach them,
+  and the ShruggieTech compliance checker they are authored against requires LF. Scoped as
+  narrowly as possible rather than flipping the global rule.
+- **2026-07-23** — **Dispatch drift is derived, not reported, and every figure carries its
+  source.** Inspecting `internal/executor/executor.go` established that a spawned task receives
+  the inherited environment plus its own configured variables and nothing scheduler-generated —
+  no scheduled time, no run ID. Three options: infer drift from the observed cadence; change the
+  executor to inject the scheduled moment; or snap the run's start to the nearest boundary of a
+  caller-declared interval. Cadence inference was rejected because it measures *jitter* — a
+  scheduler uniformly five seconds late scores perfectly, and that is the defect class this most
+  needs to catch. Modifying the executor was rejected because it changes a safety-critical
+  product surface for maintainer tooling's benefit and would forfeit this release's provable
+  "the shipped binaries did not change" property. Boundary snapping yields genuine absolute
+  latency for a wall-clock-aligned schedule, with an `env` tier kept ahead of it so a future
+  release that does export the scheduled moment is consumed with no change. Every drift value
+  records which of the three sources produced it, and the reader refuses to pool them.
+- **2026-07-23** — **The scripts bind SQL parameters via `sqlite3`'s `.param set`**, which sets
+  the 3.33.0 minimum version (with `.mode json`). The values written include hostnames,
+  usernames, and interface names: string-interpolated SQL there is both an injection vector on a
+  machine someone else administers and an ordinary bug for any user named `O'Brien`.
+- **2026-07-23** — **No product code, CI workflow, or retention policy changed.** The daemon,
+  CLI, GUI, and stored schema are untouched, so 0.4.1 and this release ship identical binaries.
+  The new tests run inside the existing `go test ./...` invocation, so no workflow edit was
+  needed. The test databases are never pruned or rotated: deleting the file is the documented
+  reset, and automatic retention would silently destroy the history a maintainer is inspecting.
+
 ## [0.4.1] - 2026-07-23
 
 Release-packaging fixes only. No change to the scheduler, the GUI, the CLI, or
