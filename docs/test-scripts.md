@@ -1,7 +1,12 @@
+---
+title: Maintainer test scripts
+nav_order: 6
+---
+
 # Maintainer Test Scripts
 
 **Status:** current
-**Feature:** [`specs/006-maintainer-test-scripts/`](../specs/006-maintainer-test-scripts/)
+**Feature:** [`specs/006-maintainer-test-scripts/`](https://github.com/shruggietech/go-schedule/tree/main/specs/006-maintainer-test-scripts/)
 **Audience:** maintainers verifying an installed `goschedd`
 
 Scripts that let you prove an installed scheduler actually fires when it said it
@@ -54,7 +59,7 @@ pwsh -File test/scripts/Test-Heartbeat.ps1 -InstallSqlite
 ```
 
 That downloads the pinned build from sqlite.org, verifies its SHA-256 against
-[`lib/sqlite-manifest.json`](../test/scripts/lib/sqlite-manifest.json), and
+[`lib/sqlite-manifest.json`](https://github.com/shruggietech/go-schedule/blob/main/test/scripts/lib/sqlite-manifest.json), and
 unpacks it into `test/scripts/.bin/` (gitignored). It is the only thing in this
 feature that touches the network, and only when you pass the flag. A checksum
 mismatch deletes the download and fails — it never installs an unverified binary.
@@ -212,7 +217,7 @@ would produce numbers that look more certain than they are:
 
 ## What gets recorded
 
-Full schema: [`data-model.md`](../specs/006-maintainer-test-scripts/data-model.md).
+Full schema: [`data-model.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/006-maintainer-test-scripts/data-model.md).
 
 `heartbeat.db` holds one `beat` row per completed run, carrying start and finish
 moments (both, so overlap is decidable rather than guessed), session and
@@ -397,7 +402,7 @@ cleanly into another tool without log lines mixed in.
 ## Shell conventions
 
 The `.ps1` twins follow the ShruggieTech PowerShell standard, enforced by
-[`.claude/skills/shruggie-powershell/scripts/Test-ScriptCompliance.ps1`](../.claude/skills/shruggie-powershell/scripts/Test-ScriptCompliance.ps1).
+[`.claude/skills/shruggie-powershell/scripts/Test-ScriptCompliance.ps1`](https://github.com/shruggietech/go-schedule/blob/main/.claude/skills/shruggie-powershell/scripts/Test-ScriptCompliance.ps1).
 There is **no equivalent shell standard yet**, so the `.sh` twins are governed by
 this section plus `shellcheck`:
 

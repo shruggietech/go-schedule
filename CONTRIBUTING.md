@@ -16,6 +16,7 @@ works rather than how a Go project conventionally works, because on two points
 - [Two local-environment traps](#two-local-environment-traps)
 - [Pinned artifacts](#pinned-artifacts)
 - [What is never weakened](#what-is-never-weakened)
+- [Documentation](#documentation)
 - [Conventions](#conventions)
 
 ## Before you write code
@@ -161,6 +162,33 @@ schedule pressure:
 
 If a change appears to require weakening one of these, that is a design
 question, not a testing question. Raise it.
+
+## Documentation
+
+User-facing documentation lives in `docs/` and is the **single source of
+truth**. It is published as a site —
+[shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/)
+— served directly by GitHub Pages from the `docs/` folder on `main`, so the
+Markdown you edit *is* the page that ships. There is no separate build step and
+no generated output to commit; a page's `title` and `nav_order` front matter is
+all that places it in the site's navigation.
+
+Two rules keep the docs from drifting, and `scripts/docs-check.sh` enforces
+both:
+
+- **Subdirectory READMEs are pointers, not copies.** A README under, say,
+  `test/scripts/` signposts the relevant `docs/` page rather than restating it.
+  Duplicated prose rots; a pointer cannot.
+- **Links out of `docs/` are absolute.** Because the site is rooted at `docs/`,
+  a relative link that climbs out of it (`../README.md`) would 404 once
+  published. Reference anything outside `docs/` by its full
+  `https://github.com/…` URL instead.
+
+Run the check before pushing any documentation change (CI runs the same script):
+
+```bash
+sh scripts/docs-check.sh
+```
 
 ## Conventions
 

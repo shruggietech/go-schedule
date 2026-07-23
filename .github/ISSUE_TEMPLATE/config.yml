@@ -1,13 +1,13 @@
 blank_issues_enabled: false
 contact_links:
   - name: Installation help
-    url: https://github.com/shruggietech/go-schedule/tree/main/docs
+    url: https://shruggietech.github.io/go-schedule/
     about: >
       Per-platform install guides, the CLI reference, and the GUI field
       reference. Worth a look before filing — several common reports are
       answered there.
   - name: Prove your install actually works
-    url: https://github.com/shruggietech/go-schedule/blob/main/docs/test-scripts.md
+    url: https://shruggietech.github.io/go-schedule/test-scripts.html
     about: >
       The maintainer test scripts demonstrate that the scheduler fires on time,
       survives restarts, catches up after downtime, and honors overlap

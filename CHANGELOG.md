@@ -26,6 +26,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The goroutine-leak test (`test/integration/leak_test.go`) already runs under
   `-race` in CI — confirmed, no change needed.
 
+- **Documentation is now published as a site, and `docs/` is the single source
+  of truth (closes #11).** The `docs/` set — the install guides, the CLI and GUI
+  references, cron interoperability, and the test-scripts and build-autopilot
+  guides — is published as a searchable, navigable GitHub Pages site served
+  branch-based from the `docs/` folder on `main` using the just-the-docs remote
+  theme, so the Markdown in the repository is both the reviewable source and the
+  served page. Every page gained `title`/`nav_order` front matter, the three
+  install guides are grouped under an Installation section, and the eleven links
+  that pointed out of `docs/` were rewritten to absolute repository URLs so
+  nothing 404s on a `docs/`-rooted site. A new `scripts/docs-check.sh` gate
+  (front matter, on-disk link integrity, no links escaping `docs/`,
+  pointer-README validity; no network) runs locally and as a `docs` CI job. The
+  README and the issue-form contact links now point at the site, and the README
+  quick-start version was corrected from 0.6.0 to 0.7.0. Going live is one
+  repository setting: Pages → Deploy from a branch → `main` / `docs`.
+
 ### Changed
 
 - **Pinned artifact — `.github/workflows/ci.yml` (2026-07-23).** Added a `bench`
@@ -34,6 +50,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   output via `actions/upload-artifact@v4`. It is informational — the enforced
   dispatch-latency gate is `TestDispatchLatencyP99` in the `test` job, not this
   job — so a benchmark run never fails the build.
+
+- **Pinned artifact — `.github/workflows/ci.yml` (2026-07-23).** Added a `docs`
+  job (`ubuntu-latest`, no Go toolchain) that runs `sh scripts/docs-check.sh` on
+  every push/PR to `main`, guarding the documentation-site sources — front
+  matter, on-disk link integrity, no links escaping `docs/`, and pointer-README
+  validity. It runs the exact script contributors run locally, so the two cannot
+  drift.
+
+- **Pinned artifact — `docs/INSTALL-windows.md` (2026-07-23).** Added a
+  `title`/`parent`/`nav_order` YAML front-matter block, matching every other
+  `docs/` page, so the Windows install guide appears under the site's
+  Installation section. The prose is unchanged; GitHub renders front matter
+  invisibly, so reading the file in the repository is unaffected.
 
 ### Decisions
 
@@ -50,6 +79,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   10 % clause calls for. The benchmarks still run in CI and their output is
   published as an artifact, preserving the raw trend for spotting a within-budget
   slowdown by eye.
+
+- **2026-07-23** — **The documentation site is served branch-based from `docs/`
+  with the just-the-docs remote theme, not built by Hugo or MkDocs via GitHub
+  Actions.** Branch-based serving keeps the `docs/` Markdown as both the
+  reviewable source and the served content, with no deploy workflow and a single
+  operator settings change to go live; Hugo and MkDocs with an Actions deploy
+  (issue #11's alternatives) each add a build pipeline and a second toolchain for
+  no gain at this size. The theme is pinned to `just-the-docs@v0.4.2`, the last
+  release that builds under GitHub Pages' bundled Jekyll 3.9 (libsass); adopting
+  a newer theme would require a Jekyll 4 Actions build, a deliberately deferred
+  future change.
+
+- **2026-07-23** — **`docs-check.sh` validates link targets, not anchors.**
+  Fragments (`#section`) are stripped and not resolved: validating them would
+  mean replicating Jekyll/kramdown heading-slug rules for little value, whereas
+  file existence, the no-escape rule, and front-matter presence catch the drift
+  that actually breaks the published site.
 
 ### Fixed
 

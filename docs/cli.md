@@ -1,3 +1,8 @@
+---
+title: CLI reference
+nav_order: 3
+---
+
 # `gosched` command reference
 
 **Audience:** anyone using go-schedule from a terminal\

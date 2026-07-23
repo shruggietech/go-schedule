@@ -1,8 +1,13 @@
+---
+title: GUI field reference
+nav_order: 4
+---
+
 # GUI task editor — field reference
 
 This page explains every field in the desktop GUI's **New Task** / **Edit Task** dialog:
 what it accepts, what's required, and what each option means. It's the GUI counterpart to the
-CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](../specs/001-task-scheduler/contracts/cli.md).
+CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
 The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run**
 (Name, Command, Arguments), **When** (Timezone, Mode, the relevant time field), and a collapsible

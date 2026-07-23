@@ -3,11 +3,12 @@
 [![CI](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/badge/release-v0.7.0-blue)](https://github.com/shruggietech/go-schedule/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-shruggietech.github.io-blue)](https://shruggietech.github.io/go-schedule/)
 
 **A cross-platform task scheduler with cron's power and none of its syntax.**\
 **Platforms:** Linux · macOS · Windows\
 **Interfaces:** CLI, desktop GUI, and a system-wide background daemon\
-**Documentation:** [docs/](docs/README.md) · **Changes:** [CHANGELOG.md](CHANGELOG.md)
+**Documentation:** [shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/) · **Changes:** [CHANGELOG.md](CHANGELOG.md)
 
 `cron` is powerful, and `*/15 * * * *` is hard to read and easy to get wrong.
 go-schedule takes the same scheduling power and lets you write it the way you
@@ -122,7 +123,7 @@ gosched health
 ```
 
 ```text
-daemon ok (version 0.6.0)
+daemon ok (version 0.7.0)
 ```
 
 Create a task:

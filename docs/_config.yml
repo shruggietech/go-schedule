@@ -1,0 +1,61 @@
+# Jekyll configuration for the go-schedule documentation site.
+#
+# The site is served branch-based from this folder: GitHub Pages runs its
+# bundled Jekyll (Jekyll 3.9.x via the github-pages gem) over docs/ on `main`.
+# The docs/*.md files are BOTH the reviewable repository source and the served
+# content — nothing here is built output. To publish: repository Settings ->
+# Pages -> "Deploy from a branch" -> main / docs.
+#
+# The theme is applied via remote_theme (bypassing the Pages theme allowlist)
+# and PINNED to v0.4.2: the last just-the-docs release that builds under the
+# github-pages gem's libsass Jekyll 3.9. Newer just-the-docs requires the
+# dart-sass module syntax (Jekyll 4 / a GitHub Actions build), which this
+# branch-based setup deliberately does not use.
+
+title: go-schedule
+description: >-
+  Documentation for go-schedule — a cross-platform task scheduler with a system
+  daemon (goschedd), a CLI (gosched), and a desktop GUI.
+
+url: https://shruggietech.github.io
+baseurl: /go-schedule
+
+remote_theme: just-the-docs/just-the-docs@v0.4.2
+
+# Client-side search across the whole doc set.
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  tokenizer_separator: /[\s/]+/
+
+# A persistent link back to the repository in the site header.
+aux_links:
+  GitHub repository:
+    - https://github.com/shruggietech/go-schedule
+aux_links_new_tab: true
+
+# "Edit this page on GitHub" footer link, pointing at the docs source on main.
+gh_edit_link: true
+gh_edit_link_text: Edit this page on GitHub
+gh_edit_repository: https://github.com/shruggietech/go-schedule
+gh_edit_branch: main
+gh_edit_source: docs
+gh_edit_view_mode: tree
+
+# All on GitHub Pages' plugin allowlist. jekyll-relative-links rewrites the
+# in-docs `.md` links to their built URLs so cross-page links resolve on the
+# site without manual rewriting.
+plugins:
+  - jekyll-remote-theme
+  - jekyll-relative-links
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+relative_links:
+  enabled: true
+  collections: false
+
+# These repo/meta files live in docs/ but are not documentation pages.
+exclude:
+  - _config.yml

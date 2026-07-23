@@ -1,12 +1,17 @@
+---
+title: Home
+nav_order: 1
+---
+
 # go-schedule documentation
 
 **Audience:** users and maintainers of go-schedule\
 **Applies to:** go-schedule 0.7.0 and later\
-**Project home:** [README.md](../README.md)
+**Project home:** [README.md](https://github.com/shruggietech/go-schedule/blob/main/README.md)
 
 An index of what is here and who each document is for. If you are installing,
 start with the guide for your platform; if you are contributing, start with
-[CONTRIBUTING.md](../CONTRIBUTING.md) in the repository root.
+[CONTRIBUTING.md](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) in the repository root.
 
 ## Using go-schedule
 
@@ -33,11 +38,11 @@ attachment to a bug report.
 
 | Document | What it covers |
 | --- | --- |
-| [Contributing](../CONTRIBUTING.md) | Trunk-based workflow, the spec-kit requirement, the CI-parity gates, pinned artifacts. |
+| [Contributing](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) | Trunk-based workflow, the spec-kit requirement, the CI-parity gates, pinned artifacts. |
 | [Build-phase autopilot](build-autopilot.md) | The protocol under which features are executed end to end with a single human halt. Maintainer-facing. |
-| [Constitution](../.specify/memory/constitution.md) | The engineering principles the project is governed by. |
-| [Master specification](../specs/001-task-scheduler/spec.md) | What the scheduler is and why, with the plan, data model, and contracts alongside it. |
-| [Changelog](../CHANGELOG.md) | Release history, including the dated decisions behind changes to pinned artifacts. |
+| [Constitution](https://github.com/shruggietech/go-schedule/blob/main/.specify/memory/constitution.md) | The engineering principles the project is governed by. |
+| [Master specification](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/spec.md) | What the scheduler is and why, with the plan, data model, and contracts alongside it. |
+| [Changelog](https://github.com/shruggietech/go-schedule/blob/main/CHANGELOG.md) | Release history, including the dated decisions behind changes to pinned artifacts. |
 
 ## Reporting problems
 
@@ -47,4 +52,4 @@ elevated — each of those has, at some point on this project, been the fact tha
 decided the diagnosis.
 
 For security issues, please use the private route described in
-[SECURITY.md](../SECURITY.md) rather than a public issue.
+[SECURITY.md](https://github.com/shruggietech/go-schedule/blob/main/SECURITY.md) rather than a public issue.

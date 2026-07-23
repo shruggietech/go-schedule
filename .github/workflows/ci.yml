@@ -146,3 +146,15 @@ jobs:
         with:
           name: engine-benchmarks
           path: bench.txt
+
+  docs:
+    name: Docs link check
+    runs-on: ubuntu-latest
+    # No Go toolchain: docs-check.sh is pure POSIX sh with no network. It guards
+    # the docs/ site sources — front matter, on-disk link integrity, no links
+    # escaping docs/, and pointer-README validity. Runs the same script
+    # contributors run locally, so the local and CI checks cannot drift.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check documentation integrity
+        run: sh scripts/docs-check.sh

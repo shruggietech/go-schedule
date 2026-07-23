@@ -1,3 +1,9 @@
+---
+title: macOS
+parent: Installation
+nav_order: 3
+---
+
 # Installing go-schedule on macOS
 
 **Audience:** macOS users, both desktop and headless\

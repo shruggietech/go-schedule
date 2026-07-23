@@ -1,3 +1,8 @@
+---
+title: Build-phase autopilot
+nav_order: 7
+---
+
 # Build-Phase Autopilot Protocol
 
 Version: 1.0.0

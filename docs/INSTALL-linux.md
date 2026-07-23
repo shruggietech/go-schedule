@@ -1,3 +1,9 @@
+---
+title: Linux
+parent: Installation
+nav_order: 2
+---
+
 # Installing go-schedule on Linux
 
 **Audience:** Linux users and server operators\

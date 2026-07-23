@@ -1,3 +1,9 @@
+---
+title: Windows
+parent: Installation
+nav_order: 1
+---
+
 # Installing go-schedule on Windows
 
 **Audience:** Windows users installing go-schedule\
