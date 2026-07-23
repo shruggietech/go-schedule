@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-23
+
+**Groups work from the GUI, and the task editor tells the truth about a task's
+schedule.** The two defects reported against 0.3.0 are fixed
+([#3](https://github.com/shruggietech/go-schedule/issues/3),
+[#4](https://github.com/shruggietech/go-schedule/issues/4)), and group
+assignment is reachable without the command line for the first time.
+
+Upgrading is a normal install; the store migrates forward automatically. Note
+that a pre-rebrand `goscheduler` data directory is no longer picked up — see
+**Removed**.
+
 ### Fixed
 
 - **Task editor showed the wrong schedule** ([#4](https://github.com/shruggietech/go-schedule/issues/4)):
@@ -279,5 +291,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/shruggietech/go-schedule/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/shruggietech/go-schedule/releases/tag/v0.3.0
