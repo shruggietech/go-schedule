@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-23
+
 ### Added
 
 - **Cron interoperability — `gosched cron import`, `explain`, and `export`
@@ -74,6 +76,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy.** Six call sites across the engine, catch-up, and API packages pass it
   through; all already held the task.
 
+
+- **`TODO.md` removed; the roadmap is now the GitHub issue tracker.** The file
+  had become a second, worse issue tracker: eight open items written as prose
+  bullets that could not be labelled, discussed, assigned, or closed, in a
+  document a reader had to be pointed at. Its "Delivered" section duplicated
+  `CHANGELOG.md`, and its "Open" section duplicated nothing — that was the
+  problem, since the work it described was invisible to anyone browsing issues.
+
+  Each remaining item was filed with the context needed to act on it rather than
+  transcribed: **#13** IPC access control (records that `config.AdminGroup`
+  already exists and is inert, and that the Windows `AU` ACE is load-bearing for
+  the non-elevated case), **#14** benchmarks and the p99 budget, **#15** signing
+  and notarization, **#16** end-to-end verification of the `PATH` fix, and the
+  four deferred post-v1 items as **#17**–**#20**, each marked deferred rather
+  than rejected.
+
+  One item was corrected in the move. `TODO.md` claimed a goroutine-leak test
+  and a dispatch benchmark did not exist; both do —
+  `test/integration/leak_test.go` and `internal/engine/engine_bench_test.go`.
+  What is actually missing is that nothing runs the benchmarks (no CI job
+  invokes `-bench`) and that `testing.B` reports a mean while the constitution
+  budgets a p99. #14 states the real gap.
+
 ### Decisions
 
 - **2026-07-23** — **The missing-date policy lives on the task, not the
@@ -110,31 +135,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cannot (arbitrary by-minute lists), and those are refused rather than given a
   privileged back door into a task nobody could subsequently edit.
 
-### Changed
-
-- **`TODO.md` removed; the roadmap is now the GitHub issue tracker.** The file
-  had become a second, worse issue tracker: eight open items written as prose
-  bullets that could not be labelled, discussed, assigned, or closed, in a
-  document a reader had to be pointed at. Its "Delivered" section duplicated
-  `CHANGELOG.md`, and its "Open" section duplicated nothing — that was the
-  problem, since the work it described was invisible to anyone browsing issues.
-
-  Each remaining item was filed with the context needed to act on it rather than
-  transcribed: **#13** IPC access control (records that `config.AdminGroup`
-  already exists and is inert, and that the Windows `AU` ACE is load-bearing for
-  the non-elevated case), **#14** benchmarks and the p99 budget, **#15** signing
-  and notarization, **#16** end-to-end verification of the `PATH` fix, and the
-  four deferred post-v1 items as **#17**–**#20**, each marked deferred rather
-  than rejected.
-
-  One item was corrected in the move. `TODO.md` claimed a goroutine-leak test
-  and a dispatch benchmark did not exist; both do —
-  `test/integration/leak_test.go` and `internal/engine/engine_bench_test.go`.
-  What is actually missing is that nothing runs the benchmarks (no CI job
-  invokes `-bench`) and that `testing.B` reports a mean while the constitution
-  budgets a p99. #14 states the real gap.
-
-### Decisions
 
 - **2026-07-23** — **The roadmap moves to the issue tracker rather than being
   reorganized in place.** The alternative was to keep `TODO.md` as a curated
@@ -829,7 +829,8 @@ that a pre-rebrand `goscheduler` data directory is no longer picked up — see
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/shruggietech/go-schedule/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shruggietech/go-schedule/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/shruggietech/go-schedule/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/shruggietech/go-schedule/compare/v0.5.1...v0.5.2
