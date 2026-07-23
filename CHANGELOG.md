@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-23
+
+Release-packaging fixes only. No change to the scheduler, the GUI, the CLI, or
+the stored data — 0.4.0 and 0.4.1 are the same program.
+
+### Fixed
+
+- **`SHA256SUMS.txt` now covers every published asset.** It was generated in the
+  job that builds the daemon and CLI tarballs, which cannot see the artifacts built
+  by the GUI job, so the Windows `.msi` and the desktop bundles — the files most
+  people actually download — were never checksummed. A final job now runs after all
+  the others, downloads every attached asset, and publishes one complete checksum
+  file.
+- **The Windows `.wixpdb` is no longer published.** `wix build` writes a debug-symbol
+  file next to the `.msi`, and the release step attached everything in `dist/` with a
+  bare glob. The publish patterns are now explicit. (Present in 0.3.0 and 0.4.0;
+  harmless, but not something anyone should download.)
+
+### Decisions
+
+- **2026-07-23** — **Pinned artifact changed**: `.github/workflows/release.yml` gains a third
+  job, `checksums`, and both publish steps now name their file patterns explicitly instead of
+  globbing `dist/*`. Pinned artifacts change only with a dated decision, hence this entry.
+  Checksums move to a job gated on `needs: [binaries, gui]` because the completeness problem is
+  structural, not a missing filename: the job that wrote `SHA256SUMS.txt` runs before the GUI
+  artifacts exist and on a different runner, so no edit to it could ever cover them. The
+  alternative — one checksum file per job — was rejected as it pushes the reassembly onto whoever
+  is verifying a download. The new job is idempotent on re-run (it discards any prior checksum
+  file before recomputing) and writes to a temp path so a failed run cannot leave a truncated
+  file over a good one.
+
 ## [0.4.0] - 2026-07-23
 
 **Groups work from the GUI, and the task editor tells the truth about a task's
@@ -291,6 +322,7 @@ that a pre-rebrand `goscheduler` data directory is no longer picked up — see
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/shruggietech/go-schedule/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/shruggietech/go-schedule/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/shruggietech/go-schedule/releases/tag/v0.3.0

@@ -46,8 +46,12 @@ jobs:
             rm -rf "$stage"
           done
 
-          ( cd dist && sha256sum * > SHA256SUMS.txt )
+          # Checksums are NOT written here. This job only sees its own tarballs,
+          # so a SHA256SUMS.txt built now would omit the .msi and the desktop
+          # bundles that the gui job produces. The checksums job publishes one
+          # complete file once every asset exists.
           echo "--- artifacts ---"; ls -la dist
+          sha256sum dist/* # for the build log only
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -77,7 +81,6 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/*.msi
-            dist/SHA256SUMS.txt
 
   gui:
     name: Build & publish GUI (${{ matrix.os }})
@@ -216,7 +219,37 @@ jobs:
           fi
           ls -la dist
 
+      # Explicit patterns, not dist/*: `wix build` drops a .wixpdb (debug symbols)
+      # next to the .msi, and a bare glob published it as a release asset.
       - name: Attach GUI artifact to the release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/*.tar.gz
+            dist/*.msi
+
+  # Runs last, once every asset is attached, so the published checksum file
+  # covers the whole release — including the .msi and the desktop bundles, which
+  # are built in the gui job and so were previously unchecksummed.
+  checksums:
+    name: Publish SHA256SUMS for every asset
+    needs: [binaries, gui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checksum every published asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          cd assets
+          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --pattern '*'
+          # Idempotent on re-run: a checksum file from a previous attempt would
+          # otherwise be downloaded and listed inside its own replacement.
+          rm -f SHA256SUMS.txt
+          # Write outside the directory first: the glob must not pick up the file
+          # being created, and a partial upload must never overwrite a good one.
+          sha256sum * > "${RUNNER_TEMP}/SHA256SUMS.txt"
+          cat "${RUNNER_TEMP}/SHA256SUMS.txt"
+          gh release upload "${GITHUB_REF_NAME}" "${RUNNER_TEMP}/SHA256SUMS.txt" \
+            --repo "${GITHUB_REPOSITORY}" --clobber
