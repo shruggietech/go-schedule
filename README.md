@@ -123,7 +123,7 @@ gosched health
 ```
 
 ```text
-daemon ok (version 0.7.0)
+daemon ok (version 0.8.0)
 ```
 
 Create a task:
