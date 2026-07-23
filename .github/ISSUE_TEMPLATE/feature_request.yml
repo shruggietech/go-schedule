@@ -1,0 +1,74 @@
+name: Feature request
+description: Propose a capability go-schedule does not have
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please lead with the **problem**, not the solution. A proposal is much
+        easier to evaluate — and much more likely to be built well — when the
+        underlying need is visible, because the need often admits a better
+        answer than the one first imagined.
+
+        This project is spec-driven: every feature is specified through
+        [Spec Kit](https://github.com/github/spec-kit) before any code is
+        written. A request that traces to the master specification moves faster
+        than one that opens a new scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: >
+        What are you trying to do, and what stops you today? Describe the
+        situation rather than the feature.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you think should happen. Rough is fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: >
+        Optional. Including "I currently work around it by ..." — a workaround
+        is evidence about how much the gap costs.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: traceability
+    attributes:
+      label: Does this trace to the master specification?
+      description: >
+        `specs/001-task-scheduler/spec.md`. Answer "not sure" freely; this is a
+        routing question, not a test.
+      options:
+        - "Yes — it refines something already specified"
+        - "No — it opens new scope"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which part would this touch?
+      options:
+        - Scheduling engine
+        - CLI (gosched)
+        - Desktop GUI (gosched-gui)
+        - Daemon / service lifecycle
+        - Packaging and installers
+        - Documentation
+        - Not sure
+    validations:
+      required: true

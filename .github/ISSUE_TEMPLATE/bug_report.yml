@@ -1,0 +1,150 @@
+name: Bug report
+description: Something in the daemon, CLI, GUI, installer, or test scripts does not work
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        The fields below are the ones that have actually decided diagnoses on
+        this project. A report is only reproducible if we know **which
+        component**, **which install path**, and **whether you were elevated** —
+        past issues here have turned entirely on each of those.
+
+        Where a field asks for output, please **paste the real output** rather
+        than describing it. That is the single thing that makes a report
+        actionable.
+
+  - type: input
+    id: cli-version
+    attributes:
+      label: CLI version
+      description: >
+        Output of `gosched --version`. If the CLI is not on your PATH, use the
+        full path to `gosched`.
+      placeholder: "gosched version 0.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: daemon-version
+    attributes:
+      label: Daemon version
+      description: >
+        Output of `gosched health`, which reports the **daemon** version. This
+        can legitimately differ from the CLI version after a partial upgrade,
+        which is why both are asked for. Put "unreachable" if the daemon does
+        not answer.
+      placeholder: "daemon ok (version 0.6.0)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Where the problem shows up.
+      options:
+        - Daemon (goschedd)
+        - CLI (gosched)
+        - Desktop GUI (gosched-gui)
+        - Installer / packaging
+        - Maintainer test scripts
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      description: >
+        This matters more than it looks. Some defects exist on only one install
+        path — a bug reachable solely through the Windows `.msi` is invisible to
+        someone who ran `go install`.
+      options:
+        - Windows .msi installer
+        - Release archive (tar.gz / zip)
+        - macOS desktop bundle (gosched-gui.app)
+        - go install
+        - Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and version
+      placeholder: "Windows 11 Pro 26200 / Ubuntu 24.04 / macOS 15.3 (arm64)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: elevation
+    attributes:
+      label: Were you elevated?
+      description: >
+        Administrator or root, versus an ordinary user. Anything touching the
+        system service depends on this, and it is not something people think to
+        mention unprompted.
+      options:
+        - Standard user (not elevated)
+        - Administrator / root (elevated)
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >
+        The exact commands you ran, in order, starting from a state someone else
+        can reach. Include the task definition if a scheduled task is involved.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >
+        Pasted output — the command and everything it printed, including the
+        exit code. Relevant `gosched logs` output belongs here too
+        (`gosched logs --severity error`). Screenshots are welcome for GUI
+        issues but do not replace text.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: cause
+    attributes:
+      label: Probable cause
+      description: >
+        Optional. If you have a theory — a file, a line, a mechanism — say so.
+        A wrong theory clearly labelled as one costs nothing.
+    validations:
+      required: false
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: >
+        Optional. Who this affects and whether a workaround exists. "Only
+        affects X install path" is genuinely useful information.
+    validations:
+      required: false

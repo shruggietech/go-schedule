@@ -1,0 +1,19 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation help
+    url: https://github.com/shruggietech/go-schedule/tree/main/docs
+    about: >
+      Per-platform install guides, the CLI reference, and the GUI field
+      reference. Worth a look before filing — several common reports are
+      answered there.
+  - name: Prove your install actually works
+    url: https://github.com/shruggietech/go-schedule/blob/main/docs/test-scripts.md
+    about: >
+      The maintainer test scripts demonstrate that the scheduler fires on time,
+      survives restarts, catches up after downtime, and honors overlap
+      policies. Their output makes an excellent bug report attachment.
+  - name: Security vulnerability
+    url: https://github.com/shruggietech/go-schedule/security/advisories/new
+    about: >
+      Please report security issues privately rather than opening a public
+      issue. See SECURITY.md.

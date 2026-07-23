@@ -80,7 +80,14 @@ func Control(action, execPath string, args []string) (string, error) {
 	}
 
 	if action == "status" {
-		st, err := svc.Status()
+		// Prefer a platform path that asks for no more access than a read
+		// needs, so an unprivileged user gets the answer the service ACL
+		// already permits. Platforms with no such path report handled=false and
+		// fall through to the library, unchanged.
+		st, handled, err := platformStatus(svcName)
+		if !handled {
+			st, err = svc.Status()
+		}
 		if err != nil {
 			return "", fmt.Errorf("service: status: %w", err)
 		}

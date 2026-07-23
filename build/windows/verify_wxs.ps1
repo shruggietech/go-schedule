@@ -49,6 +49,27 @@ if ($wxs -notmatch 'Directory Id="INSTALLFOLDER" Name="go-schedule"') {
 if ($wxs -notmatch 'Scope="perMachine"') {
   $fail += 'package Scope must be "perMachine" (requires elevation)'
 }
+# The install folder must land on the machine PATH, or every documented bare
+# `gosched ...` command fails after a normal install (issue #5). Assert each
+# attribute separately so a partial edit — a per-user entry, or one that
+# survives uninstall — is reported for what it is rather than passing.
+if ($wxs -notmatch '<Environment[^>]*Name="PATH"') {
+  $fail += 'no <Environment> element adding INSTALLFOLDER to PATH'
+} else {
+  $envEl = [regex]::Match($wxs, '<Environment\b[^>]*Name="PATH"[^>]*>').Value
+  if ($envEl -notmatch 'Value="\[INSTALLFOLDER\]"') {
+    $fail += 'PATH <Environment> Value must be "[INSTALLFOLDER]"'
+  }
+  if ($envEl -notmatch 'System="yes"') {
+    $fail += 'PATH <Environment> must be System="yes" (perMachine package)'
+  }
+  if ($envEl -notmatch 'Permanent="no"') {
+    $fail += 'PATH <Environment> must be Permanent="no" (removed on uninstall)'
+  }
+  if ($envEl -notmatch 'Part="last"') {
+    $fail += 'PATH <Environment> must be Part="last" (append, not replace)'
+  }
+}
 
 if ($StageDir) {
   foreach ($bin in $expectedBinaries) {

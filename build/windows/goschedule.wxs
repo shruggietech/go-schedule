@@ -102,9 +102,32 @@
         <File Id="gosched_gui.exe" Source="$(StageDir)\gosched-gui.exe" KeyPath="yes" />
       </Component>
 
-      <!-- The CLI. -->
+      <!-- The CLI, plus the PATH entry that makes it reachable by name.
+
+           The <Environment> element lives on THIS component (KeyPath
+           gosched.exe) on purpose: MSI reference-counts by component, so
+           binding the PATH entry to the CLI gives correct lifetime for free —
+           written on install, replaced in place on a major upgrade, removed
+           when the CLI is removed. A custom action editing PATH by hand would
+           have to implement all three itself, and that is the classic source
+           of duplicated and truncated PATH values.
+
+           System="yes" matches the perMachine package scope; a per-user entry
+           would be written for whoever ran the installer and stay invisible to
+           everyone else on a machine that hosts a system-wide service.
+           Part="last" appends, so an existing same-named tool on the machine
+           keeps winning. Permanent="no" is what removes the entry on
+           uninstall. -->
       <Component Id="Gosched" Guid="*">
         <File Id="gosched.exe" Source="$(StageDir)\gosched.exe" KeyPath="yes" />
+        <Environment
+            Id="PathEnv"
+            Name="PATH"
+            Value="[INSTALLFOLDER]"
+            Permanent="no"
+            Part="last"
+            Action="set"
+            System="yes" />
       </Component>
     </ComponentGroup>
 

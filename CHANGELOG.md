@@ -7,6 +7,140 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-23
+
+**The documented commands now work as written, and an ordinary user can ask
+whether the scheduler is running.** Two Windows defects, both on the seam
+between the shipped product and the person trying to use it, plus the
+documentation set the project had been shipping without.
+
+The minor bump is carried by the installer: it now writes to the machine `PATH`,
+which is install-time behavior a user observes, and it changes two pinned
+artifacts. Scheduling behavior is untouched.
+
+### Fixed
+
+- **The Windows `.msi` never added its install directory to `PATH`** (#5). Every
+  command in the README and in `docs/test-scripts.md` is written as a bare
+  `gosched ...`, and after a normal install none of them resolved — the first
+  thing a new Windows user typed failed, and failed in a way that reads as a
+  broken package rather than a missing `PATH` entry.
+
+  It survived several releases for a reason worth recording: every machine where
+  this project is developed or tested already has that directory on `PATH`, put
+  there by hand. The defect was invisible from inside the project and unmissable
+  from outside it.
+
+- **`gosched service status` demanded elevation it did not need** (#6). The
+  installed service's ACL grants Interactive Users `SERVICE_QUERY_STATUS`, so a
+  read-only status query is permitted by policy — yet it failed with
+  `Access is denied` for any non-elevated user.
+
+  The cause was the access mask, not the ACL. The status path opened the service
+  handle with `SERVICE_QUERY_CONFIG|SERVICE_QUERY_STATUS|SERVICE_START|SERVICE_STOP`,
+  and `OpenService` evaluates the whole requested mask at once, so the call was
+  refused over rights the query never used. What made this worth fixing rather
+  than documenting is that the message was actively wrong: it reported that
+  permission was withheld when in fact it was granted, sending the reader to look
+  in exactly the wrong place.
+
+  `status` now opens the service control manager with `SC_MANAGER_CONNECT` and
+  the service with `SERVICE_QUERY_STATUS`, and nothing more. `start`, `stop`,
+  `restart`, `install`, and `uninstall` still require elevation — the ACL
+  withholds those rights deliberately, and that has not been relaxed. Output
+  wording is unchanged on every platform, and the Linux and macOS paths are
+  untouched.
+
+### Added
+
+- **Issue and pull-request templates** (#7). `.github/ISSUE_TEMPLATE/` now holds
+  YAML forms rather than an empty box, with version, component, install method,
+  OS, and elevation state all required. Each of those has already decided a
+  diagnosis on this repository: #5 reproduces only via the MSI path, #6 turns
+  entirely on whether the reporter is an administrator, and #3's version had to
+  be reconstructed from its title. Blank issues are disabled.
+- **`docs/cli.md`** — a user-facing reference for every command the binary
+  exposes, with flags, examples, exit codes, and which service subcommands need
+  elevation. Written from `internal/cli/`, not from the spec contract, which
+  remains a contract.
+- **`docs/INSTALL-linux.md` and `docs/INSTALL-macos.md`** — Windows was
+  previously the only platform with a real guide. The macOS guide states plainly
+  that the desktop bundle's auto-started daemon does **not** survive a reboot
+  unless the service is registered, which was previously a README blockquote.
+- **`docs/README.md`** — an index separating user-facing guides from maintainer
+  material.
+- **`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`.** `SECURITY.md`
+  states the threat model the project actually holds rather than a generic
+  posture: tasks run with the daemon's privileges, the Windows pipe admits
+  Authenticated Users, the Unix socket admits any local user who can traverse
+  the data directory, and release artifacts are unsigned.
+
+### Changed
+
+- **`README.md` rewritten** to the house Markdown style. A newcomer now reaches
+  a running task without opening a spec artifact; the feature list became prose;
+  the architecture section gained a diagram; "Project layout (target)" became the
+  actual layout; and command-level questions route to `docs/cli.md` rather than
+  into `specs/`.
+- **`TODO.md` rewritten** to reflect delivered state. Every checkbox was
+  unticked though the roadmap had shipped, and it still listed event triggers —
+  removed outright in 0.4.0 along with their store migration — as pending work,
+  which advertised a feature that does not exist.
+- **`build/windows/verify_wxs.ps1`** asserts the `PATH` element and each of its
+  attributes separately, so a partial edit (a per-user entry, or one that
+  survives uninstall) is reported for what it is rather than passing.
+
+### Decisions
+
+- **2026-07-23** — **The `PATH` entry is declared on the CLI's own installer
+  component** (`build/**`, pinned). MSI reference-counts by component, so binding
+  the entry to `gosched.exe` gives correct install, upgrade, and uninstall
+  behavior for free: written on install, replaced in place on a major upgrade,
+  removed when the CLI is removed. A custom action editing `PATH` by hand would
+  have to implement all three itself, and hand-rolled `PATH` editing is the
+  classic source of duplicated and truncated `PATH` values.
+
+  `System="yes"` matches the `perMachine` package scope; a per-user entry would
+  be written for whoever ran the installer and stay invisible to everyone else on
+  a machine that hosts a system-wide service. `Part="last"` appends, so an
+  existing same-named tool keeps winning — the conservative choice for an
+  installer running elevated. `Permanent="no"` is what removes it on uninstall.
+
+  The rejected alternative was to document the full-path invocation everywhere.
+  That is what the Windows guide did, and it is the reason the README and
+  `docs/test-scripts.md` disagreed with reality.
+
+- **2026-07-23** — **`docs/INSTALL-windows.md` now writes bare `gosched`
+  commands** (pinned). This is correct only *because* of the decision above, and
+  the two must move together. The guide keeps the full-path form, but demoted to
+  what it actually is: the fallback for a shell that was already open when the
+  installer ran, since the environment broadcast does not reach those. The
+  troubleshooting section names that case first, because it is the one report
+  this change will generate.
+
+- **2026-07-23** — **The status fix lives in this repository rather than
+  upstream.** The library helper responsible is shared with paths that
+  legitimately need start and stop rights, so a correct upstream fix is a larger
+  change than this defect needs — and a fork would sit on the critical path of
+  every future dependency upgrade. Only the status path is reimplemented; every
+  other action still goes through the library, and non-Windows platforms fall
+  through to it unchanged rather than being reimplemented.
+
+- **2026-07-23** — **The issue and PR templates are unpinned, and this was
+  checked rather than assumed.** The pinned list in `CLAUDE.md` names
+  `.github/workflows/**`, not `.github/**`, so `.github/ISSUE_TEMPLATE/**` and
+  `.github/PULL_REQUEST_TEMPLATE.md` need no decision entry. Recorded here
+  because the issue asked for the confirmation, and because "it lives under
+  `.github/`" is exactly the inference someone would otherwise make.
+
+### Known limitation
+
+The `PATH` fix **cannot be verified from a development machine**, which already
+has the install directory on `PATH` — precisely what hid the defect. Pre-release
+evidence is the WiX sanity check and a read of the generated element; the
+end-to-end check needs a clean machine and the released `.msi`. Issue #5 stays
+open until that check passes.
+
 ## [0.5.3] - 2026-07-23
 
 **`listeners` could present "the probe could not run" as "nothing is
@@ -550,7 +684,12 @@ that a pre-rebrand `goscheduler` data directory is no longer picked up — see
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/shruggietech/go-schedule/compare/v0.5.3...v0.6.0
+[0.5.3]: https://github.com/shruggietech/go-schedule/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/shruggietech/go-schedule/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/shruggietech/go-schedule/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/shruggietech/go-schedule/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/shruggietech/go-schedule/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/shruggietech/go-schedule/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/shruggietech/go-schedule/releases/tag/v0.3.0
