@@ -3,6 +3,8 @@ package schedule
 import (
 	"testing"
 	"time"
+
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // TestCronParity demonstrates SC-002: anything a typical cron expression can say
@@ -56,7 +58,7 @@ func TestCronParity(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Parse(%q): %v", c.human, err)
 			}
-			got, ok, err := NextRun(sch, "UTC", c.after)
+			got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, c.after)
 			if err != nil || !ok {
 				t.Fatalf("NextRun ok=%v err=%v", ok, err)
 			}

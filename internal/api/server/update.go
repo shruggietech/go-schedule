@@ -33,6 +33,10 @@ type TaskUpdateRequest struct {
 	At            *time.Time        `json:"at,omitempty"`
 	OverlapPolicy string            `json:"overlap_policy,omitempty"`
 	CatchupPolicy string            `json:"catchup_policy,omitempty"`
+	// MissingDatePolicy is independent of Schedule: replacing the phrase leaves
+	// the policy alone and vice versa, because the policy states the operator's
+	// intent for calendar anomalies rather than anything about the phrase.
+	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
 }
 
 func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +112,15 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		task.CatchupPolicy = c
+	}
+
+	if req.MissingDatePolicy != "" {
+		m := domain.MissingDatePolicy(req.MissingDatePolicy)
+		if !validMissingDate(m) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "missing_date_policy", "invalid policy")
+			return
+		}
+		task.MissingDatePolicy = m
 	}
 
 	// Optional schedule replacement.

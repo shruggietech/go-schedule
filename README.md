@@ -63,6 +63,20 @@ gets exactly one catch-up run and then resumes normally.
 **Control over collisions.** Overlap policy is per task: queue one pending run
 (the default), skip the new one, or allow them to run concurrently.
 
+**A calendar that admits what it cannot do.** A task on the 31st, on 29
+February, or on the fifth Friday will meet months that have no such date. Rather
+than firing seven months in twelve and saying nothing, each task states what it
+should do — skip the period, fall back to the last valid date, or roll into the
+next one — and the schedule describes itself accordingly.
+
+**Bring your crontab.** `gosched cron import` reads an existing crontab, shows
+you what every line means in plain language and when it would next run, and
+creates the tasks — with `--dry-run` to see the whole thing before anything
+changes. `gosched cron explain` translates a single expression, and `gosched
+cron export` gives your jobs back as cron. Anything that cannot be carried across
+faithfully is refused by name rather than approximated. Cron never becomes an
+input language: see [Cron interoperability](docs/cron.md) for the fidelity table.
+
 **Groups that nest.** Tasks live in groups, groups live in groups, and enabling
 or disabling one cascades through its whole subtree — one command to silence a
 region of the schedule.
@@ -223,4 +237,5 @@ Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE). © 2026 ShruggieTech.
+Licensed under the [Apache License 2.0](LICENSE).
+© 2026 [ShruggieTech](https://shruggie.tech).

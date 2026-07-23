@@ -17,7 +17,7 @@ func TestEvaluate_MissedRunTriggersCatchup(t *testing.T) {
 	last := time.Date(2026, 6, 19, 9, 0, 0, 0, time.UTC)  // last run at 09:00
 	now := time.Date(2026, 6, 19, 12, 30, 0, 0, time.UTC) // 3+ hours later (downtime)
 
-	dec, err := Evaluate(sch, "UTC", last, true, domain.CatchupOne, now)
+	dec, err := Evaluate(sch, "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestEvaluate_NoMissWhenNextIsFuture(t *testing.T) {
 	last := time.Date(2026, 6, 19, 9, 0, 0, 0, time.UTC)
 	now := time.Date(2026, 6, 19, 9, 30, 0, 0, time.UTC) // before the next (10:00)
 
-	dec, _ := Evaluate(sch, "UTC", last, true, domain.CatchupOne, now)
+	dec, _ := Evaluate(sch, "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
 	if dec.ShouldCatchUp {
 		t.Fatal("no catch-up expected when the next run is still in the future")
 	}
@@ -47,7 +47,7 @@ func TestEvaluate_PolicyNone(t *testing.T) {
 	last := time.Date(2026, 6, 19, 9, 0, 0, 0, time.UTC)
 	now := time.Date(2026, 6, 19, 15, 0, 0, 0, time.UTC) // many missed
 
-	dec, _ := Evaluate(sch, "UTC", last, true, domain.CatchupNone, now)
+	dec, _ := Evaluate(sch, "UTC", last, true, domain.CatchupNone, domain.MissingDateSkip, now)
 	if dec.ShouldCatchUp {
 		t.Fatal("policy 'none' must never catch up")
 	}
@@ -58,7 +58,7 @@ func TestEvaluate_NoPriorRun(t *testing.T) {
 	sch := hourly(anchor)
 	now := time.Date(2026, 6, 19, 15, 0, 0, 0, time.UTC)
 
-	dec, _ := Evaluate(sch, "UTC", time.Time{}, false, domain.CatchupOne, now)
+	dec, _ := Evaluate(sch, "UTC", time.Time{}, false, domain.CatchupOne, domain.MissingDateSkip, now)
 	if dec.ShouldCatchUp {
 		t.Fatal("a never-run task has nothing to catch up")
 	}

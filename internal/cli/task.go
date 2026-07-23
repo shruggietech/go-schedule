@@ -12,6 +12,11 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/server"
 )
 
+// missingDateUsage is shared by add and edit so the two cannot drift. The values
+// are underscored to match --overlap and --catchup rather than hyphenated to
+// match the flag name; consistency across the policy flags wins.
+const missingDateUsage = "what to do in a period with no matching date: skip|last_valid|next_valid"
+
 func newTaskCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "task", Short: "Create and manage tasks"}
 	cmd.AddCommand(taskAdd(), taskList(), taskShow(), taskEdit(), taskEnable(), taskDisable(), taskRm(), taskRunNow())
@@ -30,7 +35,7 @@ func groupIntent(cmd *cobra.Command, group string) *string {
 }
 
 func taskEdit() *cobra.Command {
-	var command, cwd, group, tz, sched, at, overlap, catchup string
+	var command, cwd, group, tz, sched, at, overlap, catchup, missingDate string
 	var args, env []string
 	cmd := &cobra.Command{
 		Use:   "edit <id>",
@@ -47,6 +52,7 @@ func taskEdit() *cobra.Command {
 			req := server.TaskUpdateRequest{
 				Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
+				MissingDatePolicy: missingDate,
 			}
 			req.GroupID = groupIntent(cmd, group)
 			if at != "" {
@@ -81,21 +87,23 @@ func taskEdit() *cobra.Command {
 	f.StringVar(&at, "at", "", "new one-off run time (RFC3339)")
 	f.StringVar(&overlap, "overlap", "", "overlap policy: queue_one|skip|allow_concurrent")
 	f.StringVar(&catchup, "catchup", "", "catch-up policy: one|none")
+	f.StringVar(&missingDate, "missing-date", "", missingDateUsage)
 	return cmd
 }
 
 func taskAdd() *cobra.Command {
 	var (
-		command string
-		args    []string
-		cwd     string
-		env     []string
-		group   string
-		tz      string
-		sched   string
-		at      string
-		overlap string
-		catchup string
+		command     string
+		args        []string
+		cwd         string
+		env         []string
+		group       string
+		tz          string
+		sched       string
+		at          string
+		overlap     string
+		catchup     string
+		missingDate string
 	)
 	cmd := &cobra.Command{
 		Use:   "add <name>",
@@ -115,6 +123,7 @@ func taskAdd() *cobra.Command {
 			req := server.TaskCreateRequest{
 				Name: a[0], Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				GroupID: group, Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
+				MissingDatePolicy: missingDate,
 			}
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
@@ -148,6 +157,7 @@ func taskAdd() *cobra.Command {
 	f.StringVar(&at, "at", "", "one-off run time (RFC3339)")
 	f.StringVar(&overlap, "overlap", "", "overlap policy: queue_one|skip|allow_concurrent")
 	f.StringVar(&catchup, "catchup", "", "catch-up policy: one|none")
+	f.StringVar(&missingDate, "missing-date", "", missingDateUsage)
 	return cmd
 }
 
@@ -195,8 +205,9 @@ func taskShow() *cobra.Command {
 				return printJSON(resp)
 			}
 			t := resp.Task
-			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\n",
-				t.ID, t.Name, t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "), resp.Schedule.HumanSummary)
+			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\noverlap: %s  catch-up: %s  missing dates: %s\n",
+				t.ID, t.Name, t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "),
+				resp.Schedule.HumanSummary, t.OverlapPolicy, t.CatchupPolicy, t.MissingDatePolicy)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},

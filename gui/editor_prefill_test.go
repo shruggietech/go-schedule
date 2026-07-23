@@ -185,3 +185,49 @@ func TestTasksTab_EditFetchesDetail(t *testing.T) {
 		t.Errorf("preview = %q, want it to report that the schedule could not be read", got)
 	}
 }
+
+// TestEditor_PrefillsAndSubmitsMissingDatePolicy is the GUI half of FR-022: the
+// setting must be visible where the operator already looks for execution
+// policies, prefilled from the task, and carried back on save. A selector that
+// displays correctly but submits the default would silently revert the
+// operator's choice on every unrelated edit.
+func TestEditor_PrefillsAndSubmitsMissingDatePolicy(t *testing.T) {
+	detail := recurringDetail("on the 31st of every month at 09:00")
+	detail.Task.MissingDatePolicy = domain.MissingDateLastValid
+
+	e, fb := newTestEditorDetail(t, detail)
+
+	if got, want := e.missingDate.Selected, missingDateLabel(domain.MissingDateLastValid); got != want {
+		t.Fatalf("prefilled selection = %q, want %q", got, want)
+	}
+
+	// Saving without touching the field keeps the task's policy. App.run
+	// dispatches the call on a goroutine, so the assertion waits for it rather
+	// than racing it.
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	if _, _, req := fb.lastUpdateCall(); req.MissingDatePolicy != string(domain.MissingDateLastValid) {
+		t.Errorf("submitted policy = %q, want last_valid", req.MissingDatePolicy)
+	}
+
+	// Changing it submits the new value.
+	e.missingDate.SetSelected(missingDateLabel(domain.MissingDateNextValid))
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 2 })
+	if _, _, req := fb.lastUpdateCall(); req.MissingDatePolicy != string(domain.MissingDateNextValid) {
+		t.Errorf("submitted policy after change = %q, want next_valid", req.MissingDatePolicy)
+	}
+}
+
+// TestEditor_NewTaskDefaultsMissingDatePolicy pins the create path's default.
+func TestEditor_NewTaskDefaultsMissingDatePolicy(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.name.SetText("new")
+	e.command.SetText("/bin/true")
+	e.schedule.SetText("every day at 09:00")
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, req := fb.lastCreateCall(); req.MissingDatePolicy != string(domain.MissingDateSkip) {
+		t.Errorf("new task policy = %q, want skip", req.MissingDatePolicy)
+	}
+}

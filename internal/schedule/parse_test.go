@@ -23,6 +23,16 @@ func TestParse_Forms(t *testing.T) {
 		{"every monday at 9am", []string{"FREQ=WEEKLY", "BYDAY=MO", "BYHOUR=9"}, "Every Monday at 09:00"},
 		{"3rd wednesday monthly at 14:00", []string{"FREQ=MONTHLY", "BYDAY=+3WE", "BYHOUR=14"}, "The 3rd Wednesday of every month at 14:00"},
 		{"last friday of the month", []string{"FREQ=MONTHLY", "BYDAY=-1FR"}, "The last Friday of every month"},
+		// By-date monthly and yearly forms (008-cron-interop). Without these,
+		// ordinary cron lines like "0 9 1 * *" have no target representation.
+		{"on the 15th of every month", []string{"FREQ=MONTHLY", "BYMONTHDAY=15"}, "The 15th of every month"},
+		{"the 31st monthly at 09:00", []string{"FREQ=MONTHLY", "BYMONTHDAY=31", "BYHOUR=9"}, "The 31st of every month at 09:00"},
+		{"on the 1st of each month at 6am", []string{"FREQ=MONTHLY", "BYMONTHDAY=1", "BYHOUR=6"}, "The 1st of every month at 06:00"},
+		{"on the 22nd of every month", []string{"FREQ=MONTHLY", "BYMONTHDAY=22"}, "The 22nd of every month"},
+		{"every year on february 29", []string{"FREQ=YEARLY", "BYMONTH=2", "BYMONTHDAY=29"}, "Every year on February 29"},
+		{"annually on 4 july at 12:00", []string{"FREQ=YEARLY", "BYMONTH=7", "BYMONTHDAY=4", "BYHOUR=12"}, "Every year on July 4 at 12:00"},
+		{"every 12 months", []string{"FREQ=MONTHLY", "INTERVAL=12"}, "Every 12 months"},
+		{"every year", []string{"FREQ=YEARLY", "INTERVAL=1"}, "Every year"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -43,7 +53,14 @@ func TestParse_Forms(t *testing.T) {
 }
 
 func TestParse_Rejects(t *testing.T) {
-	for _, bad := range []string{"", "soon", "every banana", "every 15 minutes at 09:00", "3rd wednesday monthly at 99:99"} {
+	for _, bad := range []string{
+		"", "soon", "every banana", "every 15 minutes at 09:00", "3rd wednesday monthly at 99:99",
+		// By-date and yearly forms reject impossible dates at the grammar level.
+		// A day that exists in *some* month (the 31st) is accepted here and left
+		// to the missing-date policy; a day that exists in *no* month is not.
+		"on the 32nd of every month", "on the 0th of every month",
+		"every year on february 30", "every year on smarch 3", "every year on april 31",
+	} {
 		if _, err := Parse(bad, "UTC", now); err == nil {
 			t.Fatalf("expected error for %q", bad)
 		}
@@ -127,5 +144,39 @@ func TestParse_RetainsExpression(t *testing.T) {
 	// One-offs carry no phrase: their time is recovered from RunAt.
 	if got := NewOneOff(now).Expression; got != "" {
 		t.Errorf("one-off Expression = %q, want empty", got)
+	}
+}
+
+// TestParse_NewFormsRoundTrip is FR-018 for the forms this feature adds: the
+// phrase the operator typed is retained verbatim, and re-parsing the retained
+// phrase yields the same rule. Without this, a client that offers the stored
+// phrase for editing would hand back something that no longer parses.
+func TestParse_NewFormsRoundTrip(t *testing.T) {
+	for _, phrase := range []string{
+		"on the 15th of every month at 09:00",
+		"the 31st monthly",
+		"every year on february 29 at 09:00",
+		"annually on 4 july",
+		"every 12 months",
+	} {
+		t.Run(phrase, func(t *testing.T) {
+			first, err := Parse(phrase, "UTC", now)
+			if err != nil {
+				t.Fatalf("Parse(%q): %v", phrase, err)
+			}
+			if first.Expression != phrase {
+				t.Fatalf("Expression = %q, want %q", first.Expression, phrase)
+			}
+			second, err := Parse(first.Expression, "UTC", now)
+			if err != nil {
+				t.Fatalf("re-parsing the retained phrase failed: %v", err)
+			}
+			if second.RRULE != first.RRULE {
+				t.Fatalf("round trip changed the rule: %q -> %q", first.RRULE, second.RRULE)
+			}
+			if second.HumanSummary != first.HumanSummary {
+				t.Fatalf("round trip changed the summary: %q -> %q", first.HumanSummary, second.HumanSummary)
+			}
+		})
 	}
 }

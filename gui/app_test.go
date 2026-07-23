@@ -68,9 +68,20 @@ func (f *fakeBackend) ListLogs(context.Context, string, int) ([]domain.LogRecord
 	return f.logs, nil
 }
 func (f *fakeBackend) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
+	// Under the same mutex as the updates, and for the same reason: App.run
+	// dispatches creates on a goroutine too.
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.created++
 	f.lastCreate = req
 	return server.TaskResponse{}, nil
+}
+
+// lastCreateCall returns the recorded create count and the most recent request.
+func (f *fakeBackend) lastCreateCall() (int, server.TaskCreateRequest) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.created, f.lastCreate
 }
 func (f *fakeBackend) GetTask(_ context.Context, id string) (server.TaskResponse, error) {
 	if f.getTaskErr != nil {

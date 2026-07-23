@@ -1,7 +1,7 @@
 # `gosched` command reference
 
 **Audience:** anyone using go-schedule from a terminal\
-**Applies to:** go-schedule 0.6.0 and later\
+**Applies to:** go-schedule 0.7.0 and later\
 **Source of truth:** `internal/cli/` — this document describes what the binary
 does. `specs/001-task-scheduler/contracts/cli.md` describes what it must do, and
 remains a specification artifact.
@@ -18,6 +18,7 @@ running whether or not either is open.
 - [Exit codes](#exit-codes)
 - [`health`](#health)
 - [`task`](#task)
+- [`cron`](#cron)
 - [`group`](#group)
 - [`runs`](#runs)
 - [`logs`](#logs)
@@ -96,6 +97,7 @@ required, along with `--command`.
 | `--at` | One-off run time, RFC 3339. |
 | `--overlap` | `queue_one` (default), `skip`, or `allow_concurrent`. |
 | `--catchup` | `one` (default) or `none`. |
+| `--missing-date` | `skip` (default), `last_valid`, or `next_valid`. |
 
 ```sh
 gosched task add nightly-backup \
@@ -132,6 +134,25 @@ outright; `allow_concurrent` lets them run side by side.
 single catch-up run after downtime and then resumes the normal schedule — so a
 task that missed forty runs fires once, not forty times. `none` skips the missed
 window entirely.
+
+**Missing-date policy** decides what happens in a period that has no matching
+date. It applies only to schedules that can actually miss one: the 29th, 30th or
+31st of a month, a yearly rule on 29 February, and the fifth of a weekday.
+Everything else ignores it entirely.
+
+`skip` is the default and is what cron does: `on the 31st of every month` runs in
+the seven months that have a 31st and not in the other five. `last_valid` falls
+back to the last date that does exist — the 30th, or the 28th in February.
+`next_valid` rolls forward into the following period, landing on the 1st, without
+displacing that period's own run.
+
+Whichever you choose, the schedule describes itself honestly. A rule that skips
+months says so rather than claiming "every month":
+
+```text
+schedule: The 31st of every month at 09:00, or the last day of the month when
+there is no such date
+```
 
 ### `task edit <id>`
 
@@ -182,6 +203,61 @@ Delete a task.
 
 Trigger an immediate run, outside the schedule. The scheduled runs are
 unaffected; this is the "does it actually work" button.
+
+## `cron`
+
+Convert to and from crontab format. Cron is an interchange format here, not an
+authoring syntax: these commands read and write it, and nothing else in the tool
+accepts it. `--schedule "0 9 * * 1-5"` is an error, by design.
+
+The full guide, including the table of what each direction can and cannot carry,
+is [Cron interoperability](cron.md). In brief:
+
+### `cron explain <expression>`
+
+Print the plain-language phrase an expression maps to, and its next run times.
+Creates nothing.
+
+```sh
+gosched cron explain "0 9 * * 1-5"
+```
+
+`--timezone` sets the zone the run times are shown in; `--count` how many to
+show. An expression that cannot be represented is reported by name and exits 0 —
+a refusal is an answer. A malformed expression exits 2 naming the field.
+
+### `cron import`
+
+Read a crontab and create a task per line.
+
+```sh
+gosched cron import --file /etc/crontab --dry-run
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--file` | Crontab to read, or `-` for standard input. **Required.** |
+| `--dry-run` | Produce the identical report and create nothing. |
+| `--timezone` | IANA zone for the created tasks. |
+| `--group` | Group ID to file them under. |
+| `--count` | Upcoming runs shown per line. Default 3. |
+
+Always run it with `--dry-run` first. The phrase the preview shows is the phrase
+the task is created with — there is no second conversion path — so a preview that
+reads correctly is an import that is correct.
+
+### `cron export`
+
+Emit the task set as crontab lines.
+
+```sh
+gosched cron export
+gosched cron export --task <id>
+```
+
+Every task appears exactly once: a crontab line where cron can carry the
+schedule, and a `# declined:` comment naming the task and the reason where it
+cannot. Nothing is approximated and nothing is omitted.
 
 ## `group`
 

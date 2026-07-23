@@ -63,6 +63,6 @@ func BenchmarkNextRun(b *testing.B) {
 	after := anchor
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = schedule.NextRun(sch, "America/New_York", after)
+		_, _, _ = schedule.NextRun(sch, "America/New_York", domain.MissingDateSkip, after)
 	}
 }

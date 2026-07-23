@@ -7,6 +7,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cron interoperability — `gosched cron import`, `explain`, and `export`
+  (closes #12).** Everyone who would adopt this project already has a crontab,
+  and until now the only way across was to read each line, hold it in your head,
+  and retype it. `cron import --file <path>` reads a crontab and creates a task
+  per line; `--dry-run` prints the identical report and creates nothing, which
+  is both the migration preview and the answer to "did it understand my
+  crontab?". `cron explain "0 9 * * 1-5"` translates one expression with no side
+  effects. `cron export` gives the task set back as crontab lines.
+
+  The conversion never approximates. Everything it will not carry is refused by
+  name — `@reboot`, six-field Quartz expressions, `L`/`W`/`#`, a step that does
+  not divide its range (`*/7` restarts at :00, which a fixed interval cannot
+  reproduce), and an expression restricting both day-of-month and day-of-week
+  (cron means "either"; the recurrence model means "both"). `MAILTO` and shell
+  variable assignments are reported as warnings rather than dropped. The import
+  summary states the fidelity facts outright: cron carries no timezone, no
+  catch-up, no overlap policy and no restart recovery, so it names which zone was
+  applied and which defaults the imported tasks received.
+
+  Cron remains an interchange format and never becomes an authoring syntax:
+  `--schedule "0 9 * * 1-5"` is still an error and no GUI field accepts an
+  expression. `docs/cron.md` carries the full fidelity table in both directions.
+
+- **Schedules addressed by calendar date and by year.** `on the 15th of every
+  month`, `the 31st monthly at 09:00`, `every year on february 29`, `annually on
+  4 july`, `every 12 months`. Without these, ordinary cron lines like
+  `0 9 1 * *` had no target representation at all, so cron import could not have
+  been complete.
+
+- **A per-task missing-date policy (closes the calendar half of #8).** A rule on
+  the 31st, on 29 February, or on the fifth Friday meets periods that have no
+  such date. Until now the behavior was an implicit rule the task owner could not
+  see, state, or change — and the stored summary lied about it: "The 5th Friday
+  of every month" for a rule that fires four times a year. Each task now states
+  its intent: `skip` (the default, and exactly what every existing task already
+  did), `last_valid` (Feb 29 → Feb 28, the 31st → the 30th, a missing fifth
+  Friday → the last Friday), or `next_valid` (roll into the next period without
+  displacing that period's own run). Settable from `gosched task add|edit
+  --missing-date`, shown by `task show`, and present in the GUI editor's Advanced
+  Settings.
+
+  Schedule descriptions now name the policy instead of asserting "every month"
+  for a rule that skips months. The description is rendered when a task is read
+  rather than stored, because the policy can change without the phrase changing —
+  a stored sentence would go stale the moment an operator switched it.
+
+  Deliberately still open on #8: DST anchoring (wall-clock versus elapsed-time
+  versus UTC) and per-task skipped-hour/repeated-hour resolution.
+
+- **The ShruggieTech attribution in the README footer is now a link** (closes
+  #9). It was the only proper noun in a document that links every other one.
+
+### Changed
+
+- **Store migration v5** adds `tasks.missing_date_policy`, additive with a total
+  default of `skip`. Forward-only and non-destructive: no existing column, row,
+  or value is read or rewritten, and `skip` is the behavior every pre-v5 task
+  already had, so no installed task's run times move. Pinned by
+  `internal/store/migration_v5_test.go`, which asserts a v4-era database upgrades
+  with every task row otherwise byte-identical and the schedules table untouched.
+
+- **`schedule.NextRun` and `schedule.UpcomingRuns` take the missing-date
+  policy.** Six call sites across the engine, catch-up, and API packages pass it
+  through; all already held the task.
+
+### Decisions
+
+- **2026-07-23** — **The missing-date policy lives on the task, not the
+  schedule.** Storing it on the schedule row looked cheaper: `NextRun` already
+  receives the schedule, so no signature would have changed. Reading
+  `internal/api/server/update.go` settled it against that. An edit supplying a
+  new schedule phrase *creates a new schedule row* and repoints the task at it,
+  so a policy stored there would be silently reset to the default by any phrase
+  edit unless a carry-over were remembered at that one site. That is a silent
+  change to run times — the class of defect issue #4 already produced in the task
+  editor — and correctness that depends on remembering to copy a field is not
+  correctness. The cost is a parameter added to two functions at six
+  compile-checked call sites, which is the cheaper half of the trade.
+
+- **2026-07-23** — **The cron parser is written in-tree rather than taken as a
+  dependency.** The constitution's Engineering Constraints prefer the standard
+  library where it suffices and require every dependency to be justified. A cron
+  library (`robfig/cron`, `adhocore/gronx`) parses an expression into a compiled
+  schedule, which is the opposite of what this feature needs: the work is
+  inspecting *field structure* to decide what cannot be represented. Such a
+  library accepts `*/7` and hands back a working schedule, when the honest answer
+  is a refusal — so we would parse twice, and the second parse would be the one
+  that mattered. The grammar is about 120 lines and fully covered by table tests.
+  No new dependency was added.
+
+- **2026-07-23** — **A cron expression becomes a schedule only by way of the
+  human phrase.** The converter renders the phrase a user would have typed and
+  hands it to the existing grammar; an expression with no phrase is refused. This
+  is what makes the import preview trustworthy rather than advisory — the string
+  shown is literally the string parsed and stored — and it keeps "cron is not an
+  authoring syntax" structural rather than a matter of discipline, since the
+  converter has no route into the engine that an operator does not also have. The
+  cost is real and accepted: cron can express schedules the phrase grammar
+  cannot (arbitrary by-minute lists), and those are refused rather than given a
+  privileged back door into a task nobody could subsequently edit.
+
 ### Changed
 
 - **`TODO.md` removed; the roadmap is now the GitHub issue tracker.** The file

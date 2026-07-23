@@ -163,6 +163,22 @@ DROP TABLE IF EXISTS triggers;
 ALTER TABLE schedules ADD COLUMN expression TEXT NOT NULL DEFAULT '';
 `,
 	},
+	{
+		// v5: record what a task does in a period that has no matching date (a
+		// non-leap February for a rule on the 29th, a 30-day month for a rule on
+		// the 31st). Additive with a total default: no existing column, row, or
+		// value is read or rewritten, so no stored timing moves. 'skip' is the
+		// behavior every pre-v5 task already had, so the upgrade cannot change
+		// any task's run times.
+		//
+		// On the task rather than the schedule deliberately: replacing a task's
+		// schedule writes a new schedules row, so a policy stored there would be
+		// silently reset by an unrelated phrase edit.
+		version: 5,
+		stmts: `
+ALTER TABLE tasks ADD COLUMN missing_date_policy TEXT NOT NULL DEFAULT 'skip';
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

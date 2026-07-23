@@ -29,9 +29,20 @@ var catchupChoices = []policyChoice[domain.CatchupPolicy]{
 	{"Skip missed runs", domain.CatchupNone},
 }
 
+// missingDateChoices covers what a schedule does in a period with no matching
+// date — February for a rule on the 29th, a 30-day month for a rule on the 31st.
+// The labels name the outcome rather than the stored value, because "last_valid"
+// tells an operator nothing about what their task will do.
+var missingDateChoices = []policyChoice[domain.MissingDatePolicy]{
+	{"Skip that period", domain.MissingDateSkip},
+	{"Use the last valid date", domain.MissingDateLastValid},
+	{"Roll into the next period", domain.MissingDateNextValid},
+}
+
 // overlapLabels / catchupLabels are the ordered display strings for the selects.
-func overlapLabels() []string { return labelsOf(overlapChoices) }
-func catchupLabels() []string { return labelsOf(catchupChoices) }
+func overlapLabels() []string     { return labelsOf(overlapChoices) }
+func catchupLabels() []string     { return labelsOf(catchupChoices) }
+func missingDateLabels() []string { return labelsOf(missingDateChoices) }
 
 func labelsOf[T ~string](cs []policyChoice[T]) []string {
 	out := make([]string, len(cs))
@@ -62,6 +73,15 @@ func catchupValue(label string) domain.CatchupPolicy {
 	return catchupChoices[0].value
 }
 
+func missingDateValue(label string) domain.MissingDatePolicy {
+	for _, c := range missingDateChoices {
+		if c.label == label {
+			return c.value
+		}
+	}
+	return missingDateChoices[0].value
+}
+
 // overlapLabel maps a stored value back to its display label (default label for
 // unknown values).
 func overlapLabel(v domain.OverlapPolicy) string {
@@ -80,6 +100,15 @@ func catchupLabel(v domain.CatchupPolicy) string {
 		}
 	}
 	return catchupChoices[0].label
+}
+
+func missingDateLabel(v domain.MissingDatePolicy) string {
+	for _, c := range missingDateChoices {
+		if c.value == v {
+			return c.label
+		}
+	}
+	return missingDateChoices[0].label
 }
 
 // --- group choices -------------------------------------------------------

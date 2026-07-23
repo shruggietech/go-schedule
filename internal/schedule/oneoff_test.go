@@ -30,7 +30,7 @@ func TestOneOff_PastDetection(t *testing.T) {
 	schedNow := time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC)
 	sch := NewOneOff(atPast)
 
-	_, ok, err := NextRun(sch, "UTC", schedNow)
+	_, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, schedNow)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestOneOff_PastDetection(t *testing.T) {
 func TestOneOff_CompletedHasNoNext(t *testing.T) {
 	at := time.Date(2026, 8, 4, 9, 0, 0, 0, time.UTC)
 	sch := domain.Schedule{Kind: domain.ScheduleOneOff, RunAt: &at}
-	if _, ok, _ := NextRun(sch, "UTC", at.Add(time.Second)); ok {
+	if _, ok, _ := NextRun(sch, "UTC", domain.MissingDateSkip, at.Add(time.Second)); ok {
 		t.Fatal("one-off after its instant must not produce a next run")
 	}
 }

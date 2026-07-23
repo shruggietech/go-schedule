@@ -13,7 +13,7 @@ func TestNextRun_Interval(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := time.Date(2026, 6, 19, 8, 7, 0, 0, time.UTC)
-	got, ok, err := NextRun(sch, "UTC", after)
+	got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, after)
 	if err != nil || !ok {
 		t.Fatalf("NextRun: ok=%v err=%v", ok, err)
 	}
@@ -31,7 +31,7 @@ func TestNextRun_IntervalAnchored(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := time.Date(2026, 6, 19, 9, 7, 0, 0, time.UTC)
-	got, ok, err := NextRun(sch, "UTC", after)
+	got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, after)
 	if err != nil || !ok {
 		t.Fatalf("NextRun: ok=%v err=%v", ok, err)
 	}
@@ -47,7 +47,7 @@ func TestNextRun_IntervalUnanchoredUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := time.Date(2026, 6, 19, 8, 7, 0, 0, time.UTC)
-	got, ok, err := NextRun(sch, "UTC", after)
+	got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, after)
 	if err != nil || !ok {
 		t.Fatalf("NextRun: ok=%v err=%v", ok, err)
 	}
@@ -63,7 +63,7 @@ func TestNextRun_OrdinalWeekday(t *testing.T) {
 		t.Fatal(err)
 	}
 	after := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
-	got, ok, err := NextRun(sch, "America/New_York", after)
+	got, ok, err := NextRun(sch, "America/New_York", domain.MissingDateSkip, after)
 	if err != nil || !ok {
 		t.Fatalf("NextRun: ok=%v err=%v", ok, err)
 	}
@@ -80,7 +80,7 @@ func TestNextRun_Weekdays(t *testing.T) {
 		t.Fatal(err)
 	}
 	sat := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
-	got, ok, err := NextRun(sch, "UTC", sat)
+	got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, sat)
 	if err != nil || !ok {
 		t.Fatalf("NextRun: ok=%v err=%v", ok, err)
 	}
@@ -91,7 +91,7 @@ func TestNextRun_Weekdays(t *testing.T) {
 
 func TestUpcomingRuns(t *testing.T) {
 	sch, _ := Parse("every day at 09:00", "UTC", time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC))
-	runs, err := UpcomingRuns(sch, "UTC", time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC), 3)
+	runs, err := UpcomingRuns(sch, "UTC", domain.MissingDateSkip, time.Date(2026, 6, 19, 0, 0, 0, 0, time.UTC), 3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,12 +112,12 @@ func TestNextRun_OneOff(t *testing.T) {
 		t.Fatalf("kind = %v", sch.Kind)
 	}
 	// Before the time → returns it.
-	got, ok, err := NextRun(sch, "UTC", time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC))
+	got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil || !ok || !got.Equal(at) {
 		t.Fatalf("one-off next: got=%v ok=%v err=%v", got, ok, err)
 	}
 	// After the time → no further run (one-off does not recur).
-	_, ok, _ = NextRun(sch, "UTC", time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC))
+	_, ok, _ = NextRun(sch, "UTC", domain.MissingDateSkip, time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC))
 	if ok {
 		t.Fatal("one-off should not recur after its run time")
 	}

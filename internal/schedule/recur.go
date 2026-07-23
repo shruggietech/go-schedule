@@ -27,7 +27,11 @@ func NewOneOff(runAt time.Time) domain.Schedule {
 // NextRun returns the next run instant (UTC) strictly after `after` for the
 // schedule evaluated in timezone tzName. The bool is false when there is no
 // further run (exhausted one-off, or event schedule with no time component).
-func NextRun(sch domain.Schedule, tzName string, after time.Time) (time.Time, bool, error) {
+//
+// policy decides what a date-bearing recurrence does in a period that has no
+// matching date; it is inert for every other schedule shape. Pass
+// domain.MissingDateSkip (or the zero value) for the historical behavior.
+func NextRun(sch domain.Schedule, tzName string, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool, error) {
 	switch sch.Kind {
 	case domain.ScheduleOneOff:
 		if sch.RunAt == nil {
@@ -40,13 +44,13 @@ func NextRun(sch domain.Schedule, tzName string, after time.Time) (time.Time, bo
 	case domain.ScheduleEvent:
 		return time.Time{}, false, nil
 	case domain.ScheduleRecurring:
-		return nextRecurring(sch, tzName, after)
+		return nextRecurring(sch, tzName, policy, after)
 	default:
 		return time.Time{}, false, fmt.Errorf("schedule: unknown kind %q", sch.Kind)
 	}
 }
 
-func nextRecurring(sch domain.Schedule, tzName string, after time.Time) (time.Time, bool, error) {
+func nextRecurring(sch domain.Schedule, tzName string, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool, error) {
 	loc, err := timezone.Resolve(tzName)
 	if err != nil {
 		return time.Time{}, false, err
@@ -60,6 +64,26 @@ func nextRecurring(sch domain.Schedule, tzName string, after time.Time) (time.Ti
 		anchor = *sch.Anchor
 	}
 	opt.Dtstart = anchor.In(loc)
+
+	// A date-bearing rule under a non-skip policy is resolved by walking periods
+	// rather than by asking rrule-go, because rrule-go's answer is precisely the
+	// "skip" answer: it omits periods that have no matching date. The walk
+	// returns a wall-clock occurrence in loc, which then takes the same DST
+	// normalization below as any other day-or-coarser occurrence.
+	// The policy comparison comes first so the default path does no extra work
+	// at all: it is a string comparison against a constant, and everything below
+	// it — including inspecting the rule for a date intent — is skipped entirely
+	// for the schedules that make up the overwhelming majority of the hot path.
+	if policy != "" && policy != domain.MissingDateSkip {
+		if intent, ok := dateIntent(opt); ok {
+			occ, ok := resolveMissingDate(intent, opt, loc, policy, after.In(loc))
+			if !ok {
+				return time.Time{}, false, nil
+			}
+			norm := timezone.WallTime(loc, occ.Year(), occ.Month(), occ.Day(), occ.Hour(), occ.Minute(), occ.Second())
+			return norm.UTC(), true, nil
+		}
+	}
 
 	r, err := rrule.NewRRule(*opt)
 	if err != nil {
@@ -82,11 +106,11 @@ func nextRecurring(sch domain.Schedule, tzName string, after time.Time) (time.Ti
 }
 
 // UpcomingRuns returns up to n future run instants (UTC) after `after`.
-func UpcomingRuns(sch domain.Schedule, tzName string, after time.Time, n int) ([]time.Time, error) {
+func UpcomingRuns(sch domain.Schedule, tzName string, policy domain.MissingDatePolicy, after time.Time, n int) ([]time.Time, error) {
 	var out []time.Time
 	cursor := after
 	for i := 0; i < n; i++ {
-		next, ok, err := NextRun(sch, tzName, cursor)
+		next, ok, err := NextRun(sch, tzName, policy, cursor)
 		if err != nil {
 			return nil, err
 		}

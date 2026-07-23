@@ -216,11 +216,12 @@ func (s *Store) CreateTask(t *domain.Task) error {
 	argsJSON, _ := json.Marshal(t.Args)
 	envJSON, _ := json.Marshal(t.Env)
 	_, err := s.db.Exec(
-		`INSERT INTO tasks(id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO tasks(id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,state,created_at,updated_at)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		t.ID, t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON),
 		t.RunAs, boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy),
-		string(t.CatchupPolicy), string(t.State), fmtTime(t.CreatedAt), fmtTime(t.UpdatedAt),
+		string(t.CatchupPolicy), string(missingDateOrDefault(t.MissingDatePolicy)),
+		string(t.State), fmtTime(t.CreatedAt), fmtTime(t.UpdatedAt),
 	)
 	if err != nil {
 		return fmt.Errorf("store: create task: %w", err)
@@ -235,10 +236,10 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 	envJSON, _ := json.Marshal(t.Env)
 	res, err := s.db.Exec(
 		`UPDATE tasks SET name=?,group_id=?,command=?,args_json=?,working_dir=?,env_json=?,run_as=?,
-		 enabled=?,timezone=?,schedule_id=?,overlap_policy=?,catchup_policy=?,state=?,updated_at=? WHERE id=?`,
+		 enabled=?,timezone=?,schedule_id=?,overlap_policy=?,catchup_policy=?,missing_date_policy=?,state=?,updated_at=? WHERE id=?`,
 		t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON), t.RunAs,
 		boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy), string(t.CatchupPolicy),
-		string(t.State), fmtTime(t.UpdatedAt), t.ID,
+		string(missingDateOrDefault(t.MissingDatePolicy)), string(t.State), fmtTime(t.UpdatedAt), t.ID,
 	)
 	return affected(res, err, "update task")
 }
@@ -299,16 +300,27 @@ func (s *Store) DeleteTask(id string) error {
 	return affected(res, err, "delete task")
 }
 
-const taskSelect = `SELECT id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at FROM tasks`
+const taskSelect = `SELECT id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,state,created_at,updated_at FROM tasks`
+
+// missingDateOrDefault normalizes an unset policy to the default. An empty value
+// reaches here from a caller that never set the field; it must read as "skip"
+// rather than as an empty string, since an empty string would compare unequal to
+// every known policy and silently take no branch.
+func missingDateOrDefault(p domain.MissingDatePolicy) domain.MissingDatePolicy {
+	if p == "" {
+		return domain.MissingDateSkip
+	}
+	return p
+}
 
 func scanTask(sc scanner) (domain.Task, error) {
 	var t domain.Task
 	var group sql.NullString
 	var argsJSON, envJSON string
 	var enabled int
-	var overlap, catchup, state, created, updated string
+	var overlap, catchup, missingDate, state, created, updated string
 	if err := sc.Scan(&t.ID, &t.Name, &group, &t.Command, &argsJSON, &t.WorkingDir, &envJSON, &t.RunAs,
-		&enabled, &t.Timezone, &t.ScheduleID, &overlap, &catchup, &state, &created, &updated); err != nil {
+		&enabled, &t.Timezone, &t.ScheduleID, &overlap, &catchup, &missingDate, &state, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Task{}, ErrNotFound
 		}
@@ -320,6 +332,7 @@ func scanTask(sc scanner) (domain.Task, error) {
 	t.Enabled = enabled != 0
 	t.OverlapPolicy = domain.OverlapPolicy(overlap)
 	t.CatchupPolicy = domain.CatchupPolicy(catchup)
+	t.MissingDatePolicy = missingDateOrDefault(domain.MissingDatePolicy(missingDate))
 	t.State = domain.TaskState(state)
 	t.CreatedAt, _ = parseTime(created)
 	t.UpdatedAt, _ = parseTime(updated)

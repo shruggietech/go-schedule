@@ -66,8 +66,9 @@ type taskEditor struct {
 	helpVisible    bool
 
 	// Advanced
-	overlap *widget.Select
-	catchup *widget.Select
+	overlap     *widget.Select
+	catchup     *widget.Select
+	missingDate *widget.Select
 
 	save          *cursorButton
 	cancelHandler func() // dismisses the dialog; nil in tests
@@ -84,6 +85,7 @@ type editorSnapshot struct {
 	schedule, startAt             string
 	oneOffDate, oneOffTime        string
 	overlap, catchup, group       string
+	missingDate                   string
 }
 
 const (
@@ -157,6 +159,8 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	e.overlap.SetSelected(overlapLabel(domain.OverlapQueueOne))
 	e.catchup = widget.NewSelect(catchupLabels(), nil)
 	e.catchup.SetSelected(catchupLabel(domain.CatchupOne))
+	e.missingDate = widget.NewSelect(missingDateLabels(), nil)
+	e.missingDate.SetSelected(missingDateLabel(domain.MissingDateSkip))
 
 	e.save = newCursorButton("Save", theme.ConfirmIcon(), widget.HighImportance, nil)
 
@@ -192,6 +196,9 @@ func (e *taskEditor) build() *fyne.Container {
 		widget.NewFormItem("Overlap", e.overlap),
 		widget.NewFormItem("Catch-up", e.catchup),
 	)
+	missingDateItem := widget.NewFormItem("Missing dates", e.missingDate)
+	missingDateItem.HintText = "When the month has no such date (Feb 30th, a 5th Friday)"
+	advForm.AppendItem(missingDateItem)
 	advanced := newCollapsible("Advanced Settings", advForm)
 
 	left := container.NewVScroll(container.NewVBox(
@@ -259,7 +266,8 @@ func (e *taskEditor) snapshot() editorSnapshot {
 		mode: e.mode.Selected, schedule: e.schedule.Text, startAt: e.startAt.Text,
 		oneOffDate: e.oneOffDate.Text, oneOffTime: e.oneOffTime.Text,
 		overlap: e.overlap.Selected, catchup: e.catchup.Selected,
-		group: e.group.Selected,
+		missingDate: e.missingDate.Selected,
+		group:       e.group.Selected,
 	}
 }
 
@@ -373,6 +381,7 @@ func (e *taskEditor) prefill() {
 	}
 	e.overlap.SetSelected(overlapLabel(t.OverlapPolicy))
 	e.catchup.SetSelected(catchupLabel(t.CatchupPolicy))
+	e.missingDate.SetSelected(missingDateLabel(t.MissingDatePolicy))
 	e.group.SetSelected(groupLabelForID(t.GroupID, e.groups))
 	e.prefillSchedule()
 }
@@ -578,8 +587,9 @@ func (e *taskEditor) buildForm() taskForm {
 	f := taskForm{
 		name: e.name.Text, command: e.command.Text, args: splitArgs(e.args.Text),
 		tz: e.tzName(), mode: e.mode.Selected, schedule: e.effectiveSchedule(),
-		overlap: string(overlapValue(e.overlap.Selected)),
-		catchup: string(catchupValue(e.catchup.Selected)),
+		overlap:     string(overlapValue(e.overlap.Selected)),
+		catchup:     string(catchupValue(e.catchup.Selected)),
+		missingDate: string(missingDateValue(e.missingDate.Selected)),
 	}
 	if e.mode.Selected == modeOneOff {
 		if t, err := e.oneOffInstant(); err == nil {
@@ -740,6 +750,7 @@ _Skip this run_, or _Allow concurrent runs_.
 // taskForm carries the submitted values from the editor to submitTask.
 type taskForm struct {
 	name, command, tz, mode, schedule, at, overlap, catchup string
+	missingDate                                             string
 	args                                                    []string
 	// groupID carries the three-way membership intent: nil leaves it unchanged,
 	// a pointer to "" removes the task from its group, and a pointer to an id
@@ -763,6 +774,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 			req := server.TaskCreateRequest{
 				Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
 				OverlapPolicy: f.overlap, CatchupPolicy: f.catchup,
+				MissingDatePolicy: f.missingDate,
 			}
 			if f.groupID != nil {
 				req.GroupID = *f.groupID
@@ -778,6 +790,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 		req := server.TaskUpdateRequest{
 			Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
 			OverlapPolicy: f.overlap, CatchupPolicy: f.catchup, GroupID: f.groupID,
+			MissingDatePolicy: f.missingDate,
 		}
 		if atPtr != nil {
 			req.At = atPtr

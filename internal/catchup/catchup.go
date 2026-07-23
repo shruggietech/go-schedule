@@ -24,11 +24,11 @@ type Decision struct {
 // no-catch-up when the policy is not "one", when the task has no prior run
 // (nothing to be "behind" on), or when the next scheduled occurrence after the
 // last run is still in the future.
-func Evaluate(sch domain.Schedule, tzName string, lastScheduled time.Time, hasPrior bool, policy domain.CatchupPolicy, now time.Time) (Decision, error) {
+func Evaluate(sch domain.Schedule, tzName string, lastScheduled time.Time, hasPrior bool, policy domain.CatchupPolicy, missingDate domain.MissingDatePolicy, now time.Time) (Decision, error) {
 	if policy != domain.CatchupOne || !hasPrior {
 		return Decision{}, nil
 	}
-	next, ok, err := schedule.NextRun(sch, tzName, lastScheduled)
+	next, ok, err := schedule.NextRun(sch, tzName, missingDate, lastScheduled)
 	if err != nil {
 		return Decision{}, err
 	}

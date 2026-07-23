@@ -45,6 +45,12 @@ func Parse(input, tzName string, now time.Time) (domain.Schedule, error) {
 	if sch, ok, err := parseOrdinal(s); ok || err != nil {
 		return finish(sch, tzName, now, nil, expr, err)
 	}
+	if sch, ok, err := parseByDate(s); ok || err != nil {
+		return finish(sch, tzName, now, nil, expr, err)
+	}
+	if sch, ok, err := parseYearly(s); ok || err != nil {
+		return finish(sch, tzName, now, nil, expr, err)
+	}
 	if sch, ok, err := parseDayset(s); ok || err != nil {
 		return finish(sch, tzName, now, nil, expr, err)
 	}
@@ -86,11 +92,33 @@ func finish(sch domain.Schedule, tzName string, now time.Time, anchor *anchorTOD
 }
 
 var (
-	reInterval = regexp.MustCompile(`^every\s+(?:(\d+)\s*)?(second|seconds|sec|secs|s|minute|minutes|min|mins|m|hour|hours|hr|hrs|h|day|days|d|week|weeks|w)(?:\s+(at|starting\s+at|from)\s+(.+))?$`)
+	reInterval = regexp.MustCompile(`^every\s+(?:(\d+)\s*)?(second|seconds|sec|secs|s|minute|minutes|min|mins|m|hour|hours|hr|hrs|h|day|days|d|week|weeks|w|month|months|mo|year|years|yr|yrs|y)(?:\s+(at|starting\s+at|from)\s+(.+))?$`)
 	reDayset   = regexp.MustCompile(`^(weekdays|weekends)(?:\s+at\s+(.+))?$`)
 	reEveryDay = regexp.MustCompile(`^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+at\s+(.+))?$`)
 	reOrdinal  = regexp.MustCompile(`^(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:of\s+(?:the|each|every)\s+month|monthly)(?:\s+at\s+(.+))?$`)
+	// By-date monthly: "on the 15th of every month", "the 31st monthly".
+	reByDate = regexp.MustCompile(`^(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\s+(?:of\s+(?:the|each|every)\s+month|monthly)(?:\s+at\s+(.+))?$`)
+	// Yearly by date: "every year on february 29", "annually on 29 february".
+	reYearly = regexp.MustCompile(`^(?:every\s+year|annually|yearly)\s+on\s+(?:([a-z]+)\s+(\d{1,2})|(\d{1,2})\s+([a-z]+))(?:\s+at\s+(.+))?$`)
 )
+
+// monthNumber maps a month name or three-letter abbreviation to its number.
+var monthNumber = map[string]int{
+	"january": 1, "jan": 1, "february": 2, "feb": 2, "march": 3, "mar": 3,
+	"april": 4, "apr": 4, "may": 5, "june": 6, "jun": 6, "july": 7, "jul": 7,
+	"august": 8, "aug": 8, "september": 9, "sep": 9, "sept": 9, "october": 10, "oct": 10,
+	"november": 11, "nov": 11, "december": 12, "dec": 12,
+}
+
+var monthTitle = [...]string{
+	"", "January", "February", "March", "April", "May", "June",
+	"July", "August", "September", "October", "November", "December",
+}
+
+// daysInMonth is the greatest valid day for each month, taking February as 29 so
+// a leap-day rule is expressible. Whether it fires in a common year is the
+// missing-date policy's business, not the grammar's.
+var daysInMonth = [...]int{0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
 
 var weekdayCode = map[string]string{
 	"monday": "MO", "tuesday": "TU", "wednesday": "WE", "thursday": "TH",
@@ -232,6 +260,65 @@ func parseOrdinal(s string) (domain.Schedule, bool, error) {
 	return domain.Schedule{RRULE: strings.Join(parts, ";"), HumanSummary: label}, true, nil
 }
 
+// parseByDate handles a monthly rule addressed by calendar date, e.g. "on the
+// 15th of every month at 09:00". A day of 29–31 is accepted: whether it fires in
+// a month that has no such date is the task's missing-date policy to decide, and
+// the summary says which way that falls.
+func parseByDate(s string) (domain.Schedule, bool, error) {
+	m := reByDate.FindStringSubmatch(s)
+	if m == nil {
+		return domain.Schedule{}, false, nil
+	}
+	day, err := strconv.Atoi(m[1])
+	if err != nil || day < 1 || day > 31 {
+		return domain.Schedule{}, true, fmt.Errorf("schedule: day of month must be between 1 and 31, got %q", m[1])
+	}
+	parts := []string{"FREQ=MONTHLY", "BYMONTHDAY=" + strconv.Itoa(day)}
+	label := fmt.Sprintf("The %s of every month", ordinalWord(day))
+	h, mi, withTime, terr := maybeTime(strings.TrimSpace(m[2]))
+	if terr != nil {
+		return domain.Schedule{}, true, terr
+	}
+	if withTime {
+		parts = append(parts, byTime(h, mi)...)
+		label += " at " + clock(h, mi)
+	}
+	return domain.Schedule{RRULE: strings.Join(parts, ";"), HumanSummary: label}, true, nil
+}
+
+// parseYearly handles a rule addressed by month and date once a year, e.g.
+// "every year on february 29 at 09:00". Both orderings of month and day are
+// accepted because both read naturally and neither is ambiguous.
+func parseYearly(s string) (domain.Schedule, bool, error) {
+	m := reYearly.FindStringSubmatch(s)
+	if m == nil {
+		return domain.Schedule{}, false, nil
+	}
+	name, dayStr := m[1], m[2]
+	if name == "" {
+		name, dayStr = m[4], m[3]
+	}
+	month, ok := monthNumber[name]
+	if !ok {
+		return domain.Schedule{}, true, fmt.Errorf("schedule: %q is not a month name", name)
+	}
+	day, err := strconv.Atoi(dayStr)
+	if err != nil || day < 1 || day > daysInMonth[month] {
+		return domain.Schedule{}, true, fmt.Errorf("schedule: %s has no day %s", monthTitle[month], dayStr)
+	}
+	parts := []string{"FREQ=YEARLY", "BYMONTH=" + strconv.Itoa(month), "BYMONTHDAY=" + strconv.Itoa(day)}
+	label := fmt.Sprintf("Every year on %s %d", monthTitle[month], day)
+	h, mi, withTime, terr := maybeTime(strings.TrimSpace(m[5]))
+	if terr != nil {
+		return domain.Schedule{}, true, terr
+	}
+	if withTime {
+		parts = append(parts, byTime(h, mi)...)
+		label += " at " + clock(h, mi)
+	}
+	return domain.Schedule{RRULE: strings.Join(parts, ";"), HumanSummary: label}, true, nil
+}
+
 // ---- helpers ------------------------------------------------------------
 
 func unitToFreq(u string) (freq, name string, subDaily bool) {
@@ -246,6 +333,10 @@ func unitToFreq(u string) (freq, name string, subDaily bool) {
 		return "DAILY", "day", false
 	case "week", "weeks", "w":
 		return "WEEKLY", "week", false
+	case "month", "months", "mo":
+		return "MONTHLY", "month", false
+	case "year", "years", "yr", "yrs", "y":
+		return "YEARLY", "year", false
 	}
 	return "", "", false
 }
@@ -304,20 +395,23 @@ func plural(n int, unit string) string {
 
 func clock(h, mi int) string { return fmt.Sprintf("%02d:%02d", h, mi) }
 
+// ordinalWord renders an ordinal in English. The by-date monthly form reaches
+// days up to 31, so the suffix is computed rather than tabulated: 21st and 31st
+// take "st" while 11th, 12th and 13th take "th" despite their final digit.
 func ordinalWord(n int) string {
-	switch n {
-	case 1:
-		return "1st"
-	case 2:
-		return "2nd"
-	case 3:
-		return "3rd"
-	case 4:
-		return "4th"
-	case 5:
-		return "5th"
-	case -1:
+	if n == -1 {
 		return "last"
 	}
-	return strconv.Itoa(n) + "th"
+	suffix := "th"
+	if n%100 < 11 || n%100 > 13 {
+		switch n % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		case 3:
+			suffix = "rd"
+		}
+	}
+	return strconv.Itoa(n) + suffix
 }

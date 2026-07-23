@@ -36,6 +36,26 @@ const (
 	CatchupNone CatchupPolicy = "none" // never catch up
 )
 
+// MissingDatePolicy controls what a schedule does in a period that has no
+// matching date: February in a non-leap year for a rule on the 29th, a 30-day
+// month for a rule on the 31st, a month with only four Fridays for a rule on the
+// fifth. It is consulted only by rules that address a date or an ordinal
+// weekday; for interval and plain weekday rules it is inert.
+type MissingDatePolicy string
+
+const (
+	// MissingDateSkip is the default and the behavior of every schedule created
+	// before the policy existed: the period simply produces no run.
+	MissingDateSkip MissingDatePolicy = "skip"
+	// MissingDateLastValid falls back to the last date in the period that does
+	// exist — Feb 29 → Feb 28, the 31st → the 30th, the 5th Friday → the last
+	// Friday.
+	MissingDateLastValid MissingDatePolicy = "last_valid"
+	// MissingDateNextValid rolls forward into the following period — Feb 29 →
+	// Mar 1 — without displacing that period's own occurrence.
+	MissingDateNextValid MissingDatePolicy = "next_valid"
+)
+
 // ScheduleKind distinguishes the timing model of a Schedule.
 type ScheduleKind string
 
@@ -112,9 +132,14 @@ type Task struct {
 	ScheduleID    string            `json:"schedule_id"`
 	OverlapPolicy OverlapPolicy     `json:"overlap_policy"`
 	CatchupPolicy CatchupPolicy     `json:"catchup_policy"`
-	State         TaskState         `json:"state"`
-	CreatedAt     time.Time         `json:"created_at"`
-	UpdatedAt     time.Time         `json:"updated_at"`
+	// MissingDatePolicy lives on the task rather than the schedule because
+	// replacing a task's schedule phrase creates a new schedule row: a
+	// schedule-borne policy would silently reset to the default on an unrelated
+	// edit, changing run times without the operator asking.
+	MissingDatePolicy MissingDatePolicy `json:"missing_date_policy"`
+	State             TaskState         `json:"state"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
 }
 
 // Schedule is the timing definition for a task. Exactly one of (RRULE+Anchor),

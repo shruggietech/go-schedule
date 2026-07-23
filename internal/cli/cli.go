@@ -56,6 +56,7 @@ func newRoot() *cobra.Command {
 	root.PersistentFlags().BoolVar(&jsonOut, "json", false, "machine-readable JSON output")
 	root.AddCommand(
 		newTaskCmd(),
+		newCronCmd(),
 		newGroupCmd(),
 		newRunsCmd(),
 		newLogsCmd(),

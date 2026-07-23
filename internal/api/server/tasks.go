@@ -28,6 +28,9 @@ type TaskCreateRequest struct {
 	At            *time.Time        `json:"at,omitempty"`
 	OverlapPolicy string            `json:"overlap_policy,omitempty"`
 	CatchupPolicy string            `json:"catchup_policy,omitempty"`
+	// MissingDatePolicy defaults to skip, which is the behavior of every task
+	// created before the policy existed.
+	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
 }
 
 // TaskResponse is the detail returned for a task.
@@ -98,6 +101,11 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "catchup_policy", "must be one or none")
 		return
 	}
+	missingDate := domain.MissingDatePolicy(orDefault(req.MissingDatePolicy, string(domain.MissingDateSkip)))
+	if !validMissingDate(missingDate) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "missing_date_policy", "must be skip, last_valid, or next_valid")
+		return
+	}
 
 	if err := s.store.CreateSchedule(&sch); err != nil {
 		s.internal(w, err)
@@ -107,7 +115,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		Name: req.Name, GroupID: req.GroupID, Command: req.Command, Args: req.Args,
 		WorkingDir: req.WorkingDir, Env: req.Env, RunAs: req.RunAs, Enabled: true,
 		Timezone: tz, ScheduleID: sch.ID, OverlapPolicy: overlap, CatchupPolicy: catchup,
-		State: domain.TaskActive,
+		MissingDatePolicy: missingDate, State: domain.TaskActive,
 	}
 	if err := s.store.CreateTask(task); err != nil {
 		s.internal(w, err)
@@ -185,6 +193,10 @@ func (s *Server) handleRunNow(w http.ResponseWriter, r *http.Request) {
 type PreviewRequest struct {
 	Schedule string `json:"schedule"`
 	Timezone string `json:"timezone,omitempty"`
+	// MissingDatePolicy makes the preview honest for a by-date rule: the same
+	// phrase produces different run times under different policies, so a preview
+	// that ignored it would show times the created task would not keep.
+	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
 }
 
 type PreviewResponse struct {
@@ -206,14 +218,23 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", err.Error())
 		return
 	}
-	runs, _ := schedule.UpcomingRuns(sch, tz, now, 5)
-	writeJSON(w, http.StatusOK, PreviewResponse{RRULE: sch.RRULE, HumanSummary: sch.HumanSummary, NextRuns: runs})
+	runs, _ := schedule.UpcomingRuns(sch, tz, domain.MissingDatePolicy(req.MissingDatePolicy), now, 5)
+	writeJSON(w, http.StatusOK, PreviewResponse{
+		RRULE:        sch.RRULE,
+		HumanSummary: schedule.Describe(sch, domain.MissingDatePolicy(req.MissingDatePolicy)),
+		NextRuns:     runs,
+	})
 }
 
 // ---- helpers ------------------------------------------------------------
 
 func (s *Server) taskDetail(task domain.Task, sch domain.Schedule, now time.Time) TaskResponse {
-	runs, _ := schedule.UpcomingRuns(sch, task.Timezone, now, 5)
+	runs, _ := schedule.UpcomingRuns(sch, task.Timezone, task.MissingDatePolicy, now, 5)
+	// The summary is rendered against the task's policy on the way out rather
+	// than stored, because the policy can change without the phrase changing. The
+	// stored HumanSummary stays the phrase-level sentence; every client reads
+	// this one, so none of them can claim a rule fires in a period it skips.
+	sch.HumanSummary = schedule.Describe(sch, task.MissingDatePolicy)
 	return TaskResponse{Task: task, Schedule: sch, NextRuns: runs}
 }
 
@@ -241,6 +262,17 @@ func orDefault(v, def string) string {
 		return def
 	}
 	return v
+}
+
+// validMissingDate reports whether p is one of the three known policies. An
+// empty value never reaches here — callers default it first — so an unknown
+// value is genuinely the caller's mistake.
+func validMissingDate(p domain.MissingDatePolicy) bool {
+	switch p {
+	case domain.MissingDateSkip, domain.MissingDateLastValid, domain.MissingDateNextValid:
+		return true
+	}
+	return false
 }
 
 func validOverlap(p domain.OverlapPolicy) bool {

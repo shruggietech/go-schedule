@@ -6,7 +6,7 @@ CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](../specs/001-task-
 
 The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run**
 (Name, Command, Arguments), **When** (Timezone, Mode, the relevant time field), and a collapsible
-**Advanced Settings** (Overlap, Catch-up) that starts closed — its disclosure arrow points ▶ when
+**Advanced Settings** (Overlap, Catch-up, Missing dates) that starts closed — its disclosure arrow points ▶ when
 collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a
 **Help** button that swaps it to a field-by-field guide (and back). Required fields are marked with
 a `*`, and the **Save** button (bottom-right, next to **Cancel**) stays disabled until every
@@ -28,6 +28,7 @@ before discarding.
 | **One-off date / time** | when One-off (create) | date + time picked in the task's zone, must be future | — |
 | **Overlap** *(Advanced)* | no | Queue one run · Skip this run · Allow concurrent runs | Queue one run |
 | **Catch-up** *(Advanced)* | no | Run once to catch up · Skip missed runs | Run once to catch up |
+| **Missing dates** *(Advanced)* | no | Skip that period · Use the last valid date · Roll into the next period | Skip that period |
 
 **Mode decides which time field is shown.** In `Recurring` mode the **Schedule** (and optional
 **Start at**) field is shown and the one-off inputs are hidden; in `One-off` mode it's the reverse.
@@ -48,8 +49,9 @@ it.
 the schedule with the next few run times, and the exact command and arguments as they will be
 invoked, rendered as a monospace code block.
 
-**Overlap and Catch-up** are shown with friendly labels but stored as the same underlying policy
-values (`queue_one`/`skip`/`allow_concurrent` and `one`/`none`) used by the CLI and API.
+**Overlap, Catch-up and Missing dates** are shown with friendly labels but stored as the same
+underlying policy values (`queue_one`/`skip`/`allow_concurrent`, `one`/`none`, and
+`skip`/`last_valid`/`next_valid`) used by the CLI and API.
 
 ---
 
@@ -169,8 +171,8 @@ echoes the resolved run time so you can confirm it.
 
 ## Advanced Settings
 
-The **Overlap** and **Catch-up** controls live in a collapsible **Advanced Settings** section that
-starts closed. They are shown with human-readable labels; the stored policy values (used by the
+The **Overlap**, **Catch-up** and **Missing dates** controls live in a collapsible **Advanced
+Settings** section that starts closed. They are shown with human-readable labels; the stored policy values (used by the
 CLI and API) are unchanged.
 
 ### Overlap
@@ -192,6 +194,22 @@ What to do after downtime (the daemon was stopped) when one or more scheduled ru
   schedule.
 - **Skip missed runs** (`none`) — skip all missed runs and resume the normal schedule.
 
+### Missing dates
+
+What to do in a period that has no matching date. This applies only to schedules that can
+actually miss one — the 29th, 30th or 31st of a month, a yearly rule on 29 February, and the
+fifth of a given weekday. For everything else the setting is inert and changes no run time.
+
+- **Skip that period** (`skip`, *default*) — no run that period. This is what cron does, and what
+  every task created before this setting existed already did.
+- **Use the last valid date** (`last_valid`) — fall back to the last date that exists: the 31st
+  becomes the 30th, or the 28th in February; a missing fifth Friday becomes the last Friday.
+- **Roll into the next period** (`next_valid`) — run on the 1st of the following month instead,
+  without displacing that month's own run.
+
+The Preview names whichever you pick, so a schedule that skips months says so rather than
+claiming "every month".
+
 ---
 
 ## A known-good example
@@ -208,5 +226,6 @@ A "heartbeat" task you can watch succeed within a couple of minutes:
 | Schedule | `every 1 minute` |
 | Overlap *(Advanced)* | Queue one run |
 | Catch-up *(Advanced)* | Run once to catch up |
+| Missing dates *(Advanced)* | Skip that period |
 
 After saving, a new timestamp line should appear in the file about once a minute.

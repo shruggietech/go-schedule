@@ -193,3 +193,83 @@ func TestUpdateTask_TimezoneChangeReanchors(t *testing.T) {
 			"the recurrence was not re-interpreted in the new zone", before)
 	}
 }
+
+// TestUpdateTask_MissingDatePolicyIsIndependentOfSchedule is FR-024a. Replacing
+// a task's schedule writes a *new* schedule row and repoints the task at it, so
+// anything stored alongside the schedule would be silently reset by an unrelated
+// phrase edit. The policy lives on the task precisely so that cannot happen, and
+// this is the test that would fail if it were ever moved.
+func TestUpdateTask_MissingDatePolicyIsIndependentOfSchedule(t *testing.T) {
+	s := newTestServer(t)
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "month end", Command: "close", Timezone: "UTC",
+		Schedule: "on the 31st of every month at 09:00", MissingDatePolicy: "next_valid",
+	})
+	if created.Task.MissingDatePolicy != domain.MissingDateNextValid {
+		t.Fatalf("create: policy = %q, want next_valid", created.Task.MissingDatePolicy)
+	}
+
+	// (a) Changing the phrase leaves the policy alone.
+	rec := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+created.Task.ID,
+		TaskUpdateRequest{Schedule: "on the 30th of every month at 09:00"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update schedule: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	after := getTask(t, s, created.Task.ID)
+	if after.Task.MissingDatePolicy != domain.MissingDateNextValid {
+		t.Errorf("policy reset by a schedule edit: %q", after.Task.MissingDatePolicy)
+	}
+	if after.Schedule.Expression != "on the 30th of every month at 09:00" {
+		t.Errorf("schedule not replaced: %q", after.Schedule.Expression)
+	}
+
+	// (b) Changing the policy leaves the phrase alone.
+	rec = doJSON(t, s, http.MethodPatch, "/v1/tasks/"+created.Task.ID,
+		TaskUpdateRequest{MissingDatePolicy: "last_valid"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update policy: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	after = getTask(t, s, created.Task.ID)
+	if after.Task.MissingDatePolicy != domain.MissingDateLastValid {
+		t.Errorf("policy = %q, want last_valid", after.Task.MissingDatePolicy)
+	}
+	if after.Schedule.Expression != "on the 30th of every month at 09:00" {
+		t.Errorf("phrase changed by a policy edit: %q", after.Schedule.Expression)
+	}
+
+	// (c) An omitted policy on an unrelated edit changes nothing.
+	rec = doJSON(t, s, http.MethodPatch, "/v1/tasks/"+created.Task.ID,
+		TaskUpdateRequest{Command: "close2"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update command: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if after = getTask(t, s, created.Task.ID); after.Task.MissingDatePolicy != domain.MissingDateLastValid {
+		t.Errorf("policy changed by an unrelated edit: %q", after.Task.MissingDatePolicy)
+	}
+}
+
+// TestTask_MissingDatePolicyValidation pins the validation contract: an unknown
+// value is the caller's mistake and must name the field rather than being
+// silently coerced to a default.
+func TestTask_MissingDatePolicyValidation(t *testing.T) {
+	s := newTestServer(t)
+	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+		Name: "bad", Command: "x", Timezone: "UTC",
+		Schedule: "every day at 09:00", MissingDatePolicy: "whenever",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("create with bad policy: status %d, want 400", rec.Code)
+	}
+
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "ok", Command: "x", Timezone: "UTC", Schedule: "every day at 09:00",
+	})
+	if created.Task.MissingDatePolicy != domain.MissingDateSkip {
+		t.Errorf("default policy = %q, want skip", created.Task.MissingDatePolicy)
+	}
+	rec = doJSON(t, s, http.MethodPatch, "/v1/tasks/"+created.Task.ID,
+		TaskUpdateRequest{MissingDatePolicy: "whenever"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("update with bad policy: status %d, want 400", rec.Code)
+	}
+}
