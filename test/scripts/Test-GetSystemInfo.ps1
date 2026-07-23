@@ -101,6 +101,20 @@ Param(
 #_______________________________________________________________________________
 ## Declare Functions
 
+    function Test-HasCommand {
+        # Guard every external-tool call with this.
+        #
+        # `& ss -lntup 2>$null` does NOT degrade gracefully when ss is absent:
+        # PowerShell raises CommandNotFoundException, which 2>$null does not
+        # suppress, so the outer catch fires and the whole fallback chain is
+        # skipped. On macOS -- no ss, but netstat present -- that turned an
+        # answerable probe into 'unavailable'. Windows never reaches this code
+        # and Linux has ss, so only macOS shows it.
+        [CmdletBinding()]
+        Param([Parameter(Mandatory=$true)][string]$Name)
+        return [bool](Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue)
+    }
+
     function Get-ProcessCount {
         [CmdletBinding()]
         Param()
@@ -147,8 +161,9 @@ Param(
                 $script:AddressesProbe = 'ok'
                 return $rows
             }
-            $out = & ip -o addr 2>$null
-            if (-not $out) { $out = & ifconfig 2>$null }
+            $out = $null
+            if (Test-HasCommand 'ip')       { $out = & ip -o addr 2>$null }
+            if (-not $out -and (Test-HasCommand 'ifconfig')) { $out = & ifconfig 2>$null }
             if (-not $out) {
                 Write-Log "address probe unavailable (no ip/ifconfig)" -Level Warn
                 $script:AddressesProbe = 'unavailable'
@@ -204,10 +219,12 @@ Param(
                 $script:PortsProbe = 'ok'
                 return $rows
             }
-            $out = & ss -lntup 2>$null
-            if (-not $out) { $out = & netstat -an 2>$null }
+            $out = $null
+            if (Test-HasCommand 'ss')      { $out = & ss -lntup 2>$null }
+            if (-not $out -and (Test-HasCommand 'netstat')) { $out = & netstat -an 2>$null }
+            if (-not $out -and (Test-HasCommand 'lsof'))    { $out = & lsof -nP -iTCP -sTCP:LISTEN 2>$null }
             if (-not $out) {
-                Write-Log "port probe unavailable (no ss/netstat)" -Level Warn
+                Write-Log "port probe unavailable (no ss/netstat/lsof)" -Level Warn
                 $script:PortsProbe = 'unavailable'
                 return @()
             }

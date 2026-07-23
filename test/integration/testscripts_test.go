@@ -615,6 +615,17 @@ func TestScriptsListenersProbeStatus(t *testing.T) {
 				"SELECT ports_probe FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;"); got != "skipped" {
 				t.Errorf("newest snapshot ports_probe = %q, want %q", got, "skipped")
 			}
+
+			// The fallback-to-an-older-snapshot behavior can only be exercised
+			// where the port probe can actually succeed at least once. On a host
+			// with no port tool there is nothing usable to fall back TO, which is
+			// the separate case TestScriptsListenersNoUsableSnapshot covers.
+			// Asserting here would be asserting about the environment, not the code.
+			if got := queryScalar(t, sqlite, db,
+				"SELECT ports_probe FROM snapshot ORDER BY unixtime_ms ASC LIMIT 1;"); got != "ok" {
+				t.Skipf("SKIP: this host cannot probe listening ports (ports_probe=%q), "+
+					"so there is no usable snapshot to fall back to", got)
+			}
 			if n := queryInt(t, sqlite, db,
 				"SELECT COUNT(*) FROM snapshot WHERE ports_probe IS NULL;"); n != 0 {
 				t.Error("every snapshot written at schema 3 must record a port probe status")
