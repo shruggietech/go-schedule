@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-07-23
+
+**Fixes a macOS-only defect introduced in 0.5.1.** Tooling only; program binaries
+are identical to 0.5.0.
+
+> **0.5.1 is broken on macOS.** Its POSIX twins cannot parse an `--anchor-iso`
+> timestamp there and exit 2. The PowerShell twins are unaffected on every
+> platform, and the POSIX twins are unaffected on Linux. macOS users should use
+> 0.5.2.
+
+### Fixed
+
+- **`--anchor-iso` was unparseable on macOS.** The POSIX twins parsed timestamps
+  with `date -d`, which is a GNU extension. macOS ships BSD `date`, where `-d` is
+  not a parse flag at all, so every anchored query exited 2 with "not a parseable
+  timestamp".
+
+  Timestamp parsing now goes through one `parse_iso_epoch` helper that tries the
+  GNU form first and falls back to BSD's explicit-format form, normalising the
+  `+05:00` offset spelling to the `+0500` that BSD requires and dropping
+  fractional seconds it will not accept.
+
+  This could not reproduce locally: the development host is Windows with Git
+  Bash, which ships GNU `date`, so the GNU path always succeeded. Only a real
+  macOS runner exercises the other branch — which is exactly what caught it, on
+  the CI run for the 0.5.1 tag. Regression coverage now exercises both the `Z`
+  and numeric-offset spellings on every platform, because they take different
+  branches of the fallback.
+
+### Decisions
+
+- **2026-07-23** — **0.5.1 was tagged and published before its CI run finished.**
+  The local gates were green, but the local machine has no macOS and no C
+  compiler, so two of the seven CI jobs had no local equivalent. Publishing on
+  the strength of a partial signal is what put a known-broken artifact on the
+  releases page. Tags are immutable once public, so the fix ships as 0.5.2 rather
+  than a re-cut 0.5.1, and 0.5.1's release notes now say plainly that macOS users
+  should skip it. For future releases: wait for CI to go green on the tag before
+  treating a release as done, particularly when the change touches shell code that
+  the development platform cannot fully exercise.
+
 ## [0.5.1] - 2026-07-23
 
 **The drift measurement in 0.5.0 was wrong, and this fixes it.** Tooling only —

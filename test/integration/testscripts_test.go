@@ -303,6 +303,47 @@ func TestScriptsReadTimeAnchor(t *testing.T) {
 	}
 }
 
+// TestScriptsAnchorTimestampForms exercises the RFC 3339 spellings a maintainer
+// will actually paste in. This exists because v0.5.1 shipped a POSIX twin that
+// parsed timestamps with `date -d`, which is GNU-only -- macOS ships BSD date,
+// where that is not a parse flag at all. It could not reproduce on a GNU-date
+// host, so only a macOS runner caught it. The offset form is included because it
+// takes a different branch of the BSD fallback than the Z form.
+func TestScriptsAnchorTimestampForms(t *testing.T) {
+	requireSqlite(t)
+	beat := map[string]string{
+		"powershell": scriptPath(t, "Test-Heartbeat.ps1"),
+		"posix":      scriptPath(t, "Test-Heartbeat.sh"),
+	}
+	reader := map[string]string{
+		"powershell": scriptPath(t, "Test-ReadTestDB.ps1"),
+		"posix":      scriptPath(t, "Test-ReadTestDB.sh"),
+	}
+	now := time.Now().UTC().Add(-10 * time.Minute)
+	forms := map[string]string{
+		"utc-z":  now.Format("2006-01-02T15:04:05Z"),
+		"offset": now.In(time.FixedZone("test", -4*3600)).Format("2006-01-02T15:04:05-07:00"),
+	}
+	for _, tw := range allTwins() {
+		for name, ts := range forms {
+			t.Run(tw.name+"/"+name, func(t *testing.T) {
+				requireTwin(t, tw)
+				dir := t.TempDir()
+				if _, code := runScript(t, tw, dir, beat[tw.name],
+					tw.flag("interval-seconds"), "60"); code != 0 {
+					t.Fatalf("recording failed with exit %d", code)
+				}
+				out, code := runScript(t, tw, dir, reader[tw.name],
+					tw.flag("query"), "drift", tw.flag("interval-seconds"), "60",
+					tw.flag("anchor-iso"), ts, tw.flag("quiet"))
+				if code != 0 {
+					t.Fatalf("anchor %q (%s) rejected with exit %d: %s", ts, name, code, out)
+				}
+			})
+		}
+	}
+}
+
 // TestScriptsAnchorNeedsInterval: an anchor without an interval cannot
 // reconstruct a grid, and saying so is better than guessing one.
 func TestScriptsAnchorNeedsInterval(t *testing.T) {

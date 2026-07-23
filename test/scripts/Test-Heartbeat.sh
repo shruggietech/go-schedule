@@ -113,7 +113,8 @@ resolve_expected() {
     # no source is available.
     local started="$1" expected drift interval_ms anchor_ms delta k
     if [ -n "${GOSCHED_SCHEDULED_TIME:-}" ]; then
-        expected="$(date -d "$GOSCHED_SCHEDULED_TIME" +%s000 2>/dev/null || true)"
+        expected="$(parse_iso_epoch "$GOSCHED_SCHEDULED_TIME")"
+        [ -n "$expected" ] && expected="${expected}000"
         if [ -n "$expected" ]; then
             printf 'env %s %s\n' "$expected" "$((started - expected))"
             return 0
@@ -121,7 +122,7 @@ resolve_expected() {
         log WARN "GOSCHED_SCHEDULED_TIME set but unparseable; ignoring it."
     fi
     if [ -n "$ANCHOR_ISO" ] && [ "$INTERVAL_SECONDS" -gt 0 ]; then
-        anchor_ms="$(date -d "$ANCHOR_ISO" +%s 2>/dev/null || true)"
+        anchor_ms="$(parse_iso_epoch "$ANCHOR_ISO")"
         if [ -z "$anchor_ms" ]; then
             log ERROR "--anchor-iso '$ANCHOR_ISO' is not a parseable timestamp."
             exit 2

@@ -410,6 +410,44 @@ now_ms() {
     esac
 }
 
+parse_iso_epoch() {
+    # Echo Unix seconds for an RFC 3339 timestamp; echo nothing if unparseable.
+    #
+    # GNU date and BSD date have incompatible parsing interfaces and macOS ships
+    # BSD, where `date -d` is not a parse flag at all. Trying GNU first and
+    # falling back keeps one code path for both. This is the portability trap
+    # that shipped broken in v0.5.1: it cannot reproduce on a GNU-date host, so
+    # only a real macOS runner catches it.
+    local ts="$1" out norm off
+    out="$(date -d "$ts" +%s 2>/dev/null || true)"
+    if [ -n "$out" ]; then printf '%s\n' "$out"; return 0; fi
+
+    # BSD: the format must be spelled out, fractional seconds are not accepted,
+    # and a numeric offset must be +0500 rather than +05:00.
+    norm="${ts}"
+    case "$norm" in
+        *Z)
+            norm="${norm%Z}"
+            norm="${norm%%.*}"
+            out="$(TZ=UTC date -j -f '%Y-%m-%dT%H:%M:%S' "$norm" +%s 2>/dev/null || true)"
+            [ -n "$out" ] && { printf '%s\n' "$out"; return 0; }
+            ;;
+        *[+-][0-9][0-9]:[0-9][0-9])
+            off="${norm##*[+-]}"
+            off="${off%%:*}${off##*:}"
+            norm="${norm%[+-]*}"
+            case "$ts" in *+*) off="+$off" ;; *) off="-$off" ;; esac
+            norm="${norm%%.*}"
+            out="$(date -j -f '%Y-%m-%dT%H:%M:%S%z' "${norm}${off}" +%s 2>/dev/null || true)"
+            [ -n "$out" ] && { printf '%s\n' "$out"; return 0; }
+            ;;
+    esac
+    norm="${ts%%.*}"
+    out="$(date -j -f '%Y-%m-%dT%H:%M:%S' "$norm" +%s 2>/dev/null || true)"
+    [ -n "$out" ] && printf '%s\n' "$out"
+    return 0
+}
+
 iso_local() { date '+%Y-%m-%dT%H:%M:%S%z'; }
 iso_utc()   { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
 tz_offset_minutes() {

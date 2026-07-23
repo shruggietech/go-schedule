@@ -141,7 +141,7 @@ fi
 ANCHOR_MS=""
 if [ -n "$ANCHOR_ISO" ]; then
     [ "$INTERVAL_USED" -gt 0 ] || die_usage "--anchor-iso needs --interval-seconds to reconstruct the firing grid."
-    ANCHOR_MS="$(date -d "$ANCHOR_ISO" +%s 2>/dev/null || true)"
+    ANCHOR_MS="$(parse_iso_epoch "$ANCHOR_ISO")"
     [ -n "$ANCHOR_MS" ] || die_usage "--anchor-iso '$ANCHOR_ISO' is not a parseable timestamp."
     ANCHOR_MS=$((ANCHOR_MS * 1000))
     log INFO "drift derived at read time from anchor $ANCHOR_ISO and interval ${INTERVAL_USED}s"
