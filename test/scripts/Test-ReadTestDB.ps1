@@ -417,17 +417,69 @@ FROM beat GROUP BY session_id, pid ORDER BY MIN(started_ms) DESC LIMIT $Limit;
             }
         }
         'listeners' {
+            # Read the most recent snapshot whose port probe actually RAN.
+            #
+            # Reading "the newest snapshot" unconditionally was wrong: when the
+            # newest one came from a host or twin where no port tool was
+            # available, the query returned nothing -- indistinguishable from
+            # "this machine is listening on no ports". That is the exact
+            # conflation of "could not determine" with "determined zero" that
+            # the rest of this schema goes out of its way to avoid.
+            #
+            # Legacy snapshots (schema < 3) have no probe column. They are
+            # treated as usable but flagged, because their provenance is
+            # genuinely unknown rather than known-good.
+            $usable = Invoke-Sqlite -Database $dbPath -Mode 'list' -Sql @'
+SELECT id, iso_local, COALESCE(ports_probe,'unknown')
+FROM snapshot
+WHERE ports_probe = 'ok' OR ports_probe IS NULL
+ORDER BY unixtime_ms DESC LIMIT 1;
+'@
+            $row = ($usable | Where-Object { $_ -match '^\d+\|' } | Select-Object -First 1)
+            if (-not $row) {
+                Write-Log "No snapshot has usable port data." -Level Error
+                Write-Log "Every snapshot recorded ports_probe = 'unavailable' or 'skipped'." -Level Error
+                Write-Log "Re-run Test-GetSystemInfo without -SkipPorts on a host with ss, netstat, or Get-NetTCPConnection." -Level Error
+                Write-Output "no snapshot with usable port data"
+                exit 0
+            }
+            $parts  = $row -split '\|'
+            $sid    = $parts[0]
+            $siso   = $parts[1]
+            $sprobe = $parts[2]
+
+            $newest = Invoke-Sqlite -Database $dbPath -Mode 'list' -Sql @'
+SELECT id, iso_local, COALESCE(ports_probe,'unknown')
+FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;
+'@
+            $nrow = ($newest | Where-Object { $_ -match '^\d+\|' } | Select-Object -First 1)
+            $nparts = $nrow -split '\|'
+            Write-Log ("showing snapshot {0} ({1}), ports_probe={2}" -f $sid, $siso, $sprobe)
+            if ($nparts[0] -ne $sid) {
+                Write-Log ("the NEWEST snapshot is {0} ({1}) with ports_probe={2} -- not shown, because its port probe did not run" -f `
+                    $nparts[0], $nparts[1], $nparts[2]) -Level Warn
+            }
+            if ($sprobe -eq 'unknown') {
+                Write-Log "this snapshot predates probe-status recording (schema < 3); an empty result may mean the probe never ran" -Level Warn
+            }
+
+            # The comparison baseline must itself have usable port data,
+            # otherwise every port reads as NEW against a snapshot that simply
+            # never looked.
 @"
-WITH latest AS (SELECT id FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1),
-     prev   AS (SELECT id FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1 OFFSET 1)
+WITH prev AS (
+  SELECT id FROM snapshot
+  WHERE (ports_probe = 'ok' OR ports_probe IS NULL) AND id <> $sid
+    AND unixtime_ms <= (SELECT unixtime_ms FROM snapshot WHERE id = $sid)
+  ORDER BY unixtime_ms DESC LIMIT 1)
 SELECT p.protocol, p.port, p.address, p.process_name,
-       CASE WHEN (SELECT id FROM prev) IS NULL THEN 'no-previous-snapshot'
+       CASE WHEN (SELECT id FROM prev) IS NULL THEN 'no-comparable-snapshot'
             WHEN EXISTS (SELECT 1 FROM snapshot_port q
                          WHERE q.snapshot_id=(SELECT id FROM prev)
                            AND q.protocol=p.protocol AND q.port=p.port)
             THEN 'unchanged' ELSE 'NEW' END AS since_previous
 FROM snapshot_port p
-WHERE p.snapshot_id=(SELECT id FROM latest)
+WHERE p.snapshot_id = $sid
 ORDER BY p.protocol, p.port LIMIT $Limit;
 "@
         }

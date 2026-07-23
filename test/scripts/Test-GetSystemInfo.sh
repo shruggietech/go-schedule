@@ -28,6 +28,10 @@ INVOCATION_SOURCE="manual"
 SKIP_PORTS=0
 EXPLICIT_SQLITE=""
 DO_INSTALL=0
+# Probe status vocabulary: ok (ran; zero rows is a real answer), unavailable
+# (no tool on this host could answer), skipped (caller asked not to).
+ADDRESSES_PROBE="unavailable"
+PORTS_PROBE="skipped"
 
 usage() {
     cat <<'EOF'
@@ -98,6 +102,7 @@ probe_addresses() {
     local out
     out="$(ip -o addr 2>/dev/null || true)"
     if [ -n "$out" ]; then
+        ADDRESSES_PROBE=ok
         printf '%s\n' "$out" | awk '{
             for (i=1;i<=NF;i++) {
                 if ($i=="inet")  { split($(i+1),a,"/"); print "ipv4|" a[1] "|" $2 }
@@ -107,12 +112,14 @@ probe_addresses() {
     fi
     out="$(ifconfig 2>/dev/null || true)"
     if [ -n "$out" ]; then
+        ADDRESSES_PROBE=ok
         printf '%s\n' "$out" | awk '
             /^[a-zA-Z0-9]/ { iface=$1; sub(":","",iface) }
             /inet /  { print "ipv4|" $2 "|" iface }
             /inet6 / { print "ipv6|" $2 "|" iface }'
         return 0
     fi
+    ADDRESSES_PROBE=unavailable
     log WARN "address probe unavailable"
 }
 
@@ -121,6 +128,7 @@ probe_ports() {
     local out
     out="$(ss -lntu 2>/dev/null || true)"
     if [ -n "$out" ]; then
+        PORTS_PROBE=ok
         printf '%s\n' "$out" | awk 'NR>1 {
             proto=tolower($1); split($5,a,":"); port=a[length(a)];
             if (port ~ /^[0-9]+$/ && (proto=="tcp"||proto=="udp")) print proto "||" port }'
@@ -128,12 +136,14 @@ probe_ports() {
     fi
     out="$(netstat -an 2>/dev/null || true)"
     if [ -n "$out" ]; then
+        PORTS_PROBE=ok
         printf '%s\n' "$out" | awk '/LISTEN|udp/ {
             proto=tolower($1); sub(/[46]$/,"",proto);
             split($4,a,":"); port=a[length(a)];
             if (port ~ /^[0-9]+$/ && (proto=="tcp"||proto=="udp")) print proto "||" port }'
         return 0
     fi
+    PORTS_PROBE=unavailable
     log WARN "port probe unavailable"
 }
 
@@ -144,21 +154,34 @@ PROCS="$(probe_process_count)"
 UPTIME="$(probe_uptime_seconds)"
 NOW_MS="$(now_ms)"
 
+# Probes run before the insert so their status is part of the snapshot row.
+# Results go to temp files: a `while read` fed by a pipeline runs in a subshell,
+# where an assignment to PORTS_PROBE would be discarded on exit.
+ADDR_FILE="$(mktemp)"
+PORT_FILE="$(mktemp)"
+trap 'rm -f "$ADDR_FILE" "$PORT_FILE"' EXIT
+probe_addresses > "$ADDR_FILE"
+if [ "$SKIP_PORTS" -eq 0 ]; then
+    probe_ports > "$PORT_FILE"
+else
+    : > "$PORT_FILE"
+fi
+
 SNAPSHOT_ID="$(sqlite_exec "$DB_PATH" list \
 "INSERT INTO snapshot (unixtime_ms, iso_local, iso_utc, tz_offset_minutes, hostname,
    username, process_count, uptime_seconds, os_platform, os_release, script_pid,
-   script_flavor, invocation_source)
+   script_flavor, invocation_source, addresses_probe, ports_probe)
 VALUES (CAST(:ms AS INTEGER), :isolocal, :isoutc, CAST(:tz AS INTEGER), :host, :user,
         CASE WHEN :procs = '' THEN NULL ELSE CAST(:procs AS INTEGER) END,
         CASE WHEN :uptime = '' THEN NULL ELSE CAST(:uptime AS INTEGER) END,
-        :platform, :release, CAST(:pid AS INTEGER), 'posix', :source);
+        :platform, :release, CAST(:pid AS INTEGER), 'posix', :source, :aprobe, :pprobe);
 SELECT last_insert_rowid();" \
     "ms=$NOW_MS" "isolocal=$(iso_local)" "isoutc=$(iso_utc)" \
     "tz=$(tz_offset_minutes)" "host=$(hostname)" \
     "user=$(id -un 2>/dev/null || printf '%s' "${USER:-unknown}")" \
     "procs=$PROCS" "uptime=$UPTIME" \
     "platform=$(uname -s | tr '[:upper:]' '[:lower:]')" \
-    "release=$(uname -sr)" "pid=$$" "source=$INVOCATION_SOURCE" | tail -n1)"
+    "release=$(uname -sr)" "pid=$$" "source=$INVOCATION_SOURCE"     "aprobe=$ADDRESSES_PROBE" "pprobe=$PORTS_PROBE" | tail -n1)"
 
 case "$SNAPSHOT_ID" in
     ''|*[!0-9]*) die_runtime "snapshot insert did not return an id; nothing was recorded." ;;
@@ -175,7 +198,7 @@ VALUES (CAST(:sid AS INTEGER), :family, :address,
         CASE WHEN :iface = '' THEN NULL ELSE :iface END, NULL);" \
         "sid=$SNAPSHOT_ID" "family=$family" "address=$address" "iface=${iface:-}" >/dev/null
     ADDR_COUNT=$((ADDR_COUNT + 1))
-done < <(probe_addresses)
+done < "$ADDR_FILE"
 
 PORT_COUNT=0
 if [ "$SKIP_PORTS" -eq 0 ]; then
@@ -189,9 +212,9 @@ VALUES (CAST(:sid AS INTEGER), :proto, NULL,
         CAST(:port AS INTEGER), NULL);" \
             "sid=$SNAPSHOT_ID" "proto=$proto" "address=${address:-}" "port=$port" >/dev/null
         PORT_COUNT=$((PORT_COUNT + 1))
-    done < <(probe_ports)
+    done < "$PORT_FILE"
 fi
 
-log SUCCESS "snapshot $SNAPSHOT_ID recorded: $ADDR_COUNT address(es), $PORT_COUNT listening port(s)"
+log SUCCESS "snapshot $SNAPSHOT_ID recorded: $ADDR_COUNT address(es) [$ADDRESSES_PROBE], $PORT_COUNT listening port(s) [$PORTS_PROBE]"
 printf '%s\n' "$DB_PATH"
 exit 0

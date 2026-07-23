@@ -580,6 +580,146 @@ func TestScriptsSystemSnapshot(t *testing.T) {
 	}
 }
 
+// TestScriptsListenersProbeStatus is the regression test for the defect fixed in
+// v0.5.3. `listeners` read the newest snapshot unconditionally, so when the
+// newest one came from a host or twin where no port tool existed, it returned an
+// empty result -- which reads as "this machine is listening on nothing". That is
+// the conflation of "could not determine" with "determined zero" that the rest
+// of the schema is careful to avoid.
+func TestScriptsListenersProbeStatus(t *testing.T) {
+	sqlite := requireSqlite(t)
+	info := map[string]string{
+		"powershell": scriptPath(t, "Test-GetSystemInfo.ps1"),
+		"posix":      scriptPath(t, "Test-GetSystemInfo.sh"),
+	}
+	reader := map[string]string{
+		"powershell": scriptPath(t, "Test-ReadTestDB.ps1"),
+		"posix":      scriptPath(t, "Test-ReadTestDB.sh"),
+	}
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			// First snapshot with ports, then one that deliberately skips them,
+			// so the newest snapshot is the unusable one.
+			if _, code := runScript(t, tw, dir, info[tw.name]); code != 0 {
+				t.Fatalf("first snapshot failed with exit %d", code)
+			}
+			if _, code := runScript(t, tw, dir, info[tw.name], tw.flag("skip-ports")); code != 0 {
+				t.Fatalf("second snapshot failed with exit %d", code)
+			}
+			db := filepath.Join(dir, "system.db")
+
+			// Probe status must be recorded, and the skipped one must say so.
+			if got := queryScalar(t, sqlite, db,
+				"SELECT ports_probe FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;"); got != "skipped" {
+				t.Errorf("newest snapshot ports_probe = %q, want %q", got, "skipped")
+			}
+			if n := queryInt(t, sqlite, db,
+				"SELECT COUNT(*) FROM snapshot WHERE ports_probe IS NULL;"); n != 0 {
+				t.Error("every snapshot written at schema 3 must record a port probe status")
+			}
+
+			out, code := runScript(t, tw, dir, reader[tw.name],
+				tw.flag("database"), db, tw.flag("query"), "listeners")
+			if code != 0 {
+				t.Fatalf("listeners exited %d: %s", code, out)
+			}
+			// It must say which snapshot it used, and must not silently present
+			// the skipped one as an empty listening set.
+			if !strings.Contains(out, "showing snapshot") {
+				t.Errorf("listeners must state which snapshot it read; got: %s", out)
+			}
+			if !strings.Contains(out, "NEWEST snapshot") {
+				t.Errorf("listeners must warn that the newest snapshot was skipped; got: %s", out)
+			}
+		})
+	}
+}
+
+// TestScriptsListenersNoUsableSnapshot: when nothing has usable port data, say
+// so in words rather than returning an empty table that reads as a finding.
+func TestScriptsListenersNoUsableSnapshot(t *testing.T) {
+	requireSqlite(t)
+	info := map[string]string{
+		"powershell": scriptPath(t, "Test-GetSystemInfo.ps1"),
+		"posix":      scriptPath(t, "Test-GetSystemInfo.sh"),
+	}
+	reader := map[string]string{
+		"powershell": scriptPath(t, "Test-ReadTestDB.ps1"),
+		"posix":      scriptPath(t, "Test-ReadTestDB.sh"),
+	}
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			if _, code := runScript(t, tw, dir, info[tw.name], tw.flag("skip-ports")); code != 0 {
+				t.Fatalf("snapshot failed with exit %d", code)
+			}
+			db := filepath.Join(dir, "system.db")
+			out, code := runScript(t, tw, dir, reader[tw.name],
+				tw.flag("database"), db, tw.flag("query"), "listeners")
+			if code != 0 {
+				t.Fatalf("listeners exited %d: %s", code, out)
+			}
+			if !strings.Contains(out, "no snapshot with usable port data") {
+				t.Errorf("expected an explicit no-usable-data message rather than an empty result; got: %s", out)
+			}
+		})
+	}
+}
+
+// TestScriptsSystemSchemaMigration: a database created at schema 2 must gain the
+// probe columns without losing its rows. Forward-only and non-destructive is a
+// constitutional requirement, not a nicety.
+func TestScriptsSystemSchemaMigration(t *testing.T) {
+	sqlite := requireSqlite(t)
+	tw := powershellTwin()
+	if runtime.GOOS != "windows" {
+		tw = posixTwin()
+	}
+	requireTwin(t, tw)
+	name := "Test-GetSystemInfo.ps1"
+	if tw.name == "posix" {
+		name = "Test-GetSystemInfo.sh"
+	}
+	dir := t.TempDir()
+	db := filepath.Join(dir, "system.db")
+
+	// Build a schema-2 database by hand: the old table shape, one row.
+	legacy := `CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+INSERT INTO meta VALUES('schema_version','2');
+CREATE TABLE snapshot (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, unixtime_ms INTEGER NOT NULL,
+  iso_local TEXT NOT NULL, iso_utc TEXT NOT NULL, tz_offset_minutes INTEGER NOT NULL,
+  hostname TEXT NOT NULL, username TEXT, process_count INTEGER, uptime_seconds INTEGER,
+  os_platform TEXT NOT NULL, os_release TEXT, script_pid INTEGER NOT NULL,
+  script_flavor TEXT NOT NULL, invocation_source TEXT NOT NULL);
+INSERT INTO snapshot (unixtime_ms,iso_local,iso_utc,tz_offset_minutes,hostname,
+  os_platform,script_pid,script_flavor,invocation_source)
+VALUES (1,'x','y',0,'legacyhost','linux',1,'posix','legacy');`
+	if err := exec.Command(sqlite, db, legacy).Run(); err != nil { //nolint:gosec // test-local
+		t.Fatalf("building legacy database: %v", err)
+	}
+
+	if _, code := runScript(t, tw, dir, scriptPath(t, name), tw.flag("skip-ports")); code != 0 {
+		t.Fatalf("recording against a legacy database failed with exit %d", code)
+	}
+
+	if got := queryScalar(t, sqlite, db, "SELECT value FROM meta WHERE key='schema_version';"); got != "3" {
+		t.Errorf("schema_version = %q, want %q", got, "3")
+	}
+	// Non-destructive: the pre-existing row survives, with NULL probe columns
+	// that mark its provenance as genuinely unknown.
+	if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM snapshot WHERE invocation_source='legacy';"); n != 1 {
+		t.Error("migration destroyed the pre-existing row")
+	}
+	if n := queryInt(t, sqlite, db,
+		"SELECT COUNT(*) FROM snapshot WHERE invocation_source='legacy' AND ports_probe IS NULL;"); n != 1 {
+		t.Error("a legacy row should keep a NULL probe status, not be back-filled with a guess")
+	}
+}
+
 // TestScriptsReaderQueries: every canned query runs and returns something
 // parseable against a populated database.
 func TestScriptsReaderQueries(t *testing.T) {

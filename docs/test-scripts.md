@@ -155,6 +155,18 @@ records `NULL`, warns on stderr, and the snapshot is still written with exit 0.
 because a process count of zero and an unavailable process count support opposite
 conclusions.
 
+Each snapshot also records **why** its address and port lists look the way they
+do, in `addresses_probe` and `ports_probe`:
+
+| Status | Meaning |
+|---|---|
+| `ok` | The probe ran. Zero rows is a real answer. |
+| `unavailable` | No tool on this host could answer. Zero rows means nothing. |
+| `skipped` | `-SkipPorts` was given. |
+
+This exists because an empty port list is otherwise ambiguous, and the two
+readings support opposite conclusions. `listeners` relies on it (below).
+
 `process_name` on ports is commonly `NULL` — most platforms want elevation to
 attribute a socket to a process. That is normal, not a defect.
 
@@ -186,7 +198,7 @@ attribute a socket to a process. That is normal, not a defect.
 | `failures` | heartbeat | Which runs reported failure? |
 | `restarts` | heartbeat | Where are the session boundaries? |
 | `hosts` | both | Which hosts and users produced records? |
-| `listeners` | system | What is listening, and what changed since the previous snapshot? |
+| `listeners` | system | What is listening on the most recent snapshot whose port probe ran, and what changed since the previous comparable one? |
 | `schema` | both | What is the stored structure? |
 
 **Three reporting rules are contract, not presentation.** Breaking any of them
@@ -425,6 +437,19 @@ time of *that* schedule, and `-IntervalSeconds` must match it. A wrong anchor
 shifts the whole grid. If you are seeing a large, suspiciously *constant* drift,
 that is the signature of a phase error rather than a late scheduler — compare
 against `-Query cadence`, which is anchor-independent.
+
+**`listeners` shows an older snapshot than expected** — by design. It reads the
+most recent snapshot whose `ports_probe` is `ok`, and says which one it picked.
+If your newest snapshot was taken with `-SkipPorts`, or on a host with no `ss`
+or `netstat`, that snapshot has no port data and showing it would present an
+empty list as though nothing were listening. The warning names the newest
+snapshot and its probe status so the substitution is never silent.
+
+**`listeners` says "no snapshot with usable port data"** — every snapshot so far
+recorded `ports_probe` of `unavailable` or `skipped`. Re-run
+`Test-GetSystemInfo` without `-SkipPorts` on a host that has a port tool. The
+message is deliberate: an empty table here would read as a finding rather than
+an absence of data.
 
 **`drift` returns no rows** — every beat had `expected_source = 'none'`, meaning
 no anchor was supplied at record time. The excluded-count warning says how many.

@@ -144,10 +144,16 @@ Param(
                         scope     = "$($a.PrefixOrigin)"
                     }
                 }
+                $script:AddressesProbe = 'ok'
                 return $rows
             }
             $out = & ip -o addr 2>$null
             if (-not $out) { $out = & ifconfig 2>$null }
+            if (-not $out) {
+                Write-Log "address probe unavailable (no ip/ifconfig)" -Level Warn
+                $script:AddressesProbe = 'unavailable'
+                return @()
+            }
             foreach ($line in $out) {
                 if ($line -match 'inet6?\s+([0-9a-fA-F:.]+)') {
                     $addr = $Matches[1]
@@ -162,8 +168,14 @@ Param(
             }
         } catch {
             Write-Log "address probe unavailable" -Level Warn
+            $script:AddressesProbe = 'unavailable'
+            return @()
         }
+        # 'ok' means the probe ran. Zero rows from a probe that ran is a real
+        # answer; zero rows from one that could not run is not, and the two must
+        # not collapse into the same record.
         if ($rows.Count -eq 0) { Write-Log "no addresses determined" -Level Warn }
+        $script:AddressesProbe = 'ok'
         return $rows
     }
 
@@ -189,10 +201,16 @@ Param(
                         }
                     }
                 } catch { Write-Log "udp endpoint probe unavailable" -Level Warn }
+                $script:PortsProbe = 'ok'
                 return $rows
             }
             $out = & ss -lntup 2>$null
             if (-not $out) { $out = & netstat -an 2>$null }
+            if (-not $out) {
+                Write-Log "port probe unavailable (no ss/netstat)" -Level Warn
+                $script:PortsProbe = 'unavailable'
+                return @()
+            }
             foreach ($line in $out) {
                 if ($line -match '^(tcp|udp)\S*\s+.*?(\S+):(\d+)\s') {
                     $rows += @{
@@ -204,7 +222,10 @@ Param(
             }
         } catch {
             Write-Log "port probe unavailable" -Level Warn
+            $script:PortsProbe = 'unavailable'
+            return @()
         }
+        $script:PortsProbe = 'ok'
         return $rows
     }
 
@@ -212,6 +233,14 @@ Param(
 ## Declare Variables and Arrays
 
     $ThisScriptPath = $MyInvocation.MyCommand.Path
+
+    # Probe status vocabulary: 'ok' (ran; the result may legitimately be zero
+    # rows), 'unavailable' (no tool on this host could answer), 'skipped' (the
+    # caller asked not to). Recorded so a reader can tell an empty result from
+    # an unanswerable one -- which is the whole point of NULL meaning "could not
+    # determine" everywhere else in this schema.
+    $script:AddressesProbe = 'unavailable'
+    $script:PortsProbe     = 'skipped'
 
 #_______________________________________________________________________________
 ## Execute Operations
@@ -237,17 +266,27 @@ Param(
     $snapSql = @'
 INSERT INTO snapshot (unixtime_ms, iso_local, iso_utc, tz_offset_minutes, hostname,
                       username, process_count, uptime_seconds, os_platform, os_release,
-                      script_pid, script_flavor, invocation_source)
+                      script_pid, script_flavor, invocation_source,
+                      addresses_probe, ports_probe)
 VALUES (CAST(:ms AS INTEGER), :isolocal, :isoutc, CAST(:tz AS INTEGER), :host,
         :user,
         CASE WHEN :procs = '' THEN NULL ELSE CAST(:procs AS INTEGER) END,
         CASE WHEN :uptime = '' THEN NULL ELSE CAST(:uptime AS INTEGER) END,
         :platform, :release,
-        CAST(:pid AS INTEGER), 'powershell', :source);
+        CAST(:pid AS INTEGER), 'powershell', :source, :aprobe, :pprobe);
 SELECT last_insert_rowid();
 '@
     $procs  = Get-ProcessCount
     $uptime = Get-UptimeSeconds
+    # Probes run before the insert so their status is part of the snapshot row
+    # rather than a second write that could fail independently.
+    $addresses = Get-Addresses
+    $ports = @()
+    if ($SkipPorts) {
+        $script:PortsProbe = 'skipped'
+    } else {
+        $ports = Get-ListeningPorts
+    }
     $params = @{
         ms       = [long]$now.ToUnixTimeMilliseconds()
         isolocal = $now.ToString('yyyy-MM-ddTHH:mm:ss.fffzzz')
@@ -261,6 +300,8 @@ SELECT last_insert_rowid();
         release  = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
         pid      = $PID
         source   = $InvocationSource
+        aprobe   = $script:AddressesProbe
+        pprobe   = $script:PortsProbe
     }
     $out = Invoke-Sqlite -Database $dbPath -Sql $snapSql -Parameters $params -Mode 'list'
     $snapshotId = ($out | Where-Object { $_ -match '^\d+$' } | Select-Object -Last 1)
@@ -271,7 +312,6 @@ SELECT last_insert_rowid();
 
     # Child rows only ever written for a snapshot that was successfully
     # inserted, so a partial failure never orphans them.
-    $addresses = Get-Addresses
     foreach ($a in $addresses) {
         Invoke-Sqlite -Database $dbPath -Mode 'list' -Sql @'
 INSERT INTO snapshot_address (snapshot_id, family, address, interface, scope)
@@ -286,7 +326,7 @@ VALUES (CAST(:sid AS INTEGER), :family, :address,
 
     $portCount = 0
     if (-not $SkipPorts) {
-        foreach ($p in (Get-ListeningPorts)) {
+        foreach ($p in $ports) {
             if ($p.port -lt 1 -or $p.port -gt 65535) { continue }
             Invoke-Sqlite -Database $dbPath -Mode 'list' -Sql @'
 INSERT INTO snapshot_port (snapshot_id, protocol, family, address, port, process_name)
@@ -301,8 +341,8 @@ VALUES (CAST(:sid AS INTEGER), :proto, NULL,
         }
     }
 
-    Write-Log ("snapshot {0} recorded: {1} address(es), {2} listening port(s)" -f `
-        $snapshotId, $addresses.Count, $portCount) -Level Success
+    Write-Log ("snapshot {0} recorded: {1} address(es) [{2}], {3} listening port(s) [{4}]" -f `
+        $snapshotId, $addresses.Count, $script:AddressesProbe, $portCount, $script:PortsProbe) -Level Success
     Write-Output $dbPath
     exit 0
 

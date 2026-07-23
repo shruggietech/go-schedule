@@ -412,7 +412,9 @@ CREATE TABLE IF NOT EXISTS snapshot (
   os_release TEXT,
   script_pid INTEGER NOT NULL,
   script_flavor TEXT NOT NULL CHECK (script_flavor IN ('powershell','posix')),
-  invocation_source TEXT NOT NULL
+  invocation_source TEXT NOT NULL,
+  addresses_probe TEXT,
+  ports_probe TEXT
 );
 CREATE INDEX IF NOT EXISTS snapshot_time ON snapshot(unixtime_ms);
 CREATE TABLE IF NOT EXISTS snapshot_address (
@@ -436,6 +438,27 @@ CREATE TABLE IF NOT EXISTS snapshot_port (
 CREATE INDEX IF NOT EXISTS port_snapshot ON snapshot_port(snapshot_id, protocol, port);
 '@
         Invoke-Sqlite -Database $Database -Sql $sql | Out-Null
+
+        # Forward-only, non-destructive migration for databases created before
+        # schema 3. CREATE TABLE IF NOT EXISTS does nothing to an existing
+        # table, so the probe-status columns have to be added explicitly.
+        # ALTER TABLE ADD COLUMN cannot carry a CHECK constraint in SQLite, so
+        # these two columns are plain TEXT in both fresh and migrated databases
+        # -- a fresh database with a stricter schema than a migrated one would
+        # be a difference nobody would think to look for. The writer enforces
+        # the vocabulary instead.
+        foreach ($col in @('addresses_probe', 'ports_probe')) {
+            $out = Invoke-Sqlite -Database $Database -Mode 'list' `
+                -Sql ("SELECT COUNT(*) FROM pragma_table_info('snapshot') WHERE name='{0}';" -f $col)
+            $has = ($out | Where-Object { $_ -match '^\d+$' } | Select-Object -First 1)
+            if ($has -eq '0') {
+                Write-Log ("migrating system.db: adding {0}" -f $col) -Level Debug
+                Invoke-Sqlite -Database $Database -Mode 'list' `
+                    -Sql ("ALTER TABLE snapshot ADD COLUMN {0} TEXT;" -f $col) | Out-Null
+            }
+        }
+        Invoke-Sqlite -Database $Database -Mode 'list' `
+            -Sql "INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version','3');" | Out-Null
     }
 
     function Initialize-TestSqlite {

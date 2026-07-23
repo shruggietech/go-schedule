@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-07-23
+
+**`listeners` could present "the probe could not run" as "nothing is
+listening".** Tooling only; program binaries remain identical to 0.5.0.
+
+### Fixed
+
+- **`listeners` read the newest snapshot unconditionally.** When that snapshot
+  came from a host or twin where no port tool existed — or was taken with
+  `-SkipPorts` — the query returned an empty table, which reads as a finding
+  about the machine rather than an absence of data. Found while walking the
+  quickstart: the POSIX twin under Git Bash has neither `ip` nor `ifconfig`, its
+  snapshot landed with zero rows, and `listeners` went silent.
+
+  This was the same class of error as the drift defect fixed in 0.5.1 —
+  presenting a number, or an absence, without the provenance needed to read it.
+  The schema now records **why** each list looks the way it does, and `listeners`
+  reads the most recent snapshot whose port probe actually ran, naming the
+  snapshot it chose and warning when the newest one was passed over.
+
+- **The `listeners` diff compared against the previous snapshot regardless of
+  whether that snapshot had port data.** A skipped snapshot in the middle of a
+  series made every port on the next one read as `NEW`. The baseline is now the
+  most recent *comparable* snapshot, and `no-comparable-snapshot` is reported
+  when there isn't one.
+
+### Added
+
+- **`addresses_probe` and `ports_probe` on every snapshot**, recording `ok`
+  (the probe ran; zero rows is a real answer), `unavailable` (no tool on this
+  host could answer; zero rows means nothing), or `skipped`.
+
+### Changed
+
+- System schema version 3, via a **forward-only, non-destructive migration**:
+  the two columns are added to existing databases, pre-existing rows are kept,
+  and their probe status stays `NULL` rather than being back-filled with a
+  guess. A snapshot recorded before this release has genuinely unknown
+  provenance, and `listeners` flags it as such rather than assuming it was fine.
+
+### Decisions
+
+- **2026-07-23** — **The probe columns carry no `CHECK` constraint.** SQLite
+  cannot add a constrained column to an existing table, so enforcing the
+  vocabulary in the schema would leave fresh databases stricter than migrated
+  ones — a divergence nobody would think to look for, and one that would only
+  surface as a confusing write failure on some machines and not others. The
+  writer enforces it instead, and the reader treats anything unexpected the same
+  way it treats `NULL`: as unknown provenance.
+- **2026-07-23** — **"No usable port data" exits 0 with a sentence, not 1.** The
+  query ran and the honest answer is that nothing has been collected yet; that
+  is a state of the data, not a failure of the run. What made the original bug
+  harmful was silence, so the fix is words rather than an exit code.
+
 ## [0.5.2] - 2026-07-23
 
 **Fixes a macOS-only defect introduced in 0.5.1.** Tooling only; program binaries

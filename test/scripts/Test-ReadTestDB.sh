@@ -253,14 +253,54 @@ case "$QUERY" in
  GROUP BY hostname, username ORDER BY snapshots DESC LIMIT $LIMIT;"
         fi ;;
     listeners)
-        SQL="WITH latest AS (SELECT id FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1),
- prev AS (SELECT id FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1 OFFSET 1)
+        # Read the most recent snapshot whose port probe actually RAN. Reading
+        # "the newest snapshot" unconditionally was wrong: when the newest came
+        # from a host where no port tool was available, the query returned
+        # nothing -- indistinguishable from "listening on no ports". That is the
+        # conflation of "could not determine" with "determined zero" that the
+        # rest of this schema avoids. Legacy snapshots (schema < 3) have no
+        # probe column; they are usable but flagged, since their provenance is
+        # unknown rather than known-good.
+        ROW="$(sqlite_exec "$DB_PATH" list "SELECT id, iso_local, COALESCE(ports_probe,'unknown')
+ FROM snapshot WHERE ports_probe = 'ok' OR ports_probe IS NULL
+ ORDER BY unixtime_ms DESC LIMIT 1;" | grep -E '^[0-9]+\|' | head -n1 || true)"
+        if [ -z "$ROW" ]; then
+            log ERROR "No snapshot has usable port data."
+            log ERROR "Every snapshot recorded ports_probe = 'unavailable' or 'skipped'."
+            log ERROR "Re-run Test-GetSystemInfo.sh without --skip-ports on a host with ss or netstat."
+            printf 'no snapshot with usable port data
+'
+            exit 0
+        fi
+        SID="${ROW%%|*}"
+        SREST="${ROW#*|}"
+        SISO="${SREST%%|*}"
+        SPROBE="${SREST##*|}"
+
+        NROW="$(sqlite_exec "$DB_PATH" list "SELECT id, iso_local, COALESCE(ports_probe,'unknown')
+ FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;" | grep -E '^[0-9]+\|' | head -n1 || true)"
+        NID="${NROW%%|*}"
+        NREST="${NROW#*|}"
+        log INFO "showing snapshot $SID ($SISO), ports_probe=$SPROBE"
+        if [ "$NID" != "$SID" ]; then
+            log WARN "the NEWEST snapshot is $NID (${NREST%%|*}) with ports_probe=${NREST##*|} -- not shown, because its port probe did not run"
+        fi
+        if [ "$SPROBE" = "unknown" ]; then
+            log WARN "this snapshot predates probe-status recording (schema < 3); an empty result may mean the probe never ran"
+        fi
+
+        # The comparison baseline must itself have usable port data, otherwise
+        # every port reads as NEW against a snapshot that simply never looked.
+        SQL="WITH prev AS (SELECT id FROM snapshot
+ WHERE (ports_probe = 'ok' OR ports_probe IS NULL) AND id <> $SID
+   AND unixtime_ms <= (SELECT unixtime_ms FROM snapshot WHERE id = $SID)
+ ORDER BY unixtime_ms DESC LIMIT 1)
  SELECT p.protocol, p.port, p.address, p.process_name,
- CASE WHEN (SELECT id FROM prev) IS NULL THEN 'no-previous-snapshot'
+ CASE WHEN (SELECT id FROM prev) IS NULL THEN 'no-comparable-snapshot'
       WHEN EXISTS (SELECT 1 FROM snapshot_port q WHERE q.snapshot_id=(SELECT id FROM prev)
                    AND q.protocol=p.protocol AND q.port=p.port)
       THEN 'unchanged' ELSE 'NEW' END AS since_previous
- FROM snapshot_port p WHERE p.snapshot_id=(SELECT id FROM latest)
+ FROM snapshot_port p WHERE p.snapshot_id = $SID
  ORDER BY p.protocol, p.port LIMIT $LIMIT;" ;;
     schema)
         SQL="SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type DESC, name;" ;;

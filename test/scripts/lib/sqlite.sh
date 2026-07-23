@@ -359,7 +359,9 @@ CREATE TABLE IF NOT EXISTS snapshot (
   os_release TEXT,
   script_pid INTEGER NOT NULL,
   script_flavor TEXT NOT NULL CHECK (script_flavor IN ('powershell','posix')),
-  invocation_source TEXT NOT NULL
+  invocation_source TEXT NOT NULL,
+  addresses_probe TEXT,
+  ports_probe TEXT
 );
 CREATE INDEX IF NOT EXISTS snapshot_time ON snapshot(unixtime_ms);
 CREATE TABLE IF NOT EXISTS snapshot_address (
@@ -381,6 +383,23 @@ CREATE TABLE IF NOT EXISTS snapshot_port (
   process_name TEXT
 );
 CREATE INDEX IF NOT EXISTS port_snapshot ON snapshot_port(snapshot_id, protocol, port);" >/dev/null
+
+    # Forward-only, non-destructive migration for databases created before
+    # schema 3. CREATE TABLE IF NOT EXISTS does nothing to an existing table, so
+    # the probe-status columns have to be added explicitly. ALTER TABLE ADD
+    # COLUMN cannot carry a CHECK in SQLite, so these stay plain TEXT in both
+    # fresh and migrated databases -- a fresh database with a stricter schema
+    # than a migrated one is a difference nobody would think to look for. The
+    # writer enforces the vocabulary instead.
+    local col has
+    for col in addresses_probe ports_probe; do
+        has="$(sqlite_exec "$1" list "SELECT COUNT(*) FROM pragma_table_info('snapshot') WHERE name='$col';" | tail -n1)"
+        if [ "$has" = "0" ]; then
+            log DEBUG "migrating system.db: adding $col"
+            sqlite_exec "$1" list "ALTER TABLE snapshot ADD COLUMN $col TEXT;" >/dev/null
+        fi
+    done
+    sqlite_exec "$1" list "INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version','3');" >/dev/null
 }
 
 #_______________________________________________________________________________

@@ -27,7 +27,8 @@ discard accumulated host history.
 | `key` | TEXT PRIMARY KEY | |
 | `value` | TEXT | |
 
-Seeded with `schema_version = 1` and `created_utc`.
+Seeded with `schema_version` and `created_utc`. Heartbeat is at 2, system at 3;
+migrations are forward-only and additive.
 
 ### `beat`
 
@@ -105,6 +106,8 @@ One row per invocation of the host-inspection script.
 | `script_pid` | INTEGER NOT NULL | | |
 | `script_flavor` | TEXT NOT NULL | | `powershell` or `posix` — which twin wrote the row. Makes twin-parity differences findable in the data. |
 | `invocation_source` | TEXT NOT NULL | | Caller-supplied; defaults to `manual`. |
+| `addresses_probe` | TEXT | yes | `ok` / `unavailable` / `skipped`. `NULL` only on rows written before schema 3. |
+| `ports_probe` | TEXT | yes | Same vocabulary. This is what lets a reader tell an empty port list from an unanswerable one. |
 
 **Index**: `unixtime_ms`.
 
@@ -137,10 +140,15 @@ One row per invocation of the host-inspection script.
 
 **Validation rules**
 
-- A snapshot with zero address rows is valid: the probe may have been unavailable. The
-  distinction between *no addresses found* and *could not look* lives in the warning on
-  stderr and is not reconstructible from the table alone — an accepted limitation, recorded
-  here so nobody later mistakes an empty child table for a determined result.
+- A snapshot with zero address or port rows is valid, and `addresses_probe` /
+  `ports_probe` say which of the two reasons applies. *(Schema 3, added 2026-07-23. Before
+  it, the distinction lived only in a stderr warning and was not reconstructible from the
+  table — which is exactly how `listeners` came to present an unanswerable snapshot as an
+  empty listening set.)*
+- The two probe columns are plain `TEXT` with no `CHECK`, because SQLite cannot add a
+  constrained column to an existing table and a fresh database enforcing more than a
+  migrated one is a difference nobody would think to look for. The writer enforces the
+  vocabulary.
 - `port` is between 1 and 65535.
 - Child rows are only ever written for a snapshot that was successfully inserted, so a
   partial failure never orphans them.
