@@ -23,6 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The job and its step were renamed from "badge" to "version lines" to reflect
   the widened scope.
 
+### Fixed
+
+- **The docs site homepage no longer 404s at its root.** The Pages site was
+  live and every content page served, but `https://shruggietech.github.io/go-schedule/`
+  — the URL the README release badge and the issue-template links point at —
+  returned 404. `docs/README.md` is the intended home page (front matter
+  `title: Home`, `nav_order: 1`), but Jekyll builds a source file named
+  `README.md` to `README.html`, not `index.html`, and nothing remapped it, so
+  the site root had no index document. Adding `permalink: /` to that page's
+  front matter emits it as `index.html` at the `baseurl` root, so the root now
+  serves the docs home. `docs/README.md` is not a pinned artifact, so no dated
+  decision was required.
+
 ### Decisions
 
 - **2026-07-23** — **The release automation syncs the two version strings the
