@@ -43,7 +43,7 @@ attachment to a bug report.
 | [Build-phase autopilot](build-autopilot.md) | The protocol under which features are executed end to end with a single human halt. Maintainer-facing. |
 | [Constitution](https://github.com/shruggietech/go-schedule/blob/main/.specify/memory/constitution.md) | The engineering principles the project is governed by. |
 | [Master specification](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/spec.md) | What the scheduler is and why, with the plan, data model, and contracts alongside it. |
-| [Changelog](https://github.com/shruggietech/go-schedule/blob/main/CHANGELOG.md) | Release history, including the dated decisions behind changes to pinned artifacts. |
+| [Changelog](changelog.md) | Release history, including the dated decisions behind changes to pinned artifacts. |
 
 ## Reporting problems
 

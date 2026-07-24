@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The docs site now has a Changelog page.** A new `docs/changelog.md` appears
+  in the site navigation and points to the canonical `CHANGELOG.md` in the
+  repository root, and the docs home index links to it. The changelog stays a
+  single source of truth at the repo root (edited as part of each release); the
+  site page is a themed pointer rather than a duplicated copy, matching how the
+  docs already link out to Contributing, the constitution, and the master spec.
+
 ### Changed
 
 - **Pinned artifact — `.github/workflows/release.yml` (2026-07-23).** The
