@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/go-schedule-horizontal-dark-transparent.svg">
-  <img alt="go-schedule" src="docs/assets/brand/go-schedule-horizontal-ink.svg" width="360">
+  <img alt="go-schedule" src="docs/assets/brand/go-schedule-horizontal-ink.svg" width="100%">
 </picture>
 
 [![CI](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml)
