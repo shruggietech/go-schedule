@@ -38,10 +38,21 @@ pre.highlight {
   border-radius: 6px;
 }
 
-// The header logo sits on the dark sidebar; give it breathing room.
+// The header logo sits on the dark sidebar. just-the-docs bounds the logo by
+// the (short) header height, which renders the wide lockup small — so grow the
+// header and pin an explicit logo height. Paired with the tight-cropped logo
+// SVG (viewBox trimmed to the artwork), this gives a properly sized wordmark.
+.site-header {
+  min-height: 4.25rem;
+}
 .site-header .site-title {
-  padding-top: 0.6rem;
-  padding-bottom: 0.6rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.site-logo {
+  height: 2.75rem;
+  background-position: left center;
+  background-size: contain;
 }
 
 // The "A ShruggieTech project" endorsement in the sidebar footer.

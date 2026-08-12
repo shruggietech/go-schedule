@@ -27,7 +27,7 @@ remote_theme: just-the-docs/just-the-docs@v0.4.2
 # preview are wired in _includes/head_custom.html; heading type and accents in
 # _sass/custom/custom.scss. The header logo is the horizontal brand lockup.
 color_scheme: goschedule
-logo: /assets/brand/go-schedule-horizontal-dark-transparent.svg
+logo: /assets/brand/go-schedule-horizontal-dark-tight.svg
 
 # Client-side search across the whole doc set.
 search_enabled: true
