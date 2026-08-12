@@ -1,0 +1,54 @@
+{%- comment -%}
+  go-schedule brand additions to <head>: brand web fonts, favicons, and the
+  social-preview image. Included by just-the-docs inside <head> on every page.
+  Font @font-face lives here (not in SCSS) so paths run through Liquid's
+  relative_url filter and resolve under the site's /go-schedule baseurl.
+{%- endcomment -%}
+
+<style>
+  @font-face {
+    font-family: "Geist";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("{{ '/assets/fonts/Geist-Regular.woff2' | relative_url }}") format("woff2");
+  }
+  @font-face {
+    font-family: "Geist";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("{{ '/assets/fonts/Geist-Medium.woff2' | relative_url }}") format("woff2");
+  }
+  @font-face {
+    font-family: "Geist Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("{{ '/assets/fonts/GeistMono-Regular.woff2' | relative_url }}") format("woff2");
+  }
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("{{ '/assets/fonts/SpaceGrotesk-Medium.woff2' | relative_url }}") format("woff2");
+  }
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("{{ '/assets/fonts/SpaceGrotesk-Bold.woff2' | relative_url }}") format("woff2");
+  }
+</style>
+
+<link rel="icon" type="image/svg+xml" href="{{ '/assets/favicons/favicon.svg' | relative_url }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ '/assets/favicons/favicon-32x32.png' | relative_url }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ '/assets/favicons/favicon-16x16.png' | relative_url }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ '/assets/favicons/apple-touch-icon.png' | relative_url }}">
+<link rel="manifest" href="{{ '/assets/favicons/site.webmanifest' | relative_url }}">
+
+<meta property="og:image" content="{{ '/assets/brand/go-schedule-social-preview.png' | absolute_url }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ '/assets/brand/go-schedule-social-preview.png' | absolute_url }}">

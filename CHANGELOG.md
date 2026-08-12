@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The go-schedule brand system is now applied across the app, README, and docs
+  site.** The desktop GUI ships a custom dark-first Fyne theme (`gui/theme.go`)
+  built from the brand palette — Anchor Blue for selection/focus/links, Interval
+  Mint for success, Hold Amber and Stop Red kept scarce — with the brand fonts
+  (Geist, Geist Mono, Space Grotesk Bold) embedded and brand-radius geometry, and
+  the window/app/exe icons replaced with the brand mark (a terminal prompt over
+  five cron cells). The README gains the horizontal logo, brand-hued badges, the
+  "A ShruggieTech project" endorsement, and drops the off-brand "Material Design"
+  framing. The just-the-docs site gains a brand dark color scheme, the header
+  logo, brand web fonts, favicons, a social-preview image, and the endorsement
+  footer. Fonts ship under the SIL Open Font License (texts included beside the
+  embedded/served fonts). No pinned artifact was modified.
 - **The docs site now has a Changelog page.** A new `docs/changelog.md` appears
   in the site navigation and points to the canonical `CHANGELOG.md` in the
   repository root, and the docs home index links to it. The changelog stays a

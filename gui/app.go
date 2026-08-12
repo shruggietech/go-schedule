@@ -66,6 +66,10 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 		backend: backend,
 		model:   viewmodel.New(backend),
 	}
+	// Apply the go-schedule brand theme (dark-first palette + brand fonts). Wired
+	// here so the windowed entry point and the headless test driver share one
+	// theme, and every NewUI-based test exercises the real palette.
+	fyneApp.Settings().SetTheme(newBrandTheme())
 	fyneApp.SetIcon(appIcon)
 	a.win = fyneApp.NewWindow("go-schedule")
 	a.win.SetIcon(windowIcon) // crisp small tile for the title bar (see icon.go)

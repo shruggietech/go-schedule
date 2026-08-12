@@ -1,11 +1,14 @@
-# go-schedule
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/go-schedule-horizontal-white.svg">
+  <img alt="go-schedule" src="docs/assets/brand/go-schedule-horizontal-light.svg" width="360">
+</picture>
 
 [![CI](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.8.0-blue)](https://github.com/shruggietech/go-schedule/releases/latest)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-shruggietech.github.io-blue)](https://shruggietech.github.io/go-schedule/)
+[![Release](https://img.shields.io/badge/release-v0.8.0-58A6FF)](https://github.com/shruggietech/go-schedule/releases/latest)
+[![License](https://img.shields.io/badge/license-Apache--2.0-62D9B7)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-shruggietech.github.io-58A6FF)](https://shruggietech.github.io/go-schedule/)
 
-**A cross-platform task scheduler with cron's power and none of its syntax.**\
+**A cross-platform scheduler in Go — cron's power, without its syntax.**\
 **Platforms:** Linux · macOS · Windows\
 **Interfaces:** CLI, desktop GUI, and a system-wide background daemon\
 **Documentation:** [shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/) · **Changes:** [CHANGELOG.md](CHANGELOG.md)
@@ -14,8 +17,8 @@
 go-schedule takes the same scheduling power and lets you write it the way you
 would say it — "every 15 minutes", "every weekday at 9:00 AM", "the 3rd
 Wednesday of each month" — or schedule a single one-off run. A background daemon
-keeps the schedule whether or not any window is open, and a Material Design
-desktop app gives you a calendar view of it all.
+keeps the schedule whether or not any window is open, and a desktop app gives
+you a calendar view of it all.
 
 ## Contents
 
@@ -82,8 +85,8 @@ input language: see [Cron interoperability](docs/cron.md) for the fidelity table
 or disabling one cascades through its whole subtree — one command to silence a
 region of the schedule.
 
-**A desktop app, not a wrapper.** A Go-native Material Design GUI with calendar
-and schedule views, a guided task editor that previews the schedule as you build
+**A desktop app, not a wrapper.** A Go-native GUI with calendar and schedule
+views, a guided task editor that previews the schedule as you build
 it, a group tree, and a live Logs view. Opening it never leaves a console window
 behind. See the [GUI field reference](docs/gui-fields.md) for what each editor
 field accepts.
@@ -240,3 +243,5 @@ Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Licensed under the [Apache License 2.0](LICENSE).
 © 2026 [ShruggieTech](https://shruggie.tech).
+
+<sub>A ShruggieTech project.</sub>

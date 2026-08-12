@@ -1,0 +1,41 @@
+// go-schedule brand color scheme for just-the-docs (v0.4.2).
+//
+// Dark-first, close to monochrome: neutral Night/Panel/Line rails carry
+// structure, Anchor Blue carries links and focus, Interval Mint marks success.
+// This file only sets SCSS variables — just-the-docs generates the CSS from them
+// later in its import chain, so overriding the full dark variable set here gives
+// the whole site the brand palette. Selected via `color_scheme: goschedule` in
+// _config.yml.
+
+// ── Brand tokens ──
+$gs-night:    #071014; // primary dark background
+$gs-panel:    #0d171c; // sidebar, code, search, tables
+$gs-raised:   #13232a; // buttons / elevated surfaces
+$gs-line:     #28414b; // borders and rails
+$gs-text:     #f3f7f8; // primary text
+$gs-muted:    #9baeb6; // secondary text
+$gs-anchor:   #58a6ff; // links / primary / focus
+$gs-interval: #62d9b7; // success / recurrence
+
+// ── just-the-docs surface + text roles ──
+$body-background-color:        $gs-night;
+$sidebar-color:                $gs-panel;
+$border-color:                 $gs-line;
+$body-text-color:              $gs-text;
+$body-heading-color:           $gs-text;
+$nav-child-link-color:         $gs-muted;
+$link-color:                   $gs-anchor;
+$btn-primary-color:            $gs-anchor;
+$base-button-color:            $gs-raised;
+$search-background-color:      $gs-panel;
+$search-result-preview-color:  $gs-muted;
+$table-background-color:       $gs-panel;
+$code-background-color:        $gs-panel;
+$feedback-color:               darken($sidebar-color, 3%);
+
+// ── Brand typography ──
+// Body/UI = Geist, commands & code = Geist Mono. Headings get Space Grotesk in
+// custom/custom.scss (just-the-docs has no separate heading-font variable).
+$body-font-family:      "Geist", -apple-system, blinkmacsystemfont, "Segoe UI",
+                        roboto, helvetica, arial, sans-serif;
+$mono-font-family:      "Geist Mono", "SFMono-Regular", menlo, consolas, monospace;

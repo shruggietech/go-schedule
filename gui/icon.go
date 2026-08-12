@@ -6,16 +6,18 @@ import (
 	"fyne.io/fyne/v2"
 )
 
-// iconBytes is the full-resolution application icon (a calendar+clock mark,
-// transparent PNG) used for large surfaces like the macOS dock.
+// iconBytes is the full-resolution application icon: the go-schedule brand mark
+// (a terminal prompt over a five-field cron schedule) as a transparent PNG, used
+// for large surfaces like the macOS dock.
 //
 //go:embed assets/icon.png
 var iconBytes []byte
 
-// windowIconBytes is a small, purpose-rendered tile of the same mark (extracted
-// from the multi-size .ico). Fyne scales the window icon down to ~16px for the
-// title bar; downscaling the 1080px source that far mangles the thin strokes,
-// so the title bar uses this crisp 64px tile instead.
+// windowIconBytes is the brand's reduced mark (the prompt chevron and cursor
+// line only) on a Night tile — the same purpose-rendered artwork the favicons
+// use. Fyne scales the window icon down to ~16px for the title bar; the reduced
+// mark stays legible where the full five-cell mark would not, so the title bar
+// and taskbar use this tile instead of downscaling the full-resolution source.
 //
 //go:embed assets/icon-window.png
 var windowIconBytes []byte

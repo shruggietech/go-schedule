@@ -1,0 +1,55 @@
+// go-schedule brand customizations layered on top of just-the-docs.
+// Auto-imported by the theme at the end of its SCSS chain (custom/custom.scss),
+// so these rules win over the theme defaults. @font-face declarations live in
+// _includes/head_custom.html (they need Liquid's relative_url for the baseurl).
+
+// Headings use Space Grotesk with the brand's tight display tracking. Geist
+// (body) and Geist Mono (code) come from the color-scheme font variables.
+h1, h2, h3, h4, h5, h6,
+.site-title {
+  font-family: "Space Grotesk", -apple-system, blinkmacsystemfont, "Segoe UI",
+    sans-serif;
+  letter-spacing: -0.025em;
+}
+
+// Uppercase mono eyebrow tracking for nav section labels, matching the brand's
+// 0.12em label tracking.
+.nav-category {
+  font-family: "Geist Mono", monospace;
+  letter-spacing: 0.12em;
+  color: #9baeb6; // Muted
+}
+
+// Anchor Blue focus ring on interactive elements (brand: visible 2px focus).
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+// Keep code blocks quiet and technical: Panel surface, hairline Line border,
+// small radius. (Values mirror the brand tokens.)
+.highlight,
+figure.highlight,
+pre.highlight {
+  border: 1px solid #28414b;
+  border-radius: 6px;
+}
+
+// The header logo sits on the dark sidebar; give it breathing room.
+.site-header .site-title {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+// The "A ShruggieTech project" endorsement in the sidebar footer.
+.gs-endorsement {
+  font-family: "Geist Mono", monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9baeb6; // Muted
+  padding: 0.75rem 0 0;
+}
