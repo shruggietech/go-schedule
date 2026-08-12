@@ -1,5 +1,5 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/go-schedule-horizontal-white.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/go-schedule-horizontal-dark-transparent.svg">
   <img alt="go-schedule" src="docs/assets/brand/go-schedule-horizontal-ink.svg" width="360">
 </picture>
 
