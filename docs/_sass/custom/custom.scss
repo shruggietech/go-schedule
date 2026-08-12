@@ -55,6 +55,31 @@ pre.highlight {
   background-size: contain;
 }
 
+// Syntax highlighting for the dark code surface. The custom color scheme sets a
+// dark ($code-background) code background, but just-the-docs' default Rouge
+// token colors are tuned for a LIGHT background (dark ink), so highlighted
+// tokens render dark-on-dark and become unreadable. Override the token palette
+// with light-on-dark brand colors. Base text is light; accents follow the brand
+// (Anchor Blue keywords/functions, Interval Mint strings, Hold Amber numbers,
+// Muted comments).
+.highlight {
+  color: #f3f7f8; // base: any untyped token is light
+
+  .c, .c1, .cm, .cd, .cp, .cs { color: #9baeb6; font-style: italic; } // comments
+  .k, .kc, .kd, .kn, .kp, .kr, .kt, .kv { color: #58a6ff; }           // keywords
+  .nb, .bp, .nf, .fm, .nn, .nc { color: #58a6ff; }                    // builtins / functions / classes
+  .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr, .dl, .sa, .ss { color: #62d9b7; } // strings
+  .m, .mi, .mf, .mh, .mo, .mb, .il { color: #f2b84b; }                // numbers
+  .nv, .vg, .vi, .vc, .no, .na { color: #f2b84b; }                    // variables / attributes
+  .nt { color: #62d9b7; }                                            // html/xml tags
+  .o, .ow, .p, .pi { color: #f3f7f8; }                               // operators / punctuation
+  .gp { color: #9baeb6; }                                            // shell prompt
+  .gi { color: #62d9b7; }                                            // diff inserted
+  .gd { color: #e05f5f; }                                            // diff deleted
+  // Don't flag lexer "error" tokens with an alarming red plate; keep them legible.
+  .err { color: #f3f7f8; background-color: transparent; }
+}
+
 // The "A ShruggieTech project" endorsement in the sidebar footer.
 .gs-endorsement {
   font-family: "Geist Mono", monospace;
