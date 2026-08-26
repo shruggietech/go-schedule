@@ -62,33 +62,16 @@ until that package completes, so a background run cannot be distinguished from a
 dead one.
 
 ```bash
-gofmt -l internal cmd test
+sh scripts/verify.sh all
 ```
 
-```bash
-go vet ./...
-```
-
-```bash
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
-```
-
-```bash
-CGO_ENABLED=1 go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
-```
-
-```bash
-go test ./gui/...
-```
-
-```bash
-sh scripts/coverage-gate.sh
-```
-
-`gofmt` must print nothing. The race run excludes the cgo-only GUI entry point
-and the Fyne widget package (races there are inside Fyne's own font cache, not
-this project's code); `gui/viewmodel` stays race-tested and the GUI is covered
-by the headless run.
+This is the single definition of green. It runs `format`, `vet`, `lint`, `race`,
+`gui`, `coverage`, `docs`, and `automation`, in that order, and stops on the
+first failure. Use `sh scripts/verify.sh <gate>` only to diagnose an individual
+gate. The format gate must print no files. The race gate excludes the cgo-only
+GUI entry point and the Fyne widget package (races there are inside Fyne's own
+font cache, not this project's code); `gui/viewmodel` stays race-tested and the
+GUI is covered by the headless gate.
 
 `scripts/coverage-gate.sh` is the core-package coverage gate: the six core
 packages must stay at or above 80 percent. CI runs this exact script, so the
@@ -106,8 +89,10 @@ Two local-environment traps, neither of which indicates a problem with the repo:
   report the newer one, because `GOTOOLCHAIN=auto` upgrades transparently inside
   this repo — but `go run <linter>@<ver>` builds the linter under *its* go.mod,
   which the older base toolchain already satisfies, so no upgrade happens and the
-  linter is compiled with the older version. Either upgrade the base Go install
-  to match `go.mod`, or force it for that one command:
+  linter is compiled with the older version. The canonical driver derives
+  `GOTOOLCHAIN` from `go.mod`; for a direct diagnostic invocation, either
+  upgrade the base Go install or force the matching toolchain for that one
+  command:
 
   ```bash
   GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
@@ -151,6 +136,16 @@ Governing documents:
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
+- Plan: `specs/011-maintainer-automation-baseline/plan.md` (close #21 and #41 as
+  one maintainer-automation slice: move all CI/release action references from
+  their Node 20 majors to verified Node 24 majors; introduce a POSIX
+  `scripts/verify.sh` command source with eight named gates and aggregate mode,
+  consumed by CI, Make, contributor guidance, and autopilot; add an offline
+  `scripts/automation-check.sh` allowlist + independent gate-manifest check with
+  temporary-fixture regressions; preserve workflow triggers, permissions,
+  matrices, artifacts, and release behavior. Pinned artifacts touched:
+  `.github/workflows/ci.yml`, `.github/workflows/release.yml`, and `Makefile`,
+  each with a dated CHANGELOG decision.)
 - Plan: `specs/010-docs-site-pages/plan.md` (publish `docs/` as a GitHub Pages site + README consolidation (closes #11): branch-based Jekyll served from the `/docs` folder on `main` using the just-the-docs remote theme pinned to `@v0.4.2` (last release that builds under GitHub Pages' Jekyll 3.9/libsass — newer needs Jekyll 4/Actions, rejected); front matter on every `docs/*.md` with the three install guides grouped under an `install.md` Installation section; the ~11 cross-directory `../` links rewritten to absolute repo URLs so nothing 404s on a `/docs`-rooted site; `docs/` declared the single source of truth with subdir READMEs as pointers; a POSIX-sh `scripts/docs-check.sh` gate (front matter + on-disk link + no-escape + pointer validity, skips http(s), no network) wired as a new `docs` CI job; issue-template + README links repointed to the site and the README `0.6.0`→`0.7.0` drift fixed. Pinned artifacts touched: `.github/workflows/ci.yml` and `docs/INSTALL-windows.md`, each a dated CHANGELOG decision.)
 - Prior: `specs/009-ci-bench-p99/plan.md` (run the engine benchmarks in CI and enforce the constitution's p99 dispatch-latency budget (closes #14): a committed `TestDispatchLatencyP99` in `internal/engine` measures per-dispatch latency (scheduled→execution-start, command execution excluded) over 2000 serial dispatches and asserts the p99 against a `DispatchLatencyBudget = 100ms` constant defined next to the dispatch code; a `bench` CI job runs `BenchmarkDispatch`/`BenchmarkNextRun` and publishes their output as an artifact. Enforced gate is the absolute budget, not a benchstat delta (recorded decision); the goroutine-leak test already runs under -race. Only pinned artifact touched is `.github/workflows/ci.yml`.)
 - Prior: `specs/006-maintainer-test-scripts/plan.md` (maintainer test scripts: three cross-platform script pairs under `test/scripts/` recording to `heartbeat.db` / `system.db` so an installed daemon can be proven to fire on time, survive restarts, catch up, and honor overlap policies; drift derived by snapping to the caller-declared interval boundary because the executor injects no scheduler context, with the source labelled on every figure; `sqlite3` detected (flag → repo `.bin/` → PATH, ≥3.33 for `.param set` bound parameters) with a checksum-verified opt-in installer; docs consolidated into `docs/test-scripts.md`; `.gitignore` narrowed to track `.claude/skills/` and the house-standard skills vendored)

@@ -3,31 +3,38 @@
 # and CLI are cgo-free. Targets below operate on the whole module.
 
 GO        ?= go
+SH        ?= sh
 LDFLAGS   ?=
 GUI_LDFLAGS_WINDOWS = -H windowsgui
 
-.PHONY: all fmt vet lint test test-race cover bench build build-daemon build-cli build-gui tidy clean
+.PHONY: all verify fmt fmt-check vet lint test test-race test-gui cover docs-check automation-check bench build build-daemon build-cli build-gui tidy clean
 
 all: fmt vet test build
 
+# Mutating convenience target. Use fmt-check or verify for validation.
 fmt:
 	$(GO) fmt ./...
 
+verify:
+	$(SH) scripts/verify.sh all
+
+fmt-check:
+	$(SH) scripts/verify.sh format
+
 vet:
-	$(GO) vet ./...
+	$(SH) scripts/verify.sh vet
 
 lint:
-	golangci-lint run
+	$(SH) scripts/verify.sh lint
 
 test:
 	$(GO) test ./...
 
 test-race:
-	$(GO) test -race ./...
+	$(SH) scripts/verify.sh race
 
 cover:
-	$(GO) test -race -covermode=atomic -coverprofile=coverage.out ./...
-	$(GO) tool cover -func=coverage.out | tail -1
+	$(SH) scripts/verify.sh coverage
 
 bench:
 	$(GO) test -bench=. -benchmem ./internal/engine/...
@@ -50,7 +57,13 @@ build-gui-windows:
 
 # Headless GUI tests run without a display or OpenGL (Fyne test driver).
 test-gui:
-	$(GO) test ./gui/...
+	$(SH) scripts/verify.sh gui
+
+docs-check:
+	$(SH) scripts/verify.sh docs
+
+automation-check:
+	$(SH) scripts/verify.sh automation
 
 tidy:
 	$(GO) mod tidy

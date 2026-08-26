@@ -56,39 +56,21 @@ push and sort out afterwards.
 
 ## Verification gates
 
-Run these six, in the **foreground**, watched to completion. Never launch the
-test suite in the background and poll for output: `go test` buffers a package's
-output until that package completes, so a backgrounded run cannot be
+Run the canonical aggregate in the **foreground**, watched to completion. Never
+launch the test suite in the background and poll for output: `go test` buffers a
+package's output until that package completes, so a backgrounded run cannot be
 distinguished from a dead one.
 
 ```bash
-gofmt -l internal cmd test
+sh scripts/verify.sh all
 ```
 
-```bash
-go vet ./...
-```
-
-```bash
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
-```
-
-```bash
-CGO_ENABLED=1 go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
-```
-
-```bash
-go test ./gui/...
-```
-
-```bash
-sh scripts/coverage-gate.sh
-```
-
-`gofmt` must print nothing. The race run excludes the cgo-only GUI entry point
-and the Fyne widget package — races there live inside Fyne's own font cache
-rather than this project's code — while `gui/viewmodel` stays race-tested and
-the GUI is covered by the headless run.
+The aggregate runs eight named gates in order: `format`, `vet`, `lint`, `race`,
+`gui`, `coverage`, `docs`, and `automation`. Run one gate with
+`sh scripts/verify.sh <gate>` when diagnosing a failure. The format gate must
+print no files. The race gate excludes the cgo-only GUI entry point and the Fyne
+widget package (races there live inside Fyne's own font cache), while
+`gui/viewmodel` stays race-tested and the GUI is covered by the headless gate.
 
 `scripts/coverage-gate.sh` is the core-package coverage gate: six packages must
 stay at or above 80 percent. CI runs this exact script, so the local number and
@@ -110,8 +92,9 @@ lower than the targeted Go version. Your *base* Go toolchain is older than the
 `GOTOOLCHAIN=auto` upgrades transparently inside this repository — but
 `go run <linter>@<ver>` builds the linter under *its* `go.mod`, which the older
 base toolchain already satisfies, so no upgrade happens and the linter compiles
-against the older version. Either upgrade your base Go install to match
-`go.mod`, or force it for that one command:
+against the older version. The canonical driver derives `GOTOOLCHAIN` from
+`go.mod`; for a direct diagnostic invocation, either upgrade your base Go
+install or force the matching toolchain for that one command:
 
 ```bash
 GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
@@ -125,6 +108,11 @@ version from `go.mod` as its base toolchain, and the pinned setup passes there.
 runs. Install one — MSYS2 or MinGW-w64 on Windows — or rely on CI for the race
 gate, and say explicitly that you did rather than reporting the suite as
 passing.
+
+The Make targets `verify`, `fmt-check`, `vet`, `lint`, `test-race`, `test-gui`,
+`cover`, `docs-check`, and `automation-check` delegate to the same driver.
+`make fmt`, `make tidy`, builds, and cleanup are mutating conveniences, not
+verification gates.
 
 ## Pinned artifacts
 
@@ -187,7 +175,7 @@ both:
 Run the check before pushing any documentation change (CI runs the same script):
 
 ```bash
-sh scripts/docs-check.sh
+sh scripts/verify.sh docs
 ```
 
 ## Conventions

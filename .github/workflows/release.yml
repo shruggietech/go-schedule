@@ -19,7 +19,7 @@ jobs:
     name: Bump the static README version lines to this tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -57,8 +57,8 @@ jobs:
     name: Build & publish release binaries (daemon + CLI)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -98,7 +98,7 @@ jobs:
           sha256sum dist/* # for the build log only
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true
@@ -150,8 +150,8 @@ jobs:
             ext: ".exe"
             ldflags: "-H windowsgui"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -266,7 +266,7 @@ jobs:
       # Explicit patterns, not dist/*: `wix build` drops a .wixpdb (debug symbols)
       # next to the .msi, and a bare glob published it as a release asset.
       - name: Attach GUI artifact to the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.tar.gz
