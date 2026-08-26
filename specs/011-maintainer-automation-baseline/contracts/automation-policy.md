@@ -35,7 +35,7 @@ docs
 automation
 ```
 
-The policy compares this independent list with `scripts/verify.sh list`.
+The policy compares this independent list with `sh scripts/verify.sh list`.
 Missing, extra, duplicated, or reordered gates fail. Ordering is contractual so
 aggregate diagnostics and the autopilot breakdown remain stable.
 

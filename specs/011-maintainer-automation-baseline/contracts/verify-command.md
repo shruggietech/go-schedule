@@ -20,16 +20,16 @@ restate child commands.
 ## Modes
 
 ```text
-scripts/verify.sh list
-scripts/verify.sh all
-scripts/verify.sh format
-scripts/verify.sh vet
-scripts/verify.sh lint
-scripts/verify.sh race
-scripts/verify.sh gui
-scripts/verify.sh coverage
-scripts/verify.sh docs
-scripts/verify.sh automation
+sh scripts/verify.sh list
+sh scripts/verify.sh all
+sh scripts/verify.sh format
+sh scripts/verify.sh vet
+sh scripts/verify.sh lint
+sh scripts/verify.sh race
+sh scripts/verify.sh gui
+sh scripts/verify.sh coverage
+sh scripts/verify.sh docs
+sh scripts/verify.sh automation
 ```
 
 - `list` prints the required gate names, one per line, in aggregate order.
