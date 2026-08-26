@@ -54,6 +54,34 @@ jobs:
       - uses: actions/upload-artifact@v7
       - uses: softprops/action-gh-release@v3
 EOF
+  cat > "$fixture/.github/workflows/codeql.yml" <<'EOF'
+name: CodeQL
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * 1'
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: go
+          build-mode: manual
+      - name: Build
+        run: CGO_ENABLED=0 go build ./...
+      - uses: github/codeql-action/analyze@v4
+EOF
   cat > "$fixture/scripts/verify.sh" <<EOF
 #!/bin/sh
 if [ "\${1:-}" = list ]; then
@@ -80,11 +108,41 @@ run_automation_cases() {
     "$good/.github/workflows/ci.yml" > "$old/.github/workflows/ci.yml"
   run_expect_fail obsolete 'actions/checkout@v4' sh "$CHECK" "$old"
 
+  old_codeql="$tmp/old-codeql"
+  cp -R "$good" "$old_codeql"
+  sed 's#github/codeql-action/init@v4#github/codeql-action/init@v3#' \
+    "$good/.github/workflows/codeql.yml" > \
+    "$old_codeql/.github/workflows/codeql.yml"
+  run_expect_fail obsolete-codeql 'github/codeql-action/init@v3' \
+    sh "$CHECK" "$old_codeql"
+
   unknown="$tmp/unknown"
   cp -R "$good" "$unknown"
   printf '      - uses: example/unknown@v1\n' >> \
     "$unknown/.github/workflows/ci.yml"
   run_expect_fail unknown 'example/unknown@v1' sh "$CHECK" "$unknown"
+
+  missing_trigger="$tmp/missing-trigger"
+  cp -R "$good" "$missing_trigger"
+  sed '/  schedule:/,/cron:/d' "$good/.github/workflows/codeql.yml" > \
+    "$missing_trigger/.github/workflows/codeql.yml"
+  run_expect_fail missing-trigger 'weekly schedule trigger' \
+    sh "$CHECK" "$missing_trigger"
+
+  insufficient_permission="$tmp/insufficient-permission"
+  cp -R "$good" "$insufficient_permission"
+  sed '/  security-events: write/d' "$good/.github/workflows/codeql.yml" > \
+    "$insufficient_permission/.github/workflows/codeql.yml"
+  run_expect_fail insufficient-permission 'security-events: write' \
+    sh "$CHECK" "$insufficient_permission"
+
+  missing_analysis="$tmp/missing-analysis"
+  cp -R "$good" "$missing_analysis"
+  sed '/github\/codeql-action\/analyze@v4/d' \
+    "$good/.github/workflows/codeql.yml" > \
+    "$missing_analysis/.github/workflows/codeql.yml"
+  run_expect_fail missing-analysis 'CodeQL analyze step' \
+    sh "$CHECK" "$missing_analysis"
 
   missing="$tmp/missing"
   make_fixture "$missing" 'format vet lint race gui coverage docs'

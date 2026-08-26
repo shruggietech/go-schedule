@@ -136,6 +136,16 @@ Governing documents:
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
+- Plan: `specs/012-github-security-baseline/plan.md` (close #38 and #39 as one
+  repository-security slice: restore private vulnerability reporting with the
+  published `info@shruggie.tech` fallback and repository-admin triage; enable
+  each supported secret-scanning control and report plan/token limitations
+  individually; add repository-owned advanced CodeQL for Go on pull requests,
+  `main`, and weekly using a manual cgo-free build; extend the offline
+  automation policy with negative workflow-contract fixtures; preserve the
+  existing CI workflow and all product behavior. Remote settings activate only
+  after the autopilot pre-push authorization. Pinned artifact added:
+  `.github/workflows/codeql.yml`, with a dated CHANGELOG decision.)
 - Plan: `specs/011-maintainer-automation-baseline/plan.md` (close #21 and #41 as
   one maintainer-automation slice: move all CI/release action references from
   their Node 20 majors to verified Node 24 majors; introduce a POSIX

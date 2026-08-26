@@ -30,6 +30,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The repository now carries a reviewable GitHub security baseline (addresses
+  #38 and #39).** `SECURITY.md` retains the private advisory route and now names
+  `info@shruggie.tech` as its fallback plus repository administrators as the
+  initial triage owners. A repository-owned advanced CodeQL workflow analyzes
+  Go on pull requests, `main`, and weekly with a manual cgo-free build. The
+  offline automation gate rejects obsolete or unknown security actions and
+  drift in the workflow's triggers, permissions, and required analysis steps.
+  Private reporting and supported secret protections are activated only after
+  the autopilot publication authorization, with each hosted result reported
+  separately.
+- **Pinned artifact - `.github/workflows/codeql.yml` (2026-08-26).** Added
+  advanced Go analysis using checkout/setup-go v7 and CodeQL v4, the
+  module-selected Go version, a manual `CGO_ENABLED=0 go build ./...`,
+  least-privilege `contents: read` and `security-events: write` permissions,
+  and push-to-main, pull-request-to-main, and weekly triggers. The existing CI
+  workflow and product build remain unchanged.
+- **Pinned automation policy - `scripts/automation-check.sh` (2026-08-26).**
+  Approved the researched CodeQL v4 init/analyze action families and added an
+  offline, fixture-backed contract for the canonical security workflow. The
+  policy remains network-free and preserves the existing eight-gate manifest.
 - **Maintainer automation now has a supported hosted runtime and one local
   definition of green (closes #21 and #41).** CI and release actions use their
   researched Node 24 majors. `sh scripts/verify.sh all` runs the exact eight-gate
@@ -78,6 +98,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-26 - Use repository-owned advanced CodeQL with a manual headless Go
+  build.** Reviewable triggers and least-privilege permissions are part of this
+  repository's security contract. `CGO_ENABLED=0 go build ./...` traces compiled
+  Go without pulling the Fyne/OpenGL entry point into the hosted analysis build.
+- **2026-08-26 - Validate the security workflow with the existing offline
+  automation policy.** CodeQL v4 joins the researched Node 24 action allowlist,
+  and temporary fixtures reject five drift classes before publication:
+  obsolete CodeQL, unknown actions, missing triggers, insufficient permissions,
+  and missing analysis.
+- **2026-08-26 - Report hosted security capabilities individually.** Private
+  reporting and each secret-scanning control must read back as enabled or carry
+  an exact unavailable, unverified, or failed result. Plan limitations and token
+  scope are not treated as green, and validation creates no fake advisory or
+  test secret.
 - **2026-08-26 - Use the latest researched Node 24 action majors behind an
   offline allowlist.** CI uses `actions/checkout@v7`, `actions/setup-go@v7`, and
   `actions/upload-artifact@v7`; release automation also uses checkout/setup-go
