@@ -98,8 +98,12 @@ else
 
   require_codeql_pattern '^  schedule:$' 'weekly schedule trigger'
   require_codeql_pattern \
-    "^    - cron: '[0-9*/,-]+ [0-9*/,-]+ [0-9*/,-]+ [0-9*/,-]+ [0-9*/,-]+'$" \
-    'weekly schedule trigger'
+    "^    - cron: '17 4 \* \* 1'$" \
+    "weekly schedule trigger (expected '17 4 * * 1')"
+
+  if grep -Eq '^[[:space:]]+permissions:' "$CODEQL"; then
+    report "$CODEQL: job-level permissions override is not allowed"
+  fi
 
   permissions=$(awk '
     /^permissions:$/ { inside = 1; next }
@@ -127,7 +131,7 @@ else
   require_codeql_pattern '^[[:space:]]+(-[[:space:]]+)?uses: github/codeql-action/analyze@v4$' \
     'CodeQL analyze step'
 
-  if grep -Eq '\$\{\{[[:space:]]*secrets\.' "$CODEQL"; then
+  if grep -Eq '\$\{\{[[:space:]]*secrets([[:space:]]|\.|\[)' "$CODEQL"; then
     report "$CODEQL: CodeQL workflow must not consume repository or organization secrets"
   fi
 fi

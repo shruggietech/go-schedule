@@ -136,6 +136,22 @@ run_automation_cases() {
   run_expect_fail insufficient-permission 'security-events: write' \
     sh "$CHECK" "$insufficient_permission"
 
+  job_permission="$tmp/job-permission"
+  cp -R "$good" "$job_permission"
+  sed '/    runs-on: ubuntu-latest/a\    permissions: write-all' \
+    "$good/.github/workflows/codeql.yml" > \
+    "$job_permission/.github/workflows/codeql.yml"
+  run_expect_fail job-permission 'job-level permissions override' \
+    sh "$CHECK" "$job_permission"
+
+  invalid_schedule="$tmp/invalid-schedule"
+  cp -R "$good" "$invalid_schedule"
+  sed "s/17 4 \* \* 1/0 0 31 2 */" \
+    "$good/.github/workflows/codeql.yml" > \
+    "$invalid_schedule/.github/workflows/codeql.yml"
+  run_expect_fail invalid-schedule 'weekly schedule trigger' \
+    sh "$CHECK" "$invalid_schedule"
+
   missing_analysis="$tmp/missing-analysis"
   cp -R "$good" "$missing_analysis"
   sed '/github\/codeql-action\/analyze@v4/d' \
@@ -143,6 +159,14 @@ run_automation_cases() {
     "$missing_analysis/.github/workflows/codeql.yml"
   run_expect_fail missing-analysis 'CodeQL analyze step' \
     sh "$CHECK" "$missing_analysis"
+
+  bracket_secret="$tmp/bracket-secret"
+  cp -R "$good" "$bracket_secret"
+  sed "/    steps:/a\      - run: echo \"\${{ secrets['NAME'] }}\"" \
+    "$good/.github/workflows/codeql.yml" > \
+    "$bracket_secret/.github/workflows/codeql.yml"
+  run_expect_fail bracket-secret 'must not consume' \
+    sh "$CHECK" "$bracket_secret"
 
   missing="$tmp/missing"
   make_fixture "$missing" 'format vet lint race gui coverage docs'

@@ -16,6 +16,7 @@ Expected local evidence:
 
 - all positive automation fixtures pass;
 - obsolete CodeQL, unknown action, missing trigger, insufficient permission,
+  job-level permission override, invalid schedule, bracket-form secret access,
   and missing analysis fixtures fail for the expected reason;
 - the real workflow satisfies the advanced CodeQL contract;
 - all eight canonical verification gates pass in order;
