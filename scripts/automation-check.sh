@@ -23,6 +23,8 @@ approved_for() {
     actions/checkout) printf '%s' 'actions/checkout@v7' ;;
     actions/setup-go) printf '%s' 'actions/setup-go@v7' ;;
     actions/upload-artifact) printf '%s' 'actions/upload-artifact@v7' ;;
+    github/codeql-action/init) printf '%s' 'github/codeql-action/init@v4' ;;
+    github/codeql-action/analyze) printf '%s' 'github/codeql-action/analyze@v4' ;;
     softprops/action-gh-release) printf '%s' 'softprops/action-gh-release@v3' ;;
     *) return 1 ;;
   esac
@@ -63,6 +65,77 @@ if [ "$found_workflow" -eq 0 ]; then
   report "$ROOT/.github/workflows: no .yml or .yaml workflow files found"
 fi
 
+CODEQL="$ROOT/.github/workflows/codeql.yml"
+
+require_codeql_pattern() {
+  pattern=$1
+  description=$2
+  if ! grep -Eq "$pattern" "$CODEQL"; then
+    report "$CODEQL: missing $description"
+  fi
+}
+
+trigger_targets_main() {
+  trigger=$1
+  awk -v trigger="$trigger" '
+    $0 == "  " trigger ":" { inside = 1; next }
+    inside && /^  [[:alnum:]_-]+:/ { exit }
+    inside && /^    branches: \[main\]$/ { found = 1 }
+    END { exit !found }
+  ' "$CODEQL"
+}
+
+if [ ! -f "$CODEQL" ]; then
+  report "$CODEQL: canonical CodeQL workflow not found"
+else
+  require_codeql_pattern '^name: CodeQL$' 'stable CodeQL workflow name'
+
+  for trigger in push pull_request; do
+    if ! trigger_targets_main "$trigger"; then
+      report "$CODEQL: missing $trigger trigger targeting main"
+    fi
+  done
+
+  require_codeql_pattern '^  schedule:$' 'weekly schedule trigger'
+  require_codeql_pattern \
+    "^    - cron: '17 4 \* \* 1'$" \
+    "weekly schedule trigger (expected '17 4 * * 1')"
+
+  if grep -Eq '^[[:space:]]+permissions:' "$CODEQL"; then
+    report "$CODEQL: job-level permissions override is not allowed"
+  fi
+
+  permissions=$(awk '
+    /^permissions:$/ { inside = 1; next }
+    inside && /^[^[:space:]]/ { exit }
+    inside && NF { print }
+  ' "$CODEQL")
+  expected_permissions='  contents: read
+  security-events: write'
+  if [ "$permissions" != "$expected_permissions" ]; then
+    report "$CODEQL: permissions must be exactly contents: read and security-events: write"
+  fi
+
+  require_codeql_pattern '^    runs-on: ubuntu-latest$' \
+    'Ubuntu analysis runner'
+  require_codeql_pattern '^          go-version-file: go\.mod$' \
+    'module-selected Go version'
+  require_codeql_pattern '^          languages: go$' 'CodeQL Go language'
+  require_codeql_pattern '^          build-mode: manual$' \
+    'CodeQL manual build mode'
+  require_codeql_pattern '^[[:space:]]+(-[[:space:]]+)?uses: github/codeql-action/init@v4$' \
+    'CodeQL init step'
+  require_codeql_pattern \
+    '^        run: CGO_ENABLED=0 go build \./\.\.\.$' \
+    'cgo-free headless build step'
+  require_codeql_pattern '^[[:space:]]+(-[[:space:]]+)?uses: github/codeql-action/analyze@v4$' \
+    'CodeQL analyze step'
+
+  if grep -Eq '\$\{\{[[:space:]]*secrets([[:space:]]|\.|\[)' "$CODEQL"; then
+    report "$CODEQL: CodeQL workflow must not consume repository or organization secrets"
+  fi
+fi
+
 EXPECTED_GATES='format
 vet
 lint
@@ -92,4 +165,4 @@ if [ -s "$FAILURES" ]; then
   exit 1
 fi
 
-printf 'automation-check: OK - approved actions and 8-gate manifest\n'
+printf 'automation-check: OK - approved actions, CodeQL contract, and 8-gate manifest\n'

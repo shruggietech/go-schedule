@@ -20,15 +20,19 @@ Please report privately, using GitHub's private vulnerability reporting:
 Do not open a public issue for a vulnerability. This is a small project and a
 public report is a disclosure with no lead time.
 
+If GitHub's private reporting form is unavailable, email
+**info@shruggie.tech** instead. Use the same private-reporting precautions and
+do not include vulnerability details in a public issue.
+
 Useful things to include, in rough order of how much they help: what an attacker
 gains, the exact steps to reproduce, the version and install method, and whether
 the attacker needs local access or an account on the machine. A proof of concept
 is welcome but not required — a clear description of the mechanism is often
 enough.
 
-You can expect an acknowledgement within a week. This is a one-to-two developer
-project, so please read that as a realistic commitment rather than a service
-level.
+Repository administrators own initial triage. You can expect an acknowledgement
+within a week. This is a one-to-two developer project, so please read that as a
+realistic commitment rather than a service level.
 
 ## Supported versions
 
