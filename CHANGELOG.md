@@ -30,6 +30,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Maintainer automation now has a supported hosted runtime and one local
+  definition of green (closes #21 and #41).** CI and release actions use their
+  researched Node 24 majors. `sh scripts/verify.sh all` runs the exact eight-gate
+  pre-push contract, and CI, Make, contributor guidance, and autopilot delegate
+  to it. An offline allowlist and fixture suite reject obsolete or unknown
+  action references and verification-manifest drift.
+- **Pinned artifact - `.github/workflows/ci.yml` (2026-08-26).** Updated
+  checkout, Go setup, and artifact upload to their Node 24 majors, routed the
+  seven existing verification commands through `scripts/verify.sh`, and added
+  the offline automation-contract gate. Triggers, permissions, job boundaries,
+  matrices, build commands, artifact names, and package selections are
+  preserved.
+- **Pinned artifact - `.github/workflows/release.yml` (2026-08-26).** Updated
+  checkout, Go setup, and GitHub release publication to their Node 24 majors.
+  Tag triggers, permissions, release inputs, output consumption, names, and file
+  globs are unchanged; no tag or release was created during validation.
+- **Pinned artifact - `Makefile` (2026-08-26).** Verification targets are thin
+  delegates to `scripts/verify.sh`; `fmt` remains available and is explicitly
+  identified as mutating.
 - **Pinned artifact — `.github/workflows/release.yml` (2026-07-23).** The
   `readme-badge` job now rewrites *two* README version strings on each `v*.*.*`
   tag, not one. Alongside the static release-badge line it also rewrites the
@@ -59,6 +78,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-26 - Use the latest researched Node 24 action majors behind an
+  offline allowlist.** CI uses `actions/checkout@v7`, `actions/setup-go@v7`, and
+  `actions/upload-artifact@v7`; release automation also uses checkout/setup-go
+  v7 and `softprops/action-gh-release@v3`. Major selectors retain upstream
+  security fixes while the repository policy makes runtime regression visible.
+- **2026-08-26 - Make `scripts/verify.sh` the command source for CI, Make, and
+  maintainer guidance.** A POSIX shell driver owns gate order, package
+  selection, the pinned linter version, coverage thresholds, and failure
+  propagation. The independent automation check validates its exact manifest,
+  preventing consumers from silently defining different meanings of green.
+- **2026-08-26 - Preserve workflow behavior while changing pinned automation.**
+  Runtime upgrades and verification delegation do not alter triggers,
+  permissions, matrices, artifacts, release globs, or publication behavior.
+  Release validation is static so this maintenance feature has no external
+  release-side effect.
 - **2026-07-23** — **The release automation syncs the two version strings the
   README bakes in, and only those two.** README carries three kinds of version
   reference: the release badge, the `gosched health` sample output, and the

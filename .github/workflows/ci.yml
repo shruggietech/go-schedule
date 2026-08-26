@@ -18,24 +18,19 @@ jobs:
     env:
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
       - name: gofmt
-        run: |
-          unformatted=$(gofmt -l internal cmd test)
-          if [ -n "$unformatted" ]; then
-            echo "These files are not gofmt-clean:"; echo "$unformatted"; exit 1
-          fi
+        run: sh scripts/verify.sh format
       - name: go vet
-        run: go vet ./...
-      # Run via `go run` so golangci-lint is compiled with the runner's Go
-      # toolchain (the prebuilt release binaries are built with an older Go and
-      # refuse a module targeting a newer Go language version).
+        run: sh scripts/verify.sh vet
       - name: golangci-lint
-        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+        run: sh scripts/verify.sh lint
+      - name: Verify automation contract
+        run: sh scripts/verify.sh automation
 
   test:
     name: Test (race) — ${{ matrix.os }}
@@ -45,8 +40,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -60,7 +55,7 @@ jobs:
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
+        run: sh scripts/verify.sh race
 
   coverage:
     name: Coverage gate (core packages ≥80%)
@@ -69,8 +64,8 @@ jobs:
     env:
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -78,14 +73,14 @@ jobs:
       # implementation, so the local check and the CI check cannot drift into
       # measuring different things.
       - name: Measure core-package statement coverage
-        run: sh scripts/coverage-gate.sh
+        run: sh scripts/verify.sh coverage
 
   build:
     name: Cross-compile (daemon + CLI)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -104,8 +99,8 @@ jobs:
     name: GUI build & test (cgo)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -120,7 +115,7 @@ jobs:
       - name: Test GUI (headless)
         env:
           CGO_ENABLED: "1"
-        run: go test ./gui/...
+        run: sh scripts/verify.sh gui
 
   bench:
     name: Engine benchmarks (artifact only)
@@ -132,8 +127,8 @@ jobs:
     env:
       CGO_ENABLED: "0"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -142,7 +137,7 @@ jobs:
       - name: Run engine benchmarks
         run: go test -run '^$' -bench . -benchmem ./internal/engine/... | tee bench.txt
       - name: Upload benchmark output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: engine-benchmarks
           path: bench.txt
@@ -155,6 +150,6 @@ jobs:
     # escaping docs/, and pointer-README validity. Runs the same script
     # contributors run locally, so the local and CI checks cannot drift.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check documentation integrity
-        run: sh scripts/docs-check.sh
+        run: sh scripts/verify.sh docs

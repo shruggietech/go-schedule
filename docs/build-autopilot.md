@@ -94,36 +94,25 @@ The agent runs these steps in order, with no halt between them:
 
 ## Verification: CI parity
 
-These mirror `.github/workflows/ci.yml`. Run every one of them and watch it
-finish:
+The canonical aggregate mirrors `.github/workflows/ci.yml`. Run it in the
+foreground and watch it finish:
 
 ```bash
-gofmt -l internal cmd test
+sh scripts/verify.sh all
 ```
 
-```bash
-go vet ./...
-```
+It runs all eight required gates, in order: `format`, `vet`, `lint`, `race`,
+`gui`, `coverage`, `docs`, and `automation`. The format gate must print no files.
+The race gate excludes the cgo-only GUI entry point and the Fyne widget package
+(whose races are inside Fyne's own font cache, not this project's code); the
+pure-Go `gui/viewmodel` package stays race-tested, and the GUI is covered by the
+headless gate. Coverage on the core packages must stay at or above 80 percent
+(constitution principle II). The automation gate independently guards approved
+hosted-action majors and the exact verification manifest.
 
-```bash
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
-```
-
-```bash
-CGO_ENABLED=1 go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
-```
-
-```bash
-go test ./gui/...
-```
-
-`gofmt` must print nothing. The race run excludes the cgo-only GUI entry point
-and the Fyne widget package (whose races are inside Fyne's own font cache, not
-this project's code); the pure-Go `gui/viewmodel` package stays race-tested, and
-the GUI is covered by the headless run above it. Coverage on the core packages
-must stay at or above 80 percent (constitution principle II); the CI coverage
-job is the authority and a feature that lowers a core package below the gate is
-a halt.
+A missing POSIX shell, Go command, formatter, or C toolchain is a failed or
+unrun prerequisite, never a green gate. Record the named gate and halt until it
+can be run; do not omit it from the aggregate or substitute a later CI result.
 
 Run all of these in the foreground and watch them to completion. Never launch
 the test suite in the background and poll for its output. `go test` buffers a
@@ -178,8 +167,9 @@ At the single halt, the agent presents:
 - The feature number and title, and what was built: the spec, plan, and tasks
   artifacts, the code packages, and the tests.
 - The notable decisions made and why (the decision log).
-- The verification results for gofmt, vet, lint, race tests, and GUI tests, with
-  evidence of pass or fail.
+- The verification results for format, vet, lint, race, GUI, coverage, docs, and
+  automation, with evidence of pass, fail, or an honestly reported unavailable
+  prerequisite.
 - Any deviations or open risks against the feature's acceptance criteria.
 - The exact `git push` command awaiting authorization.
 
