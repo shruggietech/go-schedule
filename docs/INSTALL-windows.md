@@ -145,4 +145,4 @@ anyway* if it matches.
 **elevated** shell with `gosched service start`.
 
 **Where are the logs?** `C:\ProgramData\goschedule\logs\goschedule.log` and its
-rotated siblings, or the **Logs** view in the app, or `gosched logs`.
+rotated siblings, or the **Activity** view in the app, or `gosched logs`.

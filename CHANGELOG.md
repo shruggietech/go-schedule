@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The GUI's mixed log-and-alert view is now Activity (closes #26, #28, and
+  #30).** Its unacknowledged-alert badge shows exact counts through 99 and caps
+  higher counts at `99+`. The former Dismiss All/trash control is now Clear View
+  with a clear-content icon and visible copy explaining that it hides current
+  activity, acknowledges visible alerts, and does not delete records. Existing
+  filtering, view cutoff, acknowledgement, and persistence behavior is
+  unchanged.
+- **Pinned artifact - `docs/INSTALL-windows.md` (2026-08-27).** Updated the
+  stale GUI tab reference from Logs to Activity. Installation paths, commands,
+  permissions, and behavior are unchanged.
 - **All development now integrates through pull requests (closes #23).**
   Constitution v3.0.0 replaces the stale maintainer-direct-to-`main` rule with
   one review-branch workflow for maintainers, automation agents, and outside

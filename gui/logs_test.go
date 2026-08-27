@@ -1,8 +1,14 @@
 package gui
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -52,12 +58,66 @@ func TestMergeLogEntries_DismissCutoff(t *testing.T) {
 	}
 }
 
-func TestUI_LogsTabBuilds(t *testing.T) {
+func TestUI_ActivityTabBuilds(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{
 		logs:   []domain.LogRecord{{ID: "l1", Severity: domain.SeverityError, Message: "boom"}},
 		alerts: []domain.Alert{{ID: "a1", Severity: domain.SeverityWarning, Kind: domain.AlertRunFailed, Message: "warn"}},
 	})
-	if ui.logsTab == nil || ui.logsTab.Text != "Logs" {
-		t.Fatalf("logs tab missing or mislabeled: %+v", ui.logsTab)
+	if ui.logsTab == nil || ui.logsTab.Text != "Activity" {
+		t.Fatalf("activity tab missing or mislabeled: %+v", ui.logsTab)
 	}
+}
+
+func TestUI_ActivityClearControlExplainsNonDestructiveBehavior(t *testing.T) {
+	backend := &fakeBackend{alerts: []domain.Alert{{
+		ID: "visible-alert", CreatedAt: time.Now(), Severity: domain.SeverityWarning,
+		Kind: domain.AlertRunFailed, Message: "warn",
+	}}}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatalf("refresh Activity model: %v", err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	var clearButton *cursorButton
+	var helpText string
+
+	var walk func(fyne.CanvasObject)
+	walk = func(o fyne.CanvasObject) {
+		switch w := o.(type) {
+		case *cursorButton:
+			if w.Text == "Clear View" {
+				clearButton = w
+			}
+		case *widget.Label:
+			if strings.Contains(w.Text, "Records are not deleted") {
+				helpText = w.Text
+			}
+		case *fyne.Container:
+			for _, child := range w.Objects {
+				walk(child)
+			}
+		}
+	}
+	walk(ui.logsTab.Content)
+
+	if clearButton == nil {
+		t.Fatal("Activity view has no Clear View control")
+	}
+	if clearButton.Icon == nil || clearButton.Icon.Name() != theme.ContentClearIcon().Name() {
+		t.Fatalf("Clear View icon = %v, want %q", clearButton.Icon, theme.ContentClearIcon().Name())
+	}
+	for _, phrase := range []string{"Hides current activity", "acknowledges visible alerts", "Records are not deleted"} {
+		if !strings.Contains(helpText, phrase) {
+			t.Errorf("Activity help %q does not contain %q", helpText, phrase)
+		}
+	}
+
+	clearButton.OnTapped()
+	waitFor(t, func() bool {
+		acked := backend.acknowledgedAlerts()
+		return len(acked) == 1 && acked[0] == "visible-alert"
+	})
 }

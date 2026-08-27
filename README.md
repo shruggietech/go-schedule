@@ -86,10 +86,10 @@ or disabling one cascades through its whole subtree — one command to silence a
 region of the schedule.
 
 **A desktop app, not a wrapper.** A Go-native GUI with calendar and schedule
-views, a guided task editor that previews the schedule as you build
-it, a group tree, and a live Logs view. Opening it never leaves a console window
-behind. See the [GUI field reference](docs/gui-fields.md) for what each editor
-field accepts.
+views, a guided task editor that previews the schedule as you build it, a group
+tree, and a live Activity view. Opening it never leaves a console window behind.
+See the [GUI field reference](docs/gui-fields.md) for what each editor field
+accepts.
 
 ## Install
 

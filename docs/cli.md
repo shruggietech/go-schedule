@@ -328,7 +328,7 @@ gosched logs --severity error --limit 200
 | `--severity` | `info`, `warning`, or `error`. | all |
 | `--limit` | Maximum rows. | `100` |
 
-Logs are also written to disk and shown live in the GUI's Logs view. Their
+Logs are also written to disk and shown live in the GUI's Activity view. Their
 on-disk location is in each platform's install guide.
 
 ## `service`
