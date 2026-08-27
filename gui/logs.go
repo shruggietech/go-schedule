@@ -16,7 +16,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-// logEntry is a unified row in the Logs view: either a daemon log record or a
+// logEntry is a unified row in the Activity view: either a daemon log record or a
 // scheduler alert, normalized to a common shape.
 type logEntry struct {
 	time     time.Time
@@ -28,14 +28,14 @@ type logEntry struct {
 	alertID  string
 }
 
-// buildLogsTab shows a unified, filterable Logs view that merges daemon log
+// buildLogsTab shows a unified, filterable Activity view that merges daemon log
 // records and scheduler alerts (FR-011). It supports severity filters (FR-013),
-// click-through detail (FR-014), and Dismiss All (FR-015), and updates live from
+// click-through detail (FR-014), and clearing the current view (FR-015), and updates live from
 // the event stream (FR-018).
 func (a *App) buildLogsTab() fyne.CanvasObject {
 	var rows []logEntry
 	filter := domain.AlertSeverity("") // "" = all
-	var clearedAt time.Time            // Dismiss All cutoff
+	var clearedAt time.Time            // Clear View cutoff
 
 	list := widget.NewList(
 		func() int { return len(rows) },
@@ -80,7 +80,7 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 	)
 	severitySel.SetSelected("All")
 
-	dismissBtn := newToolbarButton("Dismiss All", theme.DeleteIcon(), func() {
+	clearBtn := newToolbarButton("Clear View", theme.ContentClearIcon(), func() {
 		clearedAt = time.Now()
 		// Acknowledge the alerts currently shown so they don't reappear unacked.
 		ids := make([]string, 0)
@@ -100,8 +100,10 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 		rebuild()
 	})
 
-	toolbar := container.NewHBox(widget.NewLabel("Severity:"), severitySel, dismissBtn)
-	return container.NewBorder(toolbar, nil, nil, nil, list)
+	toolbar := container.NewHBox(widget.NewLabel("Severity:"), severitySel, clearBtn)
+	help := widget.NewLabel("Hides current activity and acknowledges visible alerts. Records are not deleted.")
+	help.Wrapping = fyne.TextWrapWord
+	return container.NewBorder(container.NewVBox(toolbar, help), nil, nil, nil, list)
 }
 
 // showLogDetail opens a dialog with the full message and cause/context of an entry.
@@ -119,13 +121,13 @@ func (a *App) showLogDetail(e logEntry) {
 	entry := widget.NewMultiLineEntry()
 	entry.SetText(b.String())
 	entry.Wrapping = fyne.TextWrapWord
-	d := dialog.NewCustom("Log detail", "Close", entry, a.win)
+	d := dialog.NewCustom("Activity detail", "Close", entry, a.win)
 	d.Resize(fyne.NewSize(560, 360))
 	d.Show()
 }
 
 // mergeLogEntries combines log records and alerts into a single severity-filtered,
-// newest-first list, dropping entries at or before clearedAt (Dismiss All cutoff).
+// newest-first list, dropping entries at or before the Clear View cutoff.
 func mergeLogEntries(logs []domain.LogRecord, alerts []domain.Alert, filter domain.AlertSeverity, clearedAt time.Time) []logEntry {
 	out := make([]logEntry, 0, len(logs)+len(alerts))
 	for _, l := range logs {

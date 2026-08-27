@@ -34,6 +34,7 @@ type fakeBackend struct {
 	updated    int
 	lastUpdate server.TaskUpdateRequest
 	lastUpdID  string
+	acked      []string
 }
 
 // lastUpdateCall returns the recorded update count and the most recent request.
@@ -41,6 +42,12 @@ func (f *fakeBackend) lastUpdateCall() (int, string, server.TaskUpdateRequest) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.updated, f.lastUpdID, f.lastUpdate
+}
+
+func (f *fakeBackend) acknowledgedAlerts() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.acked...)
 }
 
 // waitFor polls cond until it holds or the test times out, so tests can await an
@@ -116,7 +123,12 @@ func (f *fakeBackend) CreateGroup(context.Context, server.GroupCreateRequest) (d
 }
 func (f *fakeBackend) SetGroupEnabled(context.Context, string, bool) error { return nil }
 func (f *fakeBackend) DeleteGroup(context.Context, string) error           { return nil }
-func (f *fakeBackend) AckAlert(context.Context, string) error              { return nil }
+func (f *fakeBackend) AckAlert(_ context.Context, id string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.acked = append(f.acked, id)
+	return nil
+}
 func (f *fakeBackend) GetCalendar(context.Context, time.Time, time.Time) (server.CalendarResponse, error) {
 	return server.CalendarResponse{}, nil
 }
@@ -132,7 +144,7 @@ func TestUI_BuildsAllTabs(t *testing.T) {
 		alerts: []domain.Alert{{ID: "a1", Kind: domain.AlertRunFailed, Message: "boom"}},
 	})
 
-	want := []string{"Tasks", "Schedule", "Groups", "Logs"}
+	want := []string{"Tasks", "Schedule", "Groups", "Activity"}
 	if len(ui.tabs.Items) != len(want) {
 		t.Fatalf("want %d tabs, got %d", len(want), len(ui.tabs.Items))
 	}
@@ -184,14 +196,34 @@ func TestUI_TaskEditorBuilds(t *testing.T) {
 	}
 }
 
-func TestUI_LogsBadgeReflectsUnacked(t *testing.T) {
+func TestActivityTabLabel(t *testing.T) {
+	tests := []struct {
+		count int
+		want  string
+	}{
+		{count: -1, want: "Activity"},
+		{count: 0, want: "Activity"},
+		{count: 1, want: "Activity (1)"},
+		{count: 99, want: "Activity (99)"},
+		{count: 100, want: "Activity (99+)"},
+		{count: 12_345, want: "Activity (99+)"},
+	}
+
+	for _, tt := range tests {
+		if got := activityTabLabel(tt.count); got != tt.want {
+			t.Errorf("activityTabLabel(%d) = %q, want %q", tt.count, got, tt.want)
+		}
+	}
+}
+
+func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
 	// Drive the badge synchronously: the production OnChange marshals through
 	// fyne.Do on another goroutine, which would race with the assertion below.
 	ui.model.OnChange = nil
 	ui.model.ApplyEvent(events.Event{Kind: events.KindAlert, Alert: &domain.Alert{ID: "x", Acknowledged: false}})
 	ui.updateLogsBadge()
-	if ui.logsTab.Text != "Logs (1)" {
-		t.Fatalf("logs badge = %q, want Logs (1)", ui.logsTab.Text)
+	if ui.logsTab.Text != "Activity (1)" {
+		t.Fatalf("activity badge = %q, want Activity (1)", ui.logsTab.Text)
 	}
 }

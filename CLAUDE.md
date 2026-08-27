@@ -142,7 +142,15 @@ Governing documents:
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
-- Plan: `specs/013-pr-governance/plan.md` (close #23 by replacing the stale
+- Plan: `specs/014-gui-activity-clarity/plan.md` (close #26, #28, and #30 as one
+  GUI clarity slice: rename the mixed log-and-alert destination to Activity;
+  display exact unacknowledged-alert counts through 99 and cap higher counts at
+  `99+`; replace the destructive-looking Dismiss All/trash presentation with a
+  Clear View/content-clear action and always-visible copy explaining that
+  current activity is hidden, visible alerts are acknowledged, and records are
+  not deleted. Preserve the existing cutoff and acknowledgement behavior; do
+  not add the log-path API from #31 or rename low-value internal identifiers.)
+- Prior: `specs/013-pr-governance/plan.md` (close #23 by replacing the stale
   maintainer-direct-to-`main` model with one PR-first integration path for every
   author; amend the constitution to v3.0.0; synchronize README, contributor,
   autopilot, agent-context, and PR-template guidance; use the PR as a venue for third-party

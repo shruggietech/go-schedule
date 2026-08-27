@@ -90,7 +90,7 @@ func (a *App) buildRoot() fyne.CanvasObject {
 		container.NewTabItem("Schedule", a.buildScheduleTab()),
 		container.NewTabItem("Groups", a.buildGroupsTab()),
 	)
-	a.logsTab = container.NewTabItem("Logs", a.buildLogsTab())
+	a.logsTab = container.NewTabItem(activityTabLabel(0), a.buildLogsTab())
 	a.tabs.Append(a.logsTab)
 	a.tabs.SetTabLocation(container.TabLocationLeading)
 	return a.tabs
@@ -138,7 +138,7 @@ func (a *App) streamEvents() {
 	}
 }
 
-// onModelChange refreshes the logs badge and every tab's view when state changes.
+// onModelChange refreshes the Activity badge and every tab's view when state changes.
 func (a *App) onModelChange() {
 	a.updateLogsBadge()
 	for _, r := range a.refreshers {
@@ -146,21 +146,26 @@ func (a *App) onModelChange() {
 	}
 }
 
-// updateLogsBadge shows the count of unacknowledged alerts (the actionable
-// subset of logs) on the Logs tab.
+// updateLogsBadge shows the bounded count of unacknowledged alerts (the
+// actionable subset of activity) on the Activity tab.
 func (a *App) updateLogsBadge() {
 	if a.logsTab == nil {
 		return
 	}
-	n := a.model.UnacknowledgedAlerts()
-	if n > 0 {
-		a.logsTab.Text = "Logs (" + itoa(n) + ")"
-	} else {
-		a.logsTab.Text = "Logs"
-	}
+	a.logsTab.Text = activityTabLabel(a.model.UnacknowledgedAlerts())
 	if a.tabs != nil {
 		a.tabs.Refresh()
 	}
+}
+
+func activityTabLabel(unacknowledged int) string {
+	if unacknowledged <= 0 {
+		return "Activity"
+	}
+	if unacknowledged > 99 {
+		return "Activity (99+)"
+	}
+	return "Activity (" + itoa(unacknowledged) + ")"
 }
 
 func (a *App) registerRefresher(f func()) { a.refreshers = append(a.refreshers, f) }
