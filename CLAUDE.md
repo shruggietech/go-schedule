@@ -30,7 +30,9 @@ ambiguous, or a constitution CRITICAL conflict needs a human call.
 Halt exactly once per feature: right before anything leaves the machine, with a
 breakdown of notable decisions and what was built. Never push, open a pull
 request, tag, run the release workflow, or modify pinned artifacts without
-explicit authorization.
+explicit authorization. Authorization to publish a PR also covers verified,
+in-scope review-fix pushes to that same branch until the PR closes or merges;
+material scope expansion, another PR, tags, and releases remain outside it.
 
 The full procedure is `docs/build-autopilot.md`; the governing principle is
 constitution principle V. This applies to features traceable to the master
@@ -44,15 +46,19 @@ skills until `specify integration upgrade claude` restores them.
 
 ## Integration workflow
 
-Development is trunk-based. Work is committed directly onto `main` — no feature
-branches, no pull requests. This is a one-to-two developer project; a pull
-request with no reviewer is ceremony, and the single pre-push halt is where a
-human actually reviews the work.
+Development is pull-request based. Every maintainer, automation agent, and
+outside contributor works on a review branch and integrates through a pull
+request targeting `main`. Direct pushes to `main` are prohibited.
 
-The halt therefore precedes the push to `main`. CI runs on every push, but it
-reports *after* the fact rather than blocking a merge, so the local CI-parity
-run is the real gate: it must be green before the halt, and a red run is a halt
-in itself rather than something to push and sort out afterwards.
+Autopilot runs local CI parity and commits on the review branch, then halts
+exactly once before pushing the branch and opening its pull request. After
+authorization, existing CI and third-party AI reviewers provide additional
+evidence. Consider each review comment, implement warranted changes, and explain
+why other suggestions do not fit. The maintainer retains final merge judgment;
+verified, in-scope review fixes may be pushed to this same PR under its publication
+authorization without another halt. This workflow adds no branch-protection or
+approval ceremony. A PR that fully completes an issue uses `Closes #N`; partial
+work uses `Refs #N`.
 
 ## Running verification (read before verifying)
 
@@ -130,12 +136,19 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 # go-schedule — Active Plan
 
 Governing documents:
-- Constitution: `.specify/memory/constitution.md` (v2.0.0 — code quality, testing, UX, performance, autopilot; trunk-based)
+- Constitution: `.specify/memory/constitution.md` (v3.0.0: code quality, testing, UX, performance, autopilot, PR-first integration)
 - Spec: `specs/001-task-scheduler/spec.md`
 - Plan: `specs/001-task-scheduler/plan.md`
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
+- Plan: `specs/013-pr-governance/plan.md` (close #23 by replacing the stale
+  maintainer-direct-to-`main` model with one PR-first integration path for every
+  author; amend the constitution to v3.0.0; synchronize README, contributor,
+  autopilot, agent-context, and PR-template guidance; use the PR as a venue for third-party
+  AI review while leaving final merge judgment to the maintainer. No branch
+  protection, required approvals, fixed check list, governance checker, or
+  repository settings are added; the PR will use `Closes #23`.)
 - Plan: `specs/012-github-security-baseline/plan.md` (close #38 and #39 as one
   repository-security slice: restore private vulnerability reporting with the
   published `info@shruggie.tech` fallback and repository-admin triage; enable

@@ -5,7 +5,7 @@ nav_order: 7
 
 # Build-Phase Autopilot Protocol
 
-Version: 1.0.0
+Version: 2.0.0
 Adopted: 2026-07-22
 Status: operating procedure for the coding agent
 Project: go-schedule
@@ -28,8 +28,8 @@ in practice, are approved as recommended.
 
 Autopilot removes that friction: one verbal kickoff runs a full feature end to
 end, the agent makes the routine decisions itself and records them, and the
-agent halts once, right before the work leaves the machine, with a breakdown for
-review.
+agent halts once, right before the review branch and pull request leave local
+control, with a breakdown for review.
 
 ## Trigger
 
@@ -142,25 +142,34 @@ The agent halts to the user only when one of these holds:
 
 ## Branching and integration
 
-This project is trunk-based. Autopilot commits the feature directly onto local
-`main`; there are no feature branches and no pull requests. A pull request on a
-one-to-two developer project is review ceremony with no reviewer — the halt
-below is where a human actually looks at the work.
+Autopilot works on a review branch. Every change targets `main` through a pull
+request, using the same path for maintainers, automation agents, and outside
+contributors. Direct pushes to `main` are prohibited.
 
-The single halt therefore precedes the push to `main`. Nothing is pushed
+The halt precedes the review-branch push and pull-request creation. It also
+marks the boundary before anything is published. Nothing is pushed or opened
 without explicit authorization.
 
-CI runs on every push to `main`, but it reports after the push rather than
-blocking a merge. The local CI-parity run is the real gate: it must be green
-before the halt, and a red run that cannot be fixed within the feature is
-itself a halt, never something to push and sort out afterwards.
+The authorization that publishes the PR remains valid for verified, in-scope
+commits pushed to the same review branch to address CI failures or review
+feedback. It expires when the PR is merged or closed and does not cover material
+scope expansion, another PR, a tag, or a release. These review-fix pushes do not
+introduce another autopilot halt.
 
-If the harness or a spec-kit kickoff creates a working branch anyway, fold it
-onto `main` before the halt — rebase or fast-forward, verify the result is
-exactly what ships, and delete the branch only after confirming its commits are
-on `main`. An unmergeable branch is a halt, not a silent deletion.
+Local CI parity must be green before the halt. After authorization, hosted CI
+runs independently on the pull request and third-party AI reviewers can comment.
+Consider each comment, implement warranted changes, and explain why other
+suggestions do not fit. AI review is advisory and the maintainer decides when
+the PR is ready to merge. This protocol adds no branch protection, approval
+count, fixed hosted-check list, or mandatory conversation rule.
 
-## The pre-push halt breakdown
+When the pull request fully completes an issue, its description uses a supported
+closing keyword such as `Closes #N`. Partial or related work uses `Refs #N` and
+leaves the issue open. After the maintainer merges, synchronize local `main` and
+remove the merged local and remote review branch plus any stale worktree that
+belongs to it.
+
+## The pre-publication halt breakdown
 
 At the single halt, the agent presents:
 
@@ -171,14 +180,17 @@ At the single halt, the agent presents:
   automation, with evidence of pass, fail, or an honestly reported unavailable
   prerequisite.
 - Any deviations or open risks against the feature's acceptance criteria.
-- The exact `git push` command awaiting authorization.
+- The exact review-branch push and pull-request creation commands awaiting
+  authorization.
 
 ## Always-halt guardrails
 
 These hold regardless of the decision policy:
 
-- Never `git push`, tag a release, or run the release workflow without explicit
-  authorization.
+- Never push a branch, open a pull request, tag a release, or run the release
+  workflow without explicit authorization. The open PR's publication
+  authorization is sufficient only for verified, in-scope review-fix pushes to
+  its existing branch.
 - Never weaken or skip the `/speckit-analyze` gate.
 - Never weaken or skip the safety-critical test surfaces of this project:
   - Clock discipline: engine code takes time through the injected `Clock`

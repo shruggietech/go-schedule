@@ -39,20 +39,23 @@ OpenGL. The daemon and CLI are cgo-free and need neither.
 
 ## How work is integrated
 
-Development is **trunk-based**. Maintainer work is committed directly onto
-`main`: no feature branches, no internal pull requests. This is a one-to-two
-developer project, and a pull request with no reviewer is ceremony rather than
-review. The real gate is a single human halt immediately before anything is
-pushed.
+All development is integrated through pull requests. Maintainers, automation
+agents, and outside contributors all work on a review branch and open a pull
+request targeting `main`; direct pushes to `main` are not part of the workflow.
 
-Outside contributions come as pull requests, which are reviewed here. The
-[pull-request template](.github/PULL_REQUEST_TEMPLATE.md) asks for the
-verification output described below.
+Run the local verification aggregate before publishing the branch. Hosted CI
+then supplies additional evidence on the pull request, and third-party AI
+reviewers may suggest changes. Consider each comment on its merits: implement
+warranted improvements and explain why other suggestions do not fit. The sole
+maintainer retains the final merge decision. This project does not add branch
+protection, approval counts, or mandatory conversation rules for ceremony's
+sake.
 
-CI runs on every push to `main`, but it reports *after* the fact rather than
-blocking a merge. That is why the **local** run is the real gate: it must be
-green before a change lands, and a red run is a stop rather than something to
-push and sort out afterwards.
+Use `Closes #N` when the pull request fully completes an issue. `Fixes #N` and
+`Resolves #N` have the same closing intent. Use `Refs #N` for partial or related
+work that should leave the issue open. The
+[pull-request template](.github/PULL_REQUEST_TEMPLATE.md) asks for this link and
+the verification evidence described below.
 
 ## Verification gates
 
