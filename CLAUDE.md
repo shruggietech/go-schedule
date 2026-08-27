@@ -30,7 +30,9 @@ ambiguous, or a constitution CRITICAL conflict needs a human call.
 Halt exactly once per feature: right before anything leaves the machine, with a
 breakdown of notable decisions and what was built. Never push, open a pull
 request, tag, run the release workflow, or modify pinned artifacts without
-explicit authorization.
+explicit authorization. Authorization to publish a PR also covers verified,
+in-scope review-fix pushes to that same branch until the PR closes or merges;
+material scope expansion, another PR, tags, and releases remain outside it.
 
 The full procedure is `docs/build-autopilot.md`; the governing principle is
 constitution principle V. This applies to features traceable to the master
@@ -53,8 +55,10 @@ exactly once before pushing the branch and opening its pull request. After
 authorization, existing CI and third-party AI reviewers provide additional
 evidence. Consider each review comment, implement warranted changes, and explain
 why other suggestions do not fit. The maintainer retains final merge judgment;
-this workflow adds no branch-protection or approval ceremony. A PR that fully
-completes an issue uses `Closes #N`; partial work uses `Refs #N`.
+verified, in-scope review fixes may be pushed to this same PR under its publication
+authorization without another halt. This workflow adds no branch-protection or
+approval ceremony. A PR that fully completes an issue uses `Closes #N`; partial
+work uses `Refs #N`.
 
 ## Running verification (read before verifying)
 
@@ -140,8 +144,8 @@ Governing documents:
 Active feature:
 - Plan: `specs/013-pr-governance/plan.md` (close #23 by replacing the stale
   maintainer-direct-to-`main` model with one PR-first integration path for every
-  author; amend the constitution to v3.0.0; synchronize contributor, autopilot,
-  agent-context, and PR-template guidance; use the PR as a venue for third-party
+  author; amend the constitution to v3.0.0; synchronize README, contributor,
+  autopilot, agent-context, and PR-template guidance; use the PR as a venue for third-party
   AI review while leaving final merge judgment to the maintainer. No branch
   protection, required approvals, fixed check list, governance checker, or
   repository settings are added; the PR will use `Closes #23`.)

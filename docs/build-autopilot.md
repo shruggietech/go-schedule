@@ -150,6 +150,12 @@ The halt precedes the review-branch push and pull-request creation. It also
 marks the boundary before anything is published. Nothing is pushed or opened
 without explicit authorization.
 
+The authorization that publishes the PR remains valid for verified, in-scope
+commits pushed to the same review branch to address CI failures or review
+feedback. It expires when the PR is merged or closed and does not cover material
+scope expansion, another PR, a tag, or a release. These review-fix pushes do not
+introduce another autopilot halt.
+
 Local CI parity must be green before the halt. After authorization, hosted CI
 runs independently on the pull request and third-party AI reviewers can comment.
 Consider each comment, implement warranted changes, and explain why other
@@ -182,7 +188,9 @@ At the single halt, the agent presents:
 These hold regardless of the decision policy:
 
 - Never push a branch, open a pull request, tag a release, or run the release
-  workflow without explicit authorization.
+  workflow without explicit authorization. The open PR's publication
+  authorization is sufficient only for verified, in-scope review-fix pushes to
+  its existing branch.
 - Never weaken or skip the `/speckit-analyze` gate.
 - Never weaken or skip the safety-critical test surfaces of this project:
   - Clock discipline: engine code takes time through the injected `Clock`

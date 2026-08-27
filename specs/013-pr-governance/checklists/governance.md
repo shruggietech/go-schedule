@@ -1,6 +1,6 @@
 # Lightweight Governance Checklist
 
-- [x] Does every maintained surface use the same branch-to-PR workflow?
+- [x] Do the README and every maintained surface use the same branch-to-PR workflow?
 - [x] Is direct maintainer pushing to `main` removed from active guidance?
 - [x] Is the purpose of PR ceremony limited to review and traceability?
 - [x] Are branch protection, required approvals, fixed checks, and mandatory

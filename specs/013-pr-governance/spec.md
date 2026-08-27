@@ -23,8 +23,8 @@ the final merge to the maintainer.
 ### Scope in
 
 - One pull-request workflow for maintainer, agent, and outside work.
-- Synchronized constitution, contributor, autopilot, agent, and PR-template
-  guidance.
+- Synchronized constitution, README, contributor, autopilot, agent, and
+  PR-template guidance.
 - Correct issue-closing keywords when a pull request completes an issue.
 - A lightweight third-party review record.
 
@@ -50,7 +50,8 @@ does not require repository protection settings.
 1. **Given** locally complete work, **when** the publication halt is authorized,
    **then** the review branch is pushed and a pull request targets `main`.
 2. **Given** AI review comments, **when** they are assessed, **then** warranted
-   changes are made and unwarranted suggestions receive a reasoned response.
+   changes are made and pushed to the same open PR under its publication
+   authorization, while unwarranted suggestions receive a reasoned response.
 3. **Given** the pull request fully completes an issue, **when** its description
    is written, **then** it uses `Closes`, `Fixes`, or `Resolves` rather than
    `Refs`.
@@ -63,10 +64,13 @@ does not require repository protection settings.
 - **FR-001**: Maintainer and agent work MUST use a review branch and pull request
   targeting `main` so third-party review has a durable place to occur.
 - **FR-002**: Autopilot MUST halt once before pushing the review branch and
-  opening the pull request.
+  opening the pull request. That authorization MUST cover verified, in-scope
+  review-fix pushes to the same open PR without another halt, and MUST expire
+  when the PR closes or merges.
 - **FR-003**: The canonical local aggregate MUST pass before the halt.
-- **FR-004**: Maintained guidance MUST describe the same lightweight workflow
-  and MUST NOT instruct maintainers to push directly to `main`.
+- **FR-004**: The README and maintained guidance MUST describe the same
+  lightweight workflow and MUST NOT instruct maintainers to push directly to
+  `main`.
 - **FR-005**: Review comments MUST be considered individually; warranted changes
   are implemented and other suggestions receive a concise rationale.
 - **FR-006**: Issue-closing keywords MUST be used only when the PR completes the
@@ -77,8 +81,8 @@ does not require repository protection settings.
 
 ## Success Criteria
 
-- **SC-001**: Constitution, contributor, autopilot, agent, and PR-template
-  guidance all describe the same branch-to-PR review path.
+- **SC-001**: Constitution, README, contributor, autopilot, agent, and
+  PR-template guidance all describe the same branch-to-PR review path.
 - **SC-002**: No active maintained guidance instructs direct maintainer pushes
   to `main`.
 - **SC-003**: The pull-request template uses the canonical aggregate and includes

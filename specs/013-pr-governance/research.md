@@ -34,3 +34,14 @@ warranted. The maintainer decides when review is sufficient.
 
 **Rationale**: AI feedback is advisory. Treating it as mechanically binding would
 replace engineering judgment with ceremony.
+
+## Decision 5 - Publication authorization covers the review cycle
+
+**Decision**: The authorization that pushes the branch and opens its PR also
+covers verified, in-scope pushes to that same branch for CI or review fixes until
+the PR is merged or closed. It excludes material scope expansion, another PR,
+tags, and releases.
+
+**Rationale**: Requiring another halt for each review-fix commit would contradict
+the one-halt protocol and turn ordinary review iteration into the red tape this
+feature deliberately avoids.

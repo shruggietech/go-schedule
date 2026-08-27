@@ -6,4 +6,5 @@
 - [x] The publication halt and issue-closing semantics are unambiguous.
 - [x] AI review remains advisory and the maintainer retains merge control.
 - [x] Verification uses the existing canonical aggregate without CI changes.
+- [x] The root README is included as a contributor entry point.
 - [x] Success criteria are observable without repository-settings mutation.

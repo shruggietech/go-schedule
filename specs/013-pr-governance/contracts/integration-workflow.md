@@ -8,8 +8,11 @@
 6. Use `Closes #N` only when the PR completes the issue; otherwise use `Refs #N`.
 7. Consider each third-party review comment and respond with either a warranted
    change or a concise rationale.
-8. Leave final review and merge to the maintainer.
-9. After merge, delete the merged branch and synchronize local `main`.
+8. Push verified, in-scope review fixes to the same branch under the PR's
+   publication authorization. Material scope expansion or another PR requires
+   separate authorization.
+9. Leave final review and merge to the maintainer.
+10. After merge, delete the merged branch and synchronize local `main`.
 
 This contract does not require branch protection, approvals, resolved
 conversations, a fixed hosted-check set, or repository settings changes.

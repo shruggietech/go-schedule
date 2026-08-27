@@ -35,10 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one review-branch workflow for maintainers, automation agents, and outside
   contributors. Its purpose is deliberately narrow: give third-party AI
   reviewers a durable place to comment before the maintainer decides whether to
-  merge. Local parity and the autopilot halt precede publication. Contributor
-  guidance, agent context, the autopilot protocol, and the pull request template
-  now describe the same workflow and use `Closes` when a pull request fully
-  completes an issue. No branch protection or approval machinery is added.
+  merge. Local parity and the autopilot halt precede publication. The README,
+  contributor guidance, agent context, the autopilot protocol, and the pull
+  request template now describe the same workflow and use `Closes` when a pull
+  request fully completes an issue. No branch protection or approval machinery
+  is added.
 - **The repository now carries a reviewable GitHub security baseline (addresses
   #38 and #39).** `SECURITY.md` retains the private advisory route and now names
   `info@shruggie.tech` as its fallback plus repository administrators as the
@@ -112,7 +113,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   longer described the useful operating model. This is a major governance
   amendment because it reintroduces a mandatory integration gate for every
   author. The once-per-feature autopilot halt now precedes review-branch
-  publication and PR creation.
+  publication and PR creation. That publication authorization covers verified,
+  in-scope review-fix pushes to the same open PR, so responding to CI or review
+  does not create contradictory extra halts.
 - **2026-08-26 - Keep PR governance proportional to the project.** The PR exists
   to obtain AI review and preserve discussion for a one-developer application
   with no users. Branch protection, approval counts, mandatory conversation

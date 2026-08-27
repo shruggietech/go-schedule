@@ -232,8 +232,9 @@ windowless and spawns tasks with no console window.
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) first — this project is
-trunk-based and spec-driven, and both differ from the usual defaults. Bugs and
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. This project is
+spec-driven, and changes use review branches and pull requests so third-party
+AI reviewers can comment before the maintainer decides whether to merge. Bugs and
 feature requests go through
 [the issue forms](https://github.com/shruggietech/go-schedule/issues/new/choose);
 security reports go through the private route in [SECURITY.md](SECURITY.md).

@@ -14,7 +14,8 @@
 - [X] T004 Amend constitution v3.0.0 to require the review branch and PR while
   explicitly leaving merge enforcement to maintainer judgment.
 - [X] T005 Update `CLAUDE.md`, `CONTRIBUTING.md`, and
-  `docs/build-autopilot.md` with the same lightweight lifecycle.
+  `docs/build-autopilot.md` with the same lightweight lifecycle, and synchronize
+  the root `README.md` contributor entry point.
 - [X] T006 Simplify `.github/PULL_REQUEST_TEMPLATE.md` to the canonical local
   aggregate, issue closing, a review summary, and a short checklist.
 - [X] T007 Correct `CHANGELOG.md` to record the proportionality decision and
@@ -28,6 +29,6 @@
   slice.
 - [X] T010 Halt before pushing `codex/013-pr-governance` and opening the PR.
 - [X] T011 After authorization, push and open a PR with `Closes #23`.
-- [ ] T012 Consider third-party AI review comments, respond under each, and
+- [X] T012 Consider third-party AI review comments, respond under each, and
   leave final review and merge to the maintainer.
 - [ ] T013 After merge, remove the merged branch and synchronize local `main`.

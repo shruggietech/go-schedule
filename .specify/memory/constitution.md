@@ -31,6 +31,7 @@ Templates requiring updates:
      no edit required for either amendment)
   ✅ .specify/templates/spec-template.md (no mandatory-section changes required)
   ✅ .specify/templates/tasks-template.md (principle-driven task categories covered)
+  ✅ README.md (contributor entry point synchronized for PR-first review)
   ✅ CLAUDE.md (Integration workflow synchronized for PR-first, v3.0.0)
   ✅ CONTRIBUTING.md (one integration workflow and closing-keyword guidance)
   ✅ docs/build-autopilot.md (review branch, halt, PR, review, and cleanup flow)
@@ -148,7 +149,10 @@ to run end to end without per-step authorization.
 - All development MUST use a review branch and a pull request targeting `main`.
 - Exactly one halt per feature is mandatory: before the review branch is pushed or its pull
   request is opened. The halt includes a breakdown of notable decisions and what was built.
-  Publishing, tagging, and cutting a release always require explicit authorization.
+  Publishing, tagging, and cutting a release always require explicit authorization. The
+  authorization that publishes a pull request also covers verified, in-scope commits pushed
+  to that same branch to address CI or review feedback until the PR is merged or closed; it
+  does not authorize material scope expansion, a different PR, a tag, or a release.
 - Every feature MUST still be spec'd through spec-kit before implementation. The
   `/speckit-analyze` gate MUST NOT be skipped or weakened.
 
@@ -250,10 +254,12 @@ changes them.
 - 2026-08-26, v3.0.0: **reinstated pull requests as the mandatory integration path.**
   Recent maintainer work established that a review branch and PR are useful venues for
   third-party AI review. Autopilot now halts before review-branch publication and PR creation.
+  That publication authorization continues through verified, in-scope review-fix pushes to
+  the same open PR, avoiding contradictory extra halts during review.
   The amendment deliberately adds no branch protection, approval requirement, fixed check
   list, or mandatory conversation rule; those controls are disproportionate for the current
   one-developer project with no users. The maintainer considers feedback and retains final
-  merge judgment. Mirrored in `CLAUDE.md`, `CONTRIBUTING.md`,
+  merge judgment. Mirrored in `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
   `docs/build-autopilot.md`, and the PR template.
 
 **Version**: 3.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-08-26

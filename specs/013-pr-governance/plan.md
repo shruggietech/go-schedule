@@ -7,8 +7,8 @@
 
 Replace stale direct-to-`main` guidance with a small branch-to-PR workflow whose
 purpose is third-party AI review. Amend the constitution to v3.0.0 and
-synchronize the contributor guide, autopilot protocol, agent context, and pull
-request template. Do not add branch protection, repository settings, policy
+synchronize the README, contributor guide, autopilot protocol, agent context,
+and pull request template. Do not add branch protection, repository settings, policy
 scripts, required approvals, or new CI behavior.
 
 ## Technical Context
@@ -36,6 +36,7 @@ tag, or merge-method changes
 ## Files
 
 - `.specify/memory/constitution.md`
+- `README.md`
 - `CLAUDE.md`
 - `CONTRIBUTING.md`
 - `docs/build-autopilot.md`

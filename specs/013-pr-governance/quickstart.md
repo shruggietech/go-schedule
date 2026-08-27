@@ -28,3 +28,10 @@ only the files named by the plan and no hosted-settings artifact.
 
 No branch protection, required approvals, fixed check contexts, tag, release,
 or settings mutation is part of this feature.
+
+## Review follow-up (2026-08-27)
+
+- Clarified that PR publication authorization covers verified, in-scope
+  review-fix pushes to the same open PR without another halt.
+- Synchronized the root README contributor entry point with the PR-first model.
+- Re-ran all eight aggregate gates successfully after both corrections.
