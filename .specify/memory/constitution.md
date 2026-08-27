@@ -1,30 +1,17 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (template) → 1.0.0; amended 1.0.0 → 1.1.0 (2026-07-22, principle V
-  adopting the Build-Phase Autopilot Protocol); amended 1.1.0 → 2.0.0 (2026-07-22,
-  removing the pull-request integration requirement in favor of trunk-based
-  development); amended 2.0.0 → 2.0.1 (2026-07-23, retiring `TODO.md` in favor of
-  the GitHub issue tracker as the roadmap).
-Bump rationale: Initial ratification of the project constitution (MAJOR baseline).
-  The 1.1.0 amendment adds a new principle (MINOR): autonomous build-phase
-  execution. It grants autonomy of execution only and relaxes no existing
-  principle or quality gate.
-  The 2.0.0 amendment removes a mandated integration gate — every change landing
-  via pull request, with no direct pushes to the default branch — which is a
-  backward-incompatible governance removal (MAJOR). The requirement never matched
-  practice on this one-to-two developer project. No principle is weakened: the
-  single pre-push halt is retained as the sole human review point and the
-  local CI-parity requirement is strengthened, since CI now reports after a push
-  to main rather than blocking a merge.
-  The 2.0.1 amendment is a PATCH clarification: `TODO.md` was retired and the roadmap
-  of open work moved to the GitHub issue tracker, so principle V now names the tracker
-  as the second source of traceable scope. The substance of the standing authorization
-  is unchanged — only the artifact that holds the roadmap.
+Version change: 2.0.1 → 3.0.0 (2026-08-26, reinstating pull requests as the
+  integration path for third-party review).
+Bump rationale: Requiring a review branch and pull request changes the
+  integration contract for every author and is therefore a MAJOR amendment.
+  The rule is intentionally lightweight for a one-developer project with no
+  users: it creates a durable AI-review venue without branch protection,
+  approval requirements, or other hosted enforcement.
 
 Modified principles:
-  - V. Autonomous Build-Phase Execution (2026-07-22, v2.0.0 — the mandatory halt
-    now precedes the push to main rather than a branch push and pull request)
+  - V. Autonomous Build-Phase Execution (2026-08-26, v3.0.0: the mandatory halt
+    precedes review-branch publication and PR creation)
 Added principles:
   - I. Code Quality
   - II. Testing Standards (NON-NEGOTIABLE)
@@ -35,22 +22,20 @@ Added sections:
   - Engineering Constraints
   - Development Workflow & Quality Gates
   - Governance
-Modified sections (2026-07-22, v2.0.0):
-  - Development Workflow & Quality Gates (trunk-based; PR requirement removed;
-    deviations recorded in the commit message rather than a PR description)
-  - Governance (Authority, Guiding decisions, Amendment procedure, Compliance
-    review — all re-anchored from PR review onto the pre-push halt)
+Modified sections (2026-08-26, v3.0.0):
+  - Development Workflow & Quality Gates (lightweight PR-first review)
+  - Governance (the maintainer retains final review and merge judgment)
 
 Templates requiring updates:
   ✅ .specify/templates/plan-template.md (Constitution Check gates are dynamic;
      no edit required for either amendment)
   ✅ .specify/templates/spec-template.md (no mandatory-section changes required)
   ✅ .specify/templates/tasks-template.md (principle-driven task categories covered)
-  ✅ CLAUDE.md (Integration workflow section rewritten for trunk-based, v2.0.0)
-  ✅ docs/build-autopilot.md (Branching and integration + halt breakdown +
-     guardrails rewritten for trunk-based, v2.0.0)
-  ✅ .github/workflows/ci.yml (no change needed — already triggers on push to
-     main, so CI keeps running without pull_request events)
+  ✅ CLAUDE.md (Integration workflow synchronized for PR-first, v3.0.0)
+  ✅ CONTRIBUTING.md (one integration workflow and closing-keyword guidance)
+  ✅ docs/build-autopilot.md (review branch, halt, PR, review, and cleanup flow)
+  ✅ .github/PULL_REQUEST_TEMPLATE.md (canonical verification and `Closes`)
+  ✅ .github/workflows/ci.yml (no change needed; already runs on pull requests)
 
 Deferred TODOs: None
 -->
@@ -160,9 +145,10 @@ to run end to end without per-step authorization.
   architecture-affecting. It halts to the user only when no option is clearly best on an
   irreversible or architecture-defining choice, when the feature's intent is genuinely
   ambiguous, or when a CRITICAL conflict needs a human decision.
-- Exactly one halt per feature is mandatory: before anything leaves the machine (the push
-  to `main`), with a breakdown of notable decisions and what was built. Pushing, tagging,
-  and cutting a release always require explicit authorization.
+- All development MUST use a review branch and a pull request targeting `main`.
+- Exactly one halt per feature is mandatory: before the review branch is pushed or its pull
+  request is opened. The halt includes a breakdown of notable decisions and what was built.
+  Publishing, tagging, and cutting a release always require explicit authorization.
 - Every feature MUST still be spec'd through spec-kit before implementation. The
   `/speckit-analyze` gate MUST NOT be skipped or weakened.
 
@@ -188,21 +174,22 @@ principles I through IV or the CI quality gates below.
 
 - Features run under the Build-Phase Autopilot Protocol (`docs/build-autopilot.md`, see
   principle V): one kickoff runs the spec-kit sequence end to end, the agent decides
-  routine questions itself and records the rationale, and it halts once before anything
-  is pushed.
-- Development is trunk-based. Work is committed directly onto `main`; there are no feature
-  branches and no pull requests. This is a one-to-two developer project, where a pull
-  request is review ceremony with no reviewer — the single pre-push halt is where a human
-  actually looks at the work, and it is not improved by wrapping it in a PR.
+  routine questions itself and records the rationale, and it halts once before the review
+  branch is published or its pull request is opened.
+- All development MUST use a review branch and a pull request targeting `main`. This applies
+  equally to maintainers, automation agents, and outside contributors. Direct pushes to
+  `main` are prohibited.
 - CI MUST pass and MUST enforce: `gofmt`/`go vet`, linter, `go test -race`, coverage
-  thresholds, and benchmark regression checks for performance-sensitive packages. It runs on
-  every push to `main`. Because CI is a backstop that reports *after* the push rather than a
-  gate that blocks one, the agent MUST run these CI-parity checks locally before the halt, in
-  the foreground and watched to completion, never backgrounded and polled. A red local run is
-  a halt, not something to push and sort out afterwards.
-- The single pre-push halt MUST verify compliance with all five core principles, and MUST
+  thresholds, and benchmark regression checks for performance-sensitive packages. The agent
+  MUST run CI-parity locally before the halt, in the foreground and watched to completion.
+  Existing hosted CI provides additional review evidence after the PR opens. A red run MUST
+  be investigated rather than misrepresented as green.
+- Third-party review comments MUST be considered individually. Warranted changes are made;
+  suggestions that do not fit receive a concise rationale. AI feedback is advisory and the
+  maintainer retains final review and merge judgment.
+- The single pre-publication halt MUST verify compliance with all five core principles, and MUST
   surface any change that weakens one without recorded justification.
-- Any deviation from a principle MUST be recorded in the commit message under a
+- Any deviation from a principle MUST be recorded in the pull-request description under a
   "Complexity / Deviation" note explaining why a simpler compliant approach was rejected.
 
 ## Governance
@@ -211,14 +198,14 @@ This constitution supersedes ad-hoc practices and conventions. When a technical 
 conflicts with these principles, the principles win unless an explicit, recorded amendment
 changes them.
 
-- **Authority**: The pre-push halt, commit messages, and design documents MUST verify
-  compliance with the five core principles and the constraints above. The halt is the
-  enforcement mechanism; CI is the automated backstop.
+- **Authority**: Design documents, the pre-publication halt, and pull-request review MUST
+  verify compliance with the five core principles and the constraints above. The pull request
+  is the durable review record; the maintainer is the final integration authority.
 - **Guiding decisions**: Technical and implementation choices (architecture, dependencies,
   data structures, interface design) MUST be evaluated against the principles. The default
   bias is the simplest design that satisfies all four; added complexity MUST be justified in
   writing against a named principle (typically Performance or Testing) and recorded in the
-  commit message and, where it is architecture-affecting, in `CHANGELOG.md`.
+  pull-request description and, where it is architecture-affecting, in `CHANGELOG.md`.
 - **Amendment procedure**: Amendments require (1) a written proposal describing the change and
   rationale, (2) operator approval, and (3) a synchronized update of dependent templates and
   guidance docs. The Sync Impact Report at the top of this file MUST be updated on every
@@ -227,7 +214,8 @@ changes them.
   MAJOR = backward-incompatible governance/principle removals or redefinitions;
   MINOR = a new principle/section or materially expanded guidance;
   PATCH = clarifications and non-semantic refinements.
-- **Compliance review**: Compliance is checked at every pre-push halt. Periodically (at
+- **Compliance review**: Compliance is checked at every pre-publication halt and pull request.
+  Periodically (at
   minimum each release), maintainers MUST review whether the principles still reflect reality
   and amend rather than let practice silently drift.
 - **Runtime guidance**: Use `CLAUDE.md`, `docs/build-autopilot.md`, and `.specify/` templates
@@ -259,5 +247,13 @@ changes them.
   #13 through #20 and the file was removed. This is a PATCH clarification: what
   autopilot may run without further authorization is unchanged, only where that scope
   is recorded. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
+- 2026-08-26, v3.0.0: **reinstated pull requests as the mandatory integration path.**
+  Recent maintainer work established that a review branch and PR are useful venues for
+  third-party AI review. Autopilot now halts before review-branch publication and PR creation.
+  The amendment deliberately adds no branch protection, approval requirement, fixed check
+  list, or mandatory conversation rule; those controls are disproportionate for the current
+  one-developer project with no users. The maintainer considers feedback and retains final
+  merge judgment. Mirrored in `CLAUDE.md`, `CONTRIBUTING.md`,
+  `docs/build-autopilot.md`, and the PR template.
 
-**Version**: 2.0.1 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-07-23
+**Version**: 3.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-08-26

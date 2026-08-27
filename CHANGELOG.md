@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **All development now integrates through pull requests (closes #23).**
+  Constitution v3.0.0 replaces the stale maintainer-direct-to-`main` rule with
+  one review-branch workflow for maintainers, automation agents, and outside
+  contributors. Its purpose is deliberately narrow: give third-party AI
+  reviewers a durable place to comment before the maintainer decides whether to
+  merge. Local parity and the autopilot halt precede publication. Contributor
+  guidance, agent context, the autopilot protocol, and the pull request template
+  now describe the same workflow and use `Closes` when a pull request fully
+  completes an issue. No branch protection or approval machinery is added.
 - **The repository now carries a reviewable GitHub security baseline (addresses
   #38 and #39).** `SECURITY.md` retains the private advisory route and now names
   `info@shruggie.tech` as its fallback plus repository administrators as the
@@ -98,6 +107,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-26 - Constitution v3.0.0 reinstates PR-first integration.** Recent
+  work has repeatedly used third-party PR review, so the direct-push policy no
+  longer described the useful operating model. This is a major governance
+  amendment because it reintroduces a mandatory integration gate for every
+  author. The once-per-feature autopilot halt now precedes review-branch
+  publication and PR creation.
+- **2026-08-26 - Keep PR governance proportional to the project.** The PR exists
+  to obtain AI review and preserve discussion for a one-developer application
+  with no users. Branch protection, approval counts, mandatory conversation
+  resolution, fixed required-check contexts, and a governance policy checker
+  were considered and rejected as maintenance-heavy ceremony. Existing local
+  verification and hosted CI remain evidence, AI comments remain advisory, and
+  the maintainer retains final merge judgment.
 - **2026-08-26 - Use repository-owned advanced CodeQL with a manual headless Go
   build.** Reviewable triggers and least-privilege permissions are part of this
   repository's security contract. `CGO_ENABLED=0 go build ./...` traces compiled
