@@ -80,7 +80,7 @@ lines and surrounding whitespace are ignored.
 
 To run the equivalent of `cmd /c echo hello`:
 
-```
+```text
 /c
 echo hello
 ```

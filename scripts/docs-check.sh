@@ -6,6 +6,8 @@
 #   2. every non-http(s), non-fragment Markdown link resolves on disk; and
 #   3. no link escapes the docs/ directory (content outside docs/ must be an
 #      absolute https://github.com/… URL, which is skipped).
+#   4. the custom syntax theme provides a complete, safe dark-palette contract.
+#   5. every published fenced block declares an approved content category.
 # It also checks that the pointer README(s) reference an existing docs/ page.
 #
 # Pure POSIX sh + coreutils: no network, no Ruby, no build. Anchors (#frag) are
@@ -15,6 +17,7 @@ set -eu
 
 DOCS_DIR="docs"
 POINTERS="test/scripts/README.md"
+THEME_SCSS="$DOCS_DIR/_sass/custom/custom.scss"
 
 # Failures accumulate here, one `file: reason: detail` line each. Counting lines
 # afterwards avoids the subshell-scoping trap of piping into a while-loop.
@@ -22,6 +25,66 @@ FAILURES=$(mktemp)
 trap 'rm -f "$FAILURES"' EXIT
 
 report() { printf '%s: %s: %s\n' "$1" "$2" "$3" >> "$FAILURES"; }
+
+# require_style <extended-regex> <contract-description>
+require_style() {
+  if ! grep -Eq "$1" "$THEME_SCSS"; then
+    report "$THEME_SCSS" "missing dark-theme contract" "$2"
+  fi
+}
+
+check_theme_contract() {
+  if [ ! -f "$THEME_SCSS" ]; then
+    report "$THEME_SCSS" "missing stylesheet" "$THEME_SCSS"
+    return 0
+  fi
+
+  require_style '\[class\][[:space:]]*\{[[:space:]]*color:[[:space:]]*inherit;' \
+    "safe fallback for every classified token"
+  require_style '\.n,[[:space:]]*\.nx[[:space:]]*\{[[:space:]]*color:[[:space:]]*#58a6ff;' \
+    "name tokens use Anchor Blue"
+  require_style '\.l,[[:space:]]*\.ld[[:space:]]*\{[[:space:]]*color:[[:space:]]*#f2b84b;' \
+    "literal tokens use Hold Amber"
+  require_style '\.nd,[[:space:]]*\.ne,[[:space:]]*\.ni,[[:space:]]*\.nl,[[:space:]]*\.py,[[:space:]]*\.gu[[:space:]]*\{[[:space:]]*color:[[:space:]]*#58a6ff;' \
+    "decorator, exception, label, and heading tokens use Anchor Blue"
+  require_style '\.hll[[:space:]]*\{[[:space:]]*background-color:[[:space:]]*#17262d;' \
+    "highlighted lines use a dark surface"
+  require_style '::selection[[:space:]]*\{[[:space:]]*color:[[:space:]]*#0d171c;[[:space:]]*background-color:[[:space:]]*#58a6ff;' \
+    "selected code uses Panel ink on Anchor Blue"
+  # These patterns intentionally match literal SCSS variables.
+  # shellcheck disable=SC2016
+  require_style 'padding:[[:space:]]*\$sp-3[[:space:]]+\$gutter-spacing-sm;' \
+    "endorsement uses vertical spacing and the small navigation gutter"
+  # shellcheck disable=SC2016
+  require_style '@include[[:space:]]+mq\(md\)[[:space:]]*\{[[:space:]]*padding-right:[[:space:]]*\$gutter-spacing;[[:space:]]*padding-left:[[:space:]]*\$gutter-spacing;' \
+    "endorsement uses the desktop navigation gutter"
+}
+
+# check_fences <file> — require one of the documented fence categories.
+check_fences() {
+  awk '
+    /^```/ {
+      if (!open) {
+        language = substr($0, 4)
+        if (language !~ /^(sh|bash|powershell|text)$/) {
+          detail = language == "" ? "untagged opening fence" : "unsupported fence: " language
+          print NR "|" detail
+        }
+        open = 1
+        next
+      }
+      if ($0 != "```") {
+        print NR "|closing fence must be plain triple backticks"
+      }
+      open = 0
+    }
+    END {
+      if (open) print NR "|unclosed fenced block"
+    }
+  ' "$1" | while IFS='|' read -r line detail; do
+    report "$1:$line" "invalid code fence" "$detail"
+  done
+}
 
 # normalize <path> — collapse . and .. segments; print the cleaned path.
 normalize() {
@@ -82,10 +145,12 @@ check_frontmatter() {
 }
 
 page_count=0
+check_theme_contract
 for f in "$DOCS_DIR"/*.md; do
   [ -e "$f" ] || continue
   page_count=$((page_count + 1))
   check_frontmatter "$f"
+  check_fences "$f"
   # No pipe here: the for-loop keeps report()'s writes in this shell.
   for target in $(links_in "$f"); do
     check_link "$f" "$target" 1
@@ -108,4 +173,4 @@ if [ -s "$FAILURES" ]; then
     "$(wc -l < "$FAILURES" | tr -d ' ')" "$page_count" >&2
   exit 1
 fi
-printf 'docs-check: OK — %s pages, links and front matter clean\n' "$page_count"
+printf 'docs-check: OK — %s pages, links, front matter, fences, and theme contract clean\n' "$page_count"

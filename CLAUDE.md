@@ -142,7 +142,15 @@ Governing documents:
 - Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 Active feature:
-- Plan: `specs/014-gui-activity-clarity/plan.md` (close #26, #28, and #30 as one
+- Plan: `specs/015-docs-dark-theme/plan.md` (close #36, #37, and #35 as one
+  documentation-site quality slice: replace the incomplete light-palette patch
+  with a safe-default dark syntax theme; preserve deliberate brand role colors;
+  make highlighted lines and selected code legible; enforce the published
+  `sh`, `bash`, `powershell`, and `text` fence vocabulary in the offline docs
+  gate; and align the sidebar endorsement to just-the-docs' responsive
+  navigation gutters. Preserve the v0.4.2 theme pin, dark-only site, documented
+  commands, and all application behavior.)
+- Prior: `specs/014-gui-activity-clarity/plan.md` (close #26, #28, and #30 as one
   GUI clarity slice: rename the mixed log-and-alert destination to Activity;
   display exact unacknowledged-alert counts through 99 and cap higher counts at
   `99+`; replace the destructive-looking Dismiss All/trash presentation with a

@@ -67,19 +67,31 @@ pre.highlight {
 .highlighter-rouge .highlight {
   color: #f3f7f8; // base: any untyped token is light
 
+  // Fail safely when a lexer emits a class we have not seen: neutralize the
+  // inherited light-theme foreground before the intentional role colors below.
+  // These role selectors have equal specificity and appear later, so they win.
+  [class] { color: inherit; }
+
   .c, .c1, .cm, .cd, .cp, .cs { color: #9baeb6; font-style: italic; } // comments
   .k, .kc, .kd, .kn, .kp, .kr, .kt, .kv { color: #58a6ff; }           // keywords
   .nb, .bp, .nf, .fm, .nn, .nc { color: #58a6ff; }                    // builtins / functions / classes
+  .n, .nx { color: #58a6ff; }                                        // names
+  .nd, .ne, .ni, .nl, .py, .gu { color: #58a6ff; }                   // decorators / exceptions / labels / headings
   .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr, .dl, .sa, .ss { color: #62d9b7; } // strings
   .m, .mi, .mf, .mh, .mo, .mb, .il { color: #f2b84b; }                // numbers
+  .l, .ld { color: #f2b84b; }                                        // literals
   .nv, .vg, .vi, .vc, .no, .na { color: #f2b84b; }                    // variables / attributes
   .nt { color: #62d9b7; }                                            // html/xml tags
   .o, .ow, .p, .pi { color: #f3f7f8; }                               // operators / punctuation
   .gp { color: #9baeb6; }                                            // shell prompt
   .gi { color: #62d9b7; }                                            // diff inserted
   .gd { color: #e05f5f; }                                            // diff deleted
+  .hll { background-color: #17262d; }                                 // highlighted line
   // Don't flag lexer "error" tokens with an alarming red plate; keep them legible.
   .err { color: #f3f7f8; background-color: transparent; }
+
+  // just-the-docs' light palette otherwise wins with white-on-white selection.
+  ::selection { color: #0d171c; background-color: #58a6ff; }
 }
 
 // The "A ShruggieTech project" endorsement in the sidebar footer.
@@ -89,5 +101,7 @@ pre.highlight {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #9baeb6; // Muted
-  padding: 0.75rem 0 0;
+  padding: $sp-3 $gutter-spacing-sm;
+
+  @include mq(md) { padding-right: $gutter-spacing; padding-left: $gutter-spacing; }
 }
