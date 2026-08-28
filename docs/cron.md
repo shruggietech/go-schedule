@@ -6,9 +6,13 @@ nav_order: 5
 # Cron interoperability
 
 **Audience:** anyone with an existing crontab, or anyone who has to read one\
-**Applies to:** go-schedule 0.7.0 and later\
+**Applies to:** go-schedule 0.7.0 and later for import, explain, and export\
 **Source of truth:** `internal/cron/` — this document describes what the
 converter does, and the fidelity table below is the contract it holds to.
+
+> **Release status:** `cron convert`, direct cron input for `task add` and
+> `task edit`, and cron entry in the desktop editor are currently unreleased
+> changes planned for the first release after 0.8.0.
 
 go-schedule accepts schedules written the way you would say them, such as
 `every 15 minutes` and `weekdays at 09:00`, and also accepts a supported subset

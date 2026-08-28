@@ -6,10 +6,15 @@ nav_order: 3
 # `gosched` command reference
 
 **Audience:** anyone using go-schedule from a terminal\
-**Applies to:** go-schedule 0.7.0 and later\
+**Applies to:** go-schedule 0.7.0 and later; see the release-status note below\
 **Source of truth:** `internal/cli/` — this document describes what the binary
 does. `specs/001-task-scheduler/contracts/cli.md` describes what it must do, and
 remains a specification artifact.
+
+> **Release status:** dual-syntax `task add` / `task edit` input and `cron
+> convert` are currently unreleased changes planned for the first release after
+> 0.8.0. Existing import, explain, and export workflows remain applicable from
+> 0.7.0.
 
 `gosched` is a thin client. Every command below talks to the `goschedd` daemon
 over local IPC — a Unix socket on Linux and macOS, a named pipe on Windows — so

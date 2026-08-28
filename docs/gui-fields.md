@@ -5,6 +5,10 @@ nav_order: 4
 
 # GUI task editor — field reference
 
+> **Release status:** cron entry in the Schedule field is currently an
+> unreleased change planned for the first release after 0.8.0. Released 0.8.0
+> builds accept the human forms documented below.
+
 This page explains every field in the desktop GUI's **New Task** / **Edit Task** dialog:
 what it accepts, what's required, and what each option means. It's the GUI counterpart to the
 CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
