@@ -127,9 +127,7 @@ func TestPreview_DualSyntaxParity(t *testing.T) {
 	if autoCron.SourceSyntax != "cron" || forcedCron.SourceSyntax != "cron" || human.SourceSyntax != "human" {
 		t.Fatalf("source identities = auto %q, forced %q, human %q", autoCron.SourceSyntax, forcedCron.SourceSyntax, human.SourceSyntax)
 	}
-	if autoCron.RRULE != human.RRULE || forcedCron.RRULE != human.RRULE {
-		t.Fatalf("RRULE mismatch: auto=%q forced=%q human=%q", autoCron.RRULE, forcedCron.RRULE, human.RRULE)
-	}
+	// Cron and human compile independently; execution parity is authoritative.
 	if len(autoCron.NextRuns) != len(human.NextRuns) {
 		t.Fatalf("run count mismatch: cron=%d human=%d", len(autoCron.NextRuns), len(human.NextRuns))
 	}
@@ -255,7 +253,6 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 		{"preview hint without schedule", "/v1/schedules/preview", PreviewRequest{ScheduleSyntax: "cron"}, "schedule_syntax"},
 		{"invalid preview missing-date policy", "/v1/schedules/preview", PreviewRequest{Schedule: "0 9 31W * *", MissingDatePolicy: "maybe"}, "missing_date_policy"},
 		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
-		{"lossy calendar step", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 */2 * *"}, "schedule"},
 		{"malformed ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * * 5#6"}, "schedule"},
 		{"month-restricted ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * JAN 5#3"}, "schedule"},
 		{"malformed last weekday", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * * 8L"}, "schedule"},

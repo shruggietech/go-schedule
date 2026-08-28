@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/cron"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
@@ -100,5 +101,24 @@ func TestEvaluate_ReplacementScheduleDoesNotCatchUpBeforeAnchor(t *testing.T) {
 	}
 	if dec.ShouldCatchUp {
 		t.Fatalf("decision=%+v, want no catch-up before replacement schedule anchor %v", dec, anchor)
+	}
+}
+
+func TestEvaluate_CompositeCronFindsFirstMissedRun(t *testing.T) {
+	anchor := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	sch, bad, err := cron.Compile("30 8-17 * * MON,WED,FRI", "UTC", anchor)
+	if err != nil || bad.Reason != "" {
+		t.Fatalf("compile: refusal=%q err=%v", bad.Reason, err)
+	}
+	last := time.Date(2026, 8, 28, 16, 30, 0, 0, time.UTC)
+	now := time.Date(2026, 8, 31, 10, 0, 0, 0, time.UTC)
+
+	dec, err := Evaluate(sch, "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, 8, 28, 17, 30, 0, 0, time.UTC)
+	if !dec.ShouldCatchUp || !dec.FirstMissed.Equal(want) {
+		t.Fatalf("decision=%+v, want first missed %v", dec, want)
 	}
 }

@@ -51,18 +51,13 @@ func Parse(input string, hint Syntax, tz string, now time.Time) (Input, error) {
 		return Input{Expression: expression, Syntax: syntax, Schedule: sch}, nil
 	}
 
-	phrase, bad, err := cron.Explain(expression)
+	sch, bad, err := cron.Compile(expression, tz, now)
 	if err != nil {
 		return Input{}, fmt.Errorf("schedule input: %w", err)
 	}
 	if bad.Reason != "" {
 		return Input{}, fmt.Errorf("schedule input: cron: %s", bad.Reason)
 	}
-	sch, err := schedule.Parse(phrase, tz, now)
-	if err != nil {
-		return Input{}, fmt.Errorf("schedule input: parse converted cron: %w", err)
-	}
-	sch.Expression = expression
 	return Input{Expression: expression, Syntax: syntax, Schedule: sch}, nil
 }
 

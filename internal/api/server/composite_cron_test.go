@@ -1,0 +1,63 @@
+package server
+
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+	"testing"
+)
+
+func TestCompositeCronPreviewCreateEditAndReload(t *testing.T) {
+	s := newTestServer(t)
+	expr := "*/10 9-17 * * MON,WED,FRI"
+	preview := doJSON(t, s, http.MethodPost, "/v1/schedules/preview", PreviewRequest{
+		Schedule: expr, ScheduleSyntax: "cron", Timezone: "America/New_York",
+	})
+	if preview.Code != http.StatusOK {
+		t.Fatalf("preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	var p PreviewResponse
+	if err := json.Unmarshal(preview.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.SourceSyntax != "cron" || !strings.Contains(strings.ToLower(p.HumanSummary), "every 10 minutes") || len(p.NextRuns) == 0 {
+		t.Fatalf("preview=%+v", p)
+	}
+
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "composite", Command: "/bin/true", Schedule: expr,
+		ScheduleSyntax: "cron", Timezone: "America/New_York",
+	})
+	if created.Schedule.Expression != expr || created.Schedule.SourceSyntax != "cron" {
+		t.Fatalf("created schedule=%+v", created.Schedule)
+	}
+
+	updatedExpr := "0 9,17 1,15 JAN,MAR *"
+	path := "/v1/tasks/" + created.Task.ID
+	updated := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{
+		Schedule: updatedExpr, ScheduleSyntax: "cron",
+	})
+	if updated.Code != http.StatusOK {
+		t.Fatalf("update status=%d body=%s", updated.Code, updated.Body.String())
+	}
+	loaded := getTask(t, s, created.Task.ID)
+	if loaded.Schedule.Expression != updatedExpr || loaded.Schedule.SourceSyntax != "cron" || len(loaded.NextRuns) == 0 {
+		t.Fatalf("loaded=%+v", loaded)
+	}
+}
+
+func TestCompositeCronRefusedUpdateDoesNotMutate(t *testing.T) {
+	s := newTestServer(t)
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "stable", Command: "/bin/true", Schedule: "0 9,17 * * *", ScheduleSyntax: "cron", Timezone: "UTC",
+	})
+	path := "/v1/tasks/" + created.Task.ID
+	rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Schedule: "0 0 13 * 5", ScheduleSyntax: "cron"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	loaded := getTask(t, s, created.Task.ID)
+	if loaded.Schedule.Expression != "0 9,17 * * *" {
+		t.Fatalf("refused update changed schedule to %q", loaded.Schedule.Expression)
+	}
+}

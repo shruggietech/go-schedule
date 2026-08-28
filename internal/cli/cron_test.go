@@ -32,6 +32,8 @@ func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
 		{input: "nearest weekday to the 15th of every month at 09:00", want: "0 9 15W * *\n"},
 		{input: "0 9 LW * *", want: "last weekday of every month at 09:00\n"},
 		{input: "last weekday of every month at 09:00", want: "0 9 LW * *\n"},
+		{input: "*/10 9-17 * * MON,WED,FRI", want: "every 10 minutes during hours 9 through 17 on Monday, Wednesday, and Friday\n"},
+		{input: "*/7 * * * *", want: "every 7 minutes every day\n"},
 	} {
 		cmd := cronConvert()
 		var stdout, stderr bytes.Buffer
@@ -237,7 +239,7 @@ func TestImport_DryRunCreatesNothing(t *testing.T) {
 		"every 15 minutes",           // a translated line
 		"every day at 02:00",         // another
 		"boot",                       // @reboot declined by name
-		"does not divide the hour",   // */7 declined by name
+		"every 7 minutes",            // uneven field step is preserved
 		"no command follows",         // the schedule-only line is an error
 		"This was a preview",         // the run says it changed nothing
 		"Cron carries no timezone",   // fidelity statement
@@ -256,10 +258,10 @@ func TestImport_CountsEveryLine(t *testing.T) {
 	if got, want := rep.Read, 8; got != want {
 		t.Fatalf("read %d lines, want %d", got, want)
 	}
-	if got, want := rep.Jobs, 2; got != want {
+	if got, want := rep.Jobs, 3; got != want {
 		t.Errorf("jobs = %d, want %d", got, want)
 	}
-	if got, want := rep.Declined, 2; got != want {
+	if got, want := rep.Declined, 1; got != want {
 		t.Errorf("declined = %d, want %d", got, want)
 	}
 	if got, want := rep.Errors, 1; got != want {
@@ -282,8 +284,8 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	if err := runImport(&buf, rep, importOptions{timezone: "UTC", group: "g1"}, fc); err != nil {
 		t.Fatalf("import returned an error: %v", err)
 	}
-	if len(fc.reqs) != 2 {
-		t.Fatalf("created %d task(s), want 2", len(fc.reqs))
+	if len(fc.reqs) != 3 {
+		t.Fatalf("created %d task(s), want 3", len(fc.reqs))
 	}
 	first := fc.reqs[0]
 	if first.Command != "/usr/local/bin/backup" {
@@ -298,8 +300,8 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	if first.Timezone != "UTC" || first.GroupID != "g1" {
 		t.Errorf("timezone/group not applied: %q / %q", first.Timezone, first.GroupID)
 	}
-	if rep.Created != 2 {
-		t.Errorf("report Created = %d, want 2", rep.Created)
+	if rep.Created != 3 {
+		t.Errorf("report Created = %d, want 3", rep.Created)
 	}
 }
 

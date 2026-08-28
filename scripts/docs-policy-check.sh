@@ -54,8 +54,10 @@ require_text docs/cron.md 'minute hour day-of-month month day-of-week' \
 require_text docs/cron.md 'Expression versus crontab file' \
   'expression/file distinction'
 require_text docs/cron.md 'task timezone' 'task-owned timezone semantics'
-require_text docs/cron.md 'wildcard step in day-of-month' \
-  'calendar-step fidelity refusal'
+require_text docs/cron.md 'lists, ranges, and field-local steps' \
+  'standard composite cron breadth'
+require_text docs/cron.md 'Both day-of-month and day-of-week restricted' \
+  'day-field OR fidelity refusal'
 require_text docs/gui-fields.md 'exact retained cron expression' \
   'exact cron edit identity'
 require_text specs/001-task-scheduler/spec.md 'cron knowledge is optional' \

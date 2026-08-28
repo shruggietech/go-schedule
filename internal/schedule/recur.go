@@ -78,6 +78,21 @@ func nextRecurring(sch domain.Schedule, tzName string, policy domain.MissingDate
 		return time.Time{}, false, fmt.Errorf("schedule: unknown calendar adjustment %q", sch.CalendarAdjustment)
 	}
 
+	if compositeDailySet(opt) {
+		if policy != "" && policy != domain.MissingDateSkip && compositeDateSet(opt) {
+			occ, ok := resolveCompositeDateSet(opt, loc, policy, after.In(loc))
+			if !ok {
+				return time.Time{}, false, nil
+			}
+			return occ.UTC(), true, nil
+		}
+		occ, ok := resolveCompositeDailySet(opt, loc, after.In(loc))
+		if !ok {
+			return time.Time{}, false, nil
+		}
+		return occ.UTC(), true, nil
+	}
+
 	// A date-bearing rule under a non-skip policy is resolved by walking periods
 	// rather than by asking rrule-go, because rrule-go's answer is precisely the
 	// "skip" answer: it omits periods that have no matching date. The walk

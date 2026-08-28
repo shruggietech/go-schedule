@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Standard five-field cron combinations now run faithfully end to end (Refs
+  #22).** Lists, ranges, wildcard and range steps, names, arbitrary weekday
+  sets, and safe cross-field restrictions now share exact parsing, preview,
+  execution, persistence, catch-up, editing, and canonical export behavior.
+  This includes uneven field-local steps and policy-aware date sets across leap
+  years and DST. Cron day-of-month/day-of-week OR semantics, Quartz layouts,
+  boot triggers, and modifier composites remain named refusals, so #22 remains
+  open for the deliberately excluded and operational crontab work.
 - **Monthly calendar selectors now work end to end in both cron directions
   (Refs #22).** Day-of-month `L`, `1W` through `31W`, and `LW` can be
   explained, previewed, imported, retained, authored in plain language, and
@@ -85,6 +93,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Pinned documentation policy - `scripts/docs-check.sh` (2026-08-28).** The
+  bounded current-surface check now requires the delivered standard composite
+  cron breadth and retains the day-field OR refusal instead of requiring the
+  superseded calendar-step refusal. Its generated fixtures cover the new claim.
 - **Activity diagnostics now lead operators to the complete daemon log (closes
   #27 and #31).** Activity explicitly describes its records as a limited recent
   view and displays the daemon's exact configured rotating-log path, including
@@ -95,10 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   offline docs gate now runs a bounded current-surface policy check plus generated
   acceptance and rejection fixtures. It rejects targeted obsolete human-only
   claims without scanning historical specifications or the changelog.
-- **Calendar-field cron wildcard steps now fail safely.** Wildcard steps greater
-  than one in day-of-month, month, or day-of-week are refused with the field
-  named instead of being silently simplified to a daily schedule. `*/1` and all
-  previously faithful forms remain unchanged; broader cron coverage stays #22.
+- **Calendar-field cron wildcard steps now retain field-local behavior.** The
+  earlier safety refusal is superseded by direct compilation of the selected
+  calendar values, so forms such as `0 9 */2 * *` no longer simplify or fail.
 - **The documentation site's dark theme is complete and accessible (closes #35,
   #36, and #37).** Every syntax token now fails safely to readable base ink,
   deliberate brand colors cover named roles, highlighted lines and selected
@@ -512,9 +523,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   schedule, which is the opposite of what this feature needs: the work is
   inspecting *field structure* to decide what cannot be represented. Such a
   library accepts `*/7` and hands back a working schedule, when the honest answer
-  is a refusal — so we would parse twice, and the second parse would be the one
-  that mattered. The grammar is about 120 lines and fully covered by table tests.
-  No new dependency was added.
+  was then a refusal. S026 later added faithful field-set compilation while
+  retaining this in-tree parser and adding no dependency.
 
 - **2026-07-23** — **A cron expression becomes a schedule only by way of the
   human phrase.** The converter renders the phrase a user would have typed and
@@ -526,6 +536,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cost is real and accepted: cron can express schedules the phrase grammar
   cannot (arbitrary by-minute lists), and those are refused rather than given a
   privileged back door into a task nobody could subsequently edit.
+
+- **2026-08-28** — **Cron and human input compile independently into the same
+  durable schedule contract.** This deliberately supersedes the 2026-07-23
+  phrase-only conversion rule. Re-parsing a generated English phrase cannot
+  preserve standard cron lists, ranges, uneven field-local steps, or safe
+  cross-field combinations. The original normalized cron remains the editable
+  source, while its complete readable description is display metadata and the
+  compiled recurrence is authoritative for preview, execution, persistence,
+  catch-up, and export. The shared durable model keeps the two authoring paths
+  aligned without pretending the natural-language grammar expresses every cron
+  set.
 
 
 - **2026-07-23** — **The roadmap moves to the issue tracker rather than being

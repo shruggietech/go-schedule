@@ -257,6 +257,9 @@ gosched cron convert "nearest weekday to the 15th of every month at 09:00"
 
 gosched cron convert "0 9 LW * *"
 # last weekday of every month at 09:00
+
+gosched cron convert "*/10 9-17 * * MON,WED,FRI"
+# every 10 minutes during hours 9 through 17 on Monday, Wednesday, and Friday
 ```
 
 Automatic mode treats `@`-prefixed input and five fields with a cron-shaped
@@ -265,6 +268,11 @@ minute field as cron. Existing human forms such as
 input or `--to human` to force cron input. Quoting is
 the same in POSIX shells and PowerShell: place a schedule containing spaces in
 single or double quotes so it arrives as one argument.
+
+For a broad cron expression, cron-to-human output is an exact readable
+description, not necessarily text accepted by the human schedule grammar.
+Execution and storage use the compiled recurrence, while the original normalized
+cron remains the editable source.
 
 Default success is exactly one converted line on stdout. Invalid or lossy input
 produces no stdout, a named stderr diagnostic, and exit code 2. With global
@@ -287,6 +295,8 @@ gosched cron explain "0 9 * * 5L"
 gosched cron explain "0 9 L * *"
 gosched cron explain "0 9 15W * *"
 gosched cron explain "0 9 LW * *"
+gosched cron explain "0 9,17 * * *"
+gosched cron explain "*/10 9-17 * * MON,WED,FRI"
 ```
 
 `--timezone` sets the zone the run times are shown in; `--count` how many to
@@ -307,6 +317,10 @@ task is created. Likewise, `0 9 * * 5L /usr/local/bin/report` previews as the
 last Friday of each month and retains the `5L` source.
 Day-of-month `L`, `15W`, and `LW` lines likewise preview their last-day,
 nearest-weekday, or last-weekday meaning and retain the exact timing source.
+Standard lists, ranges, field-local steps, names, and safe cross-field
+combinations use the same preview and import path. A restricted day-of-month
+combined with a restricted day-of-week is still refused because cron applies
+OR semantics that this recurrence model cannot reproduce.
 
 | Flag | Meaning |
 | --- | --- |

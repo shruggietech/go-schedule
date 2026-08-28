@@ -1,14 +1,13 @@
-// Package cron converts between crontab expressions and this scheduler's
-// human-readable schedule phrases. It owns syntax-specific parsing and honest
-// refusals; task authoring orchestration lives in internal/scheduleinput. Cron
-// input becomes a phrase before internal/schedule compiles it, while the
-// original expression may be retained for editing. Human-to-cron conversion
-// renders only recurrences the five-field dialect can carry faithfully.
+// Package cron parses, compiles, describes, imports, and exports supported
+// five-field cron. It owns syntax-specific parsing and honest refusals; task
+// authoring orchestration lives in internal/scheduleinput. Cron and human input
+// compile independently into the same durable schedule model, while the
+// original cron expression remains available for editing.
 //
 // The parser is written here rather than taken from a dependency because the
-// work is deciding what *cannot* be represented. A scheduling library normalizes
-// exactly the distinctions this package must detect: it will happily accept
-// "*/7" and hand back a schedule, when the honest answer is a refusal.
+// work includes deciding what *cannot* be represented. A general scheduling
+// library would normalize syntax distinctions this package must retain for
+// diagnostics, source identity, descriptions, and canonical export.
 package cron
 
 import (
@@ -188,19 +187,10 @@ func Parse(expr string) (Result, error) {
 		*targets[i] = f
 	}
 
-	// A wildcard step in a calendar field restarts within that field. The
-	// recurrence model cannot preserve that behavior, so treating the field as
-	// unrestricted would silently change the schedule to daily.
-	for i := 2; i < len(targets); i++ {
-		if targets[i].Step > 1 {
-			return refuse(expr, fmt.Sprintf("a wildcard step in the %s field has no faithful schedule equivalent", fieldName(i))), nil
-		}
-	}
-
 	// Cron ORs a restricted day-of-month with a restricted day-of-week; the
 	// recurrence model intersects them. Rather than silently changing a weekly
 	// job into a handful of runs a year, refuse and say why.
-	if !spec.DOM.Wildcard && !spec.DOW.Wildcard {
+	if spec.DOM.Restricted() && spec.DOW.Restricted() {
 		return refuse(expr, "restricting both day-of-month and day-of-week means \"either\" in cron, which has no equivalent here"), nil
 	}
 	if spec.DOW.Ordinal != 0 && !spec.Month.Wildcard {
@@ -368,7 +358,11 @@ func parseField(p string, min, max, idx int) (Field, error) {
 			seen[normalize(v, idx)] = true
 		}
 	}
-	for v := min; v <= max; v++ {
+	effectiveMax := max
+	if idx == 4 {
+		effectiveMax = 6 // Sunday 7 has already been folded onto Sunday 0.
+	}
+	for v := min; v <= effectiveMax; v++ {
 		if seen[normalize(v, idx)] {
 			f.Values = append(f.Values, normalize(v, idx))
 		}
@@ -469,4 +463,11 @@ func (f Field) Single() (int, bool) {
 // step — a bare "*", or a step of 1.
 func (f Field) EveryValue() bool {
 	return f.Wildcard && (f.Step == 0 || f.Step == 1)
+}
+
+// Restricted reports whether a field matches fewer than all values or carries
+// a calendar selector. A wildcard step is restricted even though its source
+// begins with "*": */2 still selects only half of the field's values.
+func (f Field) Restricted() bool {
+	return !f.EveryValue() || f.calendarSelector != calendarNone || f.Ordinal != 0
 }
