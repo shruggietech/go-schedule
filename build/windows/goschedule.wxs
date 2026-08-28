@@ -42,6 +42,11 @@
 
     <MediaTemplate EmbedCab="yes" />
 
+    <!-- One canonical icon row serves every installer-created identity surface.
+         The GUI executable embeds this same asset in the release workflow. -->
+    <Icon Id="GoSchedule.ico" SourceFile="cmd/gosched-gui/icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />
+
     <!-- Before installing files, terminate any running daemon (a leftover from a
          prior version or a non-service dev instance) so it can't hold the IPC
          pipe or lock the .exe being replaced. Best-effort: missing process is
@@ -138,6 +143,7 @@
           Name="go-schedule"
           Description="Open the go-schedule desktop app"
           Target="[INSTALLFOLDER]gosched-gui.exe"
+          Icon="GoSchedule.ico"
           WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveAppMenuFolder" Directory="AppMenuFolder" On="uninstall" />
       <RegistryValue Root="HKLM" Key="Software\ShruggieTech\go-schedule" Name="installed" Type="integer" Value="1" KeyPath="yes" />

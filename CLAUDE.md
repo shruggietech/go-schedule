@@ -133,63 +133,7 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 (`-H windowsgui`) and tasks spawn with no console window.
 
 <!-- SPECKIT START -->
-# go-schedule — Active Plan
-
-Governing documents:
-- Constitution: `.specify/memory/constitution.md` (v3.0.0: code quality, testing, UX, performance, autopilot, PR-first integration)
-- Spec: `specs/001-task-scheduler/spec.md`
-- Plan: `specs/001-task-scheduler/plan.md`
-- Design: `specs/001-task-scheduler/research.md`, `data-model.md`, `contracts/`, `quickstart.md`
-
-Active feature:
-- Plan: `specs/015-docs-dark-theme/plan.md` (close #36, #37, and #35 as one
-  documentation-site quality slice: replace the incomplete light-palette patch
-  with a safe-default dark syntax theme; preserve deliberate brand role colors;
-  make highlighted lines and selected code legible; enforce the published
-  `sh`, `bash`, `powershell`, and `text` fence vocabulary in the offline docs
-  gate; and align the sidebar endorsement to just-the-docs' responsive
-  navigation gutters. Preserve the v0.4.2 theme pin, dark-only site, documented
-  commands, and all application behavior.)
-- Prior: `specs/014-gui-activity-clarity/plan.md` (close #26, #28, and #30 as one
-  GUI clarity slice: rename the mixed log-and-alert destination to Activity;
-  display exact unacknowledged-alert counts through 99 and cap higher counts at
-  `99+`; replace the destructive-looking Dismiss All/trash presentation with a
-  Clear View/content-clear action and always-visible copy explaining that
-  current activity is hidden, visible alerts are acknowledged, and records are
-  not deleted. Preserve the existing cutoff and acknowledgement behavior; do
-  not add the log-path API from #31 or rename low-value internal identifiers.)
-- Prior: `specs/013-pr-governance/plan.md` (close #23 by replacing the stale
-  maintainer-direct-to-`main` model with one PR-first integration path for every
-  author; amend the constitution to v3.0.0; synchronize README, contributor,
-  autopilot, agent-context, and PR-template guidance; use the PR as a venue for third-party
-  AI review while leaving final merge judgment to the maintainer. No branch
-  protection, required approvals, fixed check list, governance checker, or
-  repository settings are added; the PR will use `Closes #23`.)
-- Plan: `specs/012-github-security-baseline/plan.md` (close #38 and #39 as one
-  repository-security slice: restore private vulnerability reporting with the
-  published `info@shruggie.tech` fallback and repository-admin triage; enable
-  each supported secret-scanning control and report plan/token limitations
-  individually; add repository-owned advanced CodeQL for Go on pull requests,
-  `main`, and weekly using a manual cgo-free build; extend the offline
-  automation policy with negative workflow-contract fixtures; preserve the
-  existing CI workflow and all product behavior. Remote settings activate only
-  after the autopilot pre-push authorization. Pinned artifact added:
-  `.github/workflows/codeql.yml`, with a dated CHANGELOG decision.)
-- Plan: `specs/011-maintainer-automation-baseline/plan.md` (close #21 and #41 as
-  one maintainer-automation slice: move all CI/release action references from
-  their Node 20 majors to verified Node 24 majors; introduce a POSIX
-  `scripts/verify.sh` command source with eight named gates and aggregate mode,
-  consumed by CI, Make, contributor guidance, and autopilot; add an offline
-  `scripts/automation-check.sh` allowlist + independent gate-manifest check with
-  temporary-fixture regressions; preserve workflow triggers, permissions,
-  matrices, artifacts, and release behavior. Pinned artifacts touched:
-  `.github/workflows/ci.yml`, `.github/workflows/release.yml`, and `Makefile`,
-  each with a dated CHANGELOG decision.)
-- Plan: `specs/010-docs-site-pages/plan.md` (publish `docs/` as a GitHub Pages site + README consolidation (closes #11): branch-based Jekyll served from the `/docs` folder on `main` using the just-the-docs remote theme pinned to `@v0.4.2` (last release that builds under GitHub Pages' Jekyll 3.9/libsass — newer needs Jekyll 4/Actions, rejected); front matter on every `docs/*.md` with the three install guides grouped under an `install.md` Installation section; the ~11 cross-directory `../` links rewritten to absolute repo URLs so nothing 404s on a `/docs`-rooted site; `docs/` declared the single source of truth with subdir READMEs as pointers; a POSIX-sh `scripts/docs-check.sh` gate (front matter + on-disk link + no-escape + pointer validity, skips http(s), no network) wired as a new `docs` CI job; issue-template + README links repointed to the site and the README `0.6.0`→`0.7.0` drift fixed. Pinned artifacts touched: `.github/workflows/ci.yml` and `docs/INSTALL-windows.md`, each a dated CHANGELOG decision.)
-- Prior: `specs/009-ci-bench-p99/plan.md` (run the engine benchmarks in CI and enforce the constitution's p99 dispatch-latency budget (closes #14): a committed `TestDispatchLatencyP99` in `internal/engine` measures per-dispatch latency (scheduled→execution-start, command execution excluded) over 2000 serial dispatches and asserts the p99 against a `DispatchLatencyBudget = 100ms` constant defined next to the dispatch code; a `bench` CI job runs `BenchmarkDispatch`/`BenchmarkNextRun` and publishes their output as an artifact. Enforced gate is the absolute budget, not a benchstat delta (recorded decision); the goroutine-leak test already runs under -race. Only pinned artifact touched is `.github/workflows/ci.yml`.)
-- Prior: `specs/006-maintainer-test-scripts/plan.md` (maintainer test scripts: three cross-platform script pairs under `test/scripts/` recording to `heartbeat.db` / `system.db` so an installed daemon can be proven to fire on time, survive restarts, catch up, and honor overlap policies; drift derived by snapping to the caller-declared interval boundary because the executor injects no scheduler context, with the source labelled on every figure; `sqlite3` detected (flag → repo `.bin/` → PATH, ≥3.33 for `.param set` bound parameters) with a checksum-verified opt-in installer; docs consolidated into `docs/test-scripts.md`; `.gitignore` narrowed to track `.claude/skills/` and the house-standard skills vendored)
-- Prior: `specs/005-gui-task-fidelity/plan.md` (fix issues #4 and #3: task editor prefills real mode/schedule/one-off date+time via a persisted schedule `expression` (migration v4) plus an RRULE→phrase renderer for pre-upgrade databases; group assignment from the GUI via a tri-state `group_id` (`*string`: nil unchanged / "" ungroup / id assign), an editor group selector, and a Groups tree showing member tasks and an always-present Ungrouped node)
-- Prior: `specs/004-rebrand-gui-overhaul/plan.md` (rename go-scheduler→go-schedule; Windows .msi install w/ auto-start service; Alerts→unified Logs view w/ filters + on-disk JSONL + detail; remove Triggers entirely (migration v3); real-time GUI via broker task/group/log events (drop manual Refresh); toggleable calendar view under Schedule)
-- Prior: `specs/003-gui-editor-refinements/plan.md` (GUI editor refinements: maximized window, two-pane modal + Help, code-block preview, custom collapsible, cancel-confirm, app-wide pointer cursor)
-- Prior: `specs/002-gui-task-editor-ux/plan.md` (GUI task-editor UX overhaul + interval anchor)
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at specs/016-windows-installer-identity/plan.md
 <!-- SPECKIT END -->

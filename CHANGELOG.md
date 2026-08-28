@@ -117,6 +117,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows installs now carry the go-schedule mark on the Start Menu shortcut
+  and installed-apps entry (closes #24 and #25).** The MSI declares one
+  canonical icon row sourced from the same multi-resolution icon embedded in
+  the GUI executable, and both installer-created surfaces reference it
+  explicitly. Portable mutation tests, the release-time WiX sanity check, and
+  Windows Installer table inspection guard the relationships. Evidence tooling
+  records candidate or published provenance separately, retains prompted native
+  observations, and records cleanup plus final machine state after lifecycle
+  failures. Clean published-MSI PATH verification (#16) and native title/taskbar
+  observation (#33) remain open until a clean Windows desktop supplies their
+  required evidence.
 - **The docs site homepage no longer 404s at its root.** The Pages site was
   live and every content page served, but `https://shruggietech.github.io/go-schedule/`
   — the URL the README release badge and the issue-template links point at —
@@ -130,6 +141,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-27 - Use one canonical WiX icon row and layer Windows installer
+  evidence.** `build/windows/goschedule.wxs` and
+  `build/windows/verify_wxs.ps1` are pinned artifacts. The package-level Icon,
+  `ARPPRODUCTICON`, and Start Menu shortcut now share
+  `cmd/gosched-gui/icon.ico`; the existing 64-bit executable-resource step is
+  preserved because it is already correctly declared. Source tests, compiled
+  MSI table inspection, published-artifact lifecycle checks, and native desktop
+  observations report independently as proven, failed, or unavailable. The
+  current installed development host is deliberately not modified to imitate a
+  clean machine, and unavailable evidence does not close #16 or #33.
 - **2026-08-26 - Constitution v3.0.0 reinstates PR-first integration.** Recent
   work has repeatedly used third-party PR review, so the direct-push policy no
   longer described the useful operating model. This is a major governance
