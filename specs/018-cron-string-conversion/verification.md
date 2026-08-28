@@ -119,3 +119,15 @@
 - #50: this slice supplies a reusable pure conversion boundary but does not
   accept or retain cron in tasks; the pull request will use `Refs #50` and leave
   it open.
+
+## Review follow-up
+
+- AI review identified that the new hourly phase guard rejected a nonzero
+  minute even though cron preserves it in the minute field.
+- New export and conversion regressions reproduced the failure for `00:30` and
+  `08:30` phases before the guard was corrected.
+- Hourly conversion now checks only hour-step alignment after retaining the
+  existing sub-minute precision check. A complementary `09:30` regression
+  confirms that a genuinely misaligned two-hour phase is still refused.
+- Focused cron/CLI tests and all eight canonical repository gates passed after
+  the correction.

@@ -159,7 +159,7 @@ func subDailyPhaseRefusal(sch domain.Schedule, opt *rrule.ROption, interval int)
 	if opt.Freq == rrule.MINUTELY && sch.Anchor.Minute()%interval != 0 {
 		return "the interval phase does not align with cron's minute step"
 	}
-	if opt.Freq == rrule.HOURLY && (sch.Anchor.Minute() != 0 || sch.Anchor.Hour()%interval != 0) {
+	if opt.Freq == rrule.HOURLY && sch.Anchor.Hour()%interval != 0 {
 		return "the interval phase does not align with cron's hour step"
 	}
 	return ""

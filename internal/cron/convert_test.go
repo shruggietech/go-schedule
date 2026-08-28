@@ -92,6 +92,8 @@ func TestConvertHumanToCanonicalCron(t *testing.T) {
 		{name: "monthly date", input: "on the 31st of every month at 09:00", want: "0 9 31 * *"},
 		{name: "aligned interval", input: "every 15 minutes starting at 00:00", want: "*/15 * * * *"},
 		{name: "five-field human interval", input: "every 15 minutes from 9am", want: "*/15 * * * *"},
+		{name: "hourly nonzero minute phase", input: "every hour starting at 00:30", want: "30 * * * *"},
+		{name: "multi-hour nonzero minute phase", input: "every 2 hours starting at 08:30", want: "30 */2 * * *"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -117,6 +119,7 @@ func TestConvertHumanRefusesImplicitOrLossyTiming(t *testing.T) {
 		{input: "every 15 minutes", wantReason: "starting at"},
 		{input: "every 15 minutes starting at 00:05", wantReason: "phase"},
 		{input: "every 7 minutes starting at 00:00", wantReason: "divide"},
+		{input: "every 2 hours starting at 09:30", wantReason: "phase"},
 		{input: "every day", wantReason: "time of day"},
 		{input: "3rd wednesday monthly at 14:00", wantReason: "ordinal"},
 		{input: "tomorrow at 09:00", wantReason: "could not understand"},

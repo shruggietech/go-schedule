@@ -25,6 +25,8 @@ func TestExport_Expressible(t *testing.T) {
 	for _, c := range []struct{ phrase, want string }{
 		{"every 15 minutes", "*/15 * * * *"},
 		{"every hour", "0 * * * *"},
+		{"every hour starting at 00:30", "30 * * * *"},
+		{"every 2 hours starting at 08:30", "30 */2 * * *"},
 		{"every day at 09:00", "0 9 * * *"},
 		{"weekdays at 09:00", "0 9 * * 1-5"},
 		{"every wednesday at 14:00", "0 14 * * 3"},
@@ -198,6 +200,20 @@ func TestExport_Declines(t *testing.T) {
 		_, bad, ok := Export(task, sch)
 		if ok {
 			t.Fatal("Export approximated a :05/:20/:35/:50 interval as */15")
+		}
+		if !strings.Contains(bad.Reason, "phase") {
+			t.Errorf("reason = %q, want it to name the phase", bad.Reason)
+		}
+	})
+
+	t.Run("misaligned hourly phase", func(t *testing.T) {
+		task, sch, err := taskFor("every 2 hours starting at 09:30")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, bad, ok := Export(task, sch)
+		if ok {
+			t.Fatal("Export approximated an odd-hour interval as */2")
 		}
 		if !strings.Contains(bad.Reason, "phase") {
 			t.Errorf("reason = %q, want it to name the phase", bad.Reason)
