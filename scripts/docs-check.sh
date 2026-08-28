@@ -63,9 +63,13 @@ check_theme_contract() {
 # check_fences <file> — require one of the documented fence categories.
 check_fences() {
   awk '
-    /^```/ {
+    /^(   |  | |)```/ {
+      fence = $0
+      sub(/^   /, "", fence)
+      sub(/^  /, "", fence)
+      sub(/^ /, "", fence)
       if (!open) {
-        language = substr($0, 4)
+        language = substr(fence, 4)
         if (language !~ /^(sh|bash|powershell|text)$/) {
           detail = language == "" ? "untagged opening fence" : "unsupported fence: " language
           print NR "|" detail
@@ -73,7 +77,7 @@ check_fences() {
         open = 1
         next
       }
-      if ($0 != "```") {
+      if (fence != "```") {
         print NR "|closing fence must be plain triple backticks"
       }
       open = 0
