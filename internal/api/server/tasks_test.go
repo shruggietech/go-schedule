@@ -168,6 +168,7 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 		{"invalid hint", "/v1/schedules/preview", PreviewRequest{Schedule: "every day", ScheduleSyntax: "natural"}, "schedule_syntax"},
 		{"forced cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "every day at 09:00", ScheduleSyntax: "cron"}, "schedule"},
 		{"invalid cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "61 9 * * *"}, "schedule"},
+		{"preview hint without schedule", "/v1/schedules/preview", PreviewRequest{ScheduleSyntax: "cron"}, "schedule_syntax"},
 		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
 		{"hint without schedule", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", ScheduleSyntax: "cron", At: futureTime()}, "schedule_syntax"},
 	}

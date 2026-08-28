@@ -224,6 +224,10 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON")
 		return
 	}
+	if req.ScheduleSyntax != "" && req.Schedule == "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "schedule_syntax", "schedule_syntax requires schedule")
+		return
+	}
 	tz := orDefault(req.Timezone, "Local")
 	now := time.Now().UTC()
 	input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), tz, now)
