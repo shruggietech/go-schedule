@@ -15,6 +15,7 @@ func TestExplainCompositeCronDescriptions(t *testing.T) {
 		{"0 9 */2 * *", "at 09:00 on dates 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, and 31"},
 		{"0 9 * */2 *", "at 09:00 every day in January, March, May, July, September, and November"},
 		{"0 9 * * */2", "at 09:00 on Sunday, Tuesday, Thursday, and Saturday"},
+		{"*/7 * * * *", "at minutes 0, 7, 14, 21, 28, 35, 42, 49, and 56 of each hour every day"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.expr, func(t *testing.T) {

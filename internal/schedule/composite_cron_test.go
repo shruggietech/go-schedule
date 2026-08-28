@@ -1,6 +1,7 @@
 package schedule_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -204,5 +205,24 @@ func TestCompositeCronMissingDatePoliciesAndCollisionSuppression(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestCompositeCronDescriptionNamesEffectiveMissingDatePolicy(t *testing.T) {
+	anchor := time.Date(2027, 2, 1, 0, 0, 0, 0, time.UTC)
+	sch := mustCompileCron(t, "0 9 1,31 * *", "UTC", anchor)
+	for policy, want := range map[domain.MissingDatePolicy]string{
+		domain.MissingDateSkip:      "skipped in months that have no such date",
+		domain.MissingDateLastValid: "last day of the month when there is no such date",
+		domain.MissingDateNextValid: "rolling into the next period in months that have no such date",
+	} {
+		if got := schedule.Describe(sch, policy); !strings.Contains(got, want) {
+			t.Errorf("Describe(%s)=%q, want policy clause %q", policy, got, want)
+		}
+	}
+
+	inert := mustCompileCron(t, "0 9 1,15 * *", "UTC", anchor)
+	if got := schedule.Describe(inert, domain.MissingDateLastValid); got != inert.HumanSummary {
+		t.Fatalf("policy-inert description=%q, want %q", got, inert.HumanSummary)
 	}
 }

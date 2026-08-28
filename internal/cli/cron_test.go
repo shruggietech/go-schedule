@@ -33,7 +33,7 @@ func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
 		{input: "0 9 LW * *", want: "last weekday of every month at 09:00\n"},
 		{input: "last weekday of every month at 09:00", want: "0 9 LW * *\n"},
 		{input: "*/10 9-17 * * MON,WED,FRI", want: "every 10 minutes during hours 9 through 17 on Monday, Wednesday, and Friday\n"},
-		{input: "*/7 * * * *", want: "every 7 minutes every day\n"},
+		{input: "*/7 * * * *", want: "at minutes 0, 7, 14, 21, 28, 35, 42, 49, and 56 of each hour every day\n"},
 	} {
 		cmd := cronConvert()
 		var stdout, stderr bytes.Buffer
@@ -239,7 +239,7 @@ func TestImport_DryRunCreatesNothing(t *testing.T) {
 		"every 15 minutes",           // a translated line
 		"every day at 02:00",         // another
 		"boot",                       // @reboot declined by name
-		"every 7 minutes",            // uneven field step is preserved
+		"at minutes 0, 7, 14",        // uneven field step is described as a field set
 		"no command follows",         // the schedule-only line is an error
 		"This was a preview",         // the run says it changed nothing
 		"Cron carries no timezone",   // fidelity statement

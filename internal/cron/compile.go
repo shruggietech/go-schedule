@@ -122,6 +122,13 @@ func describeSpec(s Spec) string {
 
 func describeTime(minute, hour Field) string {
 	if minute.Wildcard && minute.Step > 1 {
+		if 60%minute.Step != 0 {
+			result := "at " + pluralValues("minute", minute.Values)
+			if hour.EveryValue() {
+				return result + " of each hour"
+			}
+			return result + " during " + pluralValues("hour", hour.Values)
+		}
 		result := fmt.Sprintf("every %d minutes", minute.Step)
 		if !hour.EveryValue() {
 			result += " during " + pluralValues("hour", hour.Values)

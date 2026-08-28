@@ -41,6 +41,15 @@ func Describe(sch domain.Schedule, policy domain.MissingDatePolicy) string {
 		return sch.HumanSummary
 	}
 	in, ok := dateIntent(opt)
+	if !ok && compositeDateSet(opt) {
+		for _, day := range opt.Bymonthday {
+			if day > 28 {
+				in = targetDate{kind: intentMonthDay, interval: 1}
+				ok = true
+				break
+			}
+		}
+	}
 	if !ok {
 		return sch.HumanSummary
 	}

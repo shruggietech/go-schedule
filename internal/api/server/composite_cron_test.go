@@ -61,3 +61,30 @@ func TestCompositeCronRefusedUpdateDoesNotMutate(t *testing.T) {
 		t.Fatalf("refused update changed schedule to %q", loaded.Schedule.Expression)
 	}
 }
+
+func TestCompositeCronPreviewAndTaskNameMissingDatePolicy(t *testing.T) {
+	s := newTestServer(t)
+	preview := doJSON(t, s, http.MethodPost, "/v1/schedules/preview", PreviewRequest{
+		Schedule: "0 9 1,31 * *", ScheduleSyntax: "cron", Timezone: "UTC",
+		MissingDatePolicy: "last_valid",
+	})
+	if preview.Code != http.StatusOK {
+		t.Fatalf("preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	var p PreviewResponse
+	if err := json.Unmarshal(preview.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(p.HumanSummary, "last day of the month") {
+		t.Fatalf("preview summary=%q, want effective missing-date policy", p.HumanSummary)
+	}
+
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "date-set", Command: "/bin/true", Schedule: "0 9 1,31 * *",
+		ScheduleSyntax: "cron", Timezone: "UTC", MissingDatePolicy: "next_valid",
+	})
+	loaded := getTask(t, s, created.Task.ID)
+	if !strings.Contains(loaded.Schedule.HumanSummary, "rolling into the next period") {
+		t.Fatalf("task summary=%q, want effective missing-date policy", loaded.Schedule.HumanSummary)
+	}
+}

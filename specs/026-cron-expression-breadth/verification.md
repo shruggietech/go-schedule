@@ -100,3 +100,14 @@ Git Bash. This is an environment split, not a skipped gate.
 - `git diff --check`: pass
 - UTF-8 without BOM: pass
 - Mojibake scan: pass
+
+## Review Remediation
+
+Codex review on PR #61 identified two presentation gaps, both corrected before
+merge:
+
+- composite date sets now include an effective `skip`, `last_valid`, or
+  `next_valid` clause in preview and task summaries when a selected date can be
+  absent;
+- uneven wildcard minute steps render their exact field-local minute set rather
+  than implying a constant elapsed interval across hour boundaries.
