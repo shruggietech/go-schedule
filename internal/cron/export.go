@@ -3,6 +3,7 @@ package cron
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/teambition/rrule-go"
 
@@ -17,9 +18,17 @@ import (
 // It declines rather than approximates. A schedule cron cannot carry is worth
 // more as a visible refusal than as a line that runs at the wrong time.
 func Export(task domain.Task, sch domain.Schedule) (expr string, bad Unsupported, ok bool) {
-	switch {
-	case !task.Enabled || task.State == domain.TaskDisabled:
+	if !task.Enabled || task.State == domain.TaskDisabled {
 		return "", Unsupported{Reason: "the task is disabled and cron has no disabled state"}, false
+	}
+	return ExportSchedule(sch, task.MissingDatePolicy)
+}
+
+// ExportSchedule renders a schedule as a cron timing expression without task
+// state or command policy. It is the pure recurrence mapping shared by task
+// export and string conversion.
+func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr string, bad Unsupported, ok bool) {
+	switch {
 	case sch.Kind == domain.ScheduleOneOff:
 		return "", Unsupported{Reason: "cron cannot express a schedule that fires exactly once"}, false
 	case sch.Kind != domain.ScheduleRecurring:
@@ -34,18 +43,24 @@ func Export(task domain.Task, sch domain.Schedule) (expr string, bad Unsupported
 	if interval < 1 {
 		interval = 1
 	}
+	if reason := subDailyPhaseRefusal(sch, opt, interval); reason != "" {
+		return "", Unsupported{Reason: reason}, false
+	}
+	if reason := calendarAnchorRefusal(sch, opt); reason != "" {
+		return "", Unsupported{Reason: reason}, false
+	}
 
 	// A non-default missing-date policy changes which dates the task runs on,
 	// and cron has no notion of it. Saying so is the whole point of the export.
-	if task.MissingDatePolicy != "" && task.MissingDatePolicy != domain.MissingDateSkip {
+	if policy != "" && policy != domain.MissingDateSkip {
 		if datebearing(opt) {
 			return "", Unsupported{Reason: fmt.Sprintf(
 				"the task's missing-date policy (%s) has no cron equivalent — cron would silently skip the periods this task runs in",
-				task.MissingDatePolicy)}, false
+				policy)}, false
 		}
 	}
 
-	minute, hour := timeFields(opt)
+	minute, hour := timeFields(opt, sch.Anchor)
 
 	switch opt.Freq {
 	case rrule.SECONDLY:
@@ -116,6 +131,40 @@ func Export(task domain.Task, sch domain.Schedule) (expr string, bad Unsupported
 	return "", Unsupported{Reason: "that recurrence has no cron equivalent"}, false
 }
 
+func calendarAnchorRefusal(sch domain.Schedule, opt *rrule.ROption) string {
+	switch opt.Freq {
+	case rrule.DAILY, rrule.WEEKLY, rrule.MONTHLY, rrule.YEARLY:
+	default:
+		return ""
+	}
+	if len(opt.Byhour) == 1 && len(opt.Byminute) == 1 {
+		return ""
+	}
+	if sch.Anchor == nil {
+		return "the recurrence has no anchor from which to recover its time of day"
+	}
+	if sch.Anchor.Second() != 0 || sch.Anchor.Nanosecond() != 0 {
+		return "the schedule phase is below cron's one-minute resolution"
+	}
+	return ""
+}
+
+func subDailyPhaseRefusal(sch domain.Schedule, opt *rrule.ROption, interval int) string {
+	if opt.Freq != rrule.MINUTELY && opt.Freq != rrule.HOURLY {
+		return ""
+	}
+	if sch.Anchor == nil || sch.Anchor.Second() != 0 || sch.Anchor.Nanosecond() != 0 {
+		return "the interval phase is below cron's one-minute resolution"
+	}
+	if opt.Freq == rrule.MINUTELY && sch.Anchor.Minute()%interval != 0 {
+		return "the interval phase does not align with cron's minute step"
+	}
+	if opt.Freq == rrule.HOURLY && sch.Anchor.Hour()%interval != 0 {
+		return "the interval phase does not align with cron's hour step"
+	}
+	return ""
+}
+
 // datebearing reports whether the rule addresses a date that can be absent from
 // a period, which is when the missing-date policy actually changes run times.
 func datebearing(opt *rrule.ROption) bool {
@@ -126,8 +175,11 @@ func datebearing(opt *rrule.ROption) bool {
 }
 
 // timeFields recovers the rule's minute and hour, falling back to the anchor.
-func timeFields(opt *rrule.ROption) (minute, hour int) {
+func timeFields(opt *rrule.ROption, anchor *time.Time) (minute, hour int) {
 	minute, hour = opt.Dtstart.Minute(), opt.Dtstart.Hour()
+	if anchor != nil {
+		minute, hour = anchor.Minute(), anchor.Hour()
+	}
 	if len(opt.Byminute) == 1 {
 		minute = opt.Byminute[0]
 	}
@@ -142,13 +194,27 @@ func weekdayField(opt *rrule.ROption) (string, bool) {
 	if len(opt.Byweekday) == 0 {
 		return "", false
 	}
-	nums := make([]string, 0, len(opt.Byweekday))
+	var days [7]bool
+	count := 0
 	for _, w := range opt.Byweekday {
 		if w.N() != 0 {
 			return "", false // an ordinal weekday is not a weekly rule
 		}
 		// rrule numbers days from Monday=0; cron from Sunday=0.
-		nums = append(nums, fmt.Sprint((w.Day()+1)%7))
+		day := (w.Day() + 1) % 7
+		if !days[day] {
+			days[day] = true
+			count++
+		}
+	}
+	if count == 5 && days[1] && days[2] && days[3] && days[4] && days[5] {
+		return "1-5", true
+	}
+	nums := make([]string, 0, count)
+	for day, present := range days {
+		if present {
+			nums = append(nums, fmt.Sprint(day))
+		}
 	}
 	return strings.Join(nums, ","), true
 }

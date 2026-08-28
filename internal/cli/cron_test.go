@@ -3,6 +3,8 @@ package cli
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +14,101 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/schedule"
 )
+
+func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
+	for _, tt := range []struct {
+		input string
+		want  string
+	}{
+		{input: "0 9 * * 1-5", want: "weekdays at 09:00\n"},
+		{input: "weekdays at 09:00", want: "0 9 * * 1-5\n"},
+	} {
+		cmd := cronConvert()
+		var stdout, stderr bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stderr)
+		cmd.SetArgs([]string{tt.input})
+
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if got := stdout.String(); got != tt.want {
+			t.Errorf("stdout = %q, want %q", got, tt.want)
+		}
+		if stderr.Len() != 0 {
+			t.Errorf("stderr = %q, want empty", stderr.String())
+		}
+	}
+}
+
+func TestCronConvert_ForcedTextAndInvalidDestination(t *testing.T) {
+	cmd := cronConvert()
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetArgs([]string{"--to", "human", "0 9 * * 1-5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if got := stdout.String(); got != "weekdays at 09:00\n" {
+		t.Errorf("stdout = %q", got)
+	}
+
+	cmd = cronConvert()
+	cmd.SetArgs([]string{"--to", "yaml", "0 9 * * 1-5"})
+	if err := cmd.Execute(); !errors.Is(err, errUsage) {
+		t.Fatalf("invalid destination error = %v, want usage", err)
+	}
+}
+
+func TestCronConvert_JSONUsesStableSuccessAndRefusalStreams(t *testing.T) {
+	jsonOut = true
+	t.Cleanup(func() { jsonOut = false })
+
+	t.Run("success on stdout", func(t *testing.T) {
+		cmd := cronConvert()
+		var stdout, stderr bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stderr)
+		cmd.SetArgs([]string{"weekdays at 09:00"})
+		if err := cmd.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if stderr.Len() != 0 {
+			t.Fatalf("stderr = %q, want empty", stderr.String())
+		}
+		var got cron.Conversion
+		if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+			t.Fatalf("stdout is not conversion JSON: %v\n%s", err, stdout.String())
+		}
+		if got.InputSyntax != cron.SyntaxHuman || got.OutputSyntax != cron.SyntaxCron ||
+			got.Input != "weekdays at 09:00" || got.Output != "0 9 * * 1-5" || got.RefusalReason != "" {
+			t.Errorf("success object = %+v", got)
+		}
+	})
+
+	t.Run("refusal on stderr", func(t *testing.T) {
+		cmd := cronConvert()
+		var stdout, stderr bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stderr)
+		cmd.SetArgs([]string{"every 7 minutes"})
+		err := cmd.Execute()
+		if !errors.Is(err, errUsage) || !isReported(err) {
+			t.Fatalf("error = %v, want reported usage", err)
+		}
+		if stdout.Len() != 0 {
+			t.Fatalf("stdout = %q, want empty", stdout.String())
+		}
+		var got cron.Conversion
+		if err := json.Unmarshal(stderr.Bytes(), &got); err != nil {
+			t.Fatalf("stderr is not conversion JSON: %v\n%s", err, stderr.String())
+		}
+		if got.InputSyntax != cron.SyntaxHuman || got.OutputSyntax != cron.SyntaxCron ||
+			got.Input != "every 7 minutes" || got.Output != "" || got.RefusalReason == "" {
+			t.Errorf("refusal object = %+v", got)
+		}
+	})
+}
 
 // fakeCreator records what the import asked for, standing in for the daemon so
 // the reporting behavior can be exercised without one.

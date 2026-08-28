@@ -16,21 +16,65 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-// The cron command group is the project's only cron surface. Cron is an
-// interchange format here — read at import, written at export — and never an
+// The cron command group is the project's cron boundary. It converts strings,
+// reads crontabs at import, and writes them at export, but cron is not task
 // authoring syntax: nothing in this file feeds an expression anywhere a phrase
-// is accepted. Every conversion goes through the human phrase, so what a preview
-// prints is literally what gets parsed and stored.
+// is accepted. Every imported expression still goes through the human phrase,
+// so what a preview prints is literally what gets parsed and stored.
 
 func newCronCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cron",
-		Short: "Convert to and from crontab format (import, explain, export)",
+		Short: "Convert to and from crontab format",
 		Long: "Convert between crontab expressions and this scheduler's schedules.\n\n" +
-			"Cron is supported as an interchange format only: expressions can be imported,\n" +
-			"explained, and exported, but are never accepted where a schedule phrase is.",
+			"Cron is supported for local string conversion and as an interchange format:\n" +
+			"expressions can be converted, imported, explained, and exported, but are never\n" +
+			"accepted where task authoring requires a schedule phrase.",
 	}
-	cmd.AddCommand(cronExplain(), cronImport(), cronExport())
+	cmd.AddCommand(cronConvert(), cronExplain(), cronImport(), cronExport())
+	return cmd
+}
+
+// ---- convert ------------------------------------------------------------
+
+func cronConvert() *cobra.Command {
+	var destination string
+	cmd := &cobra.Command{
+		Use:           "convert [--to cron|human] <schedule-string>",
+		Short:         "Convert one cron or human schedule string locally",
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		Long: "Convert one schedule string to the opposite syntax without contacting the daemon.\n\n" +
+			"Automatic mode treats @-prefixed values and five fields with a cron-shaped\n" +
+			"minute field as cron. Use --to to select the output syntax explicitly.",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+				return fmtUsage(err.Error())
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			result, err := cron.Convert(args[0], cron.Syntax(destination))
+			if err != nil {
+				return fmtUsage(err.Error())
+			}
+			if result.RefusalReason != "" {
+				if jsonOut {
+					if err := printJSONTo(cmd.ErrOrStderr(), result); err != nil {
+						return fmt.Errorf("write conversion refusal: %w", err)
+					}
+					return reported(fmtUsage(result.RefusalReason))
+				}
+				return fmtUsage(result.RefusalReason)
+			}
+			if jsonOut {
+				return printJSONTo(cmd.OutOrStdout(), result)
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), result.Output)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&destination, "to", "", "output syntax: cron or human (default: detect input)")
 	return cmd
 }
 

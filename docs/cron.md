@@ -15,20 +15,52 @@ say them — `every 15 minutes`, `weekdays at 09:00` — and that is deliberate:
 `0 9 * * 1-5` is a fine thing for a computer to read and a poor thing for a
 person to maintain.
 
-But you probably already have a crontab. So cron is supported as an
-**interchange format**: you can import one, ask what a line means, and export
-your tasks back out. What you cannot do is *write* cron here. There is no field
-in the GUI that takes an expression, and `--schedule "0 9 * * 1-5"` is an error.
-Conversion happens at the boundary; it does not become the interface.
+But you probably already have a crontab, or need to translate one schedule. Cron
+is therefore supported for pure string conversion and as an **interchange
+format**: convert one string, import a file, ask what a line means with upcoming
+runs, or export tasks back out. What you cannot do yet is author a task in cron.
+There is no cron field in the GUI, and `--schedule "0 9 * * 1-5"` remains an
+error. Conversion happens at the boundary; issue #50 tracks first-class input.
 
 ## Contents
 
+- [Convert one string](#convert-one-string)
 - [Import a crontab](#import-a-crontab)
 - [Explain one expression](#explain-one-expression)
 - [Export back to cron](#export-back-to-cron)
 - [Fidelity](#fidelity)
 - [What cron cannot say](#what-cron-cannot-say)
 - [What this scheduler cannot say in cron](#what-this-scheduler-cannot-say-in-cron)
+
+## Convert one string
+
+`convert` is symmetric and entirely local:
+
+```sh
+gosched cron convert "0 9 * * 1-5"
+# weekdays at 09:00
+
+gosched cron convert "weekdays at 09:00"
+# 0 9 * * 1-5
+```
+
+Automatic mode treats `@`-prefixed values and five fields with a cron-shaped
+minute field as cron. Existing human forms such as
+`every 15 minutes from 9am` remain human input. Once classified, invalid cron
+is never retried as human text. `--to cron` forces human input; `--to human`
+forces cron input.
+
+The normal result is one line and nothing else. Invalid or unfaithful input
+leaves stdout empty, names the reason on stderr, and exits 2. Global `--json`
+keeps the same stream and exit rule while returning stable syntax, input,
+output, and refusal fields. The command makes no daemon call and changes no
+task.
+
+Not every human phrase contains enough phase information for cron. For example,
+`every 15 minutes` begins when its task is created, while `*/15` always begins
+at `:00`. Write `every 15 minutes starting at 00:00` when that is the intended
+cron phase; conversion refuses to invent it. The reverse translation retains
+that phase explicitly.
 
 ## Import a crontab
 
@@ -47,7 +79,7 @@ line 3: 0 2 * * *
   phrase:  every day at 02:00
   command: /usr/local/bin/backup --full
 line 5: */15 * * * *
-  phrase:  every 15 minutes
+  phrase:  every 15 minutes starting at 00:00
   command: /usr/local/bin/probe
 line 6: @reboot
   unsupported: @reboot fires at boot rather than on a schedule, which has no
@@ -113,7 +145,7 @@ Every task appears exactly once, as a crontab line or as a commented refusal:
 
 ```text
 # gosched cron export — 4 task(s)
-0 9 * * 1,2,3,4,5 /usr/bin/report --daily
+0 9 * * 1-5 /usr/bin/report --daily
 # declined: "nightly backup" — cron cannot express a schedule that fires exactly once
 # declined: "health probe" — the task is disabled and cron has no disabled state
 */15 * * * * /usr/local/bin/probe
@@ -131,7 +163,7 @@ that declines, because the difference only surfaces at 02:30 some morning.
 | --- | --- |
 | `*` in any field | |
 | Single values, lists, and ranges | `0 9 * * 1-5`, `0 10 * * 0,6` |
-| Step values | Only where the step divides its field's range evenly — see below |
+| Step values | Only where the step divides its field's range evenly; translated phrases retain the `00:00` phase explicitly — see below |
 | Month and weekday names | `JAN`, `MON`, and their long forms |
 | Sunday as `0` or `7` | Both are accepted |
 | `@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`, `@yearly`, `@annually` | Expanded to their documented five-field equivalents |
@@ -174,6 +206,8 @@ The export declines these rather than approximating them:
 - Sub-minute intervals — cron's resolution is one minute.
 - Intervals that do not divide their period evenly (`every 3 days`,
   `every 2 weeks`) — cron repeats by calendar position, not elapsed time.
+- Sub-daily intervals whose stored phase does not align with cron's field-local
+  step — exporting `:05/:20/:35/:50` as `*/15` would silently move every run.
 - Ordinal-weekday rules (`3rd wednesday monthly`) — expressible only through the
   non-standard `#` extension, which not every cron implementation has.
 - Any task using a non-default missing-date policy — cron would silently skip

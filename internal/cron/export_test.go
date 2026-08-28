@@ -25,8 +25,10 @@ func TestExport_Expressible(t *testing.T) {
 	for _, c := range []struct{ phrase, want string }{
 		{"every 15 minutes", "*/15 * * * *"},
 		{"every hour", "0 * * * *"},
+		{"every hour starting at 00:30", "30 * * * *"},
+		{"every 2 hours starting at 08:30", "30 */2 * * *"},
 		{"every day at 09:00", "0 9 * * *"},
-		{"weekdays at 09:00", "0 9 * * 1,2,3,4,5"},
+		{"weekdays at 09:00", "0 9 * * 1-5"},
 		{"every wednesday at 14:00", "0 14 * * 3"},
 		{"on the 1st of every month at 09:00", "0 9 1 * *"},
 		{"every year on february 29 at 00:00", "0 0 29 2 *"},
@@ -45,6 +47,54 @@ func TestExport_Expressible(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExportSchedule_PreservesTaskExportMapping(t *testing.T) {
+	task, sch, err := taskFor("weekdays at 09:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, wantBad, wantOK := Export(task, sch)
+	got, gotBad, gotOK := ExportSchedule(sch, task.MissingDatePolicy)
+	if got != want || gotBad != wantBad || gotOK != wantOK {
+		t.Fatalf("schedule export = (%q, %+v, %v), task export = (%q, %+v, %v)",
+			got, gotBad, gotOK, want, wantBad, wantOK)
+	}
+
+	task.Enabled = false
+	if _, bad, ok := Export(task, sch); ok || !strings.Contains(bad.Reason, "disabled") {
+		t.Fatalf("task wrapper lost disabled-state refusal: ok=%v bad=%+v", ok, bad)
+	}
+}
+
+func TestExport_UsesImplicitDailyAnchorWithoutInventingPrecision(t *testing.T) {
+	t.Run("minute-aligned", func(t *testing.T) {
+		anchor := time.Date(2026, 6, 1, 12, 34, 0, 0, time.UTC)
+		sch, err := schedule.Parse("every day", "UTC", anchor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		task := domain.Task{Enabled: true, State: domain.TaskActive}
+		got, bad, ok := Export(task, sch)
+		if !ok {
+			t.Fatalf("Export refused minute-aligned daily schedule: %s", bad.Reason)
+		}
+		if got != "34 12 * * *" {
+			t.Fatalf("Export = %q, want anchor-preserving %q", got, "34 12 * * *")
+		}
+	})
+
+	t.Run("sub-minute", func(t *testing.T) {
+		anchor := time.Date(2026, 6, 1, 12, 34, 56, 0, time.UTC)
+		sch, err := schedule.Parse("every day", "UTC", anchor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		task := domain.Task{Enabled: true, State: domain.TaskActive}
+		if _, bad, ok := Export(task, sch); ok || !strings.Contains(bad.Reason, "one-minute resolution") {
+			t.Fatalf("sub-minute daily export = ok:%v bad:%q", ok, bad.Reason)
+		}
+	})
 }
 
 // TestExport_Declines covers FR-012 and FR-012a: what cron cannot carry is
@@ -141,6 +191,34 @@ func TestExport_Declines(t *testing.T) {
 			t.Fatal("Export produced a line for an every-3-days rule, which cron cannot express")
 		}
 	})
+
+	t.Run("misaligned sub-daily phase", func(t *testing.T) {
+		task, sch, err := taskFor("every 15 minutes starting at 00:05")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, bad, ok := Export(task, sch)
+		if ok {
+			t.Fatal("Export approximated a :05/:20/:35/:50 interval as */15")
+		}
+		if !strings.Contains(bad.Reason, "phase") {
+			t.Errorf("reason = %q, want it to name the phase", bad.Reason)
+		}
+	})
+
+	t.Run("misaligned hourly phase", func(t *testing.T) {
+		task, sch, err := taskFor("every 2 hours starting at 09:30")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, bad, ok := Export(task, sch)
+		if ok {
+			t.Fatal("Export approximated an odd-hour interval as */2")
+		}
+		if !strings.Contains(bad.Reason, "phase") {
+			t.Errorf("reason = %q, want it to name the phase", bad.Reason)
+		}
+	})
 }
 
 // TestRoundTrip_CrossesDSTAndMonthBoundary is FR-013 / SC-003, the strengthening
@@ -203,22 +281,4 @@ func TestRoundTrip_CrossesDSTAndMonthBoundary(t *testing.T) {
 			}
 		})
 	}
-}
-
-func runsBetween(t *testing.T, sch domain.Schedule, tz string, from, to time.Time) []time.Time {
-	t.Helper()
-	var out []time.Time
-	cursor := from
-	for i := 0; i < 5000; i++ {
-		next, ok, err := schedule.NextRun(sch, tz, domain.MissingDateSkip, cursor)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !ok || !next.Before(to) {
-			break
-		}
-		out = append(out, next)
-		cursor = next
-	}
-	return out
 }

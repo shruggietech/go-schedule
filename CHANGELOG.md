@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The CLI now converts one schedule string locally in either direction
+  (closes #51; groundwork for #50).** `gosched cron convert` produces a single
+  cron or human string without the daemon or task mutation, supports explicit
+  destination selection and stable JSON, and refuses lossy translations with
+  exit code 2. Existing sub-daily cron translation now retains its `00:00`
+  phase explicitly, and human-to-cron conversion refuses implicit or misaligned
+  phases instead of manufacturing different run times.
 - **The desktop sidebar now ends with a local Info view (closes #29 and #32).**
   Navigation follows Tasks, Groups, Schedule, Activity, and Info. The new view
   reuses the application mark, reports the exact running version, identifies

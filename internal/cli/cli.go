@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -29,11 +30,16 @@ var jsonOut bool
 // Execute runs the root command and returns a process exit code.
 func Execute() int {
 	root := newRoot()
-	err := root.Execute()
+	return handleExecuteError(os.Stderr, root.Execute())
+}
+
+func handleExecuteError(stderr io.Writer, err error) int {
 	if err == nil {
 		return 0
 	}
-	fmt.Fprintln(os.Stderr, "gosched: "+err.Error())
+	if !isReported(err) {
+		fmt.Fprintln(stderr, "gosched: "+err.Error())
+	}
 	if errors.Is(err, errUsage) {
 		return 2
 	}
@@ -44,6 +50,20 @@ func Execute() int {
 	}
 	return 1
 }
+
+type reportedError struct{ err error }
+
+func (e *reportedError) Error() string { return e.err.Error() }
+func (e *reportedError) Unwrap() error { return e.err }
+
+func reported(err error) error { return &reportedError{err: err} }
+
+func isReported(err error) bool {
+	var target *reportedError
+	return errors.As(err, &target)
+}
+
+func fmtUsage(message string) error { return fmt.Errorf("%w: %s", errUsage, message) }
 
 func newRoot() *cobra.Command {
 	root := &cobra.Command{
@@ -79,7 +99,11 @@ func reqCtx() (context.Context, context.CancelFunc) {
 
 // printJSON writes v as indented JSON to stdout.
 func printJSON(v any) error {
-	enc := json.NewEncoder(os.Stdout)
+	return printJSONTo(os.Stdout, v)
+}
+
+func printJSONTo(w io.Writer, v any) error {
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
 }
