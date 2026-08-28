@@ -75,7 +75,7 @@ func TestConvertAutoDetectionKeepsFiveFieldHumanGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.InputSyntax != SyntaxHuman || !strings.Contains(strings.ToLower(got.RefusalReason), "ordinal") {
+	if got.InputSyntax != SyntaxHuman || got.Output != "0 14 * * 3#3" || got.RefusalReason != "" {
 		t.Fatalf("five-field human phrase was misclassified: %+v", got)
 	}
 }
@@ -113,6 +113,7 @@ func TestConvertHumanToCanonicalCron(t *testing.T) {
 		{name: "five-field human interval", input: "every 15 minutes from 9am", want: "*/15 * * * *"},
 		{name: "hourly nonzero minute phase", input: "every hour starting at 00:30", want: "30 * * * *"},
 		{name: "multi-hour nonzero minute phase", input: "every 2 hours starting at 08:30", want: "30 */2 * * *"},
+		{name: "ordinal weekday", input: "3rd wednesday monthly at 14:00", want: "0 14 * * 3#3"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -140,7 +141,6 @@ func TestConvertHumanRefusesImplicitOrLossyTiming(t *testing.T) {
 		{input: "every 7 minutes starting at 00:00", wantReason: "divide"},
 		{input: "every 2 hours starting at 09:30", wantReason: "phase"},
 		{input: "every day", wantReason: "time of day"},
-		{input: "3rd wednesday monthly at 14:00", wantReason: "ordinal"},
 		{input: "tomorrow at 09:00", wantReason: "could not understand"},
 	}
 	for _, tt := range tests {

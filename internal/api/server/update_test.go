@@ -308,6 +308,8 @@ func TestUpdateTask_DualSyntaxReplacementAndPreservation(t *testing.T) {
 	for _, req := range []TaskUpdateRequest{
 		{Schedule: "every day at 11:00", ScheduleSyntax: "natural"},
 		{Schedule: "61 10 * * *"},
+		{Schedule: "0 10 * * 1#0", ScheduleSyntax: "cron"},
+		{Schedule: "0 10 * JAN 1#2", ScheduleSyntax: "cron"},
 		{ScheduleSyntax: "cron"},
 	} {
 		rec = doJSON(t, s, http.MethodPatch, path, req)

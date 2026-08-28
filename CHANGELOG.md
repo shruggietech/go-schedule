@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Ordinal weekdays now convert faithfully in both cron directions (Refs
+  #22).** One five-field `weekday#1..5` term can be explained, previewed,
+  imported, and retained as cron source, while native first-through-fifth
+  monthly weekday schedules export canonically with Sunday as `0`. Round-trip
+  coverage spans DST, month boundaries, and absent fifth occurrences;
+  incompatible missing-date policies and broader `#`, `L`, and `W` forms remain
+  named refusals.
 - **Current product documentation now defines human-or-cron task authoring
   end to end (closes #52 and #50; refs #22).** README, CLI, GUI, API, and the
   authoritative S001 contract share equivalent weekday examples and name

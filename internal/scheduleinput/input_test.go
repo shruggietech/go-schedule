@@ -92,6 +92,7 @@ func TestParseHumanAndCronHaveIdenticalRuns(t *testing.T) {
 	}{
 		{name: "DST weekdays", cron: "0 9 * * 1-5", human: "weekdays at 09:00"},
 		{name: "month boundary", cron: "0 9 31 * *", human: "on the 31st of every month at 09:00"},
+		{name: "ordinal weekday", cron: "30 2 * * 5#5", human: "5th friday monthly at 02:30"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

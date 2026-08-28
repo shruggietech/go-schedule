@@ -139,6 +139,30 @@ func TestPreview_DualSyntaxParity(t *testing.T) {
 	}
 }
 
+func TestPreviewAndCreate_OrdinalCronParity(t *testing.T) {
+	s := newTestServer(t)
+	preview := doJSON(t, s, http.MethodPost, "/v1/schedules/preview", PreviewRequest{
+		Schedule: "0 9 * * 5#3", ScheduleSyntax: "cron", Timezone: "UTC",
+	})
+	if preview.Code != http.StatusOK {
+		t.Fatalf("preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	created := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+		Name: "third-friday", Command: "/bin/true", Schedule: "0 9 * * 5#3",
+		ScheduleSyntax: "cron", Timezone: "UTC",
+	})
+	if created.Code != http.StatusCreated {
+		t.Fatalf("create status=%d body=%s", created.Code, created.Body.String())
+	}
+	var resp TaskResponse
+	if err := json.Unmarshal(created.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Schedule.Expression != "0 9 * * 5#3" || resp.Schedule.SourceSyntax != "cron" {
+		t.Fatalf("created schedule = %+v", resp.Schedule)
+	}
+}
+
 func TestCreateTask_CronSourceIdentity(t *testing.T) {
 	s := newTestServer(t)
 	for _, syntax := range []string{"", "cron"} {
@@ -173,6 +197,8 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 		{"preview hint without schedule", "/v1/schedules/preview", PreviewRequest{ScheduleSyntax: "cron"}, "schedule_syntax"},
 		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
 		{"lossy calendar step", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 */2 * *"}, "schedule"},
+		{"malformed ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * * 5#6"}, "schedule"},
+		{"month-restricted ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * JAN 5#3"}, "schedule"},
 		{"hint without schedule", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", ScheduleSyntax: "cron", At: futureTime()}, "schedule_syntax"},
 	}
 	for _, tt := range tests {

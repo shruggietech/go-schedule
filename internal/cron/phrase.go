@@ -67,6 +67,19 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 		return "", Unsupported{Reason: "an hour list has no phrase equivalent; only a single hour or an evenly dividing step is expressible"}, false
 	}
 	at := fmt.Sprintf(" at %02d:%02d", hour, minute)
+	if s.DOW.Ordinal != 0 {
+		if !s.DOM.Wildcard {
+			return "", Unsupported{Reason: "an ordinal weekday combined with a day-of-month restriction has no phrase equivalent"}, false
+		}
+		if !s.Month.Wildcard {
+			return "", Unsupported{Reason: "an ordinal weekday restricted to particular months has no phrase equivalent"}, false
+		}
+		day, ok := s.DOW.Single()
+		if !ok {
+			return "", Unsupported{Reason: "only one weekday and one ordinal have a phrase equivalent"}, false
+		}
+		return fmt.Sprintf("%s %s monthly%s", ordinal(s.DOW.Ordinal), dayName(day), at), Unsupported{}, true
+	}
 
 	// From here the time of day is fixed. What remains is which days.
 	switch {
