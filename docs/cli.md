@@ -6,10 +6,15 @@ nav_order: 3
 # `gosched` command reference
 
 **Audience:** anyone using go-schedule from a terminal\
-**Applies to:** go-schedule 0.7.0 and later\
+**Applies to:** go-schedule 0.7.0 and later; see the release-status note below\
 **Source of truth:** `internal/cli/` — this document describes what the binary
 does. `specs/001-task-scheduler/contracts/cli.md` describes what it must do, and
 remains a specification artifact.
+
+> **Release status:** dual-syntax `task add` / `task edit` input and `cron
+> convert` are currently unreleased changes planned for the first release after
+> 0.8.0. Existing import, explain, and export workflows remain applicable from
+> 0.7.0.
 
 `gosched` is a thin client. Every command below talks to the `goschedd` daemon
 over local IPC — a Unix socket on Linux and macOS, a named pipe on Windows — so
@@ -214,8 +219,8 @@ unaffected; this is the "does it actually work" button.
 
 Convert strings and crontab data locally. Supported cron can also be supplied to
 `task add` and `task edit` through `--schedule`; invalid or unfaithful forms are
-refused rather than retried as human text. The desktop editor remains
-plain-language only.
+refused rather than retried as human text. The desktop Schedule field accepts
+the same two forms and retains cron text exactly when editing.
 
 The full guide, including the table of what each direction can and cannot carry,
 is [Cron interoperability](cron.md). In brief:
@@ -278,9 +283,10 @@ gosched cron import --file /etc/crontab --dry-run
 | `--group` | Group ID to file them under. |
 | `--count` | Upcoming runs shown per line. Default 3. |
 
-Always run it with `--dry-run` first. The phrase the preview shows is the phrase
-the task is created with — there is no second conversion path — so a preview that
-reads correctly is an import that is correct.
+Always run it with `--dry-run` first. Preview and creation use the same cron
+conversion result. The created task retains the normalized cron expression and
+its compiled recurrence; the displayed phrase is an explanation, not the value
+stored in place of the expression.
 
 ### `cron export`
 

@@ -8,17 +8,16 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-62D9B7)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-shruggietech.github.io-58A6FF)](https://shruggietech.github.io/go-schedule/)
 
-**A cross-platform scheduler in Go — cron's power, without its syntax.**\
+**A cross-platform scheduler in Go with readable schedules and supported cron.**\
 **Platforms:** Linux · macOS · Windows\
 **Interfaces:** CLI, desktop GUI, and a system-wide background daemon\
 **Documentation:** [shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/) · **Changes:** [CHANGELOG.md](CHANGELOG.md)
 
-`cron` is powerful, and `*/15 * * * *` is hard to read and easy to get wrong.
-go-schedule takes the same scheduling power and lets you write it the way you
-would say it — "every 15 minutes", "every weekday at 9:00 AM", "the 3rd
-Wednesday of each month" — or schedule a single one-off run. A background daemon
-keeps the schedule whether or not any window is open, and a desktop app gives
-you a calendar view of it all.
+Write recurring schedules the way you would say them, such as "every 15
+minutes" or "weekdays at 09:00", or use go-schedule's supported five-field cron
+subset when that is already familiar. Cron knowledge is optional. You can also
+schedule a single one-off run. A background daemon keeps the schedule whether
+or not any window is open, and a desktop app gives you a calendar view of it all.
 
 ## Contents
 
@@ -51,8 +50,8 @@ instead of leaving it to chance.
 ## What it does
 
 **Schedules with a readable result.** Author recurring tasks in plain language
-or the supported five-field cron subset. The CLI and API accept both; the
-desktop editor remains guided plain language. Under the hood, RFC 5545 recurrence
+or the supported five-field cron subset. The CLI, API, and desktop editor accept
+both. Under the hood, RFC 5545 recurrence
 is authoritative, and every accepted input is summarized before it runs.
 
 **Timezones that hold up.** Every task carries an IANA timezone. Scheduling is
@@ -131,16 +130,16 @@ gosched health
 daemon ok (version 0.8.0)
 ```
 
-Create a task:
+Create a weekday report with a readable phrase:
 
 ```sh
-gosched task add nightly-backup \
-  --command /usr/local/bin/backup.sh \
-  --schedule "every day at 02:30" \
+gosched task add weekday-report \
+  --command /usr/local/bin/report.sh \
+  --schedule "weekdays at 09:00" \
   --tz America/New_York
 ```
 
-The same recurring task can be supplied as supported cron:
+The same schedule can be supplied as supported five-field cron:
 
 ```sh
 gosched task add weekday-report \
@@ -152,11 +151,11 @@ gosched task add weekday-report \
 It replies with how it understood you, and when it will next fire:
 
 ```text
-created task 6f1c… (nightly-backup)
-schedule: every day at 02:30 (America/New_York)
+created task 6f1c… (weekday-report)
+schedule: weekdays at 09:00 (America/New_York)
 next runs:
-  2026-07-24T06:30:00Z
-  2026-07-25T06:30:00Z
+  2026-07-24T13:00:00Z
+  2026-07-27T13:00:00Z
 ```
 
 Do not wait until 02:30 to find out whether it works:

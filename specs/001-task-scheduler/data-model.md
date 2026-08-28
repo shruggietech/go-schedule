@@ -65,10 +65,14 @@ The timing definition for a task (FR-002, FR-003, FR-004, FR-004a, FR-007, FR-01
 | trigger_id | string \| null | For `event`: FK → Trigger |
 | human_summary | string | Cached plain-language description (FR-006) |
 | anchor | timestamp (UTC) \| null | DTSTART for recurrence math |
+| expression | string \| null | Retained recurring source text for exact editing; null for one-offs and legacy expressionless rows |
+| source_syntax | derived enum | `human` \| `cron`, derived from expression for API clients; omitted when no expression exists |
 
 - **Rules**: exactly one of (`rrule`+`anchor`), `run_at`, or `trigger_id` is set per `kind`.
   Next-run computation runs in the task's timezone, then normalizes DST (next-valid for
   spring-forward, first-occurrence for fall-back) and converts to UTC (FR-016, FR-018).
+  Recurring input is classified once as human or cron, never retried through the other parser,
+  and compiled into the same RRULE/anchor model.
 
 ## Entity: Trigger (Event)
 

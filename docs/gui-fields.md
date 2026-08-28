@@ -5,6 +5,10 @@ nav_order: 4
 
 # GUI task editor — field reference
 
+> **Release status:** cron entry in the Schedule field is currently an
+> unreleased change planned for the first release after 0.8.0. Released 0.8.0
+> builds accept the human forms documented below.
+
 This page explains every field in the desktop GUI's **New Task** / **Edit Task** dialog:
 what it accepts, what's required, and what each option means. It's the GUI counterpart to the
 CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
@@ -144,6 +148,10 @@ so replacing cron with a human phrase, or the reverse, updates both preview and 
 cron-shaped value that is invalid or cannot be represented faithfully is rejected as cron rather
 than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelity) for supported
 fields, macros, and explicit refusals.
+
+When editing, the exact retained cron expression is shown rather than translated
+back from its plain-language preview. Calendar-field wildcard steps such as
+`0 9 */2 * *` are named refusals because simplifying them would change timing.
 
 > ⚠️ **Sub-daily intervals can't take an `at` time.** Seconds/minutes/hours fire on a rolling
 > interval, so `every 15 minutes at 09:00` is **rejected**. The `at <time>` clause is only valid

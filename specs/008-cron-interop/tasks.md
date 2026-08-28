@@ -5,6 +5,8 @@ description: "Task list for 008-cron-interop"
 
 # Tasks: Cron interoperability and calendar-anomaly policy
 
+> **Historical boundary notice (2026-08-28):** This S008 artifact records the original import/export-only cron boundary. S019 introduced shared CLI/API human-or-cron task input, S020 extended it to the GUI, and S021 defines the current product documentation and fidelity policy. The original text below is intentionally preserved as chronological evidence.
+
 **Input**: Design documents from `/specs/008-cron-interop/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/cli.md

@@ -19,16 +19,16 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Schedule a task without cron syntax (Priority: P1)
+### User Story 1 - Schedule a task with readable or supported cron input (Priority: P1)
 
 A user wants a command or job to run on a schedule — either recurring or just once. Using
-plain-language options (e.g., "every 15 minutes", "every weekday at 9:00 AM", "the 3rd
-Wednesday of each month", or a single one-off date/time like "Aug 4 at 9:00 AM"), they create
-a task, and the scheduler runs it reliably at those times. The task persists across reboots
-and resumes automatically when the system starts.
+plain-language options (e.g., "every 15 minutes" or "every weekday at 9:00 AM"), the supported
+five-field cron subset (e.g., `0 9 * * 1-5`), or a single one-off date/time, they create a task
+and the scheduler runs it reliably. Human input remains sufficient; cron knowledge is optional.
+The task persists across reboots and resumes automatically when the system starts.
 
-**Why this priority**: This is the core promise of the product — cron-level scheduling power
-expressed in human-readable terms. Without it, nothing else matters. It is the minimum
+**Why this priority**: This is the core promise of the product: reliable scheduling that remains
+approachable through human-readable terms. Without it, nothing else matters. It is the minimum
 viable product on its own.
 
 **Independent Test**: Create a task via the CLI with a human-readable recurrence, verify it
@@ -55,8 +55,9 @@ scheduled occurrence without manual intervention.
 ### User Story 2 - Manage tasks visually with calendar and schedule views (Priority: P2)
 
 A user opens the GUI and sees their scheduled tasks laid out in a calendar/schedule view.
-They can see what is scheduled and when, create and edit tasks through guided forms (not raw
-syntax), and understand at a glance the upcoming run timeline. The GUI surfaces alerts (e.g.,
+They can see what is scheduled and when, create and edit tasks through a guided form whose
+Schedule field accepts readable phrases or supported cron, and understand the upcoming run
+timeline at a glance. The GUI surfaces alerts (e.g.,
 overlapping runs, failures) prominently.
 
 **Why this priority**: The GUI is what makes the product approachable for non-experts and
@@ -204,8 +205,9 @@ change the per-task catch-up setting and confirm the alternate behavior.
   once at a single specified date and time and then do not recur. After the one-off run
   completes, the task MUST NOT be scheduled again (it is marked complete/inactive rather than
   re-armed).
-- **FR-005**: System MUST be capable of expressing any schedule that standard cron can express,
-  so no time-based scheduling capability is lost relative to cron.
+- **FR-005**: System MUST accept readable schedule phrases and go-schedule's documented
+  five-field cron subset through one shared input boundary. Cron forms that cannot be mapped
+  faithfully MUST be refused by name rather than approximated.
 - **FR-006**: System MUST display a plain-language summary of any configured schedule so users
   can confirm intent before saving.
 - **FR-007**: System MUST support event-triggered tasks that run in response to another task's
@@ -298,9 +300,8 @@ change the per-task catch-up setting and confirm the alternate behavior.
 - **SC-001**: A user can create a correct recurring schedule (including an ordinal-weekday
   pattern such as "3rd Wednesday monthly") in under 2 minutes using guided options, without
   writing any cron-style expression.
-- **SC-002**: Any schedule expressible in standard cron can be reproduced in this system, as
-  demonstrated by a coverage suite mapping representative cron patterns to equivalent
-  configurations with matching run times.
+- **SC-002**: Every cron form documented as supported has a coverage case with matching run
+  times, and every documented fidelity boundary has a named-refusal case.
 - **SC-003**: After an unplanned shutdown spanning one or more scheduled times, each affected
   task performs exactly one catch-up run and then resumes normal scheduling, with zero
   duplicate or missed catch-ups.

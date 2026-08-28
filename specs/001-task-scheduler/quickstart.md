@@ -32,7 +32,7 @@ sudo ./bin/gosched service start
 
 ## Validation scenarios (map to spec Success Criteria)
 
-### SC-001 / US1 — human-readable recurring schedule (no cron syntax)
+### SC-001 / US1 — human-readable recurring schedule (cron knowledge optional)
 ```bash
 ./bin/gosched task add nightly-report \
   --command /usr/bin/make-report --schedule "3rd wednesday monthly at 14:00" --tz America/New_York
@@ -40,6 +40,16 @@ sudo ./bin/gosched service start
 ./bin/gosched task show <id>   # next_runs lists the correct upcoming dates
 ```
 **Pass**: created in under 2 minutes, no cron string used, summary matches intent.
+
+The same weekday schedule can also be authored with the supported cron subset:
+
+```bash
+./bin/gosched task add weekday-report \
+  --command /usr/bin/make-report --schedule "0 9 * * 1-5" --tz America/New_York
+```
+
+**Pass**: the retained expression remains `0 9 * * 1-5`, its source syntax is
+`cron`, and upcoming runs match `weekdays at 09:00` in the same timezone.
 
 ### SC-010 / US1 — one-off task
 ```bash

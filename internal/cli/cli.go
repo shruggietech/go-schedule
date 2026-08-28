@@ -68,7 +68,7 @@ func fmtUsage(message string) error { return fmt.Errorf("%w: %s", errUsage, mess
 func newRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "gosched",
-		Short:         "Cross-platform task scheduler — cron power without the cryptic syntax",
+		Short:         "Cross-platform scheduler with readable schedules and supported cron",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       buildinfo.Version,

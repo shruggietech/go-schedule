@@ -7,7 +7,8 @@
 #   3. no link escapes the docs/ directory (content outside docs/ must be an
 #      absolute https://github.com/… URL, which is skipped).
 #   4. the custom syntax theme provides a complete, safe dark-palette contract.
-#   5. every published fenced block declares an approved content category.
+#   5. every published fenced block declares an approved content category; and
+#   6. current product surfaces satisfy the fixture-backed dual-syntax policy.
 # It also checks that the pointer README(s) reference an existing docs/ page.
 #
 # Pure POSIX sh + coreutils: no network, no Ruby, no build. Anchors (#frag) are
@@ -149,6 +150,8 @@ check_frontmatter() {
 }
 
 page_count=0
+sh scripts/docs-policy-check.sh
+sh test/scripts/docs-policy-check_test.sh
 check_theme_contract
 for f in "$DOCS_DIR"/*.md; do
   [ -e "$f" ] || continue
@@ -177,4 +180,4 @@ if [ -s "$FAILURES" ]; then
     "$(wc -l < "$FAILURES" | tr -d ' ')" "$page_count" >&2
   exit 1
 fi
-printf 'docs-check: OK — %s pages, links, front matter, fences, and theme contract clean\n' "$page_count"
+printf 'docs-check: OK — %s pages, links, front matter, fences, theme, and product policy clean\n' "$page_count"

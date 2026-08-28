@@ -1,5 +1,7 @@
 # Conversion Fidelity Checklist: Cron interoperability
 
+> **Historical boundary notice (2026-08-28):** This S008 artifact records the original import/export-only cron boundary. S019 introduced shared CLI/API human-or-cron task input, S020 extended it to the GUI, and S021 defines the current product documentation and fidelity policy. The original text below is intentionally preserved as chronological evidence.
+
 **Purpose**: Validate that the requirements governing cron conversion are
 complete, unambiguous, and leave no room for a silent approximation — in either
 direction, and between what a preview promises and what an import produces.

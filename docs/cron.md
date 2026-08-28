@@ -6,9 +6,13 @@ nav_order: 5
 # Cron interoperability
 
 **Audience:** anyone with an existing crontab, or anyone who has to read one\
-**Applies to:** go-schedule 0.7.0 and later\
+**Applies to:** go-schedule 0.7.0 and later for import, explain, and export\
 **Source of truth:** `internal/cron/` — this document describes what the
 converter does, and the fidelity table below is the contract it holds to.
+
+> **Release status:** `cron convert`, direct cron input for `task add` and
+> `task edit`, and cron entry in the desktop editor are currently unreleased
+> changes planned for the first release after 0.8.0.
 
 go-schedule accepts schedules written the way you would say them, such as
 `every 15 minutes` and `weekdays at 09:00`, and also accepts a supported subset
@@ -29,6 +33,7 @@ means with upcoming runs, or export tasks back out.
 - [Export back to cron](#export-back-to-cron)
 - [Fidelity](#fidelity)
 - [What cron cannot say](#what-cron-cannot-say)
+- [Expression versus crontab file](#expression-versus-crontab-file)
 - [What this scheduler cannot say in cron](#what-this-scheduler-cannot-say-in-cron)
 
 ## Convert one string
@@ -89,9 +94,10 @@ line 6: @reboot
 2 unsupported, 1 error(s)
 ```
 
-The preview is not advisory. The phrase it shows you is the string that is
-parsed and stored when you run it for real — there is no second conversion path
-— so if the preview reads correctly, the import is correct.
+The preview is not advisory. Preview and creation use the same conversion
+result. A created task retains the normalized cron expression and its compiled
+recurrence; the phrase is an explanation of that result, not a replacement
+schedule string.
 
 When it does, drop the flag:
 
@@ -157,14 +163,31 @@ that declines, because the difference only surfaces at 02:30 some morning.
 
 ## Fidelity
 
+The supported input shape is `minute hour day-of-month month day-of-week`.
+Numeric bounds are `0-59`, `0-23`, `1-31`, `1-12`, and `0-7` respectively,
+with both `0` and `7` meaning Sunday. The parser recognizes numbers,
+comma-separated lists, inclusive ascending ranges, wildcard steps, and
+case-insensitive month or weekday names by their first three letters. Recognition
+alone does not guarantee conversion: only the recurrence shapes listed below
+are scheduled, and every other well-formed form is refused by name.
+
+This is a product-specific subset, not a promise of POSIX, Linux, or robfig
+parity. For the upstream dialects and file behavior, see the
+[POSIX crontab utility](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html),
+[Linux crontab(5)](https://man7.org/linux/man-pages/man5/crontab.5.html), and
+[robfig/cron expression format](https://pkg.go.dev/github.com/robfig/cron/v3#hdr-CRON_Expression_Format).
+
 ### Supported
 
 | Cron | Notes |
 | --- | --- |
-| `*` in any field | |
-| Single values, lists, and ranges | `0 9 * * 1-5`, `0 10 * * 0,6` |
-| Step values | Only where the step divides its field's range evenly; translated phrases retain the `00:00` phase explicitly — see below |
-| Month and weekday names | `JAN`, `MON`, and their long forms |
+| Every minute | `* * * * *` |
+| Minute intervals dividing one hour evenly | `*/5 * * * *`, `*/15 * * * *`, `*/30 * * * *` |
+| Hourly and hour intervals dividing one day evenly | `0 * * * *`, `0 */6 * * *` |
+| One fixed daily time | `0 9 * * *` |
+| One weekday, weekdays, or weekends | `0 14 * * WED`, `0 9 * * 1-5`, `0 10 * * 0,6` |
+| One monthly day or one yearly month/day | `0 9 31 * *`, `0 0 4 7 *` |
+| Month and weekday names | Names are case-insensitive; their first three letters are significant. |
 | Sunday as `0` or `7` | Both are accepted |
 | `@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`, `@yearly`, `@annually` | Expanded to their documented five-field equivalents |
 
@@ -176,6 +199,7 @@ that declines, because the difference only surfaces at 02:30 some morning.
 | Six-field (Quartz) expressions | Seconds-precision cron dialects are a different language. Sub-minute schedules are expressible here directly (`every 30 seconds`) — just not through cron. |
 | `L`, `W`, `#` | Non-standard day specifiers. `#` in particular (`5#3`, "the third Friday") is expressible here as `3rd friday monthly`, so write it that way rather than importing it. |
 | A step that does not divide its range | `*/7` on minutes fires at :00, :07 … :56 and then :00 again — a four-minute gap a fixed interval cannot reproduce. `*/5`, `*/15` and `*/30` are exact and are accepted. |
+| A wildcard step in day-of-month, month, or day-of-week | Cron restarts these steps inside each calendar field. The recurrence model cannot retain that field-local behavior, so forms such as `0 9 */2 * *` are refused rather than simplified to daily. |
 | Both day-of-month and day-of-week restricted | `0 0 13 * 5` means "the 13th **or** any Friday" in cron. This scheduler intersects the two, which would turn a weekly job into a handful of runs a year. |
 | Lists in the minute, hour, day, or month field | `0 9,17 * * *` is two schedules wearing one expression. Create two tasks. |
 
@@ -184,9 +208,10 @@ that declines, because the difference only surfaces at 02:30 some morning.
 Everything below is a property your tasks gain on import, and the import summary
 says so rather than leaving you to discover it:
 
-- **A timezone.** Cron inherits the daemon's. Every task here carries its own
-  IANA zone and resolves Daylight Saving transitions explicitly. `--timezone`
-  sets it; without it, imported tasks take the default.
+- **A timezone.** A five-field expression contains no timezone. Every task here
+  carries its own IANA zone; `--timezone` sets it during import and otherwise
+  the default is used. Crontab environment assignments such as `CRON_TZ` are
+  file context and are not carried into task definitions.
 - **Catch-up.** If the machine is off when a cron job is due, that run is simply
   lost. Imported tasks get `catchup one`: a single catch-up run after downtime,
   then the normal schedule resumes.
@@ -197,6 +222,18 @@ says so rather than leaving you to discover it:
   behavior — see [the CLI reference](cli.md#task) to change it.
 - **Restart recovery.** The daemon reconstructs its schedule from durable state
   on restart.
+
+The task timezone also owns Daylight Saving resolution. A nonexistent wall time
+moves to the next valid instant; a repeated wall time uses its first occurrence
+once. Those are go-schedule rules and should not be read as Linux cron parity.
+
+## Expression versus crontab file
+
+A schedule expression is only five timing fields (or a supported macro). A
+user crontab line adds a command. A system crontab can also add a username, and
+a file can include comments, variables, shell settings, or `CRON_TZ`. Use
+`task add --schedule` for one expression and command you provide separately.
+Use `cron import` when the command and file context must first be inspected.
 
 ## What this scheduler cannot say in cron
 
