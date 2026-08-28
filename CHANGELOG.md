@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The desktop Schedule field now accepts human phrases or supported five-field
+  cron (Refs #50).** Local validation, live preview, create, and update use the
+  shared syntax boundary. Cron tasks reopen with their retained expression,
+  edits can switch syntax from the current text, and invalid or faithfully
+  unsupported cron keeps Save disabled with a named reason. Human Start at,
+  one-off, and expressionless legacy behavior remain unchanged. Broad
+  cross-product documentation remains tracked by #52.
 - **Task input now accepts human schedules or supported five-field cron (Refs
   #50).** Preview, create, update, and CLI task commands share one syntax
   boundary with optional explicit selection and no parser fallback. Task reads
@@ -160,6 +167,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-28 - Keep one GUI Schedule field with shared syntax selection.** A
+  syntax selector or cached response identity could disagree with edited text,
+  so validation, preview, and save classify the current field through the S019
+  boundary and carry its normalized expression and identity together. The GUI
+  retains cron exactly, keeps Start at specific to human sub-daily intervals,
+  and limits documentation changes to GUI adoption while #52 owns the broader
+  rewrite.
 - **2026-08-28 - Add dual-syntax task input without a storage migration.** The
   existing `schedules.expression` column retains either accepted source, and
   response-only syntax identity is derived from it. Cron is converted into the

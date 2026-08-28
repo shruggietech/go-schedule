@@ -28,7 +28,7 @@ before discarding.
 | **Group** | no | `(none)`, or a group shown by its path (`Backups / Nightly`) | `(none)` |
 | **Timezone** | no | searchable list of common zones, or any IANA name / `Local` | `Local` |
 | **Mode** | yes | `Recurring` or `One-off` | `Recurring` |
-| **Schedule** | when Recurring (create) | human-readable phrase (see below) | — |
+| **Schedule** | when Recurring (create) | human phrase or supported five-field cron (see below) | — |
 | **Start at** | no | anchor time for sub-daily intervals, e.g. `09:00` | — |
 | **One-off date / time** | when One-off (create) | date + time picked in the task's zone, must be future | — |
 | **Overlap** *(Advanced)* | no | Queue one run · Skip this run · Allow concurrent runs | Queue one run |
@@ -41,13 +41,13 @@ Switching Mode keeps whatever you already typed in either field. When editing an
 leaving the time field blank keeps the task's current schedule.
 
 **Editing shows the task as it actually is.** Opening an existing task fills in its real Mode and
-either its schedule phrase or its one-off date and time, shown in the task's own timezone, so you
+either its retained schedule expression or its one-off date and time, shown in the task's own timezone, so you
 can see what the task is currently set to before changing anything. Saving without touching those
 fields leaves the schedule exactly as it was. If you *switch* Mode, the new mode's time fields
 become required — there is no existing schedule of the new kind to fall back on.
 
 Tasks created before this was added have no stored schedule phrase, so their Schedule field opens
-blank. That is safe — a blank field keeps the existing schedule — and typing a new phrase replaces
+blank. That is safe — a blank field keeps the existing schedule — and typing a new expression replaces
 it.
 
 **Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of
@@ -118,7 +118,8 @@ correct Daylight Saving Time handling; the backend stores everything in UTC.
 
 ## Schedule *(Recurring mode)*
 
-A plain-language phrase — no cron syntax. Parsing is case-insensitive. Supported forms:
+Use a plain-language phrase (the approachable default) or a supported five-field cron expression.
+Human parsing is case-insensitive. Supported human forms include:
 
 | Pattern | Examples |
 |---------|----------|
@@ -137,16 +138,23 @@ A plain-language phrase — no cron syntax. Parsing is case-insensitive. Support
 **Time-of-day** accepts: `14:00`, `9:00`, `9:00 AM`, `9am`, or a bare hour like `9` (= 09:00).
 Hours are 0–23, minutes 0–59.
 
+Supported cron uses the familiar `minute hour day-of-month month day-of-week` shape. For example,
+`0 9 * * 1-5` runs at 09:00 on weekdays. The editor detects the syntax from the current field text,
+so replacing cron with a human phrase, or the reverse, updates both preview and save behavior. A
+cron-shaped value that is invalid or cannot be represented faithfully is rejected as cron rather
+than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelity) for supported
+fields, macros, and explicit refusals.
+
 > ⚠️ **Sub-daily intervals can't take an `at` time.** Seconds/minutes/hours fire on a rolling
 > interval, so `every 15 minutes at 09:00` is **rejected**. The `at <time>` clause is only valid
 > for daily-or-coarser schedules (`every day`, `weekdays`, `every monday`, monthly ordinals).
 
 As you type a valid Schedule, the **Preview** pane fills in with a plain-English summary plus the
-next few run times — a quick way to confirm your phrase parsed the way you meant. The **Help**
+next few run times — a quick way to confirm your expression parsed the way you meant. The **Help**
 button (top of the right pane) shows the full list of supported phrasings and a guide to every
 field.
 
-### Start at *(sub-daily intervals only)*
+### Start at *(sub-daily human intervals only)*
 
 By default a fixed interval like `every 15 minutes` is anchored to the moment you create the task,
 so it might fire at an awkward phase (6:07, 6:22, 6:37 …). To align the cycle, set a **Start at**
@@ -162,8 +170,9 @@ clause — the GUI and CLI both understand it:
 | `every 30 minutes from 9am` | aligns to `:00/:30` relative to 09:00 |
 | `every 2 hours starting at 08:00` | fires at 08:00, 10:00, 12:00 … |
 
-The anchor is interpreted in the task's **Timezone**. It applies only to sub-daily intervals;
+The anchor is interpreted in the task's **Timezone**. It applies only to sub-daily human intervals;
 `every day starting at 09:00` is rejected (use `every day at 09:00`).
+Cron expressions carry their phase in their own fields and do not show a separate Start at row.
 
 ## One-off date / time *(One-off mode)*
 

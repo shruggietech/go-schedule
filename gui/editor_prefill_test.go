@@ -75,6 +75,68 @@ func TestEditor_PrefillsRecurringSchedule(t *testing.T) {
 	}
 }
 
+func TestEditor_CronPrefillAndSyntaxSwitchFollowCurrentText(t *testing.T) {
+	detail := recurringDetail("0 9 * * 1-5")
+	detail.Schedule.SourceSyntax = "human" // Deliberately stale metadata.
+	e, fb := newTestEditorDetail(t, detail)
+
+	if got := e.schedule.Text; got != "0 9 * * 1-5" {
+		t.Fatalf("Schedule = %q, want exact retained cron expression", got)
+	}
+	if e.isDirty() {
+		t.Fatal("untouched cron edit should not be dirty")
+	}
+	if _, req := fb.lastPreviewCall(); req.ScheduleSyntax != "cron" {
+		t.Fatalf("initial preview syntax = %q, want cron from current text", req.ScheduleSyntax)
+	}
+
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	if _, _, req := fb.lastUpdateCall(); req.Schedule != "0 9 * * 1-5" || req.ScheduleSyntax != "cron" {
+		t.Fatalf("untouched update = %+v, want retained cron", req)
+	}
+
+	e.schedule.SetText("weekdays at 09:00")
+	if _, req := fb.lastPreviewCall(); req.ScheduleSyntax != "human" {
+		t.Fatalf("switched preview syntax = %q, want human", req.ScheduleSyntax)
+	}
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 2 })
+	if _, _, req := fb.lastUpdateCall(); req.ScheduleSyntax != "human" {
+		t.Fatalf("switched update syntax = %q, want human", req.ScheduleSyntax)
+	}
+}
+
+func TestEditor_HumanPrefillCanSwitchToCron(t *testing.T) {
+	detail := recurringDetail("weekdays at 09:00")
+	detail.Schedule.SourceSyntax = "human"
+	e, fb := newTestEditorDetail(t, detail)
+
+	e.schedule.SetText("0 9 * * 1-5")
+	if _, req := fb.lastPreviewCall(); req.ScheduleSyntax != "cron" {
+		t.Fatalf("switched preview syntax = %q, want cron", req.ScheduleSyntax)
+	}
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	if _, _, req := fb.lastUpdateCall(); req.Schedule != "0 9 * * 1-5" || req.ScheduleSyntax != "cron" {
+		t.Fatalf("switched update = %+v, want cron", req)
+	}
+}
+
+func TestEditor_ExpressionlessLegacyUpdateOmitsSyntax(t *testing.T) {
+	detail := recurringDetail("")
+	e, fb := newTestEditorDetail(t, detail)
+
+	if !e.valid() {
+		t.Fatal("blank expressionless legacy edit should preserve the current schedule")
+	}
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	if _, _, req := fb.lastUpdateCall(); req.Schedule != "" || req.ScheduleSyntax != "" {
+		t.Fatalf("legacy update = %+v, want recurring fields omitted", req)
+	}
+}
+
 // TestEditor_PrefillsAnchorIntoStartAt covers FR-006: an anchored phrase is
 // split so effectiveSchedule() rebuilds exactly the same phrase, rather than
 // appending a second anchor clause.

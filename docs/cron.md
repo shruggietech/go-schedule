@@ -18,9 +18,8 @@ same stored recurrence model before execution.
 But you probably already have a crontab, or need to translate one schedule. Cron
 is therefore supported for pure string conversion, task input, and as an
 **interchange format**: convert one string, supply it to `task add` or `task
-edit`, import a file, ask what a line means with upcoming runs, or export tasks
-back out. The GUI still has no cron field; issue #50 remains open for that
-remaining adoption work.
+edit`, enter it in the desktop Schedule field, import a file, ask what a line
+means with upcoming runs, or export tasks back out.
 
 ## Contents
 
