@@ -1,0 +1,48 @@
+package gui
+
+import (
+	"net/url"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
+
+	"github.com/shruggietech/go-schedule/internal/buildinfo"
+)
+
+func (a *App) buildInfoTab() fyne.CanvasObject {
+	return buildInfoContent(buildinfo.Version)
+}
+
+func buildInfoContent(version string) fyne.CanvasObject {
+	mark := canvas.NewImageFromResource(appIcon)
+	mark.FillMode = canvas.ImageFillContain
+	mark.SetMinSize(fyne.NewSize(180, 180))
+
+	title := widget.NewLabelWithStyle("go-schedule", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	versionLabel := widget.NewLabel("Version " + version)
+	versionLabel.Alignment = fyne.TextAlignCenter
+	versionLabel.Wrapping = fyne.TextWrapBreak
+	attribution := widget.NewLabel("Built and maintained by ShruggieTech")
+	attribution.Alignment = fyne.TextAlignCenter
+	attribution.Wrapping = fyne.TextWrapWord
+
+	content := container.NewVBox(
+		container.NewCenter(mark),
+		title,
+		versionLabel,
+		widget.NewSeparator(),
+		attribution,
+		centeredInfoLink("ShruggieTech", &url.URL{Scheme: "https", Host: "shruggie.tech"}),
+		centeredInfoLink("Source repository", &url.URL{Scheme: "https", Host: "github.com", Path: "/shruggietech/go-schedule"}),
+		centeredInfoLink("Documentation", &url.URL{Scheme: "https", Host: "shruggietech.github.io", Path: "/go-schedule/"}),
+	)
+	return container.NewVScroll(container.NewPadded(content))
+}
+
+func centeredInfoLink(text string, destination *url.URL) fyne.CanvasObject {
+	link := widget.NewHyperlink(text, destination)
+	link.Alignment = fyne.TextAlignCenter
+	return link
+}
