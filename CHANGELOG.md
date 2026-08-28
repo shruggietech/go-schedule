@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The desktop sidebar now ends with a local Info view (closes #29 and #32).**
+  Navigation follows Tasks, Groups, Schedule, Activity, and Info. The new view
+  reuses the application mark, reports the exact running version, identifies
+  ShruggieTech, and links to the company, source repository, and documentation
+  without adding a daemon or network dependency.
 - **The go-schedule brand system is now applied across the app, README, and docs
   site.** The desktop GUI ships a custom dark-first Fyne theme (`gui/theme.go`)
   built from the brand palette — Anchor Blue for selection/focus/links, Interval

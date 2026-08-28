@@ -144,7 +144,7 @@ func TestUI_BuildsAllTabs(t *testing.T) {
 		alerts: []domain.Alert{{ID: "a1", Kind: domain.AlertRunFailed, Message: "boom"}},
 	})
 
-	want := []string{"Tasks", "Schedule", "Groups", "Activity"}
+	want := []string{"Tasks", "Groups", "Schedule", "Activity", "Info"}
 	if len(ui.tabs.Items) != len(want) {
 		t.Fatalf("want %d tabs, got %d", len(want), len(ui.tabs.Items))
 	}
@@ -218,6 +218,10 @@ func TestActivityTabLabel(t *testing.T) {
 
 func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
+	if len(ui.tabs.Items) != 5 || ui.tabs.Items[3] != ui.logsTab || ui.tabs.Items[4].Text != "Info" {
+		t.Fatalf("Activity tab is not stable at index 3: %+v", ui.tabs.Items)
+	}
+	infoTab := ui.tabs.Items[4]
 	// Drive the badge synchronously: the production OnChange marshals through
 	// fyne.Do on another goroutine, which would race with the assertion below.
 	ui.model.OnChange = nil
@@ -225,5 +229,8 @@ func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	ui.updateLogsBadge()
 	if ui.logsTab.Text != "Activity (1)" {
 		t.Fatalf("activity badge = %q, want Activity (1)", ui.logsTab.Text)
+	}
+	if ui.tabs.Items[3] != ui.logsTab || ui.tabs.Items[4] != infoTab {
+		t.Fatal("Activity badge update moved Activity or Info")
 	}
 }

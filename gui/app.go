@@ -87,11 +87,12 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 func (a *App) buildRoot() fyne.CanvasObject {
 	a.tabs = container.NewAppTabs(
 		container.NewTabItem("Tasks", a.buildTasksTab()),
-		container.NewTabItem("Schedule", a.buildScheduleTab()),
 		container.NewTabItem("Groups", a.buildGroupsTab()),
+		container.NewTabItem("Schedule", a.buildScheduleTab()),
 	)
 	a.logsTab = container.NewTabItem(activityTabLabel(0), a.buildLogsTab())
 	a.tabs.Append(a.logsTab)
+	a.tabs.Append(container.NewTabItem("Info", a.buildInfoTab()))
 	a.tabs.SetTabLocation(container.TabLocationLeading)
 	return a.tabs
 }
