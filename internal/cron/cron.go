@@ -134,6 +134,15 @@ func Parse(expr string) (Result, error) {
 		*targets[i] = f
 	}
 
+	// A wildcard step in a calendar field restarts within that field. The
+	// recurrence model cannot preserve that behavior, so treating the field as
+	// unrestricted would silently change the schedule to daily.
+	for i := 2; i < len(targets); i++ {
+		if targets[i].Step > 1 {
+			return refuse(expr, fmt.Sprintf("a wildcard step in the %s field has no faithful schedule equivalent", fieldName(i))), nil
+		}
+	}
+
 	// Cron ORs a restricted day-of-month with a restricted day-of-week; the
 	// recurrence model intersects them. Rather than silently changing a weekly
 	// job into a handful of runs a year, refuse and say why.

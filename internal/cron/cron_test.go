@@ -78,6 +78,9 @@ func TestExplain_Declines(t *testing.T) {
 		{"*/7 * * * *", "does not divide the hour evenly"},
 		{"0 */7 * * *", "does not divide the day evenly"},
 		{"0 0 13 * 5", "either"},
+		{"0 9 */2 * *", "day-of-month"},
+		{"0 9 * */2 *", "month"},
+		{"0 9 * * */2", "day-of-week"},
 		{"0 9,17 * * *", "hour list"},
 		{"0,30 9 * * *", "minute list"},
 		{"0 9 1,15 * *", "day-of-month list"},
@@ -95,6 +98,17 @@ func TestExplain_Declines(t *testing.T) {
 			}
 			if !strings.Contains(bad.Reason, c.contains) {
 				t.Fatalf("reason = %q, want it to mention %q", bad.Reason, c.contains)
+			}
+		})
+	}
+}
+
+func TestParse_CalendarWildcardStepOneRemainsUnrestricted(t *testing.T) {
+	for _, expr := range []string{"0 9 */1 * *", "0 9 * */1 *", "0 9 * * */1"} {
+		t.Run(expr, func(t *testing.T) {
+			got, err := Parse(expr)
+			if err != nil || !got.OK {
+				t.Fatalf("Parse(%q): result=%+v err=%v", expr, got, err)
 			}
 		})
 	}

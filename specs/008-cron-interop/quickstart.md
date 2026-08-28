@@ -1,5 +1,7 @@
 # Quickstart: Cron interoperability and calendar-anomaly policy
 
+> **Historical boundary notice (2026-08-28):** This S008 artifact records the original import/export-only cron boundary. S019 introduced shared CLI/API human-or-cron task input, S020 extended it to the GUI, and S021 defines the current product documentation and fidelity policy. The original text below is intentionally preserved as chronological evidence.
+
 **Feature**: `008-cron-interop` | **Date**: 2026-07-23
 
 End-to-end walkthrough for verifying the feature on a built daemon. Assumes

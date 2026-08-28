@@ -22,8 +22,10 @@ Codes: `validation_failed` (→ CLI exit 2), `not_found`, `conflict`, `internal`
 
 ### Tasks
 - `GET    /v1/tasks` — list (filters: `group`, `state`)
-- `POST   /v1/tasks` — create (body = task + schedule spec). Server validates timezone, schedule,
-  and rejects past one-offs.
+- `POST   /v1/tasks` — create (body = task + `schedule` or one-off `at`). Recurring input accepts
+  human phrases or supported cron. Optional `schedule_syntax` (`human` or `cron`) forces one
+  parser; omitted syntax is selected automatically with no fallback after classification.
+  Server validates timezone and rejects past one-offs.
 - `GET    /v1/tasks/{id}` — detail incl. computed `next_runs` (UTC + rendered local) and recent runs
 - `PATCH  /v1/tasks/{id}` — update
 - `DELETE /v1/tasks/{id}` — delete
@@ -31,8 +33,11 @@ Codes: `validation_failed` (→ CLI exit 2), `not_found`, `conflict`, `internal`
 - `POST   /v1/tasks/{id}:enable` / `:disable`
 
 ### Schedules (preview)
-- `POST   /v1/schedules:preview` — body = human-readable schedule spec; returns `{ rrule,
-  human_summary, next_runs[] }` so CLI/GUI can show the plain-language summary before saving (FR-006).
+- `POST   /v1/schedules:preview` — body includes `schedule`, optional `schedule_syntax`,
+  `timezone`, and `missing_date_policy`; returns `{ rrule, human_summary, next_runs[],
+  source_syntax }`. Preview and create use the same shared classifier and compiler.
+- Recurring task responses retain the normalized `schedule.expression` and expose derived
+  `schedule.source_syntax`. One-offs and legacy expressionless schedules omit source identity.
 
 ### Groups
 - `GET/POST /v1/groups`, `GET/PATCH/DELETE /v1/groups/{id}`, `:enable`/`:disable`

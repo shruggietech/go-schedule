@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Current product documentation now defines human-or-cron task authoring
+  end to end (closes #52 and #50; refs #22).** README, CLI, GUI, API, and the
+  authoritative S001 contract share equivalent weekday examples and name
+  go-schedule's exact five-field subset, conversion workflows, source retention,
+  field-local steps, expression-versus-crontab boundaries, task timezones, DST
+  behavior, and fidelity refusals. S008 remains intact as historical evidence
+  with explicit supersession notices.
 - **The desktop Schedule field now accepts human phrases or supported five-field
   cron (Refs #50).** Local validation, live preview, create, and update use the
   shared syntax boundary. Cron tasks reopen with their retained expression,
@@ -56,6 +63,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Pinned documentation policy - `scripts/docs-check.sh` (2026-08-28).** The
+  offline docs gate now runs a bounded current-surface policy check plus generated
+  acceptance and rejection fixtures. It rejects targeted obsolete human-only
+  claims without scanning historical specifications or the changelog.
+- **Calendar-field cron wildcard steps now fail safely.** Wildcard steps greater
+  than one in day-of-month, month, or day-of-week are refused with the field
+  named instead of being silently simplified to a daily schedule. `*/1` and all
+  previously faithful forms remain unchanged; broader cron coverage stays #22.
 - **The documentation site's dark theme is complete and accessible (closes #35,
   #36, and #37).** Every syntax token now fails safely to readable base ink,
   deliberate brand colors cover named roles, highlighted lines and selected

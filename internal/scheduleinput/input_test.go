@@ -70,6 +70,9 @@ func TestParseCronRefusalsNeverFallBack(t *testing.T) {
 		{input: "61 9 * * *", want: "minute"},
 		{input: "@reboot", want: "boot"},
 		{input: "0 9 1 * 1", want: "either"},
+		{input: "0 9 */2 * *", want: "day-of-month"},
+		{input: "0 9 * */2 *", want: "month"},
+		{input: "0 9 * * */2", want: "day-of-week"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {

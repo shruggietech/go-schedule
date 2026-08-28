@@ -214,8 +214,8 @@ unaffected; this is the "does it actually work" button.
 
 Convert strings and crontab data locally. Supported cron can also be supplied to
 `task add` and `task edit` through `--schedule`; invalid or unfaithful forms are
-refused rather than retried as human text. The desktop editor remains
-plain-language only.
+refused rather than retried as human text. The desktop Schedule field accepts
+the same two forms and retains cron text exactly when editing.
 
 The full guide, including the table of what each direction can and cannot carry,
 is [Cron interoperability](cron.md). In brief:
@@ -278,9 +278,10 @@ gosched cron import --file /etc/crontab --dry-run
 | `--group` | Group ID to file them under. |
 | `--count` | Upcoming runs shown per line. Default 3. |
 
-Always run it with `--dry-run` first. The phrase the preview shows is the phrase
-the task is created with — there is no second conversion path — so a preview that
-reads correctly is an import that is correct.
+Always run it with `--dry-run` first. Preview and creation use the same cron
+conversion result. The created task retains the normalized cron expression and
+its compiled recurrence; the displayed phrase is an explanation, not the value
+stored in place of the expression.
 
 ### `cron export`
 

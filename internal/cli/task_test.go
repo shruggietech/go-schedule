@@ -56,3 +56,10 @@ func TestTaskScheduleHelpDescribesBothAcceptedSyntaxes(t *testing.T) {
 		}
 	}
 }
+
+func TestRootHelpUsesHumanFirstDualSyntaxPositioning(t *testing.T) {
+	help := strings.ToLower(newRoot().Short)
+	if !strings.Contains(help, "readable") || !strings.Contains(help, "cron") {
+		t.Fatalf("root help = %q, want readable schedules and cron", newRoot().Short)
+	}
+}

@@ -345,7 +345,7 @@ func TestCronImportUsesTheTaskInputBoundary(t *testing.T) {
 		"0 9 * * 1-5", "*/15 * * * *", "@daily", "0 0 1 * *",
 	} {
 		if _, err := schedule.Parse(expr, "UTC", anchor); err == nil {
-			t.Errorf("schedule.Parse accepted the cron expression %q; cron must never be an authoring syntax", expr)
+			t.Errorf("schedule.Parse accepted cron %q; cron must enter through the shared schedule-input boundary", expr)
 		}
 	}
 

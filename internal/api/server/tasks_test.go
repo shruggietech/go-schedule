@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func doJSON(t *testing.T, s *Server, method, path string, body any) *httptest.ResponseRecorder {
@@ -170,6 +172,7 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 		{"invalid cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "61 9 * * *"}, "schedule"},
 		{"preview hint without schedule", "/v1/schedules/preview", PreviewRequest{ScheduleSyntax: "cron"}, "schedule_syntax"},
 		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
+		{"lossy calendar step", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 */2 * *"}, "schedule"},
 		{"hint without schedule", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", ScheduleSyntax: "cron", At: futureTime()}, "schedule_syntax"},
 	}
 	for _, tt := range tests {
@@ -186,6 +189,16 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 				t.Fatalf("field=%q want %q: %s", apiErr.Error.Field, tt.field, rec.Body.String())
 			}
 		})
+	}
+	list := doJSON(t, s, http.MethodGet, "/v1/tasks", nil)
+	var listed struct {
+		Tasks []domain.Task `json:"tasks"`
+	}
+	if err := json.Unmarshal(list.Body.Bytes(), &listed); err != nil {
+		t.Fatal(err)
+	}
+	if len(listed.Tasks) != 0 {
+		t.Fatalf("refused create mutated tasks: %s", list.Body.String())
 	}
 }
 

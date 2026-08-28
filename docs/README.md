@@ -23,7 +23,7 @@ start with the guide for your platform; if you are contributing, start with
 | [macOS install guide](INSTALL-macos.md) | Desktop bundle versus headless, launchd, and the boot-persistence caveat that catches people out. |
 | [`gosched` command reference](cli.md) | Every command and flag the CLI exposes, with exit codes and elevation requirements. |
 | [GUI field reference](gui-fields.md) | What every field in the desktop task editor accepts and means. |
-| [Cron interoperability](cron.md) | Importing an existing crontab, explaining an expression, exporting back out, and exactly what each direction can and cannot carry. |
+| [Cron interoperability](cron.md) | The supported five-field subset, task authoring, conversion, timezone/DST rules, crontab import, export, and named fidelity refusals. |
 
 ## Verifying an installation
 
