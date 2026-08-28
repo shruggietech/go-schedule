@@ -52,6 +52,12 @@ gosched cron convert "0 9 * * 5#3"
 
 gosched cron convert "3rd friday monthly at 09:00"
 # 0 9 * * 5#3
+
+gosched cron convert "0 9 * * 5L"
+# last friday of the month at 09:00
+
+gosched cron convert "last friday of the month at 09:00"
+# 0 9 * * 5L
 ```
 
 Automatic mode treats `@`-prefixed values and five fields with a cron-shaped
@@ -182,10 +188,10 @@ parity. For the upstream dialects and file behavior, see the
 [POSIX crontab utility](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html),
 [Linux crontab(5)](https://man7.org/linux/man-pages/man5/crontab.5.html), and
 [robfig/cron expression format](https://pkg.go.dev/github.com/robfig/cron/v3#hdr-CRON_Expression_Format).
-The single `weekday#ordinal` form is an explicit go-schedule extension to this
-five-field subset. Some schedulers use `#` with different field layouts or
-weekday numbering, so verify the destination before treating exported text as
-portable.
+The single `weekday#ordinal` and `weekdayL` forms are explicit go-schedule
+extensions to this five-field subset. Some schedulers use these suffixes with
+different field layouts or weekday numbering, so verify the destination before
+treating exported text as portable.
 
 ### Supported
 
@@ -197,6 +203,7 @@ portable.
 | One fixed daily time | `0 9 * * *` |
 | One weekday, weekdays, or weekends | `0 14 * * WED`, `0 9 * * 1-5`, `0 10 * * 0,6` |
 | One ordinal weekday each month | `0 9 * * 5#3` means the third Friday. One weekday and ordinal 1 through 5 are supported when month and day-of-month are unrestricted. |
+| The last selected weekday each month | `0 9 * * 5L` means the last Friday. One weekday followed by `L` is supported when month and day-of-month are unrestricted; `SUNL` and `7L` import as Sunday and export canonically as `0L`. |
 | One monthly day or one yearly month/day | `0 9 31 * *`, `0 0 4 7 *` |
 | Month and weekday names | Names are case-insensitive; their first three letters are significant. |
 | Sunday as `0` or `7` | Both are accepted |
@@ -208,8 +215,9 @@ portable.
 | --- | --- |
 | `@reboot` | Fires at boot rather than on a schedule. There is no equivalent, and there is no honest approximation of one. |
 | Six-field (Quartz) expressions | Seconds-precision cron dialects are a different language. Sub-minute schedules are expressible here directly (`every 30 seconds`) — just not through cron. |
-| `L` and `W` | Non-standard day specifiers outside the supported subset. Last-weekday forms remain declined. |
+| Day-of-month `L`, bare day-of-week `L`, and `W` | Non-standard day specifiers outside the supported subset. Only one day-of-week `weekdayL` atom is supported. |
 | Broader `#` combinations | Lists, ranges, steps, multiple ordinal terms, ordinals outside 1 through 5, and month/date restrictions are declined rather than approximated. |
+| Broader day-of-week `L` combinations | Lists, ranges, steps, multiple terms, mixed `L`/`#`, and month/date restrictions are declined rather than approximated. |
 | A step that does not divide its range | `*/7` on minutes fires at :00, :07 … :56 and then :00 again — a four-minute gap a fixed interval cannot reproduce. `*/5`, `*/15` and `*/30` are exact and are accepted. |
 | A wildcard step in day-of-month, month, or day-of-week | Cron restarts these steps inside each calendar field. The recurrence model cannot retain that field-local behavior, so forms such as `0 9 */2 * *` are refused rather than simplified to daily. |
 | Both day-of-month and day-of-week restricted | `0 0 13 * 5` means "the 13th **or** any Friday" in cron. This scheduler intersects the two, which would turn a weekly job into a handful of runs a year. |
@@ -257,11 +265,14 @@ The export declines these rather than approximating them:
   `every 2 weeks`) — cron repeats by calendar position, not elapsed time.
 - Sub-daily intervals whose stored phase does not align with cron's field-local
   step — exporting `:05/:20/:35/:50` as `*/15` would silently move every run.
-- Last-weekday and broader ordinal-weekday combinations. The focused
-  `weekday#1..5` subset exports, but the `#` extension is not universal across
+- Broader ordinal- and last-weekday combinations. The focused `weekday#1..5`
+  and `weekdayL` subsets export, but these extensions are not universal across
   cron implementations.
 - A fifth-weekday or other date-bearing task using a non-default missing-date
   policy. Cron would silently skip a missing occurrence; first through fourth
   weekdays exist every month, so their policy setting does not change output.
+- Missing-date policy never changes a last-weekday schedule because every month
+  contains a last occurrence of every weekday; all policies therefore export
+  to the same canonical `weekdayL` expression.
 - Disabled tasks — cron has no disabled state, and emitting a live line for a
   task you deliberately stopped would be the worst possible outcome.

@@ -310,6 +310,9 @@ func TestUpdateTask_DualSyntaxReplacementAndPreservation(t *testing.T) {
 		{Schedule: "61 10 * * *"},
 		{Schedule: "0 10 * * 1#0", ScheduleSyntax: "cron"},
 		{Schedule: "0 10 * JAN 1#2", ScheduleSyntax: "cron"},
+		{Schedule: "0 10 * * 8L", ScheduleSyntax: "cron"},
+		{Schedule: "0 10 * JAN 1L", ScheduleSyntax: "cron"},
+		{Schedule: "0 10 * * 1L,2L", ScheduleSyntax: "cron"},
 		{ScheduleSyntax: "cron"},
 	} {
 		rec = doJSON(t, s, http.MethodPatch, path, req)

@@ -24,7 +24,8 @@ type Field struct {
 	Values   []int
 	Wildcard bool
 	// Ordinal is the weekday occurrence within a month for a day-of-week
-	// "weekday#ordinal" term. Zero means ordinary field semantics.
+	// extension. Minus one means the last occurrence, zero means ordinary field
+	// semantics, and 1 through 5 mean a "weekday#ordinal" term.
 	Ordinal int
 	// Step is the divisor from a "*/n" form, or 0 when there was none.
 	Step int
@@ -122,7 +123,7 @@ func Parse(expr string) (Result, error) {
 	// The non-standard day-of-month extensions have no equivalent and must be
 	// named rather than silently misread as a literal.
 	for i, p := range parts {
-		if i == 4 && strings.Contains(p, "#") {
+		if i == 4 && (strings.Contains(p, "#") || strings.Contains(strings.ToUpper(p), "L")) {
 			continue
 		}
 		if bad, ok := extensionIn(p); ok {
@@ -133,6 +134,17 @@ func Parse(expr string) (Result, error) {
 	spec := Spec{Shorthand: shorthand}
 	targets := [5]*Field{&spec.Minute, &spec.Hour, &spec.DOM, &spec.Month, &spec.DOW}
 	for i, p := range parts {
+		if i == 4 && strings.Contains(strings.ToUpper(p), "L") {
+			f, reason, err := parseLastWeekday(p)
+			if err != nil {
+				return Result{}, fmt.Errorf("cron: %s field: %w", fieldName(i), err)
+			}
+			if reason != "" {
+				return refuse(expr, reason), nil
+			}
+			*targets[i] = f
+			continue
+		}
 		if i == 4 && strings.Contains(p, "#") {
 			f, reason, err := parseOrdinalWeekday(p)
 			if err != nil {
@@ -167,7 +179,7 @@ func Parse(expr string) (Result, error) {
 		return refuse(expr, "restricting both day-of-month and day-of-week means \"either\" in cron, which has no equivalent here"), nil
 	}
 	if spec.DOW.Ordinal != 0 && !spec.Month.Wildcard {
-		return refuse(expr, "an ordinal weekday restricted to particular months has no phrase equivalent"), nil
+		return refuse(expr, "a monthly weekday selector restricted to particular months has no phrase equivalent"), nil
 	}
 
 	return Result{Spec: spec, OK: true}, nil
@@ -196,6 +208,28 @@ func parseOrdinalWeekday(p string) (Field, string, error) {
 		return Field{}, "", fmt.Errorf("ordinal %q must be an integer from 1 through 5", ordinalText)
 	}
 	return Field{Values: []int{normalize(weekday, 4)}, Ordinal: occurrence, min: 0, max: 7}, "", nil
+}
+
+func parseLastWeekday(p string) (Field, string, error) {
+	upper := strings.ToUpper(p)
+	if strings.ContainsAny(p, ",/-#") {
+		return Field{}, "only one last weekday term is supported in the day-of-week field", nil
+	}
+	if upper == "L" {
+		return Field{}, "bare L in the day-of-week field is not supported; use weekdayL for a last weekday", nil
+	}
+	if strings.Count(upper, "L") != 1 || !strings.HasSuffix(upper, "L") {
+		return Field{}, "", fmt.Errorf("invalid last-weekday term %q", p)
+	}
+	weekdayText := p[:len(p)-1]
+	weekday, err := parseValue(weekdayText, 4)
+	if err != nil {
+		return Field{}, "", err
+	}
+	if weekday < 0 || weekday > 7 {
+		return Field{}, "", fmt.Errorf("weekday value %d is outside 0-7", weekday)
+	}
+	return Field{Values: []int{normalize(weekday, 4)}, Ordinal: -1, min: 0, max: 7}, "", nil
 }
 
 func refuse(input, reason string) Result {

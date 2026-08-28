@@ -253,12 +253,26 @@ func TestExport_OrdinalWeekdayMatrixAndPolicies(t *testing.T) {
 		}
 	}
 
-	task, sch, err := taskFor("last monday monthly at 09:00")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, ok := Export(task, sch); ok {
-		t.Fatal("last weekday exported through the numbered-occurrence subset")
+}
+
+func TestExport_LastWeekdayMatrixAndPolicies(t *testing.T) {
+	days := []string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+	cronDays := []int{1, 2, 3, 4, 5, 6, 0}
+	policies := []domain.MissingDatePolicy{domain.MissingDateSkip, domain.MissingDateLastValid, domain.MissingDateNextValid}
+	for i, day := range days {
+		for _, policy := range policies {
+			phrase := fmt.Sprintf("last %s of the month at 14:30", day)
+			task, sch, err := taskFor(phrase)
+			if err != nil {
+				t.Fatal(err)
+			}
+			task.MissingDatePolicy = policy
+			got, bad, ok := Export(task, sch)
+			want := fmt.Sprintf("30 14 * * %dL", cronDays[i])
+			if !ok || got != want {
+				t.Errorf("Export(%q, %q) = %q, refusal=%q; want %q", phrase, policy, got, bad.Reason, want)
+			}
+		}
 	}
 }
 
@@ -277,7 +291,28 @@ func TestExport_OrdinalWeekdaySelectorBoundary(t *testing.T) {
 		"FREQ=MONTHLY;BYDAY=+3WE;BYHOUR=9;BYMINUTE=0;BYSECOND=0,30",
 	} {
 		sch := domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: rule, Anchor: &anchor}
-		if _, bad, ok := ExportSchedule(sch, domain.MissingDateSkip); ok || !strings.Contains(bad.Reason, "only one positive ordinal weekday") {
+		if _, bad, ok := ExportSchedule(sch, domain.MissingDateSkip); ok || !strings.Contains(bad.Reason, "weekday") {
+			t.Errorf("ExportSchedule(%q) = ok:%v refusal:%q", rule, ok, bad.Reason)
+		}
+	}
+}
+
+func TestExport_LastWeekdaySelectorBoundary(t *testing.T) {
+	anchor := exportAnchor
+	for _, rule := range []string{
+		"FREQ=MONTHLY;BYDAY=-1MO,-1TU;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=WE;BYSETPOS=-1;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=-1WE;BYMONTH=1;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=-1WE;BYMONTHDAY=15;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;COUNT=3;BYDAY=-1WE;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;UNTIL=20261231T000000Z;BYDAY=-1WE;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=-1WE;BYHOUR=9,10;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=-1WE;BYHOUR=9;BYMINUTE=0,30;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=-1WE;BYHOUR=9;BYMINUTE=0;BYSECOND=30",
+		"FREQ=MONTHLY;BYDAY=-2WE;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+	} {
+		sch := domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: rule, Anchor: &anchor}
+		if _, bad, ok := ExportSchedule(sch, domain.MissingDateSkip); ok || !strings.Contains(bad.Reason, "weekday") {
 			t.Errorf("ExportSchedule(%q) = ok:%v refusal:%q", rule, ok, bad.Reason)
 		}
 	}
@@ -374,6 +409,43 @@ func TestRoundTrip_FifthWeekdaySkipsAbsentMonthsAcrossDST(t *testing.T) {
 	b := runsBetween(t, roundTrip, tz, start, end)
 	if len(a) != 2 || len(b) != len(a) {
 		t.Fatalf("runs = %v / %v; want January and May only", a, b)
+	}
+	for i := range a {
+		if !a[i].Equal(b[i]) {
+			t.Fatalf("run %d changed: %v -> %v", i, a[i], b[i])
+		}
+	}
+}
+
+func TestRoundTrip_LastWeekdayAcrossDSTAndMonthBoundaries(t *testing.T) {
+	const tz = "America/New_York"
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	phrase, bad, err := Explain("30 2 * * 5L")
+	if err != nil || bad.Reason != "" {
+		t.Fatalf("Explain: err=%v refusal=%q", err, bad.Reason)
+	}
+	original, err := schedule.Parse(phrase, tz, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := domain.Task{Enabled: true, State: domain.TaskActive, Timezone: tz, MissingDatePolicy: domain.MissingDateNextValid}
+	back, bad, ok := Export(task, original)
+	if !ok || back != "30 2 * * 5L" {
+		t.Fatalf("Export = %q, refusal=%q", back, bad.Reason)
+	}
+	phrase2, bad, err := Explain(back)
+	if err != nil || bad.Reason != "" {
+		t.Fatalf("Explain after export: err=%v refusal=%q", err, bad.Reason)
+	}
+	roundTrip, err := schedule.Parse(phrase2, tz, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := runsBetween(t, original, tz, start, end)
+	b := runsBetween(t, roundTrip, tz, start, end)
+	if len(a) != 5 || len(b) != len(a) {
+		t.Fatalf("runs = %v / %v; want one last Friday in each month", a, b)
 	}
 	for i := range a {
 		if !a[i].Equal(b[i]) {

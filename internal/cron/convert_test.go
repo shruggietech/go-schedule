@@ -20,6 +20,7 @@ func TestConvertCronToHuman(t *testing.T) {
 		{name: "surrounding whitespace", input: "  0 9 * * 1-5  ", want: "weekdays at 09:00"},
 		{name: "forced", input: "0 9 * * 1-5", to: SyntaxHuman, want: "weekdays at 09:00"},
 		{name: "shorthand", input: "@daily", want: "every day at 00:00"},
+		{name: "last weekday", input: "0 9 * * 5L", want: "last friday of the month at 09:00"},
 	}
 
 	for _, tt := range tests {
@@ -91,6 +92,7 @@ func TestDetectSyntaxMatchesConverterClassification(t *testing.T) {
 		{input: "weekdays at 09:00", want: SyntaxHuman},
 		{input: "every 15 minutes from 9am", want: SyntaxHuman},
 		{input: "3rd wednesday monthly at 14:00", want: SyntaxHuman},
+		{input: "last wednesday of the month at 14:00", want: SyntaxHuman},
 	}
 	for _, tt := range tests {
 		if got := DetectSyntax(tt.input); got != tt.want {
@@ -114,6 +116,7 @@ func TestConvertHumanToCanonicalCron(t *testing.T) {
 		{name: "hourly nonzero minute phase", input: "every hour starting at 00:30", want: "30 * * * *"},
 		{name: "multi-hour nonzero minute phase", input: "every 2 hours starting at 08:30", want: "30 */2 * * *"},
 		{name: "ordinal weekday", input: "3rd wednesday monthly at 14:00", want: "0 14 * * 3#3"},
+		{name: "last weekday", input: "last wednesday of the month at 14:00", want: "0 14 * * 3L"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -163,6 +166,7 @@ func TestConvertHumanRoundTripCrossesDSTAndMonthBoundary(t *testing.T) {
 	for _, input := range []string{
 		"weekdays at 09:00",
 		"on the 31st of every month at 09:00",
+		"last friday of the month at 02:30",
 	} {
 		t.Run(input, func(t *testing.T) {
 			converted, err := Convert(input, SyntaxCron)
