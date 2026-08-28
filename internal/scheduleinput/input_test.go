@@ -22,6 +22,7 @@ func TestParseAutoDetectsAndRetainsSource(t *testing.T) {
 		{name: "shorthand", input: "@daily", want: SyntaxCron},
 		{name: "human", input: "weekdays at 09:00", want: SyntaxHuman},
 		{name: "five-field human", input: "3rd wednesday monthly at 14:00", want: SyntaxHuman},
+		{name: "last-weekday human", input: "last wednesday of the month at 14:00", want: SyntaxHuman},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -93,6 +94,7 @@ func TestParseHumanAndCronHaveIdenticalRuns(t *testing.T) {
 		{name: "DST weekdays", cron: "0 9 * * 1-5", human: "weekdays at 09:00"},
 		{name: "month boundary", cron: "0 9 31 * *", human: "on the 31st of every month at 09:00"},
 		{name: "ordinal weekday", cron: "30 2 * * 5#5", human: "5th friday monthly at 02:30"},
+		{name: "last weekday", cron: "30 2 * * 5L", human: "last friday of the month at 02:30"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

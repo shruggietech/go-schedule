@@ -242,6 +242,12 @@ gosched cron convert "0 9 * * 5#3"
 
 gosched cron convert "3rd friday monthly at 09:00"
 # 0 9 * * 5#3
+
+gosched cron convert "0 9 * * 5L"
+# last friday of the month at 09:00
+
+gosched cron convert "last friday of the month at 09:00"
+# 0 9 * * 5L
 ```
 
 Automatic mode treats `@`-prefixed input and five fields with a cron-shaped
@@ -268,6 +274,7 @@ Creates nothing.
 ```sh
 gosched cron explain "0 9 * * 1-5"
 gosched cron explain "0 9 * * 5#3"
+gosched cron explain "0 9 * * 5L"
 ```
 
 `--timezone` sets the zone the run times are shown in; `--count` how many to
@@ -284,7 +291,8 @@ gosched cron import --file /etc/crontab --dry-run
 
 A line such as `0 9 * * 5#3 /usr/local/bin/report` previews as the
 third Friday of each month and retains the original cron expression when the
-task is created.
+task is created. Likewise, `0 9 * * 5L /usr/local/bin/report` previews as the
+last Friday of each month and retains the `5L` source.
 
 | Flag | Meaning |
 | --- | --- |

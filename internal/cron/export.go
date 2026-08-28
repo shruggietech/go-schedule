@@ -110,9 +110,12 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				"an every-%d-months rule has no cron equivalent", interval)}, false
 		}
 		if len(opt.Byweekday) > 0 {
-			weekday, occurrence, ok := ordinalWeekdayField(opt)
+			weekday, occurrence, ok := monthlyWeekdayField(opt)
 			if !ok {
-				return "", Unsupported{Reason: "only one positive ordinal weekday from first through fifth has a cron # equivalent"}, false
+				return "", Unsupported{Reason: "only one first-through-fifth or last weekday has a cron equivalent"}, false
+			}
+			if occurrence == -1 {
+				return fmt.Sprintf("%d %d * * %dL", minute, hour, weekday), Unsupported{}, true
 			}
 			return fmt.Sprintf("%d %d * * %d#%d", minute, hour, weekday, occurrence), Unsupported{}, true
 		}
@@ -135,7 +138,7 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	return "", Unsupported{Reason: "that recurrence has no cron equivalent"}, false
 }
 
-func ordinalWeekdayField(opt *rrule.ROption) (weekday, occurrence int, ok bool) {
+func monthlyWeekdayField(opt *rrule.ROption) (weekday, occurrence int, ok bool) {
 	if len(opt.Byweekday) != 1 || len(opt.Bymonthday) != 0 || len(opt.Bymonth) != 0 ||
 		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
 		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Byhour) > 1 || len(opt.Byminute) > 1 ||
@@ -144,7 +147,7 @@ func ordinalWeekdayField(opt *rrule.ROption) (weekday, occurrence int, ok bool) 
 	}
 	w := opt.Byweekday[0]
 	occurrence = w.N()
-	if occurrence < 1 || occurrence > 5 {
+	if occurrence != -1 && (occurrence < 1 || occurrence > 5) {
 		return 0, 0, false
 	}
 	return (w.Day() + 1) % 7, occurrence, true

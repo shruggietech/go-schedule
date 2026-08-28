@@ -24,6 +24,8 @@ func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
 		{input: "weekdays at 09:00", want: "0 9 * * 1-5\n"},
 		{input: "0 9 * * 5#3", want: "3rd friday monthly at 09:00\n"},
 		{input: "3rd friday monthly at 09:00", want: "0 9 * * 5#3\n"},
+		{input: "0 9 * * 5L", want: "last friday of the month at 09:00\n"},
+		{input: "last friday of the month at 09:00", want: "0 9 * * 5L\n"},
 	} {
 		cmd := cronConvert()
 		var stdout, stderr bytes.Buffer
@@ -40,6 +42,21 @@ func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
 		if stderr.Len() != 0 {
 			t.Errorf("stderr = %q, want empty", stderr.String())
 		}
+	}
+}
+
+func TestImport_LastWeekdayRemainsCronSource(t *testing.T) {
+	rep := scan(t, "0 9 * * 5L /usr/local/bin/report\n")
+	if rep.Jobs != 1 || len(rep.Lines) != 1 || rep.Lines[0].Phrase != "last friday of the month at 09:00" {
+		t.Fatalf("last-weekday line classification = %+v", rep)
+	}
+	fc := &fakeCreator{}
+	var out bytes.Buffer
+	if err := runImport(&out, rep, importOptions{timezone: "UTC"}, fc); err != nil {
+		t.Fatal(err)
+	}
+	if len(fc.reqs) != 1 || fc.reqs[0].Schedule != "0 9 * * 5L" || fc.reqs[0].ScheduleSyntax != "cron" {
+		t.Fatalf("last-weekday import request = %+v", fc.reqs)
 	}
 }
 
