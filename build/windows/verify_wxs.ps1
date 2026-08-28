@@ -5,6 +5,7 @@
 .DESCRIPTION
   Cheap guard against the WiX source drifting from reality:
     * the three expected binaries are referenced as File sources,
+    * the canonical icon feeds both installed-apps and Start Menu identity,
     * the Windows service Name is exactly "goschedd" (the name the CLI
       `gosched service ...` control layer expects),
     * the install folder is "go-schedule" and the package is per-machine.
@@ -49,6 +50,45 @@ if ($wxs -notmatch 'Directory Id="INSTALLFOLDER" Name="go-schedule"') {
 if ($wxs -notmatch 'Scope="perMachine"') {
   $fail += 'package Scope must be "perMachine" (requires elevation)'
 }
+
+# The package, installed-apps entry, and Start Menu shortcut deliberately share
+# one Icon table row. Parse these relationships structurally so harmless XML
+# formatting or attribute-order changes do not weaken the check.
+try {
+  [xml]$wxsXml = $wxs
+  $ns = [System.Xml.XmlNamespaceManager]::new($wxsXml.NameTable)
+  $ns.AddNamespace('w', 'http://wixtoolset.org/schemas/v4/wxs')
+  $icon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Icon[@Id="GoSchedule.ico"]', $ns)
+  $arpIcon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPPRODUCTICON"]', $ns)
+  $shortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="GuiShortcut"]', $ns)
+
+  if (-not $icon) {
+    $fail += 'canonical Icon Id="GoSchedule.ico" is missing'
+  } elseif ($icon.SourceFile -ne 'cmd/gosched-gui/icon.ico') {
+    $fail += 'canonical Icon SourceFile must be "cmd/gosched-gui/icon.ico"'
+  } else {
+    $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $iconPath = Join-Path $repoRoot $icon.SourceFile
+    if (-not (Test-Path -LiteralPath $iconPath -PathType Leaf)) {
+      $fail += "canonical Icon source does not exist: $iconPath"
+    }
+  }
+
+  if (-not $arpIcon) {
+    $fail += 'ARPPRODUCTICON property is missing'
+  } elseif ($arpIcon.Value -ne 'GoSchedule.ico') {
+    $fail += 'ARPPRODUCTICON must reference "GoSchedule.ico"'
+  }
+
+  if (-not $shortcut) {
+    $fail += 'GuiShortcut is missing'
+  } elseif ($shortcut.Icon -ne 'GoSchedule.ico') {
+    $fail += 'GuiShortcut Icon must reference "GoSchedule.ico"'
+  }
+} catch {
+  $fail += "wxs is not valid XML: $($_.Exception.Message)"
+}
+
 # The install folder must land on the machine PATH, or every documented bare
 # `gosched ...` command fails after a normal install (issue #5). Assert each
 # attribute separately so a partial edit — a per-user entry, or one that
@@ -83,4 +123,4 @@ if ($fail.Count -gt 0) {
   exit 1
 }
 
-Write-Host 'WiX sanity check passed.'
+Write-Output 'WiX sanity check passed.'
