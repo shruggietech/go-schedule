@@ -65,6 +65,44 @@ func TestNearestWeekdayCalendarSemantics(t *testing.T) {
 	}
 }
 
+func TestNearestWeekdayDoesNotPrecedeScheduleAnchor(t *testing.T) {
+	anchor := time.Date(2026, 8, 20, 0, 0, 0, 0, time.UTC)
+	sch := domain.Schedule{
+		Kind:               domain.ScheduleRecurring,
+		RRULE:              "FREQ=MONTHLY;BYMONTHDAY=15;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		Anchor:             &anchor,
+		CalendarAdjustment: domain.CalendarAdjustmentNearestWeekday,
+	}
+	after := time.Date(2026, 7, 15, 9, 0, 0, 0, time.UTC)
+	want := time.Date(2026, 9, 15, 9, 0, 0, 0, time.UTC)
+
+	got, ok, err := NextRun(sch, "UTC", domain.MissingDateSkip, after)
+	if err != nil || !ok || !got.Equal(want) {
+		t.Fatalf("got=%v ok=%v err=%v, want %v", got, ok, err, want)
+	}
+}
+
+func TestNearestWeekdayPreservesWallTimeAcrossDSTGap(t *testing.T) {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	anchor := time.Date(2026, 3, 1, 0, 0, 0, 0, loc)
+	sch := domain.Schedule{
+		Kind:               domain.ScheduleRecurring,
+		RRULE:              "FREQ=MONTHLY;BYMONTHDAY=8;BYHOUR=2;BYMINUTE=30;BYSECOND=0",
+		Anchor:             &anchor,
+		CalendarAdjustment: domain.CalendarAdjustmentNearestWeekday,
+	}
+	after := time.Date(2026, 3, 1, 0, 0, 0, 0, loc)
+	want := time.Date(2026, 3, 9, 2, 30, 0, 0, loc).UTC()
+
+	got, ok, err := NextRun(sch, "America/New_York", domain.MissingDateSkip, after)
+	if err != nil || !ok || !got.Equal(want) {
+		t.Fatalf("got=%v ok=%v err=%v, want %v", got, ok, err, want)
+	}
+}
+
 func TestNearestWeekdayAllWeekdayPositions(t *testing.T) {
 	anchor := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)
 	sch, err := Parse("nearest weekday to the 15th of every month at 09:00", "UTC", anchor)

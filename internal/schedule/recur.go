@@ -73,8 +73,7 @@ func nextRecurring(sch domain.Schedule, tzName string, policy domain.MissingDate
 		if err != nil || !ok {
 			return time.Time{}, ok, err
 		}
-		norm := timezone.WallTime(loc, occ.Year(), occ.Month(), occ.Day(), occ.Hour(), occ.Minute(), occ.Second())
-		return norm.UTC(), true, nil
+		return occ.UTC(), true, nil
 	default:
 		return time.Time{}, false, fmt.Errorf("schedule: unknown calendar adjustment %q", sch.CalendarAdjustment)
 	}

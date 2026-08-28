@@ -82,3 +82,23 @@ func TestEvaluate_NearestWeekdayUsesAdjustedOccurrence(t *testing.T) {
 		t.Fatalf("decision=%+v, want first missed %v", dec, want)
 	}
 }
+
+func TestEvaluate_ReplacementScheduleDoesNotCatchUpBeforeAnchor(t *testing.T) {
+	anchor := time.Date(2026, 8, 20, 0, 0, 0, 0, time.UTC)
+	sch := domain.Schedule{
+		Kind:               domain.ScheduleRecurring,
+		RRULE:              "FREQ=MONTHLY;BYMONTHDAY=15;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		Anchor:             &anchor,
+		CalendarAdjustment: domain.CalendarAdjustmentNearestWeekday,
+	}
+	last := time.Date(2026, 7, 15, 9, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 8, 25, 0, 0, 0, 0, time.UTC)
+
+	dec, err := Evaluate(sch, "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dec.ShouldCatchUp {
+		t.Fatalf("decision=%+v, want no catch-up before replacement schedule anchor %v", dec, anchor)
+	}
+}

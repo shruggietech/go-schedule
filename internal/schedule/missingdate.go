@@ -7,6 +7,7 @@ import (
 	"github.com/teambition/rrule-go"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // This file resolves recurrences whose target date does not exist in every
@@ -208,20 +209,40 @@ func resolveNearestWeekday(opt *rrule.ROption, loc *time.Location, policy domain
 	}
 	in := targetDate{kind: intentMonthDay, interval: 1, day: opt.Bymonthday[0]}
 	h, mi, s := timeOfDay(opt)
-	period := periodStart(opt.Dtstart.In(loc), false, 0, loc)
+	anchor := opt.Dtstart.In(loc)
+	period := periodStart(anchor, false, 0, loc)
 	if skip := wholeIntervalsBefore(period, after, in); skip > 0 {
 		period = advanceBy(period, in, skip)
 	}
 	for i := 0; i < maxPeriodWalk; i++ {
-		if base, ok := occurrenceIn(in, period, h, mi, s, policy, loc); ok {
-			occ := nearestWeekday(base)
-			if occ.After(after) {
+		if year, month, day, ok := resolvedMonthDay(period, in.day, policy); ok {
+			// Resolve and adjust the calendar date before applying the requested
+			// wall clock. Otherwise a nonexistent time on the unadjusted Sunday
+			// can be normalized before the date moves to Monday.
+			adjusted := nearestWeekday(time.Date(year, month, day, 12, 0, 0, 0, loc))
+			occ := timezone.WallTime(loc, adjusted.Year(), adjusted.Month(), adjusted.Day(), h, mi, s)
+			if !occ.Before(anchor) && occ.After(after) {
 				return occ, true, nil
 			}
 		}
 		period = advance(period, in)
 	}
 	return time.Time{}, false, nil
+}
+
+func resolvedMonthDay(period time.Time, day int, policy domain.MissingDatePolicy) (int, time.Month, int, bool) {
+	last := daysIn(period)
+	switch {
+	case day <= last:
+		return period.Year(), period.Month(), day, true
+	case policy == domain.MissingDateLastValid:
+		return period.Year(), period.Month(), last, true
+	case policy == domain.MissingDateNextValid:
+		next := period.AddDate(0, 1, 0)
+		return next.Year(), next.Month(), 1, true
+	default:
+		return 0, 0, 0, false
+	}
 }
 
 func nearestWeekday(date time.Time) time.Time {
