@@ -122,13 +122,24 @@ func conversionSyntax(input string, destination Syntax) (Syntax, Syntax, error) 
 	case SyntaxHuman:
 		return SyntaxCron, SyntaxHuman, nil
 	case "":
-		if strings.HasPrefix(input, "@") || looksLikeCron(input) {
+		if DetectSyntax(input) == SyntaxCron {
 			return SyntaxCron, SyntaxHuman, nil
 		}
 		return SyntaxHuman, SyntaxCron, nil
 	default:
 		return "", "", fmt.Errorf("destination must be cron or human, got %q", destination)
 	}
+}
+
+// DetectSyntax classifies one normalized or raw schedule string using the
+// structural rule shared by conversion and task authoring. Classification does
+// not validate the selected grammar and never falls back after a parse failure.
+func DetectSyntax(input string) Syntax {
+	input = strings.TrimSpace(input)
+	if strings.HasPrefix(input, "@") || looksLikeCron(input) {
+		return SyntaxCron
+	}
+	return SyntaxHuman
 }
 
 func looksLikeCron(input string) bool {

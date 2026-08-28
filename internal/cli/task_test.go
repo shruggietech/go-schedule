@@ -1,6 +1,11 @@
 package cli
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"github.com/spf13/cobra"
+)
 
 // TestGroupIntent_ThreeWay pins the CLI half of FR-014/FR-015. Before this
 // change `--group ""` was indistinguishable from omitting the flag, so no
@@ -41,3 +46,13 @@ func TestGroupIntent_ThreeWay(t *testing.T) {
 }
 
 func strp(s string) *string { return &s }
+
+func TestTaskScheduleHelpDescribesBothAcceptedSyntaxes(t *testing.T) {
+	for _, cmd := range []*cobra.Command{taskAdd(), taskEdit()} {
+		usage := cmd.Flags().Lookup("schedule").Usage
+		lower := strings.ToLower(usage)
+		if !strings.Contains(lower, "human") || !strings.Contains(lower, "cron") {
+			t.Errorf("%s --schedule usage = %q, want human and cron", cmd.Name(), usage)
+		}
+	}
+}

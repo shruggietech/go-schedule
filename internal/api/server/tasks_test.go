@@ -101,6 +101,98 @@ func TestPreview(t *testing.T) {
 	}
 }
 
+func TestPreview_DualSyntaxParity(t *testing.T) {
+	s := newTestServer(t)
+	preview := func(schedule, syntax string) PreviewResponse {
+		t.Helper()
+		rec := doJSON(t, s, http.MethodPost, "/v1/schedules/preview", PreviewRequest{
+			Schedule: schedule, ScheduleSyntax: syntax, Timezone: "UTC",
+		})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("preview %q (%q): status=%d body=%s", schedule, syntax, rec.Code, rec.Body.String())
+		}
+		var resp PreviewResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatal(err)
+		}
+		return resp
+	}
+
+	autoCron := preview("0 9 * * 1-5", "")
+	forcedCron := preview("0 9 * * 1-5", "cron")
+	human := preview("weekdays at 09:00", "human")
+	if autoCron.SourceSyntax != "cron" || forcedCron.SourceSyntax != "cron" || human.SourceSyntax != "human" {
+		t.Fatalf("source identities = auto %q, forced %q, human %q", autoCron.SourceSyntax, forcedCron.SourceSyntax, human.SourceSyntax)
+	}
+	if autoCron.RRULE != human.RRULE || forcedCron.RRULE != human.RRULE {
+		t.Fatalf("RRULE mismatch: auto=%q forced=%q human=%q", autoCron.RRULE, forcedCron.RRULE, human.RRULE)
+	}
+	if len(autoCron.NextRuns) != len(human.NextRuns) {
+		t.Fatalf("run count mismatch: cron=%d human=%d", len(autoCron.NextRuns), len(human.NextRuns))
+	}
+	for i := range autoCron.NextRuns {
+		if !autoCron.NextRuns[i].Equal(human.NextRuns[i]) {
+			t.Fatalf("run %d mismatch: cron=%s human=%s", i, autoCron.NextRuns[i], human.NextRuns[i])
+		}
+	}
+}
+
+func TestCreateTask_CronSourceIdentity(t *testing.T) {
+	s := newTestServer(t)
+	for _, syntax := range []string{"", "cron"} {
+		rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+			Name: "cron-" + syntax, Command: "/bin/true", Schedule: "0 9 * * 1-5",
+			ScheduleSyntax: syntax, Timezone: "UTC",
+		})
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("syntax %q: status=%d body=%s", syntax, rec.Code, rec.Body.String())
+		}
+		var resp TaskResponse
+		if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+			t.Fatal(err)
+		}
+		if resp.Schedule.Expression != "0 9 * * 1-5" || resp.Schedule.SourceSyntax != "cron" {
+			t.Fatalf("syntax %q returned schedule %+v", syntax, resp.Schedule)
+		}
+	}
+}
+
+func TestScheduleSyntaxValidation(t *testing.T) {
+	s := newTestServer(t)
+	tests := []struct {
+		name  string
+		path  string
+		body  any
+		field string
+	}{
+		{"invalid hint", "/v1/schedules/preview", PreviewRequest{Schedule: "every day", ScheduleSyntax: "natural"}, "schedule_syntax"},
+		{"forced cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "every day at 09:00", ScheduleSyntax: "cron"}, "schedule"},
+		{"invalid cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "61 9 * * *"}, "schedule"},
+		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
+		{"hint without schedule", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", ScheduleSyntax: "cron", At: futureTime()}, "schedule_syntax"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec := doJSON(t, s, http.MethodPost, tt.path, tt.body)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+			}
+			var apiErr APIError
+			if err := json.Unmarshal(rec.Body.Bytes(), &apiErr); err != nil {
+				t.Fatal(err)
+			}
+			if apiErr.Error.Field != tt.field {
+				t.Fatalf("field=%q want %q: %s", apiErr.Error.Field, tt.field, rec.Body.String())
+			}
+		})
+	}
+}
+
+func futureTime() *time.Time {
+	t := time.Now().UTC().Add(24 * time.Hour)
+	return &t
+}
+
 func TestRunNow_NotFound(t *testing.T) {
 	s := newTestServer(t)
 	rec := doJSON(t, s, http.MethodPost, "/v1/tasks/missing/run-now", nil)

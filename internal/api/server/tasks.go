@@ -9,25 +9,28 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/executor"
 	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/scheduleinput"
 	"github.com/shruggietech/go-schedule/internal/store"
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 // TaskCreateRequest is the body for POST /v1/tasks. Provide either Schedule
-// (human-readable recurrence) or At (one-off instant), not both.
+// (human-readable recurrence or supported cron) or At (one-off instant), not
+// both.
 type TaskCreateRequest struct {
-	Name          string            `json:"name"`
-	GroupID       string            `json:"group_id,omitempty"`
-	Command       string            `json:"command"`
-	Args          []string          `json:"args,omitempty"`
-	WorkingDir    string            `json:"working_dir,omitempty"`
-	Env           map[string]string `json:"env,omitempty"`
-	RunAs         string            `json:"run_as,omitempty"`
-	Timezone      string            `json:"timezone,omitempty"`
-	Schedule      string            `json:"schedule,omitempty"`
-	At            *time.Time        `json:"at,omitempty"`
-	OverlapPolicy string            `json:"overlap_policy,omitempty"`
-	CatchupPolicy string            `json:"catchup_policy,omitempty"`
+	Name           string            `json:"name"`
+	GroupID        string            `json:"group_id,omitempty"`
+	Command        string            `json:"command"`
+	Args           []string          `json:"args,omitempty"`
+	WorkingDir     string            `json:"working_dir,omitempty"`
+	Env            map[string]string `json:"env,omitempty"`
+	RunAs          string            `json:"run_as,omitempty"`
+	Timezone       string            `json:"timezone,omitempty"`
+	Schedule       string            `json:"schedule,omitempty"`
+	ScheduleSyntax string            `json:"schedule_syntax,omitempty"`
+	At             *time.Time        `json:"at,omitempty"`
+	OverlapPolicy  string            `json:"overlap_policy,omitempty"`
+	CatchupPolicy  string            `json:"catchup_policy,omitempty"`
 	// MissingDatePolicy defaults to skip, which is the behavior of every task
 	// created before the policy existed.
 	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
@@ -69,6 +72,10 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "run_as", err.Error())
 		return
 	}
+	if req.ScheduleSyntax != "" && req.Schedule == "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "schedule_syntax", "schedule_syntax requires schedule")
+		return
+	}
 
 	// Build the schedule: one-off (At) or recurring (Schedule).
 	var sch domain.Schedule
@@ -80,12 +87,16 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		}
 		sch = schedule.NewOneOff(*req.At)
 	case req.Schedule != "":
-		parsed, err := schedule.Parse(req.Schedule, tz, now)
+		input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), tz, now)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, CodeValidation, "schedule", err.Error())
+			field := "schedule"
+			if errors.Is(err, scheduleinput.ErrInvalidSyntax) {
+				field = "schedule_syntax"
+			}
+			writeError(w, http.StatusBadRequest, CodeValidation, field, err.Error())
 			return
 		}
-		sch = parsed
+		sch = input.Schedule
 	default:
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", "provide either 'schedule' or 'at'")
 		return
@@ -191,8 +202,9 @@ func (s *Server) handleRunNow(w http.ResponseWriter, r *http.Request) {
 
 // PreviewRequest/Response back POST /v1/schedules/preview.
 type PreviewRequest struct {
-	Schedule string `json:"schedule"`
-	Timezone string `json:"timezone,omitempty"`
+	Schedule       string `json:"schedule"`
+	ScheduleSyntax string `json:"schedule_syntax,omitempty"`
+	Timezone       string `json:"timezone,omitempty"`
 	// MissingDatePolicy makes the preview honest for a by-date rule: the same
 	// phrase produces different run times under different policies, so a preview
 	// that ignored it would show times the created task would not keep.
@@ -203,6 +215,7 @@ type PreviewResponse struct {
 	RRULE        string      `json:"rrule"`
 	HumanSummary string      `json:"human_summary"`
 	NextRuns     []time.Time `json:"next_runs"`
+	SourceSyntax string      `json:"source_syntax,omitempty"`
 }
 
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
@@ -213,16 +226,22 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	}
 	tz := orDefault(req.Timezone, "Local")
 	now := time.Now().UTC()
-	sch, err := schedule.Parse(req.Schedule, tz, now)
+	input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), tz, now)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", err.Error())
+		field := "schedule"
+		if errors.Is(err, scheduleinput.ErrInvalidSyntax) {
+			field = "schedule_syntax"
+		}
+		writeError(w, http.StatusBadRequest, CodeValidation, field, err.Error())
 		return
 	}
+	sch := input.Schedule
 	runs, _ := schedule.UpcomingRuns(sch, tz, domain.MissingDatePolicy(req.MissingDatePolicy), now, 5)
 	writeJSON(w, http.StatusOK, PreviewResponse{
 		RRULE:        sch.RRULE,
 		HumanSummary: schedule.Describe(sch, domain.MissingDatePolicy(req.MissingDatePolicy)),
 		NextRuns:     runs,
+		SourceSyntax: string(input.Syntax),
 	})
 }
 
@@ -235,6 +254,7 @@ func (s *Server) taskDetail(task domain.Task, sch domain.Schedule, now time.Time
 	// stored HumanSummary stays the phrase-level sentence; every client reads
 	// this one, so none of them can claim a rule fires in a period it skips.
 	sch.HumanSummary = schedule.Describe(sch, task.MissingDatePolicy)
+	sch.SourceSyntax = string(scheduleinput.SourceSyntax(sch))
 	return TaskResponse{Task: task, Schedule: sch, NextRuns: runs}
 }
 

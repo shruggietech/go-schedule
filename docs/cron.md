@@ -10,17 +10,17 @@ nav_order: 5
 **Source of truth:** `internal/cron/` — this document describes what the
 converter does, and the fidelity table below is the contract it holds to.
 
-go-schedule does not use cron syntax. Schedules are written the way you would
-say them — `every 15 minutes`, `weekdays at 09:00` — and that is deliberate:
-`0 9 * * 1-5` is a fine thing for a computer to read and a poor thing for a
-person to maintain.
+go-schedule accepts schedules written the way you would say them, such as
+`every 15 minutes` and `weekdays at 09:00`, and also accepts a supported subset
+of five-field cron such as `0 9 * * 1-5`. Every accepted form compiles to the
+same stored recurrence model before execution.
 
 But you probably already have a crontab, or need to translate one schedule. Cron
-is therefore supported for pure string conversion and as an **interchange
-format**: convert one string, import a file, ask what a line means with upcoming
-runs, or export tasks back out. What you cannot do yet is author a task in cron.
-There is no cron field in the GUI, and `--schedule "0 9 * * 1-5"` remains an
-error. Conversion happens at the boundary; issue #50 tracks first-class input.
+is therefore supported for pure string conversion, task input, and as an
+**interchange format**: convert one string, supply it to `task add` or `task
+edit`, import a file, ask what a line means with upcoming runs, or export tasks
+back out. The GUI still has no cron field; issue #50 remains open for that
+remaining adoption work.
 
 ## Contents
 
@@ -71,8 +71,9 @@ gosched cron import --file /etc/crontab --dry-run
 ```
 
 The preview prints, for every line, the expression, the phrase it maps to, the
-resolved command, and — for a real import — the task it created. Nothing is
-created while `--dry-run` is set.
+resolved command, and, for a real import, the task it created. Imported tasks
+retain the original normalized cron expression. Nothing is created while
+`--dry-run` is set.
 
 ```text
 line 3: 0 2 * * *

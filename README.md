@@ -39,20 +39,21 @@ It is knowing whether the thing you scheduled will actually fire, at the right
 moment, in the right timezone, after the laptop was asleep, without piling up
 forty copies of itself.
 
-go-schedule is built around that. Schedules are written in plain language and
-echoed back the way the scheduler understood them, so a misreading is visible
-immediately rather than at 02:30 tomorrow. Times resolve in a real IANA
-timezone, so a Daylight Saving transition moves the run rather than breaking it.
+go-schedule is built around that. Schedules can be written in plain language or
+as supported five-field cron, then are echoed back the way the scheduler
+understood them so a misreading is visible immediately rather than at 02:30
+tomorrow. Times resolve in a real IANA timezone, so a Daylight Saving transition
+moves the run rather than breaking it.
 Missed runs produce **one** catch-up, not a stampede. And when a run is still
 going as the next comes due, an explicit overlap policy decides what happens
 instead of leaving it to chance.
 
 ## What it does
 
-**Schedules, written in plain language.** Recurring or one-off, with anything
-cron can express — intervals, ordinal weekdays, monthly patterns — and no cron
-strings. Under the hood it is RFC 5545 recurrence, which is what makes the
-human-readable layer honest rather than a lossy translation.
+**Schedules with a readable result.** Author recurring tasks in plain language
+or the supported five-field cron subset. The CLI and API accept both; the
+desktop editor remains guided plain language. Under the hood, RFC 5545 recurrence
+is authoritative, and every accepted input is summarized before it runs.
 
 **Timezones that hold up.** Every task carries an IANA timezone. Scheduling is
 computed in UTC and presented in the task's zone, with explicit next-valid and
@@ -78,8 +79,9 @@ you what every line means in plain language and when it would next run, and
 creates the tasks — with `--dry-run` to see the whole thing before anything
 changes. `gosched cron explain` translates a single expression, and `gosched
 cron export` gives your jobs back as cron. Anything that cannot be carried across
-faithfully is refused by name rather than approximated. Cron never becomes an
-input language: see [Cron interoperability](docs/cron.md) for the fidelity table.
+faithfully is refused by name rather than approximated. Imported tasks retain
+their cron expression for later editing. See [Cron interoperability](docs/cron.md)
+for the fidelity table.
 
 **Groups that nest.** Tasks live in groups, groups live in groups, and enabling
 or disabling one cascades through its whole subtree — one command to silence a
@@ -135,6 +137,15 @@ Create a task:
 gosched task add nightly-backup \
   --command /usr/local/bin/backup.sh \
   --schedule "every day at 02:30" \
+  --tz America/New_York
+```
+
+The same recurring task can be supplied as supported cron:
+
+```sh
+gosched task add weekday-report \
+  --command /usr/local/bin/report.sh \
+  --schedule "0 9 * * 1-5" \
   --tz America/New_York
 ```
 

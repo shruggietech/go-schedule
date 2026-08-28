@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Task input now accepts human schedules or supported five-field cron (Refs
+  #50).** Preview, create, update, and CLI task commands share one syntax
+  boundary with optional explicit selection and no parser fallback. Task reads
+  report the retained source syntax, and crontab import now keeps its normalized
+  expression while continuing to show the plain-language explanation. Invalid
+  or unsupported cron is refused before mutation. The desktop editor remains
+  plain-language only in this slice.
 - **The CLI now converts one schedule string locally in either direction
   (closes #51; groundwork for #50).** `gosched cron convert` produces a single
   cron or human string without the daemon or task mutation, supports explicit
@@ -153,6 +160,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-28 - Add dual-syntax task input without a storage migration.** The
+  existing `schedules.expression` column retains either accepted source, and
+  response-only syntax identity is derived from it. Cron is converted into the
+  same RRULE and anchor model used by human input, so raw cron never becomes an
+  engine input. The GUI sends an explicit human hint and defers cron editing to
+  later work on #50.
 - **2026-08-27 - Use one canonical WiX icon row and layer Windows installer
   evidence.** `build/windows/goschedule.wxs` and
   `build/windows/verify_wxs.ps1` are pinned artifacts. The package-level Icon,

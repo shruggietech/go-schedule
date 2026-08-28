@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/executor"
 	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/scheduleinput"
 	"github.com/shruggietech/go-schedule/internal/store"
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
@@ -21,18 +22,19 @@ import (
 // unchanged, a pointer to "" removes the task from all groups, and a pointer to
 // an id assigns it. (Same convention as GroupUpdateRequest.Parent.)
 type TaskUpdateRequest struct {
-	Name          string            `json:"name,omitempty"`
-	GroupID       *string           `json:"group_id,omitempty"`
-	Command       string            `json:"command,omitempty"`
-	Args          []string          `json:"args,omitempty"`
-	WorkingDir    string            `json:"working_dir,omitempty"`
-	Env           map[string]string `json:"env,omitempty"`
-	RunAs         string            `json:"run_as,omitempty"`
-	Timezone      string            `json:"timezone,omitempty"`
-	Schedule      string            `json:"schedule,omitempty"`
-	At            *time.Time        `json:"at,omitempty"`
-	OverlapPolicy string            `json:"overlap_policy,omitempty"`
-	CatchupPolicy string            `json:"catchup_policy,omitempty"`
+	Name           string            `json:"name,omitempty"`
+	GroupID        *string           `json:"group_id,omitempty"`
+	Command        string            `json:"command,omitempty"`
+	Args           []string          `json:"args,omitempty"`
+	WorkingDir     string            `json:"working_dir,omitempty"`
+	Env            map[string]string `json:"env,omitempty"`
+	RunAs          string            `json:"run_as,omitempty"`
+	Timezone       string            `json:"timezone,omitempty"`
+	Schedule       string            `json:"schedule,omitempty"`
+	ScheduleSyntax string            `json:"schedule_syntax,omitempty"`
+	At             *time.Time        `json:"at,omitempty"`
+	OverlapPolicy  string            `json:"overlap_policy,omitempty"`
+	CatchupPolicy  string            `json:"catchup_policy,omitempty"`
 	// MissingDatePolicy is independent of Schedule: replacing the phrase leaves
 	// the policy alone and vice versa, because the policy states the operator's
 	// intent for calendar anomalies rather than anything about the phrase.
@@ -51,6 +53,10 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now().UTC()
+	if req.ScheduleSyntax != "" && req.Schedule == "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "schedule_syntax", "schedule_syntax requires schedule")
+		return
+	}
 
 	if req.Name != "" {
 		task.Name = req.Name
@@ -133,12 +139,16 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		}
 		sch = schedule.NewOneOff(*req.At)
 	case req.Schedule != "":
-		parsed, err := schedule.Parse(req.Schedule, task.Timezone, now)
+		input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), task.Timezone, now)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, CodeValidation, "schedule", err.Error())
+			field := "schedule"
+			if errors.Is(err, scheduleinput.ErrInvalidSyntax) {
+				field = "schedule_syntax"
+			}
+			writeError(w, http.StatusBadRequest, CodeValidation, field, err.Error())
 			return
 		}
-		sch = parsed
+		sch = input.Schedule
 	}
 	if sch.Kind != "" {
 		if err := s.store.CreateSchedule(&sch); err != nil {

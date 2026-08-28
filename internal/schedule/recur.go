@@ -1,7 +1,7 @@
-// Package schedule converts human-readable scheduling intent into a stored
-// representation (RFC 5545 RRULE for recurrence, or a single instant for
-// one-off) and computes concrete next-run times in UTC. Cron-style syntax is
-// never exposed to users; RRULE is an internal detail.
+// Package schedule compiles normalized human-readable scheduling intent into a
+// stored representation (RFC 5545 RRULE for recurrence, or a single instant for
+// one-off) and computes concrete next-run times in UTC. Source-syntax selection
+// is owned by internal/scheduleinput; RRULE and anchor remain authoritative.
 package schedule
 
 import (

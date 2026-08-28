@@ -206,8 +206,8 @@ func TestEditor_PrefillsAndSubmitsMissingDatePolicy(t *testing.T) {
 	// than racing it.
 	e.submit()
 	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
-	if _, _, req := fb.lastUpdateCall(); req.MissingDatePolicy != string(domain.MissingDateLastValid) {
-		t.Errorf("submitted policy = %q, want last_valid", req.MissingDatePolicy)
+	if _, _, req := fb.lastUpdateCall(); req.MissingDatePolicy != string(domain.MissingDateLastValid) || req.ScheduleSyntax != "human" {
+		t.Errorf("submitted update = %+v, want last_valid with human syntax", req)
 	}
 
 	// Changing it submits the new value.
@@ -227,7 +227,7 @@ func TestEditor_NewTaskDefaultsMissingDatePolicy(t *testing.T) {
 	e.schedule.SetText("every day at 09:00")
 	e.submit()
 	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
-	if _, req := fb.lastCreateCall(); req.MissingDatePolicy != string(domain.MissingDateSkip) {
-		t.Errorf("new task policy = %q, want skip", req.MissingDatePolicy)
+	if _, req := fb.lastCreateCall(); req.MissingDatePolicy != string(domain.MissingDateSkip) || req.ScheduleSyntax != "human" {
+		t.Errorf("new task request = %+v, want skip with human syntax", req)
 	}
 }

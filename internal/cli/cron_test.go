@@ -117,6 +117,20 @@ type fakeCreator struct {
 	err  error
 }
 
+type scriptedCreator struct {
+	calls int
+	reqs  []server.TaskCreateRequest
+}
+
+func (f *scriptedCreator) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
+	f.calls++
+	if f.calls == 1 {
+		return server.TaskResponse{}, context.DeadlineExceeded
+	}
+	f.reqs = append(f.reqs, req)
+	return server.TaskResponse{Task: domain.Task{ID: "created", Name: req.Name}}, nil
+}
+
 func (f *fakeCreator) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
 	if f.err != nil {
 		return server.TaskResponse{}, f.err
@@ -217,8 +231,8 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	if len(first.Args) != 1 || first.Args[0] != "--full" {
 		t.Errorf("args = %v, want [--full]", first.Args)
 	}
-	if first.Schedule != "every day at 02:00" {
-		t.Errorf("schedule = %q, want the phrase", first.Schedule)
+	if first.Schedule != "0 2 * * *" || first.ScheduleSyntax != "cron" {
+		t.Errorf("schedule input = %q (%q), want retained cron source", first.Schedule, first.ScheduleSyntax)
 	}
 	if first.Timezone != "UTC" || first.GroupID != "g1" {
 		t.Errorf("timezone/group not applied: %q / %q", first.Timezone, first.GroupID)
@@ -247,16 +261,41 @@ func TestImport_PartialFailureKeepsWhatWasCreated(t *testing.T) {
 	}
 }
 
-// TestImport_PreviewPhraseMatchesCreatedTask is SC-002a, the guarantee that
-// makes the preview worth reading: the phrase shown for a line is the phrase the
-// created task is given. If these could differ, the preview would be advisory
-// rather than authoritative.
-func TestImport_PreviewPhraseMatchesCreatedTask(t *testing.T) {
+func TestImport_MixedPartialSuccessContinuesWithCronSource(t *testing.T) {
+	rep := scan(t, "0 2 * * * /usr/local/bin/backup\n*/15 * * * * /usr/local/bin/probe\n")
+	creator := &scriptedCreator{}
+	var buf bytes.Buffer
+	err := runImport(&buf, rep, importOptions{timezone: "UTC"}, creator)
+	if err == nil {
+		t.Fatal("partial failure should be reported after all lines are attempted")
+	}
+	if creator.calls != 2 || rep.Failed != 1 || rep.Created != 1 {
+		t.Fatalf("calls=%d failed=%d created=%d", creator.calls, rep.Failed, rep.Created)
+	}
+	if len(creator.reqs) != 1 || creator.reqs[0].Schedule != "*/15 * * * *" || creator.reqs[0].ScheduleSyntax != "cron" {
+		t.Fatalf("successful request = %+v, want retained second cron line", creator.reqs)
+	}
+	if out := buf.String(); !strings.Contains(out, "not created") || !strings.Contains(out, "created:") {
+		t.Fatalf("mixed result not fully reported:\n%s", out)
+	}
+}
+
+// TestImport_PreviewInputMatchesCreatedTask keeps the daemon preview and create
+// request on the same retained cron source while the report remains readable.
+func TestImport_PreviewInputMatchesCreatedTask(t *testing.T) {
 	const text = "0 2 * * * /usr/local/bin/backup\n0 9 * * 1-5 /usr/local/bin/report\n0 9 1 * * /usr/local/bin/invoice\n"
 
 	preview := scan(t, text)
+	type previewCall struct{ input, syntax, timezone string }
+	var previews []previewCall
 	var previewOut bytes.Buffer
-	if err := runImport(&previewOut, preview, importOptions{dryRun: true, timezone: "UTC"}, nil); err != nil {
+	if err := runImport(&previewOut, preview, importOptions{
+		dryRun: true, timezone: "UTC", count: 1,
+		runs: func(input, syntax, timezone string, _ int) ([]time.Time, error) {
+			previews = append(previews, previewCall{input, syntax, timezone})
+			return nil, nil
+		},
+	}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -270,10 +309,16 @@ func TestImport_PreviewPhraseMatchesCreatedTask(t *testing.T) {
 	if len(fc.reqs) != 3 {
 		t.Fatalf("created %d task(s), want 3", len(fc.reqs))
 	}
+	if len(previews) != 3 {
+		t.Fatalf("previewed %d task(s), want 3", len(previews))
+	}
 	for i, line := range jobLines(preview) {
-		if fc.reqs[i].Schedule != line.Phrase {
-			t.Errorf("line %d: preview showed %q, task was created with %q",
-				line.Number, line.Phrase, fc.reqs[i].Schedule)
+		if previews[i].input != line.Expr || previews[i].syntax != "cron" || previews[i].timezone != "UTC" {
+			t.Errorf("line %d preview input = %+v, want cron %q in UTC", line.Number, previews[i], line.Expr)
+		}
+		if fc.reqs[i].Schedule != line.Expr || fc.reqs[i].ScheduleSyntax != "cron" {
+			t.Errorf("line %d: task input = %q (%q), want cron source %q",
+				line.Number, fc.reqs[i].Schedule, fc.reqs[i].ScheduleSyntax, line.Expr)
 		}
 		if !strings.Contains(previewOut.String(), line.Phrase) {
 			t.Errorf("line %d: phrase %q was not shown in the preview", line.Number, line.Phrase)
@@ -291,11 +336,10 @@ func jobLines(rep *cron.Report) []cron.Line {
 	return out
 }
 
-// TestCronIsNeverAnAuthoringSyntax is FR-014, the project's standing position.
-// The conversion must have no privileged route into the engine that an operator
-// typing a phrase does not also have: a cron expression handed to the schedule
-// grammar must still be rejected.
-func TestCronIsNeverAnAuthoringSyntax(t *testing.T) {
+// TestCronImportUsesTheTaskInputBoundary pins the architecture: raw cron still
+// cannot enter the human parser, but import retains it through the API's typed
+// authoring boundary rather than replacing it with generated prose.
+func TestCronImportUsesTheTaskInputBoundary(t *testing.T) {
 	anchor := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
 	for _, expr := range []string{
 		"0 9 * * 1-5", "*/15 * * * *", "@daily", "0 0 1 * *",
@@ -305,8 +349,6 @@ func TestCronIsNeverAnAuthoringSyntax(t *testing.T) {
 		}
 	}
 
-	// And the import path reaches the engine only by way of a phrase: every
-	// created task's Schedule field is the phrase, never the expression.
 	rep := scan(t, "0 9 * * 1-5 /usr/local/bin/report\n")
 	fc := &fakeCreator{}
 	if err := runImport(&bytes.Buffer{}, rep, importOptions{timezone: "UTC"}, fc); err != nil {
@@ -315,11 +357,8 @@ func TestCronIsNeverAnAuthoringSyntax(t *testing.T) {
 	if len(fc.reqs) != 1 {
 		t.Fatalf("created %d task(s), want 1", len(fc.reqs))
 	}
-	if strings.ContainsAny(fc.reqs[0].Schedule, "*") {
-		t.Errorf("a cron expression reached the create request: %q", fc.reqs[0].Schedule)
-	}
-	if _, err := schedule.Parse(fc.reqs[0].Schedule, "UTC", anchor); err != nil {
-		t.Errorf("the created task's schedule is not a valid phrase: %v", err)
+	if fc.reqs[0].Schedule != "0 9 * * 1-5" || fc.reqs[0].ScheduleSyntax != "cron" {
+		t.Errorf("import request = %+v, want retained cron with explicit hint", fc.reqs[0])
 	}
 }
 
@@ -393,7 +432,7 @@ func TestImport_ShowsNextRunTimes(t *testing.T) {
 	fixed := time.Date(2026, 7, 24, 2, 0, 0, 0, time.UTC)
 	opts := importOptions{
 		dryRun: true, timezone: "UTC", count: 2,
-		runs: func(_, _ string, count int) ([]time.Time, error) {
+		runs: func(_, _, _ string, count int) ([]time.Time, error) {
 			out := make([]time.Time, 0, count)
 			for i := 0; i < count; i++ {
 				out = append(out, fixed.AddDate(0, 0, i))
@@ -419,7 +458,7 @@ func TestImport_SurvivesAnUnreachableDaemon(t *testing.T) {
 	rep := scan(t, "0 2 * * * /usr/local/bin/backup\n")
 	opts := importOptions{
 		dryRun: true, timezone: "UTC", count: 3,
-		runs: func(string, string, int) ([]time.Time, error) { return nil, context.DeadlineExceeded },
+		runs: func(string, string, string, int) ([]time.Time, error) { return nil, context.DeadlineExceeded },
 	}
 	var buf bytes.Buffer
 	if err := runImport(&buf, rep, opts, nil); err != nil {

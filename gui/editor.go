@@ -475,7 +475,9 @@ func (e *taskEditor) updatePreview() {
 func (e *taskEditor) fetchSchedulePreview(s string) {
 	ctx, cancel := e.app.bgCtx()
 	defer cancel()
-	resp, err := e.app.backend.Preview(ctx, server.PreviewRequest{Schedule: s, Timezone: e.tzName()})
+	resp, err := e.app.backend.Preview(ctx, server.PreviewRequest{
+		Schedule: s, ScheduleSyntax: "human", Timezone: e.tzName(),
+	})
 	set := func() {
 		if err != nil {
 			e.schedPreview.SetText("⚠ " + cleanScheduleErr(err))
@@ -783,6 +785,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 				req.At = atPtr
 			} else {
 				req.Schedule = f.schedule
+				req.ScheduleSyntax = "human"
 			}
 			_, err := a.backend.CreateTask(ctx, req)
 			return err
@@ -796,6 +799,9 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 			req.At = atPtr
 		} else {
 			req.Schedule = f.schedule
+			if f.schedule != "" {
+				req.ScheduleSyntax = "human"
+			}
 		}
 		_, err := a.backend.UpdateTask(ctx, existing.ID, req)
 		return err

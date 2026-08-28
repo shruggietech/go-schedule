@@ -1,9 +1,9 @@
 // Package cron converts between crontab expressions and this scheduler's
-// human-readable schedule phrases. It exists at the boundary only: cron is an
-// interchange and conversion format, never task-authoring syntax. Cron input
-// becomes the phrase a user would have typed before it reaches task creation;
-// human-to-cron conversion parses through internal/schedule and renders only
-// recurrences the five-field dialect can carry faithfully.
+// human-readable schedule phrases. It owns syntax-specific parsing and honest
+// refusals; task authoring orchestration lives in internal/scheduleinput. Cron
+// input becomes a phrase before internal/schedule compiles it, while the
+// original expression may be retained for editing. Human-to-cron conversion
+// renders only recurrences the five-field dialect can carry faithfully.
 //
 // The parser is written here rather than taken from a dependency because the
 // work is deciding what *cannot* be represented. A scheduling library normalizes

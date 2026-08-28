@@ -80,6 +80,25 @@ func TestConvertAutoDetectionKeepsFiveFieldHumanGrammar(t *testing.T) {
 	}
 }
 
+func TestDetectSyntaxMatchesConverterClassification(t *testing.T) {
+	tests := []struct {
+		input string
+		want  Syntax
+	}{
+		{input: "  0 9 * * 1-5  ", want: SyntaxCron},
+		{input: "@daily", want: SyntaxCron},
+		{input: "61 9 * * *", want: SyntaxCron},
+		{input: "weekdays at 09:00", want: SyntaxHuman},
+		{input: "every 15 minutes from 9am", want: SyntaxHuman},
+		{input: "3rd wednesday monthly at 14:00", want: SyntaxHuman},
+	}
+	for _, tt := range tests {
+		if got := DetectSyntax(tt.input); got != tt.want {
+			t.Errorf("DetectSyntax(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
 func TestConvertHumanToCanonicalCron(t *testing.T) {
 	tests := []struct {
 		name  string
