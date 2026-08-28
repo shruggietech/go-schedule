@@ -39,6 +39,17 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	if err != nil {
 		return "", Unsupported{Reason: "the stored recurrence could not be read"}, false
 	}
+	if sch.CalendarAdjustment != "" && sch.CalendarAdjustment != domain.CalendarAdjustmentNearestWeekday {
+		return "", Unsupported{Reason: fmt.Sprintf("the stored calendar adjustment %q has no cron equivalent", sch.CalendarAdjustment)}, false
+	}
+	if sch.CalendarAdjustment == domain.CalendarAdjustmentNearestWeekday {
+		if opt.Freq != rrule.MONTHLY {
+			return "", Unsupported{Reason: "nearest_weekday requires one unbounded monthly day-of-month rule"}, false
+		}
+		if _, ok := nearestWeekdayField(opt); !ok {
+			return "", Unsupported{Reason: "nearest_weekday requires one unbounded monthly day-of-month rule"}, false
+		}
+	}
 	interval := opt.Interval
 	if interval < 1 {
 		interval = 1
@@ -109,6 +120,16 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 			return "", Unsupported{Reason: fmt.Sprintf(
 				"an every-%d-months rule has no cron equivalent", interval)}, false
 		}
+		if sch.CalendarAdjustment == domain.CalendarAdjustmentNearestWeekday {
+			day, ok := nearestWeekdayField(opt)
+			if !ok {
+				return "", Unsupported{Reason: "nearest_weekday requires one unbounded monthly day-of-month rule"}, false
+			}
+			return fmt.Sprintf("%d %d %dW * *", minute, hour, day), Unsupported{}, true
+		}
+		if lastWeekdayOfMonth(opt) {
+			return fmt.Sprintf("%d %d LW * *", minute, hour), Unsupported{}, true
+		}
 		if len(opt.Byweekday) > 0 {
 			weekday, occurrence, ok := monthlyWeekdayField(opt)
 			if !ok {
@@ -119,8 +140,11 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 			}
 			return fmt.Sprintf("%d %d * * %d#%d", minute, hour, weekday, occurrence), Unsupported{}, true
 		}
-		if len(opt.Bymonthday) != 1 || opt.Bymonthday[0] < 1 {
-			return "", Unsupported{Reason: "only a single, positive day of the month can be expressed as cron"}, false
+		if len(opt.Bymonthday) == 1 && opt.Bymonthday[0] == -1 && plainMonthlySelector(opt) {
+			return fmt.Sprintf("%d %d L * *", minute, hour), Unsupported{}, true
+		}
+		if len(opt.Bymonthday) != 1 || opt.Bymonthday[0] < 1 || !plainMonthlySelector(opt) {
+			return "", Unsupported{Reason: "only one supported day-of-month selector can be expressed as cron"}, false
 		}
 		return fmt.Sprintf("%d %d %d * *", minute, hour, opt.Bymonthday[0]), Unsupported{}, true
 
@@ -136,6 +160,38 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	}
 
 	return "", Unsupported{Reason: "that recurrence has no cron equivalent"}, false
+}
+
+func plainMonthlySelector(opt *rrule.ROption) bool {
+	return len(opt.Byweekday) == 0 && len(opt.Bymonth) == 0 && len(opt.Bysetpos) == 0 &&
+		len(opt.Byyearday) == 0 && len(opt.Byweekno) == 0 && len(opt.Byeaster) == 0 &&
+		opt.Count == 0 && opt.Until.IsZero() && len(opt.Byhour) <= 1 && len(opt.Byminute) <= 1 &&
+		(len(opt.Bysecond) == 0 || len(opt.Bysecond) == 1 && opt.Bysecond[0] == 0)
+}
+
+func nearestWeekdayField(opt *rrule.ROption) (int, bool) {
+	if !plainMonthlySelector(opt) || len(opt.Bymonthday) != 1 || opt.Bymonthday[0] < 1 || opt.Bymonthday[0] > 31 {
+		return 0, false
+	}
+	return opt.Bymonthday[0], true
+}
+
+func lastWeekdayOfMonth(opt *rrule.ROption) bool {
+	if len(opt.Byweekday) != 5 || len(opt.Bymonthday) != 0 || len(opt.Bymonth) != 0 ||
+		len(opt.Bysetpos) != 1 || opt.Bysetpos[0] != -1 || len(opt.Byyearday) != 0 ||
+		len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 || opt.Count != 0 || !opt.Until.IsZero() ||
+		len(opt.Byhour) > 1 || len(opt.Byminute) > 1 || len(opt.Bysecond) > 1 ||
+		len(opt.Bysecond) == 1 && opt.Bysecond[0] != 0 {
+		return false
+	}
+	days := map[int]bool{}
+	for _, day := range opt.Byweekday {
+		if day.N() != 0 {
+			return false
+		}
+		days[day.Day()] = true
+	}
+	return days[rrule.MO.Day()] && days[rrule.TU.Day()] && days[rrule.WE.Day()] && days[rrule.TH.Day()] && days[rrule.FR.Day()]
 }
 
 func monthlyWeekdayField(opt *rrule.ROption) (weekday, occurrence int, ok bool) {

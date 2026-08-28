@@ -1,7 +1,8 @@
 // Package schedule compiles normalized human-readable scheduling intent into a
 // stored representation (RFC 5545 RRULE for recurrence, or a single instant for
 // one-off) and computes concrete next-run times in UTC. Source-syntax selection
-// is owned by internal/scheduleinput; RRULE and anchor remain authoritative.
+// is owned by internal/scheduleinput; RRULE, an optional typed calendar
+// adjustment, and anchor remain authoritative.
 package schedule
 
 import (
@@ -64,6 +65,18 @@ func nextRecurring(sch domain.Schedule, tzName string, policy domain.MissingDate
 		anchor = *sch.Anchor
 	}
 	opt.Dtstart = anchor.In(loc)
+
+	switch sch.CalendarAdjustment {
+	case "":
+	case domain.CalendarAdjustmentNearestWeekday:
+		occ, ok, err := resolveNearestWeekday(opt, loc, policy, after.In(loc))
+		if err != nil || !ok {
+			return time.Time{}, ok, err
+		}
+		return occ.UTC(), true, nil
+	default:
+		return time.Time{}, false, fmt.Errorf("schedule: unknown calendar adjustment %q", sch.CalendarAdjustment)
+	}
 
 	// A date-bearing rule under a non-skip policy is resolved by walking periods
 	// rather than by asking rrule-go, because rrule-go's answer is precisely the

@@ -351,6 +351,7 @@ func (e *taskEditor) wireValidators() {
 	e.args.OnChanged = func(string) { e.updateCmdPreview(); e.onChange(false) }
 	e.tz.OnChanged = func(string) { e.onChange(false) }
 	e.group.OnChanged = func(string) { e.onChange(false) }
+	e.missingDate.OnChanged = func(string) { e.onChange(false) }
 	e.oneOffDate.OnChanged = func(string) { e.updateOneOffEcho(); e.onChange(false) }
 	e.oneOffTime.OnChanged = func(string) { e.updateOneOffEcho(); e.onChange(false) }
 }
@@ -480,6 +481,7 @@ func (e *taskEditor) fetchSchedulePreview(input scheduleinput.Input) {
 	defer cancel()
 	resp, err := e.app.backend.Preview(ctx, server.PreviewRequest{
 		Schedule: input.Expression, ScheduleSyntax: string(input.Syntax), Timezone: e.tzName(),
+		MissingDatePolicy: string(missingDateValue(e.missingDate.Selected)),
 	})
 	set := func() {
 		if err != nil {
@@ -748,8 +750,10 @@ Schedules are interpreted here; storage is UTC with DST handled.
 - Weekday/weekend sets: ` + "`weekdays at 9:00 AM`" + `, ` + "`weekends at 18:00`" + `
 - A single weekday: ` + "`every monday at 9am`" + `
 - Monthly ordinals: ` + "`3rd wednesday monthly at 14:00`" + `, ` + "`last friday of the month`" + `
+- Monthly calendar dates: ` + "`last day of every month at 09:00`" + `, ` + "`nearest weekday to the 15th of every month at 09:00`" + `, ` + "`last weekday of every month at 09:00`" + `
 
-The same field also accepts supported five-field cron, such as ` + "`0 9 * * 1-5`" + `.
+The same field also accepts supported five-field cron, such as ` + "`0 9 * * 1-5`" + `,
+` + "`0 9 L * *`" + `, ` + "`0 9 15W * *`" + `, or ` + "`0 9 LW * *`" + `.
 Cron-shaped input is validated as cron without falling back to a human phrase. See the
 [cron fidelity guide](https://shruggietech.github.io/go-schedule/cron/#fidelity)
 (` + "`docs/cron.md#fidelity`" + ` in the repository) for the supported boundary.

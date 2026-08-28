@@ -313,6 +313,9 @@ func TestUpdateTask_DualSyntaxReplacementAndPreservation(t *testing.T) {
 		{Schedule: "0 10 * * 8L", ScheduleSyntax: "cron"},
 		{Schedule: "0 10 * JAN 1L", ScheduleSyntax: "cron"},
 		{Schedule: "0 10 * * 1L,2L", ScheduleSyntax: "cron"},
+		{Command: "must-not-save", Schedule: "0 10 L JAN *", ScheduleSyntax: "cron"},
+		{Command: "must-not-save", Schedule: "0 10 15W * 1", ScheduleSyntax: "cron"},
+		{Command: "must-not-save", Schedule: "0 10 15W,16W * *", ScheduleSyntax: "cron"},
 		{ScheduleSyntax: "cron"},
 	} {
 		rec = doJSON(t, s, http.MethodPatch, path, req)
@@ -323,6 +326,9 @@ func TestUpdateTask_DualSyntaxReplacementAndPreservation(t *testing.T) {
 	afterInvalid := getTask(t, s, created.Task.ID)
 	if afterInvalid.Schedule.ID != cronTask.Schedule.ID || afterInvalid.Schedule.Expression != cronTask.Schedule.Expression {
 		t.Fatalf("invalid update mutated schedule: before=%+v after=%+v", cronTask.Schedule, afterInvalid.Schedule)
+	}
+	if afterInvalid.Task.Command != "run-again" {
+		t.Fatalf("invalid schedule update mutated command to %q", afterInvalid.Task.Command)
 	}
 
 	rec = doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{

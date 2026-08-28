@@ -186,12 +186,14 @@ are scheduled, and every other well-formed form is refused by name.
 This is a product-specific subset, not a promise of POSIX, Linux, or robfig
 parity. For the upstream dialects and file behavior, see the
 [POSIX crontab utility](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html),
-[Linux crontab(5)](https://man7.org/linux/man-pages/man5/crontab.5.html), and
-[robfig/cron expression format](https://pkg.go.dev/github.com/robfig/cron/v3#hdr-CRON_Expression_Format).
-The single `weekday#ordinal` and `weekdayL` forms are explicit go-schedule
-extensions to this five-field subset. Some schedulers use these suffixes with
-different field layouts or weekday numbering, so verify the destination before
-treating exported text as portable.
+[Cronie crontab(5)](https://github.com/cronie-crond/cronie/blob/master/man/crontab.5),
+[robfig/cron expression format](https://pkg.go.dev/github.com/robfig/cron/v3#hdr-CRON_Expression_Format),
+and the [Quartz CronTrigger modifier semantics](https://www.quartz-scheduler.org/documentation/quartz-2.5.x/tutorials/crontrigger.html).
+The single `weekday#ordinal`, day-of-week `weekdayL`, and day-of-month `L`,
+`nW`, and `LW` forms are explicit go-schedule extensions to this five-field
+subset. Their calendar meanings follow a bounded subset of Quartz, whose native
+format has different fields and weekday numbering. Verify the destination
+before treating exported text as portable.
 
 ### Supported
 
@@ -204,6 +206,9 @@ treating exported text as portable.
 | One weekday, weekdays, or weekends | `0 14 * * WED`, `0 9 * * 1-5`, `0 10 * * 0,6` |
 | One ordinal weekday each month | `0 9 * * 5#3` means the third Friday. One weekday and ordinal 1 through 5 are supported when month and day-of-month are unrestricted. |
 | The last selected weekday each month | `0 9 * * 5L` means the last Friday. One weekday followed by `L` is supported when month and day-of-month are unrestricted; `SUNL` and `7L` import as Sunday and export canonically as `0L`. |
+| Last calendar day | `0 9 L * *` means the final date of every month. |
+| Nearest weekday to one date | `0 9 15W * *` keeps the 15th on Monday-Friday, moves Saturday to Friday, and Sunday to Monday without crossing a month boundary. Targets 1 through 31 are supported. |
+| Last weekday of the month | `0 9 LW * *` means the final Monday-through-Friday date. This differs from `0 9 * * 5L`, which means the last Friday. |
 | One monthly day or one yearly month/day | `0 9 31 * *`, `0 0 4 7 *` |
 | Month and weekday names | Names are case-insensitive; their first three letters are significant. |
 | Sunday as `0` or `7` | Both are accepted |
@@ -215,7 +220,8 @@ treating exported text as portable.
 | --- | --- |
 | `@reboot` | Fires at boot rather than on a schedule. There is no equivalent, and there is no honest approximation of one. |
 | Six-field (Quartz) expressions | Seconds-precision cron dialects are a different language. Sub-minute schedules are expressible here directly (`every 30 seconds`) — just not through cron. |
-| Day-of-month `L`, bare day-of-week `L`, and `W` | Non-standard day specifiers outside the supported subset. Only one day-of-week `weekdayL` atom is supported. |
+| Broader day-of-month modifiers | Bare `W`, invalid dates, offsets such as `L-3`, lists, ranges, steps, mixtures, restricted months/day-of-week, and multiple terms remain outside the single `L`, `nW`, or `LW` subset. |
+| Bare day-of-week `L` | Only one day-of-week `weekdayL` atom has an unambiguous supported meaning. |
 | Broader `#` combinations | Lists, ranges, steps, multiple ordinal terms, ordinals outside 1 through 5, and month/date restrictions are declined rather than approximated. |
 | Broader day-of-week `L` combinations | Lists, ranges, steps, multiple terms, mixed `L`/`#`, and month/date restrictions are declined rather than approximated. |
 | A step that does not divide its range | `*/7` on minutes fires at :00, :07 … :56 and then :00 again — a four-minute gap a fixed interval cannot reproduce. `*/5`, `*/15` and `*/30` are exact and are accepted. |
@@ -240,6 +246,9 @@ says so rather than leaving you to discover it:
 - **A missing-date policy.** `0 9 31 * *` runs seven months in twelve and cron
   never mentions it. Imported tasks get `skip`, which is exactly cron's
   behavior — see [the CLI reference](cli.md#task) to change it.
+  The same applies to `29W` through `31W`: imported cron skips absent target
+  dates. Native nearest-weekday tasks can instead resolve the target under
+  `last_valid` or `next_valid` before weekday adjustment.
 - **Restart recovery.** The daemon reconstructs its schedule from durable state
   on restart.
 
@@ -265,14 +274,18 @@ The export declines these rather than approximating them:
   `every 2 weeks`) — cron repeats by calendar position, not elapsed time.
 - Sub-daily intervals whose stored phase does not align with cron's field-local
   step — exporting `:05/:20/:35/:50` as `*/15` would silently move every run.
-- Broader ordinal- and last-weekday combinations. The focused `weekday#1..5`
-  and `weekdayL` subsets export, but these extensions are not universal across
-  cron implementations.
+- Broader ordinal and calendar-selector combinations. The focused
+  `weekday#1..5`, day-of-week `weekdayL`, and day-of-month `L`/`nW`/`LW`
+  subsets export, but these extensions are not universal cron syntax.
 - A fifth-weekday or other date-bearing task using a non-default missing-date
   policy. Cron would silently skip a missing occurrence; first through fourth
   weekdays exist every month, so their policy setting does not change output.
 - Missing-date policy never changes a last-weekday schedule because every month
   contains a last occurrence of every weekday; all policies therefore export
   to the same canonical `weekdayL` expression.
+- Last-day, `LW`, and `1W` through `28W` also exist in every month and export
+  under every policy. `29W` through `31W` export only with effective `skip`;
+  `last_valid` and `next_valid` are refused because five-field cron cannot carry
+  those additional dates.
 - Disabled tasks — cron has no disabled state, and emitting a live line for a
   task you deliberately stopped would be the worst possible outcome.

@@ -67,6 +67,24 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 		return "", Unsupported{Reason: "an hour list has no phrase equivalent; only a single hour or an evenly dividing step is expressible"}, false
 	}
 	at := fmt.Sprintf(" at %02d:%02d", hour, minute)
+	if s.DOM.calendarSelector != calendarNone {
+		if !s.Month.Wildcard || !s.DOW.Wildcard {
+			return "", Unsupported{Reason: "a monthly day-of-month selector requires unrestricted month and day-of-week fields"}, false
+		}
+		switch s.DOM.calendarSelector {
+		case calendarLastDay:
+			return "last day of every month" + at, Unsupported{}, true
+		case calendarLastWeekday:
+			return "last weekday of every month" + at, Unsupported{}, true
+		case calendarNearestWeekday:
+			day, ok := s.DOM.Single()
+			if !ok {
+				return "", Unsupported{Reason: "only one nearest-weekday date has a phrase equivalent"}, false
+			}
+			return fmt.Sprintf("nearest weekday to the %s of every month%s", ordinal(day), at), Unsupported{}, true
+		}
+		return "", Unsupported{Reason: "that monthly day-of-month selector has no phrase equivalent"}, false
+	}
 	if s.DOW.Ordinal != 0 {
 		if !s.DOM.Wildcard {
 			return "", Unsupported{Reason: "a monthly weekday selector combined with a day-of-month restriction has no phrase equivalent"}, false

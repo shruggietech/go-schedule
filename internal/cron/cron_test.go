@@ -79,8 +79,6 @@ func TestExplain_Declines(t *testing.T) {
 	}{
 		{"@reboot", "boot"},
 		{"0 0 * * * *", "six-field"},
-		{"0 0 L * *", "L"},
-		{"0 0 15W * *", "W"},
 		{"0 0 * JAN 5#3", "month"},
 		{"0 0 1 * 5#3", "either"},
 		{"0 0 * * 5#3,2#4", "one weekday"},

@@ -248,6 +248,15 @@ gosched cron convert "0 9 * * 5L"
 
 gosched cron convert "last friday of the month at 09:00"
 # 0 9 * * 5L
+
+gosched cron convert "0 9 L * *"
+# last day of every month at 09:00
+
+gosched cron convert "nearest weekday to the 15th of every month at 09:00"
+# 0 9 15W * *
+
+gosched cron convert "0 9 LW * *"
+# last weekday of every month at 09:00
 ```
 
 Automatic mode treats `@`-prefixed input and five fields with a cron-shaped
@@ -275,6 +284,9 @@ Creates nothing.
 gosched cron explain "0 9 * * 1-5"
 gosched cron explain "0 9 * * 5#3"
 gosched cron explain "0 9 * * 5L"
+gosched cron explain "0 9 L * *"
+gosched cron explain "0 9 15W * *"
+gosched cron explain "0 9 LW * *"
 ```
 
 `--timezone` sets the zone the run times are shown in; `--count` how many to
@@ -293,6 +305,8 @@ A line such as `0 9 * * 5#3 /usr/local/bin/report` previews as the
 third Friday of each month and retains the original cron expression when the
 task is created. Likewise, `0 9 * * 5L /usr/local/bin/report` previews as the
 last Friday of each month and retains the `5L` source.
+Day-of-month `L`, `15W`, and `LW` lines likewise preview their last-day,
+nearest-weekday, or last-weekday meaning and retain the exact timing source.
 
 | Flag | Meaning |
 | --- | --- |
