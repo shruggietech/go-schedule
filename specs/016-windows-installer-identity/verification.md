@@ -86,6 +86,22 @@ The focused Go contract test, WXS verifier, candidate MSI inspector, and guarded
 lifecycle refusal were rerun after the final script corrections and passed their
 respective expected outcomes.
 
+## Review remediation
+
+The three AI review findings on PR #48 were accepted and corrected:
+
+- paused native observations are captured as validated statuses plus optional
+  notes and rendered into final evidence, including later failure paths;
+- failed lifecycle evidence is written only after cleanup and records the final
+  installed-product, install-directory, and machine-PATH state;
+- artifact inspection and lifecycle evidence require an explicit `candidate` or
+  `published` class and origin, with published origins restricted to this
+  repository's HTTPS release-asset URLs.
+
+Focused regression tests, PowerShell parsing and analysis, candidate and
+published artifact checks, the non-mutating lifecycle refusal, encoding audits,
+and all eight canonical verification gates passed after these corrections.
+
 ## Issue disposition
 
 - #24: eligible to close after merge; explicit shortcut icon proven in source

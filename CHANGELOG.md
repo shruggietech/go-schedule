@@ -122,9 +122,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   canonical icon row sourced from the same multi-resolution icon embedded in
   the GUI executable, and both installer-created surfaces reference it
   explicitly. Portable mutation tests, the release-time WiX sanity check, and
-  Windows Installer table inspection guard the relationships. Clean published-
-  MSI PATH verification (#16) and native title/taskbar observation (#33) remain
-  open until a clean Windows desktop supplies their required evidence.
+  Windows Installer table inspection guard the relationships. Evidence tooling
+  records candidate or published provenance separately, retains prompted native
+  observations, and records cleanup plus final machine state after lifecycle
+  failures. Clean published-MSI PATH verification (#16) and native title/taskbar
+  observation (#33) remain open until a clean Windows desktop supplies their
+  required evidence.
 - **The docs site homepage no longer 404s at its root.** The Pages site was
   live and every content page served, but `https://shruggietech.github.io/go-schedule/`
   — the URL the README release badge and the issue-template links point at —

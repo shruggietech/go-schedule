@@ -11,11 +11,31 @@ param(
   [Parameter(Mandatory)]
   [string]$MsiPath,
 
-  [string]$EvidencePath
+  [string]$EvidencePath,
+
+  [Parameter(Mandatory)]
+  [ValidateSet('candidate', 'published')]
+  [string]$ArtifactClass,
+
+  [Parameter(Mandatory)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ArtifactOrigin
 )
 
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'MSI inspection requires Windows.' }
+
+$ArtifactOrigin = $ArtifactOrigin.Trim()
+if (-not $ArtifactOrigin) { throw 'Artifact origin must not be blank.' }
+if ($ArtifactClass -eq 'published') {
+  [Uri]$originUri = $null
+  if (-not [Uri]::TryCreate($ArtifactOrigin, [UriKind]::Absolute, [ref]$originUri) -or
+      $originUri.Scheme -ne 'https' -or
+      $originUri.Host -ne 'github.com' -or
+      $originUri.AbsolutePath -notmatch '^/shruggietech/go-schedule/releases/download/[^/]+/[^/]+\.msi$') {
+    throw "Published artifact origin must be this repository's absolute HTTPS release-asset URL."
+  }
+}
 
 $resolvedMsi = (Resolve-Path -LiteralPath $MsiPath).Path
 $installer = New-Object -ComObject WindowsInstaller.Installer
@@ -92,9 +112,11 @@ $evidence = @(
   ''
   "- Date: $(Get-Date -Format 'yyyy-MM-dd')"
   "- Artifact: ``$resolvedMsi``"
+  "- Evidence class: **$ArtifactClass artifact**"
+  "- Artifact origin: $ArtifactOrigin"
   "- SHA-256: ``$hash``"
   "- Product version: ``$version``"
-  "- Candidate/published artifact status: **$status**"
+  "- $ArtifactClass artifact status: **$status**"
   "- Icon row: ``$iconName``"
   "- ARPPRODUCTICON: ``$arpIcon``"
   "- GuiShortcut Icon_: ``$shortcutIcon``"

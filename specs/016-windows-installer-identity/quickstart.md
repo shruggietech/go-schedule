@@ -18,7 +18,10 @@ Build the MSI with WiX 5.0.2 using the same inputs as the release workflow, then
 run:
 
 ```powershell
-pwsh test/windows/inspect-installer.ps1 -MsiPath <candidate.msi>
+pwsh test/windows/inspect-installer.ps1 `
+  -MsiPath <candidate.msi> `
+  -ArtifactClass candidate `
+  -ArtifactOrigin 'local build from commit <full-commit-id>'
 ```
 
 Expected: the Icon, Property, Shortcut, and Environment relationships are
@@ -30,8 +33,9 @@ Copy the MSI and repository `test/windows/` directory to a disposable Windows
 machine, then follow [test/windows/README.md](../../test/windows/README.md).
 
 The lifecycle script refuses a host where go-schedule is already installed or
-on PATH. Run native visual observations in that same disposable desktop and add
-them to the generated evidence record.
+on PATH. Pass the candidate or published evidence class and its build reference
+or release-asset URL. During a paused run, answer the native observation prompts;
+the script writes those responses into the generated evidence record.
 
 ## Repository verification
 

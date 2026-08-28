@@ -147,3 +147,48 @@ func TestWindowsInstallerGUIResourceContract(t *testing.T) {
 		}
 	}
 }
+
+func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
+	inspector := string(readRepositoryFile(t, "test", "windows", "inspect-installer.ps1"))
+	for _, fragment := range []string{
+		"[ValidateSet('candidate', 'published')]",
+		"[string]$ArtifactClass",
+		"[string]$ArtifactOrigin",
+		`"- Evidence class: **$ArtifactClass artifact**"`,
+		`"- Artifact origin: $ArtifactOrigin"`,
+		`"- $ArtifactClass artifact status: **$status**"`,
+	} {
+		if !strings.Contains(inspector, fragment) {
+			t.Errorf("MSI inspector is missing evidence-provenance fragment %q", fragment)
+		}
+	}
+	if strings.Contains(inspector, "Candidate/published artifact status") {
+		t.Error("MSI inspector combines candidate and published evidence statuses")
+	}
+
+	lifecycle := string(readRepositoryFile(t, "test", "windows", "install-lifecycle.ps1"))
+	for _, fragment := range []string{
+		"[ValidateSet('candidate', 'published')]",
+		"[string]$ArtifactClass",
+		"[string]$ArtifactOrigin",
+		`"- Evidence class: **$ArtifactClass artifact**"`,
+		`"- Artifact origin: $ArtifactOrigin"`,
+		"function Read-NativeObservation",
+		`$nativeObservations[$surface] = Read-NativeObservation -Surface $surface`,
+		"Cleanup uninstall failed; the package may remain installed",
+		"Final machine state: product registered=",
+		"Write-Evidence -Status $lifecycleStatus -Problems $failures",
+	} {
+		if !strings.Contains(lifecycle, fragment) {
+			t.Errorf("lifecycle verifier is missing evidence-integrity fragment %q", fragment)
+		}
+	}
+	if strings.Contains(lifecycle, "unavailable until recorded by the operator") {
+		t.Error("lifecycle verifier still hard-codes unavailable native observations")
+	}
+	finallyPosition := strings.LastIndex(lifecycle, "} finally {")
+	writePosition := strings.LastIndex(lifecycle, "Write-Evidence -Status $lifecycleStatus")
+	if finallyPosition < 0 || writePosition < finallyPosition {
+		t.Error("lifecycle verifier writes final evidence before cleanup completes")
+	}
+}

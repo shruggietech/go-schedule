@@ -14,18 +14,47 @@ param(
   [Parameter(Mandatory)]
   [string]$EvidencePath,
 
+  [Parameter(Mandatory)]
+  [ValidateSet('candidate', 'published')]
+  [string]$ArtifactClass,
+
+  [Parameter(Mandatory)]
+  [ValidateNotNullOrEmpty()]
+  [string]$ArtifactOrigin,
+
   [switch]$PauseForNativeObservation
 )
 
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'Installer lifecycle verification requires Windows.' }
 
+$ArtifactOrigin = $ArtifactOrigin.Trim()
+if (-not $ArtifactOrigin) { throw 'Artifact origin must not be blank.' }
 $resolvedMsi = (Resolve-Path -LiteralPath $MsiPath).Path
 $resolvedEvidence = [System.IO.Path]::GetFullPath($EvidencePath)
 $installDir = 'C:\Program Files\go-schedule'
 $observations = [System.Collections.Generic.List[string]]::new()
 $failures = [System.Collections.Generic.List[string]]::new()
 $installed = $false
+$installAttempted = $false
+$lifecycleStatus = 'failed'
+$lifecycleError = $null
+$nativeObservations = [ordered]@{
+  'Start Menu' = [pscustomobject]@{ Status = 'unavailable'; Detail = 'not recorded by the operator' }
+  'Installed apps' = [pscustomobject]@{ Status = 'unavailable'; Detail = 'not recorded by the operator' }
+  'GUI title area' = [pscustomobject]@{ Status = 'unavailable'; Detail = 'not recorded by the operator' }
+  'Taskbar' = [pscustomobject]@{ Status = 'unavailable'; Detail = 'not recorded by the operator' }
+}
+
+if ($ArtifactClass -eq 'published') {
+  [Uri]$originUri = $null
+  if (-not [Uri]::TryCreate($ArtifactOrigin, [UriKind]::Absolute, [ref]$originUri) -or
+      $originUri.Scheme -ne 'https' -or
+      $originUri.Host -ne 'github.com' -or
+      $originUri.AbsolutePath -notmatch '^/shruggietech/go-schedule/releases/download/[^/]+/[^/]+\.msi$') {
+    throw "Published artifact origin must be this repository's absolute HTTPS release-asset URL."
+  }
+}
 
 function Get-MachinePath {
   [Environment]::GetEnvironmentVariable('Path', 'Machine')
@@ -48,6 +77,18 @@ function Get-InstalledProduct {
     Select-Object -First 1
 }
 
+function Read-NativeObservation {
+  param([Parameter(Mandatory)] [string]$Surface)
+
+  do {
+    $status = (Read-Host "$Surface status (proven/failed/unavailable)").Trim().ToLowerInvariant()
+  } while ($status -notin 'proven', 'failed', 'unavailable')
+
+  $detail = (Read-Host "$Surface note or screenshot reference (optional)").Trim()
+  if (-not $detail) { $detail = 'no note supplied' }
+  [pscustomobject]@{ Status = $status; Detail = $detail }
+}
+
 function Write-Evidence {
   param(
     [Parameter(Mandatory)] [string]$Status,
@@ -61,6 +102,8 @@ function Write-Evidence {
     "- Date: $(Get-Date -Format 'yyyy-MM-dd')"
     "- Windows: $([Environment]::OSVersion.VersionString)"
     "- Artifact: ``$resolvedMsi``"
+    "- Evidence class: **$ArtifactClass artifact**"
+    "- Artifact origin: $ArtifactOrigin"
     "- SHA-256: ``$hash``"
     "- Clean lifecycle status: **$Status**"
     ''
@@ -78,10 +121,10 @@ function Write-Evidence {
   }
   $content += ''
   $content += '## Native observations'
-  $content += '- Start Menu: unavailable until recorded by the operator.'
-  $content += '- Installed apps: unavailable until recorded by the operator.'
-  $content += '- GUI title area: unavailable until recorded by the operator.'
-  $content += '- Taskbar: unavailable until recorded by the operator.'
+  foreach ($surface in $nativeObservations.Keys) {
+    $entry = $nativeObservations[$surface]
+    $content += "- ${surface}: **$($entry.Status)**; $($entry.Detail)."
+  }
 
   $content | Set-Content -LiteralPath $resolvedEvidence -Encoding utf8NoBOM
 }
@@ -149,6 +192,7 @@ $logDir = Join-Path ([System.IO.Path]::GetTempPath()) 'go-schedule-installer-lif
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
 try {
+  $installAttempted = $true
   Invoke-Msi -Operation /i -LogPath (Join-Path $logDir 'install.log')
   $installed = $true
   $observations.Add('Install completed successfully.')
@@ -167,7 +211,9 @@ try {
 
   if ($PauseForNativeObservation) {
     Write-Output 'Inspect Start Menu, Installed apps, GUI title area, and taskbar now.'
-    Read-Host 'Press Enter after recording screenshots and observations' | Out-Null
+    foreach ($surface in @($nativeObservations.Keys)) {
+      $nativeObservations[$surface] = Read-NativeObservation -Surface $surface
+    }
   }
 
   Invoke-Msi -Operation /i -LogPath (Join-Path $logDir 'reinstall.log')
@@ -190,21 +236,55 @@ try {
     throw 'machine PATH contains an empty segment after uninstall'
   }
   $observations.Add('Uninstall restored the exact pre-install machine PATH with no empty segment.')
-
-  Write-Evidence -Status 'proven'
-  Write-Output "installer-lifecycle: OK - evidence written to $resolvedEvidence"
+  $lifecycleStatus = 'proven'
 } catch {
-  $failures.Add($_.Exception.Message)
-  Write-Evidence -Status 'failed' -Problems $failures
-  [Console]::Error.WriteLine("installer-lifecycle: FAILED - $($_.Exception.Message)")
-  exit 1
+  $lifecycleError = $_.Exception.Message
+  $failures.Add($lifecycleError)
 } finally {
-  if ($installed) {
+  if ($installAttempted -and
+      ($installed -or ($lifecycleStatus -eq 'failed' -and [bool](Get-InstalledProduct)))) {
     try {
       Invoke-Msi -Operation /x -LogPath (Join-Path $logDir 'cleanup-uninstall.log')
-      Write-Warning 'Cleanup uninstall completed after an interrupted lifecycle run.'
+      $installed = $false
+      $observations.Add('Cleanup uninstall completed after an interrupted lifecycle run.')
     } catch {
-      Write-Warning "Cleanup uninstall failed: $($_.Exception.Message)"
+      $failures.Add("Cleanup uninstall failed; the package may remain installed: $($_.Exception.Message)")
+    }
+  }
+
+  if ($installAttempted) {
+    $finalProductPresent = [bool](Get-InstalledProduct)
+    $finalInstallDirPresent = Test-Path -LiteralPath $installDir
+    $finalPath = Get-MachinePath
+    $finalPathEntries = (Get-InstallPathEntry $finalPath).Count
+    $finalPathRestored = $finalPath -eq $beforePath
+    $observations.Add(
+      "Final machine state: product registered=$finalProductPresent; " +
+      "install directory present=$finalInstallDirPresent; PATH entries=$finalPathEntries; " +
+      "original machine PATH restored=$finalPathRestored."
+    )
+    if ($finalProductPresent) {
+      $failures.Add('Final machine state still has an installed-product registry entry.')
+    }
+    if ($finalInstallDirPresent) {
+      $failures.Add('Final machine state still has the installation directory.')
+    }
+    if ($finalPathEntries -ne 0) {
+      $failures.Add("Final machine state has $finalPathEntries install-directory PATH entries; expected 0.")
+    }
+    if (-not $finalPathRestored) {
+      $failures.Add('Final machine PATH does not match its exact pre-install value.')
     }
   }
 }
+
+if ($failures.Count -gt 0) {
+  $lifecycleStatus = 'failed'
+  if (-not $lifecycleError) { $lifecycleError = $failures[0] }
+}
+Write-Evidence -Status $lifecycleStatus -Problems $failures
+if ($lifecycleStatus -eq 'failed') {
+  [Console]::Error.WriteLine("installer-lifecycle: FAILED - $lifecycleError")
+  exit 1
+}
+Write-Output "installer-lifecycle: OK - evidence written to $resolvedEvidence"
