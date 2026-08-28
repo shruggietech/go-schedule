@@ -46,10 +46,13 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 				severityMark(e.severity), fmtTime(e.time), e.source, e.message))
 		},
 	)
+	diagnostics := widget.NewLabel(activityDiagnosticsText(""))
+	diagnostics.Wrapping = fyne.TextWrapBreak
 
 	rebuild := func() {
 		snap := a.model.Snapshot()
 		rows = mergeLogEntries(snap.Logs, snap.Alerts, filter, clearedAt)
+		diagnostics.SetText(activityDiagnosticsText(snap.LogPath))
 		list.Refresh()
 	}
 	a.registerRefresher(rebuild)
@@ -103,7 +106,15 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 	toolbar := container.NewHBox(widget.NewLabel("Severity:"), severitySel, clearBtn)
 	help := widget.NewLabel("Hides current activity and acknowledges visible alerts. Records are not deleted.")
 	help.Wrapping = fyne.TextWrapWord
-	return container.NewBorder(container.NewVBox(toolbar, help), nil, nil, nil, list)
+	return container.NewBorder(container.NewVBox(toolbar, diagnostics, help), nil, nil, nil, list)
+}
+
+func activityDiagnosticsText(logPath string) string {
+	const summary = "This view shows a limited set of recent daemon log records plus scheduler alerts; older daemon records remain in the full log.\n"
+	if logPath == "" {
+		return summary + "Full daemon log: unavailable until daemon responds."
+	}
+	return summary + "Full daemon log: " + logPath
 }
 
 // showLogDetail opens a dialog with the full message and cause/context of an entry.

@@ -135,5 +135,5 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/021-dual-syntax-docs/plan.md
+at specs/022-activity-diagnostics/plan.md
 <!-- SPECKIT END -->

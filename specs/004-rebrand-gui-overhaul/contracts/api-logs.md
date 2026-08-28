@@ -30,12 +30,16 @@ Returns the most recent log records from the daemon's in-memory ring, newest fir
       "run_id": "run_def",
       "attrs": { "exit_code": 1, "error": "exec: \"backup.sh\": file does not exist" }
     }
-  ]
+  ],
+  "log_path": "C:\\ProgramData\\go-schedule\\logs\\goschedule.log"
 }
 ```
 
 **Notes**: the ring is bounded; older history lives only in the on-disk log file
-([log-file.md](log-file.md)). `severity=error` MUST return only error records (US3 acceptance #2).
+([log-file.md](log-file.md)). `log_path` is always present and contains the exact
+configured path used by the daemon, including when `logs` is empty; an empty
+string means the metadata is unavailable. Clients display it without
+normalizing or probing it. `severity=error` MUST return only error records (US3 acceptance #2).
 
 ## CHANGED: `GET /v1/events` (SSE stream)
 
@@ -74,6 +78,6 @@ drops the same three methods.
 
 ## UNCHANGED (reference)
 
-`/v1/alerts` and `/v1/alerts/{id}/ack` remain (alerts still power part of the Logs view).
+`/v1/alerts` and `/v1/alerts/{id}/ack` remain (alerts still power part of the Activity view).
 `/v1/calendar` remains and is the data source for the new calendar view. `/v1/tasks`,
 `/v1/groups`, `/v1/runs`, `/v1/schedules/preview`, `/v1/health` unchanged.

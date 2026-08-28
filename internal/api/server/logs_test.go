@@ -20,7 +20,7 @@ func newLogServer(t *testing.T) (*Server, *logbus.Ring) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	ring := logbus.NewRing(100)
-	s := New(st, nil, nil, ring, config.NewLogger(config.Default(), discard{}))
+	s := New(st, nil, nil, ring, `C:\Schedule Data\日志\goschedule.log`, config.NewLogger(config.Default(), discard{}))
 	return s, ring
 }
 
@@ -49,6 +49,9 @@ func TestHandleListLogs_SeverityFilter(t *testing.T) {
 	if len(all.Logs) != 3 {
 		t.Fatalf("all = %d, want 3", len(all.Logs))
 	}
+	if all.LogPath != `C:\Schedule Data\日志\goschedule.log` {
+		t.Fatalf("log path = %q", all.LogPath)
+	}
 
 	errs := getLogs(t, s, "?severity=error")
 	if len(errs.Logs) != 1 || errs.Logs[0].Severity != domain.SeverityError {
@@ -69,9 +72,12 @@ func TestHandleListLogs_BadSeverity(t *testing.T) {
 func TestHandleListLogs_NilRingEmpty(t *testing.T) {
 	st, _ := store.Open(":memory:")
 	t.Cleanup(func() { _ = st.Close() })
-	s := New(st, nil, nil, nil, config.NewLogger(config.Default(), discard{}))
+	s := New(st, nil, nil, nil, `/var/lib/go schedule/日志.jsonl`, config.NewLogger(config.Default(), discard{}))
 	resp := getLogs(t, s, "")
 	if len(resp.Logs) != 0 {
 		t.Fatalf("nil ring should yield empty logs, got %d", len(resp.Logs))
+	}
+	if resp.LogPath != `/var/lib/go schedule/日志.jsonl` {
+		t.Fatalf("nil ring log path = %q", resp.LogPath)
 	}
 }

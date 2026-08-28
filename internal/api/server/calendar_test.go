@@ -72,7 +72,7 @@ func TestEvents_StreamsAlert(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	broker := events.NewBroker()
-	s := New(st, nil, broker, nil, config.NewLogger(config.Default(), discard{}))
+	s := New(st, nil, broker, nil, "", config.NewLogger(config.Default(), discard{}))
 
 	srv := httptest.NewServer(s.Handler())
 	defer srv.Close()

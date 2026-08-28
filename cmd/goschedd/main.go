@@ -98,13 +98,13 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	go func() { engErr <- eng.Start(ctx) }()
 
 	srv := &http.Server{
-		Handler:           server.New(st, eng, broker, ring, log).Handler(),
+		Handler:           server.New(st, eng, broker, ring, cfg.LogPath(), log).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	serveErr := make(chan error, 1)
 	go func() {
-		log.Info("daemon listening", "endpoint", endpoint, "db", cfg.DBPath())
+		logDaemonReady(log, endpoint, cfg.DBPath(), cfg.LogPath())
 		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serveErr <- err
 			return
@@ -125,4 +125,8 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	case err := <-engErr:
 		return err
 	}
+}
+
+func logDaemonReady(log *slog.Logger, endpoint, dbPath, logPath string) {
+	log.Info("daemon startup complete", "endpoint", endpoint, "db", dbPath, "log_path", logPath)
 }

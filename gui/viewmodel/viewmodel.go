@@ -8,6 +8,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/events"
 )
@@ -17,7 +18,7 @@ type API interface {
 	ListTasks(ctx context.Context, group, state string) ([]domain.Task, error)
 	ListGroups(ctx context.Context) ([]domain.Group, error)
 	ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, error)
-	ListLogs(ctx context.Context, severity string, limit int) ([]domain.LogRecord, error)
+	ListLogs(ctx context.Context, severity string, limit int) (server.LogsResponse, error)
 }
 
 // State is a snapshot of what the GUI displays.
@@ -26,6 +27,7 @@ type State struct {
 	Groups     []domain.Group
 	Alerts     []domain.Alert
 	Logs       []domain.LogRecord
+	LogPath    string
 	RecentRuns []domain.Run
 }
 
@@ -76,7 +78,8 @@ func (m *Model) Refresh(ctx context.Context) error {
 	m.st.Tasks = tasks
 	m.st.Groups = groups
 	m.st.Alerts = alerts
-	m.st.Logs = logs
+	m.st.Logs = logs.Logs
+	m.st.LogPath = logs.LogPath
 	m.mu.Unlock()
 	m.notify()
 	return nil

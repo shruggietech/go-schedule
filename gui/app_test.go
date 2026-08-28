@@ -21,6 +21,7 @@ type fakeBackend struct {
 	groups     []domain.Group
 	alerts     []domain.Alert
 	logs       []domain.LogRecord
+	logPath    string
 	created    int
 	lastCreate server.TaskCreateRequest
 
@@ -73,8 +74,8 @@ func (f *fakeBackend) ListGroups(context.Context) ([]domain.Group, error) { retu
 func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
 	return f.alerts, nil
 }
-func (f *fakeBackend) ListLogs(context.Context, string, int) ([]domain.LogRecord, error) {
-	return f.logs, nil
+func (f *fakeBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
+	return server.LogsResponse{Logs: f.logs, LogPath: f.logPath}, nil
 }
 func (f *fakeBackend) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
 	// Under the same mutex as the updates, and for the same reason: App.run
