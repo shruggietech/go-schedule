@@ -137,7 +137,9 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 
 func ordinalWeekdayField(opt *rrule.ROption) (weekday, occurrence int, ok bool) {
 	if len(opt.Byweekday) != 1 || len(opt.Bymonthday) != 0 || len(opt.Bymonth) != 0 ||
-		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 {
+		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
+		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Byhour) > 1 || len(opt.Byminute) > 1 ||
+		len(opt.Bysecond) > 1 || len(opt.Bysecond) == 1 && opt.Bysecond[0] != 0 {
 		return 0, 0, false
 	}
 	w := opt.Byweekday[0]
