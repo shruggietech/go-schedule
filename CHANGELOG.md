@@ -30,6 +30,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The documentation site's dark theme is complete and accessible (closes #35,
+  #36, and #37).** Every syntax token now fails safely to readable base ink,
+  deliberate brand colors cover named roles, highlighted lines and selected
+  code remain dark-theme legible, and all published fences use a consistent
+  `sh`, `bash`, `powershell`, or `text` category. The sidebar endorsement now
+  follows the theme's responsive navigation gutters with balanced vertical
+  spacing.
+- **Pinned documentation policy - `scripts/docs-check.sh` (2026-08-27).** The
+  existing network-free gate now rejects drift in the safe syntax-palette
+  contract, selected/highlighted code treatment, responsive endorsement
+  spacing, and published fence vocabulary. Front-matter and link behavior are
+  unchanged.
 - **The GUI's mixed log-and-alert view is now Activity (closes #26, #28, and
   #30).** Its unacknowledged-alert badge shows exact counts through 99 and caps
   higher counts at `99+`. The former Dismiss All/trash control is now Clear View
