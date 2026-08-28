@@ -9,20 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Monthly calendar selectors now work end to end in both cron directions
+  (Refs #22).** Day-of-month `L`, `1W` through `31W`, and `LW` can be
+  explained, previewed, imported, retained, authored in plain language, and
+  exported without approximation. A forward-only schema migration persists the
+  typed nearest-weekday adjustment that RFC 5545 cannot express, with exact
+  weekend, short-month, missing-date, leap-year, DST, restart, CLI, API, and
+  desktop coverage. The desktop preview now also refreshes and sends the chosen
+  missing-date policy. Composite modifiers and Quartz field layouts remain
+  explicit refusals.
 - **Last weekdays now convert faithfully in both cron directions (Refs #22).**
   One five-field day-of-week `weekdayL` term can be explained, previewed,
   imported, and retained as cron source, while native last-weekday schedules
   export canonically with Sunday as `0L`. Round-trip coverage spans DST and
   month boundaries; all missing-date policies are equivalent for this schedule,
-  while day-of-month `L`, `W`, and broader `L` combinations remain named
-  refusals.
+  while broader `L` combinations remain named refusals.
 - **Ordinal weekdays now convert faithfully in both cron directions (Refs
   #22).** One five-field `weekday#1..5` term can be explained, previewed,
   imported, and retained as cron source, while native first-through-fifth
   monthly weekday schedules export canonically with Sunday as `0`. Round-trip
   coverage spans DST, month boundaries, and absent fifth occurrences;
-  incompatible missing-date policies and broader `#`, day-of-month `L`, and `W`
-  forms remain named refusals.
+  incompatible missing-date policies and broader `#` forms remain named
+  refusals.
 - **Current product documentation now defines human-or-cron task authoring
   end to end (closes #52 and #50; refs #22).** README, CLI, GUI, API, and the
   authoritative S001 contract share equivalent weekday examples and name

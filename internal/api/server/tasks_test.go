@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -187,6 +188,39 @@ func TestPreviewAndCreate_LastWeekdayCronParity(t *testing.T) {
 	}
 }
 
+func TestPreviewAndCreate_MonthlyCalendarCronParity(t *testing.T) {
+	s := newTestServer(t)
+	for _, expr := range []string{"0 9 L * *", "0 9 15W * *", "0 9 LW * *"} {
+		preview := doJSON(t, s, http.MethodPost, "/v1/schedules/preview", PreviewRequest{Schedule: expr, ScheduleSyntax: "cron", Timezone: "UTC"})
+		if preview.Code != http.StatusOK {
+			t.Fatalf("preview %q: status=%d body=%s", expr, preview.Code, preview.Body.String())
+		}
+		var p PreviewResponse
+		if err := json.Unmarshal(preview.Body.Bytes(), &p); err != nil {
+			t.Fatal(err)
+		}
+		if expr == "0 9 15W * *" && p.CalendarAdjustment != domain.CalendarAdjustmentNearestWeekday {
+			t.Fatalf("preview adjustment = %q", p.CalendarAdjustment)
+		}
+
+		created := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{Name: "calendar-" + expr, Command: "/bin/true", Schedule: expr, ScheduleSyntax: "cron", Timezone: "UTC"})
+		if created.Code != http.StatusCreated {
+			t.Fatalf("create %q: status=%d body=%s", expr, created.Code, created.Body.String())
+		}
+		var resp TaskResponse
+		if err := json.Unmarshal(created.Body.Bytes(), &resp); err != nil {
+			t.Fatal(err)
+		}
+		if resp.Schedule.Expression != expr || resp.Schedule.SourceSyntax != "cron" || len(resp.NextRuns) == 0 {
+			t.Fatalf("created schedule = %+v runs=%v", resp.Schedule, resp.NextRuns)
+		}
+		loaded := doJSON(t, s, http.MethodGet, "/v1/tasks/"+resp.Task.ID, nil)
+		if loaded.Code != http.StatusOK || !strings.Contains(loaded.Body.String(), expr) {
+			t.Fatalf("reload %q: status=%d body=%s", expr, loaded.Code, loaded.Body.String())
+		}
+	}
+}
+
 func TestCreateTask_CronSourceIdentity(t *testing.T) {
 	s := newTestServer(t)
 	for _, syntax := range []string{"", "cron"} {
@@ -219,6 +253,7 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 		{"forced cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "every day at 09:00", ScheduleSyntax: "cron"}, "schedule"},
 		{"invalid cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "61 9 * * *"}, "schedule"},
 		{"preview hint without schedule", "/v1/schedules/preview", PreviewRequest{ScheduleSyntax: "cron"}, "schedule_syntax"},
+		{"invalid preview missing-date policy", "/v1/schedules/preview", PreviewRequest{Schedule: "0 9 31W * *", MissingDatePolicy: "maybe"}, "missing_date_policy"},
 		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
 		{"lossy calendar step", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 */2 * *"}, "schedule"},
 		{"malformed ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * * 5#6"}, "schedule"},

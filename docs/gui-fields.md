@@ -57,6 +57,9 @@ it.
 **Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of
 the schedule with the next few run times, and the exact command and arguments as they will be
 invoked, rendered as a monospace code block.
+Changing **Missing dates** immediately refreshes this preview and sends the
+selected policy to the daemon, so date-sensitive schedules show the same runs
+that Save will create.
 
 **Overlap, Catch-up and Missing dates** are shown with friendly labels but stored as the same
 underlying policy values (`queue_one`/`skip`/`allow_concurrent`, `one`/`none`, and
@@ -132,6 +135,7 @@ Human parsing is case-insensitive. Supported human forms include:
 | Weekday / weekend sets | `weekdays at 9:00 AM`, `weekends at 18:00` |
 | A single weekday | `every monday at 9am` |
 | Monthly ordinal weekday | `3rd wednesday monthly at 14:00`, `last friday of the month` |
+| Monthly calendar selector | `last day of every month at 09:00`, `nearest weekday to the 15th of every month at 09:00`, `last weekday of every month at 09:00` |
 
 **Units** (any spelling): `second`/`sec`/`s`, `minute`/`min`/`m`, `hour`/`hr`/`h`, `day`/`d`,
 `week`/`w`.
@@ -143,7 +147,9 @@ Human parsing is case-insensitive. Supported human forms include:
 Hours are 0–23, minutes 0–59.
 
 Supported cron uses the familiar `minute hour day-of-month month day-of-week` shape. For example,
-`0 9 * * 1-5` runs at 09:00 on weekdays. The editor detects the syntax from the current field text,
+`0 9 * * 1-5` runs at 09:00 on weekdays, while `0 9 L * *`, `0 9 15W * *`,
+and `0 9 LW * *` select the last day, nearest weekday to the 15th, and last
+weekday. The editor detects the syntax from the current field text,
 so replacing cron with a human phrase, or the reverse, updates both preview and save behavior. A
 cron-shaped value that is invalid or cannot be represented faithfully is rejected as cron rather
 than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelity) for supported

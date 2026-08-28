@@ -65,6 +65,16 @@ const (
 	ScheduleEvent     ScheduleKind = "event"
 )
 
+// CalendarAdjustment identifies a bounded calendar operation applied after an
+// RRULE selects its intended date. The empty value means the RRULE is complete.
+type CalendarAdjustment string
+
+const (
+	// CalendarAdjustmentNearestWeekday moves a monthly numbered date to the
+	// nearest Monday-through-Friday date without crossing its resolved month.
+	CalendarAdjustmentNearestWeekday CalendarAdjustment = "nearest_weekday"
+)
+
 // RunOutcome is the result of a single execution.
 type RunOutcome string
 
@@ -146,20 +156,24 @@ type Task struct {
 // RunAt, or TriggerID is populated, matching Kind. All times are UTC.
 //
 // Three fields carry timing text and are easy to confuse:
-//   - RRULE is authoritative — the only timing input the engine evaluates.
+//   - RRULE plus an optional CalendarAdjustment are authoritative timing input.
 //   - HumanSummary is what the system says back to the user ("Every weekday at
 //     09:00"). Display only, and deliberately not re-parseable.
 //   - Expression is the accepted source ("weekdays at 09:00" or
 //     "0 9 * * 1-5"). It exists so a client can put the source back into the
 //     field it came from, and is inert with respect to execution.
 type Schedule struct {
-	ID           string       `json:"id"`
-	Kind         ScheduleKind `json:"kind"`
-	RRULE        string       `json:"rrule,omitempty"`
-	Anchor       *time.Time   `json:"anchor,omitempty"`
-	RunAt        *time.Time   `json:"run_at,omitempty"`
-	TriggerID    string       `json:"trigger_id,omitempty"`
-	HumanSummary string       `json:"human_summary"`
+	ID    string       `json:"id"`
+	Kind  ScheduleKind `json:"kind"`
+	RRULE string       `json:"rrule,omitempty"`
+	// CalendarAdjustment carries the one supported calendar operation that a
+	// single RFC 5545 RRULE cannot represent. It is persisted and authoritative;
+	// Expression remains inert.
+	CalendarAdjustment CalendarAdjustment `json:"calendar_adjustment,omitempty"`
+	Anchor             *time.Time         `json:"anchor,omitempty"`
+	RunAt              *time.Time         `json:"run_at,omitempty"`
+	TriggerID          string             `json:"trigger_id,omitempty"`
+	HumanSummary       string             `json:"human_summary"`
 	// Expression is the human or cron source this schedule was parsed from,
 	// suitable for re-submission. Empty for one-offs and legacy rows. It is never
 	// an execution input: nothing on the scheduling path may read it.

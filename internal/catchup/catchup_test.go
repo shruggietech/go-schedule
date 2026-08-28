@@ -63,3 +63,22 @@ func TestEvaluate_NoPriorRun(t *testing.T) {
 		t.Fatal("a never-run task has nothing to catch up")
 	}
 }
+
+func TestEvaluate_NearestWeekdayUsesAdjustedOccurrence(t *testing.T) {
+	anchor := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	sch := domain.Schedule{
+		Kind:   domain.ScheduleRecurring,
+		RRULE:  "FREQ=MONTHLY;BYMONTHDAY=15;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		Anchor: &anchor, CalendarAdjustment: domain.CalendarAdjustmentNearestWeekday,
+	}
+	last := time.Date(2026, 7, 15, 9, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 8, 20, 0, 0, 0, 0, time.UTC)
+	dec, err := Evaluate(sch, "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, 8, 14, 9, 0, 0, 0, time.UTC) // August 15 is Saturday.
+	if !dec.ShouldCatchUp || !dec.FirstMissed.Equal(want) {
+		t.Fatalf("decision=%+v, want first missed %v", dec, want)
+	}
+}

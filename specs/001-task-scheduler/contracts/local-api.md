@@ -34,8 +34,10 @@ Codes: `validation_failed` (→ CLI exit 2), `not_found`, `conflict`, `internal`
 
 ### Schedules (preview)
 - `POST   /v1/schedules:preview` — body includes `schedule`, optional `schedule_syntax`,
-  `timezone`, and `missing_date_policy`; returns `{ rrule, human_summary, next_runs[],
-  source_syntax }`. Preview and create use the same shared classifier and compiler.
+  `timezone`, and `missing_date_policy`; returns `{ rrule, calendar_adjustment?,
+  human_summary, next_runs[], source_syntax }`. Preview and create use the same
+  shared classifier and compiler. The optional adjustment is execution metadata
+  for a recurrence that RRULE cannot completely express.
 - Recurring task responses retain the normalized `schedule.expression` and expose derived
   `schedule.source_syntax`. One-offs and legacy expressionless schedules omit source identity.
 

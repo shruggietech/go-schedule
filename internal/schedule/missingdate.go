@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/teambition/rrule-go"
@@ -42,7 +43,21 @@ func Describe(sch domain.Schedule, policy domain.MissingDatePolicy) string {
 	if !ok {
 		return sch.HumanSummary
 	}
+	if sch.CalendarAdjustment == domain.CalendarAdjustmentNearestWeekday {
+		return sch.HumanSummary + ", " + nearestWeekdayPolicyClause(policy)
+	}
 	return sch.HumanSummary + ", " + policyClause(in, policy)
+}
+
+func nearestWeekdayPolicyClause(policy domain.MissingDatePolicy) string {
+	switch policy {
+	case domain.MissingDateLastValid:
+		return "using the nearest weekday to the last day when the target date is absent"
+	case domain.MissingDateNextValid:
+		return "using the nearest weekday to the first day of the following month when the target date is absent"
+	default:
+		return "skipped in months that have no such date"
+	}
 }
 
 // policyClause is the sentence fragment naming what happens in a period with no
@@ -177,6 +192,53 @@ func resolveMissingDate(in targetDate, opt *rrule.ROption, loc *time.Location, p
 		period = advance(period, in)
 	}
 	return time.Time{}, false
+}
+
+// resolveNearestWeekday executes the monthly calendar adjustment that a single
+// RRULE cannot represent. Missing-date policy resolves the numbered date before
+// weekend adjustment.
+func resolveNearestWeekday(opt *rrule.ROption, loc *time.Location, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool, error) {
+	if opt.Freq != rrule.MONTHLY || opt.Interval > 1 || len(opt.Bymonthday) != 1 ||
+		opt.Bymonthday[0] < 1 || opt.Bymonthday[0] > 31 || len(opt.Byweekday) != 0 ||
+		len(opt.Bymonth) != 0 || len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 ||
+		len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 || opt.Count != 0 || !opt.Until.IsZero() ||
+		len(opt.Byhour) > 1 || len(opt.Byminute) > 1 || len(opt.Bysecond) > 1 ||
+		len(opt.Bysecond) == 1 && opt.Bysecond[0] != 0 {
+		return time.Time{}, false, fmt.Errorf("schedule: nearest_weekday requires one unbounded monthly day-of-month rule")
+	}
+	in := targetDate{kind: intentMonthDay, interval: 1, day: opt.Bymonthday[0]}
+	h, mi, s := timeOfDay(opt)
+	period := periodStart(opt.Dtstart.In(loc), false, 0, loc)
+	if skip := wholeIntervalsBefore(period, after, in); skip > 0 {
+		period = advanceBy(period, in, skip)
+	}
+	for i := 0; i < maxPeriodWalk; i++ {
+		if base, ok := occurrenceIn(in, period, h, mi, s, policy, loc); ok {
+			occ := nearestWeekday(base)
+			if occ.After(after) {
+				return occ, true, nil
+			}
+		}
+		period = advance(period, in)
+	}
+	return time.Time{}, false, nil
+}
+
+func nearestWeekday(date time.Time) time.Time {
+	switch date.Weekday() {
+	case time.Saturday:
+		if date.Day() == 1 {
+			return date.AddDate(0, 0, 2)
+		}
+		return date.AddDate(0, 0, -1)
+	case time.Sunday:
+		if date.Day() == daysIn(date) {
+			return date.AddDate(0, 0, -2)
+		}
+		return date.AddDate(0, 0, 1)
+	default:
+		return date
+	}
 }
 
 // wholeIntervalsBefore counts how many whole INTERVAL steps separate the anchor

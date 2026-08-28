@@ -76,7 +76,6 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule_syntax", "schedule_syntax requires schedule")
 		return
 	}
-
 	// Build the schedule: one-off (At) or recurring (Schedule).
 	var sch domain.Schedule
 	switch {
@@ -212,10 +211,11 @@ type PreviewRequest struct {
 }
 
 type PreviewResponse struct {
-	RRULE        string      `json:"rrule"`
-	HumanSummary string      `json:"human_summary"`
-	NextRuns     []time.Time `json:"next_runs"`
-	SourceSyntax string      `json:"source_syntax,omitempty"`
+	RRULE              string                    `json:"rrule"`
+	CalendarAdjustment domain.CalendarAdjustment `json:"calendar_adjustment,omitempty"`
+	HumanSummary       string                    `json:"human_summary"`
+	NextRuns           []time.Time               `json:"next_runs"`
+	SourceSyntax       string                    `json:"source_syntax,omitempty"`
 }
 
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
@@ -226,6 +226,10 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ScheduleSyntax != "" && req.Schedule == "" {
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule_syntax", "schedule_syntax requires schedule")
+		return
+	}
+	if req.MissingDatePolicy != "" && !validMissingDate(domain.MissingDatePolicy(req.MissingDatePolicy)) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "missing_date_policy", "invalid policy")
 		return
 	}
 	tz := orDefault(req.Timezone, "Local")
@@ -242,10 +246,11 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	sch := input.Schedule
 	runs, _ := schedule.UpcomingRuns(sch, tz, domain.MissingDatePolicy(req.MissingDatePolicy), now, 5)
 	writeJSON(w, http.StatusOK, PreviewResponse{
-		RRULE:        sch.RRULE,
-		HumanSummary: schedule.Describe(sch, domain.MissingDatePolicy(req.MissingDatePolicy)),
-		NextRuns:     runs,
-		SourceSyntax: string(input.Syntax),
+		RRULE:              sch.RRULE,
+		CalendarAdjustment: sch.CalendarAdjustment,
+		HumanSummary:       schedule.Describe(sch, domain.MissingDatePolicy(req.MissingDatePolicy)),
+		NextRuns:           runs,
+		SourceSyntax:       string(input.Syntax),
 	})
 }
 

@@ -17,6 +17,15 @@ import (
 	"strings"
 )
 
+type calendarSelector int
+
+const (
+	calendarNone calendarSelector = iota
+	calendarLastDay
+	calendarNearestWeekday
+	calendarLastWeekday
+)
+
 // Field is one parsed crontab field: the set of values it matches, and whether
 // it was a bare "*" (which means "every", not "all values enumerated" — the
 // distinction matters when deciding whether a phrase exists).
@@ -27,6 +36,8 @@ type Field struct {
 	// extension. Minus one means the last occurrence, zero means ordinary field
 	// semantics, and 1 through 5 mean a "weekday#ordinal" term.
 	Ordinal int
+	// calendarSelector is the bounded day-of-month modifier carried by this field.
+	calendarSelector calendarSelector
 	// Step is the divisor from a "*/n" form, or 0 when there was none.
 	Step int
 	// min and max bound the field's range, for validation and step checks.
@@ -120,9 +131,12 @@ func Parse(expr string) (Result, error) {
 		return Result{}, fmt.Errorf("cron: expected 5 fields, got %d in %q", len(parts), expr)
 	}
 
-	// The non-standard day-of-month extensions have no equivalent and must be
-	// named rather than silently misread as a literal.
+	// Route the supported day-of-month extensions to their dedicated parser;
+	// extension-like tokens in every other position remain named refusals.
 	for i, p := range parts {
+		if i == 2 && strings.ContainsAny(strings.ToUpper(p), "LW") {
+			continue
+		}
 		if i == 4 && (strings.Contains(p, "#") || strings.Contains(strings.ToUpper(p), "L")) {
 			continue
 		}
@@ -134,6 +148,17 @@ func Parse(expr string) (Result, error) {
 	spec := Spec{Shorthand: shorthand}
 	targets := [5]*Field{&spec.Minute, &spec.Hour, &spec.DOM, &spec.Month, &spec.DOW}
 	for i, p := range parts {
+		if i == 2 && strings.ContainsAny(strings.ToUpper(p), "LW") {
+			f, reason, err := parseCalendarDay(p)
+			if err != nil {
+				return Result{}, fmt.Errorf("cron: %s field: %w", fieldName(i), err)
+			}
+			if reason != "" {
+				return refuse(expr, reason), nil
+			}
+			*targets[i] = f
+			continue
+		}
 		if i == 4 && strings.Contains(strings.ToUpper(p), "L") {
 			f, reason, err := parseLastWeekday(p)
 			if err != nil {
@@ -181,8 +206,33 @@ func Parse(expr string) (Result, error) {
 	if spec.DOW.Ordinal != 0 && !spec.Month.Wildcard {
 		return refuse(expr, "a monthly weekday selector restricted to particular months has no phrase equivalent"), nil
 	}
+	if spec.DOM.calendarSelector != calendarNone && !spec.Month.Wildcard {
+		return refuse(expr, "a monthly day-of-month selector restricted to particular months has no phrase equivalent"), nil
+	}
 
 	return Result{Spec: spec, OK: true}, nil
+}
+
+func parseCalendarDay(p string) (Field, string, error) {
+	upper := strings.ToUpper(p)
+	switch upper {
+	case "L":
+		return Field{calendarSelector: calendarLastDay, min: 1, max: 31}, "", nil
+	case "LW":
+		return Field{calendarSelector: calendarLastWeekday, min: 1, max: 31}, "", nil
+	}
+	if strings.ContainsAny(upper, ",/-") {
+		return Field{}, "only one monthly day-of-month selector is supported", nil
+	}
+	if strings.Count(upper, "W") == 1 && strings.HasSuffix(upper, "W") {
+		dayText := strings.TrimSuffix(upper, "W")
+		day, err := strconv.Atoi(dayText)
+		if err != nil || day < 1 || day > 31 {
+			return Field{}, "", fmt.Errorf("nearest-weekday target %q must be an integer from 1 through 31", dayText)
+		}
+		return Field{Values: []int{day}, calendarSelector: calendarNearestWeekday, min: 1, max: 31}, "", nil
+	}
+	return Field{}, "", fmt.Errorf("invalid monthly day-of-month selector %q", p)
 }
 
 func parseOrdinalWeekday(p string) (Field, string, error) {

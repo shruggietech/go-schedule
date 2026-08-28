@@ -66,3 +66,18 @@ func BenchmarkNextRun(b *testing.B) {
 		_, _, _ = schedule.NextRun(sch, "America/New_York", domain.MissingDateSkip, after)
 	}
 }
+
+// BenchmarkNextRunNearestWeekday measures the bounded monthly adjustment path
+// added for nW schedules, including timezone and missing-date handling.
+func BenchmarkNextRunNearestWeekday(b *testing.B) {
+	anchor := time.Date(2026, 1, 1, 8, 0, 0, 0, time.UTC)
+	sch := domain.Schedule{
+		Kind: domain.ScheduleRecurring, RRULE: "FREQ=MONTHLY;BYMONTHDAY=31;BYHOUR=9;BYMINUTE=0;BYSECOND=0", Anchor: &anchor,
+		CalendarAdjustment: domain.CalendarAdjustmentNearestWeekday,
+	}
+	after := time.Date(2036, 4, 1, 0, 0, 0, 0, time.UTC)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = schedule.NextRun(sch, "America/New_York", domain.MissingDateNextValid, after)
+	}
+}

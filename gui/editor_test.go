@@ -198,6 +198,30 @@ func TestEditor_CronPreviewAndCreateRetainSource(t *testing.T) {
 	}
 }
 
+func TestEditor_MonthlyCalendarCronAndPolicyPreview(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.name.SetText("calendar-cron")
+	e.command.SetText("cmd")
+	e.schedule.SetText("0 9 31W * *")
+	if e.save.Disabled() {
+		t.Fatal("Save should be enabled for nearest-weekday cron")
+	}
+	before, req := fb.lastPreviewCall()
+	if req.Schedule != "0 9 31W * *" || req.ScheduleSyntax != "cron" || req.MissingDatePolicy != "skip" {
+		t.Fatalf("initial preview = %+v", req)
+	}
+	e.missingDate.SetSelected(missingDateLabel(domain.MissingDateNextValid))
+	after, req := fb.lastPreviewCall()
+	if after <= before || req.MissingDatePolicy != "next_valid" {
+		t.Fatalf("policy preview count %d -> %d, req=%+v", before, after, req)
+	}
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, created := fb.lastCreateCall(); created.Schedule != "0 9 31W * *" || created.MissingDatePolicy != "next_valid" {
+		t.Fatalf("create request = %+v", created)
+	}
+}
+
 func TestEditor_FiveWordHumanInputRemainsHuman(t *testing.T) {
 	e, fb := newTestEditor(t, nil)
 	e.schedule.SetText("3rd wednesday monthly at 14:00")

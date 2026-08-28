@@ -156,8 +156,8 @@ DROP TABLE IF EXISTS triggers;
 		// from, so a client can put the user's own words back into the field
 		// they typed them into. Additive with a total default: no existing
 		// column, row, or value is read or rewritten, so no stored timing moves.
-		// Pre-v4 rows keep the empty default and are served a phrase derived
-		// from their RRULE at read time (see schedule.Render).
+		// Pre-v4 rows keep the empty default and omit source identity at read
+		// time; their cached human summary remains available for display.
 		version: 4,
 		stmts: `
 ALTER TABLE schedules ADD COLUMN expression TEXT NOT NULL DEFAULT '';
@@ -177,6 +177,15 @@ ALTER TABLE schedules ADD COLUMN expression TEXT NOT NULL DEFAULT '';
 		version: 5,
 		stmts: `
 ALTER TABLE tasks ADD COLUMN missing_date_policy TEXT NOT NULL DEFAULT 'skip';
+`,
+	},
+	{
+		// v6: persist the optional calendar operation that participates in
+		// recurrence execution. The empty default means RRULE-only behavior, so
+		// every pre-v6 schedule retains its exact timing semantics.
+		version: 6,
+		stmts: `
+ALTER TABLE schedules ADD COLUMN calendar_adjustment TEXT NOT NULL DEFAULT '';
 `,
 	},
 }

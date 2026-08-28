@@ -30,6 +30,7 @@ type anchorTOD struct{ h, mi int }
 //	weekdays|weekends [at ...]  e.g. "weekdays at 09:00"
 //	every <weekday> [at ...]    e.g. "every monday at 9am"
 //	<ordinal> <weekday> monthly e.g. "3rd wednesday monthly at 14:00", "last friday of the month"
+//	monthly calendar selectors      e.g. "last day of every month", "nearest weekday to the 15th of every month", "last weekday of every month"
 //
 // For sub-daily intervals an optional "starting at"/"from" clause sets the first-cycle anchor so
 // the interval aligns to a chosen phase (e.g. :00/:15/:30/:45) instead of the creation moment.
@@ -44,6 +45,9 @@ func Parse(input, tzName string, now time.Time) (domain.Schedule, error) {
 	expr := strings.TrimSpace(input)
 
 	if sch, ok, err := parseOrdinal(s); ok || err != nil {
+		return finish(sch, tzName, now, nil, expr, err)
+	}
+	if sch, ok, err := parseMonthlyCalendar(s); ok || err != nil {
 		return finish(sch, tzName, now, nil, expr, err)
 	}
 	if sch, ok, err := parseByDate(s); ok || err != nil {
@@ -93,15 +97,53 @@ func finish(sch domain.Schedule, tzName string, now time.Time, anchor *anchorTOD
 }
 
 var (
-	reInterval = regexp.MustCompile(`^every\s+(?:(\d+)\s*)?(second|seconds|sec|secs|s|minute|minutes|min|mins|m|hour|hours|hr|hrs|h|day|days|d|week|weeks|w|month|months|mo|year|years|yr|yrs|y)(?:\s+(at|starting\s+at|from)\s+(.+))?$`)
-	reDayset   = regexp.MustCompile(`^(weekdays|weekends)(?:\s+at\s+(.+))?$`)
-	reEveryDay = regexp.MustCompile(`^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+at\s+(.+))?$`)
-	reOrdinal  = regexp.MustCompile(`^(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:of\s+(?:the|each|every)\s+month|monthly)(?:\s+at\s+(.+))?$`)
+	reInterval       = regexp.MustCompile(`^every\s+(?:(\d+)\s*)?(second|seconds|sec|secs|s|minute|minutes|min|mins|m|hour|hours|hr|hrs|h|day|days|d|week|weeks|w|month|months|mo|year|years|yr|yrs|y)(?:\s+(at|starting\s+at|from)\s+(.+))?$`)
+	reDayset         = regexp.MustCompile(`^(weekdays|weekends)(?:\s+at\s+(.+))?$`)
+	reEveryDay       = regexp.MustCompile(`^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+at\s+(.+))?$`)
+	reOrdinal        = regexp.MustCompile(`^(1st|2nd|3rd|4th|5th|last|first|second|third|fourth|fifth)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:of\s+(?:the|each|every)\s+month|monthly)(?:\s+at\s+(.+))?$`)
+	reLastDay        = regexp.MustCompile(`^last\s+day\s+of\s+(?:the|each|every)\s+month(?:\s+at\s+(.+))?$`)
+	reNearestWeekday = regexp.MustCompile(`^nearest\s+weekday\s+to\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)\s+of\s+(?:the|each|every)\s+month(?:\s+at\s+(.+))?$`)
+	reLastWeekday    = regexp.MustCompile(`^last\s+weekday\s+of\s+(?:the|each|every)\s+month(?:\s+at\s+(.+))?$`)
 	// By-date monthly: "on the 15th of every month", "the 31st monthly".
 	reByDate = regexp.MustCompile(`^(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\s+(?:of\s+(?:the|each|every)\s+month|monthly)(?:\s+at\s+(.+))?$`)
 	// Yearly by date: "every year on february 29", "annually on 29 february".
 	reYearly = regexp.MustCompile(`^(?:every\s+year|annually|yearly)\s+on\s+(?:([a-z]+)\s+(\d{1,2})|(\d{1,2})\s+([a-z]+))(?:\s+at\s+(.+))?$`)
 )
+
+func parseMonthlyCalendar(s string) (domain.Schedule, bool, error) {
+	var parts []string
+	var label, timeText string
+	var adjustment domain.CalendarAdjustment
+	switch {
+	case reLastDay.MatchString(s):
+		m := reLastDay.FindStringSubmatch(s)
+		parts, label, timeText = []string{"FREQ=MONTHLY", "BYMONTHDAY=-1"}, "Last day of every month", strings.TrimSpace(m[1])
+	case reLastWeekday.MatchString(s):
+		m := reLastWeekday.FindStringSubmatch(s)
+		parts, label, timeText = []string{"FREQ=MONTHLY", "BYDAY=MO,TU,WE,TH,FR", "BYSETPOS=-1"}, "Last weekday of every month", strings.TrimSpace(m[1])
+	case reNearestWeekday.MatchString(s):
+		m := reNearestWeekday.FindStringSubmatch(s)
+		day, err := strconv.Atoi(m[1])
+		if err != nil || day < 1 || day > 31 {
+			return domain.Schedule{}, true, fmt.Errorf("schedule: nearest-weekday day must be between 1 and 31, got %q", m[1])
+		}
+		parts = []string{"FREQ=MONTHLY", "BYMONTHDAY=" + strconv.Itoa(day)}
+		label = fmt.Sprintf("Nearest weekday to the %s of every month", ordinalWord(day))
+		timeText = strings.TrimSpace(m[2])
+		adjustment = domain.CalendarAdjustmentNearestWeekday
+	default:
+		return domain.Schedule{}, false, nil
+	}
+	h, mi, withTime, err := maybeTime(timeText)
+	if err != nil {
+		return domain.Schedule{}, true, err
+	}
+	if withTime {
+		parts = append(parts, byTime(h, mi)...)
+		label += " at " + clock(h, mi)
+	}
+	return domain.Schedule{RRULE: strings.Join(parts, ";"), HumanSummary: label, CalendarAdjustment: adjustment}, true, nil
+}
 
 // monthNumber maps a month name or three-letter abbreviation to its number.
 var monthNumber = map[string]int{

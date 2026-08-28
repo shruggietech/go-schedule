@@ -26,6 +26,12 @@ func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
 		{input: "3rd friday monthly at 09:00", want: "0 9 * * 5#3\n"},
 		{input: "0 9 * * 5L", want: "last friday of the month at 09:00\n"},
 		{input: "last friday of the month at 09:00", want: "0 9 * * 5L\n"},
+		{input: "0 9 L * *", want: "last day of every month at 09:00\n"},
+		{input: "last day of every month at 09:00", want: "0 9 L * *\n"},
+		{input: "0 9 15W * *", want: "nearest weekday to the 15th of every month at 09:00\n"},
+		{input: "nearest weekday to the 15th of every month at 09:00", want: "0 9 15W * *\n"},
+		{input: "0 9 LW * *", want: "last weekday of every month at 09:00\n"},
+		{input: "last weekday of every month at 09:00", want: "0 9 LW * *\n"},
 	} {
 		cmd := cronConvert()
 		var stdout, stderr bytes.Buffer
@@ -41,6 +47,27 @@ func TestCronConvert_DefaultTextIsOneLocalLine(t *testing.T) {
 		}
 		if stderr.Len() != 0 {
 			t.Errorf("stderr = %q, want empty", stderr.String())
+		}
+	}
+}
+
+func TestImport_MonthlyCalendarSelectorsRemainCronSource(t *testing.T) {
+	for _, tt := range []struct{ expr, phrase string }{
+		{"0 9 L * *", "last day of every month at 09:00"},
+		{"0 9 15W * *", "nearest weekday to the 15th of every month at 09:00"},
+		{"0 9 LW * *", "last weekday of every month at 09:00"},
+	} {
+		rep := scan(t, tt.expr+" /usr/local/bin/report\n")
+		if rep.Jobs != 1 || rep.Lines[0].Phrase != tt.phrase {
+			t.Fatalf("classification %q = %+v", tt.expr, rep)
+		}
+		fc := &fakeCreator{}
+		var out bytes.Buffer
+		if err := runImport(&out, rep, importOptions{timezone: "UTC"}, fc); err != nil {
+			t.Fatal(err)
+		}
+		if len(fc.reqs) != 1 || fc.reqs[0].Schedule != tt.expr || fc.reqs[0].ScheduleSyntax != "cron" {
+			t.Fatalf("import %q = %+v", tt.expr, fc.reqs)
 		}
 	}
 }
