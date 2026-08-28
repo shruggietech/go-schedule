@@ -22,13 +22,13 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 				"a step of %d does not divide the hour evenly: cron restarts the sequence at :00, which a fixed interval does not reproduce",
 				s.Minute.Step)}, false
 		}
-		return fmt.Sprintf("every %d minutes", s.Minute.Step), Unsupported{}, true
+		return fmt.Sprintf("every %d minutes starting at 00:00", s.Minute.Step), Unsupported{}, true
 	}
 
 	// Every minute.
 	if s.Minute.EveryValue() {
 		if s.Hour.EveryValue() && s.DOM.Wildcard && s.Month.Wildcard && s.DOW.Wildcard {
-			return "every minute", Unsupported{}, true
+			return "every minute starting at 00:00", Unsupported{}, true
 		}
 		return "", Unsupported{Reason: "an every-minute rule restricted by hour, date, or weekday has no phrase equivalent"}, false
 	}
@@ -46,7 +46,7 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 		if minute != 0 {
 			return "", Unsupported{Reason: "an hourly rule at a minute other than :00 has no phrase equivalent"}, false
 		}
-		return "every hour", Unsupported{}, true
+		return "every hour starting at 00:00", Unsupported{}, true
 	}
 
 	// A step in the hour field: "0 */6 * * *".

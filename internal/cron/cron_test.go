@@ -17,10 +17,10 @@ func TestExplain_Supported(t *testing.T) {
 	cases := []struct {
 		expr, phrase string
 	}{
-		{"*/15 * * * *", "every 15 minutes"},
-		{"*/5 * * * *", "every 5 minutes"},
-		{"* * * * *", "every minute"},
-		{"0 * * * *", "every hour"},
+		{"*/15 * * * *", "every 15 minutes starting at 00:00"},
+		{"*/5 * * * *", "every 5 minutes starting at 00:00"},
+		{"* * * * *", "every minute starting at 00:00"},
+		{"0 * * * *", "every hour starting at 00:00"},
 		{"0 */6 * * *", "every 6 hours starting at 00:00"},
 		{"0 9 * * *", "every day at 09:00"},
 		{"30 2 * * *", "every day at 02:30"},
@@ -36,7 +36,7 @@ func TestExplain_Supported(t *testing.T) {
 		// Shorthands expand to their documented five-field equivalents.
 		{"@daily", "every day at 00:00"},
 		{"@midnight", "every day at 00:00"},
-		{"@hourly", "every hour"},
+		{"@hourly", "every hour starting at 00:00"},
 		{"@weekly", "every sunday at 00:00"},
 		{"@monthly", "on the 1st of every month at 00:00"},
 		{"@yearly", "every year on january 1 at 00:00"},

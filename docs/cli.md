@@ -211,12 +211,42 @@ unaffected; this is the "does it actually work" button.
 
 ## `cron`
 
-Convert to and from crontab format. Cron is an interchange format here, not an
-authoring syntax: these commands read and write it, and nothing else in the tool
-accepts it. `--schedule "0 9 * * 1-5"` is an error, by design.
+Convert strings and crontab data locally. Cron remains a boundary format rather
+than task-authoring syntax: `cron convert` accepts a string for translation, but
+`--schedule "0 9 * * 1-5"` is still an error. First-class cron task input is
+tracked separately in issue #50.
 
 The full guide, including the table of what each direction can and cannot carry,
 is [Cron interoperability](cron.md). In brief:
+
+### `cron convert [--to cron|human] <schedule-string>`
+
+Translate exactly one string in either direction without contacting the daemon
+or changing a task:
+
+```sh
+gosched cron convert "0 9 * * 1-5"
+# weekdays at 09:00
+
+gosched cron convert "weekdays at 09:00"
+# 0 9 * * 1-5
+```
+
+Automatic mode treats `@`-prefixed input and five fields with a cron-shaped
+minute field as cron. Existing human forms such as
+`every 15 minutes from 9am` remain human input. Use `--to cron` to force human
+input or `--to human` to force cron input. Quoting is
+the same in POSIX shells and PowerShell: place a schedule containing spaces in
+single or double quotes so it arrives as one argument.
+
+Default success is exactly one converted line on stdout. Invalid or lossy input
+produces no stdout, a named stderr diagnostic, and exit code 2. With global
+`--json`, success writes the stable conversion object to stdout; refusal writes
+the same five fields (`input_syntax`, `output_syntax`, `input`, `output`, and
+`refusal_reason`) to stderr and still exits 2.
+
+Use `convert` for one pure string, `explain` for a cron expression plus upcoming
+runs, `import` for a crontab file, and `export` for stored tasks.
 
 ### `cron explain <expression>`
 

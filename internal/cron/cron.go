@@ -1,10 +1,9 @@
 // Package cron converts between crontab expressions and this scheduler's
 // human-readable schedule phrases. It exists at the boundary only: cron is an
-// interchange format for import and export, never an authoring syntax. Nothing
-// in this package produces a recurrence directly — an expression becomes the
-// phrase a user would have typed, and that phrase goes through
-// internal/schedule like any other, so a preview cannot disagree with what is
-// stored.
+// interchange and conversion format, never task-authoring syntax. Cron input
+// becomes the phrase a user would have typed before it reaches task creation;
+// human-to-cron conversion parses through internal/schedule and renders only
+// recurrences the five-field dialect can carry faithfully.
 //
 // The parser is written here rather than taken from a dependency because the
 // work is deciding what *cannot* be represented. A scheduling library normalizes
