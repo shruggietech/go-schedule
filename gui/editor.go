@@ -15,6 +15,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/internal/scheduleinput"
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
@@ -138,7 +139,7 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	e.mode = widget.NewSelect([]string{modeRecurring, modeOneOff}, nil)
 
 	e.schedule = widget.NewEntry()
-	e.schedule.SetPlaceHolder(`e.g. "every 15 minutes" or "3rd wednesday monthly at 14:00"`)
+	e.schedule.SetPlaceHolder(`e.g. "every 15 minutes" or "0 9 * * 1-5"`)
 
 	e.startAt = widget.NewEntry()
 	e.startAt.SetPlaceHolder("e.g. 09:00 — aligns the first cycle")
@@ -317,6 +318,7 @@ func (e *taskEditor) rebuildWhen() {
 		if e.existing != nil {
 			schedItem = widget.NewFormItem("Schedule", scheduleRow) // optional on edit (blank = keep)
 		}
+		schedItem.HintText = "Human phrase or supported five-field cron"
 		items = append(items, schedItem)
 		if schedule.IsSubDailyInterval(e.effectiveScheduleRaw()) {
 			startRow := container.NewBorder(nil, nil, nil, nil, e.startAt)
@@ -458,25 +460,26 @@ func (e *taskEditor) updatePreview() {
 		e.schedPreview.SetText("Type a schedule to see upcoming runs")
 		return
 	}
-	if _, err := schedule.Parse(s, e.tzName(), time.Now()); err != nil {
+	input, err := e.recurringInput()
+	if err != nil {
 		e.schedPreview.SetText("⚠ " + cleanScheduleErr(err))
 		return
 	}
 	if e.previewSync {
-		e.fetchSchedulePreview(s)
+		e.fetchSchedulePreview(input)
 		return
 	}
-	go e.fetchSchedulePreview(s)
+	go e.fetchSchedulePreview(input)
 }
 
 // fetchSchedulePreview asks the backend for the human summary and next runs and
 // renders them. Off the UI thread it marshals the update back via fyne.Do; when
 // run synchronously (tests) it writes directly.
-func (e *taskEditor) fetchSchedulePreview(s string) {
+func (e *taskEditor) fetchSchedulePreview(input scheduleinput.Input) {
 	ctx, cancel := e.app.bgCtx()
 	defer cancel()
 	resp, err := e.app.backend.Preview(ctx, server.PreviewRequest{
-		Schedule: s, ScheduleSyntax: "human", Timezone: e.tzName(),
+		Schedule: input.Expression, ScheduleSyntax: string(input.Syntax), Timezone: e.tzName(),
 	})
 	set := func() {
 		if err != nil {
@@ -574,7 +577,7 @@ func (e *taskEditor) valid() bool {
 	if s == "" {
 		return mayKeepExisting
 	}
-	_, err := schedule.Parse(s, e.tzName(), time.Now())
+	_, err := e.recurringInput()
 	return err == nil
 }
 
@@ -588,7 +591,7 @@ func (e *taskEditor) submit() { e.app.submitTask(e.existing, e.buildForm()) }
 func (e *taskEditor) buildForm() taskForm {
 	f := taskForm{
 		name: e.name.Text, command: e.command.Text, args: splitArgs(e.args.Text),
-		tz: e.tzName(), mode: e.mode.Selected, schedule: e.effectiveSchedule(),
+		tz: e.tzName(), mode: e.mode.Selected,
 		overlap:     string(overlapValue(e.overlap.Selected)),
 		catchup:     string(catchupValue(e.catchup.Selected)),
 		missingDate: string(missingDateValue(e.missingDate.Selected)),
@@ -596,6 +599,11 @@ func (e *taskEditor) buildForm() taskForm {
 	if e.mode.Selected == modeOneOff {
 		if t, err := e.oneOffInstant(); err == nil {
 			f.at = t.Format(time.RFC3339)
+		}
+	} else if strings.TrimSpace(e.effectiveSchedule()) != "" {
+		if input, err := e.recurringInput(); err == nil {
+			f.schedule = input.Expression
+			f.scheduleSyntax = string(input.Syntax)
 		}
 	}
 	f.groupID = e.groupIntent()
@@ -635,6 +643,13 @@ func (e *taskEditor) effectiveSchedule() string {
 		return s
 	}
 	return s + " starting at " + at
+}
+
+// recurringInput is the editor's only recurring-input boundary. It delegates
+// syntax selection, normalization, validation, and cron fidelity checks to the
+// same package used by API and CLI authoring paths.
+func (e *taskEditor) recurringInput() (scheduleinput.Input, error) {
+	return scheduleinput.Parse(e.effectiveSchedule(), "", e.tzName(), time.Now())
 }
 
 func (e *taskEditor) oneOffBlank() bool {
@@ -683,7 +698,9 @@ func containsAnchorClause(s string) bool {
 }
 
 func cleanScheduleErr(err error) string {
-	return strings.TrimPrefix(err.Error(), "schedule: ")
+	msg := strings.TrimPrefix(err.Error(), "schedule input: ")
+	msg = strings.TrimPrefix(msg, "parse converted cron: ")
+	return strings.TrimPrefix(msg, "schedule: ")
 }
 
 func sectionHeader(text string) *widget.Label {
@@ -710,8 +727,7 @@ func nonEmptyValidator(field string) func(string) error {
 
 // helpView is the in-modal Help content: a field-by-field guide with examples
 // (FR-004). It replaces the old per-field Examples popup.
-func helpView() fyne.CanvasObject {
-	md := `## Task editor help
+const editorHelpMarkdown = `## Task editor help
 
 **Name** — a label to identify the task. _e.g._ ` + "`nightly-backup`" + `
 
@@ -726,12 +742,17 @@ Schedules are interpreted here; storage is UTC with DST handled.
 
 **Mode** — _Recurring_ fires repeatedly on a Schedule; _One-off_ fires once at a date+time.
 
-**Schedule** _(Recurring)_ — a plain-language phrase:
+**Schedule** _(Recurring)_ — a plain-language phrase (the approachable default):
 - Intervals: ` + "`every 15 minutes`" + `, ` + "`every 30s`" + `, ` + "`every 2 hours`" + `, ` + "`every 3 days`" + `, ` + "`every week`" + `
 - Daily with a time: ` + "`every day at 09:00`" + `
 - Weekday/weekend sets: ` + "`weekdays at 9:00 AM`" + `, ` + "`weekends at 18:00`" + `
 - A single weekday: ` + "`every monday at 9am`" + `
 - Monthly ordinals: ` + "`3rd wednesday monthly at 14:00`" + `, ` + "`last friday of the month`" + `
+
+The same field also accepts supported five-field cron, such as ` + "`0 9 * * 1-5`" + `.
+Cron-shaped input is validated as cron without falling back to a human phrase. See the
+[cron fidelity guide](https://shruggietech.github.io/go-schedule/cron/#fidelity)
+(` + "`docs/cron.md#fidelity`" + ` in the repository) for the supported boundary.
 
 **Start at** _(sub-daily intervals)_ — aligns the first cycle. ` + "`every 15 minutes`" + ` with
 Start at ` + "`09:00`" + ` runs at :00/:15/:30/:45. You can also type it inline:
@@ -744,7 +765,9 @@ button to choose the date.
 _Skip this run_, or _Allow concurrent runs_.
 
 **Catch-up** — after downtime: _Run once to catch up_ (default) or _Skip missed runs_.`
-	r := widget.NewRichTextFromMarkdown(md)
+
+func helpView() fyne.CanvasObject {
+	r := widget.NewRichTextFromMarkdown(editorHelpMarkdown)
 	r.Wrapping = fyne.TextWrapWord
 	return container.NewVScroll(r)
 }
@@ -752,7 +775,7 @@ _Skip this run_, or _Allow concurrent runs_.
 // taskForm carries the submitted values from the editor to submitTask.
 type taskForm struct {
 	name, command, tz, mode, schedule, at, overlap, catchup string
-	missingDate                                             string
+	missingDate, scheduleSyntax                             string
 	args                                                    []string
 	// groupID carries the three-way membership intent: nil leaves it unchanged,
 	// a pointer to "" removes the task from its group, and a pointer to an id
@@ -785,7 +808,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 				req.At = atPtr
 			} else {
 				req.Schedule = f.schedule
-				req.ScheduleSyntax = "human"
+				req.ScheduleSyntax = f.scheduleSyntax
 			}
 			_, err := a.backend.CreateTask(ctx, req)
 			return err
@@ -800,7 +823,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 		} else {
 			req.Schedule = f.schedule
 			if f.schedule != "" {
-				req.ScheduleSyntax = "human"
+				req.ScheduleSyntax = f.scheduleSyntax
 			}
 		}
 		_, err := a.backend.UpdateTask(ctx, existing.ID, req)

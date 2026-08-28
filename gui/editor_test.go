@@ -170,11 +170,96 @@ func TestEditor_EmptyScheduleShowsGuidance(t *testing.T) {
 	}
 }
 
-func TestEditor_PreviewExplicitlySelectsHumanSyntax(t *testing.T) {
+func TestEditor_PreviewSelectsHumanSyntax(t *testing.T) {
 	e, fb := newTestEditor(t, nil)
-	e.fetchSchedulePreview("every day at 09:00")
+	e.schedule.SetText("every day at 09:00")
 	if _, req := fb.lastPreviewCall(); req.ScheduleSyntax != "human" {
 		t.Fatalf("preview ScheduleSyntax = %q, want human", req.ScheduleSyntax)
+	}
+}
+
+func TestEditor_CronPreviewAndCreateRetainSource(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.name.SetText("weekday-cron")
+	e.command.SetText("cmd")
+	e.schedule.SetText("  0 9 * * 1-5  ")
+
+	if e.save.Disabled() {
+		t.Fatal("Save should be enabled for supported cron")
+	}
+	if _, req := fb.lastPreviewCall(); req.Schedule != "0 9 * * 1-5" || req.ScheduleSyntax != "cron" {
+		t.Fatalf("preview request = %+v, want retained normalized cron input", req)
+	}
+
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, req := fb.lastCreateCall(); req.Schedule != "0 9 * * 1-5" || req.ScheduleSyntax != "cron" {
+		t.Fatalf("create request = %+v, want retained normalized cron input", req)
+	}
+}
+
+func TestEditor_FiveWordHumanInputRemainsHuman(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.schedule.SetText("3rd wednesday monthly at 14:00")
+
+	if _, req := fb.lastPreviewCall(); req.ScheduleSyntax != "human" {
+		t.Fatalf("preview ScheduleSyntax = %q, want human", req.ScheduleSyntax)
+	}
+}
+
+func TestEditor_InvalidOrRefusedCronDisablesSaveWithoutPreview(t *testing.T) {
+	for _, tc := range []struct {
+		name, input, reason string
+	}{
+		{name: "invalid field", input: "61 9 * * *", reason: "minute"},
+		{name: "fidelity refusal", input: "0 9 1 * 1", reason: "either"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, fb := newTestEditor(t, nil)
+			e.name.SetText("invalid-cron")
+			e.command.SetText("cmd")
+			before, _ := fb.lastPreviewCall()
+			e.schedule.SetText(tc.input)
+
+			if !e.save.Disabled() {
+				t.Fatal("Save should stay disabled for invalid or refused cron")
+			}
+			if !strings.Contains(strings.ToLower(e.schedPreview.Text), tc.reason) {
+				t.Fatalf("preview error = %q, want named reason %q", e.schedPreview.Text, tc.reason)
+			}
+			if after, _ := fb.lastPreviewCall(); after != before {
+				t.Fatalf("backend previews changed from %d to %d for refused local input", before, after)
+			}
+		})
+	}
+}
+
+func TestEditor_OneOffSubmissionOmitsRecurringSyntax(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.name.SetText("once")
+	e.command.SetText("cmd")
+	e.schedule.SetText("0 9 * * 1-5")
+	e.mode.SetSelected(modeOneOff)
+	e.oneOffDate.SetText("2099-01-01")
+	e.oneOffTime.SetText("09:00")
+
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, req := fb.lastCreateCall(); req.Schedule != "" || req.ScheduleSyntax != "" || req.At == nil {
+		t.Fatalf("one-off create = %+v, want At only", req)
+	}
+}
+
+func TestEditor_HelpDocumentsDualSyntax(t *testing.T) {
+	for _, want := range []string{
+		"plain-language phrase",
+		"five-field cron",
+		"0 9 * * 1-5",
+		"docs/cron.md#fidelity",
+	} {
+		if !strings.Contains(editorHelpMarkdown, want) {
+			t.Errorf("editor help missing %q", want)
+		}
 	}
 }
 
