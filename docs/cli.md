@@ -98,7 +98,7 @@ required, along with `--command`.
 | `--env` | An environment variable as `KEY=VALUE`. Repeatable. |
 | `--group` | Group ID to file the task under. |
 | `--tz` | IANA timezone, e.g. `America/New_York`. Defaults to the system zone. |
-| `--schedule` | Human-readable recurrence — see the examples below. |
+| `--schedule` | Human-readable recurrence or supported five-field cron expression. |
 | `--at` | One-off run time, RFC 3339. |
 | `--overlap` | `queue_one` (default), `skip`, or `allow_concurrent`. |
 | `--catchup` | `one` (default) or `none`. |
@@ -117,8 +117,9 @@ gosched task add release-announce \
   --at 2026-08-04T09:00:00Z
 ```
 
-The schedule is written the way you would say it. `every 15 minutes`,
-`every weekday at 09:00`, `3rd wednesday monthly at 14:00`, `every day at 02:30`.
+The schedule can be written the way you would say it, such as `every 15
+minutes`, `every weekday at 09:00`, or `3rd wednesday monthly at 14:00`. The
+supported five-field cron subset is also accepted, such as `0 9 * * 1-5`.
 On success the command echoes back how it understood you, and the next few run
 times, so a misreading is visible immediately rather than at 02:30 tomorrow:
 
@@ -211,10 +212,10 @@ unaffected; this is the "does it actually work" button.
 
 ## `cron`
 
-Convert strings and crontab data locally. Cron remains a boundary format rather
-than task-authoring syntax: `cron convert` accepts a string for translation, but
-`--schedule "0 9 * * 1-5"` is still an error. First-class cron task input is
-tracked separately in issue #50.
+Convert strings and crontab data locally. Supported cron can also be supplied to
+`task add` and `task edit` through `--schedule`; invalid or unfaithful forms are
+refused rather than retried as human text. The desktop editor remains
+plain-language only.
 
 The full guide, including the table of what each direction can and cannot carry,
 is [Cron interoperability](cron.md). In brief:

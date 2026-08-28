@@ -170,6 +170,14 @@ func TestEditor_EmptyScheduleShowsGuidance(t *testing.T) {
 	}
 }
 
+func TestEditor_PreviewExplicitlySelectsHumanSyntax(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.fetchSchedulePreview("every day at 09:00")
+	if _, req := fb.lastPreviewCall(); req.ScheduleSyntax != "human" {
+		t.Fatalf("preview ScheduleSyntax = %q, want human", req.ScheduleSyntax)
+	}
+}
+
 // --- 003: Help toggle ----------------------------------------------------
 
 func TestEditor_HelpToggle(t *testing.T) {

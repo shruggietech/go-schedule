@@ -273,3 +273,64 @@ func TestTask_MissingDatePolicyValidation(t *testing.T) {
 		t.Fatalf("update with bad policy: status %d, want 400", rec.Code)
 	}
 }
+
+func TestUpdateTask_DualSyntaxReplacementAndPreservation(t *testing.T) {
+	s := newTestServer(t)
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "dual", Command: "run", Timezone: "UTC", Schedule: "weekdays at 09:00",
+		MissingDatePolicy: "last_valid",
+	})
+	path := "/v1/tasks/" + created.Task.ID
+
+	rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{
+		Schedule: "0 10 * * 1-5", ScheduleSyntax: "cron",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("human to cron: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	cronTask := getTask(t, s, created.Task.ID)
+	if cronTask.Schedule.Expression != "0 10 * * 1-5" || cronTask.Schedule.SourceSyntax != "cron" {
+		t.Fatalf("cron replacement = %+v", cronTask.Schedule)
+	}
+	if cronTask.Task.MissingDatePolicy != domain.MissingDateLastValid {
+		t.Fatalf("policy changed with cron replacement: %q", cronTask.Task.MissingDatePolicy)
+	}
+
+	rec = doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Command: "run-again"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unrelated update: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	preserved := getTask(t, s, created.Task.ID)
+	if preserved.Schedule.ID != cronTask.Schedule.ID || preserved.Schedule.Expression != cronTask.Schedule.Expression {
+		t.Fatalf("omitted schedule replaced recurrence: before=%+v after=%+v", cronTask.Schedule, preserved.Schedule)
+	}
+
+	for _, req := range []TaskUpdateRequest{
+		{Schedule: "every day at 11:00", ScheduleSyntax: "natural"},
+		{Schedule: "61 10 * * *"},
+		{ScheduleSyntax: "cron"},
+	} {
+		rec = doJSON(t, s, http.MethodPatch, path, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("invalid update %+v: status=%d body=%s", req, rec.Code, rec.Body.String())
+		}
+	}
+	afterInvalid := getTask(t, s, created.Task.ID)
+	if afterInvalid.Schedule.ID != cronTask.Schedule.ID || afterInvalid.Schedule.Expression != cronTask.Schedule.Expression {
+		t.Fatalf("invalid update mutated schedule: before=%+v after=%+v", cronTask.Schedule, afterInvalid.Schedule)
+	}
+
+	rec = doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{
+		Schedule: "every day at 11:00", ScheduleSyntax: "human", MissingDatePolicy: "next_valid",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("cron to human: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	humanTask := getTask(t, s, created.Task.ID)
+	if humanTask.Schedule.SourceSyntax != "human" || humanTask.Schedule.Expression != "every day at 11:00" {
+		t.Fatalf("human replacement = %+v", humanTask.Schedule)
+	}
+	if humanTask.Task.MissingDatePolicy != domain.MissingDateNextValid {
+		t.Fatalf("combined policy update = %q", humanTask.Task.MissingDatePolicy)
+	}
+}

@@ -30,11 +30,13 @@ type fakeBackend struct {
 
 	// Updates are recorded under mu: App.run dispatches them on a goroutine, so
 	// a test reading them races the UI unless both sides synchronize.
-	mu         sync.Mutex
-	updated    int
-	lastUpdate server.TaskUpdateRequest
-	lastUpdID  string
-	acked      []string
+	mu          sync.Mutex
+	updated     int
+	lastUpdate  server.TaskUpdateRequest
+	lastUpdID   string
+	previews    int
+	lastPreview server.PreviewRequest
+	acked       []string
 }
 
 // lastUpdateCall returns the recorded update count and the most recent request.
@@ -90,6 +92,11 @@ func (f *fakeBackend) lastCreateCall() (int, server.TaskCreateRequest) {
 	defer f.mu.Unlock()
 	return f.created, f.lastCreate
 }
+func (f *fakeBackend) lastPreviewCall() (int, server.PreviewRequest) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.previews, f.lastPreview
+}
 func (f *fakeBackend) GetTask(_ context.Context, id string) (server.TaskResponse, error) {
 	if f.getTaskErr != nil {
 		return server.TaskResponse{}, f.getTaskErr
@@ -115,7 +122,11 @@ func (f *fakeBackend) UpdateTask(_ context.Context, id string, req server.TaskUp
 func (f *fakeBackend) DeleteTask(context.Context, string) error           { return nil }
 func (f *fakeBackend) SetTaskEnabled(context.Context, string, bool) error { return nil }
 func (f *fakeBackend) RunNow(context.Context, string) error               { return nil }
-func (f *fakeBackend) Preview(context.Context, server.PreviewRequest) (server.PreviewResponse, error) {
+func (f *fakeBackend) Preview(_ context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
+	f.mu.Lock()
+	f.previews++
+	f.lastPreview = req
+	f.mu.Unlock()
 	return server.PreviewResponse{HumanSummary: "Every day at 09:00"}, nil
 }
 func (f *fakeBackend) CreateGroup(context.Context, server.GroupCreateRequest) (domain.Group, error) {

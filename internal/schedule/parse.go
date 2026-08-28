@@ -18,7 +18,8 @@ import (
 type anchorTOD struct{ h, mi int }
 
 // Parse turns a human-readable schedule phrase into a recurring Schedule with an
-// RRULE, anchor, and plain-language summary. It never requires cron syntax.
+// RRULE, anchor, and plain-language summary. Callers accepting multiple source
+// syntaxes must normalize them through internal/scheduleinput first.
 //
 // Supported forms (case-insensitive):
 //

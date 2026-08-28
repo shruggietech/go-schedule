@@ -16,20 +16,19 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-// The cron command group is the project's cron boundary. It converts strings,
-// reads crontabs at import, and writes them at export, but cron is not task
-// authoring syntax: nothing in this file feeds an expression anywhere a phrase
-// is accepted. Every imported expression still goes through the human phrase,
-// so what a preview prints is literally what gets parsed and stored.
+// The cron command group converts strings, reads crontabs at import, and writes
+// them at export. Imported expressions use the API's explicit cron input
+// boundary so their editable source survives while execution remains RRULE
+// based.
 
 func newCronCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cron",
 		Short: "Convert to and from crontab format",
 		Long: "Convert between crontab expressions and this scheduler's schedules.\n\n" +
-			"Cron is supported for local string conversion and as an interchange format:\n" +
-			"expressions can be converted, imported, explained, and exported, but are never\n" +
-			"accepted where task authoring requires a schedule phrase.",
+			"Cron is supported for local string conversion, task input, and interchange:\n" +
+			"expressions can be converted, imported, explained, exported, and supplied to\n" +
+			"task add or edit when they fit the supported cron subset.",
 	}
 	cmd.AddCommand(cronConvert(), cronExplain(), cronImport(), cronExport())
 	return cmd
@@ -103,7 +102,7 @@ func cronExplain() *cobra.Command {
 				out.Unsupported = bad.Reason
 			} else {
 				out.Phrase = phrase
-				runs, rerr := previewRuns(phrase, zone, count)
+				runs, rerr := previewRuns(expr, string(cron.SyntaxCron), zone, count)
 				if rerr != nil {
 					return rerr
 				}
@@ -147,12 +146,14 @@ func printExplain(w io.Writer, r explainResult) {
 	}
 }
 
-// previewRuns asks the daemon what a phrase resolves to, so the times shown come
+// previewRuns asks the daemon what an input resolves to, so the times shown come
 // from the same evaluator that will run the task rather than a second one here.
-func previewRuns(phrase, tz string, count int) ([]time.Time, error) {
+func previewRuns(input, syntax, tz string, count int) ([]time.Time, error) {
 	ctx, cancel := reqCtx()
 	defer cancel()
-	resp, err := newClient().Preview(ctx, server.PreviewRequest{Schedule: phrase, Timezone: tz})
+	resp, err := newClient().Preview(ctx, server.PreviewRequest{
+		Schedule: input, ScheduleSyntax: syntax, Timezone: tz,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -182,10 +183,10 @@ type importOptions struct {
 	timezone string
 	group    string
 	count    int
-	// runs resolves a phrase to its upcoming run times. It is a field so the
+	// runs resolves a typed input to its upcoming run times. It is a field so the
 	// reporting can be exercised without a daemon, and so an unreachable daemon
 	// degrades to a report without run times rather than to no report at all.
-	runs func(phrase, tz string, count int) ([]time.Time, error)
+	runs func(input, syntax, tz string, count int) ([]time.Time, error)
 }
 
 func cronImport() *cobra.Command {
@@ -263,7 +264,7 @@ func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCr
 		case cron.LineJob:
 			fmt.Fprintf(w, "line %d: %s\n  phrase:  %s\n  command: %s\n",
 				line.Number, line.Expr, line.Phrase, commandLine(line))
-			printLineRuns(w, line.Phrase, zone, opts)
+			printLineRuns(w, line.Expr, zone, opts)
 			if creator == nil {
 				continue
 			}
@@ -285,11 +286,11 @@ func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCr
 // something else. An unreachable daemon costs the run times, not the report —
 // the conversion itself is local, and a preview that refused to print because
 // the daemon was down would be useless exactly when it is most wanted.
-func printLineRuns(w io.Writer, phrase, zone string, opts importOptions) {
+func printLineRuns(w io.Writer, expression, zone string, opts importOptions) {
 	if opts.runs == nil || opts.count <= 0 {
 		return
 	}
-	runs, err := opts.runs(phrase, zone, opts.count)
+	runs, err := opts.runs(expression, string(cron.SyntaxCron), zone, opts.count)
 	if err != nil {
 		fmt.Fprintf(w, "  next:    (unavailable: %v)\n", err)
 		return
@@ -307,12 +308,13 @@ func createFromLine(w io.Writer, creator taskCreator, line cron.Line, zone, grou
 	ctx, cancel := reqCtx()
 	defer cancel()
 	resp, err := creator.CreateTask(ctx, server.TaskCreateRequest{
-		Name:     importName(line),
-		Command:  line.Command,
-		Args:     line.Args,
-		GroupID:  group,
-		Timezone: zone,
-		Schedule: line.Phrase,
+		Name:           importName(line),
+		Command:        line.Command,
+		Args:           line.Args,
+		GroupID:        group,
+		Timezone:       zone,
+		Schedule:       line.Expr,
+		ScheduleSyntax: string(cron.SyntaxCron),
 	})
 	if err != nil {
 		rep.Failed++
