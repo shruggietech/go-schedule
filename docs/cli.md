@@ -236,6 +236,12 @@ gosched cron convert "0 9 * * 1-5"
 
 gosched cron convert "weekdays at 09:00"
 # 0 9 * * 1-5
+
+gosched cron convert "0 9 * * 5#3"
+# 3rd friday monthly at 09:00
+
+gosched cron convert "3rd friday monthly at 09:00"
+# 0 9 * * 5#3
 ```
 
 Automatic mode treats `@`-prefixed input and five fields with a cron-shaped
@@ -261,6 +267,7 @@ Creates nothing.
 
 ```sh
 gosched cron explain "0 9 * * 1-5"
+gosched cron explain "0 9 * * 5#3"
 ```
 
 `--timezone` sets the zone the run times are shown in; `--count` how many to
@@ -274,6 +281,10 @@ Read a crontab and create a task per line.
 ```sh
 gosched cron import --file /etc/crontab --dry-run
 ```
+
+A line such as `0 9 * * 5#3 /usr/local/bin/report` previews as the
+third Friday of each month and retains the original cron expression when the
+task is created.
 
 | Flag | Meaning |
 | --- | --- |

@@ -110,7 +110,11 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				"an every-%d-months rule has no cron equivalent", interval)}, false
 		}
 		if len(opt.Byweekday) > 0 {
-			return "", Unsupported{Reason: "an ordinal-weekday rule (\"the 3rd Wednesday\") has no standard cron equivalent"}, false
+			weekday, occurrence, ok := ordinalWeekdayField(opt)
+			if !ok {
+				return "", Unsupported{Reason: "only one positive ordinal weekday from first through fifth has a cron # equivalent"}, false
+			}
+			return fmt.Sprintf("%d %d * * %d#%d", minute, hour, weekday, occurrence), Unsupported{}, true
 		}
 		if len(opt.Bymonthday) != 1 || opt.Bymonthday[0] < 1 {
 			return "", Unsupported{Reason: "only a single, positive day of the month can be expressed as cron"}, false
@@ -129,6 +133,19 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	}
 
 	return "", Unsupported{Reason: "that recurrence has no cron equivalent"}, false
+}
+
+func ordinalWeekdayField(opt *rrule.ROption) (weekday, occurrence int, ok bool) {
+	if len(opt.Byweekday) != 1 || len(opt.Bymonthday) != 0 || len(opt.Bymonth) != 0 ||
+		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 {
+		return 0, 0, false
+	}
+	w := opt.Byweekday[0]
+	occurrence = w.N()
+	if occurrence < 1 || occurrence > 5 {
+		return 0, 0, false
+	}
+	return (w.Day() + 1) % 7, occurrence, true
 }
 
 func calendarAnchorRefusal(sch domain.Schedule, opt *rrule.ROption) string {

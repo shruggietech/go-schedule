@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -141,16 +142,6 @@ func TestExport_Declines(t *testing.T) {
 		}
 	})
 
-	t.Run("ordinal weekday", func(t *testing.T) {
-		task, sch, err := taskFor("3rd wednesday monthly at 14:00")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, _, ok := Export(task, sch); ok {
-			t.Fatal("Export produced a line for an ordinal-weekday rule")
-		}
-	})
-
 	t.Run("non-default missing-date policy", func(t *testing.T) {
 		task, sch, err := taskFor("on the 31st of every month at 09:00")
 		if err != nil {
@@ -221,6 +212,71 @@ func TestExport_Declines(t *testing.T) {
 	})
 }
 
+func TestExport_OrdinalWeekdayMatrixAndPolicies(t *testing.T) {
+	days := []string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
+	cronDays := []int{1, 2, 3, 4, 5, 6, 0}
+	for i, day := range days {
+		for occurrence := 1; occurrence <= 5; occurrence++ {
+			phrase := fmt.Sprintf("%s %s monthly at 14:30", ordinal(occurrence), day)
+			task, sch, err := taskFor(phrase)
+			if err != nil {
+				t.Fatal(err)
+			}
+			task.MissingDatePolicy = domain.MissingDateSkip
+			got, bad, ok := Export(task, sch)
+			want := fmt.Sprintf("30 14 * * %d#%d", cronDays[i], occurrence)
+			if !ok || got != want {
+				t.Errorf("Export(%q) = %q, refusal=%q; want %q", phrase, got, bad.Reason, want)
+			}
+		}
+	}
+
+	for occurrence := 1; occurrence <= 4; occurrence++ {
+		task, sch, err := taskFor(fmt.Sprintf("%s monday monthly at 09:00", ordinal(occurrence)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		task.MissingDatePolicy = domain.MissingDateLastValid
+		if _, bad, ok := Export(task, sch); !ok {
+			t.Errorf("%s Monday refused although policy is inert: %s", ordinal(occurrence), bad.Reason)
+		}
+	}
+
+	for _, policy := range []domain.MissingDatePolicy{domain.MissingDateLastValid, domain.MissingDateNextValid} {
+		task, sch, err := taskFor("5th monday monthly at 09:00")
+		if err != nil {
+			t.Fatal(err)
+		}
+		task.MissingDatePolicy = policy
+		if _, bad, ok := Export(task, sch); ok || !strings.Contains(bad.Reason, "missing-date policy") {
+			t.Errorf("fifth Monday policy %q = ok:%v refusal:%q", policy, ok, bad.Reason)
+		}
+	}
+
+	task, sch, err := taskFor("last monday monthly at 09:00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, ok := Export(task, sch); ok {
+		t.Fatal("last weekday exported through the numbered-occurrence subset")
+	}
+}
+
+func TestExport_OrdinalWeekdaySelectorBoundary(t *testing.T) {
+	anchor := exportAnchor
+	for _, rule := range []string{
+		"FREQ=MONTHLY;BYDAY=MO,TU;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=WE;BYSETPOS=3;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=+3WE;BYMONTH=1;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		"FREQ=MONTHLY;BYDAY=+3WE;BYMONTHDAY=15;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+	} {
+		sch := domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: rule, Anchor: &anchor}
+		if _, bad, ok := ExportSchedule(sch, domain.MissingDateSkip); ok || !strings.Contains(bad.Reason, "only one positive ordinal weekday") {
+			t.Errorf("ExportSchedule(%q) = ok:%v refusal:%q", rule, ok, bad.Reason)
+		}
+	}
+}
+
 // TestRoundTrip_CrossesDSTAndMonthBoundary is FR-013 / SC-003, the strengthening
 // the issue asked for: cron → phrase → schedule → cron, with the resulting
 // expression producing the same run times as the original over a window spanning
@@ -280,5 +336,42 @@ func TestRoundTrip_CrossesDSTAndMonthBoundary(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRoundTrip_FifthWeekdaySkipsAbsentMonthsAcrossDST(t *testing.T) {
+	const tz = "America/New_York"
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	phrase, bad, err := Explain("30 2 * * 5#5")
+	if err != nil || bad.Reason != "" {
+		t.Fatalf("Explain: err=%v refusal=%q", err, bad.Reason)
+	}
+	original, err := schedule.Parse(phrase, tz, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := domain.Task{Enabled: true, State: domain.TaskActive, Timezone: tz, MissingDatePolicy: domain.MissingDateSkip}
+	back, bad, ok := Export(task, original)
+	if !ok || back != "30 2 * * 5#5" {
+		t.Fatalf("Export = %q, refusal=%q", back, bad.Reason)
+	}
+	phrase2, bad, err := Explain(back)
+	if err != nil || bad.Reason != "" {
+		t.Fatalf("Explain after export: err=%v refusal=%q", err, bad.Reason)
+	}
+	roundTrip, err := schedule.Parse(phrase2, tz, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := runsBetween(t, original, tz, start, end)
+	b := runsBetween(t, roundTrip, tz, start, end)
+	if len(a) != 2 || len(b) != len(a) {
+		t.Fatalf("runs = %v / %v; want January and May only", a, b)
+	}
+	for i := range a {
+		if !a[i].Equal(b[i]) {
+			t.Fatalf("run %d changed: %v -> %v", i, a[i], b[i])
+		}
 	}
 }

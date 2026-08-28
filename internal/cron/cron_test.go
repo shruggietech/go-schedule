@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -29,6 +30,9 @@ func TestExplain_Supported(t *testing.T) {
 		{"0 10 * * 0,6", "weekends at 10:00"},
 		{"0 14 * * 3", "every wednesday at 14:00"},
 		{"0 14 * * WED", "every wednesday at 14:00"},
+		{"0 9 * * 5#3", "3rd friday monthly at 09:00"},
+		{"30 14 * * WED#2", "2nd wednesday monthly at 14:30"},
+		{"0 8 * * 7#1", "1st sunday monthly at 08:00"},
 		{"0 9 1 * *", "on the 1st of every month at 09:00"},
 		{"0 9 31 * *", "on the 31st of every month at 09:00"},
 		{"0 0 29 2 *", "every year on february 29 at 00:00"},
@@ -74,7 +78,12 @@ func TestExplain_Declines(t *testing.T) {
 		{"0 0 * * * *", "six-field"},
 		{"0 0 L * *", "L"},
 		{"0 0 15W * *", "W"},
-		{"0 0 * * 5#3", "#"},
+		{"0 0 * JAN 5#3", "month"},
+		{"0 0 1 * 5#3", "either"},
+		{"0 0 * * 5#3,2#4", "one weekday"},
+		{"0 0 * * 1-5#3", "one weekday"},
+		{"0 0 * * 5#3/2", "one weekday"},
+		{"0#2 0 * * *", "#"},
 		{"*/7 * * * *", "does not divide the hour evenly"},
 		{"0 */7 * * *", "does not divide the day evenly"},
 		{"0 0 13 * 5", "either"},
@@ -103,6 +112,26 @@ func TestExplain_Declines(t *testing.T) {
 	}
 }
 
+func TestExplain_OrdinalWeekdayMatrix(t *testing.T) {
+	days := []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
+	for day, name := range days {
+		for occurrence := 1; occurrence <= 5; occurrence++ {
+			expr := fmt.Sprintf("0 9 * * %d#%d", day, occurrence)
+			want := fmt.Sprintf("%s %s monthly at 09:00", ordinal(occurrence), name)
+			phrase, bad, err := Explain(expr)
+			if err != nil || bad.Reason != "" || phrase != want {
+				t.Errorf("Explain(%q) = %q, refusal=%q, err=%v; want %q", expr, phrase, bad.Reason, err, want)
+			}
+		}
+	}
+	for _, expr := range []string{"0 9 * * 0#2", "0 9 * * 7#2", "0 9 * * SUN#2", "0 9 * * sunday#2"} {
+		phrase, bad, err := Explain(expr)
+		if err != nil || bad.Reason != "" || phrase != "2nd sunday monthly at 09:00" {
+			t.Errorf("Explain(%q) = %q, refusal=%q, err=%v", expr, phrase, bad.Reason, err)
+		}
+	}
+}
+
 func TestParse_CalendarWildcardStepOneRemainsUnrestricted(t *testing.T) {
 	for _, expr := range []string{"0 9 */1 * *", "0 9 * */1 *", "0 9 * * */1"} {
 		t.Run(expr, func(t *testing.T) {
@@ -121,6 +150,8 @@ func TestParse_Malformed(t *testing.T) {
 		"", "0 9 * *", "0 9 * * * * *", "@nonsense",
 		"99 * * * *", "0 99 * * *", "0 9 32 * *", "0 9 * 13 *",
 		"0 9 * * smarch", "*/0 * * * *", "5-1 * * * *",
+		"0 9 * * #3", "0 9 * * 5#", "0 9 * * 5#0", "0 9 * * 5#6",
+		"0 9 * * 5#third", "0 9 * * 5#3#2",
 	} {
 		t.Run(expr, func(t *testing.T) {
 			if _, err := Parse(expr); err == nil {
@@ -146,6 +177,8 @@ func TestExplain_RunTimesMatchCron(t *testing.T) {
 		{"0 14 * * 3", base, time.Date(2026, 6, 3, 14, 0, 0, 0, time.UTC)},
 		{"0 9 1 * *", time.Date(2026, 6, 1, 10, 0, 0, 0, time.UTC), time.Date(2026, 7, 1, 9, 0, 0, 0, time.UTC)},
 		{"0 0 4 7 *", base, time.Date(2026, 7, 4, 0, 0, 0, 0, time.UTC)},
+		{"0 9 * * 5#3", base, time.Date(2026, 6, 19, 9, 0, 0, 0, time.UTC)},
+		{"0 9 * * 1#5", base, time.Date(2026, 6, 29, 9, 0, 0, 0, time.UTC)},
 	}
 	for _, c := range cases {
 		t.Run(c.expr, func(t *testing.T) {
