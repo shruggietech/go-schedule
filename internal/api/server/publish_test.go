@@ -19,7 +19,7 @@ func newBrokerServer(t *testing.T) (*Server, *events.Broker) {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	broker := events.NewBroker()
-	s := New(st, nil, broker, nil, config.NewLogger(config.Default(), discard{}))
+	s := New(st, nil, broker, nil, "", config.NewLogger(config.Default(), discard{}))
 	return s, broker
 }
 

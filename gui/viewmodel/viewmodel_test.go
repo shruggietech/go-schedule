@@ -4,15 +4,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 type fakeAPI struct {
-	tasks  []domain.Task
-	groups []domain.Group
-	alerts []domain.Alert
-	logs   []domain.LogRecord
+	tasks   []domain.Task
+	groups  []domain.Group
+	alerts  []domain.Alert
+	logs    []domain.LogRecord
+	logPath string
 }
 
 func (f *fakeAPI) ListTasks(context.Context, string, string) ([]domain.Task, error) {
@@ -20,8 +22,8 @@ func (f *fakeAPI) ListTasks(context.Context, string, string) ([]domain.Task, err
 }
 func (f *fakeAPI) ListGroups(context.Context) ([]domain.Group, error)       { return f.groups, nil }
 func (f *fakeAPI) ListAlerts(context.Context, bool) ([]domain.Alert, error) { return f.alerts, nil }
-func (f *fakeAPI) ListLogs(context.Context, string, int) ([]domain.LogRecord, error) {
-	return f.logs, nil
+func (f *fakeAPI) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
+	return server.LogsResponse{Logs: f.logs, LogPath: f.logPath}, nil
 }
 
 func TestRefresh_LoadsState(t *testing.T) {
@@ -114,12 +116,22 @@ func TestApplyEvent_GroupUpsertAndRemove(t *testing.T) {
 }
 
 func TestRefresh_LoadsLogs(t *testing.T) {
-	m := New(&fakeAPI{logs: []domain.LogRecord{{ID: "x", Message: "hi"}}})
+	m := New(&fakeAPI{
+		logs:    []domain.LogRecord{{ID: "x", Message: "hi"}},
+		logPath: `C:\Schedule Data\日志\goschedule.log`,
+	})
 	if err := m.Refresh(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	if got := m.Snapshot().Logs; len(got) != 1 || got[0].ID != "x" {
 		t.Fatalf("logs not loaded on refresh: %+v", got)
+	}
+	if got := m.Snapshot().LogPath; got != `C:\Schedule Data\日志\goschedule.log` {
+		t.Fatalf("log path = %q", got)
+	}
+	m.ApplyEvent(events.Event{Kind: events.KindLog, Log: &domain.LogRecord{ID: "y"}})
+	if got := m.Snapshot().LogPath; got != `C:\Schedule Data\日志\goschedule.log` {
+		t.Fatalf("live event changed log path to %q", got)
 	}
 }
 

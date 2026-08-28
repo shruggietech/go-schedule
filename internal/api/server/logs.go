@@ -10,7 +10,8 @@ import (
 
 // LogsResponse is returned by GET /v1/logs.
 type LogsResponse struct {
-	Logs []domain.LogRecord `json:"logs"`
+	Logs    []domain.LogRecord `json:"logs"`
+	LogPath string             `json:"log_path"`
 }
 
 // handleListLogs returns recent log records from the in-memory ring, newest
@@ -18,7 +19,7 @@ type LogsResponse struct {
 // (RFC3339).
 func (s *Server) handleListLogs(w http.ResponseWriter, r *http.Request) {
 	if s.logs == nil {
-		writeJSON(w, http.StatusOK, LogsResponse{Logs: []domain.LogRecord{}})
+		writeJSON(w, http.StatusOK, LogsResponse{Logs: []domain.LogRecord{}, LogPath: s.logPath})
 		return
 	}
 
@@ -63,5 +64,5 @@ func (s *Server) handleListLogs(w http.ResponseWriter, r *http.Request) {
 	if recs == nil {
 		recs = []domain.LogRecord{}
 	}
-	writeJSON(w, http.StatusOK, LogsResponse{Logs: recs})
+	writeJSON(w, http.StatusOK, LogsResponse{Logs: recs, LogPath: s.logPath})
 }

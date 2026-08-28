@@ -68,6 +68,69 @@ func TestUI_ActivityTabBuilds(t *testing.T) {
 	}
 }
 
+func TestActivityDiagnosticsText(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{name: "Windows path", path: `C:\Schedule Data\日志\goschedule.log`, want: `Full daemon log: C:\Schedule Data\日志\goschedule.log`},
+		{name: "custom path", path: `/var/lib/go schedule/activity.jsonl`, want: `Full daemon log: /var/lib/go schedule/activity.jsonl`},
+		{name: "unavailable", want: "Full daemon log: unavailable until daemon responds."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := activityDiagnosticsText(tt.path)
+			for _, phrase := range []string{"limited set", "recent daemon log records", "older daemon records", tt.want} {
+				if !strings.Contains(got, phrase) {
+					t.Errorf("diagnostics %q does not contain %q", got, phrase)
+				}
+			}
+		})
+	}
+}
+
+func TestUI_ActivityDiagnosticsRefreshesExactPath(t *testing.T) {
+	want := `C:\Schedule Data\日志\goschedule.log`
+	ui := NewUI(testApp, &fakeBackend{logPath: want})
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if got := findLabelText(ui.logsTab.Content, "Full daemon log:"); !strings.Contains(got, want) {
+		t.Fatalf("Activity diagnostics = %q, want exact path %q", got, want)
+	}
+}
+
+func TestUI_ActivityDiagnosticsInitiallyUnavailable(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	if got := findLabelText(ui.logsTab.Content, "Full daemon log:"); !strings.Contains(got, "unavailable until daemon responds") {
+		t.Fatalf("initial Activity diagnostics = %q", got)
+	}
+}
+
+func findLabelText(root fyne.CanvasObject, prefix string) string {
+	var found string
+	var walk func(fyne.CanvasObject)
+	walk = func(o fyne.CanvasObject) {
+		switch w := o.(type) {
+		case *widget.Label:
+			if strings.Contains(w.Text, prefix) {
+				found = w.Text
+			}
+		case *fyne.Container:
+			for _, child := range w.Objects {
+				walk(child)
+			}
+		}
+	}
+	walk(root)
+	return found
+}
+
 func TestUI_ActivityClearControlExplainsNonDestructiveBehavior(t *testing.T) {
 	backend := &fakeBackend{alerts: []domain.Alert{{
 		ID: "visible-alert", CreatedAt: time.Now(), Severity: domain.SeverityWarning,

@@ -353,7 +353,8 @@ that never started has no exit code, and printing `0` for it would be a lie.
 
 ## `logs`
 
-The unified log view: daemon and task activity in one place.
+The CLI returns a bounded set of recent daemon records. Scheduler alerts appear
+alongside those records in the desktop GUI's Activity view.
 
 ```sh
 gosched logs
@@ -365,8 +366,10 @@ gosched logs --severity error --limit 200
 | `--severity` | `info`, `warning`, or `error`. | all |
 | `--limit` | Maximum rows. | `100` |
 
-Logs are also written to disk and shown live in the GUI's Activity view. Their
-on-disk location is in each platform's install guide.
+The Activity view identifies itself as a limited recent view and displays the
+exact configured path to the daemon's complete rotating JSONL log. Platform
+install guides list the default locations, but `log_file_path` overrides them;
+the path reported in Activity is authoritative for the running daemon.
 
 ## `service`
 
@@ -416,5 +419,5 @@ looked in.
 ## Deprecated: `alerts`
 
 `gosched alerts` and `gosched alerts ack <id>` still work but are deprecated and
-hidden from `--help`. Alerts were folded into the unified log view; use
+hidden from `--help`. Alerts were folded into the unified Activity view; use
 [`logs`](#logs) instead. They will be removed in a future release.

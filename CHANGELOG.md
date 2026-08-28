@@ -63,6 +63,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Activity diagnostics now lead operators to the complete daemon log (closes
+  #27 and #31).** Activity explicitly describes its records as a limited recent
+  view and displays the daemon's exact configured rotating-log path, including
+  a truthful unavailable state before metadata arrives. The daemon now emits
+  one `daemon startup complete` record with structured `endpoint`, `db`, and
+  `log_path` fields, while CLI log output remains compatible.
 - **Pinned documentation policy - `scripts/docs-check.sh` (2026-08-28).** The
   offline docs gate now runs a bounded current-surface policy check plus generated
   acceptance and rejection fixtures. It rejects targeted obsolete human-only

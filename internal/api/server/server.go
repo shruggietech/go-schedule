@@ -23,18 +23,19 @@ type Scheduler interface {
 
 // Server holds dependencies and the route mux.
 type Server struct {
-	store  *store.Store
-	sched  Scheduler
-	broker *events.Broker
-	logs   *logbus.Ring
-	log    *slog.Logger
-	mux    *http.ServeMux
+	store   *store.Store
+	sched   Scheduler
+	broker  *events.Broker
+	logs    *logbus.Ring
+	logPath string
+	log     *slog.Logger
+	mux     *http.ServeMux
 }
 
 // New constructs a Server and registers routes. sched, broker, and logs may be
 // nil (e.g. in tests that exercise only persistence-backed endpoints).
-func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, log *slog.Logger) *Server {
-	s := &Server{store: st, sched: sched, broker: broker, logs: logs, log: log, mux: http.NewServeMux()}
+func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, log *slog.Logger) *Server {
+	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, log: log, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
