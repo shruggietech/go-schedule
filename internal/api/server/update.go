@@ -39,6 +39,9 @@ type TaskUpdateRequest struct {
 	// the policy alone and vice versa, because the policy states the operator's
 	// intent for calendar anomalies rather than anything about the phrase.
 	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
+	TimeBasis         string `json:"time_basis,omitempty"`
+	DSTGapPolicy      string `json:"dst_gap_policy,omitempty"`
+	DSTOverlapPolicy  string `json:"dst_overlap_policy,omitempty"`
 }
 
 func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
@@ -128,6 +131,30 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		}
 		task.MissingDatePolicy = m
 	}
+	if req.TimeBasis != "" {
+		p := domain.TimeBasis(req.TimeBasis)
+		if !validTimeBasis(p) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", "invalid policy")
+			return
+		}
+		task.TimeBasis = p
+	}
+	if req.DSTGapPolicy != "" {
+		p := domain.DSTGapPolicy(req.DSTGapPolicy)
+		if !validDSTGap(p) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "dst_gap_policy", "invalid policy")
+			return
+		}
+		task.DSTGapPolicy = p
+	}
+	if req.DSTOverlapPolicy != "" {
+		p := domain.DSTOverlapPolicy(req.DSTOverlapPolicy)
+		if !validDSTOverlap(p) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "dst_overlap_policy", "invalid policy")
+			return
+		}
+		task.DSTOverlapPolicy = p
+	}
 
 	// Optional schedule replacement.
 	var sch domain.Schedule
@@ -151,6 +178,10 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		sch = input.Schedule
 	}
 	if sch.Kind != "" {
+		if err := schedule.ValidatePolicy(sch, task.SchedulePolicy()); err != nil {
+			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+			return
+		}
 		if err := s.store.CreateSchedule(&sch); err != nil {
 			s.internal(w, err)
 			return
@@ -164,6 +195,10 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		sch, err = s.store.GetSchedule(task.ScheduleID)
 		if err != nil {
 			s.internal(w, err)
+			return
+		}
+		if err := schedule.ValidatePolicy(sch, task.SchedulePolicy()); err != nil {
+			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 			return
 		}
 	}

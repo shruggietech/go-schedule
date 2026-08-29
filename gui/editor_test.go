@@ -391,6 +391,9 @@ func TestEditor_AdvancedLabelsMapToWire(t *testing.T) {
 	e.schedule.SetText("every 15 minutes")
 	e.overlap.SetSelected("Allow concurrent runs")
 	e.catchup.SetSelected("Skip missed runs")
+	e.timeBasis.SetSelected(timeBasisLabel(domain.TimeBasisElapsed))
+	e.dstGap.SetSelected(dstGapLabel(domain.DSTGapSkip))
+	e.dstOverlap.SetSelected(dstOverlapLabel(domain.DSTOverlapBoth))
 
 	f := e.buildForm()
 	if f.overlap != string(domain.OverlapAllowConcurrent) {
@@ -398,6 +401,9 @@ func TestEditor_AdvancedLabelsMapToWire(t *testing.T) {
 	}
 	if f.catchup != string(domain.CatchupNone) {
 		t.Fatalf("catchup wire = %q, want %q", f.catchup, domain.CatchupNone)
+	}
+	if f.timeBasis != string(domain.TimeBasisElapsed) || f.dstGap != string(domain.DSTGapSkip) || f.dstOverlap != string(domain.DSTOverlapBoth) {
+		t.Fatalf("DST policy wire = %q/%q/%q", f.timeBasis, f.dstGap, f.dstOverlap)
 	}
 }
 

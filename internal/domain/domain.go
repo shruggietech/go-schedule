@@ -56,6 +56,60 @@ const (
 	MissingDateNextValid MissingDatePolicy = "next_valid"
 )
 
+// TimeBasis controls which clock gives recurrence fields their meaning.
+type TimeBasis string
+
+const (
+	TimeBasisWallClock TimeBasis = "wall_clock"
+	TimeBasisElapsed   TimeBasis = "elapsed"
+	TimeBasisUTC       TimeBasis = "utc"
+)
+
+// DSTGapPolicy controls a wall-clock occurrence whose local reading does not
+// exist because the UTC offset moves forward.
+type DSTGapPolicy string
+
+const (
+	DSTGapNextValid DSTGapPolicy = "next_valid"
+	DSTGapSkip      DSTGapPolicy = "skip"
+)
+
+// DSTOverlapPolicy controls a wall-clock occurrence whose local reading maps
+// to two concrete instants because the UTC offset moves backward.
+type DSTOverlapPolicy string
+
+const (
+	DSTOverlapFirst DSTOverlapPolicy = "first"
+	DSTOverlapBoth  DSTOverlapPolicy = "both"
+	DSTOverlapLast  DSTOverlapPolicy = "last"
+)
+
+// SchedulePolicy is the complete task-level calendar anomaly contract passed
+// to every occurrence-producing path.
+type SchedulePolicy struct {
+	MissingDate MissingDatePolicy
+	TimeBasis   TimeBasis
+	DSTGap      DSTGapPolicy
+	DSTOverlap  DSTOverlapPolicy
+}
+
+// Effective returns p with compatibility defaults substituted for zero values.
+func (p SchedulePolicy) Effective() SchedulePolicy {
+	if p.MissingDate == "" {
+		p.MissingDate = MissingDateSkip
+	}
+	if p.TimeBasis == "" {
+		p.TimeBasis = TimeBasisWallClock
+	}
+	if p.DSTGap == "" {
+		p.DSTGap = DSTGapNextValid
+	}
+	if p.DSTOverlap == "" {
+		p.DSTOverlap = DSTOverlapFirst
+	}
+	return p
+}
+
 // ScheduleKind distinguishes the timing model of a Schedule.
 type ScheduleKind string
 
@@ -147,9 +201,22 @@ type Task struct {
 	// schedule-borne policy would silently reset to the default on an unrelated
 	// edit, changing run times without the operator asking.
 	MissingDatePolicy MissingDatePolicy `json:"missing_date_policy"`
+	TimeBasis         TimeBasis         `json:"time_basis"`
+	DSTGapPolicy      DSTGapPolicy      `json:"dst_gap_policy"`
+	DSTOverlapPolicy  DSTOverlapPolicy  `json:"dst_overlap_policy"`
 	State             TaskState         `json:"state"`
 	CreatedAt         time.Time         `json:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at"`
+}
+
+// SchedulePolicy returns the task's effective recurrence policy set.
+func (t Task) SchedulePolicy() SchedulePolicy {
+	return (SchedulePolicy{
+		MissingDate: t.MissingDatePolicy,
+		TimeBasis:   t.TimeBasis,
+		DSTGap:      t.DSTGapPolicy,
+		DSTOverlap:  t.DSTOverlapPolicy,
+	}).Effective()
 }
 
 // Schedule is the timing definition for a task. Exactly one of (RRULE+Anchor),

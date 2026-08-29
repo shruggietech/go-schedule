@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tasks now state their DST scheduling intent end to end (Closes #8).** Each
+  task can follow local wall-clock readings, fixed elapsed intervals, or UTC
+  readings, with per-task spring-gap `next_valid`/`skip` and fall-overlap
+  `first`/`both`/`last` choices. Compatibility defaults preserve existing
+  behavior. Schema v7, API, CLI, desktop Advanced Settings, live preview,
+  detail, calendar, catch-up, restart, dispatch, and real IANA transition tests
+  share one policy-aware evaluator. Elapsed mode refuses calendar shapes that
+  do not have a fixed duration instead of approximating them.
 - **Standard five-field cron combinations now run faithfully end to end (Refs
   #22).** Lists, ranges, wildcard and range steps, names, arbitrary weekday
   sets, and safe cross-field restrictions now share exact parsing, preview,
@@ -221,6 +229,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-29 - Treat five/seven-hour transition gaps as wall-clock behavior,
+  not an interval defect.** A six-hour local cycle remains six clock hours apart
+  when the UTC offset changes, so its elapsed gap is legitimately five or seven
+  hours. S027 deliberately corrects issue #8's defect classification without
+  changing stored tasks: `wall_clock` remains the default, while explicit
+  `elapsed` supplies exact-duration intent. UTC remains a distinct calendar
+  basis, and elapsed rejects variable calendar periods rather than inventing a
+  duration.
 - **2026-08-28 - Keep one GUI Schedule field with shared syntax selection.** A
   syntax selector or cached response identity could disagree with edited text,
   so validation, preview, and save classify the current field through the S019

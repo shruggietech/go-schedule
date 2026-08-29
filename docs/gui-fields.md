@@ -15,7 +15,8 @@ CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com
 
 The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run**
 (Name, Command, Arguments), **When** (Timezone, Mode, the relevant time field), and a collapsible
-**Advanced Settings** (Overlap, Catch-up, Missing dates) that starts closed — its disclosure arrow points ▶ when
+**Advanced Settings** (Overlap, Catch-up, Missing dates, Time basis, Spring gap,
+Fall overlap) that starts closed - its disclosure arrow points ▶ when
 collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a
 **Help** button that swaps it to a field-by-field guide (and back). Required fields are marked with
 a `*`, and the **Save** button (bottom-right, next to **Cancel**) stays disabled until every
@@ -38,6 +39,9 @@ before discarding.
 | **Overlap** *(Advanced)* | no | Queue one run · Skip this run · Allow concurrent runs | Queue one run |
 | **Catch-up** *(Advanced)* | no | Run once to catch up · Skip missed runs | Run once to catch up |
 | **Missing dates** *(Advanced)* | no | Skip that period · Use the last valid date · Roll into the next period | Skip that period |
+| **Time basis** *(Advanced)* | no | Local wall clock · Fixed elapsed time · UTC clock | Local wall clock |
+| **Spring gap** *(Advanced)* | no | Run at the next valid time · Skip that occurrence | Run at the next valid time |
+| **Fall overlap** *(Advanced)* | no | First occurrence · Both occurrences · Last occurrence | First occurrence |
 
 **Mode decides which time field is shown.** In `Recurring` mode the **Schedule** (and optional
 **Start at**) field is shown and the one-off inputs are hidden; in `One-off` mode it's the reverse.
@@ -201,7 +205,8 @@ echoes the resolved run time so you can confirm it.
 
 ## Advanced Settings
 
-The **Overlap**, **Catch-up** and **Missing dates** controls live in a collapsible **Advanced
+The **Overlap**, **Catch-up**, **Missing dates**, **Time basis**, **Spring gap**,
+and **Fall overlap** controls live in a collapsible **Advanced
 Settings** section that starts closed. They are shown with human-readable labels; the stored policy values (used by the
 CLI and API) are unchanged.
 
@@ -240,6 +245,22 @@ fifth of a given weekday. For everything else the setting is inert and changes n
 The Preview names whichever you pick, so a schedule that skips months says so rather than
 claiming "every month".
 
+### Time basis and DST transitions
+
+- **Local wall clock** (`wall_clock`, *default*) keeps calendar and clock
+  readings fixed in the task timezone. Elapsed gaps can therefore be shorter or
+  longer when the UTC offset changes.
+- **Fixed elapsed time** (`elapsed`) keeps exact seconds between interval runs
+  and lets their local display shift. Calendar-selected schedules are refused
+  because a month or ordinal weekday is not a fixed duration.
+- **UTC clock** (`utc`) keeps recurrence readings fixed in UTC. The task
+  timezone is used only to display the resulting instants locally.
+
+For wall-clock schedules, **Spring gap** either advances a nonexistent reading
+to the first valid instant (`next_valid`) or omits it (`skip`). **Fall overlap**
+selects the earlier (`first`), both (`both`), or later (`last`) instant. These
+choices remain saved but have no effect while the basis is elapsed or UTC.
+
 ---
 
 ## A known-good example
@@ -257,5 +278,8 @@ A "heartbeat" task you can watch succeed within a couple of minutes:
 | Overlap *(Advanced)* | Queue one run |
 | Catch-up *(Advanced)* | Run once to catch up |
 | Missing dates *(Advanced)* | Skip that period |
+| Time basis *(Advanced)* | Local wall clock |
+| Spring gap *(Advanced)* | Run at the next valid time |
+| Fall overlap *(Advanced)* | First occurrence |
 
 After saving, a new timestamp line should appear in the file about once a minute.

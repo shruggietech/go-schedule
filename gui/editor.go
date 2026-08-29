@@ -70,6 +70,9 @@ type taskEditor struct {
 	overlap     *widget.Select
 	catchup     *widget.Select
 	missingDate *widget.Select
+	timeBasis   *widget.Select
+	dstGap      *widget.Select
+	dstOverlap  *widget.Select
 
 	save          *cursorButton
 	cancelHandler func() // dismisses the dialog; nil in tests
@@ -87,6 +90,7 @@ type editorSnapshot struct {
 	oneOffDate, oneOffTime        string
 	overlap, catchup, group       string
 	missingDate                   string
+	timeBasis, dstGap, dstOverlap string
 }
 
 const (
@@ -162,6 +166,12 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	e.catchup.SetSelected(catchupLabel(domain.CatchupOne))
 	e.missingDate = widget.NewSelect(missingDateLabels(), nil)
 	e.missingDate.SetSelected(missingDateLabel(domain.MissingDateSkip))
+	e.timeBasis = widget.NewSelect(timeBasisLabels(), nil)
+	e.timeBasis.SetSelected(timeBasisLabel(domain.TimeBasisWallClock))
+	e.dstGap = widget.NewSelect(dstGapLabels(), nil)
+	e.dstGap.SetSelected(dstGapLabel(domain.DSTGapNextValid))
+	e.dstOverlap = widget.NewSelect(dstOverlapLabels(), nil)
+	e.dstOverlap.SetSelected(dstOverlapLabel(domain.DSTOverlapFirst))
 
 	e.save = newCursorButton("Save", theme.ConfirmIcon(), widget.HighImportance, nil)
 
@@ -200,6 +210,9 @@ func (e *taskEditor) build() *fyne.Container {
 	missingDateItem := widget.NewFormItem("Missing dates", e.missingDate)
 	missingDateItem.HintText = "When the month has no such date (Feb 30th, a 5th Friday)"
 	advForm.AppendItem(missingDateItem)
+	advForm.AppendItem(withHint(widget.NewFormItem("Time basis", e.timeBasis), "Which clock anchors recurring schedules"))
+	advForm.AppendItem(withHint(widget.NewFormItem("Spring gap", e.dstGap), "When a local time does not exist"))
+	advForm.AppendItem(withHint(widget.NewFormItem("Fall overlap", e.dstOverlap), "When a local time occurs twice"))
 	advanced := newCollapsible("Advanced Settings", advForm)
 
 	left := container.NewVScroll(container.NewVBox(
@@ -268,7 +281,8 @@ func (e *taskEditor) snapshot() editorSnapshot {
 		oneOffDate: e.oneOffDate.Text, oneOffTime: e.oneOffTime.Text,
 		overlap: e.overlap.Selected, catchup: e.catchup.Selected,
 		missingDate: e.missingDate.Selected,
-		group:       e.group.Selected,
+		timeBasis:   e.timeBasis.Selected, dstGap: e.dstGap.Selected, dstOverlap: e.dstOverlap.Selected,
+		group: e.group.Selected,
 	}
 }
 
@@ -352,6 +366,9 @@ func (e *taskEditor) wireValidators() {
 	e.tz.OnChanged = func(string) { e.onChange(false) }
 	e.group.OnChanged = func(string) { e.onChange(false) }
 	e.missingDate.OnChanged = func(string) { e.onChange(false) }
+	e.timeBasis.OnChanged = func(string) { e.onChange(false) }
+	e.dstGap.OnChanged = func(string) { e.onChange(false) }
+	e.dstOverlap.OnChanged = func(string) { e.onChange(false) }
 	e.oneOffDate.OnChanged = func(string) { e.updateOneOffEcho(); e.onChange(false) }
 	e.oneOffTime.OnChanged = func(string) { e.updateOneOffEcho(); e.onChange(false) }
 }
@@ -385,6 +402,9 @@ func (e *taskEditor) prefill() {
 	e.overlap.SetSelected(overlapLabel(t.OverlapPolicy))
 	e.catchup.SetSelected(catchupLabel(t.CatchupPolicy))
 	e.missingDate.SetSelected(missingDateLabel(t.MissingDatePolicy))
+	e.timeBasis.SetSelected(timeBasisLabel(t.TimeBasis))
+	e.dstGap.SetSelected(dstGapLabel(t.DSTGapPolicy))
+	e.dstOverlap.SetSelected(dstOverlapLabel(t.DSTOverlapPolicy))
 	e.group.SetSelected(groupLabelForID(t.GroupID, e.groups))
 	e.prefillSchedule()
 }
@@ -482,6 +502,9 @@ func (e *taskEditor) fetchSchedulePreview(input scheduleinput.Input) {
 	resp, err := e.app.backend.Preview(ctx, server.PreviewRequest{
 		Schedule: input.Expression, ScheduleSyntax: string(input.Syntax), Timezone: e.tzName(),
 		MissingDatePolicy: string(missingDateValue(e.missingDate.Selected)),
+		TimeBasis:         string(timeBasisValue(e.timeBasis.Selected)),
+		DSTGapPolicy:      string(dstGapValue(e.dstGap.Selected)),
+		DSTOverlapPolicy:  string(dstOverlapValue(e.dstOverlap.Selected)),
 	})
 	set := func() {
 		if err != nil {
@@ -489,6 +512,9 @@ func (e *taskEditor) fetchSchedulePreview(input scheduleinput.Input) {
 			return
 		}
 		txt := resp.HumanSummary
+		if resp.PolicySummary != "" {
+			txt += "\n" + resp.PolicySummary
+		}
 		for _, r := range resp.NextRuns {
 			txt += "\n  • " + fmtTime(r)
 		}
@@ -597,6 +623,9 @@ func (e *taskEditor) buildForm() taskForm {
 		overlap:     string(overlapValue(e.overlap.Selected)),
 		catchup:     string(catchupValue(e.catchup.Selected)),
 		missingDate: string(missingDateValue(e.missingDate.Selected)),
+		timeBasis:   string(timeBasisValue(e.timeBasis.Selected)),
+		dstGap:      string(dstGapValue(e.dstGap.Selected)),
+		dstOverlap:  string(dstOverlapValue(e.dstOverlap.Selected)),
 	}
 	if e.mode.Selected == modeOneOff {
 		if t, err := e.oneOffInstant(); err == nil {
@@ -768,7 +797,13 @@ button to choose the date.
 **Overlap** — what to do if a run is still going when the next is due: _Queue one run_ (default),
 _Skip this run_, or _Allow concurrent runs_.
 
-**Catch-up** — after downtime: _Run once to catch up_ (default) or _Skip missed runs_.`
+**Catch-up** — after downtime: _Run once to catch up_ (default) or _Skip missed runs_.
+
+**Time basis** — _Local wall clock_ (default), _Fixed elapsed time_, or _UTC clock_.
+Elapsed time is available only for fixed-duration interval schedules.
+
+**Spring gap / Fall overlap** — for wall-clock schedules, choose whether a nonexistent time
+advances or skips and whether a repeated time uses the first, both, or last occurrence.`
 
 func helpView() fyne.CanvasObject {
 	r := widget.NewRichTextFromMarkdown(editorHelpMarkdown)
@@ -780,6 +815,7 @@ func helpView() fyne.CanvasObject {
 type taskForm struct {
 	name, command, tz, mode, schedule, at, overlap, catchup string
 	missingDate, scheduleSyntax                             string
+	timeBasis, dstGap, dstOverlap                           string
 	args                                                    []string
 	// groupID carries the three-way membership intent: nil leaves it unchanged,
 	// a pointer to "" removes the task from its group, and a pointer to an id
@@ -804,6 +840,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 				Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
 				OverlapPolicy: f.overlap, CatchupPolicy: f.catchup,
 				MissingDatePolicy: f.missingDate,
+				TimeBasis:         f.timeBasis, DSTGapPolicy: f.dstGap, DSTOverlapPolicy: f.dstOverlap,
 			}
 			if f.groupID != nil {
 				req.GroupID = *f.groupID
@@ -821,6 +858,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 			Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
 			OverlapPolicy: f.overlap, CatchupPolicy: f.catchup, GroupID: f.groupID,
 			MissingDatePolicy: f.missingDate,
+			TimeBasis:         f.timeBasis, DSTGapPolicy: f.dstGap, DSTOverlapPolicy: f.dstOverlap,
 		}
 		if atPtr != nil {
 			req.At = atPtr

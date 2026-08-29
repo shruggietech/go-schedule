@@ -63,3 +63,18 @@ func TestRootHelpUsesHumanFirstDualSyntaxPositioning(t *testing.T) {
 		t.Fatalf("root help = %q, want readable schedules and cron", newRoot().Short)
 	}
 }
+
+func TestTaskDSTPolicyFlagsAreConsistent(t *testing.T) {
+	for _, cmd := range []*cobra.Command{taskAdd(), taskEdit()} {
+		for _, name := range []string{"time-basis", "dst-gap", "dst-overlap"} {
+			flag := cmd.Flags().Lookup(name)
+			if flag == nil {
+				t.Errorf("%s missing --%s", cmd.Name(), name)
+				continue
+			}
+			if !strings.Contains(flag.Usage, "|") {
+				t.Errorf("%s --%s usage does not name choices: %q", cmd.Name(), name, flag.Usage)
+			}
+		}
+	}
+}

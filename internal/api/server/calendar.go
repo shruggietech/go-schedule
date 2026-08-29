@@ -71,7 +71,7 @@ func (s *Server) handleCalendar(w http.ResponseWriter, r *http.Request) {
 		if now.After(start) {
 			start = now
 		}
-		upcoming, err := schedule.UpcomingRuns(sch, task.Timezone, task.MissingDatePolicy, start, maxOccurrencesPerTask)
+		upcoming, err := schedule.UpcomingRunsWithPolicy(sch, task.Timezone, task.SchedulePolicy(), start, maxOccurrencesPerTask)
 		if err != nil {
 			continue
 		}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/cron"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/schedule"
 )
 
 func hourly(anchor time.Time) domain.Schedule {
@@ -120,5 +121,24 @@ func TestEvaluate_CompositeCronFindsFirstMissedRun(t *testing.T) {
 	want := time.Date(2026, 8, 28, 17, 30, 0, 0, time.UTC)
 	if !dec.ShouldCatchUp || !dec.FirstMissed.Equal(want) {
 		t.Fatalf("decision=%+v, want first missed %v", dec, want)
+	}
+}
+
+func TestEvaluateWithPolicyOverlapBothFindsSecondFold(t *testing.T) {
+	anchor := time.Date(2026, time.October, 31, 12, 0, 0, 0, time.UTC)
+	sch, err := schedule.Parse("every day at 01:30", "America/New_York", anchor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := time.Date(2026, time.November, 1, 5, 30, 0, 0, time.UTC)
+	now := time.Date(2026, time.November, 1, 7, 0, 0, 0, time.UTC)
+	dec, err := EvaluateWithPolicy(sch, "America/New_York", last, true, domain.CatchupOne,
+		domain.SchedulePolicy{DSTOverlap: domain.DSTOverlapBoth}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, time.November, 1, 6, 30, 0, 0, time.UTC)
+	if !dec.ShouldCatchUp || !dec.FirstMissed.Equal(want) {
+		t.Fatalf("decision=%+v, want one catch-up for %s", dec, want)
 	}
 }

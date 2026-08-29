@@ -293,3 +293,23 @@ func TestEditor_NewTaskDefaultsMissingDatePolicy(t *testing.T) {
 		t.Errorf("new task request = %+v, want skip with human syntax", req)
 	}
 }
+
+func TestEditor_PrefillsAndSubmitsDSTPolicy(t *testing.T) {
+	detail := recurringDetail("every 6 hours")
+	detail.Task.TimeBasis = domain.TimeBasisElapsed
+	detail.Task.DSTGapPolicy = domain.DSTGapSkip
+	detail.Task.DSTOverlapPolicy = domain.DSTOverlapBoth
+	e, fb := newTestEditorDetail(t, detail)
+
+	if e.timeBasis.Selected != timeBasisLabel(domain.TimeBasisElapsed) ||
+		e.dstGap.Selected != dstGapLabel(domain.DSTGapSkip) ||
+		e.dstOverlap.Selected != dstOverlapLabel(domain.DSTOverlapBoth) {
+		t.Fatalf("prefill = %q/%q/%q", e.timeBasis.Selected, e.dstGap.Selected, e.dstOverlap.Selected)
+	}
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	_, _, req := fb.lastUpdateCall()
+	if req.TimeBasis != "elapsed" || req.DSTGapPolicy != "skip" || req.DSTOverlapPolicy != "both" {
+		t.Fatalf("submitted = %+v", req)
+	}
+}
