@@ -39,6 +39,9 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	if err != nil {
 		return "", Unsupported{Reason: "the stored recurrence could not be read"}, false
 	}
+	if _, err := rrule.NewRRule(*opt); err != nil {
+		return "", Unsupported{Reason: "the stored recurrence contains invalid field values"}, false
+	}
 	if sch.CalendarAdjustment != "" && sch.CalendarAdjustment != domain.CalendarAdjustmentNearestWeekday {
 		return "", Unsupported{Reason: fmt.Sprintf("the stored calendar adjustment %q has no cron equivalent", sch.CalendarAdjustment)}, false
 	}
@@ -50,16 +53,6 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 			return "", Unsupported{Reason: "nearest_weekday requires one unbounded monthly day-of-month rule"}, false
 		}
 	}
-	interval := opt.Interval
-	if interval < 1 {
-		interval = 1
-	}
-	if reason := subDailyPhaseRefusal(sch, opt, interval); reason != "" {
-		return "", Unsupported{Reason: reason}, false
-	}
-	if reason := calendarAnchorRefusal(sch, opt); reason != "" {
-		return "", Unsupported{Reason: reason}, false
-	}
 
 	// A non-default missing-date policy changes which dates the task runs on,
 	// and cron has no notion of it. Saying so is the whole point of the export.
@@ -69,6 +62,20 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				"the task's missing-date policy (%s) has no cron equivalent — cron would silently skip the periods this task runs in",
 				policy)}, false
 		}
+	}
+	if fields, ok := compositeCronFields(opt); ok {
+		return strings.Join(fields[:], " "), Unsupported{}, true
+	}
+
+	interval := opt.Interval
+	if interval < 1 {
+		interval = 1
+	}
+	if reason := subDailyPhaseRefusal(sch, opt, interval); reason != "" {
+		return "", Unsupported{Reason: reason}, false
+	}
+	if reason := calendarAnchorRefusal(sch, opt); reason != "" {
+		return "", Unsupported{Reason: reason}, false
 	}
 
 	minute, hour := timeFields(opt, sch.Anchor)
@@ -162,6 +169,84 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	return "", Unsupported{Reason: "that recurrence has no cron equivalent"}, false
 }
 
+func compositeCronFields(opt *rrule.ROption) ([5]string, bool) {
+	var fields [5]string
+	interval := opt.Interval
+	if interval < 1 {
+		interval = 1
+	}
+	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Byhour) == 0 || len(opt.Byminute) == 0 ||
+		len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 || len(opt.Bysetpos) != 0 ||
+		len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
+		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Bymonthday) > 0 && len(opt.Byweekday) > 0 {
+		return fields, false
+	}
+
+	weekdays := make([]int, 0, len(opt.Byweekday))
+	for _, weekday := range opt.Byweekday {
+		if weekday.N() != 0 {
+			return fields, false
+		}
+		weekdays = append(weekdays, (weekday.Day()+1)%7)
+	}
+	fields[0] = renderCronSet(opt.Byminute, 0, 59)
+	fields[1] = renderCronSet(opt.Byhour, 0, 23)
+	fields[2] = renderCronSet(opt.Bymonthday, 1, 31)
+	fields[3] = renderCronSet(opt.Bymonth, 1, 12)
+	fields[4] = renderCronSet(weekdays, 0, 6)
+	for _, field := range fields {
+		if field == "" {
+			return [5]string{}, false
+		}
+	}
+	return fields, true
+}
+
+func renderCronSet(values []int, min, max int) string {
+	if len(values) == 0 {
+		return "*"
+	}
+	seen := make(map[int]bool, len(values))
+	for _, value := range values {
+		if value < min || value > max {
+			return ""
+		}
+		seen[value] = true
+	}
+	ordered := make([]int, 0, len(seen))
+	for value := min; value <= max; value++ {
+		if seen[value] {
+			ordered = append(ordered, value)
+		}
+	}
+	if len(ordered) == max-min+1 {
+		return "*"
+	}
+	if len(ordered) >= 2 && ordered[0] == min {
+		step := ordered[1] - ordered[0]
+		if step > 1 && arithmeticSet(ordered, step) && ordered[len(ordered)-1]+step > max {
+			return fmt.Sprintf("*/%d", step)
+		}
+	}
+	if len(ordered) >= 3 && consecutive(ordered) {
+		return fmt.Sprintf("%d-%d", ordered[0], ordered[len(ordered)-1])
+	}
+	parts := make([]string, len(ordered))
+	for i, value := range ordered {
+		parts[i] = fmt.Sprint(value)
+	}
+	return strings.Join(parts, ",")
+}
+
+func arithmeticSet(values []int, step int) bool {
+	for i := 1; i < len(values); i++ {
+		if values[i]-values[i-1] != step {
+			return false
+		}
+	}
+	return true
+}
+
 func plainMonthlySelector(opt *rrule.ROption) bool {
 	return len(opt.Byweekday) == 0 && len(opt.Bymonth) == 0 && len(opt.Bysetpos) == 0 &&
 		len(opt.Byyearday) == 0 && len(opt.Byweekno) == 0 && len(opt.Byeaster) == 0 &&
@@ -246,8 +331,10 @@ func subDailyPhaseRefusal(sch domain.Schedule, opt *rrule.ROption, interval int)
 // datebearing reports whether the rule addresses a date that can be absent from
 // a period, which is when the missing-date policy actually changes run times.
 func datebearing(opt *rrule.ROption) bool {
-	if len(opt.Bymonthday) == 1 && opt.Bymonthday[0] > 28 {
-		return true
+	for _, day := range opt.Bymonthday {
+		if day > 28 {
+			return true
+		}
 	}
 	return len(opt.Byweekday) == 1 && opt.Byweekday[0].N() >= 5
 }

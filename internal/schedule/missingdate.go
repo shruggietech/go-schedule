@@ -41,6 +41,15 @@ func Describe(sch domain.Schedule, policy domain.MissingDatePolicy) string {
 		return sch.HumanSummary
 	}
 	in, ok := dateIntent(opt)
+	if !ok && compositeDateSet(opt) {
+		for _, day := range opt.Bymonthday {
+			if day > 28 {
+				in = targetDate{kind: intentMonthDay, interval: 1}
+				ok = true
+				break
+			}
+		}
+	}
 	if !ok {
 		return sch.HumanSummary
 	}
@@ -243,6 +252,157 @@ func resolvedMonthDay(period time.Time, day int, policy domain.MissingDatePolicy
 	default:
 		return 0, 0, 0, false
 	}
+}
+
+// compositeDateSet reports whether opt is the constrained daily rule emitted
+// for a standard cron expression with one or more day-of-month targets. Such a
+// set needs its own non-skip policy walk because rrule correctly implements
+// cron's skip behavior but has no task-level missing-date policy.
+func compositeDateSet(opt *rrule.ROption) bool {
+	interval := opt.Interval
+	if interval < 1 {
+		interval = 1
+	}
+	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Bymonthday) == 0 || len(opt.Byweekday) != 0 ||
+		len(opt.Byhour) == 0 || len(opt.Byminute) == 0 || len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 ||
+		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
+		opt.Count != 0 || !opt.Until.IsZero() {
+		return false
+	}
+	for _, day := range opt.Bymonthday {
+		if day < 1 || day > 31 {
+			return false
+		}
+	}
+	return true
+}
+
+func compositeDailySet(opt *rrule.ROption) bool {
+	interval := opt.Interval
+	if interval < 1 {
+		interval = 1
+	}
+	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Byhour) == 0 || len(opt.Byminute) == 0 ||
+		len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 || len(opt.Bysetpos) != 0 ||
+		len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
+		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Bymonthday) > 0 && len(opt.Byweekday) > 0 {
+		return false
+	}
+	for _, day := range opt.Bymonthday {
+		if day < 1 || day > 31 {
+			return false
+		}
+	}
+	for _, weekday := range opt.Byweekday {
+		if weekday.N() != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// resolveCompositeDailySet walks calendar dates rather than asking rrule-go to
+// construct a timestamp at the requested clock first. That preserves the wall
+// clock across DST gaps: 02:30 remains the requested input to WallTime instead
+// of arriving already normalized to 01:30.
+func resolveCompositeDailySet(opt *rrule.ROption, loc *time.Location, after time.Time) (time.Time, bool) {
+	anchor := opt.Dtstart.In(loc)
+	afterLocal := after.In(loc)
+	start := afterLocal
+	if anchor.After(start) {
+		start = anchor
+	}
+	// UTC noon is only a Gregorian date carrier. Occurrences are constructed in
+	// loc below, after all date filters have been applied.
+	date := time.Date(start.Year(), start.Month(), start.Day(), 12, 0, 0, 0, time.UTC)
+	// A February 29 selector can span eight years across a non-leap century
+	// (for example, 2096 to 2104), which is the widest gap in Gregorian cron.
+	for i := 0; i < 366*8; i++ {
+		if monthSelected(opt.Bymonth, date.Month()) && daySelected(opt.Bymonthday, date.Day()) &&
+			weekdaySelected(opt.Byweekday, date.Weekday()) {
+			for _, hour := range opt.Byhour {
+				for _, minute := range opt.Byminute {
+					occ := timezone.WallTime(loc, date.Year(), date.Month(), date.Day(), hour, minute, 0)
+					if !occ.Before(anchor) && occ.After(after) {
+						return occ, true
+					}
+				}
+			}
+		}
+		date = date.AddDate(0, 0, 1)
+	}
+	return time.Time{}, false
+}
+
+func daySelected(days []int, day int) bool {
+	if len(days) == 0 {
+		return true
+	}
+	for _, selected := range days {
+		if selected == day {
+			return true
+		}
+	}
+	return false
+}
+
+func weekdaySelected(weekdays []rrule.Weekday, weekday time.Weekday) bool {
+	if len(weekdays) == 0 {
+		return true
+	}
+	for _, selected := range weekdays {
+		if weekdayOf(selected) == weekday {
+			return true
+		}
+	}
+	return false
+}
+
+func resolveCompositeDateSet(opt *rrule.ROption, loc *time.Location, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool) {
+	anchor := opt.Dtstart.In(loc)
+	period := periodStart(anchor, false, 0, loc)
+	in := targetDate{kind: intentMonthDay, interval: 1}
+	if skip := wholeIntervalsBefore(period, after, in); skip > 0 {
+		period = period.AddDate(0, skip, 0)
+	}
+
+	for i := 0; i < maxPeriodWalk; i++ {
+		if monthSelected(opt.Bymonth, period.Month()) {
+			var best time.Time
+			for _, target := range opt.Bymonthday {
+				year, month, day, ok := resolvedMonthDay(period, target, policy)
+				if !ok {
+					continue
+				}
+				for _, hour := range opt.Byhour {
+					for _, minute := range opt.Byminute {
+						occ := timezone.WallTime(loc, year, month, day, hour, minute, 0)
+						if occ.Before(anchor) || !occ.After(after) || !best.IsZero() && !occ.Before(best) {
+							continue
+						}
+						best = occ
+					}
+				}
+			}
+			if !best.IsZero() {
+				return best, true
+			}
+		}
+		period = period.AddDate(0, 1, 0)
+	}
+	return time.Time{}, false
+}
+
+func monthSelected(months []int, month time.Month) bool {
+	if len(months) == 0 {
+		return true
+	}
+	for _, selected := range months {
+		if time.Month(selected) == month {
+			return true
+		}
+	}
+	return false
 }
 
 func nearestWeekday(date time.Time) time.Time {

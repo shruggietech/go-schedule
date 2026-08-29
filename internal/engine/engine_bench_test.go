@@ -81,3 +81,22 @@ func BenchmarkNextRunNearestWeekday(b *testing.B) {
 		_, _, _ = schedule.NextRun(sch, "America/New_York", domain.MissingDateNextValid, after)
 	}
 }
+
+func BenchmarkNextRunCompositeCron(b *testing.B) {
+	anchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	for name, rrule := range map[string]string{
+		"broad":  "FREQ=DAILY;INTERVAL=1;BYHOUR=9,10,11,12,13,14,15,16,17;BYMINUTE=0,10,20,30,40,50;BYSECOND=0;BYDAY=MO,WE,FR",
+		"sparse": "FREQ=DAILY;INTERVAL=1;BYHOUR=0;BYMINUTE=0;BYSECOND=0;BYMONTH=2;BYMONTHDAY=29",
+	} {
+		b.Run(name, func(b *testing.B) {
+			sch := domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: rrule, Anchor: &anchor}
+			after := time.Date(2036, 3, 1, 0, 0, 0, 0, time.UTC)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				if _, _, err := schedule.NextRun(sch, "America/New_York", domain.MissingDateSkip, after); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

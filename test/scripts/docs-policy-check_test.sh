@@ -41,4 +41,14 @@ if sh "$CHECK" "$MISSING" >/dev/null 2>&1; then
   exit 1
 fi
 
+STALE_BREADTH="$TMP/stale-breadth"
+copy_fixture "$STALE_BREADTH"
+sed 's/lists, ranges, and field-local steps/lists and ranges/' \
+  "$STALE_BREADTH/docs/cron.md" > "$STALE_BREADTH/docs/cron.md.tmp"
+mv "$STALE_BREADTH/docs/cron.md.tmp" "$STALE_BREADTH/docs/cron.md"
+if sh "$CHECK" "$STALE_BREADTH" >/dev/null 2>&1; then
+  printf '%s\n' 'docs-policy fixture: missing composite breadth passed unexpectedly' >&2
+  exit 1
+fi
+
 printf '%s\n' 'docs-policy fixtures: OK (aligned copy accepted; stale and missing copy rejected)'

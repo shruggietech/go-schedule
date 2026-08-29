@@ -139,7 +139,8 @@ gosched task add weekday-report \
   --tz America/New_York
 ```
 
-The same schedule can be supplied as supported five-field cron:
+The same schedule can be supplied as supported five-field cron. Standard lists,
+ranges, field-local steps, names, and safe combinations are accepted too:
 
 ```sh
 gosched task add weekday-report \
@@ -147,6 +148,10 @@ gosched task add weekday-report \
   --schedule "0 9 * * 1-5" \
   --tz America/New_York
 ```
+
+For example, `*/10 9-17 * * MON,WED,FRI` runs every ten minutes during business
+hours on Monday, Wednesday, and Friday. Cron's special day-of-month/day-of-week
+OR behavior and non-clock dialect features remain explicit refusals.
 
 It replies with how it understood you, and when it will next fire:
 

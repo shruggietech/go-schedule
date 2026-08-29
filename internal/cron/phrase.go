@@ -5,16 +5,12 @@ import (
 	"strings"
 )
 
-// Phrase renders a Spec as the human-readable phrase a user would have typed,
-// or refuses by name. The phrase is the only route from cron into a schedule:
-// callers pass it to schedule.Parse exactly as they would a phrase the operator
-// typed themselves. That is what makes an import preview trustworthy — the
-// string shown is the string parsed — and what keeps cron from becoming a second
-// authoring path into the engine.
+// Phrase renders a Spec as a concise human-readable phrase when the natural
+// language grammar can express the cron schedule without losing information.
 func Phrase(s Spec) (string, Unsupported, bool) {
 	// Sub-hourly: "*/n" in the minute field with every hour.
 	if s.Minute.Wildcard && s.Minute.Step > 1 {
-		if !s.Hour.EveryValue() || !s.DOM.Wildcard || !s.Month.Wildcard || !s.DOW.Wildcard {
+		if !s.Hour.EveryValue() || !s.DOM.EveryValue() || !s.Month.EveryValue() || !s.DOW.EveryValue() {
 			return "", Unsupported{Reason: "a minute step combined with other restrictions has no phrase equivalent"}, false
 		}
 		if 60%s.Minute.Step != 0 {
@@ -27,7 +23,7 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 
 	// Every minute.
 	if s.Minute.EveryValue() {
-		if s.Hour.EveryValue() && s.DOM.Wildcard && s.Month.Wildcard && s.DOW.Wildcard {
+		if s.Hour.EveryValue() && s.DOM.EveryValue() && s.Month.EveryValue() && s.DOW.EveryValue() {
 			return "every minute starting at 00:00", Unsupported{}, true
 		}
 		return "", Unsupported{Reason: "an every-minute rule restricted by hour, date, or weekday has no phrase equivalent"}, false
@@ -40,7 +36,7 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 
 	// Hourly at a fixed minute: "0 * * * *".
 	if s.Hour.EveryValue() {
-		if !s.DOM.Wildcard || !s.Month.Wildcard || !s.DOW.Wildcard {
+		if !s.DOM.EveryValue() || !s.Month.EveryValue() || !s.DOW.EveryValue() {
 			return "", Unsupported{Reason: "an hourly rule restricted by date or weekday has no phrase equivalent"}, false
 		}
 		if minute != 0 {
@@ -51,7 +47,7 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 
 	// A step in the hour field: "0 */6 * * *".
 	if s.Hour.Wildcard && s.Hour.Step > 1 {
-		if !s.DOM.Wildcard || !s.Month.Wildcard || !s.DOW.Wildcard || minute != 0 {
+		if !s.DOM.EveryValue() || !s.Month.EveryValue() || !s.DOW.EveryValue() || minute != 0 {
 			return "", Unsupported{Reason: "an hour step combined with other restrictions has no phrase equivalent"}, false
 		}
 		if 24%s.Hour.Step != 0 {
@@ -68,7 +64,7 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 	}
 	at := fmt.Sprintf(" at %02d:%02d", hour, minute)
 	if s.DOM.calendarSelector != calendarNone {
-		if !s.Month.Wildcard || !s.DOW.Wildcard {
+		if !s.Month.EveryValue() || !s.DOW.EveryValue() {
 			return "", Unsupported{Reason: "a monthly day-of-month selector requires unrestricted month and day-of-week fields"}, false
 		}
 		switch s.DOM.calendarSelector {
@@ -86,10 +82,10 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 		return "", Unsupported{Reason: "that monthly day-of-month selector has no phrase equivalent"}, false
 	}
 	if s.DOW.Ordinal != 0 {
-		if !s.DOM.Wildcard {
+		if !s.DOM.EveryValue() {
 			return "", Unsupported{Reason: "a monthly weekday selector combined with a day-of-month restriction has no phrase equivalent"}, false
 		}
-		if !s.Month.Wildcard {
+		if !s.Month.EveryValue() {
 			return "", Unsupported{Reason: "a monthly weekday selector restricted to particular months has no phrase equivalent"}, false
 		}
 		day, ok := s.DOW.Single()
@@ -104,24 +100,24 @@ func Phrase(s Spec) (string, Unsupported, bool) {
 
 	// From here the time of day is fixed. What remains is which days.
 	switch {
-	case s.DOM.Wildcard && s.Month.Wildcard && s.DOW.Wildcard:
+	case s.DOM.EveryValue() && s.Month.EveryValue() && s.DOW.EveryValue():
 		return "every day" + at, Unsupported{}, true
 
-	case s.DOM.Wildcard && s.Month.Wildcard: // a weekday restriction
+	case s.DOM.EveryValue() && s.Month.EveryValue(): // a weekday restriction
 		phrase, ok := weekdayPhrase(s.DOW)
 		if !ok {
 			return "", Unsupported{Reason: "that combination of weekdays has no phrase equivalent"}, false
 		}
 		return phrase + at, Unsupported{}, true
 
-	case s.DOW.Wildcard && s.Month.Wildcard: // a day-of-month restriction
+	case s.DOW.EveryValue() && s.Month.EveryValue(): // a day-of-month restriction
 		day, ok := s.DOM.Single()
 		if !ok {
 			return "", Unsupported{Reason: "a day-of-month list has no phrase equivalent; only a single date is expressible"}, false
 		}
 		return fmt.Sprintf("on the %s of every month%s", ordinal(day), at), Unsupported{}, true
 
-	case s.DOW.Wildcard: // a specific month and date — a yearly rule
+	case s.DOW.EveryValue(): // a specific month and date - a yearly rule
 		day, dayOK := s.DOM.Single()
 		month, monthOK := s.Month.Single()
 		if !dayOK || !monthOK {
@@ -191,6 +187,9 @@ func Explain(expr string) (phrase string, bad Unsupported, err error) {
 	}
 	phrase, bad, ok := Phrase(res.Spec)
 	if !ok {
+		if res.Spec.DOM.calendarSelector == calendarNone && res.Spec.DOW.Ordinal == 0 {
+			return describeSpec(res.Spec), Unsupported{}, nil
+		}
 		bad.Input = strings.TrimSpace(expr)
 		return "", bad, nil
 	}

@@ -70,9 +70,8 @@ func TestExplain_Supported(t *testing.T) {
 	}
 }
 
-// TestExplain_Declines covers FR-002 and FR-003b: everything this package will
-// not represent is named, not approximated and not silently dropped. A refusal
-// is a value, not an error.
+// TestExplain_Declines covers the remaining semantic boundaries: everything
+// this package still cannot represent is named, not approximated or dropped.
 func TestExplain_Declines(t *testing.T) {
 	cases := []struct {
 		expr, contains string
@@ -91,17 +90,7 @@ func TestExplain_Declines(t *testing.T) {
 		{"0 0 * * 1-5L", "one last weekday"},
 		{"0 0 * * 5L/2", "one last weekday"},
 		{"0 0 * * 5L#2", "one last weekday"},
-		{"*/7 * * * *", "does not divide the hour evenly"},
-		{"0 */7 * * *", "does not divide the day evenly"},
 		{"0 0 13 * 5", "either"},
-		{"0 9 */2 * *", "day-of-month"},
-		{"0 9 * */2 *", "month"},
-		{"0 9 * * */2", "day-of-week"},
-		{"0 9,17 * * *", "hour list"},
-		{"0,30 9 * * *", "minute list"},
-		{"0 9 1,15 * *", "day-of-month list"},
-		{"0 9 * * 1,3", "weekdays has no phrase equivalent"},
-		{"15 * * * *", "minute other than :00"},
 	}
 	for _, c := range cases {
 		t.Run(c.expr, func(t *testing.T) {

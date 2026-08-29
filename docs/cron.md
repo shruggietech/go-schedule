@@ -177,11 +177,16 @@ that declines, because the difference only surfaces at 02:30 some morning.
 
 The supported input shape is `minute hour day-of-month month day-of-week`.
 Numeric bounds are `0-59`, `0-23`, `1-31`, `1-12`, and `0-7` respectively,
-with both `0` and `7` meaning Sunday. The parser recognizes numbers,
-comma-separated lists, inclusive ascending ranges, wildcard steps, and
-case-insensitive month or weekday names by their first three letters. Recognition
-alone does not guarantee conversion: only the recurrence shapes listed below
-are scheduled, and every other well-formed form is refused by name.
+with both `0` and `7` meaning Sunday. The parser accepts numbers,
+comma-separated lists, inclusive ascending ranges, wildcard and range steps,
+and case-insensitive month or weekday names by their first three letters.
+Overlapping terms and the two Sunday aliases normalize to one ordered set.
+
+Standard field combinations compile directly into the same durable recurrence
+model used by human schedules. Their readable description is display output,
+not a phrase that is parsed again. This matters for expressions such as
+`*/10 9-17 * * MON,WED,FRI`, whose complete meaning has no equivalent in the
+human authoring grammar. Existing simple forms keep their concise phrases.
 
 This is a product-specific subset, not a promise of POSIX, Linux, or robfig
 parity. For the upstream dialects and file behavior, see the
@@ -200,16 +205,17 @@ before treating exported text as portable.
 | Cron | Notes |
 | --- | --- |
 | Every minute | `* * * * *` |
-| Minute intervals dividing one hour evenly | `*/5 * * * *`, `*/15 * * * *`, `*/30 * * * *` |
-| Hourly and hour intervals dividing one day evenly | `0 * * * *`, `0 */6 * * *` |
+| Minute lists, ranges, and field-local steps | `5,20,45 * * * *`, `10-20/2 * * * *`, and uneven `*/7 * * * *` restart within each hour. |
+| Hour lists, ranges, and field-local steps | `0 9,17 * * *`, `30 8-17 * * *`, `0 */5 * * *` |
 | One fixed daily time | `0 9 * * *` |
-| One weekday, weekdays, or weekends | `0 14 * * WED`, `0 9 * * 1-5`, `0 10 * * 0,6` |
+| Arbitrary weekday sets and ranges | `0 14 * * WED`, `0 9 * * 1-5`, `0 10 * * SUN,TUE,THU` |
 | One ordinal weekday each month | `0 9 * * 5#3` means the third Friday. One weekday and ordinal 1 through 5 are supported when month and day-of-month are unrestricted. |
 | The last selected weekday each month | `0 9 * * 5L` means the last Friday. One weekday followed by `L` is supported when month and day-of-month are unrestricted; `SUNL` and `7L` import as Sunday and export canonically as `0L`. |
 | Last calendar day | `0 9 L * *` means the final date of every month. |
 | Nearest weekday to one date | `0 9 15W * *` keeps the 15th on Monday-Friday, moves Saturday to Friday, and Sunday to Monday without crossing a month boundary. Targets 1 through 31 are supported. |
 | Last weekday of the month | `0 9 LW * *` means the final Monday-through-Friday date. This differs from `0 9 * * 5L`, which means the last Friday. |
-| One monthly day or one yearly month/day | `0 9 31 * *`, `0 0 4 7 *` |
+| Date and month lists, ranges, and steps | `0 0 1,15 JAN,MAR *`, `0 9 */2 * *`, `0 9 * */2 *` |
+| Safe cross-field conjunctions | Minute, hour, month, and exactly one of day-of-month or day-of-week may all be restricted, as in `*/10 9-17 * * MON,WED,FRI`. |
 | Month and weekday names | Names are case-insensitive; their first three letters are significant. |
 | Sunday as `0` or `7` | Both are accepted |
 | `@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`, `@yearly`, `@annually` | Expanded to their documented five-field equivalents |
@@ -224,10 +230,8 @@ before treating exported text as portable.
 | Bare day-of-week `L` | Only one day-of-week `weekdayL` atom has an unambiguous supported meaning. |
 | Broader `#` combinations | Lists, ranges, steps, multiple ordinal terms, ordinals outside 1 through 5, and month/date restrictions are declined rather than approximated. |
 | Broader day-of-week `L` combinations | Lists, ranges, steps, multiple terms, mixed `L`/`#`, and month/date restrictions are declined rather than approximated. |
-| A step that does not divide its range | `*/7` on minutes fires at :00, :07 … :56 and then :00 again — a four-minute gap a fixed interval cannot reproduce. `*/5`, `*/15` and `*/30` are exact and are accepted. |
-| A wildcard step in day-of-month, month, or day-of-week | Cron restarts these steps inside each calendar field. The recurrence model cannot retain that field-local behavior, so forms such as `0 9 */2 * *` are refused rather than simplified to daily. |
 | Both day-of-month and day-of-week restricted | `0 0 13 * 5` means "the 13th **or** any Friday" in cron. This scheduler intersects the two, which would turn a weekly job into a handful of runs a year. |
-| Lists in the minute, hour, day, or month field | `0 9,17 * * *` is two schedules wearing one expression. Create two tasks. |
+| Modifier composites | Focused `weekday#ordinal`, `weekdayL`, `L`, `nW`, and `LW` forms are supported, but lists, ranges, steps, or extra restricted calendar fields combined with those modifiers remain explicit refusals. |
 
 ## What cron cannot say
 

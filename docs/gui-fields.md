@@ -156,8 +156,10 @@ than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelit
 fields, macros, and explicit refusals.
 
 When editing, the exact retained cron expression is shown rather than translated
-back from its plain-language preview. Calendar-field wildcard steps such as
-`0 9 */2 * *` are named refusals because simplifying them would change timing.
+back from its readable preview. Standard lists, ranges, and field-local steps
+such as `*/10 9-17 * * MON,WED,FRI` and `0 9 */2 * *` retain their exact timing.
+The preview is display text; the compiled recurrence, not a generated English
+phrase, is authoritative for execution.
 
 > ⚠️ **Sub-daily intervals can't take an `at` time.** Seconds/minutes/hours fire on a rolling
 > interval, so `every 15 minutes at 09:00` is **rejected**. The `at <time>` clause is only valid
