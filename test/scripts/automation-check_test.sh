@@ -214,8 +214,22 @@ run_automation_cases() {
   cp -R "$good" "$direct_main_push"
   printf '      - run: git push origin HEAD:main\n' >> \
     "$direct_main_push/.github/workflows/release.yml"
-  run_expect_fail direct-main-push 'must not push directly to main' \
+  run_expect_fail direct-main-push 'must not run git push' \
     sh "$CHECK" "$direct_main_push"
+
+  quoted_main_push="$tmp/quoted-main-push"
+  cp -R "$good" "$quoted_main_push"
+  printf "      - run: git push origin 'HEAD:main'\n" >> \
+    "$quoted_main_push/.github/workflows/release.yml"
+  run_expect_fail quoted-main-push 'must not run git push' \
+    sh "$CHECK" "$quoted_main_push"
+
+  full_main_refspec="$tmp/full-main-refspec"
+  cp -R "$good" "$full_main_refspec"
+  printf '      - run: git push origin HEAD:refs/heads/main\n' >> \
+    "$full_main_refspec/.github/workflows/release.yml"
+  run_expect_fail full-main-refspec 'must not run git push' \
+    sh "$CHECK" "$full_main_refspec"
 
   main_checkout="$tmp/main-checkout"
   cp -R "$good" "$main_checkout"
