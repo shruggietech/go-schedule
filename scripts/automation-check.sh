@@ -281,6 +281,9 @@ else
   if grep -Fq -- 'git push origin HEAD:main' "$RELEASE"; then
     report "$RELEASE: release workflow must not push directly to main"
   fi
+  if grep -Fq -- 'ref: main' "$RELEASE"; then
+    report "$RELEASE: release validation must inspect the tagged checkout"
+  fi
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
   require_release_text \

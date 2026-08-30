@@ -213,6 +213,13 @@ run_automation_cases() {
   run_expect_fail direct-main-push 'must not push directly to main' \
     sh "$CHECK" "$direct_main_push"
 
+  main_checkout="$tmp/main-checkout"
+  cp -R "$good" "$main_checkout"
+  printf '      - uses: actions/checkout@v7\n        with:\n          ref: main\n' >> \
+    "$main_checkout/.github/workflows/release.yml"
+  run_expect_fail main-checkout 'must inspect the tagged checkout' \
+    sh "$CHECK" "$main_checkout"
+
   missing_wayland="$tmp/missing-wayland"
   cp -R "$good" "$missing_wayland"
   sed 's/libwayland-dev //' "$good/.github/workflows/release.yml" > \

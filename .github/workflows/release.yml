@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   # Release preparation updates these static version lines through review.
-  # Verify them against the tag without trying to push directly to protected
+  # Verify them in the tagged checkout without trying to push directly to
   # main. Standalone (no `needs`) so a mismatch is visible immediately.
   readme-version:
     name: Verify the static README version lines match this tag
@@ -19,8 +19,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: main
       - name: Verify the README version lines
         run: |
           set -euo pipefail
