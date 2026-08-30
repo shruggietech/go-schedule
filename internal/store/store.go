@@ -192,11 +192,14 @@ ALTER TABLE schedules ADD COLUMN calendar_adjustment TEXT NOT NULL DEFAULT '';
 		// v7: make recurrence anchoring and both DST transition decisions
 		// explicit on the task. The defaults are the exact policies used before
 		// these columns existed, so opening an older database moves no run time.
+		// The nullable elapsed epoch records an absolute fixed-duration phase once
+		// a schedule opts into elapsed mode; legacy wall-clock rows remain NULL.
 		version: 7,
 		stmts: `
 ALTER TABLE tasks ADD COLUMN time_basis TEXT NOT NULL DEFAULT 'wall_clock';
 ALTER TABLE tasks ADD COLUMN dst_gap_policy TEXT NOT NULL DEFAULT 'next_valid';
 ALTER TABLE tasks ADD COLUMN dst_overlap_policy TEXT NOT NULL DEFAULT 'first';
+ALTER TABLE schedules ADD COLUMN elapsed_epoch TEXT;
 `,
 	},
 }

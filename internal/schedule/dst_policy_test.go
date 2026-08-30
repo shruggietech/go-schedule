@@ -50,6 +50,34 @@ func TestTimeBasisAcrossFallBack(t *testing.T) {
 	}
 }
 
+func TestElapsedEpochSurvivesPresentationTimezoneChange(t *testing.T) {
+	created := time.Date(2026, time.March, 7, 12, 0, 0, 0, time.UTC)
+	sch, err := Parse("every day at 09:00", "America/New_York", created)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := domain.SchedulePolicy{TimeBasis: domain.TimeBasisElapsed}
+	if err := PrepareForPolicy(&sch, "America/New_York", policy); err != nil {
+		t.Fatal(err)
+	}
+	if sch.ElapsedEpoch == nil || !sch.ElapsedEpoch.Equal(time.Date(2026, time.March, 7, 14, 0, 0, 0, time.UTC)) {
+		t.Fatalf("elapsed epoch = %v", sch.ElapsedEpoch)
+	}
+	after := time.Date(2026, time.March, 8, 13, 30, 0, 0, time.UTC)
+	ny, _, err := NextRunWithPolicy(sch, "America/New_York", policy, after)
+	if err != nil {
+		t.Fatal(err)
+	}
+	la, _, err := NextRunWithPolicy(sch, "America/Los_Angeles", policy, after)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, time.March, 8, 14, 0, 0, 0, time.UTC)
+	if !ny.Equal(want) || !la.Equal(want) {
+		t.Fatalf("next after timezone change: New York=%s Los Angeles=%s want=%s", ny, la, want)
+	}
+}
+
 func TestUTCBasisKeepsUTCReading(t *testing.T) {
 	created := time.Date(2026, time.March, 7, 12, 0, 0, 0, time.UTC)
 	sch, err := Parse("every day at 09:00", "America/New_York", created)
@@ -116,6 +144,24 @@ func TestWallClockOverlapPoliciesAndBetweenFoldCursor(t *testing.T) {
 	got, ok, err := NextRunWithPolicy(sch, "America/New_York", domain.SchedulePolicy{DSTOverlap: domain.DSTOverlapBoth}, between)
 	if err != nil || !ok || !got.Equal(time.Date(2026, time.November, 1, 6, 30, 0, 0, time.UTC)) {
 		t.Fatalf("between folds = %s, ok=%v err=%v", got, ok, err)
+	}
+}
+
+func TestOverlapBothDenseRuleHasBoundedWork(t *testing.T) {
+	created := time.Date(2026, time.October, 31, 12, 0, 0, 0, time.UTC)
+	sch, err := Parse("every second", "America/New_York", created)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := time.Date(2026, time.November, 1, 5, 30, 0, 0, time.UTC)
+	allocs := testing.AllocsPerRun(1, func() {
+		got, ok, err := NextRunWithPolicy(sch, "America/New_York", domain.SchedulePolicy{DSTOverlap: domain.DSTOverlapBoth}, after)
+		if err != nil || !ok || !got.Equal(time.Date(2026, time.November, 1, 6, 0, 0, 0, time.UTC)) {
+			t.Fatalf("next = %s ok=%v err=%v", got, ok, err)
+		}
+	})
+	if allocs > 1000 {
+		t.Fatalf("dense overlap evaluation allocated %.0f objects, want bounded work", allocs)
 	}
 }
 

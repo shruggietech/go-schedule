@@ -178,7 +178,7 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		sch = input.Schedule
 	}
 	if sch.Kind != "" {
-		if err := schedule.ValidatePolicy(sch, task.SchedulePolicy()); err != nil {
+		if err := schedule.PrepareForPolicy(&sch, task.Timezone, task.SchedulePolicy()); err != nil {
 			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 			return
 		}
@@ -197,9 +197,21 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 			s.internal(w, err)
 			return
 		}
-		if err := schedule.ValidatePolicy(sch, task.SchedulePolicy()); err != nil {
+		needsElapsedEpoch := task.SchedulePolicy().TimeBasis == domain.TimeBasisElapsed && sch.ElapsedEpoch == nil
+		if err := schedule.PrepareForPolicy(&sch, task.Timezone, task.SchedulePolicy()); err != nil {
 			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 			return
+		}
+		if needsElapsedEpoch {
+			// Schedules are immutable once referenced. Persist the newly bound
+			// absolute phase as a replacement row when an existing task first
+			// switches to elapsed mode.
+			sch.ID = ""
+			if err := s.store.CreateSchedule(&sch); err != nil {
+				s.internal(w, err)
+				return
+			}
+			task.ScheduleID = sch.ID
 		}
 	}
 

@@ -42,3 +42,17 @@
 - Mojibake scan: PASS across all 43 changed files.
 - `.specify/feature.json` parses successfully, and no unresolved specification placeholders remain.
 - Issue closure intent: the eventual pull request must use `Closes #8` rather than a non-closing reference.
+
+## Third-party review remediation (2026-08-29)
+
+- Dense `both`/`last` fall-overlap evaluation now jumps to the actual repeated
+  interval instead of scanning 52 hours; an every-second allocation bound
+  guards the hot path.
+- Elapsed schedules persist one absolute UTC epoch. API coverage proves a
+  timezone-only update leaves the phase and next run unchanged.
+- Desktop Save validation now applies recurrence-policy compatibility locally,
+  including elapsed monthly/yearly refusal.
+- Post-remediation canonical gates: format PASS; vet PASS; lint PASS (0
+  issues); GUI PASS; coverage PASS (engine 88.1%, schedule 89.1%, timezone
+  91.3%, store 86.9%, catch-up 88.9%, logbus 91.1%); docs PASS; automation
+  PASS; WSL race and integration PASS.

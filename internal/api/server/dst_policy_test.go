@@ -132,6 +132,29 @@ func TestDSTPolicyPreviewUpdateAndCalendarParity(t *testing.T) {
 	}
 }
 
+func TestElapsedTaskTimezoneUpdatePreservesAbsolutePhase(t *testing.T) {
+	s := newTestServer(t)
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "elapsed", Command: "true", Schedule: "every day at 09:00",
+		Timezone: "America/New_York", TimeBasis: "elapsed",
+	})
+	if created.Schedule.ElapsedEpoch == nil {
+		t.Fatal("elapsed task did not persist an absolute epoch")
+	}
+	epoch := *created.Schedule.ElapsedEpoch
+	rec := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+created.Task.ID, TaskUpdateRequest{Timezone: "America/Los_Angeles"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	updated := getTask(t, s, created.Task.ID)
+	if updated.Schedule.ElapsedEpoch == nil || !updated.Schedule.ElapsedEpoch.Equal(epoch) {
+		t.Fatalf("elapsed epoch changed from %s to %v", epoch, updated.Schedule.ElapsedEpoch)
+	}
+	if len(created.NextRuns) == 0 || len(updated.NextRuns) == 0 || !updated.NextRuns[0].Equal(created.NextRuns[0]) {
+		t.Fatalf("next run changed with presentation timezone: before=%v after=%v", created.NextRuns, updated.NextRuns)
+	}
+}
+
 func jsonErrorField(body []byte, want string) bool {
 	var apiErr APIError
 	return json.Unmarshal(body, &apiErr) == nil && apiErr.Error.Field == want

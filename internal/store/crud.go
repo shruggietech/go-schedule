@@ -165,8 +165,8 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 		sch.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO schedules(id,kind,rrule,anchor,run_at,trigger_id,human_summary,expression,calendar_adjustment) VALUES(?,?,?,?,?,?,?,?,?)`,
-		sch.ID, string(sch.Kind), nullStr(sch.RRULE), fmtTimePtr(sch.Anchor), fmtTimePtr(sch.RunAt),
+		`INSERT INTO schedules(id,kind,rrule,anchor,elapsed_epoch,run_at,trigger_id,human_summary,expression,calendar_adjustment) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+		sch.ID, string(sch.Kind), nullStr(sch.RRULE), fmtTimePtr(sch.Anchor), fmtTimePtr(sch.ElapsedEpoch), fmtTimePtr(sch.RunAt),
 		nullStr(sch.TriggerID), sch.HumanSummary, sch.Expression, string(sch.CalendarAdjustment),
 	)
 	if err != nil {
@@ -177,12 +177,12 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 
 // GetSchedule returns the schedule by id, or ErrNotFound.
 func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
-	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,run_at,trigger_id,human_summary,expression,calendar_adjustment FROM schedules WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,elapsed_epoch,run_at,trigger_id,human_summary,expression,calendar_adjustment FROM schedules WHERE id=?`, id)
 	var sch domain.Schedule
 	var rrule, trigger sql.NullString
-	var anchor, runAt sql.NullString
+	var anchor, elapsedEpoch, runAt sql.NullString
 	var kind string
-	if err := row.Scan(&sch.ID, &kind, &rrule, &anchor, &runAt, &trigger, &sch.HumanSummary, &sch.Expression, &sch.CalendarAdjustment); err != nil {
+	if err := row.Scan(&sch.ID, &kind, &rrule, &anchor, &elapsedEpoch, &runAt, &trigger, &sch.HumanSummary, &sch.Expression, &sch.CalendarAdjustment); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Schedule{}, ErrNotFound
 		}
@@ -194,6 +194,9 @@ func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
 	var err error
 	if sch.Anchor, err = parseTimePtr(anchor); err != nil {
 		return domain.Schedule{}, fmt.Errorf("store: schedule anchor: %w", err)
+	}
+	if sch.ElapsedEpoch, err = parseTimePtr(elapsedEpoch); err != nil {
+		return domain.Schedule{}, fmt.Errorf("store: schedule elapsed_epoch: %w", err)
 	}
 	if sch.RunAt, err = parseTimePtr(runAt); err != nil {
 		return domain.Schedule{}, fmt.Errorf("store: schedule run_at: %w", err)

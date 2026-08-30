@@ -238,9 +238,12 @@ type Schedule struct {
 	// Expression remains inert.
 	CalendarAdjustment CalendarAdjustment `json:"calendar_adjustment,omitempty"`
 	Anchor             *time.Time         `json:"anchor,omitempty"`
-	RunAt              *time.Time         `json:"run_at,omitempty"`
-	TriggerID          string             `json:"trigger_id,omitempty"`
-	HumanSummary       string             `json:"human_summary"`
+	// ElapsedEpoch is the persisted absolute phase for fixed-duration schedules.
+	// It is independent of Timezone, which is presentation-only in elapsed mode.
+	ElapsedEpoch *time.Time `json:"elapsed_epoch,omitempty"`
+	RunAt        *time.Time `json:"run_at,omitempty"`
+	TriggerID    string     `json:"trigger_id,omitempty"`
+	HumanSummary string     `json:"human_summary"`
 	// Expression is the human or cron source this schedule was parsed from,
 	// suitable for re-submission. Empty for one-offs and legacy rows. It is never
 	// an execution input: nothing on the scheduling path may read it.

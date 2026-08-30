@@ -10,7 +10,7 @@ Complete issue #8 with one task-level scheduling policy set. Preserve the existi
 
 **Language/Version**: Go 1.25.0 and Markdown
 **Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions
-**Storage**: SQLite schema v7 with three additive task columns
+**Storage**: SQLite schema v7 with three additive task columns and one nullable schedule epoch
 **Testing**: Go unit/integration tests, real IANA transition matrices, migration/restart/catch-up coverage, GUI headless tests, benchmarks, and eight canonical gates
 **Target Platform**: Windows, Linux, and macOS-supported Go paths
 **Project Type**: Local daemon, CLI, API, and desktop application
@@ -45,7 +45,7 @@ The issue calls a five-hour spring or seven-hour fall gap in a six-hour local cy
 ### Separate three recurrence bases
 
 - `wall_clock` evaluates recurrence fields as floating local calendar intent and resolves each intent through the selected gap/overlap policies.
-- `elapsed` is limited to fixed-duration interval shapes. It computes the next instant arithmetically from the stored anchor, preserving exact duration and avoiding timezone iteration.
+- `elapsed` is limited to fixed-duration interval shapes. It computes the next instant arithmetically from a persisted absolute epoch, preserving exact duration and avoiding timezone iteration. The epoch is bound once in the authoring timezone, so later presentation-timezone changes cannot move the phase.
 - `utc` evaluates recurrence fields and missing-date choices in UTC. The task timezone remains presentation metadata only.
 
 Calendar-selected monthly/yearly shapes are refused under `elapsed`. Daily and weekly interval shapes are accepted only when they select one occurrence per period and therefore have an exact 24-hour or 168-hour duration.
@@ -58,7 +58,18 @@ Wall-clock recurrence evaluation uses floating calendar values so the recurrence
 
 ### Migrate and expose independently of schedule replacement
 
-Schema v7 adds `time_basis`, `dst_gap_policy`, and `dst_overlap_policy` with compatibility defaults. Like missing-date policy, the values live on Task and survive schedule replacement or unrelated edits. Create, update, preview, CLI flags, and GUI Advanced Settings validate the same enum values and elapsed compatibility.
+Schema v7 adds `time_basis`, `dst_gap_policy`, and `dst_overlap_policy` with
+compatibility defaults, plus a nullable absolute elapsed epoch on Schedule.
+Like missing-date policy, the policy values live on Task and survive schedule
+replacement or unrelated edits. Create, update, preview, CLI flags, and GUI
+Advanced Settings validate the same enum values and elapsed compatibility.
+
+### Bound fall-overlap lookup to the transition
+
+An ambiguous wall interval is located from the nearby IANA offset transition.
+The evaluator jumps directly to the first recurrence intent that could still
+produce a second-fold instant, then compares it with the normal forward
+candidate. Dense rules therefore do not enumerate a 52-hour window.
 
 ## Project Structure
 

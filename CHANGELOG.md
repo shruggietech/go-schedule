@@ -16,7 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   behavior. Schema v7, API, CLI, desktop Advanced Settings, live preview,
   detail, calendar, catch-up, restart, dispatch, and real IANA transition tests
   share one policy-aware evaluator. Elapsed mode refuses calendar shapes that
-  do not have a fixed duration instead of approximating them.
+  do not have a fixed duration instead of approximating them. Elapsed schedules
+  persist an absolute phase that presentation-timezone edits cannot move, dense
+  fall-overlap rules jump directly into the repeated interval, and the desktop
+  blocks incompatible elapsed submissions before Save.
 - **Standard five-field cron combinations now run faithfully end to end (Refs
   #22).** Lists, ranges, wildcard and range steps, names, arbitrary weekday
   sets, and safe cross-field restrictions now share exact parsing, preview,

@@ -140,6 +140,10 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 		return
 	}
+	if err := schedule.PrepareForPolicy(&sch, tz, policy); err != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+		return
+	}
 
 	if err := s.store.CreateSchedule(&sch); err != nil {
 		s.internal(w, err)
@@ -290,6 +294,10 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		DSTGap: domain.DSTGapPolicy(req.DSTGapPolicy), DSTOverlap: domain.DSTOverlapPolicy(req.DSTOverlapPolicy),
 	}).Effective()
 	if err := schedule.ValidatePolicy(sch, policy); err != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+		return
+	}
+	if err := schedule.PrepareForPolicy(&sch, tz, policy); err != nil {
 		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 		return
 	}

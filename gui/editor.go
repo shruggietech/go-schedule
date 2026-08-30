@@ -603,10 +603,19 @@ func (e *taskEditor) valid() bool {
 	// Recurring.
 	s := e.effectiveSchedule()
 	if s == "" {
-		return mayKeepExisting
+		return mayKeepExisting && schedule.ValidatePolicy(e.detail.Schedule, e.selectedSchedulePolicy()) == nil
 	}
-	_, err := e.recurringInput()
-	return err == nil
+	input, err := e.recurringInput()
+	return err == nil && schedule.ValidatePolicy(input.Schedule, e.selectedSchedulePolicy()) == nil
+}
+
+func (e *taskEditor) selectedSchedulePolicy() domain.SchedulePolicy {
+	return domain.SchedulePolicy{
+		MissingDate: missingDateValue(e.missingDate.Selected),
+		TimeBasis:   timeBasisValue(e.timeBasis.Selected),
+		DSTGap:      dstGapValue(e.dstGap.Selected),
+		DSTOverlap:  dstOverlapValue(e.dstOverlap.Selected),
+	}.Effective()
 }
 
 // --- submission ----------------------------------------------------------

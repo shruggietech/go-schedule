@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -74,5 +75,28 @@ func TestMigrationV7DefaultsAndPolicyRoundTrip(t *testing.T) {
 	}
 	if got.TimeBasis != domain.TimeBasisElapsed || got.DSTGapPolicy != domain.DSTGapSkip || got.DSTOverlapPolicy != domain.DSTOverlapBoth {
 		t.Fatalf("round trip = %#v", got.SchedulePolicy())
+	}
+}
+
+func TestMigrationV7PersistsElapsedEpoch(t *testing.T) {
+	st, err := Open(t.TempDir() + "/epoch.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = st.Close() }()
+	epoch := time.Date(2026, time.March, 7, 14, 0, 0, 0, time.UTC)
+	sch := domain.Schedule{
+		Kind: domain.ScheduleRecurring, RRULE: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
+		Anchor: &epoch, ElapsedEpoch: &epoch,
+	}
+	if err := st.CreateSchedule(&sch); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetSchedule(sch.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ElapsedEpoch == nil || !got.ElapsedEpoch.Equal(epoch) {
+		t.Fatalf("elapsed epoch = %v, want %s", got.ElapsedEpoch, epoch)
 	}
 }

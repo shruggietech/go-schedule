@@ -100,6 +100,25 @@ func ValidatePolicy(sch domain.Schedule, policy domain.SchedulePolicy) error {
 	return nil
 }
 
+// PrepareForPolicy binds any durable schedule state required by policy. An
+// elapsed schedule receives one absolute epoch, derived in the authoring
+// timezone exactly once; subsequent timezone edits cannot move that phase.
+func PrepareForPolicy(sch *domain.Schedule, tzName string, policy domain.SchedulePolicy) error {
+	if err := ValidatePolicy(*sch, policy); err != nil {
+		return err
+	}
+	policy = policy.Effective()
+	if policy.TimeBasis != domain.TimeBasisElapsed || sch.Kind != domain.ScheduleRecurring || sch.ElapsedEpoch != nil {
+		return nil
+	}
+	epoch, err := deriveElapsedEpoch(*sch, tzName)
+	if err != nil {
+		return err
+	}
+	sch.ElapsedEpoch = &epoch
+	return nil
+}
+
 func nextRecurring(sch domain.Schedule, tzName string, policy domain.SchedulePolicy, after time.Time) (time.Time, bool, error) {
 	loc, err := timezone.Resolve(tzName)
 	if err != nil {
@@ -183,29 +202,48 @@ func UpcomingRunsWithPolicy(sch domain.Schedule, tzName string, policy domain.Sc
 }
 
 func nextElapsed(sch domain.Schedule, tzName string, after time.Time) (time.Time, bool, error) {
-	duration, opt, err := fixedDuration(sch)
+	duration, _, err := fixedDuration(sch)
 	if err != nil {
 		return time.Time{}, false, err
 	}
-	loc, err := timezone.Resolve(tzName)
-	if err != nil {
-		return time.Time{}, false, err
+	var anchor time.Time
+	if sch.ElapsedEpoch != nil {
+		anchor = sch.ElapsedEpoch.UTC()
+	} else {
+		// Compatibility for in-memory and pre-policy schedules. Persisted elapsed
+		// schedules are prepared at their mutation boundary and take the branch
+		// above, so task timezone changes never reach this derivation.
+		anchor, err = deriveElapsedEpoch(sch, tzName)
+		if err != nil {
+			return time.Time{}, false, err
+		}
 	}
-	opt.Dtstart = sch.Anchor.In(loc)
-	r, err := rrule.NewRRule(*opt)
-	if err != nil {
-		return time.Time{}, false, fmt.Errorf("schedule: build elapsed rule: %w", err)
-	}
-	epoch := r.After(sch.Anchor.In(loc).Add(-time.Nanosecond), false)
-	if epoch.IsZero() {
-		return time.Time{}, false, nil
-	}
-	anchor := epoch.UTC()
 	if after.Before(anchor) {
 		return anchor, true, nil
 	}
 	steps := after.Sub(anchor)/duration + 1
 	return anchor.Add(steps * duration).UTC(), true, nil
+}
+
+func deriveElapsedEpoch(sch domain.Schedule, tzName string) (time.Time, error) {
+	_, opt, err := fixedDuration(sch)
+	if err != nil {
+		return time.Time{}, err
+	}
+	loc, err := timezone.Resolve(tzName)
+	if err != nil {
+		return time.Time{}, err
+	}
+	opt.Dtstart = sch.Anchor.In(loc)
+	r, err := rrule.NewRRule(*opt)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("schedule: build elapsed rule: %w", err)
+	}
+	epoch := r.After(sch.Anchor.In(loc).Add(-time.Nanosecond), false)
+	if epoch.IsZero() {
+		return time.Time{}, fmt.Errorf("schedule: elapsed rule has no epoch")
+	}
+	return epoch.UTC(), nil
 }
 
 func fixedDuration(sch domain.Schedule) (time.Duration, *rrule.ROption, error) {
@@ -256,28 +294,23 @@ func nextFloatingWall(opt *rrule.ROption, loc *time.Location, policy domain.Sche
 	}
 	localCursor := floating(after.In(loc))
 	search := localCursor.Add(-time.Nanosecond)
-	_, beforeOffset := after.Add(-26 * time.Hour).In(loc).Zone()
-	_, afterOffset := after.Add(26 * time.Hour).In(loc).Zone()
-	backscan := (policy.DSTOverlap == domain.DSTOverlapBoth || policy.DSTOverlap == domain.DSTOverlapLast) && afterOffset < beforeOffset
-	if backscan {
-		search = localCursor.Add(-26 * time.Hour)
-	}
-	var best time.Time
+	best := nextRepeatedCandidate(r, loc, policy, after)
 	for i := 0; i < 200000; i++ {
 		intent := r.After(search, false)
 		if intent.IsZero() {
 			break
 		}
-		if backscan && intent.After(localCursor.Add(26*time.Hour)) {
-			break
-		}
+		var next time.Time
 		for _, candidate := range timezone.ResolveWallTime(loc, intent.Year(), intent.Month(), intent.Day(), intent.Hour(), intent.Minute(), intent.Second(), policy.DSTGap, policy.DSTOverlap) {
 			candidate = candidate.UTC()
-			if candidate.After(after) && (best.IsZero() || candidate.Before(best)) {
-				best = candidate
+			if candidate.After(after) && (next.IsZero() || candidate.Before(next)) {
+				next = candidate
 			}
 		}
-		if !backscan && !best.IsZero() {
+		if !next.IsZero() {
+			if best.IsZero() || next.Before(best) {
+				return next, true, nil
+			}
 			return best, true, nil
 		}
 		search = intent
@@ -286,6 +319,68 @@ func nextFloatingWall(opt *rrule.ROption, loc *time.Location, policy domain.Sche
 		return best, true, nil
 	}
 	return time.Time{}, false, nil
+}
+
+// nextRepeatedCandidate finds the earliest second-fold occurrence that can
+// still follow after. It jumps directly into the actual repeated wall interval
+// instead of enumerating up to 52 hours of dense recurrence intents.
+func nextRepeatedCandidate(r *rrule.RRule, loc *time.Location, policy domain.SchedulePolicy, after time.Time) time.Time {
+	if policy.DSTOverlap != domain.DSTOverlapBoth && policy.DSTOverlap != domain.DSTOverlapLast {
+		return time.Time{}
+	}
+	start, end, newOffset, ok := overlapWindow(loc, after)
+	if !ok {
+		return time.Time{}
+	}
+	threshold := floating(after.UTC().Add(time.Duration(newOffset) * time.Second))
+	search := start.Add(-time.Nanosecond)
+	if threshold.After(search) {
+		search = threshold
+	}
+	intent := r.After(search, false)
+	if intent.IsZero() || !intent.Before(end) {
+		return time.Time{}
+	}
+	var best time.Time
+	for _, candidate := range timezone.ResolveWallTime(loc, intent.Year(), intent.Month(), intent.Day(), intent.Hour(), intent.Minute(), intent.Second(), policy.DSTGap, policy.DSTOverlap) {
+		candidate = candidate.UTC()
+		if candidate.After(after) && (best.IsZero() || candidate.Before(best)) {
+			best = candidate
+		}
+	}
+	return best
+}
+
+// overlapWindow returns the repeated floating wall interval around a nearby
+// backward offset transition, plus the offset used by the second fold.
+func overlapWindow(loc *time.Location, around time.Time) (time.Time, time.Time, int, bool) {
+	left := around.Add(-26 * time.Hour).Truncate(time.Second)
+	right := around.Add(26 * time.Hour).Truncate(time.Second)
+	_, previousOffset := left.In(loc).Zone()
+	previousProbe := left
+	for probe := left.Add(time.Hour); !probe.After(right); probe = probe.Add(time.Hour) {
+		_, offset := probe.In(loc).Zone()
+		if offset < previousOffset {
+			lo, hi := previousProbe.Unix(), probe.Unix()
+			for lo+1 < hi {
+				mid := lo + (hi-lo)/2
+				_, candidateOffset := time.Unix(mid, 0).In(loc).Zone()
+				if candidateOffset < previousOffset {
+					hi = mid
+				} else {
+					lo = mid
+				}
+			}
+			transition := time.Unix(hi, 0).In(loc)
+			_, newOffset := transition.Zone()
+			start := floating(transition)
+			end := start.Add(time.Duration(previousOffset-newOffset) * time.Second)
+			return start, end, newOffset, true
+		}
+		previousOffset = offset
+		previousProbe = probe
+	}
+	return time.Time{}, time.Time{}, 0, false
 }
 
 func floating(t time.Time) time.Time {

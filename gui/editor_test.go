@@ -148,6 +148,20 @@ func TestEditor_SaveGating_BadTimezone(t *testing.T) {
 	}
 }
 
+func TestEditor_SaveGating_ElapsedRejectsCalendarSchedule(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.name.SetText("monthly")
+	e.command.SetText("cmd")
+	e.schedule.SetText("3rd wednesday monthly at 14:00")
+	if e.save.Disabled() {
+		t.Fatal("precondition: wall-clock monthly schedule should be valid")
+	}
+	e.timeBasis.SetSelected(timeBasisLabel(domain.TimeBasisElapsed))
+	if !e.save.Disabled() {
+		t.Fatal("Save should disable when elapsed time is incompatible with the recurrence")
+	}
+}
+
 // --- US3: combined preview -----------------------------------------------
 
 func TestEditor_CommandPreview(t *testing.T) {
