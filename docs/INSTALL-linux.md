@@ -62,6 +62,18 @@ The daemon runs as a systemd service so the scheduler starts on boot and keeps
 running with nobody logged in. Registration writes the unit file, which is why
 it needs root:
 
+Create the dedicated administrative group and add the account that will use the
+CLI or desktop app before the daemon's first start:
+
+```sh
+getent group goschedadmin >/dev/null || sudo groupadd --system goschedadmin
+sudo usermod -aG goschedadmin "$USER"
+```
+
+Sign out and back in after changing membership. The daemon fails closed if its
+configured non-empty group does not exist. It creates its default data directory
+with group `goschedadmin` and mode `0770`, and its socket with mode `0660`.
+
 ```sh
 sudo gosched service install
 ```
@@ -168,6 +180,21 @@ run it with `sudo`.
 is not installed, install it. If it says `running` but health still fails, read
 `gosched logs --severity error` — a daemon that failed at startup exits non-zero
 and says why.
+
+**The daemon reports an `admin_group` lookup or permission error.** Confirm the
+group and your fresh login membership with `getent group goschedadmin` and
+`id -nG`. For a custom `ipc_path`, its existing parent must already belong to
+the configured group with exact mode `0770`; the daemon does not rewrite a
+custom directory. As a temporary single-user compatibility choice, an operator
+can launch `goschedd --config <path>` with this explicit overlay:
+
+```text
+{"admin_group":""}
+```
+
+That mode deliberately restores a `0666` socket and emits a startup warning.
+Registered services use the secure default unless their service definition is
+explicitly given the config argument.
 
 **Tasks run but with the wrong environment.** The service runs as root with a
 minimal environment, not as your login shell. Set what a task needs explicitly

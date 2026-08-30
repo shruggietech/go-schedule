@@ -3,12 +3,45 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestDefault_IsValid(t *testing.T) {
 	if err := Default().Validate(); err != nil {
 		t.Fatalf("default config should be valid, got: %v", err)
+	}
+}
+
+func TestDefault_UsesDedicatedAdminGroup(t *testing.T) {
+	if got := Default().AdminGroup; got != "goschedadmin" {
+		t.Fatalf("default admin_group = %q, want goschedadmin", got)
+	}
+}
+
+func TestValidate_AdminGroupContract(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		value string
+		valid bool
+	}{
+		{name: "default", value: "goschedadmin", valid: true},
+		{name: "explicit compatibility", value: "", valid: true},
+		{name: "leading whitespace", value: " goschedadmin", valid: false},
+		{name: "trailing whitespace", value: "goschedadmin ", valid: false},
+		{name: "whitespace only", value: "  ", valid: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := Default()
+			cfg.AdminGroup = test.value
+			err := cfg.Validate()
+			if test.valid && err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+			if !test.valid && (err == nil || !strings.Contains(err.Error(), "admin_group")) {
+				t.Fatalf("Validate() error = %v, want admin_group error", err)
+			}
+		})
 	}
 }
 

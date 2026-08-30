@@ -177,19 +177,19 @@ jobs:
             -o=cmd/gosched-gui/resource_windows_amd64.syso \
             cmd/gosched-gui/versioninfo.json
 
-      # WiX v5 builds the Windows .msi from build/windows/goschedule.wxs.
+      # WiX v6 builds the Windows .msi from build/windows/goschedule.wxs.
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           # Pin WiX and its extensions to the SAME version — a floating extension
-          # version (e.g. 7.x) is incompatible with a 5.x toolset (WIX6101).
-          dotnet tool install --global wix --version 5.0.2
+          # version (e.g. 7.x) is incompatible with a 6.x toolset (WIX6101).
+          dotnet tool install --global wix --version 6.0.2
           wix --version
           # Extensions used by goschedule.wxs: WixUI (install wizard) + Util
           # (CloseApplication for stale-daemon termination).
-          wix extension add -g WixToolset.UI.wixext/5.0.2
-          wix extension add -g WixToolset.Util.wixext/5.0.2
+          wix extension add -g WixToolset.UI.wixext/6.0.2
+          wix extension add -g WixToolset.Util.wixext/6.0.2
 
       - name: Build the self-contained desktop bundle (GUI + daemon + CLI)
         shell: bash

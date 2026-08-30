@@ -213,6 +213,13 @@ the engine lives in the daemon rather than in a client, closing the GUI does not
 stop the schedule — and the CLI and GUI can never disagree about what is
 scheduled.
 
+The daemon restricts this privileged local API to the `goschedadmin` operating-
+system group by default and fails startup if that policy cannot be applied and
+verified. The Windows MSI provisions membership automatically; Linux and macOS
+operators create the group before starting the service. An explicitly empty
+`admin_group` restores broad local compatibility access with a startup warning.
+See the platform installation guide and [security policy](SECURITY.md).
+
 The full design is in
 [`specs/001-task-scheduler/plan.md`](specs/001-task-scheduler/plan.md).
 

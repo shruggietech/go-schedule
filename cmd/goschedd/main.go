@@ -84,11 +84,12 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	defer st.Close()
 
 	endpoint := ipc.Endpoint(cfg)
-	ln, err := ipc.Listen(endpoint)
+	ln, access, err := ipc.Listen(cfg)
 	if err != nil {
 		return err
 	}
 	defer ln.Close()
+	logIPCAccess(log, access)
 
 	// Scheduling engine wired to the broker for run/alert streaming.
 	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
@@ -129,4 +130,12 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 
 func logDaemonReady(log *slog.Logger, endpoint, dbPath, logPath string) {
 	log.Info("daemon startup complete", "endpoint", endpoint, "db", dbPath, "log_path", logPath)
+}
+
+func logIPCAccess(log *slog.Logger, access ipc.AccessInfo) {
+	if access.Mode == ipc.AccessModeCompatibility {
+		log.Warn("IPC compatibility mode enabled", "access_mode", string(access.Mode), "admin_group", access.AdminGroup)
+		return
+	}
+	log.Info("IPC access configured", "access_mode", string(access.Mode), "admin_group", access.AdminGroup)
 }

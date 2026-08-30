@@ -46,4 +46,5 @@ Run `sh scripts/spec-lifecycle-check.sh .` locally. The canonical automation gat
 | 026-cron-expression-breadth | Implemented | PR [#61](https://github.com/shruggietech/go-schedule/pull/61) |
 | 027-dst-intent | Implemented | PR [#62](https://github.com/shruggietech/go-schedule/pull/62) |
 | 028-cron-parity-closure | Implemented | PR [#63](https://github.com/shruggietech/go-schedule/pull/63) |
-| 029-v09-closure | Implemented | review branch `codex/029-v09-closure` |
+| 029-v09-closure | Implemented | PR [#65](https://github.com/shruggietech/go-schedule/pull/65) |
+| 030-ipc-admin-group | Implemented | review branch `codex/030-ipc-admin-group`; local verification completed 2026-08-30 |

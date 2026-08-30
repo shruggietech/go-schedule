@@ -58,9 +58,14 @@ try {
   [xml]$wxsXml = $wxs
   $ns = [System.Xml.XmlNamespaceManager]::new($wxsXml.NameTable)
   $ns.AddNamespace('w', 'http://wixtoolset.org/schemas/v4/wxs')
+  $ns.AddNamespace('util', 'http://wixtoolset.org/schemas/v4/wxs/util')
   $icon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Icon[@Id="GoSchedule.ico"]', $ns)
   $arpIcon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPPRODUCTICON"]', $ns)
   $shortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="GuiShortcut"]', $ns)
+  $adminGroup = $wxsXml.SelectSingleNode('//util:Group[@Id="GoScheduleAdminGroup"]', $ns)
+  $installingUser = $wxsXml.SelectSingleNode('//util:User[@Id="InstallingUser"]', $ns)
+  $adminGroupRef = $wxsXml.SelectSingleNode('//util:User[@Id="InstallingUser"]/util:GroupRef[@Id="GoScheduleAdminGroup"]', $ns)
+  $adminComponentRef = $wxsXml.SelectSingleNode('//w:Feature[@Id="Main"]/w:ComponentRef[@Id="AdminAccessProvisioning"]', $ns)
 
   if (-not $icon) {
     $fail += 'canonical Icon Id="GoSchedule.ico" is missing'
@@ -85,6 +90,35 @@ try {
   } elseif ($shortcut.Icon -ne 'GoSchedule.ico') {
     $fail += 'GuiShortcut Icon must reference "GoSchedule.ico"'
   }
+
+  if (-not $adminGroup) {
+    $fail += 'administrative util:Group Id="GoScheduleAdminGroup" is missing'
+  } else {
+    $expectedGroupAttributes = @{
+      Name = 'goschedadmin'; Domain = '[ComputerName]'; CreateGroup = 'yes'
+      FailIfExists = 'no'; RemoveOnUninstall = 'no'; UpdateIfExists = 'yes'; Vital = 'yes'
+    }
+    foreach ($attribute in $expectedGroupAttributes.Keys) {
+      if ($adminGroup.GetAttribute($attribute) -ne $expectedGroupAttributes[$attribute]) {
+        $fail += "administrative group $attribute must be `"$($expectedGroupAttributes[$attribute])`""
+      }
+    }
+  }
+  if (-not $installingUser) {
+    $fail += 'util:User Id="InstallingUser" is missing'
+  } else {
+    $expectedUserAttributes = @{
+      Name = '[LogonUser]'; CreateUser = 'no'; FailIfExists = 'no'
+      RemoveOnUninstall = 'no'; UpdateIfExists = 'yes'; Vital = 'yes'
+    }
+    foreach ($attribute in $expectedUserAttributes.Keys) {
+      if ($installingUser.GetAttribute($attribute) -ne $expectedUserAttributes[$attribute]) {
+        $fail += "installing user $attribute must be `"$($expectedUserAttributes[$attribute])`""
+      }
+    }
+  }
+  if (-not $adminGroupRef) { $fail += 'installing user is not a member of GoScheduleAdminGroup' }
+  if (-not $adminComponentRef) { $fail += 'Main feature does not include AdminAccessProvisioning' }
 } catch {
   $fail += "wxs is not valid XML: $($_.Exception.Message)"
 }

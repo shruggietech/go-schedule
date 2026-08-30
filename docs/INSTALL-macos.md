@@ -53,8 +53,8 @@ open gosched-gui.app
 ```
 
 The first launch starts the background daemon itself, so there is nothing to
-configure. That daemon keeps running after you close the window, so tasks
-continue to fire.
+configure beyond the one-time administrative-group setup below. That daemon
+keeps running after you close the window, so tasks continue to fire.
 
 > **It does not survive a reboot.** An auto-started daemon is a plain background
 > process, not a registered service. If you want the scheduler running after the
@@ -83,6 +83,18 @@ gosched --version
 
 The daemon runs under `launchd` so it starts at boot. Registration writes a
 launch daemon plist, which is why it needs root:
+
+Before opening the desktop app or starting the service for the first time,
+create the dedicated group and add your account:
+
+```sh
+dseditgroup -o read goschedadmin >/dev/null 2>&1 || sudo dseditgroup -o create goschedadmin
+sudo dseditgroup -o edit -a "$USER" -t user goschedadmin
+```
+
+Sign out and back in after changing membership. The daemon fails closed if its
+configured non-empty group does not exist. Its default data directory uses
+group `goschedadmin` and mode `0770`; the socket uses mode `0660`.
 
 ```sh
 sudo gosched service install
@@ -185,6 +197,15 @@ service. Register it — see [above](#register-the-service).
 `gosched service status` first. If it says `running` but health still fails,
 read `gosched logs --severity error`; a daemon that failed at startup exits
 non-zero and says why.
+
+**The daemon reports an `admin_group` lookup or permission error.** Verify the
+group with `dseditgroup -o read goschedadmin` and sign in again after membership
+changes. For a custom `ipc_path`, its existing parent must already belong to the
+configured group with exact mode `0770`; the daemon will not modify it. A
+foreground daemon can deliberately use the former broad local policy by passing
+`--config <path>` with `{"admin_group":""}`. This compatibility mode creates a
+`0666` socket and emits a startup warning; registered services remain on the
+secure default unless explicitly configured otherwise.
 
 **Tasks run but cannot find a tool they need.** A launchd service starts with a
 minimal environment, not your login shell's. Give the task what it needs

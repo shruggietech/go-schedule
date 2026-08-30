@@ -51,25 +51,26 @@ and when installed as a system service it runs them with system privileges.**
 That is the entire purpose of the software. It follows that anyone who can
 create or edit a task can execute code at that privilege level.
 
-So the security boundary that matters is **who can reach the daemon**, and the
-answer today is deliberately permissive, because the design target is a
-single-user desktop or a machine whose local users are all trusted:
+So the security boundary that matters is **who can reach the daemon**. By
+default, that boundary is the dedicated operating-system group
+`goschedadmin`:
 
 - **Windows.** The IPC named pipe carries an explicit ACL granting SYSTEM and
-  Administrators full control, and Authenticated Users read and write. The last
-  of those is what lets a non-elevated GUI reach a `LocalSystem` daemon at all —
-  a non-elevated administrator token carries its Administrators SID as
-  deny-only, so Authenticated Users is required for the ordinary case to work.
-  The consequence is that any authenticated local user can manage the scheduler.
+  built-in Administrators full control, and the resolved `goschedadmin` SID read
+  and write. The MSI creates or reuses that group and adds the interactive
+  installing account.
 - **Linux and macOS.** The daemon listens on a Unix domain socket in its data
-  directory, created with default permissions. Any local user who can traverse
-  that directory can connect.
+  directory. In restricted mode the directory is owned by `goschedadmin` with
+  mode `0770`, and the socket is group-owned with mode `0660`. A custom existing
+  socket directory must already match that group and mode; the daemon verifies
+  it rather than mutating unrelated operator-owned paths.
 
-If you are deploying onto a multi-user or locked-down machine, treat access to
-the daemon as equivalent to the privilege the daemon runs with, and restrict it
-at the operating-system level. Narrowing the IPC ACL to a dedicated
-administrative group is tracked as open work; it is not implemented today, and
-this document says so rather than implying otherwise.
+Any non-empty group lookup, SID type, ownership, permission application, or
+readback failure stops startup before the API is served. An explicitly empty
+`admin_group` selects compatibility mode instead: Authenticated Users regain
+named-pipe access on Windows, or the Unix socket uses mode `0666`, and the
+daemon emits a warning. Treat membership in the configured group, or selecting
+compatibility mode, as granting the daemon's execution privilege.
 
 ## Known limitations
 
@@ -79,7 +80,8 @@ These are current and acknowledged, not undiscovered:
   Authenticode-signed and the macOS builds are neither signed nor notarized.
   Verify downloads against `SHA256SUMS.txt`; that checksum file is the integrity
   guarantee on offer.
-- **IPC access control is coarse**, as described above.
+- **IPC access control is group-based**, as described above; it does not provide
+  per-command roles within the API.
 - **Task credentials.** A task's environment is stored in the local database in
   plain text. Do not put secrets in `--env`; point the task at a secret store
   your platform already provides.
