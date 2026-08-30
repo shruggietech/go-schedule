@@ -284,8 +284,16 @@ else
   if grep -Fq -- 'ref: main' "$RELEASE"; then
     report "$RELEASE: release validation must inspect the tagged checkout"
   fi
-  require_release_text 'needs: readme-version' \
-    'README version preflight dependency'
+  if ! awk '
+    /^  binaries:[[:space:]]*$/ { in_binaries = 1; next }
+    in_binaries && /^  [[:alnum:]_-]+:[[:space:]]*$/ { exit }
+    in_binaries && /^[[:space:]]+needs:[[:space:]]*readme-version[[:space:]]*$/ {
+      found = 1
+    }
+    END { exit !found }
+  ' "$RELEASE"; then
+    report "$RELEASE: binaries job missing README version preflight dependency"
+  fi
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
   require_release_text \

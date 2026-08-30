@@ -148,7 +148,10 @@ EOF
   cat > "$fixture/.github/workflows/release.yml" <<'EOF'
 name: Release
 jobs:
-  release:
+  readme-version:
+    steps:
+      - run: true
+  binaries:
     needs: readme-version
     steps:
       - run: go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 -icon=brand/platform/windows/go-schedule.ico
@@ -223,8 +226,10 @@ run_automation_cases() {
 
   ungated_release="$tmp/ungated-release"
   cp -R "$good" "$ungated_release"
-  sed '/needs: readme-version/d' \
+  sed 's/needs: readme-version/needs: binaries/' \
     "$good/.github/workflows/release.yml" > \
+    "$ungated_release/.github/workflows/release.yml"
+  printf '  gui:\n    needs: readme-version\n' >> \
     "$ungated_release/.github/workflows/release.yml"
   run_expect_fail ungated-release 'README version preflight dependency' \
     sh "$CHECK" "$ungated_release"
