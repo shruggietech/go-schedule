@@ -231,6 +231,13 @@ run_automation_cases() {
   run_expect_fail full-main-refspec 'must not run git push' \
     sh "$CHECK" "$full_main_refspec"
 
+  global_option_push="$tmp/global-option-push"
+  cp -R "$good" "$global_option_push"
+  printf '      - run: git -C "$GITHUB_WORKSPACE" push origin HEAD:main\n' >> \
+    "$global_option_push/.github/workflows/release.yml"
+  run_expect_fail global-option-push 'must not run git push' \
+    sh "$CHECK" "$global_option_push"
+
   main_checkout="$tmp/main-checkout"
   cp -R "$good" "$main_checkout"
   printf '      - uses: actions/checkout@v7\n        with:\n          ref: main\n' >> \
@@ -244,6 +251,13 @@ run_automation_cases() {
     "$quoted_main_checkout/.github/workflows/release.yml"
   run_expect_fail quoted-main-checkout 'must inspect the tagged checkout' \
     sh "$CHECK" "$quoted_main_checkout"
+
+  qualified_main_checkout="$tmp/qualified-main-checkout"
+  cp -R "$good" "$qualified_main_checkout"
+  printf "      - uses: actions/checkout@v7\n        with:\n          ref: 'refs/heads/main'\n" >> \
+    "$qualified_main_checkout/.github/workflows/release.yml"
+  run_expect_fail qualified-main-checkout 'must inspect the tagged checkout' \
+    sh "$CHECK" "$qualified_main_checkout"
 
   ungated_release="$tmp/ungated-release"
   cp -R "$good" "$ungated_release"
