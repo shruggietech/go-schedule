@@ -278,6 +278,9 @@ else
   if grep -Fq -- 'generate_release_notes: true' "$RELEASE"; then
     report "$RELEASE: generated release notes must remain disabled"
   fi
+  if grep -Fq -- 'git push origin HEAD:main' "$RELEASE"; then
+    report "$RELEASE: release workflow must not push directly to main"
+  fi
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
   require_release_text \

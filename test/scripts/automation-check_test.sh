@@ -205,6 +205,13 @@ run_automation_cases() {
   run_expect_fail fixed-body-path 'dynamic tag-specific release-note body path' \
     sh "$CHECK" "$fixed_body_path"
 
+  direct_main_push="$tmp/direct-main-push"
+  cp -R "$good" "$direct_main_push"
+  printf '      - run: git push origin HEAD:main\n' >> \
+    "$direct_main_push/.github/workflows/release.yml"
+  run_expect_fail direct-main-push 'must not push directly to main' \
+    sh "$CHECK" "$direct_main_push"
+
   missing_changelog="$tmp/missing-changelog"
   cp -R "$good" "$missing_changelog"
   sed '/Read the \[full changelog\]/d' \
