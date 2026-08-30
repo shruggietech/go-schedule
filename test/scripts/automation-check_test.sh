@@ -149,6 +149,7 @@ EOF
 name: Release
 jobs:
   release:
+    needs: readme-version
     steps:
       - run: go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 -icon=brand/platform/windows/go-schedule.ico
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
@@ -219,6 +220,14 @@ run_automation_cases() {
     "$main_checkout/.github/workflows/release.yml"
   run_expect_fail main-checkout 'must inspect the tagged checkout' \
     sh "$CHECK" "$main_checkout"
+
+  ungated_release="$tmp/ungated-release"
+  cp -R "$good" "$ungated_release"
+  sed '/needs: readme-version/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$ungated_release/.github/workflows/release.yml"
+  run_expect_fail ungated-release 'README version preflight dependency' \
+    sh "$CHECK" "$ungated_release"
 
   missing_wayland="$tmp/missing-wayland"
   cp -R "$good" "$missing_wayland"

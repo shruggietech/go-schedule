@@ -11,7 +11,7 @@ permissions:
 jobs:
   # Release preparation updates these static version lines through review.
   # Verify them in the tagged checkout without trying to push directly to
-  # main. Standalone (no `needs`) so a mismatch is visible immediately.
+  # main. This preflight gates every release publication job.
   readme-version:
     name: Verify the static README version lines match this tag
     runs-on: ubuntu-latest
@@ -38,6 +38,7 @@ jobs:
 
   binaries:
     name: Build & publish release binaries (daemon + CLI)
+    needs: readme-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

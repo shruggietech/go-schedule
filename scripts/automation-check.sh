@@ -284,6 +284,8 @@ else
   if grep -Fq -- 'ref: main' "$RELEASE"; then
     report "$RELEASE: release validation must inspect the tagged checkout"
   fi
+  require_release_text 'needs: readme-version' \
+    'README version preflight dependency'
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
   require_release_text \
