@@ -4,7 +4,9 @@
 
 **Created**: 2026-06-20
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `a21c22e`
 
 **Input**: User description: "GUI task editor refinements (follow-up to 002) — full-size window, two-pane wider modal with Preview on the right, in-modal Help pane, remove Examples, code-block command preview, disclosure-arrow direction for Advanced Settings, right-aligned Save/Cancel, Cancel confirmation when dirty, and app-wide pointer cursor on clickable controls."
 

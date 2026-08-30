@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #56](https://github.com/shruggietech/go-schedule/pull/56)
 
 **Input**: User description: "Complete issue #52's documentation follow-through for first-class human and cron schedule input, reconcile the product posture across every current surface, explicitly supersede obsolete boundary-only policy, and complete parent epic #50."
 

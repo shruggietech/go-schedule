@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #60](https://github.com/shruggietech/go-schedule/pull/60)
 
 **Input**: Deliver one substantial monthly-calendar work slice covering cron day-of-month `L`, `W`, and `LW` semantics end to end, rather than splitting each syntax token into a separate review cycle.
 

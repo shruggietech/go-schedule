@@ -2,7 +2,9 @@
 
 **Feature Branch**: `codex/022-activity-diagnostics`
 **Created**: 2026-08-28
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #57](https://github.com/shruggietech/go-schedule/pull/57)
 **Input**: Improve Activity diagnostics so operators can find the complete daemon log and recognize daemon startup as a completed event.
 
 ## User Scenarios & Testing *(mandatory)*

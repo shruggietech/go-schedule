@@ -4,7 +4,9 @@
 
 **Created**: 2026-06-20
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `c10aac4`
 
 **Input**: User description: "GUI New Task / Edit Task dialog UX overhaul — mode-driven field visibility, advanced-settings collapsible with human-readable policy labels, combined schedule + command preview, required-field validation, timezone dropdown, one-off date/time picker, schedule help, visual grouping, persistent argument caption, hand cursor on buttons, and an optional anchor/start time for fixed-interval recurring schedules."
 

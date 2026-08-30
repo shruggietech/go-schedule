@@ -1,0 +1,30 @@
+# S029: low-noise dependency proposals for the two maintained ecosystems.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Groups apply to routine version updates by default. Security updates
+      # remain separate and visible for risk-focused review.
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies

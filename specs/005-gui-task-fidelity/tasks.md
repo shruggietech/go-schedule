@@ -343,9 +343,11 @@ build it.
       buildable SC maps to at least one task. Findings E1, E2, E3, F1, and C1
       from the 2026-07-22 analysis are resolved by T023a, T040a, T017a, the
       expected-red-state note in Phase 3, and the new-file markers respectively.
-- [ ] T047 Run the manual GUI walkthrough in [quickstart.md](quickstart.md),
+- [x] T047 Run the manual GUI walkthrough in [quickstart.md](quickstart.md),
       including section A against a **pre-upgrade database**, which is the only
-      check that proves the fix reaches the people who reported it.
+      check that proves the fix reaches the people who reported it. **Disposition:
+      waived during the 2026-08-30 lifecycle audit; automated delivery evidence
+      exists, but this manual observation was not performed.**
 
 ---
 

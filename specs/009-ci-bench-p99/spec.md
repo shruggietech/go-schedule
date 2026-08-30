@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-23
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `95eca21`
 
 **Input**: Close GitHub issue #14 — run the engine benchmarks in CI and enforce
 the constitution's p99 dispatch-latency budget.

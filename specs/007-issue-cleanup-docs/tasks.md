@@ -4,6 +4,8 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md)
 
+**Task Reconciliation**: This historical checklist predates the repository's checkbox convention. Commit `eb76c8e` and release `v0.6.0` resolve T001-T029 as delivered evidence; the original notation is preserved rather than rewriting its design record.
+
 Tasks are grouped by user story so each group can be completed and demonstrated
 on its own. `[P]` marks tasks that touch disjoint files and may run in parallel.
 

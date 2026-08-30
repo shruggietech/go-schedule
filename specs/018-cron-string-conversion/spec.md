@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #53](https://github.com/shruggietech/go-schedule/pull/53)
 
 **Input**: User description: "S018: add a pure local cron-to-human and
 human-to-cron string converter to the CLI, closing issue #51 and laying focused

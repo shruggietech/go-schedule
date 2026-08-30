@@ -83,13 +83,18 @@ The agent runs these steps in order, with no halt between them:
 7. `/speckit-implement` executes the tasks under test-driven discipline
    (constitution principle II). Tests covering the safety-critical behaviors
    below are required, not optional.
-8. Verify with CI parity (see the next section). A red result that cannot be
+8. Before verification, the feature state advances from `Draft` or `Ready` to
+   `In Progress`. The canonical states and evidence rules live in
+   `specs/README.md`.
+9. Verify with CI parity (see the next section). A red result that cannot be
    fixed within the feature triggers a halt with the failure.
-9. Commit locally as `feat(NNN): <title>` (NNN is the spec-kit feature number)
-   with the agent's `Co-Authored-By:` attribution trailer, and update the
-   `CHANGELOG.md` `[Unreleased]` section (an Added or Changed line, plus a dated
-   Decisions entry for any architecture-affecting choice).
-10. Halt before the work leaves the machine. Present the breakdown below and
+10. Resolve all required tasks, advance the feature to `Implemented`, record
+   local delivery evidence, and commit as `feat(NNN): <title>` (NNN is the
+   spec-kit feature number) with the agent's `Co-Authored-By:` attribution
+   trailer. Update the `CHANGELOG.md` `[Unreleased]` section (an Added or
+   Changed line, plus a dated Decisions entry for any architecture-affecting
+   choice).
+11. Halt before the work leaves the machine. Present the breakdown below and
     wait for explicit authorization.
 
 ## Verification: CI parity
@@ -149,6 +154,12 @@ contributors. Direct pushes to `main` are prohibited.
 The halt precedes the review-branch push and pull-request creation. It also
 marks the boundary before anything is published. Nothing is pushed or opened
 without explicit authorization.
+
+Push, pull-request creation, review, merge, and branch cleanup are publication
+workflow, not feature implementation tasks. Do not add them as unchecked items
+to `tasks.md`; doing so makes an implemented feature appear incomplete after
+the local done gate. Record their evidence in the pull request and the
+specification's `Delivery` field instead.
 
 The authorization that publishes the PR remains valid for verified, in-scope
 commits pushed to the same review branch to address CI failures or review

@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-29
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #62](https://github.com/shruggietech/go-schedule/pull/62)
 
 **Input**: Complete the remaining scope of issue #8 by making recurrence anchoring and daylight-saving transition behavior explicit per task across execution, persistence, API, CLI, GUI, previews, calendar, catch-up, and documentation.
 

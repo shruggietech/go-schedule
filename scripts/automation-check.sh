@@ -145,6 +145,93 @@ coverage
 docs
 automation'
 
+DEPENDABOT="$ROOT/.github/dependabot.yml"
+
+dependabot_block() {
+  ecosystem=$1
+  awk -v ecosystem="$ecosystem" '
+    /^  - package-ecosystem:/ {
+      if (inside) exit
+      if ($0 == "  - package-ecosystem: " ecosystem) inside = 1
+    }
+    inside { print }
+  ' "$DEPENDABOT"
+}
+
+require_dependabot_pattern() {
+  block=$1
+  pattern=$2
+  description=$3
+  if ! printf '%s\n' "$block" | grep -Eq "$pattern"; then
+    report "$DEPENDABOT: missing $description"
+  fi
+}
+
+if [ ! -f "$DEPENDABOT" ]; then
+  report "$DEPENDABOT: Dependabot configuration not found"
+else
+  ecosystem_count=$(grep -Ec '^  - package-ecosystem:' "$DEPENDABOT" || true)
+  if [ "$ecosystem_count" -ne 2 ]; then
+    report "$DEPENDABOT: expected exactly two package ecosystems"
+  fi
+
+  invalid_ecosystems=$(awk '
+    /^  - package-ecosystem:/ {
+      ecosystem = $0
+      sub(/^  - package-ecosystem:[[:space:]]*/, "", ecosystem)
+      if (ecosystem != "gomod" && ecosystem != "github-actions") print ecosystem
+    }
+  ' "$DEPENDABOT")
+  if [ -n "$invalid_ecosystems" ]; then
+    report "$DEPENDABOT: unapproved package ecosystem(s): $invalid_ecosystems"
+  fi
+
+  for ecosystem in gomod github-actions; do
+    count=$(grep -Ec "^  - package-ecosystem: $ecosystem$" "$DEPENDABOT" || true)
+    if [ "$count" -ne 1 ]; then
+      report "$DEPENDABOT: expected exactly one $ecosystem entry"
+      continue
+    fi
+
+    block=$(dependabot_block "$ecosystem")
+    require_dependabot_pattern "$block" '^    directory: /$' \
+      "$ecosystem root directory"
+    require_dependabot_pattern "$block" '^    open-pull-requests-limit: 5$' \
+      "$ecosystem five-PR limit"
+    require_dependabot_pattern "$block" '^      routine-minor-and-patch:$' \
+      "$ecosystem routine update group"
+    require_dependabot_pattern "$block" '^          - minor$' \
+      "$ecosystem grouped minor updates"
+    require_dependabot_pattern "$block" '^          - patch$' \
+      "$ecosystem grouped patch updates"
+    require_dependabot_pattern "$block" '^      - dependencies$' \
+      "$ecosystem dependencies label"
+
+    case "$ecosystem" in
+      gomod) cadence=weekly ;;
+      github-actions) cadence=monthly ;;
+    esac
+    require_dependabot_pattern "$block" "^      interval: $cadence$" \
+      "$ecosystem $cadence cadence"
+
+    if printf '%s\n' "$block" | grep -Eq '^          - major$'; then
+      report "$DEPENDABOT: $ecosystem routine group must not group major updates"
+    fi
+    if printf '%s\n' "$block" | grep -Eq \
+      '^        applies-to: security-updates$'; then
+      report "$DEPENDABOT: $ecosystem routine group must not group security updates"
+    fi
+  done
+fi
+
+LIFECYCLE="$ROOT/scripts/spec-lifecycle-check.sh"
+if [ ! -f "$LIFECYCLE" ]; then
+  report "$LIFECYCLE: specification lifecycle checker not found"
+elif ! lifecycle_output=$(sh "$LIFECYCLE" "$ROOT" 2>&1); then
+  report "$LIFECYCLE: lifecycle contract failed"
+  report "$lifecycle_output"
+fi
+
 VERIFY="$ROOT/scripts/verify.sh"
 if [ ! -f "$VERIFY" ]; then
   report "$VERIFY: verification driver not found"
@@ -165,4 +252,4 @@ if [ -s "$FAILURES" ]; then
   exit 1
 fi
 
-printf 'automation-check: OK - approved actions, CodeQL contract, and 8-gate manifest\n'
+printf 'automation-check: OK - actions, CodeQL, Dependabot, lifecycle, and 8 gates\n'
