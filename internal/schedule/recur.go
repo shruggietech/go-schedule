@@ -154,6 +154,10 @@ func nextRecurring(sch domain.Schedule, tzName string, policy domain.SchedulePol
 			}
 			return occ, true, nil
 		}
+		if len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 {
+			occ, ok := resolveCompositeDailySet(opt, loc, policy, after)
+			return occ, ok, nil
+		}
 	}
 
 	// A date-bearing rule under a non-skip policy is resolved by walking periods

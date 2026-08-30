@@ -268,7 +268,7 @@ func compositeDateSet(opt *rrule.ROption) bool {
 		interval = 1
 	}
 	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Bymonthday) == 0 || len(opt.Byweekday) != 0 ||
-		len(opt.Byhour) == 0 || len(opt.Byminute) == 0 || len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 ||
+		len(opt.Byhour) == 0 || len(opt.Byminute) == 0 || len(opt.Bysecond) == 0 ||
 		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
 		opt.Count != 0 || !opt.Until.IsZero() {
 		return false
@@ -287,7 +287,7 @@ func compositeDailySet(opt *rrule.ROption) bool {
 		interval = 1
 	}
 	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Byhour) == 0 || len(opt.Byminute) == 0 ||
-		len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 || len(opt.Bysetpos) != 0 ||
+		len(opt.Bysecond) == 0 || len(opt.Bysetpos) != 0 ||
 		len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
 		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Bymonthday) > 0 && len(opt.Byweekday) > 0 {
 		return false
@@ -301,6 +301,62 @@ func compositeDailySet(opt *rrule.ROption) bool {
 		if weekday.N() != 0 {
 			return false
 		}
+	}
+	return true
+}
+
+const maxCompositeDayWalk = 366 * 12
+
+// resolveCompositeDailySet evaluates the exact field sets emitted by cron
+// compilation without replaying every occurrence since the schedule anchor.
+// Day iteration stays bounded, and each selected wall reading still passes
+// through the shared DST resolver.
+func resolveCompositeDailySet(opt *rrule.ROption, loc *time.Location, policy domain.SchedulePolicy, after time.Time) (time.Time, bool) {
+	anchor := opt.Dtstart
+	localAfter := after.In(loc)
+	day := time.Date(localAfter.Year(), localAfter.Month(), localAfter.Day(), 0, 0, 0, 0, loc)
+	for i := 0; i < maxCompositeDayWalk; i++ {
+		if compositeDaySelected(opt, day) {
+			var best time.Time
+			for _, hour := range opt.Byhour {
+				for _, minute := range opt.Byminute {
+					for _, second := range opt.Bysecond {
+						intent := time.Date(day.Year(), day.Month(), day.Day(), hour, minute, second, 0, time.UTC)
+						occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
+						if ok && (best.IsZero() || occ.Before(best)) {
+							best = occ
+						}
+					}
+				}
+			}
+			if !best.IsZero() {
+				return best, true
+			}
+		}
+		day = day.AddDate(0, 0, 1)
+	}
+	return time.Time{}, false
+}
+
+func compositeDaySelected(opt *rrule.ROption, day time.Time) bool {
+	if !monthSelected(opt.Bymonth, day.Month()) {
+		return false
+	}
+	if len(opt.Bymonthday) > 0 {
+		for _, selected := range opt.Bymonthday {
+			if selected == day.Day() {
+				return true
+			}
+		}
+		return false
+	}
+	if len(opt.Byweekday) > 0 {
+		for _, selected := range opt.Byweekday {
+			if weekdayOf(selected) == day.Weekday() {
+				return true
+			}
+		}
+		return false
 	}
 	return true
 }
@@ -323,12 +379,14 @@ func resolveCompositeDateSet(opt *rrule.ROption, loc *time.Location, policy doma
 				}
 				for _, hour := range opt.Byhour {
 					for _, minute := range opt.Byminute {
-						intent := time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-						occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
-						if !ok || !best.IsZero() && !occ.Before(best) {
-							continue
+						for _, second := range opt.Bysecond {
+							intent := time.Date(year, month, day, hour, minute, second, 0, time.UTC)
+							occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
+							if !ok || !best.IsZero() && !occ.Before(best) {
+								continue
+							}
+							best = occ
 						}
-						best = occ
 					}
 				}
 			}

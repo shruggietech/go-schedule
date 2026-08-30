@@ -24,6 +24,7 @@ type TaskCreateRequest struct {
 	Args           []string          `json:"args,omitempty"`
 	WorkingDir     string            `json:"working_dir,omitempty"`
 	Env            map[string]string `json:"env,omitempty"`
+	Stdin          string            `json:"stdin,omitempty"`
 	RunAs          string            `json:"run_as,omitempty"`
 	Timezone       string            `json:"timezone,omitempty"`
 	Schedule       string            `json:"schedule,omitempty"`
@@ -151,7 +152,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task := &domain.Task{
 		Name: req.Name, GroupID: req.GroupID, Command: req.Command, Args: req.Args,
-		WorkingDir: req.WorkingDir, Env: req.Env, RunAs: req.RunAs, Enabled: true,
+		WorkingDir: req.WorkingDir, Env: req.Env, Stdin: req.Stdin, RunAs: req.RunAs, Enabled: true,
 		Timezone: tz, ScheduleID: sch.ID, OverlapPolicy: overlap, CatchupPolicy: catchup,
 		MissingDatePolicy: missingDate, TimeBasis: timeBasis, DSTGapPolicy: dstGap,
 		DSTOverlapPolicy: dstOverlap, State: domain.TaskActive,

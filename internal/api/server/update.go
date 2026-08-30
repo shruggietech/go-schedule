@@ -28,6 +28,7 @@ type TaskUpdateRequest struct {
 	Args           []string          `json:"args,omitempty"`
 	WorkingDir     string            `json:"working_dir,omitempty"`
 	Env            map[string]string `json:"env,omitempty"`
+	Stdin          *string           `json:"stdin,omitempty"`
 	RunAs          string            `json:"run_as,omitempty"`
 	Timezone       string            `json:"timezone,omitempty"`
 	Schedule       string            `json:"schedule,omitempty"`
@@ -75,6 +76,9 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Env != nil {
 		task.Env = req.Env
+	}
+	if req.Stdin != nil {
+		task.Stdin = *req.Stdin
 	}
 	if req.GroupID != nil {
 		// "" clears membership; a named group must exist, or this is the

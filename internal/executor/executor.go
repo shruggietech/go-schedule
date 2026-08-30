@@ -9,6 +9,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,6 +42,9 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	}
 	if len(task.Env) > 0 {
 		cmd.Env = append(os.Environ(), envSlice(task.Env)...)
+	}
+	if task.Stdin != "" {
+		cmd.Stdin = strings.NewReader(task.Stdin)
 	}
 	platform.HideConsole(cmd) // no console window for the child process
 

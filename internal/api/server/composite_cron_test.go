@@ -46,6 +46,33 @@ func TestCompositeCronPreviewCreateEditAndReload(t *testing.T) {
 	}
 }
 
+func TestSecondsCronPreviewCreateAndReload(t *testing.T) {
+	s := newTestServer(t)
+	expr := "5/15 * * * * *"
+	preview := doJSON(t, s, http.MethodPost, "/v1/schedules/preview", PreviewRequest{
+		Schedule: expr, ScheduleSyntax: "cron", Timezone: "UTC",
+	})
+	if preview.Code != http.StatusOK {
+		t.Fatalf("preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	var p PreviewResponse
+	if err := json.Unmarshal(preview.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	for _, run := range p.NextRuns {
+		if run.Second() != 5 && run.Second() != 20 && run.Second() != 35 && run.Second() != 50 {
+			t.Fatalf("preview run %s has unexpected second", run)
+		}
+	}
+	created := newTaskFor(t, s, TaskCreateRequest{
+		Name: "seconds", Command: "/bin/true", Schedule: expr, ScheduleSyntax: "cron", Timezone: "UTC",
+	})
+	loaded := getTask(t, s, created.Task.ID)
+	if loaded.Schedule.Expression != expr || loaded.Schedule.SourceSyntax != "cron" || !strings.Contains(loaded.Schedule.RRULE, "BYSECOND=5,20,35,50") {
+		t.Fatalf("loaded schedule=%+v", loaded.Schedule)
+	}
+}
+
 func TestCompositeCronRefusedUpdateDoesNotMutate(t *testing.T) {
 	s := newTestServer(t)
 	created := newTaskFor(t, s, TaskCreateRequest{

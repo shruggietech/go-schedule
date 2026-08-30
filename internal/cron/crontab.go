@@ -8,36 +8,52 @@ import (
 	"strings"
 )
 
-// LineKind classifies what a crontab line turned out to be.
+// Dialect identifies the timing-field layout used by a crontab file.
+type Dialect string
+
+const (
+	// DialectUnix consumes five timing fields in conventional crontab order.
+	DialectUnix Dialect = "unix"
+	// DialectQuartz consumes six timing fields beginning with seconds.
+	DialectQuartz Dialect = "quartz"
+)
+
+// ScanOptions selects file layout that cannot be inferred safely from tokens.
+type ScanOptions struct {
+	Dialect Dialect
+	System  bool
+}
+
+// LineKind classifies one scanned crontab line.
 type LineKind int
 
 const (
-	LineSkipped  LineKind = iota // a comment or a blank line
-	LineJob                      // a schedule and a command
-	LineDeclined                 // well-formed, but not representable
-	LineError                    // malformed
+	LineSkipped LineKind = iota
+	LineJob
+	LineDeclined
+	LineError
 )
 
-// Line is one crontab line's conversion result. Preview and a real import
-// produce identical slices of these; whether tasks were created is the only
-// difference between the two runs.
+// Line contains one crontab line's conversion outcome and effective context.
 type Line struct {
-	Number  int
-	Raw     string
-	Kind    LineKind
-	Expr    string // the timing portion, for a job or a declined line
-	Phrase  string // the human phrase, for a job
-	Command string
-	Args    []string
-	Reason  string // why it was declined, or what went wrong
-	// Warnings record what was read but not carried across — a MAILTO, a shell
-	// variable assignment. They are attached to the line that produced them
-	// rather than dropped, because a dropped MAILTO silently changes where a
-	// job's output goes.
-	Warnings []string
+	Number      int
+	Raw         string
+	Kind        LineKind
+	Expr        string
+	Phrase      string
+	Command     string
+	Args        []string
+	CommandText string
+	Stdin       string
+	HasStdin    bool
+	Env         map[string]string
+	Timezone    string
+	RunAs       string
+	Reason      string
+	Warnings    []string
 }
 
-// Report is the account of one conversion run.
+// Report accounts for every line and task-creation outcome in one import.
 type Report struct {
 	Lines    []Line
 	Read     int
@@ -46,32 +62,38 @@ type Report struct {
 	Declined int
 	Errors   int
 	Created  int
-	// Failed counts jobs that converted but could not be created. Non-zero means
-	// a partial import: the tasks that were created remain.
-	Failed int
-	// Warnings are file-level notes (variable assignments seen before any job).
+	Failed   int
 	Warnings []string
 }
 
-// reAssignment matches a crontab environment assignment (NAME=value), which
-// crontab applies to every subsequent line. We report these rather than apply
-// them: applying one would change the meaning of every line after it in a way
-// the preview could not show.
+type scanContext struct {
+	timezone string
+	env      map[string]string
+	shell    string
+}
+
 var reAssignment = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$`)
 
-// ScanCrontab reads a crontab and converts every line. It never returns a
-// partial result: a line that cannot be converted becomes a declined or errored
-// Line, so the caller can account for every line of the input.
+// ScanCrontab reads a conventional five-field user crontab.
 func ScanCrontab(r io.Reader) (Report, error) {
+	return ScanCrontabWithOptions(r, ScanOptions{})
+}
+
+// ScanCrontabWithOptions reads a crontab using an explicit timing and user layout.
+func ScanCrontabWithOptions(r io.Reader, opts ScanOptions) (Report, error) {
+	if opts.Dialect == "" {
+		opts.Dialect = DialectUnix
+	}
+	if opts.Dialect != DialectUnix && opts.Dialect != DialectQuartz {
+		return Report{}, fmt.Errorf("cron: import dialect must be unix or quartz, got %q", opts.Dialect)
+	}
+	ctx := scanContext{env: map[string]string{}, shell: "/bin/sh"}
 	var rep Report
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	num := 0
 	for sc.Scan() {
-		num++
-		raw := sc.Text()
 		rep.Read++
-		line := convertLine(num, raw, &rep)
+		line := convertLine(rep.Read, sc.Text(), opts, &ctx, &rep)
 		rep.Lines = append(rep.Lines, line)
 		switch line.Kind {
 		case LineSkipped:
@@ -90,34 +112,39 @@ func ScanCrontab(r io.Reader) (Report, error) {
 	return rep, nil
 }
 
-func convertLine(num int, raw string, rep *Report) Line {
+func convertLine(num int, raw string, opts ScanOptions, ctx *scanContext, rep *Report) Line {
 	line := Line{Number: num, Raw: raw}
 	trimmed := strings.TrimSpace(raw)
-
 	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 		line.Kind = LineSkipped
 		return line
 	}
-
 	if m := reAssignment.FindStringSubmatch(trimmed); m != nil {
-		line.Kind = LineSkipped
-		note := fmt.Sprintf("line %d: %s is not carried across — crontab variables have no equivalent here", num, m[1])
-		if strings.EqualFold(m[1], "MAILTO") {
-			note = fmt.Sprintf("line %d: MAILTO=%s is not carried across — run output is recorded in the run history instead of mailed",
-				num, strings.TrimSpace(m[2]))
-		}
-		line.Warnings = append(line.Warnings, note)
-		rep.Warnings = append(rep.Warnings, note)
-		return line
+		return applyAssignment(line, m[1], m[2], ctx, rep)
 	}
 
-	expr, command, ok := splitTiming(trimmed)
+	expr, runAs, command, ok := splitTiming(trimmed, opts)
 	if !ok {
 		line.Kind = LineError
 		line.Reason = "no command follows the schedule"
 		return line
 	}
-	line.Expr, line.Command = expr, command
+	line.Expr, line.RunAs = expr, runAs
+	line.Timezone = ctx.timezone
+	line.Env = cloneEnv(ctx.env)
+	line.CommandText, line.Stdin, line.HasStdin = splitPercent(command)
+	if strings.TrimSpace(line.CommandText) == "" {
+		line.Kind = LineError
+		line.Reason = "no command follows the schedule"
+		return line
+	}
+	if ctx.shell == "" {
+		line.Kind = LineError
+		line.Reason = "SHELL is empty"
+		return line
+	}
+	line.Command = ctx.shell
+	line.Args = []string{"-c", line.CommandText}
 
 	phrase, bad, err := Explain(expr)
 	switch {
@@ -130,41 +157,116 @@ func convertLine(num int, raw string, rep *Report) Line {
 	default:
 		line.Kind = LineJob
 		line.Phrase = phrase
-		line.Command, line.Args = splitCommand(command)
 	}
 	return line
 }
 
-// splitTiming separates a line's timing fields from its command. A shorthand
-// takes one field; a standard expression takes five.
-func splitTiming(s string) (expr, command string, ok bool) {
+func applyAssignment(line Line, name, rawValue string, ctx *scanContext, rep *Report) Line {
+	line.Kind = LineSkipped
+	value, err := assignmentValue(rawValue)
+	if err != nil {
+		line.Kind = LineError
+		line.Reason = err.Error()
+		return line
+	}
+	switch name {
+	case "CRON_TZ":
+		ctx.timezone = value
+	case "MAILTO", "MAILFROM":
+		note := fmt.Sprintf("line %d: %s=%s is not carried across because cron mail delivery is deferred to notification support", line.Number, name, value)
+		line.Warnings = append(line.Warnings, note)
+		rep.Warnings = append(rep.Warnings, note)
+	case "LOGNAME":
+		note := fmt.Sprintf("line %d: LOGNAME cannot be overridden by a crontab and was ignored", line.Number)
+		line.Warnings = append(line.Warnings, note)
+		rep.Warnings = append(rep.Warnings, note)
+	default:
+		ctx.env[name] = value
+		if name == "SHELL" {
+			ctx.shell = value
+		}
+	}
+	return line
+}
+
+func assignmentValue(raw string) (string, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", nil
+	}
+	if value[0] != '\'' && value[0] != '"' {
+		return value, nil
+	}
+	if len(value) < 2 || value[len(value)-1] != value[0] {
+		return "", fmt.Errorf("cron: environment value has an unmatched quote")
+	}
+	return value[1 : len(value)-1], nil
+}
+
+func cloneEnv(env map[string]string) map[string]string {
+	if len(env) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(env))
+	for key, value := range env {
+		out[key] = value
+	}
+	return out
+}
+
+func splitTiming(s string, opts ScanOptions) (expr, runAs, command string, ok bool) {
 	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return "", "", "", false
+	}
 	n := 5
+	if opts.Dialect == DialectQuartz {
+		n = 6
+	}
 	if strings.HasPrefix(fields[0], "@") {
 		n = 1
 	}
-	if len(fields) <= n {
-		return strings.Join(fields, " "), "", false
+	prefixFields := n
+	if opts.System {
+		prefixFields++
+	}
+	if len(fields) <= prefixFields {
+		return strings.Join(fields, " "), "", "", false
 	}
 	expr = strings.Join(fields[:n], " ")
-	// Recover the command with its original internal spacing rather than the
-	// tokenized form, so a quoted argument survives.
-	idx := 0
-	for i := 0; i < n; i++ {
-		idx = strings.Index(s[idx:], fields[i]) + idx + len(fields[i])
+	if opts.System {
+		runAs = fields[n]
 	}
-	return expr, strings.TrimSpace(s[idx:]), true
+	idx := 0
+	for i := 0; i < prefixFields; i++ {
+		rel := strings.Index(s[idx:], fields[i])
+		if rel < 0 {
+			return expr, runAs, "", false
+		}
+		idx += rel + len(fields[i])
+	}
+	return expr, runAs, strings.TrimSpace(s[idx:]), true
 }
 
-// splitCommand splits a command line into its program and arguments. It is
-// deliberately whitespace-only: crontab hands the whole string to a shell, and
-// re-implementing shell quoting here would introduce a second, subtly different
-// parser. A command needing shell semantics keeps them by being imported as a
-// shell invocation, which the operator can see in the preview.
-func splitCommand(s string) (string, []string) {
-	fields := strings.Fields(s)
-	if len(fields) == 0 {
-		return "", nil
+func splitPercent(command string) (commandText, stdin string, present bool) {
+	var before, after strings.Builder
+	target := &before
+	for i := 0; i < len(command); i++ {
+		if command[i] == '\\' && i+1 < len(command) && command[i+1] == '%' {
+			target.WriteByte('%')
+			i++
+			continue
+		}
+		if command[i] == '%' {
+			if !present {
+				present = true
+				target = &after
+			} else {
+				after.WriteByte('\n')
+			}
+			continue
+		}
+		target.WriteByte(command[i])
 	}
-	return fields[0], fields[1:]
+	return before.String(), after.String(), present
 }

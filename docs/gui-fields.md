@@ -33,7 +33,7 @@ before discarding.
 | **Group** | no | `(none)`, or a group shown by its path (`Backups / Nightly`) | `(none)` |
 | **Timezone** | no | searchable list of common zones, or any IANA name / `Local` | `Local` |
 | **Mode** | yes | `Recurring` or `One-off` | `Recurring` |
-| **Schedule** | when Recurring (create) | human phrase or supported five-field cron (see below) | — |
+| **Schedule** | when Recurring (create) | human phrase or supported five- or six-field cron (see below) | n/a |
 | **Start at** | no | anchor time for sub-daily intervals, e.g. `09:00` | — |
 | **One-off date / time** | when One-off (create) | date + time picked in the task's zone, must be future | — |
 | **Overlap** *(Advanced)* | no | Queue one run · Skip this run · Allow concurrent runs | Queue one run |
@@ -129,7 +129,7 @@ correct Daylight Saving Time handling; the backend stores everything in UTC.
 
 ## Schedule *(Recurring mode)*
 
-Use a plain-language phrase (the approachable default) or a supported five-field cron expression.
+Use a plain-language phrase (the approachable default) or a supported five- or six-field cron expression.
 Human parsing is case-insensitive. Supported human forms include:
 
 | Pattern | Examples |
@@ -158,6 +158,12 @@ so replacing cron with a human phrase, or the reverse, updates both preview and 
 cron-shaped value that is invalid or cannot be represented faithfully is rejected as cron rather
 than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelity) for supported
 fields, macros, and explicit refusals.
+
+Seconds precision uses the Quartz-style `second minute hour day-of-month month
+day-of-week` shape. For example, `*/30 * * * * *` runs twice per minute and
+`0 0 12 ? * MON` runs at noon each Monday. Numeric weekday values differ by
+dialect, so consult the fidelity contract before converting numeric six-field
+input.
 
 When editing, the exact retained cron expression is shown rather than translated
 back from its readable preview. Standard lists, ranges, and field-local steps

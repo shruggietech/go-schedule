@@ -190,6 +190,7 @@ type Task struct {
 	Args          []string          `json:"args,omitempty"`
 	WorkingDir    string            `json:"working_dir,omitempty"`
 	Env           map[string]string `json:"env,omitempty"`
+	Stdin         string            `json:"stdin,omitempty"`
 	RunAs         string            `json:"run_as,omitempty"`
 	Enabled       bool              `json:"enabled"`
 	Timezone      string            `json:"timezone"`

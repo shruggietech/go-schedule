@@ -52,7 +52,7 @@ func Compile(input, tzName string, now time.Time) (domain.Schedule, Unsupported,
 		Dtstart:  now.In(loc),
 		Byhour:   append([]int(nil), res.Spec.Hour.Values...),
 		Byminute: append([]int(nil), res.Spec.Minute.Values...),
-		Bysecond: []int{0},
+		Bysecond: append([]int(nil), res.Spec.Second.Values...),
 	}
 	if res.Spec.DOM.Restricted() {
 		opt.Bymonthday = append([]int(nil), res.Spec.DOM.Values...)
@@ -105,7 +105,7 @@ func sentenceCase(value string) string {
 }
 
 func describeSpec(s Spec) string {
-	parts := []string{describeTime(s.Minute, s.Hour)}
+	parts := []string{describeCronTime(s.Second, s.Minute, s.Hour)}
 	switch {
 	case s.DOM.Restricted():
 		parts = append(parts, "on "+pluralValues("date", s.DOM.Values))
@@ -118,6 +118,19 @@ func describeSpec(s Spec) string {
 		parts = append(parts, "in "+humanMonths(s.Month.Values))
 	}
 	return strings.Join(parts, " ")
+}
+
+func describeCronTime(second, minute, hour Field) string {
+	if len(second.Values) == 1 && second.Values[0] == 0 {
+		return describeTime(minute, hour)
+	}
+	if second.Wildcard && second.Step > 1 {
+		return fmt.Sprintf("every %d seconds during %s", second.Step, describeTime(minute, hour))
+	}
+	if second.EveryValue() {
+		return "every second during " + describeTime(minute, hour)
+	}
+	return "at " + pluralValues("second", second.Values) + " during " + describeTime(minute, hour)
 }
 
 func describeTime(minute, hour Field) string {

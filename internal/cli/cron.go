@@ -44,8 +44,8 @@ func cronConvert() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Long: "Convert one schedule string to the opposite syntax without contacting the daemon.\n\n" +
-			"Automatic mode treats @-prefixed values and five fields with a cron-shaped\n" +
-			"minute field as cron. Use --to to select the output syntax explicitly.",
+			"Automatic mode treats @-prefixed values and five or six cron-shaped fields\n" +
+			"as cron. Use --to to select the output syntax explicitly.",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
 				return fmtUsage(err.Error())
@@ -181,6 +181,7 @@ type taskCreator interface {
 type importOptions struct {
 	dryRun   bool
 	timezone string
+	runAs    string
 	group    string
 	count    int
 	// runs resolves a typed input to its upcoming run times. It is a field so the
@@ -192,6 +193,8 @@ type importOptions struct {
 func cronImport() *cobra.Command {
 	var opts importOptions
 	var file string
+	var dialect string
+	var system bool
 	cmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import a crontab, creating one task per schedule line",
@@ -203,13 +206,16 @@ func cronImport() *cobra.Command {
 			if file == "" {
 				return fmt.Errorf("%w: --file is required (use - for standard input)", errUsage)
 			}
+			if system && opts.runAs != "" {
+				return fmt.Errorf("%w: --run-as cannot be combined with --system", errUsage)
+			}
 			r, closeFn, err := openInput(file)
 			if err != nil {
 				return fmt.Errorf("%w: %v", errUsage, err)
 			}
 			defer closeFn()
 
-			rep, err := cron.ScanCrontab(r)
+			rep, err := cron.ScanCrontabWithOptions(r, cron.ScanOptions{Dialect: cron.Dialect(dialect), System: system})
 			if err != nil {
 				return err
 			}
@@ -223,6 +229,9 @@ func cronImport() *cobra.Command {
 	}
 	f := cmd.Flags()
 	f.StringVar(&file, "file", "", "crontab file to read, or - for standard input (required)")
+	f.StringVar(&dialect, "dialect", string(cron.DialectUnix), "timing layout: unix (five fields) or quartz (six fields)")
+	f.BoolVar(&system, "system", false, "read a system crontab with a user field after timing")
+	f.StringVar(&opts.runAs, "run-as", "", "run every user-crontab job as this account")
 	f.BoolVar(&opts.dryRun, "dry-run", false, "print the report without creating anything")
 	f.StringVar(&opts.timezone, "timezone", "", "IANA timezone for the created tasks (default: task default)")
 	f.StringVar(&opts.group, "group", "", "group ID to place the imported tasks in")
@@ -248,8 +257,6 @@ func openInput(path string) (io.Reader, func(), error) {
 // A declined line never stops the run: the supported lines are still created and
 // the summary accounts for every line (FR-005a, FR-010a).
 func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCreator) error {
-	zone := orLocal(opts.timezone)
-
 	for _, line := range rep.Lines {
 		for _, warn := range line.Warnings {
 			fmt.Fprintf(w, "! %s\n", warn)
@@ -262,23 +269,47 @@ func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCr
 		case cron.LineDeclined:
 			fmt.Fprintf(w, "line %d: %s\n  unsupported: %s\n", line.Number, line.Expr, line.Reason)
 		case cron.LineJob:
-			fmt.Fprintf(w, "line %d: %s\n  phrase:  %s\n  command: %s\n",
-				line.Number, line.Expr, line.Phrase, commandLine(line))
+			zone := importZone(line, opts.timezone)
+			fmt.Fprintf(w, "line %d: %s\n  phrase:  %s\n  timezone: %s\n  command: %s\n",
+				line.Number, line.Expr, line.Phrase, zone, commandLine(line))
+			if runAs := importRunAs(line, opts.runAs); runAs != "" {
+				fmt.Fprintf(w, "  run as:   %s\n", runAs)
+			}
+			if len(line.Env) > 0 {
+				fmt.Fprintf(w, "  env:      %d variable(s)\n", len(line.Env))
+			}
+			if line.HasStdin {
+				fmt.Fprintf(w, "  stdin:    %d byte(s)\n", len(line.Stdin))
+			}
 			printLineRuns(w, line.Expr, zone, opts)
 			if creator == nil {
 				continue
 			}
-			if err := createFromLine(w, creator, line, zone, opts.group, rep); err != nil {
+			if err := createFromLine(w, creator, line, zone, opts.group, opts.runAs, rep); err != nil {
 				return err
 			}
 		}
 	}
 
-	printImportSummary(w, rep, zone, opts.dryRun)
+	printImportSummary(w, rep, opts.timezone, opts.dryRun)
 	if rep.Failed > 0 {
 		return fmt.Errorf("%d of %d task(s) could not be created; the rest were", rep.Failed, rep.Jobs)
 	}
 	return nil
+}
+
+func importRunAs(line cron.Line, fallback string) string {
+	if line.RunAs != "" {
+		return line.RunAs
+	}
+	return fallback
+}
+
+func importZone(line cron.Line, override string) string {
+	if override != "" {
+		return override
+	}
+	return orLocal(line.Timezone)
 }
 
 // printLineRuns shows when a line would actually fire, which is the half of the
@@ -304,13 +335,16 @@ func printLineRuns(w io.Writer, expression, zone string, opts importOptions) {
 	}
 }
 
-func createFromLine(w io.Writer, creator taskCreator, line cron.Line, zone, group string, rep *cron.Report) error {
+func createFromLine(w io.Writer, creator taskCreator, line cron.Line, zone, group, runAs string, rep *cron.Report) error {
 	ctx, cancel := reqCtx()
 	defer cancel()
 	resp, err := creator.CreateTask(ctx, server.TaskCreateRequest{
 		Name:           importName(line),
 		Command:        line.Command,
 		Args:           line.Args,
+		Env:            line.Env,
+		Stdin:          line.Stdin,
+		RunAs:          importRunAs(line, runAs),
 		GroupID:        group,
 		Timezone:       zone,
 		Schedule:       line.Expr,
@@ -330,7 +364,11 @@ func createFromLine(w io.Writer, creator taskCreator, line cron.Line, zone, grou
 // jobs. The base name of the program is what an operator would recognize in a
 // task list; the daemon does not require names to be unique.
 func importName(line cron.Line) string {
-	base := filepath.Base(line.Command)
+	nameSource := line.CommandText
+	if fields := strings.Fields(nameSource); len(fields) > 0 {
+		nameSource = fields[0]
+	}
+	base := filepath.Base(nameSource)
 	if base == "." || base == string(filepath.Separator) || base == "" {
 		return fmt.Sprintf("imported line %d", line.Number)
 	}
@@ -345,10 +383,10 @@ func commandLine(line cron.Line) string {
 }
 
 // printImportSummary states the counts and the fidelity facts. The fidelity
-// paragraph is not decoration: cron carries no timezone, no catch-up, no overlap
-// policy and no restart recovery, so an operator has to be told what their jobs
-// just gained and what was assumed on their behalf (FR-008, FR-009).
-func printImportSummary(w io.Writer, rep *cron.Report, zone string, dryRun bool) {
+// paragraph is not decoration: file timezone context is explicit, while cron
+// still carries no catch-up, overlap policy, or restart recovery. The operator
+// must be told what the imported jobs gained and what defaults were selected.
+func printImportSummary(w io.Writer, rep *cron.Report, timezoneOverride string, dryRun bool) {
 	fmt.Fprintln(w)
 	verb := "created"
 	if dryRun {
@@ -360,7 +398,11 @@ func printImportSummary(w io.Writer, rep *cron.Report, zone string, dryRun bool)
 		fmt.Fprintf(w, "%d task(s) failed to create; those already created were kept\n", rep.Failed)
 	}
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "Cron carries no timezone, so these tasks use %s.\n", zone)
+	if timezoneOverride != "" {
+		fmt.Fprintf(w, "The explicit timezone override applies to every imported task: %s.\n", timezoneOverride)
+	} else {
+		fmt.Fprintln(w, "Each task uses its effective CRON_TZ value, or Local when none is set.")
+	}
 	fmt.Fprintf(w, "Cron also has no catch-up, overlap, or restart recovery. Imported tasks take\n"+
 		"the defaults: catch-up %q (one run after downtime), overlap %q, missing dates %q.\n",
 		domain.CatchupOne, domain.OverlapQueueOne, domain.MissingDateSkip)

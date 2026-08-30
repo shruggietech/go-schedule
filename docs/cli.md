@@ -103,7 +103,7 @@ required, along with `--command`.
 | `--env` | An environment variable as `KEY=VALUE`. Repeatable. |
 | `--group` | Group ID to file the task under. |
 | `--tz` | IANA timezone, e.g. `America/New_York`. Defaults to the system zone. |
-| `--schedule` | Human-readable recurrence or supported five-field cron expression. |
+| `--schedule` | Human-readable recurrence or supported five- or six-field cron expression. |
 | `--at` | One-off run time, RFC 3339. |
 | `--overlap` | `queue_one` (default), `skip`, or `allow_concurrent`. |
 | `--catchup` | `one` (default) or `none`. |
@@ -127,7 +127,8 @@ gosched task add release-announce \
 
 The schedule can be written the way you would say it, such as `every 15
 minutes`, `every weekday at 09:00`, or `3rd wednesday monthly at 14:00`. The
-supported five-field cron subset is also accepted, such as `0 9 * * 1-5`.
+documented cron subset is also accepted, such as `0 9 * * 1-5` or the
+seconds-precision `*/30 * * * * *`.
 On success the command echoes back how it understood you, and the next few run
 times. It also names the effective timing basis and transition behavior, so a
 misreading is visible immediately rather than at 02:30 tomorrow:
@@ -280,8 +281,8 @@ gosched cron convert "*/10 9-17 * * MON,WED,FRI"
 # every 10 minutes during hours 9 through 17 on Monday, Wednesday, and Friday
 ```
 
-Automatic mode treats `@`-prefixed input and five fields with a cron-shaped
-minute field as cron. Existing human forms such as
+Automatic mode treats `@`-prefixed input and five or six cron-shaped fields as
+cron. Existing human forms such as
 `every 15 minutes from 9am` remain human input. Use `--to cron` to force human
 input or `--to human` to force cron input. Quoting is
 the same in POSIX shells and PowerShell: place a schedule containing spaces in
@@ -315,6 +316,7 @@ gosched cron explain "0 9 15W * *"
 gosched cron explain "0 9 LW * *"
 gosched cron explain "0 9,17 * * *"
 gosched cron explain "*/10 9-17 * * MON,WED,FRI"
+gosched cron explain "*/30 * * * * *"
 ```
 
 `--timezone` sets the zone the run times are shown in; `--count` how many to
@@ -327,6 +329,8 @@ Read a crontab and create a task per line.
 
 ```sh
 gosched cron import --file /etc/crontab --dry-run
+gosched cron import --file /etc/crontab --system --dry-run
+gosched cron import --file quartz.cron --dialect quartz --dry-run
 ```
 
 A line such as `0 9 * * 5#3 /usr/local/bin/report` previews as the
@@ -344,7 +348,10 @@ OR semantics that this recurrence model cannot reproduce.
 | --- | --- |
 | `--file` | Crontab to read, or `-` for standard input. **Required.** |
 | `--dry-run` | Produce the identical report and create nothing. |
-| `--timezone` | IANA zone for the created tasks. |
+| `--dialect` | `unix` for five timing fields (default), or `quartz` for six. |
+| `--system` | Consume the system-crontab user field and map it to run-as. |
+| `--run-as` | Supply the owner account for a user crontab; cannot be combined with `--system`. |
+| `--timezone` | IANA zone override for all tasks; otherwise `CRON_TZ` applies per line. |
 | `--group` | Group ID to file them under. |
 | `--count` | Upcoming runs shown per line. Default 3. |
 

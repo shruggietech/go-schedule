@@ -85,8 +85,9 @@ func BenchmarkNextRunNearestWeekday(b *testing.B) {
 func BenchmarkNextRunCompositeCron(b *testing.B) {
 	anchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	for name, rrule := range map[string]string{
-		"broad":  "FREQ=DAILY;INTERVAL=1;BYHOUR=9,10,11,12,13,14,15,16,17;BYMINUTE=0,10,20,30,40,50;BYSECOND=0;BYDAY=MO,WE,FR",
-		"sparse": "FREQ=DAILY;INTERVAL=1;BYHOUR=0;BYMINUTE=0;BYSECOND=0;BYMONTH=2;BYMONTHDAY=29",
+		"broad":   "FREQ=DAILY;INTERVAL=1;BYHOUR=9,10,11,12,13,14,15,16,17;BYMINUTE=0,10,20,30,40,50;BYSECOND=0;BYDAY=MO,WE,FR",
+		"sparse":  "FREQ=DAILY;INTERVAL=1;BYHOUR=0;BYMINUTE=0;BYSECOND=0;BYMONTH=2;BYMONTHDAY=29",
+		"seconds": "FREQ=DAILY;INTERVAL=1;BYHOUR=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23;BYMINUTE=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59;BYSECOND=0,30",
 	} {
 		b.Run(name, func(b *testing.B) {
 			sch := domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: rrule, Anchor: &anchor}

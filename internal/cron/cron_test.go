@@ -44,6 +44,7 @@ func TestExplain_Supported(t *testing.T) {
 		{"@daily", "every day at 00:00"},
 		{"@midnight", "every day at 00:00"},
 		{"@hourly", "every hour starting at 00:00"},
+		{"0 0 * * * *", "every hour starting at 00:00"},
 		{"@weekly", "every sunday at 00:00"},
 		{"@monthly", "on the 1st of every month at 00:00"},
 		{"@yearly", "every year on january 1 at 00:00"},
@@ -77,7 +78,7 @@ func TestExplain_Declines(t *testing.T) {
 		expr, contains string
 	}{
 		{"@reboot", "boot"},
-		{"0 0 * * * *", "six-field"},
+		{"0 9 * * * * *", "year"},
 		{"0 0 * JAN 5#3", "month"},
 		{"0 0 1 * 5#3", "either"},
 		{"0 0 * * 5#3,2#4", "one weekday"},
@@ -161,7 +162,7 @@ func TestParse_CalendarWildcardStepOneRemainsUnrestricted(t *testing.T) {
 // operator's mistake and must be an error naming the field, not a refusal.
 func TestParse_Malformed(t *testing.T) {
 	for _, expr := range []string{
-		"", "0 9 * *", "0 9 * * * * *", "@nonsense",
+		"", "0 9 * *", "@nonsense",
 		"99 * * * *", "0 99 * * *", "0 9 32 * *", "0 9 * 13 *",
 		"0 9 * * smarch", "*/0 * * * *", "5-1 * * * *",
 		"0 9 * * #3", "0 9 * * 5#", "0 9 * * 5#0", "0 9 * * 5#6",

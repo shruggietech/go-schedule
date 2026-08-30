@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -242,7 +243,7 @@ func TestImport_DryRunCreatesNothing(t *testing.T) {
 		"at minutes 0, 7, 14",        // uneven field step is described as a field set
 		"no command follows",         // the schedule-only line is an error
 		"This was a preview",         // the run says it changed nothing
-		"Cron carries no timezone",   // fidelity statement
+		"timezone override applies",  // fidelity statement
 		"no catch-up, overlap, or r", // fidelity statement
 	} {
 		if !strings.Contains(out, want) {
@@ -288,11 +289,11 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 		t.Fatalf("created %d task(s), want 3", len(fc.reqs))
 	}
 	first := fc.reqs[0]
-	if first.Command != "/usr/local/bin/backup" {
-		t.Errorf("command = %q, want the crontab's program", first.Command)
+	if first.Command != "/bin/sh" {
+		t.Errorf("command = %q, want the effective cron shell", first.Command)
 	}
-	if len(first.Args) != 1 || first.Args[0] != "--full" {
-		t.Errorf("args = %v, want [--full]", first.Args)
+	if len(first.Args) != 2 || first.Args[0] != "-c" || first.Args[1] != "/usr/local/bin/backup --full" {
+		t.Errorf("args = %v, want the original command passed to the shell", first.Args)
 	}
 	if first.Schedule != "0 2 * * *" || first.ScheduleSyntax != "cron" {
 		t.Errorf("schedule input = %q (%q), want retained cron source", first.Schedule, first.ScheduleSyntax)
@@ -302,6 +303,47 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	}
 	if rep.Created != 3 {
 		t.Errorf("report Created = %d, want 3", rep.Created)
+	}
+}
+
+func TestImport_CarriesOperationalContextPerLine(t *testing.T) {
+	rep, err := cron.ScanCrontabWithOptions(strings.NewReader(`CRON_TZ=America/New_York
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin
+0 9 * * * root printf '\%s' "$PATH"%payload%two
+`), cron.ScanOptions{System: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fc := &fakeCreator{}
+	var buf bytes.Buffer
+	if err := runImport(&buf, &rep, importOptions{}, fc); err != nil {
+		t.Fatal(err)
+	}
+	if len(fc.reqs) != 1 {
+		t.Fatalf("requests = %#v", fc.reqs)
+	}
+	got := fc.reqs[0]
+	if got.Timezone != "America/New_York" || got.Command != "/bin/bash" || got.RunAs != "root" ||
+		got.Env["PATH"] != "/usr/local/bin:/usr/bin" || got.Stdin != "payload\ntwo" ||
+		!reflect.DeepEqual(got.Args, []string{"-c", `printf '%s' "$PATH"`}) {
+		t.Fatalf("request lost crontab context: %+v", got)
+	}
+	for _, want := range []string{"timezone: America/New_York", "run as:   root", "env:      2 variable(s)", "stdin:    11 byte(s)"} {
+		if !strings.Contains(buf.String(), want) {
+			t.Errorf("output missing %q:\n%s", want, buf.String())
+		}
+	}
+}
+
+func TestImport_UserCrontabRunAsOwner(t *testing.T) {
+	rep := scan(t, "0 9 * * * echo owned\n")
+	fc := &fakeCreator{}
+	if err := runImport(&bytes.Buffer{}, rep, importOptions{runAs: "alice"}, fc); err != nil {
+		t.Fatal(err)
+	}
+	if len(fc.reqs) != 1 || fc.reqs[0].RunAs != "alice" {
+		t.Fatalf("requests = %+v", fc.reqs)
 	}
 }
 

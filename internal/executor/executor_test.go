@@ -67,6 +67,40 @@ func TestExecutor_OutputCap(t *testing.T) {
 	}
 }
 
+func TestExecutor_SuppliesExactStdin(t *testing.T) {
+	task := domain.Task{Command: "sh", Args: []string{"-c", "cat"}}
+	if runtime.GOOS == "windows" {
+		task = domain.Task{Command: "powershell.exe", Args: []string{
+			"-NoProfile", "-NonInteractive", "-Command",
+			"[Console]::OpenStandardInput().CopyTo([Console]::OpenStandardOutput())",
+		}}
+	}
+	task.Stdin = "first line\nsecond % line\n"
+	run := New(0).Run(context.Background(), task, time.Now().UTC(), domain.TriggerManual)
+	if run.Outcome != domain.OutcomeSuccess || run.Output != task.Stdin {
+		t.Fatalf("run = %#v, want exact stdin %q", run, task.Stdin)
+	}
+}
+
+func TestExecutor_TaskEnvironmentOverridesParent(t *testing.T) {
+	t.Setenv("GO_SCHEDULE_ENV_VALUE", "parent")
+	task := domain.Task{
+		Command: "sh", Args: []string{"-c", `printf %s "$GO_SCHEDULE_ENV_VALUE"`},
+		Env: map[string]string{"GO_SCHEDULE_ENV_VALUE": "task"},
+	}
+	if runtime.GOOS == "windows" {
+		task.Command = "powershell.exe"
+		task.Args = []string{
+			"-NoProfile", "-NonInteractive", "-Command",
+			"[Console]::Out.Write($env:GO_SCHEDULE_ENV_VALUE)",
+		}
+	}
+	run := New(0).Run(context.Background(), task, time.Now().UTC(), domain.TriggerManual)
+	if run.Outcome != domain.OutcomeSuccess || run.Output != "task" {
+		t.Fatalf("run = %#v, want task environment override", run)
+	}
+}
+
 func TestRunAs_EmptyIsNoOp(t *testing.T) {
 	if err := ValidateRunAs(""); err != nil {
 		t.Fatalf("empty run_as should be valid: %v", err)

@@ -158,6 +158,11 @@ func TestCompositeCronDSTWallTime(t *testing.T) {
 			anchor: time.Date(2026, 10, 26, 0, 0, 0, 0, loc),
 			want:   time.Date(2026, 11, 1, 5, 30, 0, 0, time.UTC),
 		},
+		{
+			name: "seconds survive fall overlap", expr: "30 30 1 * * 1",
+			anchor: time.Date(2026, 10, 26, 0, 0, 0, 0, loc),
+			want:   time.Date(2026, 11, 1, 5, 30, 30, 0, time.UTC),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -205,6 +210,24 @@ func TestCompositeCronMissingDatePoliciesAndCollisionSuppression(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestCompositeCronMissingDatePreservesSeconds(t *testing.T) {
+	anchor := time.Date(2027, 2, 1, 0, 0, 0, 0, time.UTC)
+	sch := mustCompileCron(t, "5,35 0 9 31 * ?", "UTC", anchor)
+	got, err := schedule.UpcomingRuns(sch, "UTC", domain.MissingDateLastValid, anchor, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []time.Time{
+		time.Date(2027, 2, 28, 9, 0, 5, 0, time.UTC),
+		time.Date(2027, 2, 28, 9, 0, 35, 0, time.UTC),
+	}
+	for i := range want {
+		if i >= len(got) || !got[i].Equal(want[i]) {
+			t.Fatalf("runs=%v, want %v", got, want)
+		}
 	}
 }
 

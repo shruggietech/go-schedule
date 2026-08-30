@@ -14,8 +14,8 @@
 **Documentation:** [shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/) · **Changes:** [CHANGELOG.md](CHANGELOG.md)
 
 Write recurring schedules the way you would say them, such as "every 15
-minutes" or "weekdays at 09:00", or use go-schedule's supported five-field cron
-subset when that is already familiar. Cron knowledge is optional. You can also
+minutes" or "weekdays at 09:00", or use go-schedule's documented cron subset
+when that is already familiar. Cron knowledge is optional. You can also
 schedule a single one-off run. A background daemon keeps the schedule whether
 or not any window is open, and a desktop app gives you a calendar view of it all.
 
@@ -39,7 +39,7 @@ moment, in the right timezone, after the laptop was asleep, without piling up
 forty copies of itself.
 
 go-schedule is built around that. Schedules can be written in plain language or
-as supported five-field cron, then are echoed back the way the scheduler
+as supported five- or six-field cron, then are echoed back the way the scheduler
 understood them so a misreading is visible immediately rather than at 02:30
 tomorrow. Times resolve in a real IANA timezone, so a Daylight Saving transition
 moves the run rather than breaking it.
@@ -50,7 +50,7 @@ instead of leaving it to chance.
 ## What it does
 
 **Schedules with a readable result.** Author recurring tasks in plain language
-or the supported five-field cron subset. The CLI, API, and desktop editor accept
+or the documented cron subset. The CLI, API, and desktop editor accept
 both. Under the hood, RFC 5545 recurrence
 is authoritative, and every accepted input is summarized before it runs.
 
@@ -139,8 +139,8 @@ gosched task add weekday-report \
   --tz America/New_York
 ```
 
-The same schedule can be supplied as supported five-field cron. Standard lists,
-ranges, field-local steps, names, and safe combinations are accepted too:
+The same schedule can be supplied as supported cron. Conventional five-field
+input and a bounded Quartz-style six-field seconds form are accepted:
 
 ```sh
 gosched task add weekday-report \
@@ -152,6 +152,10 @@ gosched task add weekday-report \
 For example, `*/10 9-17 * * MON,WED,FRI` runs every ten minutes during business
 hours on Monday, Wednesday, and Friday. Cron's special day-of-month/day-of-week
 OR behavior and non-clock dialect features remain explicit refusals.
+
+Seconds precision uses six fields, for example `*/30 * * * * *`. Quartz `?`
+is supported in a day field, and the fidelity guide states the exact dialect
+and operational crontab boundaries.
 
 It replies with how it understood you, and when it will next fire:
 

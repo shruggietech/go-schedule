@@ -2,6 +2,7 @@ package cron
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,9 @@ import (
 func Export(task domain.Task, sch domain.Schedule) (expr string, bad Unsupported, ok bool) {
 	if !task.Enabled || task.State == domain.TaskDisabled {
 		return "", Unsupported{Reason: "the task is disabled and cron has no disabled state"}, false
+	}
+	if task.Stdin != "" || len(task.Env) > 0 || task.RunAs != "" {
+		return "", Unsupported{Reason: "the task carries stdin, environment, or run-as execution context that a standalone cron line cannot preserve"}, false
 	}
 	return ExportSchedule(sch, task.MissingDatePolicy)
 }
@@ -64,7 +68,7 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 		}
 	}
 	if fields, ok := compositeCronFields(opt); ok {
-		return strings.Join(fields[:], " "), Unsupported{}, true
+		return strings.Join(fields, " "), Unsupported{}, true
 	}
 
 	interval := opt.Interval
@@ -78,11 +82,19 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 		return "", Unsupported{Reason: reason}, false
 	}
 
-	minute, hour := timeFields(opt, sch.Anchor)
+	second, minute, hour := timeFields(opt, sch.Anchor)
 
 	switch opt.Freq {
 	case rrule.SECONDLY:
-		return "", Unsupported{Reason: "cron has no sub-minute resolution"}, false
+		if interval > 30 || 60%interval != 0 || sch.Anchor == nil {
+			return "", Unsupported{Reason: fmt.Sprintf("an interval of %d seconds cannot be reproduced by a resetting cron seconds field", interval)}, false
+		}
+		phase := sch.Anchor.Second() % interval
+		seconds := make([]int, 0, 60/interval)
+		for value := phase; value < 60; value += interval {
+			seconds = append(seconds, value)
+		}
+		return fmt.Sprintf("%s * * * * *", renderCronSet(seconds, 0, 59)), Unsupported{}, true
 
 	case rrule.MINUTELY:
 		if 60%interval != 0 || interval > 30 {
@@ -90,9 +102,9 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				"an interval of %d minutes does not divide the hour evenly, so cron cannot reproduce it", interval)}, false
 		}
 		if interval == 1 {
-			return "* * * * *", Unsupported{}, true
+			return renderTimeCron(second, "*", "*", "*", "*", "*"), Unsupported{}, true
 		}
-		return fmt.Sprintf("*/%d * * * *", interval), Unsupported{}, true
+		return renderTimeCron(second, fmt.Sprintf("*/%d", interval), "*", "*", "*", "*"), Unsupported{}, true
 
 	case rrule.HOURLY:
 		if 24%interval != 0 {
@@ -100,16 +112,16 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				"an interval of %d hours does not divide the day evenly, so cron cannot reproduce it", interval)}, false
 		}
 		if interval == 1 {
-			return fmt.Sprintf("%d * * * *", minute), Unsupported{}, true
+			return renderTimeCron(second, fmt.Sprint(minute), "*", "*", "*", "*"), Unsupported{}, true
 		}
-		return fmt.Sprintf("%d */%d * * *", minute, interval), Unsupported{}, true
+		return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprintf("*/%d", interval), "*", "*", "*"), Unsupported{}, true
 
 	case rrule.DAILY:
 		if interval != 1 {
 			return "", Unsupported{Reason: fmt.Sprintf(
 				"an every-%d-days rule has no cron equivalent — cron repeats by calendar position, not by elapsed days", interval)}, false
 		}
-		return fmt.Sprintf("%d %d * * *", minute, hour), Unsupported{}, true
+		return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "*", "*", "*"), Unsupported{}, true
 
 	case rrule.WEEKLY:
 		if interval != 1 {
@@ -120,7 +132,7 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 		if !ok {
 			return "", Unsupported{Reason: "that weekday selection has no cron equivalent"}, false
 		}
-		return fmt.Sprintf("%d %d * * %s", minute, hour, days), Unsupported{}, true
+		return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "*", "*", days), Unsupported{}, true
 
 	case rrule.MONTHLY:
 		if interval != 1 {
@@ -128,14 +140,17 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				"an every-%d-months rule has no cron equivalent", interval)}, false
 		}
 		if sch.CalendarAdjustment == domain.CalendarAdjustmentNearestWeekday {
+			if second != 0 {
+				return "", Unsupported{Reason: "nearest-weekday schedules with non-zero seconds are outside the supported cron subset"}, false
+			}
 			day, ok := nearestWeekdayField(opt)
 			if !ok {
 				return "", Unsupported{Reason: "nearest_weekday requires one unbounded monthly day-of-month rule"}, false
 			}
-			return fmt.Sprintf("%d %d %dW * *", minute, hour, day), Unsupported{}, true
+			return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), fmt.Sprintf("%dW", day), "*", "*"), Unsupported{}, true
 		}
 		if lastWeekdayOfMonth(opt) {
-			return fmt.Sprintf("%d %d LW * *", minute, hour), Unsupported{}, true
+			return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "LW", "*", "*"), Unsupported{}, true
 		}
 		if len(opt.Byweekday) > 0 {
 			weekday, occurrence, ok := monthlyWeekdayField(opt)
@@ -143,17 +158,17 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 				return "", Unsupported{Reason: "only one first-through-fifth or last weekday has a cron equivalent"}, false
 			}
 			if occurrence == -1 {
-				return fmt.Sprintf("%d %d * * %dL", minute, hour, weekday), Unsupported{}, true
+				return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "*", "*", fmt.Sprintf("%dL", weekday)), Unsupported{}, true
 			}
-			return fmt.Sprintf("%d %d * * %d#%d", minute, hour, weekday, occurrence), Unsupported{}, true
+			return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "*", "*", fmt.Sprintf("%d#%d", weekday, occurrence)), Unsupported{}, true
 		}
-		if len(opt.Bymonthday) == 1 && opt.Bymonthday[0] == -1 && plainMonthlySelector(opt) {
-			return fmt.Sprintf("%d %d L * *", minute, hour), Unsupported{}, true
+		if second == 0 && len(opt.Bymonthday) == 1 && opt.Bymonthday[0] == -1 && plainMonthlySelector(opt) {
+			return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "L", "*", "*"), Unsupported{}, true
 		}
 		if len(opt.Bymonthday) != 1 || opt.Bymonthday[0] < 1 || !plainMonthlySelector(opt) {
 			return "", Unsupported{Reason: "only one supported day-of-month selector can be expressed as cron"}, false
 		}
-		return fmt.Sprintf("%d %d %d * *", minute, hour, opt.Bymonthday[0]), Unsupported{}, true
+		return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), fmt.Sprint(opt.Bymonthday[0]), "*", "*"), Unsupported{}, true
 
 	case rrule.YEARLY:
 		if interval != 1 {
@@ -163,29 +178,29 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 		if len(opt.Bymonth) != 1 || len(opt.Bymonthday) != 1 {
 			return "", Unsupported{Reason: "only a single month and date can be expressed as cron"}, false
 		}
-		return fmt.Sprintf("%d %d %d %d *", minute, hour, opt.Bymonthday[0], opt.Bymonth[0]), Unsupported{}, true
+		return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), fmt.Sprint(opt.Bymonthday[0]), fmt.Sprint(opt.Bymonth[0]), "*"), Unsupported{}, true
 	}
 
 	return "", Unsupported{Reason: "that recurrence has no cron equivalent"}, false
 }
 
-func compositeCronFields(opt *rrule.ROption) ([5]string, bool) {
+func compositeCronFields(opt *rrule.ROption) ([]string, bool) {
 	var fields [5]string
 	interval := opt.Interval
 	if interval < 1 {
 		interval = 1
 	}
 	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Byhour) == 0 || len(opt.Byminute) == 0 ||
-		len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 || len(opt.Bysetpos) != 0 ||
+		len(opt.Bysecond) == 0 || len(opt.Bysetpos) != 0 ||
 		len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
 		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Bymonthday) > 0 && len(opt.Byweekday) > 0 {
-		return fields, false
+		return nil, false
 	}
 
 	weekdays := make([]int, 0, len(opt.Byweekday))
 	for _, weekday := range opt.Byweekday {
 		if weekday.N() != 0 {
-			return fields, false
+			return nil, false
 		}
 		weekdays = append(weekdays, (weekday.Day()+1)%7)
 	}
@@ -196,10 +211,52 @@ func compositeCronFields(opt *rrule.ROption) ([5]string, bool) {
 	fields[4] = renderCronSet(weekdays, 0, 6)
 	for _, field := range fields {
 		if field == "" {
-			return [5]string{}, false
+			return nil, false
 		}
 	}
-	return fields, true
+	base := fields[:]
+	if len(opt.Bysecond) == 1 && opt.Bysecond[0] == 0 {
+		return base, true
+	}
+	quartzDays := make([]int, 0, len(weekdays))
+	for _, day := range weekdays {
+		quartzDays = append(quartzDays, day+1)
+	}
+	base[4] = renderCronSet(quartzDays, 1, 7)
+	seconds := renderCronSet(opt.Bysecond, 0, 59)
+	if seconds == "" || base[4] == "" {
+		return nil, false
+	}
+	return append([]string{seconds}, base...), true
+}
+
+func renderTimeCron(second int, minute, hour, dom, month, dow string) string {
+	if second == 0 {
+		return strings.Join([]string{minute, hour, dom, month, dow}, " ")
+	}
+	dow = quartzWeekdayExpression(dow)
+	return strings.Join([]string{fmt.Sprint(second), minute, hour, dom, month, dow}, " ")
+}
+
+func quartzWeekdayExpression(expr string) string {
+	if expr == "*" {
+		return expr
+	}
+	parts := strings.Split(expr, ",")
+	for i, part := range parts {
+		if lo, hi, ok := strings.Cut(part, "-"); ok {
+			l, lerr := strconv.Atoi(lo)
+			h, herr := strconv.Atoi(hi)
+			if lerr == nil && herr == nil {
+				parts[i] = fmt.Sprintf("%d-%d", l+1, h+1)
+			}
+			continue
+		}
+		if value, err := strconv.Atoi(part); err == nil {
+			parts[i] = fmt.Sprint(value + 1)
+		}
+	}
+	return strings.Join(parts, ",")
 }
 
 func renderCronSet(values []int, min, max int) string {
@@ -251,7 +308,7 @@ func plainMonthlySelector(opt *rrule.ROption) bool {
 	return len(opt.Byweekday) == 0 && len(opt.Bymonth) == 0 && len(opt.Bysetpos) == 0 &&
 		len(opt.Byyearday) == 0 && len(opt.Byweekno) == 0 && len(opt.Byeaster) == 0 &&
 		opt.Count == 0 && opt.Until.IsZero() && len(opt.Byhour) <= 1 && len(opt.Byminute) <= 1 &&
-		(len(opt.Bysecond) == 0 || len(opt.Bysecond) == 1 && opt.Bysecond[0] == 0)
+		len(opt.Bysecond) <= 1
 }
 
 func nearestWeekdayField(opt *rrule.ROption) (int, bool) {
@@ -306,8 +363,8 @@ func calendarAnchorRefusal(sch domain.Schedule, opt *rrule.ROption) string {
 	if sch.Anchor == nil {
 		return "the recurrence has no anchor from which to recover its time of day"
 	}
-	if sch.Anchor.Second() != 0 || sch.Anchor.Nanosecond() != 0 {
-		return "the schedule phase is below cron's one-minute resolution"
+	if sch.Anchor.Nanosecond() != 0 {
+		return "the schedule phase is below cron's one-second resolution"
 	}
 	return ""
 }
@@ -316,8 +373,8 @@ func subDailyPhaseRefusal(sch domain.Schedule, opt *rrule.ROption, interval int)
 	if opt.Freq != rrule.MINUTELY && opt.Freq != rrule.HOURLY {
 		return ""
 	}
-	if sch.Anchor == nil || sch.Anchor.Second() != 0 || sch.Anchor.Nanosecond() != 0 {
-		return "the interval phase is below cron's one-minute resolution"
+	if sch.Anchor == nil || sch.Anchor.Nanosecond() != 0 {
+		return "the interval phase is below cron's one-second resolution"
 	}
 	if opt.Freq == rrule.MINUTELY && sch.Anchor.Minute()%interval != 0 {
 		return "the interval phase does not align with cron's minute step"
@@ -340,10 +397,13 @@ func datebearing(opt *rrule.ROption) bool {
 }
 
 // timeFields recovers the rule's minute and hour, falling back to the anchor.
-func timeFields(opt *rrule.ROption, anchor *time.Time) (minute, hour int) {
-	minute, hour = opt.Dtstart.Minute(), opt.Dtstart.Hour()
+func timeFields(opt *rrule.ROption, anchor *time.Time) (second, minute, hour int) {
+	second, minute, hour = opt.Dtstart.Second(), opt.Dtstart.Minute(), opt.Dtstart.Hour()
 	if anchor != nil {
-		minute, hour = anchor.Minute(), anchor.Hour()
+		second, minute, hour = anchor.Second(), anchor.Minute(), anchor.Hour()
+	}
+	if len(opt.Bysecond) == 1 {
+		second = opt.Bysecond[0]
 	}
 	if len(opt.Byminute) == 1 {
 		minute = opt.Byminute[0]
@@ -351,7 +411,7 @@ func timeFields(opt *rrule.ROption, anchor *time.Time) (minute, hour int) {
 	if len(opt.Byhour) == 1 {
 		hour = opt.Byhour[0]
 	}
-	return minute, hour
+	return second, minute, hour
 }
 
 // weekdayField renders a weekly rule's days as a cron day-of-week field.

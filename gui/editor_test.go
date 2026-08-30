@@ -291,7 +291,7 @@ func TestEditor_OneOffSubmissionOmitsRecurringSyntax(t *testing.T) {
 func TestEditor_HelpDocumentsDualSyntax(t *testing.T) {
 	for _, want := range []string{
 		"plain-language phrase",
-		"five-field cron",
+		"five- or six-field cron",
 		"0 9 * * 1-5",
 		"docs/cron.md#fidelity",
 	} {

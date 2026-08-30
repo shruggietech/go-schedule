@@ -332,7 +332,7 @@ func (e *taskEditor) rebuildWhen() {
 		if e.existing != nil {
 			schedItem = widget.NewFormItem("Schedule", scheduleRow) // optional on edit (blank = keep)
 		}
-		schedItem.HintText = "Human phrase or supported five-field cron"
+		schedItem.HintText = "Human phrase or supported five- or six-field cron"
 		items = append(items, schedItem)
 		if schedule.IsSubDailyInterval(e.effectiveScheduleRaw()) {
 			startRow := container.NewBorder(nil, nil, nil, nil, e.startAt)
@@ -790,7 +790,8 @@ Schedules are interpreted here; storage is UTC with DST handled.
 - Monthly ordinals: ` + "`3rd wednesday monthly at 14:00`" + `, ` + "`last friday of the month`" + `
 - Monthly calendar dates: ` + "`last day of every month at 09:00`" + `, ` + "`nearest weekday to the 15th of every month at 09:00`" + `, ` + "`last weekday of every month at 09:00`" + `
 
-The same field also accepts supported five-field cron, such as ` + "`0 9 * * 1-5`" + `,
+The same field also accepts supported five- or six-field cron, such as ` + "`0 9 * * 1-5`" + `, and
+six-field seconds input such as ` + "`*/30 * * * * *`" + `.
 ` + "`0 9 L * *`" + `, ` + "`0 9 15W * *`" + `, or ` + "`0 9 LW * *`" + `.
 Cron-shaped input is validated as cron without falling back to a human phrase. See the
 [cron fidelity guide](https://shruggietech.github.io/go-schedule/cron/#fidelity)

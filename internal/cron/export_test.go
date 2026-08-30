@@ -85,15 +85,15 @@ func TestExport_UsesImplicitDailyAnchorWithoutInventingPrecision(t *testing.T) {
 		}
 	})
 
-	t.Run("sub-minute", func(t *testing.T) {
+	t.Run("second-aligned", func(t *testing.T) {
 		anchor := time.Date(2026, 6, 1, 12, 34, 56, 0, time.UTC)
 		sch, err := schedule.Parse("every day", "UTC", anchor)
 		if err != nil {
 			t.Fatal(err)
 		}
 		task := domain.Task{Enabled: true, State: domain.TaskActive}
-		if _, bad, ok := Export(task, sch); ok || !strings.Contains(bad.Reason, "one-minute resolution") {
-			t.Fatalf("sub-minute daily export = ok:%v bad:%q", ok, bad.Reason)
+		if got, bad, ok := Export(task, sch); !ok || got != "56 34 12 * * *" {
+			t.Fatalf("second-aligned daily export = %q ok:%v bad:%q", got, ok, bad.Reason)
 		}
 	})
 }
@@ -101,6 +101,17 @@ func TestExport_UsesImplicitDailyAnchorWithoutInventingPrecision(t *testing.T) {
 // TestExport_Declines covers FR-012 and FR-012a: what cron cannot carry is
 // refused by name, never approximated, and never silently omitted.
 func TestExport_Declines(t *testing.T) {
+	t.Run("operational context", func(t *testing.T) {
+		task, sch, err := taskFor("every day at 09:00")
+		if err != nil {
+			t.Fatal(err)
+		}
+		task.Stdin = "payload"
+		if _, bad, ok := Export(task, sch); ok || !strings.Contains(bad.Reason, "execution context") {
+			t.Fatalf("operational export = ok:%v bad:%q", ok, bad.Reason)
+		}
+	})
+
 	t.Run("one-off", func(t *testing.T) {
 		task := domain.Task{Name: "once", Enabled: true, State: domain.TaskActive}
 		sch := schedule.NewOneOff(exportAnchor.Add(24 * time.Hour))
@@ -133,12 +144,28 @@ func TestExport_Declines(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, bad, ok := Export(task, sch)
-		if ok {
-			t.Fatal("Export produced a line for a sub-minute schedule")
+		got, bad, ok := Export(task, sch)
+		if !ok || got != "*/30 * * * * *" {
+			t.Fatalf("Export = %q ok=%v refusal=%q", got, ok, bad.Reason)
 		}
-		if !strings.Contains(bad.Reason, "sub-minute") {
-			t.Errorf("reason = %q, want it to mention sub-minute resolution", bad.Reason)
+	})
+
+	t.Run("seconds with focused monthly selectors", func(t *testing.T) {
+		anchor := time.Date(2026, 6, 1, 9, 0, 30, 0, time.UTC)
+		fixtures := []domain.Schedule{
+			{
+				Kind: domain.ScheduleRecurring, RRULE: "FREQ=MONTHLY;BYMONTHDAY=-1;BYHOUR=9;BYMINUTE=0;BYSECOND=30",
+				Anchor: &anchor,
+			},
+			{
+				Kind: domain.ScheduleRecurring, RRULE: "FREQ=MONTHLY;BYMONTHDAY=15;BYHOUR=9;BYMINUTE=0;BYSECOND=30",
+				Anchor: &anchor, CalendarAdjustment: domain.CalendarAdjustmentNearestWeekday,
+			},
+		}
+		for _, sch := range fixtures {
+			if _, bad, ok := ExportSchedule(sch, domain.MissingDateSkip); ok || bad.Reason == "" {
+				t.Fatalf("focused seconds export = ok:%v bad:%q for %+v", ok, bad.Reason, sch)
+			}
 		}
 	})
 

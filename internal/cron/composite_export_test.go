@@ -21,6 +21,8 @@ func TestCompositeCronCanonicalExport(t *testing.T) {
 		{"0 0 1,15 JAN,MAR *", "0 0 1,15 1,3 *"},
 		{"0 12 * * 7,MON,WED,FRI", "0 12 * * 0,1,3,5"},
 		{"0-59 0-23 1-31 1-12 *", "* * * * *"},
+		{"*/30 * * * * *", "*/30 * * * * *"},
+		{"5/15 0 9 ? * 2", "5,20,35,50 0 9 * * 2"},
 	}
 	anchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	for _, tt := range tests {
