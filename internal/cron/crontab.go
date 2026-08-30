@@ -87,7 +87,7 @@ func ScanCrontabWithOptions(r io.Reader, opts ScanOptions) (Report, error) {
 	if opts.Dialect != DialectUnix && opts.Dialect != DialectQuartz {
 		return Report{}, fmt.Errorf("cron: import dialect must be unix or quartz, got %q", opts.Dialect)
 	}
-	ctx := scanContext{env: map[string]string{}, shell: "/bin/sh"}
+	ctx := scanContext{env: map[string]string{"SHELL": "/bin/sh"}, shell: "/bin/sh"}
 	var rep Report
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)

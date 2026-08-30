@@ -292,6 +292,9 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	if first.Command != "/bin/sh" {
 		t.Errorf("command = %q, want the effective cron shell", first.Command)
 	}
+	if first.Env["SHELL"] != "/bin/sh" {
+		t.Errorf("SHELL = %q, want the default cron shell in task environment", first.Env["SHELL"])
+	}
 	if len(first.Args) != 2 || first.Args[0] != "-c" || first.Args[1] != "/usr/local/bin/backup --full" {
 		t.Errorf("args = %v, want the original command passed to the shell", first.Args)
 	}

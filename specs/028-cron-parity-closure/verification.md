@@ -49,3 +49,11 @@
 - `.specify/feature.json` parses successfully; no unresolved placeholders remain.
 - Issue closure intent: the eventual pull request must use `Closes #22`.
 - Delivery boundary: commit locally on `codex/028-cron-parity-closure`, then halt before push or pull-request publication.
+
+## Third-party review remediation (2026-08-30)
+
+- Composite seconds evaluation now sorts and deduplicates stored field sets, starts at the relevant wall-clock cursor, and limits exhaustive comparison to the repeated fall-overlap interval. The representative seconds benchmark improved from roughly 3.3 ms and 5,789 allocations to 40-47 µs and 36 allocations per operation. Exact every-second, unordered-set, and both-fold regressions pass.
+- Unix run-as environment normalization now removes every stale `USER` and `LOGNAME` entry. It also replaces inherited daemon `HOME` with the selected account's home unless the task explicitly supplied `HOME`.
+- Crontab import now carries its default `SHELL=/bin/sh` into each task environment as well as using it for command execution.
+- Post-remediation `scripts/verify.sh all`: PASS. Coverage: engine 88.1%, schedule 89.0%, timezone 91.3%, store 86.9%, catch-up 88.9%, logbus 91.1%.
+- Unix-only executor tests compile successfully for `GOOS=linux` with `CGO_ENABLED=0`.

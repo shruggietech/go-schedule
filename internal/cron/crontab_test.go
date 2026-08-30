@@ -53,6 +53,14 @@ PATH=/bin
 	}
 }
 
+func TestScanCrontab_DefaultShellIsExecutionEnvironment(t *testing.T) {
+	rep := scanFixture(t, "0 9 * * * printf '%s' \"$SHELL\"\n", ScanOptions{})
+	got := jobs(rep)
+	if len(got) != 1 || got[0].Command != "/bin/sh" || got[0].Env["SHELL"] != "/bin/sh" {
+		t.Fatalf("default shell context = %#v", got)
+	}
+}
+
 func TestScanCrontab_AssignmentQuotesAndMailWarnings(t *testing.T) {
 	rep := scanFixture(t, "EMPTY=\nPAD='  kept  '\nLOGNAME=wrong\nMAILTO=ops@example.com\nMAILFROM=cron@example.com\n0 0 * * * echo ok\n", ScanOptions{})
 	got := jobs(rep)

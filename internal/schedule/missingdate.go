@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/teambition/rrule-go"
@@ -313,18 +314,36 @@ const maxCompositeDayWalk = 366 * 12
 // through the shared DST resolver.
 func resolveCompositeDailySet(opt *rrule.ROption, loc *time.Location, policy domain.SchedulePolicy, after time.Time) (time.Time, bool) {
 	anchor := opt.Dtstart
-	localAfter := after.In(loc)
+	cursor := after
+	if anchor.After(after) {
+		cursor = anchor.Add(-time.Nanosecond)
+	}
+	localAfter := cursor.In(loc)
 	day := time.Date(localAfter.Year(), localAfter.Month(), localAfter.Day(), 0, 0, 0, 0, loc)
+	hours := sortedUniqueInts(opt.Byhour)
+	minutes := sortedUniqueInts(opt.Byminute)
+	seconds := sortedUniqueInts(opt.Bysecond)
 	for i := 0; i < maxCompositeDayWalk; i++ {
 		if compositeDaySelected(opt, day) {
 			var best time.Time
-			for _, hour := range opt.Byhour {
-				for _, minute := range opt.Byminute {
-					for _, second := range opt.Bysecond {
+			lowerBound, overlapEnd, scanOverlap := compositeDaySearchBounds(day, localAfter, loc, cursor)
+			for _, hour := range hours {
+				for _, minute := range minutes {
+					for _, second := range seconds {
+						wallSecond := hour*60*60 + minute*60 + second
+						if wallSecond < lowerBound {
+							continue
+						}
 						intent := time.Date(day.Year(), day.Month(), day.Day(), hour, minute, second, 0, time.UTC)
 						occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
 						if ok && (best.IsZero() || occ.Before(best)) {
 							best = occ
+						}
+						if !scanOverlap && ok {
+							return occ, true
+						}
+						if scanOverlap && wallSecond >= overlapEnd && !best.IsZero() {
+							return best, true
 						}
 					}
 				}
@@ -336,6 +355,39 @@ func resolveCompositeDailySet(opt *rrule.ROption, loc *time.Location, policy dom
 		day = day.AddDate(0, 0, 1)
 	}
 	return time.Time{}, false
+}
+
+func compositeDaySearchBounds(day, localAfter time.Time, loc *time.Location, cursor time.Time) (lowerBound, overlapEnd int, scanOverlap bool) {
+	if day.Year() != localAfter.Year() || day.YearDay() != localAfter.YearDay() {
+		return 0, 0, false
+	}
+	lowerBound = localAfter.Hour()*60*60 + localAfter.Minute()*60 + localAfter.Second()
+	start, end, _, ok := overlapWindow(loc, cursor)
+	if !ok || start.Year() != day.Year() || start.YearDay() != day.YearDay() {
+		return lowerBound, 0, false
+	}
+	startSecond := start.Hour()*60*60 + start.Minute()*60 + start.Second()
+	endSecond := end.Hour()*60*60 + end.Minute()*60 + end.Second()
+	if lowerBound < startSecond || lowerBound >= endSecond {
+		return lowerBound, 0, false
+	}
+	return startSecond, endSecond, true
+}
+
+func sortedUniqueInts(values []int) []int {
+	out := append([]int(nil), values...)
+	sort.Ints(out)
+	if len(out) < 2 {
+		return out
+	}
+	n := 1
+	for _, value := range out[1:] {
+		if value != out[n-1] {
+			out[n] = value
+			n++
+		}
+	}
+	return out[:n]
 }
 
 func compositeDaySelected(opt *rrule.ROption, day time.Time) bool {

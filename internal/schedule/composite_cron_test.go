@@ -138,6 +138,58 @@ func TestCompositeCronStrictlyHonorsAnchor(t *testing.T) {
 	}
 }
 
+func TestCompositeCronEverySecondHasBoundedWork(t *testing.T) {
+	anchor := time.Date(2026, 8, 28, 0, 0, 0, 0, time.UTC)
+	sch := mustCompileCron(t, "* * * * * *", "UTC", anchor)
+	after := time.Date(2026, 8, 28, 12, 34, 56, 0, time.UTC)
+	allocs := testing.AllocsPerRun(1, func() {
+		got, ok, err := schedule.NextRun(sch, "UTC", domain.MissingDateSkip, after)
+		want := after.Add(time.Second)
+		if err != nil || !ok || !got.Equal(want) {
+			t.Fatalf("next=%v ok=%v err=%v, want %v", got, ok, err, want)
+		}
+	})
+	if allocs > 500 {
+		t.Fatalf("every-second composite evaluation allocated %.0f objects, want bounded work", allocs)
+	}
+}
+
+func TestCompositeCronSortsStoredFieldSetsBeforeSelectingNext(t *testing.T) {
+	anchor := time.Date(2026, 8, 28, 0, 0, 0, 0, time.UTC)
+	sch := domain.Schedule{
+		Kind:   domain.ScheduleRecurring,
+		RRULE:  "FREQ=DAILY;INTERVAL=1;BYHOUR=17,9;BYMINUTE=30,0;BYSECOND=45,15",
+		Anchor: &anchor,
+	}
+	after := time.Date(2026, 8, 28, 8, 0, 0, 0, time.UTC)
+	got, ok, err := schedule.NextRun(sch, "UTC", domain.MissingDateSkip, after)
+	want := time.Date(2026, 8, 28, 9, 0, 15, 0, time.UTC)
+	if err != nil || !ok || !got.Equal(want) {
+		t.Fatalf("next=%v ok=%v err=%v, want %v", got, ok, err, want)
+	}
+}
+
+func TestCompositeCronEverySecondAcrossFallOverlap(t *testing.T) {
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	anchor := time.Date(2026, time.October, 31, 0, 0, 0, 0, loc)
+	sch := mustCompileCron(t, "* * * * * *", "America/New_York", anchor)
+	for _, tt := range []struct {
+		after, want time.Time
+	}{
+		{time.Date(2026, time.November, 1, 5, 30, 0, 0, time.UTC), time.Date(2026, time.November, 1, 5, 30, 1, 0, time.UTC)},
+		{time.Date(2026, time.November, 1, 5, 59, 59, 0, time.UTC), time.Date(2026, time.November, 1, 6, 0, 0, 0, time.UTC)},
+		{time.Date(2026, time.November, 1, 6, 30, 0, 0, time.UTC), time.Date(2026, time.November, 1, 6, 30, 1, 0, time.UTC)},
+	} {
+		got, ok, err := schedule.NextRunWithPolicy(sch, "America/New_York", domain.SchedulePolicy{DSTOverlap: domain.DSTOverlapBoth}, tt.after)
+		if err != nil || !ok || !got.Equal(tt.want) {
+			t.Errorf("after %v: next=%v ok=%v err=%v, want %v", tt.after, got, ok, err, tt.want)
+		}
+	}
+}
+
 func TestCompositeCronDSTWallTime(t *testing.T) {
 	loc, err := time.LoadLocation("America/New_York")
 	if err != nil {

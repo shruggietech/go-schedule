@@ -48,7 +48,8 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	}
 	platform.HideConsole(cmd) // no console window for the child process
 
-	if err := applyRunAs(cmd, task.RunAs); err != nil {
+	_, explicitHome := task.Env["HOME"]
+	if err := applyRunAs(cmd, task.RunAs, explicitHome); err != nil {
 		end := time.Now().UTC()
 		run.EndedAt = &end
 		run.Outcome = domain.OutcomeFailure
