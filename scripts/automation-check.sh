@@ -221,6 +221,24 @@ else
       '^        applies-to: security-updates$'; then
       report "$DEPENDABOT: $ecosystem routine group must not group security updates"
     fi
+
+    if [ "$ecosystem" = gomod ]; then
+      require_dependabot_pattern "$block" '^      gui-minor-and-patch:$' \
+        'gomod isolated GUI update group'
+      require_dependabot_pattern "$block" '^          - fyne\.io/\*$' \
+        'gomod GUI dependency pattern'
+      require_dependabot_pattern "$block" '^      storage-minor-and-patch:$' \
+        'gomod isolated storage update group'
+      require_dependabot_pattern "$block" '^          - modernc\.org/sqlite$' \
+        'gomod storage dependency pattern'
+      require_dependabot_pattern "$block" '^      platform-minor-and-patch:$' \
+        'gomod isolated platform update group'
+      require_dependabot_pattern "$block" \
+        '^          - github\.com/kardianos/service$' \
+        'gomod service dependency pattern'
+      require_dependabot_pattern "$block" '^          - golang\.org/x/sys$' \
+        'gomod system dependency pattern'
+    fi
   done
 fi
 
