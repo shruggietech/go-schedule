@@ -118,6 +118,30 @@ func TestOverlap_QueueOne(t *testing.T) {
 	}
 }
 
+func TestOverlap_QueuedRunRetainsTriggerOrigin(t *testing.T) {
+	st, _ := store.Open(":memory:")
+	defer st.Close()
+	r := &blockingRunner{started: make(chan struct{}, 2), release: make(chan struct{})}
+	e := newEngine(st, r)
+	task := setupTask(t, st, domain.OverlapQueueOne)
+	now := time.Now().UTC()
+	e.dispatch(task, now, domain.TriggerStartup)
+	recv(t, r.started, "startup run")
+	e.dispatch(task, now.Add(time.Second), domain.TriggerManual)
+	r.release <- struct{}{}
+	recv(t, r.started, "queued manual run")
+	r.release <- struct{}{}
+	waitFor(t, func() bool {
+		runs, _ := st.ListRuns(task.ID, 0)
+		for _, run := range runs {
+			if run.Outcome == domain.OutcomeSuccess && run.Trigger == domain.TriggerManual {
+				return true
+			}
+		}
+		return false
+	}, "queued manual trigger persistence")
+}
+
 func TestOverlap_Skip(t *testing.T) {
 	st, _ := store.Open(":memory:")
 	defer st.Close()

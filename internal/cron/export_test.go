@@ -50,6 +50,18 @@ func TestExport_Expressible(t *testing.T) {
 	}
 }
 
+func TestExport_StartupAndContextRefusal(t *testing.T) {
+	sch := schedule.NewStartup("at scheduler startup")
+	task := domain.Task{Name: "boot", Command: "x", Enabled: true, State: domain.TaskActive}
+	if got, bad, ok := Export(task, sch); !ok || got != "@reboot" {
+		t.Fatalf("startup export = %q, bad=%q, ok=%v", got, bad.Reason, ok)
+	}
+	task.Env = map[string]string{"PATH": "/bin"}
+	if _, bad, ok := Export(task, sch); ok || !strings.Contains(bad.Reason, "execution context") {
+		t.Fatalf("startup context export = bad=%q, ok=%v", bad.Reason, ok)
+	}
+}
+
 func TestExportSchedule_PreservesTaskExportMapping(t *testing.T) {
 	task, sch, err := taskFor("weekdays at 09:00")
 	if err != nil {

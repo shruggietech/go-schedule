@@ -2,6 +2,8 @@
 
 Test payloads for verifying an installed `goschedd` actually fires on time,
 survives restarts, catches up, and honors overlap policies.
+Automated `@reboot` lifecycle coverage lives in the Go engine/API/cron/store
+tests described in the full guide; it does not require a manual VM session.
 
 **Full documentation: [`docs/test-scripts.md`](../../docs/test-scripts.md).**
 Read that, not this file — this is only a signpost.

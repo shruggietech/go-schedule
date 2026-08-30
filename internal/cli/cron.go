@@ -85,8 +85,8 @@ func cronExplain() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "explain <expression>",
 		Short: "Translate one cron expression into plain language",
-		Long: "Print the plain-language phrase a cron expression maps to, plus its next\n" +
-			"run times. Nothing is created or changed.\n\n" +
+		Long: "Print the plain-language phrase a cron expression maps to, plus any next\n" +
+			"run times. Non-clock events such as @reboot have none. Nothing is changed.\n\n" +
 			"An expression that cannot be represented is reported by name — that is an\n" +
 			"answer, not a failure, so the exit code stays 0.",
 		Args: cobra.ExactArgs(1),

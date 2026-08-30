@@ -303,13 +303,17 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runs, _ := schedule.UpcomingRunsWithPolicy(sch, tz, policy, now, 5)
+	policySummary := ""
+	if sch.Kind == domain.ScheduleRecurring {
+		policySummary = schedule.DescribePolicy(policy)
+	}
 	writeJSON(w, http.StatusOK, PreviewResponse{
 		RRULE:              sch.RRULE,
 		CalendarAdjustment: sch.CalendarAdjustment,
 		HumanSummary:       schedule.Describe(sch, domain.MissingDatePolicy(req.MissingDatePolicy)),
 		NextRuns:           runs,
 		SourceSyntax:       string(input.Syntax),
-		PolicySummary:      schedule.DescribePolicy(policy),
+		PolicySummary:      policySummary,
 	})
 }
 
@@ -323,7 +327,11 @@ func (s *Server) taskDetail(task domain.Task, sch domain.Schedule, now time.Time
 	// this one, so none of them can claim a rule fires in a period it skips.
 	sch.HumanSummary = schedule.Describe(sch, task.MissingDatePolicy)
 	sch.SourceSyntax = string(scheduleinput.SourceSyntax(sch))
-	return TaskResponse{Task: task, Schedule: sch, PolicySummary: schedule.DescribePolicy(task.SchedulePolicy()), NextRuns: runs}
+	policySummary := ""
+	if !schedule.IsStartup(sch) {
+		policySummary = schedule.DescribePolicy(task.SchedulePolicy())
+	}
+	return TaskResponse{Task: task, Schedule: sch, PolicySummary: policySummary, NextRuns: runs}
 }
 
 func (s *Server) reload() {

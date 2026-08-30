@@ -61,6 +61,18 @@ func TestScanCrontab_DefaultShellIsExecutionEnvironment(t *testing.T) {
 	}
 }
 
+func TestScanCrontab_RebootIsSupportedWithContext(t *testing.T) {
+	rep := scanFixture(t, "SHELL=/bin/bash\nPATH=/opt/bin\n@reboot root warmup%payload\n", ScanOptions{System: true})
+	got := jobs(rep)
+	if rep.Declined != 0 || len(got) != 1 {
+		t.Fatalf("report = %+v", rep)
+	}
+	job := got[0]
+	if job.Expr != "@reboot" || job.Phrase != "at scheduler startup" || job.RunAs != "root" || job.Command != "/bin/bash" || job.Env["PATH"] != "/opt/bin" || job.Stdin != "payload" {
+		t.Fatalf("startup job = %+v", job)
+	}
+}
+
 func TestScanCrontab_AssignmentQuotesAndMailWarnings(t *testing.T) {
 	rep := scanFixture(t, "EMPTY=\nPAD='  kept  '\nLOGNAME=wrong\nMAILTO=ops@example.com\nMAILFROM=cron@example.com\n0 0 * * * echo ok\n", ScanOptions{})
 	got := jobs(rep)

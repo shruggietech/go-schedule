@@ -48,13 +48,15 @@ type Engine struct {
 	tasks   map[string]taskCtx   // active tasks by ID
 	next    map[string]time.Time // next scheduled run (UTC) by task ID
 	running map[string]bool
-	queued  map[string]time.Time // queued pending run's scheduled time, by task ID
+	queued  map[string]pendingRun // one queued pending run, by task ID
 
-	reload  chan struct{}
-	runCtx  context.Context
-	runWG   sync.WaitGroup // tracks in-flight runs for graceful drain
-	onRun   func(domain.Run)
-	onAlert func(domain.Alert)
+	reload    chan struct{}
+	ready     chan struct{}
+	readyOnce sync.Once
+	runCtx    context.Context
+	runWG     sync.WaitGroup // tracks in-flight runs for graceful drain
+	onRun     func(domain.Run)
+	onAlert   func(domain.Alert)
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -71,8 +73,9 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 		tasks:   map[string]taskCtx{},
 		next:    map[string]time.Time{},
 		running: map[string]bool{},
-		queued:  map[string]time.Time{},
+		queued:  map[string]pendingRun{},
 		reload:  make(chan struct{}, 1),
+		ready:   make(chan struct{}),
 	}
 }
 
@@ -93,12 +96,19 @@ func (e *Engine) Reload() {
 	}
 }
 
+// Ready is closed after Start freezes and dispatches the initial startup-task
+// snapshot. Mutation-serving callers can wait on it to ensure newly created or
+// enabled startup tasks remain deferred until the next daemon lifecycle.
+func (e *Engine) Ready() <-chan struct{} { return e.ready }
+
 // Start runs the scheduling loop until ctx is cancelled, then drains in-flight
-// runs. It blocks; run it in a goroutine.
+// runs. It blocks, must be called once, and is normally run in a goroutine.
 func (e *Engine) Start(ctx context.Context) error {
 	e.runCtx = ctx
 	e.recompute(e.clk.Now())
+	e.runStartup(e.clk.Now())
 	e.runCatchup(e.clk.Now())
+	e.readyOnce.Do(func() { close(e.ready) })
 	for {
 		d, has := e.untilNext(e.clk.Now())
 		var wake <-chan time.Time
@@ -122,6 +132,22 @@ func (e *Engine) Start(ctx context.Context) error {
 		case now := <-wake:
 			e.runDue(now)
 		}
+	}
+}
+
+// runStartup dispatches the eligible startup-event snapshot loaded by the
+// initial recompute. Start calls it exactly once; Reload never does.
+func (e *Engine) runStartup(now time.Time) {
+	e.mu.Lock()
+	tasks := make([]domain.Task, 0)
+	for _, tc := range e.tasks {
+		if schedule.IsStartup(tc.sch) {
+			tasks = append(tasks, tc.task)
+		}
+	}
+	e.mu.Unlock()
+	for _, task := range tasks {
+		e.dispatch(task, now, domain.TriggerStartup)
 	}
 }
 
@@ -294,7 +320,7 @@ func (e *Engine) recordRun(run domain.Run) {
 func (e *Engine) finish(task domain.Task) {
 	e.mu.Lock()
 	e.running[task.ID] = false
-	qFor, queued := e.queued[task.ID]
+	pending, queued := e.queued[task.ID]
 	delete(e.queued, task.ID)
 	e.mu.Unlock()
 
@@ -302,7 +328,7 @@ func (e *Engine) finish(task domain.Task) {
 		e.mu.Lock()
 		e.running[task.ID] = true
 		e.mu.Unlock()
-		e.launch(task, qFor, domain.TriggerSchedule)
+		e.launch(task, pending.scheduledFor, pending.trigger)
 	}
 }
 

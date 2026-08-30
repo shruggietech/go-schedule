@@ -24,6 +24,9 @@ func Compile(input, tzName string, now time.Time) (domain.Schedule, Unsupported,
 	if !res.OK {
 		return domain.Schedule{}, res.Bad, nil
 	}
+	if res.Startup {
+		return schedule.NewStartup(expression), Unsupported{}, nil
+	}
 
 	// Focused calendar modifiers already have purpose-built human grammar and
 	// schedule mappings. Keep those mappings rather than flattening their extra

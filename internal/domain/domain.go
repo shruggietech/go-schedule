@@ -119,6 +119,10 @@ const (
 	ScheduleEvent     ScheduleKind = "event"
 )
 
+// StartupEventID is the stable identity of the daemon-start schedule event.
+// Other event sources remain outside the current scheduling contract.
+const StartupEventID = "scheduler_startup"
+
 // CalendarAdjustment identifies a bounded calendar operation applied after an
 // RRULE selects its intended date. The empty value means the RRULE is complete.
 type CalendarAdjustment string
@@ -146,6 +150,7 @@ type RunTrigger string
 const (
 	TriggerSchedule RunTrigger = "schedule"
 	TriggerEvent    RunTrigger = "event"
+	TriggerStartup  RunTrigger = "startup"
 	TriggerCatchup  RunTrigger = "catchup"
 	TriggerManual   RunTrigger = "manual"
 )

@@ -77,7 +77,6 @@ func TestExplain_Declines(t *testing.T) {
 	cases := []struct {
 		expr, contains string
 	}{
-		{"@reboot", "boot"},
 		{"0 9 * * * * *", "year"},
 		{"0 0 * JAN 5#3", "month"},
 		{"0 0 1 * 5#3", "either"},

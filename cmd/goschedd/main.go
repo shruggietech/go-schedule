@@ -97,6 +97,14 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	eng.SetOnAlert(broker.PublishAlert)
 	engErr := make(chan error, 1)
 	go func() { engErr <- eng.Start(ctx) }()
+	// Do not accept API mutations until the engine has frozen its startup-task
+	// snapshot. Tasks created or enabled after this boundary wait for the next
+	// daemon lifecycle, even when a client was already waiting on the listener.
+	select {
+	case <-eng.Ready():
+	case err := <-engErr:
+		return err
+	}
 
 	srv := &http.Server{
 		Handler:           server.New(st, eng, broker, ring, cfg.LogPath(), log).Handler(),

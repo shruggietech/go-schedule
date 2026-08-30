@@ -3,6 +3,8 @@ package cron
 import (
 	"fmt"
 	"strings"
+
+	"github.com/shruggietech/go-schedule/internal/schedule"
 )
 
 // Phrase renders a Spec as a concise human-readable phrase when the natural
@@ -187,6 +189,9 @@ func Explain(expr string) (phrase string, bad Unsupported, err error) {
 	}
 	if !res.OK {
 		return "", res.Bad, nil
+	}
+	if res.Startup {
+		return schedule.StartupPhrase, Unsupported{}, nil
 	}
 	phrase, bad, ok := Phrase(res.Spec)
 	if !ok {

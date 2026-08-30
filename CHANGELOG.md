@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`@reboot` is now a first-class scheduler-startup trigger (Closes #64).**
+  `@reboot` and `at scheduler startup` round-trip through conversion, preview,
+  task authoring, desktop editing, crontab import, and faithful export. Eligible
+  tasks run exactly once per daemon process start with a distinct `startup`
+  history origin, never on reload or mutation, and use normal overlap handling.
+  Disabled task/group behavior, two independent starts, no catch-up, empty
+  next-run previews, prior-database persistence, and retained crontab execution
+  context are covered without requiring a manual VM lifecycle session.
 - **Routine dependency discovery now opens reviewable proposals (Refs #40).**
   Dependabot checks Go modules weekly and GitHub Actions monthly, applies the
   existing `dependencies` label, caps each ecosystem at five open proposals,
@@ -284,6 +292,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-30 - Reuse the retained event schedule shape without restoring the
+  removed trigger subsystem.** Startup uses `kind=event` with
+  `trigger_id=scheduler_startup` and the existing storage column.
+  `Engine.Start` owns one startup snapshot outside `recompute`, so reload cannot
+  fire it. Run history adds the migration-free text origin `startup`; legacy
+  generic `event` values remain readable. No schema migration is warranted
+  because every required persisted field already exists.
 - **2026-08-30 - Fail closed for configured IPC groups and leave custom Unix
   directories operator-owned.** A non-empty `admin_group` never falls back to
   broad access. The daemon may secure its default data directory or create a

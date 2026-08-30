@@ -45,6 +45,14 @@ func Convert(input string, destination Syntax) (Conversion, error) {
 		OutputSyntax: outputSyntax,
 		Input:        normalized,
 	}
+	if inputSyntax == SyntaxCron && strings.EqualFold(normalized, "@reboot") {
+		result.Output = schedule.StartupPhrase
+		return result, nil
+	}
+	if inputSyntax == SyntaxHuman && strings.EqualFold(normalized, schedule.StartupPhrase) {
+		result.Output = "@reboot"
+		return result, nil
+	}
 
 	if inputSyntax == SyntaxHuman {
 		convertHuman(&result)

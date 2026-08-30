@@ -269,7 +269,6 @@ func TestScheduleSyntaxValidation(t *testing.T) {
 		{"invalid cron never falls back", "/v1/schedules/preview", PreviewRequest{Schedule: "61 9 * * *"}, "schedule"},
 		{"preview hint without schedule", "/v1/schedules/preview", PreviewRequest{ScheduleSyntax: "cron"}, "schedule_syntax"},
 		{"invalid preview missing-date policy", "/v1/schedules/preview", PreviewRequest{Schedule: "0 9 31W * *", MissingDatePolicy: "maybe"}, "missing_date_policy"},
-		{"unsupported named cron", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "@reboot"}, "schedule"},
 		{"malformed ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * * 5#6"}, "schedule"},
 		{"month-restricted ordinal", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * JAN 5#3"}, "schedule"},
 		{"malformed last weekday", "/v1/tasks", TaskCreateRequest{Name: "x", Command: "/bin/true", Schedule: "0 9 * * 8L"}, "schedule"},
