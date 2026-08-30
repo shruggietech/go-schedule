@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func newRunsCmd() *cobra.Command {
@@ -26,13 +28,14 @@ func newRunsCmd() *cobra.Command {
 				return printJSON(runs)
 			}
 			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(tw, "SCHEDULED\tOUTCOME\tTRIGGER\tEXIT")
+			fmt.Fprintln(tw, "SCHEDULED\tOUTCOME\tTRIGGER\tSOURCE TASK\tSOURCE RUN\tEXIT")
 			for _, r := range runs {
 				exit := "-"
 				if r.ExitCode != nil {
 					exit = fmt.Sprintf("%d", *r.ExitCode)
 				}
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ScheduledFor.Format(time.RFC3339), r.Outcome, r.Trigger, exit)
+				sourceTask, sourceRun := runSourceColumns(r)
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.ScheduledFor.Format(time.RFC3339), r.Outcome, r.Trigger, sourceTask, sourceRun, exit)
 			}
 			return tw.Flush()
 		},
@@ -40,6 +43,17 @@ func newRunsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&task, "task", "", "filter by task ID")
 	cmd.Flags().IntVar(&limit, "limit", 50, "maximum rows")
 	return cmd
+}
+
+func runSourceColumns(run domain.Run) (string, string) {
+	sourceTask, sourceRun := run.SourceTaskID, run.SourceRunID
+	if sourceTask == "" {
+		sourceTask = "-"
+	}
+	if sourceRun == "" {
+		sourceRun = "-"
+	}
+	return sourceTask, sourceRun
 }
 
 func newAlertsCmd() *cobra.Command {

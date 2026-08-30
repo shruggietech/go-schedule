@@ -12,6 +12,7 @@ import (
 type fakeAPI struct {
 	tasks   []domain.Task
 	groups  []domain.Group
+	chains  []domain.CompletionChain
 	alerts  []domain.Alert
 	logs    []domain.LogRecord
 	logPath string
@@ -19,6 +20,9 @@ type fakeAPI struct {
 
 func (f *fakeAPI) ListTasks(context.Context, string, string) ([]domain.Task, error) {
 	return f.tasks, nil
+}
+func (f *fakeAPI) ListChains(context.Context) ([]domain.CompletionChain, error) {
+	return f.chains, nil
 }
 func (f *fakeAPI) ListGroups(context.Context) ([]domain.Group, error)       { return f.groups, nil }
 func (f *fakeAPI) ListAlerts(context.Context, bool) ([]domain.Alert, error) { return f.alerts, nil }
@@ -30,6 +34,7 @@ func TestRefresh_LoadsState(t *testing.T) {
 	api := &fakeAPI{
 		tasks:  []domain.Task{{ID: "t1", Name: "A"}},
 		groups: []domain.Group{{ID: "g1", Name: "G"}},
+		chains: []domain.CompletionChain{{ID: "c1", SourceTaskID: "t1", TargetTaskID: "t2", OnOutcome: domain.CompletionOnSuccess}},
 		alerts: []domain.Alert{{ID: "a1"}},
 	}
 	m := New(api)
@@ -40,7 +45,7 @@ func TestRefresh_LoadsState(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := m.Snapshot()
-	if len(s.Tasks) != 1 || len(s.Groups) != 1 || len(s.Alerts) != 1 {
+	if len(s.Tasks) != 1 || len(s.Groups) != 1 || len(s.Chains) != 1 || len(s.Alerts) != 1 {
 		t.Fatalf("state not loaded: %+v", s)
 	}
 	if changed != 1 {
@@ -101,6 +106,50 @@ func TestApplyEvent_TaskUpsertAndRemove(t *testing.T) {
 	}
 }
 
+func TestApplyEvent_TaskChangesReconcileChains(t *testing.T) {
+	m := New(&fakeAPI{})
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
+		Verb: events.VerbCreated,
+		ID:   "c1",
+		Chain: &domain.CompletionChain{
+			ID: "c1", SourceTaskID: "source", SourceTaskName: "old source",
+			TargetTaskID: "target", TargetTaskName: "old target",
+		},
+	}})
+
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbUpdated, ID: "source", Task: &domain.Task{ID: "source", Name: "new source"},
+	}})
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbUpdated, ID: "target", Task: &domain.Task{ID: "target", Name: "new target"},
+	}})
+	got := m.Snapshot().Chains
+	if len(got) != 1 || got[0].SourceTaskName != "new source" || got[0].TargetTaskName != "new target" {
+		t.Fatalf("chains after task renames = %+v", got)
+	}
+
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbDeleted, ID: "source",
+	}})
+	if got := m.Snapshot().Chains; len(got) != 0 {
+		t.Fatalf("chains after source deletion = %+v", got)
+	}
+
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
+		Verb: events.VerbCreated,
+		ID:   "c2",
+		Chain: &domain.CompletionChain{
+			ID: "c2", SourceTaskID: "other", TargetTaskID: "target",
+		},
+	}})
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbDeleted, ID: "target",
+	}})
+	if got := m.Snapshot().Chains; len(got) != 0 {
+		t.Fatalf("chains after target deletion = %+v", got)
+	}
+}
+
 func TestApplyEvent_GroupUpsertAndRemove(t *testing.T) {
 	m := New(&fakeAPI{})
 	m.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
@@ -111,6 +160,24 @@ func TestApplyEvent_GroupUpsertAndRemove(t *testing.T) {
 	m.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
 		Verb: events.VerbDeleted, ID: "g1"}})
 	if got := m.Snapshot().Groups; len(got) != 0 {
+		t.Fatalf("after delete: %+v", got)
+	}
+}
+
+func TestApplyEvent_ChainUpsertAndRemove(t *testing.T) {
+	m := New(&fakeAPI{})
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
+		Verb: events.VerbCreated, ID: "c1", Chain: &domain.CompletionChain{ID: "c1", OnOutcome: domain.CompletionOnSuccess}}})
+	if got := m.Snapshot().Chains; len(got) != 1 || got[0].OnOutcome != domain.CompletionOnSuccess {
+		t.Fatalf("after create: %+v", got)
+	}
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
+		Verb: events.VerbUpdated, ID: "c1", Chain: &domain.CompletionChain{ID: "c1", OnOutcome: domain.CompletionOnAny}}})
+	if got := m.Snapshot().Chains; len(got) != 1 || got[0].OnOutcome != domain.CompletionOnAny {
+		t.Fatalf("after update: %+v", got)
+	}
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{Verb: events.VerbDeleted, ID: "c1"}})
+	if got := m.Snapshot().Chains; len(got) != 0 {
 		t.Fatalf("after delete: %+v", got)
 	}
 }

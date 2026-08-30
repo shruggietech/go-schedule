@@ -55,6 +55,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/tasks/{id}/disable", s.handleDisableTask)
 	s.mux.HandleFunc("POST /v1/tasks/{id}/run-now", s.handleRunNow)
 
+	s.mux.HandleFunc("GET /v1/chains", s.handleListChains)
+	s.mux.HandleFunc("POST /v1/chains", s.handleCreateChain)
+	s.mux.HandleFunc("GET /v1/chains/{id}", s.handleGetChain)
+	s.mux.HandleFunc("PATCH /v1/chains/{id}", s.handleUpdateChain)
+	s.mux.HandleFunc("DELETE /v1/chains/{id}", s.handleDeleteChain)
+
 	s.mux.HandleFunc("GET /v1/groups", s.handleListGroups)
 	s.mux.HandleFunc("POST /v1/groups", s.handleCreateGroup)
 	s.mux.HandleFunc("GET /v1/groups/{id}", s.handleGetGroup)

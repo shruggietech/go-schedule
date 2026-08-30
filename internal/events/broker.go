@@ -19,6 +19,7 @@ const (
 	KindLog   Kind = "log"
 	KindTask  Kind = "task"
 	KindGroup Kind = "group"
+	KindChain Kind = "chain"
 )
 
 // Verb describes a change to an entity in a task/group event.
@@ -44,6 +45,13 @@ type GroupEvent struct {
 	Group *domain.Group `json:"group,omitempty"`
 }
 
+// ChainEvent describes a completion-chain change. Chain is nil for deletions.
+type ChainEvent struct {
+	Verb  Verb                    `json:"verb"`
+	ID    string                  `json:"id"`
+	Chain *domain.CompletionChain `json:"chain,omitempty"`
+}
+
 // Event is a single notification delivered to subscribers.
 type Event struct {
 	Kind  Kind              `json:"kind"`
@@ -52,6 +60,7 @@ type Event struct {
 	Log   *domain.LogRecord `json:"log,omitempty"`
 	Task  *TaskEvent        `json:"task,omitempty"`
 	Group *GroupEvent       `json:"group,omitempty"`
+	Chain *ChainEvent       `json:"chain,omitempty"`
 }
 
 // Broker fans out events to all current subscribers.
@@ -115,6 +124,11 @@ func (b *Broker) PublishTask(verb Verb, id string, t *domain.Task) {
 // PublishGroup is a convenience for group-change events.
 func (b *Broker) PublishGroup(verb Verb, id string, g *domain.Group) {
 	b.Publish(Event{Kind: KindGroup, Group: &GroupEvent{Verb: verb, ID: id, Group: g}})
+}
+
+// PublishChain is a convenience for completion-chain change events.
+func (b *Broker) PublishChain(verb Verb, id string, chain *domain.CompletionChain) {
+	b.Publish(Event{Kind: KindChain, Chain: &ChainEvent{Verb: verb, ID: id, Chain: chain}})
 }
 
 // SubscriberCount reports the number of active subscribers (for tests/metrics).

@@ -16,6 +16,7 @@ import (
 // API is the subset of the API client the view-model needs (injectable for tests).
 type API interface {
 	ListTasks(ctx context.Context, group, state string) ([]domain.Task, error)
+	ListChains(ctx context.Context) ([]domain.CompletionChain, error)
 	ListGroups(ctx context.Context) ([]domain.Group, error)
 	ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, error)
 	ListLogs(ctx context.Context, severity string, limit int) (server.LogsResponse, error)
@@ -24,6 +25,7 @@ type API interface {
 // State is a snapshot of what the GUI displays.
 type State struct {
 	Tasks      []domain.Task
+	Chains     []domain.CompletionChain
 	Groups     []domain.Group
 	Alerts     []domain.Alert
 	Logs       []domain.LogRecord
@@ -66,6 +68,10 @@ func (m *Model) Refresh(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	chains, err := m.api.ListChains(ctx)
+	if err != nil {
+		return err
+	}
 	alerts, err := m.api.ListAlerts(ctx, false)
 	if err != nil {
 		return err
@@ -77,6 +83,7 @@ func (m *Model) Refresh(ctx context.Context) error {
 	m.mu.Lock()
 	m.st.Tasks = tasks
 	m.st.Groups = groups
+	m.st.Chains = chains
 	m.st.Alerts = alerts
 	m.st.Logs = logs.Logs
 	m.st.LogPath = logs.LogPath
@@ -113,10 +120,15 @@ func (m *Model) ApplyEvent(e events.Event) {
 	case events.KindTask:
 		if e.Task != nil {
 			m.st.Tasks = applyTaskEvent(m.st.Tasks, e.Task)
+			m.st.Chains = applyTaskEventToChains(m.st.Chains, e.Task)
 		}
 	case events.KindGroup:
 		if e.Group != nil {
 			m.st.Groups = applyGroupEvent(m.st.Groups, e.Group)
+		}
+	case events.KindChain:
+		if e.Chain != nil {
+			m.st.Chains = applyChainEvent(m.st.Chains, e.Chain)
 		}
 	}
 	m.mu.Unlock()
@@ -184,6 +196,32 @@ func applyTaskEvent(tasks []domain.Task, ev *events.TaskEvent) []domain.Task {
 	return append([]domain.Task{*ev.Task}, tasks...)
 }
 
+// applyTaskEventToChains keeps denormalized task names and task-delete cascades
+// in the live chain cache consistent with the API's persisted view.
+func applyTaskEventToChains(chains []domain.CompletionChain, ev *events.TaskEvent) []domain.CompletionChain {
+	if ev.Verb == events.VerbDeleted {
+		out := chains[:0]
+		for _, chain := range chains {
+			if chain.SourceTaskID != ev.ID && chain.TargetTaskID != ev.ID {
+				out = append(out, chain)
+			}
+		}
+		return out
+	}
+	if ev.Task == nil {
+		return chains
+	}
+	for i := range chains {
+		if chains[i].SourceTaskID == ev.ID {
+			chains[i].SourceTaskName = ev.Task.Name
+		}
+		if chains[i].TargetTaskID == ev.ID {
+			chains[i].TargetTaskName = ev.Task.Name
+		}
+	}
+	return chains
+}
+
 // applyGroupEvent folds a group change into the slice (upsert/remove).
 func applyGroupEvent(groups []domain.Group, ev *events.GroupEvent) []domain.Group {
 	if ev.Verb == events.VerbDeleted {
@@ -205,4 +243,27 @@ func applyGroupEvent(groups []domain.Group, ev *events.GroupEvent) []domain.Grou
 		}
 	}
 	return append([]domain.Group{*ev.Group}, groups...)
+}
+
+// applyChainEvent folds a completion-chain change into the slice.
+func applyChainEvent(chains []domain.CompletionChain, ev *events.ChainEvent) []domain.CompletionChain {
+	if ev.Verb == events.VerbDeleted {
+		out := chains[:0]
+		for _, chain := range chains {
+			if chain.ID != ev.ID {
+				out = append(out, chain)
+			}
+		}
+		return out
+	}
+	if ev.Chain == nil {
+		return chains
+	}
+	for i, chain := range chains {
+		if chain.ID == ev.ID {
+			chains[i] = *ev.Chain
+			return chains
+		}
+	}
+	return append([]domain.CompletionChain{*ev.Chain}, chains...)
 }

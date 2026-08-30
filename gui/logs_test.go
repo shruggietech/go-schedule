@@ -184,3 +184,15 @@ func TestUI_ActivityClearControlExplainsNonDestructiveBehavior(t *testing.T) {
 		return len(acked) == 1 && acked[0] == "visible-alert"
 	})
 }
+
+func TestActivityDetailRendersCompletionCorrelation(t *testing.T) {
+	detail := attrsDetail(domain.LogRecord{
+		TaskID: "target", RunID: "target-run",
+		Attrs: map[string]any{"source_task": "source", "source_run": "source-run", "delivery": "delivery-id"},
+	})
+	for _, want := range []string{"task: target", "run: target-run", "source_task: source", "source_run: source-run", "delivery: delivery-id"} {
+		if !strings.Contains(detail, want) {
+			t.Fatalf("detail %q missing %q", detail, want)
+		}
+	}
+}

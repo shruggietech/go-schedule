@@ -106,6 +106,12 @@ func (e *Engine) Ready() <-chan struct{} { return e.ready }
 func (e *Engine) Start(ctx context.Context) error {
 	e.runCtx = ctx
 	e.recompute(e.clk.Now())
+	if recovered, err := e.store.RecoverCompletionDeliveries(); err != nil {
+		e.log.Error("engine: recover completion deliveries", "err", err)
+	} else if recovered > 0 {
+		e.log.Warn("engine: recovered interrupted completion deliveries", "count", recovered)
+	}
+	e.drainCompletionDeliveries()
 	e.runStartup(e.clk.Now())
 	e.runCatchup(e.clk.Now())
 	e.readyOnce.Do(func() { close(e.ready) })
@@ -289,31 +295,102 @@ func (e *Engine) completeOneOff(taskID string) {
 }
 
 // launch runs a task through the worker pool and records the result.
-func (e *Engine) launch(task domain.Task, scheduledFor time.Time, trigger domain.RunTrigger) {
+func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatchOrigin) {
 	e.runWG.Add(1)
 	go func() {
 		defer e.runWG.Done()
 		e.sem <- struct{}{}
 		defer func() { <-e.sem }()
 
-		run := e.runner.Run(e.runCtx, task, scheduledFor, trigger)
-		e.recordRun(run)
+		run := e.runner.Run(e.runCtx, task, scheduledFor, origin.trigger)
+		run.Trigger = origin.trigger
+		run.SourceTaskID = origin.sourceTaskID
+		run.SourceRunID = origin.sourceRunID
+		e.recordRun(run, origin.deliveryID)
 		e.finish(task)
 	}()
 }
 
 // recordRun persists a run, raises a failure alert when needed, and notifies
 // the onRun callback.
-func (e *Engine) recordRun(run domain.Run) {
-	if err := e.store.CreateRun(&run); err != nil {
+func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
+	if err := e.store.RecordRunAndCreateDeliveries(&run, incomingDeliveryID); err != nil {
 		e.log.Error("engine: record run", "task", run.TaskID, "err", err)
+		return
 	}
+	e.log.Info("engine: recorded run", "task", run.TaskID, "run", run.ID, "trigger", run.Trigger,
+		"source_task", run.SourceTaskID, "source_run", run.SourceRunID, "delivery", incomingDeliveryID)
 	if run.Outcome == domain.OutcomeFailure {
 		e.raiseAlert(run.TaskID, domain.SeverityError, domain.AlertRunFailed, "task run failed")
 	}
 	if e.onRun != nil {
 		e.onRun(run)
 	}
+	if e.runCtx.Err() == nil {
+		e.drainCompletionDeliveries()
+	}
+}
+
+// drainCompletionDeliveries claims durable pending work in bounded batches and
+// dispatches each target through the same eligibility and overlap machinery as
+// every other run origin. It is event-driven by startup and committed runs, so
+// completion chaining adds no polling loop or long-lived goroutine.
+func (e *Engine) drainCompletionDeliveries() {
+	for {
+		if e.runCtx.Err() != nil {
+			return
+		}
+		deliveries, err := e.store.ClaimCompletionDeliveries(100)
+		if err != nil {
+			e.log.Error("engine: claim completion deliveries", "err", err)
+			return
+		}
+		for _, delivery := range deliveries {
+			if e.runCtx.Err() != nil {
+				return
+			}
+			if _, err := e.store.GetCompletionChain(delivery.ChainID); err != nil {
+				e.resolveCompletionDelivery(delivery.ID, "completion chain no longer exists")
+				continue
+			}
+			task, err := e.store.GetTask(delivery.TargetTaskID)
+			if err != nil {
+				e.resolveCompletionDelivery(delivery.ID, "target task no longer exists")
+				continue
+			}
+			if !task.Enabled || task.State != domain.TaskActive {
+				e.resolveCompletionDelivery(delivery.ID, "target task is disabled or inactive")
+				continue
+			}
+			if enabled, err := e.store.GroupChainEnabled(task.GroupID); err != nil {
+				e.resolveCompletionDelivery(delivery.ID, "target group eligibility could not be read")
+				continue
+			} else if !enabled {
+				e.resolveCompletionDelivery(delivery.ID, "target group chain is disabled")
+				continue
+			}
+			e.log.Info("engine: dispatch completion delivery", "delivery", delivery.ID, "chain", delivery.ChainID,
+				"source_task", delivery.SourceTaskID, "source_run", delivery.SourceRunID, "target_task", delivery.TargetTaskID,
+				"attempt", delivery.Attempts)
+			e.dispatchWithOrigin(task, e.clk.Now(), dispatchOrigin{
+				trigger:      domain.TriggerCompletion,
+				sourceTaskID: delivery.SourceTaskID,
+				sourceRunID:  delivery.SourceRunID,
+				deliveryID:   delivery.ID,
+			})
+		}
+		if len(deliveries) < 100 {
+			return
+		}
+	}
+}
+
+func (e *Engine) resolveCompletionDelivery(id, reason string) {
+	if err := e.store.ResolveCompletionDelivery(id, reason); err != nil {
+		e.log.Error("engine: resolve completion delivery", "delivery", id, "reason", reason, "err", err)
+		return
+	}
+	e.log.Warn("engine: completion delivery resolved without execution", "delivery", id, "reason", reason)
 }
 
 // finish marks a task no longer running and dispatches any queued pending run.
@@ -328,7 +405,7 @@ func (e *Engine) finish(task domain.Task) {
 		e.mu.Lock()
 		e.running[task.ID] = true
 		e.mu.Unlock()
-		e.launch(task, pending.scheduledFor, pending.trigger)
+		e.launch(task, pending.scheduledFor, pending.origin)
 	}
 }
 

@@ -14,6 +14,7 @@
 set -eu
 
 THRESHOLD="${1:-80}"
+GO="${GO:-go}"
 CORE="engine schedule timezone store catchup logbus"
 PROFILE="${COVERAGE_PROFILE:-cover.out}"
 
@@ -27,7 +28,7 @@ COVERPKG="./internal/engine,./internal/schedule,./internal/timezone,./internal/s
 # into the merged profile, inflating the denominator and failing the gate for
 # code that no longer exists.
 test_output=$(mktemp)
-if go test -count=1 -coverpkg="$COVERPKG" ./... -coverprofile="$PROFILE" \
+if "$GO" test -count=1 -coverpkg="$COVERPKG" ./... -coverprofile="$PROFILE" \
     >"$test_output" 2>&1; then
     rm -f "$test_output"
 else

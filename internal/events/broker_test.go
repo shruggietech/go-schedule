@@ -65,3 +65,19 @@ func TestBroker_SlowSubscriberDropsRatherThanBlocks(t *testing.T) {
 		t.Fatal("Publish blocked on a slow subscriber")
 	}
 }
+
+func TestBroker_PublishesCompletionChainMutations(t *testing.T) {
+	b := NewBroker()
+	ch, cancel := b.Subscribe()
+	defer cancel()
+	chain := domain.CompletionChain{ID: "c1", SourceTaskID: "a", TargetTaskID: "b", OnOutcome: domain.CompletionOnSuccess}
+	b.PublishChain(VerbCreated, chain.ID, &chain)
+	select {
+	case event := <-ch:
+		if event.Kind != KindChain || event.Chain == nil || event.Chain.Verb != VerbCreated || event.Chain.Chain == nil || event.Chain.Chain.ID != chain.ID {
+			t.Fatalf("unexpected chain event: %+v", event)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("chain event was not delivered")
+	}
+}

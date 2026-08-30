@@ -36,6 +36,9 @@ type Backend interface {
 	SetTaskEnabled(ctx context.Context, id string, enabled bool) error
 	RunNow(ctx context.Context, id string) error
 	Preview(ctx context.Context, req server.PreviewRequest) (server.PreviewResponse, error)
+	CreateChain(ctx context.Context, req server.ChainCreateRequest) (domain.CompletionChain, error)
+	UpdateChain(ctx context.Context, id string, req server.ChainUpdateRequest) (domain.CompletionChain, error)
+	DeleteChain(ctx context.Context, id string) error
 
 	CreateGroup(ctx context.Context, req server.GroupCreateRequest) (domain.Group, error)
 	SetGroupEnabled(ctx context.Context, id string, enabled bool) error
@@ -88,6 +91,7 @@ func (a *App) buildRoot() fyne.CanvasObject {
 	a.tabs = container.NewAppTabs(
 		container.NewTabItem("Tasks", a.buildTasksTab()),
 		container.NewTabItem("Groups", a.buildGroupsTab()),
+		container.NewTabItem("Chains", a.buildChainsTab()),
 		container.NewTabItem("Schedule", a.buildScheduleTab()),
 	)
 	a.logsTab = container.NewTabItem(activityTabLabel(0), a.buildLogsTab())

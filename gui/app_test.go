@@ -19,6 +19,7 @@ import (
 type fakeBackend struct {
 	tasks      []domain.Task
 	groups     []domain.Group
+	chains     []domain.CompletionChain
 	alerts     []domain.Alert
 	logs       []domain.LogRecord
 	logPath    string
@@ -69,6 +70,9 @@ func waitFor(t *testing.T, cond func() bool) {
 
 func (f *fakeBackend) ListTasks(context.Context, string, string) ([]domain.Task, error) {
 	return f.tasks, nil
+}
+func (f *fakeBackend) ListChains(context.Context) ([]domain.CompletionChain, error) {
+	return f.chains, nil
 }
 func (f *fakeBackend) ListGroups(context.Context) ([]domain.Group, error) { return f.groups, nil }
 func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
@@ -123,6 +127,13 @@ func (f *fakeBackend) UpdateTask(_ context.Context, id string, req server.TaskUp
 func (f *fakeBackend) DeleteTask(context.Context, string) error           { return nil }
 func (f *fakeBackend) SetTaskEnabled(context.Context, string, bool) error { return nil }
 func (f *fakeBackend) RunNow(context.Context, string) error               { return nil }
+func (f *fakeBackend) CreateChain(context.Context, server.ChainCreateRequest) (domain.CompletionChain, error) {
+	return domain.CompletionChain{}, nil
+}
+func (f *fakeBackend) UpdateChain(context.Context, string, server.ChainUpdateRequest) (domain.CompletionChain, error) {
+	return domain.CompletionChain{}, nil
+}
+func (f *fakeBackend) DeleteChain(context.Context, string) error { return nil }
 func (f *fakeBackend) Preview(_ context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
 	f.mu.Lock()
 	f.previews++
@@ -156,7 +167,7 @@ func TestUI_BuildsAllTabs(t *testing.T) {
 		alerts: []domain.Alert{{ID: "a1", Kind: domain.AlertRunFailed, Message: "boom"}},
 	})
 
-	want := []string{"Tasks", "Groups", "Schedule", "Activity", "Info"}
+	want := []string{"Tasks", "Groups", "Chains", "Schedule", "Activity", "Info"}
 	if len(ui.tabs.Items) != len(want) {
 		t.Fatalf("want %d tabs, got %d", len(want), len(ui.tabs.Items))
 	}
@@ -230,10 +241,10 @@ func TestActivityTabLabel(t *testing.T) {
 
 func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
-	if len(ui.tabs.Items) != 5 || ui.tabs.Items[3] != ui.logsTab || ui.tabs.Items[4].Text != "Info" {
-		t.Fatalf("Activity tab is not stable at index 3: %+v", ui.tabs.Items)
+	if len(ui.tabs.Items) != 6 || ui.tabs.Items[4] != ui.logsTab || ui.tabs.Items[5].Text != "Info" {
+		t.Fatalf("Activity tab is not stable at index 4: %+v", ui.tabs.Items)
 	}
-	infoTab := ui.tabs.Items[4]
+	infoTab := ui.tabs.Items[5]
 	// Drive the badge synchronously: the production OnChange marshals through
 	// fyne.Do on another goroutine, which would race with the assertion below.
 	ui.model.OnChange = nil
@@ -242,7 +253,7 @@ func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	if ui.logsTab.Text != "Activity (1)" {
 		t.Fatalf("activity badge = %q, want Activity (1)", ui.logsTab.Text)
 	}
-	if ui.tabs.Items[3] != ui.logsTab || ui.tabs.Items[4] != infoTab {
+	if ui.tabs.Items[4] != ui.logsTab || ui.tabs.Items[5] != infoTab {
 		t.Fatal("Activity badge update moved Activity or Info")
 	}
 }

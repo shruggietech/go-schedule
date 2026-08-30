@@ -4,6 +4,7 @@
 set -eu
 
 ROOT=${1:-.}
+GO=${GO:-go}
 
 if [ ! -d "$ROOT/.github/workflows" ]; then
   printf 'automation-check: workflow directory not found: %s\n' \
@@ -278,7 +279,7 @@ fi
 BRAND_CHECK="$ROOT/scripts/brand-check"
 if [ ! -d "$BRAND_CHECK" ]; then
   report "$BRAND_CHECK: brand integrity command not found"
-elif ! brand_output=$(cd "$ROOT" && go run ./scripts/brand-check 2>&1); then
+elif ! brand_output=$(cd "$ROOT" && "$GO" run ./scripts/brand-check 2>&1); then
   report "$BRAND_CHECK: brand integrity contract failed"
   report "$brand_output"
 fi

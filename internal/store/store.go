@@ -210,6 +210,45 @@ ALTER TABLE schedules ADD COLUMN elapsed_epoch TEXT;
 ALTER TABLE tasks ADD COLUMN stdin TEXT NOT NULL DEFAULT '';
 `,
 	},
+	{
+		// v9: add task-completion chains as a new, durable model. These tables
+		// deliberately do not revive the removed v2 trigger/dedup schema. Nullable
+		// run correlation leaves every existing history row unchanged.
+		version: 9,
+		stmts: `
+ALTER TABLE runs ADD COLUMN source_task_id TEXT;
+ALTER TABLE runs ADD COLUMN source_run_id TEXT;
+
+CREATE TABLE completion_chains (
+	id             TEXT PRIMARY KEY,
+	source_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	on_outcome     TEXT NOT NULL,
+	created_at     TEXT NOT NULL,
+	updated_at     TEXT NOT NULL,
+	UNIQUE(source_task_id, target_task_id, on_outcome)
+);
+CREATE INDEX idx_completion_chains_source ON completion_chains(source_task_id, on_outcome);
+CREATE INDEX idx_completion_chains_target ON completion_chains(target_task_id);
+
+CREATE TABLE completion_deliveries (
+	id             TEXT PRIMARY KEY,
+	chain_id       TEXT NOT NULL,
+	source_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	target_task_id TEXT NOT NULL,
+	source_run_id  TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+	state          TEXT NOT NULL,
+	attempts       INTEGER NOT NULL DEFAULT 0,
+	created_at     TEXT NOT NULL,
+	claimed_at     TEXT,
+	completed_at   TEXT,
+	target_run_id  TEXT REFERENCES runs(id) ON DELETE SET NULL,
+	resolution     TEXT NOT NULL DEFAULT '',
+	UNIQUE(chain_id, source_run_id)
+);
+CREATE INDEX idx_completion_deliveries_state ON completion_deliveries(state, created_at);
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -53,6 +54,47 @@ func BenchmarkDispatch(b *testing.B) {
 		<-done
 	}
 	b.StopTimer()
+}
+
+// BenchmarkCompletionFanOut100 measures the full durable decision path from one
+// terminal source through 100 claimed completion deliveries and recorded target
+// runs. Execution remains a no-op; this isolates store and scheduler overhead.
+func BenchmarkCompletionFanOut100(b *testing.B) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer st.Close()
+	makeTask := func(name string) domain.Task {
+		sch := domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: "FREQ=HOURLY;INTERVAL=1"}
+		if err := st.CreateSchedule(&sch); err != nil {
+			b.Fatal(err)
+		}
+		task := domain.Task{Name: name, Command: "x", Enabled: true, Timezone: "UTC", ScheduleID: sch.ID, OverlapPolicy: domain.OverlapAllowConcurrent, CatchupPolicy: domain.CatchupNone, State: domain.TaskActive}
+		if err := st.CreateTask(&task); err != nil {
+			b.Fatal(err)
+		}
+		return task
+	}
+	source := makeTask("source")
+	for i := 0; i < 100; i++ {
+		target := makeTask(fmt.Sprintf("target-%03d", i))
+		chain := domain.CompletionChain{SourceTaskID: source.ID, TargetTaskID: target.ID, OnOutcome: domain.CompletionOnSuccess}
+		if err := st.CreateCompletionChain(&chain); err != nil {
+			b.Fatal(err)
+		}
+	}
+	done := make(chan struct{}, 128)
+	eng := New(st, clock.NewReal(), noopRunner{}, testLogger(), 100)
+	eng.runCtx = context.Background()
+	eng.SetOnRun(func(domain.Run) { done <- struct{}{} })
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		eng.dispatch(source, time.Now().UTC(), domain.TriggerManual)
+		for completed := 0; completed < 101; completed++ {
+			<-done
+		}
+	}
 }
 
 // BenchmarkNextRun measures the per-task next-run computation, the hot path when

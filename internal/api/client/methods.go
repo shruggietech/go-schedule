@@ -68,6 +68,41 @@ func (c *Client) RunNow(ctx context.Context, id string) error {
 	return c.do(ctx, http.MethodPost, "/v1/tasks/"+id+"/run-now", nil, nil)
 }
 
+// CreateChain creates a task-completion relationship.
+func (c *Client) CreateChain(ctx context.Context, req server.ChainCreateRequest) (domain.CompletionChain, error) {
+	var out domain.CompletionChain
+	err := c.do(ctx, http.MethodPost, "/v1/chains", req, &out)
+	return out, err
+}
+
+// ListChains returns all task-completion relationships.
+func (c *Client) ListChains(ctx context.Context) ([]domain.CompletionChain, error) {
+	var out struct {
+		Chains []domain.CompletionChain `json:"chains"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/chains", nil, &out)
+	return out.Chains, err
+}
+
+// GetChain returns one task-completion relationship.
+func (c *Client) GetChain(ctx context.Context, id string) (domain.CompletionChain, error) {
+	var out domain.CompletionChain
+	err := c.do(ctx, http.MethodGet, "/v1/chains/"+id, nil, &out)
+	return out, err
+}
+
+// UpdateChain changes one or more fields of a task-completion relationship.
+func (c *Client) UpdateChain(ctx context.Context, id string, req server.ChainUpdateRequest) (domain.CompletionChain, error) {
+	var out domain.CompletionChain
+	err := c.do(ctx, http.MethodPatch, "/v1/chains/"+id, req, &out)
+	return out, err
+}
+
+// DeleteChain removes a task-completion relationship.
+func (c *Client) DeleteChain(ctx context.Context, id string) error {
+	return c.do(ctx, http.MethodDelete, "/v1/chains/"+id, nil, nil)
+}
+
 // Preview returns the RRULE, summary, and next runs for a schedule expression.
 func (c *Client) Preview(ctx context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
 	var out server.PreviewResponse
