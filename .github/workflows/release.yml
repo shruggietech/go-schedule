@@ -32,6 +32,11 @@ jobs:
             echo "::error file=README.md::Expected exactly one release badge line; found ${RELEASE_BADGE_COUNT}."
             exit 1
           fi
+          HEALTH_LINE_COUNT=$(grep -Fc -- 'daemon ok (version ' README.md || true)
+          if [ "$HEALTH_LINE_COUNT" -ne 1 ]; then
+            echo "::error file=README.md::Expected exactly one health version line; found ${HEALTH_LINE_COUNT}."
+            exit 1
+          fi
           grep -Fqx -- "$BADGE" README.md || {
             echo "::error file=README.md::Release badge does not match ${VERSION}. Update it in the release-preparation pull request."
             exit 1
