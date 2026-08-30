@@ -101,27 +101,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
-          generate_release_notes: true
-          body: |
-            Cross-platform **go-schedule**.
-
-            **Windows — download `go-schedule_<ver>_windows_amd64.msi`.** A formal system
-            installer: it installs to Program Files, registers the background service
-            (auto-start), and adds a Start-Menu shortcut. No extracting, no running an exe
-            from Downloads. Uninstall via Apps & features.
-
-            **macOS desktop — download `go-schedule-desktop_<ver>_darwin_<arch>`** (GUI +
-            daemon + CLI). **Linux/macOS servers / headless — download
-            `go-schedule_<ver>_<os>_<arch>`** (daemon + CLI only). Register it to start on
-            boot:
-
-            ```
-            sudo ./gosched service install   # admin/root required
-            sudo ./gosched service start
-            ```
-
-            Verify downloads against `SHA256SUMS.txt`. See the README and the Windows install
-            guide for details.
+          generate_release_notes: false
+          body_path: .github/release-notes/${{ github.ref_name }}.md
           files: |
             dist/*.tar.gz
             dist/*.msi

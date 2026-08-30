@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-30
+
 ### Added
 
 - **Task-completion chains now run end to end (Closes #72, #73, #74, #75,
@@ -278,6 +280,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The canonical lint gate again supports the repository's Go 1.25 target.**
+  The pinned golangci-lint runner moved from v2.1.6, which was built with Go
+  1.24 and refused to analyze the module, to v2.12.0, the latest upstream
+  release whose declared build baseline remains Go 1.25. The verifier and
+  current contributor instructions now use the same compatible pin.
 - **S029 maintenance checks now reject permissive near-misses.** Lifecycle
   validation requires recognizable commit, release, pull-request, or review-
   branch evidence instead of accepting the template placeholder. Dependabot
@@ -306,6 +313,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   decision was required.
 
 ### Decisions
+
+- **2026-08-30 - Keep public release notes concise, reviewed, and tied to the
+  exact tag.** Each release reads four to six highlights from
+  `.github/release-notes/<tag>.md` and links to the tagged changelog for the
+  complete record. GitHub-generated notes and long installation copy are
+  disabled because they duplicate the changelog and obscure the release's main
+  outcomes. The tag-derived path also prevents a later release from silently
+  reusing stale copy.
 
 - **2026-08-30 - Use durable source-run identities and an honest at-least-once
   replay boundary for completion chains.** A run record and its outgoing
@@ -1383,7 +1398,8 @@ that a pre-rebrand `goscheduler` data directory is no longer picked up — see
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/shruggietech/go-schedule/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/shruggietech/go-schedule/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/shruggietech/go-schedule/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/shruggietech/go-schedule/compare/v0.5.3...v0.6.0

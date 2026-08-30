@@ -49,5 +49,6 @@ Run `sh scripts/spec-lifecycle-check.sh .` locally. The canonical automation gat
 | 029-v09-closure | Implemented | PR [#65](https://github.com/shruggietech/go-schedule/pull/65) |
 | 030-ipc-admin-group | Implemented | PR [#68](https://github.com/shruggietech/go-schedule/pull/68) |
 | 031-reboot-startup-trigger | Implemented | PR [#69](https://github.com/shruggietech/go-schedule/pull/69) |
-| 032-brand-system-integration | Implemented | review branch `codex/032-brand-system-integration`; local verification completed 2026-08-30 |
-| 033-task-completion-chains | Implemented | review branch `codex/033-task-completion-chains`; local verification completed 2026-08-30 |
+| 032-brand-system-integration | Implemented | PR [#71](https://github.com/shruggietech/go-schedule/pull/71) |
+| 033-task-completion-chains | Implemented | PR [#78](https://github.com/shruggietech/go-schedule/pull/78) |
+| 034-v090-release-cut | Implemented | review branch `codex/034-v090-release-cut`; local verification completed 2026-08-30 |

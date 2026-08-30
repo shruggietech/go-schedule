@@ -39,7 +39,7 @@ run_gate() {
         GOTOOLCHAIN="go$module_go"
         export GOTOOLCHAIN
       fi
-      CGO_ENABLED=0 "$GO" run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+      CGO_ENABLED=0 "$GO" run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
       ;;
     race)
       # Enumerate with cgo off so excluded desktop packages cannot make package

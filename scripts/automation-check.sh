@@ -252,6 +252,7 @@ elif ! lifecycle_output=$(sh "$LIFECYCLE" "$ROOT" 2>&1); then
 fi
 
 RELEASE="$ROOT/.github/workflows/release.yml"
+RELEASE_NOTES_DIR="$ROOT/.github/release-notes"
 require_release_text() {
   text=$1
   description=$2
@@ -266,14 +267,56 @@ else
   require_release_text '-icon=brand/platform/windows/go-schedule.ico' \
     'canonical Windows ICO'
   require_release_text \
-    'cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"' \
+    "cp brand/platform/macos/go-schedule.icns \"\$app/Contents/Resources/icon.icns\"" \
     'canonical macOS ICNS'
   require_release_text \
-    'cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"' \
+    "cp brand/platform/linux/go-schedule.desktop \"\$stage/share/applications/\"" \
     'canonical Linux desktop entry'
   require_release_text \
-    'cp -R brand/platform/linux/hicolor "$stage/share/icons/"' \
+    "cp -R brand/platform/linux/hicolor \"\$stage/share/icons/\"" \
     'canonical Linux hicolor tree'
+  if grep -Fq -- 'generate_release_notes: true' "$RELEASE"; then
+    report "$RELEASE: generated release notes must remain disabled"
+  fi
+  require_release_text 'generate_release_notes: false' \
+    'disabled generated release notes contract'
+  require_release_text \
+    "body_path: .github/release-notes/\${{ github.ref_name }}.md" \
+    'dynamic tag-specific release-note body path'
+fi
+
+if [ ! -d "$RELEASE_NOTES_DIR" ]; then
+  report "$RELEASE_NOTES_DIR: release-note directory not found"
+else
+  found_release_notes=false
+  for notes in "$RELEASE_NOTES_DIR"/v[0-9]*.[0-9]*.[0-9]*.md; do
+    [ -f "$notes" ] || continue
+    found_release_notes=true
+    tag=$(basename "$notes" .md)
+
+    if [ "$(grep -c '^## Highlights$' "$notes" || true)" -ne 1 ]; then
+      report "$notes: expected exactly one Highlights heading"
+    fi
+
+    highlight_count=$(grep -c '^- ' "$notes" || true)
+    if [ "$highlight_count" -lt 4 ] || [ "$highlight_count" -gt 6 ]; then
+      report "$notes: expected four to six highlight bullets"
+    fi
+
+    if [ "$(grep -c '^## ' "$notes" || true)" -ne 1 ]; then
+      report "$notes: expected highlights-only release copy"
+    fi
+
+    changelog_prefix="https://github.com/shruggietech/go-schedule/blob/$tag/CHANGELOG.md#"
+    if [ "$(grep -Fc '[full changelog](' "$notes" || true)" -ne 1 ] ||
+       [ "$(grep -Fc "$changelog_prefix" "$notes" || true)" -ne 1 ]; then
+      report "$notes: expected exactly one tagged full changelog link"
+    fi
+  done
+
+  if [ "$found_release_notes" = false ]; then
+    report "$RELEASE_NOTES_DIR: no tag-specific release notes found"
+  fi
 fi
 
 BRAND_CHECK="$ROOT/scripts/brand-check"
@@ -304,4 +347,5 @@ if [ -s "$FAILURES" ]; then
   exit 1
 fi
 
-printf 'automation-check: OK - actions, CodeQL, Dependabot, brand, lifecycle, and 8 gates\n'
+printf '%s\n' \
+  'automation-check: OK - actions, CodeQL, Dependabot, release notes, brand, lifecycle, and 8 gates'

@@ -101,7 +101,7 @@ Two local-environment traps, neither of which indicates a problem with the repo:
   command:
 
   ```bash
-  GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+  GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
   ```
 
   Do not "fix" this by editing `.golangci.yml` or `go.mod` — CI installs the Go
@@ -135,5 +135,5 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/033-task-completion-chains/plan.md
+at specs/034-v090-release-cut/plan.md
 <!-- SPECKIT END -->

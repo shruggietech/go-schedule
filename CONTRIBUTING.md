@@ -101,7 +101,7 @@ against the older version. The canonical driver derives `GOTOOLCHAIN` from
 install or force the matching toolchain for that one command:
 
 ```bash
-GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
 ```
 
 Do not "fix" this by editing `.golangci.yml` or `go.mod`. CI installs the Go
