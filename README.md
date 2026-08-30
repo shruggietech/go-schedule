@@ -182,6 +182,21 @@ gosched task run-now 6f1c…
 gosched runs --task 6f1c…
 ```
 
+Connect independent tasks into a completion workflow without removing either
+task's normal schedule:
+
+```sh
+gosched chain create --source 6f1c… --target a82d… --on success
+gosched chain list
+```
+
+Chains can match `success`, `failure`, or `any` terminal result. The target uses
+its existing enabled state, group eligibility, worker limit, and overlap policy.
+Completion runs identify their source task and source run in history. Pending
+work survives daemon restart; an interrupted delivery may run again if the
+daemon stops after launching the command but before recording its result, so
+commands used in durable chains should be safe to retry.
+
 Then open the desktop app, if you installed it:
 
 ```sh
@@ -213,6 +228,7 @@ flowchart LR
     D --> E["scheduling engine<br/>injected clock · RRULE · IANA timezones"]
     D --> S[("SQLite store<br/>forward-only migrations")]
     D --> X["executor<br/>windowless task spawn"]
+	E --> C["completion delivery<br/>durable at-least-once chaining"]
     SVC["systemd · launchd · Windows Service"] -->|starts on boot| D
 ```
 

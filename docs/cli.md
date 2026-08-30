@@ -428,8 +428,28 @@ gosched runs --task 6f1c… --limit 20
 | `--task` | Filter to one task ID. | all tasks |
 | `--limit` | Maximum rows. | `50` |
 
-The `EXIT` column is the process exit code, or `-` where there isn't one — a run
+The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for
+a chained execution; they are `-` for schedule, startup, catch-up, and manual
+runs. The `EXIT` column is the process exit code, or `-` where there isn't one — a run
 that never started has no exit code, and printing `0` for it would be a lie.
+
+## `chain`
+
+Completion chains run a target task after a source task reaches a terminal
+result. They supplement both tasks' normal schedules.
+
+```sh
+gosched chain create --source <task-id> --target <task-id> --on success
+gosched chain list
+gosched chain show <chain-id>
+gosched chain update <chain-id> --on any
+gosched chain rm <chain-id>
+```
+
+`--on` accepts `success`, `failure`, or `any`. A source and target must be
+different tasks, duplicate relationships are refused, and the complete graph
+must remain acyclic. Add `--json` to create, list, show, or update for the API
+representation, including task names and stable IDs.
 
 ## `logs`
 

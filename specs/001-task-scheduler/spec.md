@@ -108,25 +108,24 @@ tasks can be browsed, filtered, and enabled/disabled by group in both CLI and GU
 
 ### User Story 4 - Event-triggered tasks (Priority: P3)
 
-A user configures a task to run in response to another task's completion rather than on a
-clock schedule. The completion event is delivered at-least-once, and duplicate deliveries
-within a configured dedup window/key are de-duplicated so the task does not run twice for the
-same logical event.
+A user connects a source task to a target task so the target can run in response to the
+source's completion in addition to either task's normal clock schedule. The completion is
+delivered durably at least once, and a unique delivery identity prevents a completed
+source-run/chain decision from being scheduled again.
 
 **Why this priority**: Event-driven (task-completion) chaining extends the product beyond
 time-based cron parity and is valuable, but it depends on the core engine and task model
 being in place, so it follows the time-based capabilities.
 
-**Independent Test**: Configure Task B to trigger on completion of Task A, run Task A, and
-confirm Task B runs once; deliver a duplicate completion event within the dedup window and
-confirm Task B does not run a second time.
+**Independent Test**: Connect Task A to Task B, run Task A, and confirm one correlated Task B
+run; restart after completion and confirm the completed delivery does not run again.
 
 **Acceptance Scenarios**:
 
 1. **Given** Task B configured to trigger on Task A completion, **When** Task A finishes,
    **Then** Task B starts.
-2. **Given** an event-triggered task with a dedup key/window, **When** the same completion
-   event is delivered twice within the window, **Then** the task executes only once.
+2. **Given** one chain and one immutable source run, **When** delivery creation or completed
+   state is encountered again, **Then** the same source-run/chain decision is not scheduled again.
 3. **Given** an event-triggered task, **When** a completion event occurs, **Then** delivery
    is guaranteed at least once even if the scheduler was briefly unavailable when the event
    occurred.
@@ -185,8 +184,8 @@ change the per-task catch-up setting and confirm the alternate behavior.
   and surfaced as an alert; scheduling continues.
 - **Group disabled while a task within it is running**: the in-flight run completes; no new
   runs start until re-enabled.
-- **Event trigger storms**: rapid duplicate events collapse to a single execution within the
-  dedup window.
+- **Completion fan-out and convergence**: each matching source-run/chain pair creates one
+  durable delivery; each target still applies its configured overlap policy.
 
 ## Requirements *(mandatory)*
 
@@ -233,9 +232,9 @@ change the per-task catch-up setting and confirm the alternate behavior.
   to be configured per task as an advanced option.
 - **FR-013**: System MUST log a warning when an overlap/queued-run condition occurs and surface
   it as an alert in the GUI.
-- **FR-014**: System MUST guarantee at-least-once delivery of task-completion events, with a
-  configurable deduplication key and/or window so a single logical completion event causes a
-  single execution of the triggered task.
+- **FR-014**: System MUST durably deliver task-completion work at least once, identify each
+  delivery by chain and immutable source run, never replay completed or resolved deliveries,
+  and document that an interrupted claim may repeat after an external command has launched.
 - **FR-015**: System MUST record each run's outcome (success, failure, skipped, caught-up) with
   enough detail (timing, captured output) to diagnose problems.
 
@@ -286,8 +285,8 @@ change the per-task catch-up setting and confirm the alternate behavior.
 - **Schedule**: The timing definition for a task — one-off (a single date/time), interval-based,
   calendar-relative, ordinal-weekday, or event-triggered — expressible in human-readable terms
   and convertible to concrete future run times in UTC.
-- **Trigger / Event**: The condition that initiates an event-driven task — in v1, another
-  task's completion — including the source task, dedup key, and dedup window.
+- **Completion chain / delivery**: An acyclic source-task, target-task, and terminal-outcome
+  relationship, plus the durable per-source-run processing record that initiates the target.
 - **Run (Execution Record)**: A single attempted execution of a task, with start/end times,
   outcome (success/failure/skipped/caught-up), and captured output/diagnostics.
 - **Group**: A named container for tasks and other groups, forming a nested hierarchy, with an
@@ -312,9 +311,9 @@ change the per-task catch-up setting and confirm the alternate behavior.
   runs.
 - **SC-005**: When a task is still running at its next trigger time, exactly one run is queued,
   a warning is logged, and an alert is visible in the GUI within seconds of the condition.
-- **SC-006**: For event-triggered tasks, a single logical event results in exactly one
-  execution even when the trigger is delivered multiple times within the dedup window
-  (at-least-once delivery, exactly-once effect within the window).
+- **SC-006**: For task-completion chains, each chain and immutable source run creates at most
+  one durable scheduling decision, completed decisions never replay, and interrupted claims
+  follow the documented at-least-once recovery contract.
 - **SC-007**: The scheduler resumes automatically after a reboot on all three supported
   platforms with no manual steps.
 - **SC-008**: A new user can locate, schedule, group, and verify a task entirely through the

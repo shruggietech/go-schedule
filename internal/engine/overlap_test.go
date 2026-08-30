@@ -188,3 +188,91 @@ func TestOverlap_AllowConcurrent(t *testing.T) {
 		t.Fatalf("want 2 concurrent successes, got %v", out)
 	}
 }
+
+func claimedCompletion(t *testing.T, st *store.Store, source, target domain.Task, chainID, sourceRunID string) domain.CompletionDelivery {
+	t.Helper()
+	if chainID == "" {
+		chain := domain.CompletionChain{SourceTaskID: source.ID, TargetTaskID: target.ID, OnOutcome: domain.CompletionOnSuccess}
+		if err := st.CreateCompletionChain(&chain); err != nil {
+			t.Fatal(err)
+		}
+		chainID = chain.ID
+	}
+	run := domain.Run{ID: sourceRunID, TaskID: source.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+	if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := st.ClaimCompletionDeliveries(1)
+	if err != nil || len(claimed) != 1 || claimed[0].ChainID != chainID {
+		t.Fatalf("claimed=%+v err=%v", claimed, err)
+	}
+	return claimed[0]
+}
+
+func TestOverlap_CompletionQueuePreservesCorrelationAndResolvesExtra(t *testing.T) {
+	st, _ := store.Open(":memory:")
+	defer st.Close()
+	runner := &blockingRunner{started: make(chan struct{}, 2), release: make(chan struct{})}
+	e := newEngine(st, runner)
+	source := setupTask(t, st, domain.OverlapQueueOne)
+	target := setupTask(t, st, domain.OverlapQueueOne)
+	chain := domain.CompletionChain{SourceTaskID: source.ID, TargetTaskID: target.ID, OnOutcome: domain.CompletionOnSuccess}
+	if err := st.CreateCompletionChain(&chain); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	e.dispatch(target, now, domain.TriggerManual)
+	recv(t, runner.started, "running target")
+	first := claimedCompletion(t, st, source, target, chain.ID, "source-one")
+	e.dispatchWithOrigin(target, now, dispatchOrigin{trigger: domain.TriggerCompletion, sourceTaskID: source.ID, sourceRunID: first.SourceRunID, deliveryID: first.ID})
+	second := claimedCompletion(t, st, source, target, chain.ID, "source-two")
+	e.dispatchWithOrigin(target, now, dispatchOrigin{trigger: domain.TriggerCompletion, sourceTaskID: source.ID, sourceRunID: second.SourceRunID, deliveryID: second.ID})
+	runner.release <- struct{}{}
+	recv(t, runner.started, "queued completion target")
+	runner.release <- struct{}{}
+	waitFor(t, func() bool {
+		deliveries, _ := st.ListCompletionDeliveries()
+		states := map[string]domain.DeliveryState{}
+		for _, delivery := range deliveries {
+			states[delivery.SourceRunID] = delivery.State
+		}
+		return states["source-one"] == domain.DeliveryCompleted && states["source-two"] == domain.DeliveryResolved
+	}, "queued and collapsed completion delivery states")
+	runs, _ := st.ListRuns(target.ID, 0)
+	found := false
+	for _, run := range runs {
+		if run.Outcome == domain.OutcomeSuccess && run.Trigger == domain.TriggerCompletion && run.SourceRunID == "source-one" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("queued completion correlation missing from %+v", runs)
+	}
+}
+
+func TestOverlap_CompletionSkipClosesDeliveryWithoutDownstreamWork(t *testing.T) {
+	st, _ := store.Open(":memory:")
+	defer st.Close()
+	runner := &blockingRunner{started: make(chan struct{}, 1), release: make(chan struct{})}
+	e := newEngine(st, runner)
+	source := setupTask(t, st, domain.OverlapQueueOne)
+	target := setupTask(t, st, domain.OverlapSkip)
+	delivery := claimedCompletion(t, st, source, target, "", "source-skip")
+	now := time.Now().UTC()
+	e.dispatch(target, now, domain.TriggerManual)
+	recv(t, runner.started, "running skip target")
+	e.dispatchWithOrigin(target, now, dispatchOrigin{trigger: domain.TriggerCompletion, sourceTaskID: source.ID, sourceRunID: delivery.SourceRunID, deliveryID: delivery.ID})
+	deliveries, err := st.ListCompletionDeliveries()
+	if err != nil || len(deliveries) != 1 || deliveries[0].State != domain.DeliveryCompleted {
+		t.Fatalf("skipped delivery=%+v err=%v", deliveries, err)
+	}
+	runs, _ := st.ListRuns(target.ID, 0)
+	if len(runs) != 1 || runs[0].Outcome != domain.OutcomeSkipped || runs[0].SourceRunID != "source-skip" {
+		t.Fatalf("skipped correlated history=%+v", runs)
+	}
+	runner.release <- struct{}{}
+	waitFor(t, func() bool {
+		runs, _ := st.ListRuns(target.ID, 0)
+		return len(runs) == 2
+	}, "original target completion")
+}

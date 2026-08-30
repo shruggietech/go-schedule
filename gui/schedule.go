@@ -118,13 +118,16 @@ func (a *App) buildScheduleTab() fyne.CanvasObject {
 		}
 		load()
 	})
-	rangeSel.SetSelected("7 days")
+	// Initialize without firing OnChanged while the tab tree is still being
+	// constructed. The former SetSelected call launched an async refresh that
+	// could race Fyne's initial layout and intermittently crash its font shaper.
+	rangeSel.Selected = "7 days"
 
 	viewSel := widget.NewSelect([]string{"List", "Calendar"}, func(s string) {
 		st.setView(s)
 		render() // toggling never touches the window, so it is preserved
 	})
-	viewSel.SetSelected("List")
+	viewSel.Selected = "List"
 
 	// No manual Refresh: the view updates live from the event stream (FR-023).
 	toolbar := container.NewHBox(

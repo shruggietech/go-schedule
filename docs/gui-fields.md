@@ -223,6 +223,22 @@ and **Fall overlap** controls live in a collapsible **Advanced
 Settings** section that starts closed. They are shown with human-readable labels; the stored policy values (used by the
 CLI and API) are unchanged.
 
+## Completion chains
+
+The **Chains** view is separate from the task editor because a chain is a
+relationship between two existing tasks. **New** selects an **After task**, a
+**Run task**, and one plain-language condition:
+
+- **Only when the source succeeds**
+- **Only when the source fails**
+- **Whenever the source finishes**
+
+Task choices show both name and stable ID, so duplicate names stay
+distinguishable. The list uses current task names and updates live after create,
+edit, or delete. A chain adds another way to start the target; its timed or
+startup schedule remains unchanged. Disabled or inactive targets are resolved
+without execution rather than accumulating hidden work.
+
 ### Overlap
 
 What to do when a task is still running at the moment its next run would start:

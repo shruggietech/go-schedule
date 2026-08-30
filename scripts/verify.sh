@@ -58,7 +58,10 @@ run_gate() {
       "$GO" test ./gui/...
       ;;
     coverage)
-      coverage_profile=$(mktemp)
+      # Keep the profile relative to the repository so a Windows Go toolchain
+      # invoked from WSL Bash receives a path it can open. A WSL /tmp path is not
+      # meaningful to a native Windows process.
+      coverage_profile=$(mktemp ./goschedule-cover.XXXXXX)
       if CGO_ENABLED=0 COVERAGE_PROFILE="$coverage_profile" \
         "$SH" scripts/coverage-gate.sh; then
         rm -f "$coverage_profile"

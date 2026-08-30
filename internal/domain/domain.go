@@ -148,11 +148,31 @@ const (
 type RunTrigger string
 
 const (
-	TriggerSchedule RunTrigger = "schedule"
-	TriggerEvent    RunTrigger = "event"
-	TriggerStartup  RunTrigger = "startup"
-	TriggerCatchup  RunTrigger = "catchup"
-	TriggerManual   RunTrigger = "manual"
+	TriggerSchedule   RunTrigger = "schedule"
+	TriggerEvent      RunTrigger = "event"
+	TriggerStartup    RunTrigger = "startup"
+	TriggerCatchup    RunTrigger = "catchup"
+	TriggerManual     RunTrigger = "manual"
+	TriggerCompletion RunTrigger = "completion"
+)
+
+// CompletionOutcome selects which terminal source outcomes activate a chain.
+type CompletionOutcome string
+
+const (
+	CompletionOnSuccess CompletionOutcome = "success"
+	CompletionOnFailure CompletionOutcome = "failure"
+	CompletionOnAny     CompletionOutcome = "any"
+)
+
+// DeliveryState is the durable lifecycle of one completion delivery.
+type DeliveryState string
+
+const (
+	DeliveryPending   DeliveryState = "pending"
+	DeliveryClaimed   DeliveryState = "claimed"
+	DeliveryCompleted DeliveryState = "completed"
+	DeliveryResolved  DeliveryState = "resolved"
 )
 
 // AlertSeverity and AlertKind classify surfaced conditions.
@@ -270,6 +290,38 @@ type Run struct {
 	ExitCode     *int       `json:"exit_code,omitempty"`
 	Output       string     `json:"output,omitempty"`
 	Trigger      RunTrigger `json:"trigger"`
+	SourceTaskID string     `json:"source_task_id,omitempty"`
+	SourceRunID  string     `json:"source_run_id,omitempty"`
+}
+
+// CompletionChain connects a source task's terminal outcome to a target task.
+// It supplements both tasks' normal schedules.
+type CompletionChain struct {
+	ID             string            `json:"id"`
+	SourceTaskID   string            `json:"source_task_id"`
+	SourceTaskName string            `json:"source_task_name,omitempty"`
+	TargetTaskID   string            `json:"target_task_id"`
+	TargetTaskName string            `json:"target_task_name,omitempty"`
+	OnOutcome      CompletionOutcome `json:"on_outcome"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
+}
+
+// CompletionDelivery is the durable processing record for one chain and one
+// immutable source run.
+type CompletionDelivery struct {
+	ID           string        `json:"id"`
+	ChainID      string        `json:"chain_id"`
+	SourceTaskID string        `json:"source_task_id"`
+	TargetTaskID string        `json:"target_task_id"`
+	SourceRunID  string        `json:"source_run_id"`
+	State        DeliveryState `json:"state"`
+	Attempts     int           `json:"attempts"`
+	CreatedAt    time.Time     `json:"created_at"`
+	ClaimedAt    *time.Time    `json:"claimed_at,omitempty"`
+	CompletedAt  *time.Time    `json:"completed_at,omitempty"`
+	TargetRunID  string        `json:"target_run_id,omitempty"`
+	Resolution   string        `json:"resolution,omitempty"`
 }
 
 // LogRecord is a single structured log entry surfaced in the GUI Logs view and

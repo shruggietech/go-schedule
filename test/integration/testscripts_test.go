@@ -55,10 +55,38 @@ func posixTwin() twin {
 	return twin{
 		name: "posix",
 		command: func(script string, args ...string) []string {
+			// Native Go returns drive-letter paths on Windows. Convert them for
+			// whichever Bash is on PATH: WSL uses /mnt/c while Git Bash uses /c.
+			script = bashCompatiblePath(script)
+			for i, arg := range args {
+				if filepath.VolumeName(arg) != "" {
+					args[i] = bashCompatiblePath(arg)
+				}
+			}
 			return append([]string{"bash", script}, args...)
 		},
 		flag: func(c string) string { return "--" + c },
 	}
+}
+
+func bashCompatiblePath(path string) string {
+	if runtime.GOOS != "windows" {
+		return path
+	}
+	volume := filepath.VolumeName(path)
+	if len(volume) != 2 || volume[1] != ':' {
+		return filepath.ToSlash(path)
+	}
+	prefix := "/"
+	if isWSLBash() {
+		prefix = "/mnt/"
+	}
+	return prefix + strings.ToLower(volume[:1]) + filepath.ToSlash(strings.TrimPrefix(path, volume))
+}
+
+func isWSLBash() bool {
+	bashPath, err := exec.LookPath("bash")
+	return err == nil && strings.Contains(strings.ToLower(filepath.ToSlash(bashPath)), "/windows/system32/")
 }
 
 // scriptPath resolves a script under test/scripts/ relative to this package.
@@ -106,7 +134,15 @@ func runScript(t *testing.T, tw twin, dataDir, script string, args ...string) (s
 	t.Helper()
 	argv := tw.command(script, args...)
 	cmd := exec.Command(argv[0], argv[1:]...) //nolint:gosec // fixed argv built above
-	cmd.Env = append(os.Environ(), "GOSCHEDULE_TEST_DIR="+dataDir)
+	env := os.Environ()
+	if tw.name == "posix" && runtime.GOOS == "windows" && isWSLBash() {
+		wslEnv := os.Getenv("WSLENV")
+		if wslEnv != "" {
+			wslEnv += ":"
+		}
+		env = append(env, "WSLENV="+wslEnv+"GOSCHEDULE_TEST_DIR/p")
+	}
+	cmd.Env = append(env, "GOSCHEDULE_TEST_DIR="+dataDir)
 	out, err := cmd.CombinedOutput()
 	code := 0
 	if err != nil {

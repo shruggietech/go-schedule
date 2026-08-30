@@ -364,10 +364,10 @@ func (s *Store) CreateRun(r *domain.Run) error {
 		r.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,trigger)
-		 VALUES(?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,trigger,source_task_id,source_run_id)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
 		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt),
-		string(r.Outcome), nullInt(r.ExitCode), r.Output, string(r.Trigger),
+		string(r.Outcome), nullInt(r.ExitCode), r.Output, string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID),
 	)
 	if err != nil {
 		return fmt.Errorf("store: create run: %w", err)
@@ -378,7 +378,7 @@ func (s *Store) CreateRun(r *domain.Run) error {
 // ListRuns returns runs for a task (or all when taskID is empty), newest first,
 // up to limit (0 = no limit).
 func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,trigger FROM runs`
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,trigger,source_task_id,source_run_id FROM runs`
 	var args []any
 	if taskID != "" {
 		q += ` WHERE task_id=?`
@@ -400,7 +400,8 @@ func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
 		var started, ended sql.NullString
 		var exit sql.NullInt64
 		var outcome, trigger, scheduled string
-		if err := rows.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &trigger); err != nil {
+		var sourceTask, sourceRun sql.NullString
+		if err := rows.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &trigger, &sourceTask, &sourceRun); err != nil {
 			return nil, fmt.Errorf("store: scan run: %w", err)
 		}
 		r.ScheduledFor, _ = parseTime(scheduled)
@@ -408,6 +409,8 @@ func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
 		r.EndedAt, _ = parseTimePtr(ended)
 		r.Outcome = domain.RunOutcome(outcome)
 		r.Trigger = domain.RunTrigger(trigger)
+		r.SourceTaskID = sourceTask.String
+		r.SourceRunID = sourceRun.String
 		r.ExitCode = intPtr(exit)
 		out = append(out, r)
 	}

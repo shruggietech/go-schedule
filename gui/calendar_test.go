@@ -73,7 +73,7 @@ func TestOccurrencesOnDayText(t *testing.T) {
 func TestUI_ScheduleTabBuilds(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
 	// Schedule is the 3rd tab; it must build (List + Calendar toggle) without panic.
-	if ui.tabs.Items[2].Text != "Schedule" || ui.tabs.Items[2].Content == nil {
-		t.Fatalf("schedule tab missing: %+v", ui.tabs.Items[2])
+	if ui.tabs.Items[3].Text != "Schedule" || ui.tabs.Items[3].Content == nil {
+		t.Fatalf("schedule tab missing: %+v", ui.tabs.Items[3])
 	}
 }

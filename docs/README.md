@@ -22,6 +22,7 @@ start with the guide for your platform; if you are contributing, start with
 | [Linux install guide](INSTALL-linux.md) | Release archive, systemd registration, data paths. |
 | [macOS install guide](INSTALL-macos.md) | Desktop bundle versus headless, launchd, and the boot-persistence caveat that catches people out. |
 | [`gosched` command reference](cli.md) | Every command and flag the CLI exposes, with exit codes and elevation requirements. |
+| [Local API](api.md) | Versioned completion-chain endpoints, error shape, correlated history, and live events. |
 | [GUI field reference](gui-fields.md) | What every field in the desktop task editor accepts and means. |
 | [Cron interoperability](cron.md) | The documented five- and six-field subset, task authoring, operational crontab import, export, and named fidelity refusals. |
 | [Brand system](brand.md) | Approved identity, asset selection, accessibility, attribution, misuse rules, and downloads. |
@@ -42,6 +43,7 @@ attachment to a bug report.
 | --- | --- |
 | [Contributing](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) | Trunk-based workflow, the spec-kit requirement, the CI-parity gates, pinned artifacts. |
 | [Build-phase autopilot](build-autopilot.md) | The protocol under which features are executed end to end with a single human halt. Maintainer-facing. |
+| [Architecture](architecture.md) | Daemon ownership, durable completion delivery, replay semantics, and graph safety. |
 | [Constitution](https://github.com/shruggietech/go-schedule/blob/main/.specify/memory/constitution.md) | The engineering principles the project is governed by. |
 | [Master specification](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/spec.md) | What the scheduler is and why, with the plan, data model, and contracts alongside it. |
 | [Changelog](changelog.md) | Release history, including the dated decisions behind changes to pinned artifacts. |

@@ -54,3 +54,15 @@ func (s *Server) publishGroupDeleted(id string) {
 		s.broker.PublishGroup(events.VerbDeleted, id, nil)
 	}
 }
+
+func (s *Server) publishChain(verb events.Verb, chain domain.CompletionChain) {
+	if s.broker != nil {
+		s.broker.PublishChain(verb, chain.ID, &chain)
+	}
+}
+
+func (s *Server) publishChainDeleted(id string) {
+	if s.broker != nil {
+		s.broker.PublishChain(events.VerbDeleted, id, nil)
+	}
+}

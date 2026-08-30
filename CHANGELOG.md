@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Task-completion chains now run end to end (Closes #72, #73, #74, #75,
+  #76, and #77).** Success, failure, and any-outcome relationships supplement
+  normal schedules and cascade through an acyclic graph. SQLite-backed delivery
+  survives restart with an explicit at-least-once replay contract and correlated
+  run history. Full lifecycle management is available through the local API,
+  `gosched chain`, and a live desktop Chains view.
+
 - **The complete go-schedule brand system is now repository-owned (Closes #10
   and #34).** The full BrandBuilder-standard kit now lives under `brand/` with
   its guide, portable masters, generated outputs, tokens, licensed fonts,
@@ -299,6 +306,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   decision was required.
 
 ### Decisions
+
+- **2026-08-30 - Use durable source-run identities and an honest at-least-once
+  replay boundary for completion chains.** A run record and its outgoing
+  deliveries commit atomically, with uniqueness on chain plus immutable source
+  run. Completed work never replays, while an interrupted claimed delivery is
+  made pending at startup. This replaces the older configurable time-window
+  dedup concept, which could either suppress legitimate later work or admit a
+  crash-window duplicate and therefore could not provide the promised
+  exactly-once external effect.
 
 - **2026-08-30 - Consume committed platform artwork directly and verify brand
   copies without expanding the gate set.** The release workflow and WiX source
