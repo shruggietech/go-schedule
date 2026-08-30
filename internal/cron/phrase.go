@@ -8,6 +8,9 @@ import (
 // Phrase renders a Spec as a concise human-readable phrase when the natural
 // language grammar can express the cron schedule without losing information.
 func Phrase(s Spec) (string, Unsupported, bool) {
+	if len(s.Second.Values) != 1 || s.Second.Values[0] != 0 {
+		return "", Unsupported{Reason: "seconds precision uses a field-complete description rather than the human schedule grammar"}, false
+	}
 	// Sub-hourly: "*/n" in the minute field with every hour.
 	if s.Minute.Wildcard && s.Minute.Step > 1 {
 		if !s.Hour.EveryValue() || !s.DOM.EveryValue() || !s.Month.EveryValue() || !s.DOW.EveryValue() {

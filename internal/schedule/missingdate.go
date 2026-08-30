@@ -2,6 +2,7 @@ package schedule
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/teambition/rrule-go"
@@ -268,7 +269,7 @@ func compositeDateSet(opt *rrule.ROption) bool {
 		interval = 1
 	}
 	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Bymonthday) == 0 || len(opt.Byweekday) != 0 ||
-		len(opt.Byhour) == 0 || len(opt.Byminute) == 0 || len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 ||
+		len(opt.Byhour) == 0 || len(opt.Byminute) == 0 || len(opt.Bysecond) == 0 ||
 		len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
 		opt.Count != 0 || !opt.Until.IsZero() {
 		return false
@@ -287,7 +288,7 @@ func compositeDailySet(opt *rrule.ROption) bool {
 		interval = 1
 	}
 	if opt.Freq != rrule.DAILY || interval != 1 || len(opt.Byhour) == 0 || len(opt.Byminute) == 0 ||
-		len(opt.Bysecond) != 1 || opt.Bysecond[0] != 0 || len(opt.Bysetpos) != 0 ||
+		len(opt.Bysecond) == 0 || len(opt.Bysetpos) != 0 ||
 		len(opt.Byyearday) != 0 || len(opt.Byweekno) != 0 || len(opt.Byeaster) != 0 ||
 		opt.Count != 0 || !opt.Until.IsZero() || len(opt.Bymonthday) > 0 && len(opt.Byweekday) > 0 {
 		return false
@@ -301,6 +302,113 @@ func compositeDailySet(opt *rrule.ROption) bool {
 		if weekday.N() != 0 {
 			return false
 		}
+	}
+	return true
+}
+
+const maxCompositeDayWalk = 366 * 12
+
+// resolveCompositeDailySet evaluates the exact field sets emitted by cron
+// compilation without replaying every occurrence since the schedule anchor.
+// Day iteration stays bounded, and each selected wall reading still passes
+// through the shared DST resolver.
+func resolveCompositeDailySet(opt *rrule.ROption, loc *time.Location, policy domain.SchedulePolicy, after time.Time) (time.Time, bool) {
+	anchor := opt.Dtstart
+	cursor := after
+	if anchor.After(after) {
+		cursor = anchor.Add(-time.Nanosecond)
+	}
+	localAfter := cursor.In(loc)
+	day := time.Date(localAfter.Year(), localAfter.Month(), localAfter.Day(), 0, 0, 0, 0, loc)
+	hours := sortedUniqueInts(opt.Byhour)
+	minutes := sortedUniqueInts(opt.Byminute)
+	seconds := sortedUniqueInts(opt.Bysecond)
+	for i := 0; i < maxCompositeDayWalk; i++ {
+		if compositeDaySelected(opt, day) {
+			var best time.Time
+			lowerBound, overlapEnd, scanOverlap := compositeDaySearchBounds(day, localAfter, loc, cursor)
+			for _, hour := range hours {
+				for _, minute := range minutes {
+					for _, second := range seconds {
+						wallSecond := hour*60*60 + minute*60 + second
+						if wallSecond < lowerBound {
+							continue
+						}
+						intent := time.Date(day.Year(), day.Month(), day.Day(), hour, minute, second, 0, time.UTC)
+						occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
+						if ok && (best.IsZero() || occ.Before(best)) {
+							best = occ
+						}
+						if !scanOverlap && ok {
+							return occ, true
+						}
+						if scanOverlap && wallSecond >= overlapEnd && !best.IsZero() {
+							return best, true
+						}
+					}
+				}
+			}
+			if !best.IsZero() {
+				return best, true
+			}
+		}
+		day = day.AddDate(0, 0, 1)
+	}
+	return time.Time{}, false
+}
+
+func compositeDaySearchBounds(day, localAfter time.Time, loc *time.Location, cursor time.Time) (lowerBound, overlapEnd int, scanOverlap bool) {
+	if day.Year() != localAfter.Year() || day.YearDay() != localAfter.YearDay() {
+		return 0, 0, false
+	}
+	lowerBound = localAfter.Hour()*60*60 + localAfter.Minute()*60 + localAfter.Second()
+	start, end, _, ok := overlapWindow(loc, cursor)
+	if !ok || start.Year() != day.Year() || start.YearDay() != day.YearDay() {
+		return lowerBound, 0, false
+	}
+	startSecond := start.Hour()*60*60 + start.Minute()*60 + start.Second()
+	endSecond := end.Hour()*60*60 + end.Minute()*60 + end.Second()
+	if lowerBound < startSecond || lowerBound >= endSecond {
+		return lowerBound, 0, false
+	}
+	return startSecond, endSecond, true
+}
+
+func sortedUniqueInts(values []int) []int {
+	out := append([]int(nil), values...)
+	sort.Ints(out)
+	if len(out) < 2 {
+		return out
+	}
+	n := 1
+	for _, value := range out[1:] {
+		if value != out[n-1] {
+			out[n] = value
+			n++
+		}
+	}
+	return out[:n]
+}
+
+func compositeDaySelected(opt *rrule.ROption, day time.Time) bool {
+	if !monthSelected(opt.Bymonth, day.Month()) {
+		return false
+	}
+	if len(opt.Bymonthday) > 0 {
+		for _, selected := range opt.Bymonthday {
+			if selected == day.Day() {
+				return true
+			}
+		}
+		return false
+	}
+	if len(opt.Byweekday) > 0 {
+		for _, selected := range opt.Byweekday {
+			if weekdayOf(selected) == day.Weekday() {
+				return true
+			}
+		}
+		return false
 	}
 	return true
 }
@@ -323,12 +431,14 @@ func resolveCompositeDateSet(opt *rrule.ROption, loc *time.Location, policy doma
 				}
 				for _, hour := range opt.Byhour {
 					for _, minute := range opt.Byminute {
-						intent := time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
-						occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
-						if !ok || !best.IsZero() && !occ.Before(best) {
-							continue
+						for _, second := range opt.Bysecond {
+							intent := time.Date(year, month, day, hour, minute, second, 0, time.UTC)
+							occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
+							if !ok || !best.IsZero() && !occ.Before(best) {
+								continue
+							}
+							best = occ
 						}
-						best = occ
 					}
 				}
 			}

@@ -1,5 +1,5 @@
 // Package cron parses, compiles, describes, imports, and exports supported
-// five-field cron. It owns syntax-specific parsing and honest refusals; task
+// Unix five-field and Quartz-style six-field cron. It owns syntax-specific parsing and honest refusals; task
 // authoring orchestration lives in internal/scheduleinput. Cron and human input
 // compile independently into the same durable schedule model, while the
 // original cron expression remains available for editing.
@@ -45,7 +45,8 @@ type Field struct {
 
 // Spec is a parsed cron timing expression.
 type Spec struct {
-	Minute, Hour, DOM, Month, DOW Field
+	Second, Minute, Hour, DOM, Month, DOW Field
+	Quartz                                bool
 	// Shorthand records the "@daily"-style macro this came from, if any, purely
 	// so messages can quote what the operator wrote.
 	Shorthand string
@@ -123,11 +124,37 @@ func Parse(expr string) (Result, error) {
 	}
 
 	parts := strings.Fields(raw)
-	switch {
-	case len(parts) == 6:
-		return refuse(expr, "six-field (Quartz-style, seconds-precision) expressions are not supported"), nil
-	case len(parts) != 5:
-		return Result{}, fmt.Errorf("cron: expected 5 fields, got %d in %q", len(parts), expr)
+	quartz := len(parts) == 6
+	if len(parts) == 7 {
+		return refuse(expr, "seven-field Quartz year expressions are not supported"), nil
+	}
+	if len(parts) != 5 && !quartz {
+		return Result{}, fmt.Errorf("cron: expected 5 or 6 fields, got %d in %q", len(parts), expr)
+	}
+	second := "0"
+	if quartz {
+		second, parts = parts[0], parts[1:]
+	}
+	questionDOM, questionDOW := parts[2] == "?", parts[4] == "?"
+	if !quartz && (strings.Contains(parts[2], "?") || strings.Contains(parts[4], "?")) {
+		return refuse(expr, "? is only supported in a six-field Quartz day field"), nil
+	}
+	if questionDOM && questionDOW {
+		return refuse(expr, "Quartz day-of-month and day-of-week cannot both be ?"), nil
+	}
+	for _, idx := range []int{2, 4} {
+		if strings.Contains(parts[idx], "?") && parts[idx] != "?" {
+			return refuse(expr, "Quartz ? must occupy the complete day-of-month or day-of-week field"), nil
+		}
+	}
+	if strings.Contains(second, "?") {
+		return Result{}, fmt.Errorf("cron: seconds field: ? is only valid in a Quartz day field")
+	}
+	if questionDOM {
+		parts[2] = "*"
+	}
+	if questionDOW {
+		parts[4] = "*"
 	}
 
 	// Route the supported day-of-month extensions to their dedicated parser;
@@ -144,7 +171,12 @@ func Parse(expr string) (Result, error) {
 		}
 	}
 
-	spec := Spec{Shorthand: shorthand}
+	spec := Spec{Shorthand: shorthand, Quartz: quartz}
+	var err error
+	spec.Second, err = parseField(second, 0, 59, -1, false)
+	if err != nil {
+		return Result{}, fmt.Errorf("cron: seconds field: %w", err)
+	}
 	targets := [5]*Field{&spec.Minute, &spec.Hour, &spec.DOM, &spec.Month, &spec.DOW}
 	for i, p := range parts {
 		if i == 2 && strings.ContainsAny(strings.ToUpper(p), "LW") {
@@ -159,7 +191,7 @@ func Parse(expr string) (Result, error) {
 			continue
 		}
 		if i == 4 && strings.Contains(strings.ToUpper(p), "L") {
-			f, reason, err := parseLastWeekday(p)
+			f, reason, err := parseLastWeekday(p, quartz)
 			if err != nil {
 				return Result{}, fmt.Errorf("cron: %s field: %w", fieldName(i), err)
 			}
@@ -170,7 +202,7 @@ func Parse(expr string) (Result, error) {
 			continue
 		}
 		if i == 4 && strings.Contains(p, "#") {
-			f, reason, err := parseOrdinalWeekday(p)
+			f, reason, err := parseOrdinalWeekday(p, quartz)
 			if err != nil {
 				return Result{}, fmt.Errorf("cron: %s field: %w", fieldName(i), err)
 			}
@@ -180,7 +212,11 @@ func Parse(expr string) (Result, error) {
 			*targets[i] = f
 			continue
 		}
-		f, err := parseField(p, bounds[i][0], bounds[i][1], i)
+		min, max := bounds[i][0], bounds[i][1]
+		if i == 4 && quartz {
+			min, max = 0, 6
+		}
+		f, err := parseField(p, min, max, i, quartz)
 		if err != nil {
 			return Result{}, fmt.Errorf("cron: %s field: %w", fieldName(i), err)
 		}
@@ -198,6 +234,10 @@ func Parse(expr string) (Result, error) {
 	}
 	if spec.DOM.calendarSelector != calendarNone && !spec.Month.Wildcard {
 		return refuse(expr, "a monthly day-of-month selector restricted to particular months has no phrase equivalent"), nil
+	}
+	if (spec.DOM.calendarSelector != calendarNone || spec.DOW.Ordinal != 0) &&
+		(len(spec.Second.Values) != 1 || spec.Second.Values[0] != 0) {
+		return refuse(expr, "seconds combined with L, W, or # selectors are not supported"), nil
 	}
 
 	return Result{Spec: spec, OK: true}, nil
@@ -225,7 +265,7 @@ func parseCalendarDay(p string) (Field, string, error) {
 	return Field{}, "", fmt.Errorf("invalid monthly day-of-month selector %q", p)
 }
 
-func parseOrdinalWeekday(p string) (Field, string, error) {
+func parseOrdinalWeekday(p string, quartz bool) (Field, string, error) {
 	if strings.ContainsAny(p, ",/-") {
 		return Field{}, "only one weekday and one ordinal are supported in the day-of-week field", nil
 	}
@@ -236,21 +276,22 @@ func parseOrdinalWeekday(p string) (Field, string, error) {
 	if weekdayText == "" || ordinalText == "" {
 		return Field{}, "", fmt.Errorf("invalid ordinal-weekday term %q", p)
 	}
-	weekday, err := parseValue(weekdayText, 4)
+	weekday, err := parseValue(weekdayText, 4, quartz)
 	if err != nil {
 		return Field{}, "", err
 	}
-	if weekday < 0 || weekday > 7 {
-		return Field{}, "", fmt.Errorf("weekday value %d is outside 0-7", weekday)
+	weekday = normalize(weekday, 4, quartz)
+	if weekday < 0 || weekday > 6 {
+		return Field{}, "", fmt.Errorf("weekday value is outside the dialect's range")
 	}
 	occurrence, err := strconv.Atoi(ordinalText)
 	if err != nil || occurrence < 1 || occurrence > 5 {
 		return Field{}, "", fmt.Errorf("ordinal %q must be an integer from 1 through 5", ordinalText)
 	}
-	return Field{Values: []int{normalize(weekday, 4)}, Ordinal: occurrence, min: 0, max: 7}, "", nil
+	return Field{Values: []int{weekday}, Ordinal: occurrence, min: 0, max: 6}, "", nil
 }
 
-func parseLastWeekday(p string) (Field, string, error) {
+func parseLastWeekday(p string, quartz bool) (Field, string, error) {
 	upper := strings.ToUpper(p)
 	if strings.ContainsAny(p, ",/-#") {
 		return Field{}, "only one last weekday term is supported in the day-of-week field", nil
@@ -262,14 +303,15 @@ func parseLastWeekday(p string) (Field, string, error) {
 		return Field{}, "", fmt.Errorf("invalid last-weekday term %q", p)
 	}
 	weekdayText := p[:len(p)-1]
-	weekday, err := parseValue(weekdayText, 4)
+	weekday, err := parseValue(weekdayText, 4, quartz)
 	if err != nil {
 		return Field{}, "", err
 	}
-	if weekday < 0 || weekday > 7 {
-		return Field{}, "", fmt.Errorf("weekday value %d is outside 0-7", weekday)
+	weekday = normalize(weekday, 4, quartz)
+	if weekday < 0 || weekday > 6 {
+		return Field{}, "", fmt.Errorf("weekday value is outside the dialect's range")
 	}
-	return Field{Values: []int{normalize(weekday, 4)}, Ordinal: -1, min: 0, max: 7}, "", nil
+	return Field{Values: []int{weekday}, Ordinal: -1, min: 0, max: 6}, "", nil
 }
 
 func refuse(input, reason string) Result {
@@ -313,7 +355,7 @@ func isNumericPrefix(s string) bool {
 }
 
 // parseField parses one field: "*", "*/n", a list, ranges, steps, and names.
-func parseField(p string, min, max, idx int) (Field, error) {
+func parseField(p string, min, max, idx int, quartz bool) (Field, error) {
 	f := Field{min: min, max: max}
 
 	if p == "*" {
@@ -350,21 +392,24 @@ func parseField(p string, min, max, idx int) (Field, error) {
 			}
 			step, part = n, base
 		}
-		lo, hi, err := parseRange(part, min, max, idx)
+		lo, hi, err := parseRange(part, min, max, idx, quartz)
 		if err != nil {
 			return Field{}, err
 		}
+		if step > 1 && !strings.Contains(part, "-") {
+			hi = max
+		}
 		for v := lo; v <= hi; v += step {
-			seen[normalize(v, idx)] = true
+			seen[normalize(v, idx, quartz)] = true
 		}
 	}
 	effectiveMax := max
-	if idx == 4 {
+	if idx == 4 && !quartz {
 		effectiveMax = 6 // Sunday 7 has already been folded onto Sunday 0.
 	}
 	for v := min; v <= effectiveMax; v++ {
-		if seen[normalize(v, idx)] {
-			f.Values = append(f.Values, normalize(v, idx))
+		if seen[normalize(v, idx, quartz)] {
+			f.Values = append(f.Values, normalize(v, idx, quartz))
 		}
 	}
 	f.Values = dedupe(f.Values)
@@ -375,20 +420,20 @@ func parseField(p string, min, max, idx int) (Field, error) {
 }
 
 // normalize folds day-of-week 7 onto 0, since cron accepts both for Sunday.
-func normalize(v, idx int) int {
-	if idx == 4 && v == 7 {
+func normalize(v, idx int, quartz bool) int {
+	if idx == 4 && !quartz && v == 7 {
 		return 0
 	}
 	return v
 }
 
-func parseRange(part string, min, max, idx int) (int, int, error) {
+func parseRange(part string, min, max, idx int, quartz bool) (int, int, error) {
 	if lo, hi, ok := strings.Cut(part, "-"); ok {
-		l, err := parseValue(lo, idx)
+		l, err := parseValue(lo, idx, quartz)
 		if err != nil {
 			return 0, 0, err
 		}
-		h, err := parseValue(hi, idx)
+		h, err := parseValue(hi, idx, quartz)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -397,7 +442,7 @@ func parseRange(part string, min, max, idx int) (int, int, error) {
 		}
 		return l, h, nil
 	}
-	v, err := parseValue(part, idx)
+	v, err := parseValue(part, idx, quartz)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -408,9 +453,15 @@ func parseRange(part string, min, max, idx int) (int, int, error) {
 }
 
 // parseValue resolves a number or a three-letter month/day name.
-func parseValue(s string, idx int) (int, error) {
+func parseValue(s string, idx int, quartz bool) (int, error) {
 	s = strings.TrimSpace(s)
 	if v, err := strconv.Atoi(s); err == nil {
+		if idx == 4 && quartz {
+			if v < 1 || v > 7 {
+				return 0, fmt.Errorf("weekday value %d is outside Quartz range 1-7", v)
+			}
+			return v - 1, nil
+		}
 		return v, nil
 	}
 	key := strings.ToLower(s)

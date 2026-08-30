@@ -11,7 +11,7 @@ import (
 // is not supported in this version. An empty runAs runs as the service account
 // (no-op); any other value is rejected so behavior is explicit rather than
 // silently ignored.
-func applyRunAs(_ *exec.Cmd, runAs string) error {
+func applyRunAs(_ *exec.Cmd, runAs string, _ bool) error {
 	if runAs == "" {
 		return nil
 	}

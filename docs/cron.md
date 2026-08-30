@@ -16,7 +16,8 @@ converter does, and the fidelity table below is the contract it holds to.
 
 go-schedule accepts schedules written the way you would say them, such as
 `every 15 minutes` and `weekdays at 09:00`, and also accepts a supported subset
-of five-field cron such as `0 9 * * 1-5`. Every accepted form compiles to the
+of conventional five-field cron such as `0 9 * * 1-5`, plus a bounded
+Quartz-style six-field form such as `*/30 * * * * *`. Every accepted form compiles to the
 same stored recurrence model before execution.
 
 But you probably already have a crontab, or need to translate one schedule. Cron
@@ -60,8 +61,8 @@ gosched cron convert "last friday of the month at 09:00"
 # 0 9 * * 5L
 ```
 
-Automatic mode treats `@`-prefixed values and five fields with a cron-shaped
-minute field as cron. Existing human forms such as
+Automatic mode treats `@`-prefixed values and five or six cron-shaped fields as
+cron. Existing human forms such as
 `every 15 minutes from 9am` remain human input. Once classified, invalid cron
 is never retried as human text. `--to cron` forces human input; `--to human`
 forces cron input.
@@ -86,15 +87,17 @@ Always look first:
 gosched cron import --file /etc/crontab --dry-run
 ```
 
-The preview prints, for every line, the expression, the phrase it maps to, the
-resolved command, and, for a real import, the task it created. Imported tasks
+The preview prints, for every line, the expression, phrase, effective timezone,
+shell command, and any run-as, environment, or stdin context. For a real import
+it also prints the task it created. Imported tasks
 retain the original normalized cron expression. Nothing is created while
 `--dry-run` is set.
 
 ```text
 line 3: 0 2 * * *
   phrase:  every day at 02:00
-  command: /usr/local/bin/backup --full
+  timezone: America/New_York
+  command: /bin/sh -c /usr/local/bin/backup --full
 line 5: */15 * * * *
   phrase:  every 15 minutes starting at 00:00
   command: /usr/local/bin/probe
@@ -115,13 +118,18 @@ When it does, drop the flag:
 
 ```sh
 gosched cron import --file /etc/crontab --timezone America/New_York --group ops
+gosched cron import --file /etc/crontab --system --dry-run
+gosched cron import --file quartz.cron --dialect quartz --dry-run
 ```
 
 | Flag | Meaning |
 | --- | --- |
 | `--file` | Crontab to read, or `-` for standard input. Required. |
 | `--dry-run` | Produce the identical report and create nothing. |
-| `--timezone` | IANA zone for the created tasks. Cron has none — see below. |
+| `--dialect` | `unix` consumes five timing fields (default); `quartz` consumes six beginning with seconds. |
+| `--system` | Consume the system-crontab username field and map it to run-as. |
+| `--run-as` | Supply the owner account for a user crontab; cannot be combined with `--system`. |
+| `--timezone` | IANA zone override for every task. Without it, each line uses effective `CRON_TZ` or `Local`. |
 | `--group` | Group ID to file the imported tasks under. |
 | `--count` | How many upcoming runs to show per line. Default 3. |
 
@@ -133,6 +141,15 @@ an unreadable file, an unknown timezone, or a failed creation is a failure.
 
 Importing the same crontab twice creates two sets of tasks. There is no
 deduplication; the counts are how you notice.
+
+Assignments apply from their line onward. `CRON_TZ` controls schedule timing;
+ordinary variables, including `TZ`, become task environment. `SHELL` also
+selects the executable used with `-c`. Cron's unescaped `%` split is preserved
+as task stdin, including newline conversion after the first percent. `MAILTO`
+and `MAILFROM` remain visible warnings because output delivery belongs to the
+notification feature, not the child environment.
+`LOGNAME` assignments are also ignored with a warning because cron does not
+permit overriding the executing account's login name.
 
 ## Explain one expression
 
@@ -175,9 +192,11 @@ that declines, because the difference only surfaces at 02:30 some morning.
 
 ## Fidelity
 
-The supported input shape is `minute hour day-of-month month day-of-week`.
-Numeric bounds are `0-59`, `0-23`, `1-31`, `1-12`, and `0-7` respectively,
-with both `0` and `7` meaning Sunday. The parser accepts numbers,
+Five-field input uses `minute hour day-of-month month day-of-week`. Numeric
+bounds are `0-59`, `0-23`, `1-31`, `1-12`, and `0-7`, with both `0` and `7`
+meaning Sunday. Six-field input uses `second minute hour day-of-month month
+day-of-week`, seconds `0-59`, Quartz weekdays `1=Sunday` through `7=Saturday`,
+and a complete-field `?` in day-of-month or day-of-week. The parser accepts numbers,
 comma-separated lists, inclusive ascending ranges, wildcard and range steps,
 and case-insensitive month or weekday names by their first three letters.
 Overlapping terms and the two Sunday aliases normalize to one ordered set.
@@ -195,15 +214,16 @@ parity. For the upstream dialects and file behavior, see the
 [robfig/cron expression format](https://pkg.go.dev/github.com/robfig/cron/v3#hdr-CRON_Expression_Format),
 and the [Quartz CronTrigger modifier semantics](https://www.quartz-scheduler.org/documentation/quartz-2.5.x/tutorials/crontrigger.html).
 The single `weekday#ordinal`, day-of-week `weekdayL`, and day-of-month `L`,
-`nW`, and `LW` forms are explicit go-schedule extensions to this five-field
-subset. Their calendar meanings follow a bounded subset of Quartz, whose native
-format has different fields and weekday numbering. Verify the destination
+`nW`, and `LW` forms are focused subsets. Six-field input adds seconds and `?`
+without adding Quartz's optional year or full modifier language. Verify the destination
 before treating exported text as portable.
 
 ### Supported
 
 | Cron | Notes |
 | --- | --- |
+| Seconds sets and steps | `*/30 * * * * *` and `5/15 * * * * *`; six-field output is used only when seconds are required. |
+| Quartz no-specific-value | `0 0 12 ? * MON`; `?` must occupy one complete day field. |
 | Every minute | `* * * * *` |
 | Minute lists, ranges, and field-local steps | `5,20,45 * * * *`, `10-20/2 * * * *`, and uneven `*/7 * * * *` restart within each hour. |
 | Hour lists, ranges, and field-local steps | `0 9,17 * * *`, `30 8-17 * * *`, `0 */5 * * *` |
@@ -220,28 +240,51 @@ before treating exported text as portable.
 | Sunday as `0` or `7` | Both are accepted |
 | `@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`, `@yearly`, `@annually` | Expanded to their documented five-field equivalents |
 
-### Declined, by name
+### Issue #22 audit decisions
 
-| Cron | Why |
-| --- | --- |
-| `@reboot` | Fires at boot rather than on a schedule. There is no equivalent, and there is no honest approximation of one. |
-| Six-field (Quartz) expressions | Seconds-precision cron dialects are a different language. Sub-minute schedules are expressible here directly (`every 30 seconds`) — just not through cron. |
-| Broader day-of-month modifiers | Bare `W`, invalid dates, offsets such as `L-3`, lists, ranges, steps, mixtures, restricted months/day-of-week, and multiple terms remain outside the single `L`, `nW`, or `LW` subset. |
-| Bare day-of-week `L` | Only one day-of-week `weekdayL` atom has an unambiguous supported meaning. |
-| Broader `#` combinations | Lists, ranges, steps, multiple ordinal terms, ordinals outside 1 through 5, and month/date restrictions are declined rather than approximated. |
-| Broader day-of-week `L` combinations | Lists, ranges, steps, multiple terms, mixed `L`/`#`, and month/date restrictions are declined rather than approximated. |
-| Both day-of-month and day-of-week restricted | `0 0 13 * 5` means "the 13th **or** any Friday" in cron. This scheduler intersects the two, which would turn a weekly job into a handful of runs a year. |
-| Modifier composites | Focused `weekday#ordinal`, `weekdayL`, `L`, `nW`, and `LW` forms are supported, but lists, ranges, steps, or extra restricted calendar fields combined with those modifiers remain explicit refusals. |
+Every audited row has one disposition. "Deferred" names a different product
+capability; "out of scope" means the converter refuses instead of approximating.
 
-## What cron cannot say
+| Row | Feature | Decision and rationale |
+| --- | --- | --- |
+| A1 | `@reboot` | **Deferred to event triggers (#17).** Boot is an event, not a recurrence. |
+| A2 | Arbitrary field combinations | **Supported.** Safe combinations compile directly to one durable recurrence. |
+| A3 | Minute/hour/date/month lists | **Supported.** Values remain ordered and deduplicated. |
+| A4 | Arbitrary weekday sets | **Supported.** Names, lists, ranges, and Unix Sunday aliases normalize exactly. |
+| A5 | Uneven steps | **Supported.** Steps reset within their field rather than pretending to be elapsed intervals. |
+| A6 | Range steps | **Supported.** The selected set is compiled exactly. |
+| A7 | Restricted day-of-month plus day-of-week | **Out of scope.** Cron uses OR while the single recurrence model uses conjunction; input is refused by name. |
+| A8 | Six-field seconds | **Supported subset.** Seconds lists, ranges, and steps map to `BYSECOND`; Quartz year remains out of scope. |
+| A9 | `L` | **Supported focused subset.** `L`, `LW`, and one `weekdayL` are supported; offsets and composites are refused. |
+| A10 | `W` | **Supported focused subset.** One `1W` through `31W` and `LW` are supported; composites are refused. |
+| A11 | `#` | **Supported focused subset.** One `weekday#1..5` is supported; mixtures are refused. |
+| A12 | Quartz `?` | **Supported subset.** It must occupy one complete six-field day position. |
+| B1 | `CRON_TZ` / `TZ` | **Supported with distinct meanings.** `CRON_TZ` controls following schedules; `TZ` remains child environment. |
+| B2 | Environment assignments | **Supported.** Ordered assignments are snapshotted onto following tasks; matching outer quotes preserve boundary space. `LOGNAME` overrides are visibly ignored to match cron. |
+| B3 | `MAILTO` / `MAILFROM` | **Deferred to notifications (#19).** Import warns rather than claiming delivery. |
+| B4 | System-crontab user field | **Supported with `--system`.** Explicit layout prevents command corruption. |
+| B5 | Run-as user | **Supported where the platform executor supports it.** System files use each user field; user files accept `--run-as`. Windows creation keeps its existing explicit refusal. |
+| B6 | Percent stdin | **Supported.** Escaped percent stays literal; the first unescaped percent starts persisted stdin and later ones become newlines. |
+| B7 | Shell command semantics | **Supported.** Imported text runs through effective `SHELL -c` without whitespace splitting. |
+| B8 | run-parts directories | **Out of scope.** Directory discovery is a separate import format rather than a crontab line. |
+| B9 | anacron | **Out of scope.** Its delay and catch-up file format requires a separate importer. |
+
+### Remaining named refusals
+
+- Quartz optional year, `C`, `L-n`, and unsupported modifier mixtures.
+- Both day-of-month and day-of-week restricted under cron OR semantics.
+- Boot events and notification delivery.
+- Operational export for tasks carrying environment, run-as, or stdin, because
+  a standalone line cannot serialize that context faithfully.
+
+## What a timing expression cannot say
 
 Everything below is a property your tasks gain on import, and the import summary
 says so rather than leaving you to discover it:
 
-- **A timezone.** A five-field expression contains no timezone. Every task here
-  carries its own IANA zone; `--timezone` sets it during import and otherwise
-  the default is used. Crontab environment assignments such as `CRON_TZ` are
-  file context and are not carried into task definitions.
+- **A timezone by itself.** A timing expression contains no zone. Crontab import
+  applies ordered `CRON_TZ` context per line, while `--timezone` explicitly
+  overrides every line. Direct task input uses the task timezone field.
 - **Catch-up.** If the machine is off when a cron job is due, that run is simply
   lost. Imported tasks get `catchup one`: a single catch-up run after downtime,
   then the normal schedule resumes.
@@ -262,8 +305,9 @@ once. Those are go-schedule rules and should not be read as Linux cron parity.
 
 ## Expression versus crontab file
 
-A schedule expression is only five timing fields (or a supported macro). A
-user crontab line adds a command. A system crontab can also add a username, and
+A schedule expression is five Unix timing fields, six Quartz-style timing
+fields, or a supported macro. A user crontab line adds a command. A system
+crontab also adds a username, and
 a file can include comments, variables, shell settings, or `CRON_TZ`. Use
 `task add --schedule` for one expression and command you provide separately.
 Use `cron import` when the command and file context must first be inspected.
@@ -273,7 +317,8 @@ Use `cron import` when the command and file context must first be inspected.
 The export declines these rather than approximating them:
 
 - One-off schedules — cron has no way to fire exactly once.
-- Sub-minute intervals — cron's resolution is one minute.
+- Secondly intervals that do not divide a minute evenly. Divisible intervals
+  such as every 30 seconds export through the supported six-field form.
 - Intervals that do not divide their period evenly (`every 3 days`,
   `every 2 weeks`) — cron repeats by calendar position, not elapsed time.
 - Sub-daily intervals whose stored phase does not align with cron's field-local
@@ -293,3 +338,5 @@ The export declines these rather than approximating them:
   those additional dates.
 - Disabled tasks — cron has no disabled state, and emitting a live line for a
   task you deliberately stopped would be the worst possible outcome.
+- Tasks carrying environment, run-as, or stdin. A standalone exported line
+  cannot preserve that operational context, so export names the refusal.

@@ -124,6 +124,25 @@ func TestEvaluate_CompositeCronFindsFirstMissedRun(t *testing.T) {
 	}
 }
 
+func TestEvaluate_SecondsCronFindsFirstMissedRun(t *testing.T) {
+	anchor := time.Date(2026, 8, 28, 12, 0, 0, 0, time.UTC)
+	sch, bad, err := cron.Compile("15,45 * * * * *", "UTC", anchor)
+	if err != nil || bad.Reason != "" {
+		t.Fatalf("compile: refusal=%q err=%v", bad.Reason, err)
+	}
+	last := time.Date(2026, 8, 28, 12, 0, 15, 0, time.UTC)
+	now := time.Date(2026, 8, 28, 12, 1, 10, 0, time.UTC)
+
+	dec, err := Evaluate(sch, "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, 8, 28, 12, 0, 45, 0, time.UTC)
+	if !dec.ShouldCatchUp || !dec.FirstMissed.Equal(want) {
+		t.Fatalf("decision=%+v, want first missed %v", dec, want)
+	}
+}
+
 func TestEvaluateWithPolicyOverlapBothFindsSecondFold(t *testing.T) {
 	anchor := time.Date(2026, time.October, 31, 12, 0, 0, 0, time.UTC)
 	sch, err := schedule.Parse("every day at 01:30", "America/New_York", anchor)

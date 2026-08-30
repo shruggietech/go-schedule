@@ -52,6 +52,32 @@ func newGroupFor(t *testing.T, s *Server, name string) domain.Group {
 
 func ptr(s string) *string { return &s }
 
+func TestUpdateTask_StdinTriState(t *testing.T) {
+	s := newTestServer(t)
+	task := newTaskFor(t, s, TaskCreateRequest{
+		Name: "stdin", Command: "/bin/cat", Stdin: "original", Schedule: "every day at 09:00", Timezone: "UTC",
+	})
+	path := "/v1/tasks/" + task.Task.ID
+	if rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Name: "renamed"}); rec.Code != http.StatusOK {
+		t.Fatalf("retain: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Stdin; got != "original" {
+		t.Fatalf("omitted stdin = %q, want original", got)
+	}
+	if rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Stdin: ptr("replacement")}); rec.Code != http.StatusOK {
+		t.Fatalf("replace: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Stdin; got != "replacement" {
+		t.Fatalf("replaced stdin = %q", got)
+	}
+	if rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Stdin: ptr("")}); rec.Code != http.StatusOK {
+		t.Fatalf("clear: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Stdin; got != "" {
+		t.Fatalf("cleared stdin = %q", got)
+	}
+}
+
 // TestUpdateTask_GroupTriState pins FR-014: three distinct intents must be
 // expressible. Before this feature an empty group value meant "unchanged", so
 // no client could take a task back out of a group.

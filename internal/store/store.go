@@ -202,6 +202,14 @@ ALTER TABLE tasks ADD COLUMN dst_overlap_policy TEXT NOT NULL DEFAULT 'first';
 ALTER TABLE schedules ADD COLUMN elapsed_epoch TEXT;
 `,
 	},
+	{
+		// v8: preserve optional standard input for imported cron commands. The
+		// empty default is the exact behavior of every existing task.
+		version: 8,
+		stmts: `
+ALTER TABLE tasks ADD COLUMN stdin TEXT NOT NULL DEFAULT '';
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cron parity now has a complete, faithful boundary (Closes #22).** Crontab
+  import preserves ordered `CRON_TZ`, process environment, effective `SHELL -c`
+  command text, cron percent stdin, and optional system-crontab run-as users.
+  An explicit Unix/Quartz file dialect prevents command-field guessing. The
+  task model and additive schema v8 persist stdin through API updates, restart,
+  and execution. Supported six-field schedules compile seconds and Quartz `?`
+  directly into the existing recurrence engine, preserve dialect-specific
+  weekday numbering, and export six fields only when seconds are required.
+  Five-field output remains stable. Export now refuses operational task context
+  it cannot serialize instead of dropping it. The fidelity matrix records a
+  decision for every issue #22 row and public copy promises the documented
+  subset rather than universal cron parity.
 - **Tasks now state their DST scheduling intent end to end (Closes #8).** Each
   task can follow local wall-clock readings, fixed elapsed intervals, or UTC
   readings, with per-task spring-gap `next_valid`/`skip` and fall-overlap

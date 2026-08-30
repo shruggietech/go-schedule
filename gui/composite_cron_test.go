@@ -31,3 +31,19 @@ func TestEditor_CompositeCronPreviewCreateAndPrefill(t *testing.T) {
 		t.Fatalf("prefill preview=%+v, want cron classified from current text", req)
 	}
 }
+
+func TestEditor_SecondsCronKeepsSourceIdentity(t *testing.T) {
+	const expression = "*/30 * * * * *"
+	e, fb := newTestEditor(t, nil)
+	e.name.SetText("seconds")
+	e.command.SetText("cmd")
+	e.schedule.SetText(expression)
+	if _, req := fb.lastPreviewCall(); req.Schedule != expression || req.ScheduleSyntax != "cron" {
+		t.Fatalf("preview request=%+v", req)
+	}
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, req := fb.lastCreateCall(); req.Schedule != expression || req.ScheduleSyntax != "cron" {
+		t.Fatalf("create request=%+v", req)
+	}
+}

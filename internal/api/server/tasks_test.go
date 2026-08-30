@@ -46,6 +46,23 @@ func TestCreateTask_Recurring(t *testing.T) {
 	}
 }
 
+func TestCreateTask_PersistsStdin(t *testing.T) {
+	s := newTestServer(t)
+	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+		Name: "stdin", Command: "/bin/cat", Stdin: "alpha\nbeta\n", Schedule: "every day at 09:00", Timezone: "UTC",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var resp TaskResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Task.Stdin != "alpha\nbeta\n" {
+		t.Fatalf("stdin = %q", resp.Task.Stdin)
+	}
+}
+
 func TestCreateTask_OneOffPastRejected(t *testing.T) {
 	s := newTestServer(t)
 	past := time.Now().UTC().Add(-time.Hour)

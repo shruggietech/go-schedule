@@ -11,6 +11,8 @@ func BenchmarkCompileCron(b *testing.B) {
 		"0 9 * * *",
 		"*/10 9-17 * * MON,WED,FRI",
 		"0 0 29 FEB *",
+		"*/30 * * * * *",
+		"5/15 0 9 ? * MON",
 	} {
 		b.Run(expression, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {

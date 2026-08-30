@@ -15,7 +15,7 @@ import (
 type Syntax string
 
 const (
-	// SyntaxCron identifies the supported five-field cron dialect.
+	// SyntaxCron identifies supported Unix five-field or Quartz-style six-field cron.
 	SyntaxCron Syntax = "cron"
 	// SyntaxHuman identifies go-schedule's human-readable schedule language.
 	SyntaxHuman Syntax = "human"
@@ -105,8 +105,6 @@ func implicitTimingRefusal(sch domain.Schedule, opt *rrule.ROption) string {
 		return reason
 	}
 	switch opt.Freq {
-	case rrule.SECONDLY:
-		return "cron has no sub-minute resolution"
 	case rrule.DAILY, rrule.WEEKLY, rrule.MONTHLY, rrule.YEARLY:
 		if len(opt.Byhour) != 1 || len(opt.Byminute) != 1 {
 			return "the schedule must state an explicit time of day for faithful cron conversion"
@@ -144,7 +142,7 @@ func DetectSyntax(input string) Syntax {
 
 func looksLikeCron(input string) bool {
 	fields := strings.Fields(input)
-	if len(fields) != 5 || fields[0] == "" {
+	if (len(fields) != 5 && len(fields) != 6) || fields[0] == "" {
 		return false
 	}
 	for _, r := range fields[0] {
