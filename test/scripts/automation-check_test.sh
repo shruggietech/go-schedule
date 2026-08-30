@@ -238,6 +238,14 @@ run_automation_cases() {
   run_expect_fail global-option-push 'must not run git push' \
     sh "$CHECK" "$global_option_push"
 
+  continued_push="$tmp/continued-push"
+  cp -R "$good" "$continued_push"
+  printf '%s\n' '      - run: |' '          git \' \
+    '            push origin HEAD:main' >> \
+    "$continued_push/.github/workflows/release.yml"
+  run_expect_fail continued-push 'must not run git push' \
+    sh "$CHECK" "$continued_push"
+
   main_checkout="$tmp/main-checkout"
   cp -R "$good" "$main_checkout"
   printf '      - uses: actions/checkout@v7\n        with:\n          ref: main\n' >> \
