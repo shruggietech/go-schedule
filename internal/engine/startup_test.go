@@ -87,6 +87,55 @@ func TestStartupRunsOncePerEngineStartAndNeverOnReload(t *testing.T) {
 	}
 }
 
+func TestReadyFreezesStartupSnapshotBeforeLaterMutations(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	first := createStartupTask(t, st, "", true)
+	clk := clock.NewFake(time.Date(2026, 8, 30, 12, 0, 0, 0, time.UTC))
+	runner := &startupRunner{ch: make(chan domain.Run, 4)}
+	e := New(st, clk, runner, testLogger(), 2)
+	select {
+	case <-e.Ready():
+		t.Fatal("engine reported ready before Start initialized its startup snapshot")
+	default:
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- e.Start(ctx) }()
+	select {
+	case <-e.Ready():
+	case <-time.After(2 * time.Second):
+		t.Fatal("engine did not report ready")
+	}
+
+	second := createStartupTask(t, st, "", true)
+	e.Reload()
+	select {
+	case run := <-runner.ch:
+		if run.TaskID != first.ID {
+			t.Fatalf("startup run after readiness = %+v, want initial task %q", run, first.ID)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("initial startup task did not run")
+	}
+	select {
+	case run := <-runner.ch:
+		t.Fatalf("post-readiness task %q ran during current lifecycle: %+v", second.ID, run)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("engine did not stop")
+	}
+}
+
 func TestStartupEligibilityExcludesDisabledTaskAndGroup(t *testing.T) {
 	st, err := store.Open(":memory:")
 	if err != nil {
