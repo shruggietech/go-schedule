@@ -264,7 +264,7 @@ run_automation_cases() {
   sed 's/needs: readme-version/needs: binaries/' \
     "$good/.github/workflows/release.yml" > \
     "$ungated_release/.github/workflows/release.yml"
-  printf '  gui:\n    needs: readme-version\n' >> \
+  printf '  gui: # desktop release\n    needs: readme-version\n' >> \
     "$ungated_release/.github/workflows/release.yml"
   run_expect_fail ungated-release 'README version preflight dependency' \
     sh "$CHECK" "$ungated_release"
