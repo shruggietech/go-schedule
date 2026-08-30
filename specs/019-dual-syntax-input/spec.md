@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #54](https://github.com/shruggietech/go-schedule/pull/54)
 
 **Input**: User description: "S019: establish the first focused vertical slice
 of issue #50 by accepting and retaining supported cron expressions through the

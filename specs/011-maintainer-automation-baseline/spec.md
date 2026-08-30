@@ -7,6 +7,8 @@ committed directly to `main`)
 
 **Status**: Implemented
 
+**Delivery**: [PR #43](https://github.com/shruggietech/go-schedule/pull/43)
+
 **Input**: User description: "Combine GitHub issues #21 and #41 into one
 focused Spec-Kit work slice that can run end-to-end under the build-phase
 autopilot protocol: move all repository workflows off deprecated Node 20

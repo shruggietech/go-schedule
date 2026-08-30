@@ -4,7 +4,9 @@
 
 **Created**: 2026-06-19
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Releases `v0.1.0` through `v0.3.0`
 
 **Input**: User description: "A cross-platform (Linux/Mac/Windows) task scheduler, CLI-first with a user-friendly GUI on top. Cron-equivalent power without the cryptic syntax. Starts on boot. Calendar/schedule views. Flexible recurrence (every X seconds/minutes/days/weeks, Nth weekday of month, event-triggered). Nested task groups. Missed-run catch-up (one per task). Per-task timezones with DST handling, UTC backend. Event-driven at-least-once delivery with dedup. Queue-one-pending overlap policy with alerting. Material-design GUI following UI/UX best practices."
 

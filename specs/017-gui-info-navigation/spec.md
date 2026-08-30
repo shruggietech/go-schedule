@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #49](https://github.com/shruggietech/go-schedule/pull/49)
 
 **Input**: User description: "Combine issues #29 and #32 into one focused GUI
 navigation-and-information slice: group related tabs and add an Info tab with

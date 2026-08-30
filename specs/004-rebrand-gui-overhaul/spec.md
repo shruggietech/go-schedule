@@ -4,7 +4,9 @@
 
 **Created**: 2026-06-20
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #1](https://github.com/shruggietech/go-schedule/pull/1)
 
 **Input**: User description: "Change the name of the repository from go-scheduler to go-schedule and update all references; replace the Windows install with a formal .msi system install that sets up the background service; replace Alerts with a unified Logs view (type filters, Dismiss All, on-disk persistence, click-through detail); remove the Triggers feature entirely; make the GUI refresh in real time across the board (remove manual Refresh); add a toggleable calendar view under Schedule."
 

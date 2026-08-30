@@ -6,6 +6,8 @@
 behavioral phase adds its offline regression assertion before the corresponding
 SCSS or Markdown correction.
 
+**Task Reconciliation**: PR #47 merged after the recorded pre-push halt; the 2026-08-30 lifecycle audit resolves the stale publication marker.
+
 ## Phase 1: Specification and Design
 
 - [x] T001 Create `specs/015-docs-dark-theme/spec.md` with traceability to
@@ -98,7 +100,7 @@ gutter variables and non-zero bottom spacing, then passes after implementation.
   BOM, mojibake, and `git diff --check`.
 - [x] T019 Mark tasks and spec status complete, review the final diff, and commit
   with a truthful co-author trailer.
-- [ ] T020 Halt before pushing or opening the pull request and report that its
+- [x] T020 Halt before pushing or opening the pull request and report that its
   body must contain `Closes #36`, `Closes #37`, and `Closes #35`.
 
 ## Dependencies and Execution Order

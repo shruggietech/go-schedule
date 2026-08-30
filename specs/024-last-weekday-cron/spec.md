@@ -2,7 +2,9 @@
 
 **Feature Branch**: `codex/024-last-weekday-cron`
 **Created**: 2026-08-28
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #59](https://github.com/shruggietech/go-schedule/pull/59)
 **Input**: Add faithful two-way conversion for the cron day-of-week `L` extension as the next focused slice of issue #22.
 
 ## User Scenarios & Testing *(mandatory)*

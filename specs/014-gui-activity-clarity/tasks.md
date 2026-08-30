@@ -5,6 +5,8 @@
 **Tests**: Required by FR-008 and constitution principle II. Production changes
 follow observed failing focused tests.
 
+**Task Reconciliation**: PR #46 merged after the recorded pre-push halt; the 2026-08-30 lifecycle audit resolves the stale publication marker.
+
 ## Phase 1: Specification and Design
 
 - [x] T001 Create `specs/014-gui-activity-clarity/spec.md` with traceability to
@@ -75,7 +77,7 @@ icon, and explanatory copy; existing cutoff tests remain green.
   UTF-8 without BOM, and mojibake.
 - [x] T018 Mark tasks and spec status complete, review the final diff, and
   commit with a truthful co-author trailer.
-- [ ] T019 Halt before pushing or opening the pull request and report that its
+- [x] T019 Halt before pushing or opening the pull request and report that its
   body must contain `Closes #26`, `Closes #28`, and `Closes #30`.
 
 ## Dependencies and Execution Order

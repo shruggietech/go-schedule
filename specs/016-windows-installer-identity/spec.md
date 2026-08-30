@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-27
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #48](https://github.com/shruggietech/go-schedule/pull/48)
 
 **Input**: User description: "Turn the remaining Windows installer identity and clean-install P1 issues into one focused Spec-Kit slice and run it end-to-end under autopilot."
 

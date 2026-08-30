@@ -43,7 +43,7 @@ run_expect_fail() {
 make_fixture() {
   fixture=$1
   manifest=$2
-  mkdir -p "$fixture/.github/workflows" "$fixture/scripts"
+  mkdir -p "$fixture/.github/workflows" "$fixture/scripts" "$fixture/specs"
   cat > "$fixture/.github/workflows/ci.yml" <<'EOF'
 name: fixture
 jobs:
@@ -53,6 +53,38 @@ jobs:
       - uses: actions/setup-go@v7
       - uses: actions/upload-artifact@v7
       - uses: softprops/action-gh-release@v3
+EOF
+  cat > "$fixture/.github/dependabot.yml" <<'EOF'
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+EOF
+  cat > "$fixture/scripts/spec-lifecycle-check.sh" <<'EOF'
+#!/bin/sh
+printf 'fixture lifecycle OK\n'
 EOF
   cat > "$fixture/.github/workflows/codeql.yml" <<'EOF'
 name: CodeQL
@@ -159,6 +191,29 @@ run_automation_cases() {
     "$missing_analysis/.github/workflows/codeql.yml"
   run_expect_fail missing-analysis 'CodeQL analyze step' \
     sh "$CHECK" "$missing_analysis"
+
+  missing_gomod="$tmp/missing-gomod"
+  cp -R "$good" "$missing_gomod"
+  sed '/  - package-ecosystem: gomod/,/  - package-ecosystem: github-actions/{
+    /  - package-ecosystem: github-actions/!d
+  }' "$good/.github/dependabot.yml" > \
+    "$missing_gomod/.github/dependabot.yml"
+  run_expect_fail missing-gomod 'gomod entry' sh "$CHECK" "$missing_gomod"
+
+  noisy_cadence="$tmp/noisy-cadence"
+  cp -R "$good" "$noisy_cadence"
+  sed '0,/interval: weekly/s//interval: daily/' \
+    "$good/.github/dependabot.yml" > \
+    "$noisy_cadence/.github/dependabot.yml"
+  run_expect_fail noisy-cadence 'weekly cadence' sh "$CHECK" "$noisy_cadence"
+
+  missing_label="$tmp/missing-dependency-label"
+  cp -R "$good" "$missing_label"
+  sed 's/      - dependencies/      - maintenance/' \
+    "$good/.github/dependabot.yml" > \
+    "$missing_label/.github/dependabot.yml"
+  run_expect_fail missing-dependency-label 'dependencies label' \
+    sh "$CHECK" "$missing_label"
 
   bracket_secret="$tmp/bracket-secret"
   cp -R "$good" "$bracket_secret"

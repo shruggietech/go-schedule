@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #61](https://github.com/shruggietech/go-schedule/pull/61)
 
 **Input**: Expand faithful five-field cron support to lists, ranges, field-local steps, arbitrary weekday sets, and common cross-field combinations across conversion, task input, import, execution, editing, and export while retaining explicit refusals for cron day-of-month/day-of-week OR semantics and unsupported extensions.
 

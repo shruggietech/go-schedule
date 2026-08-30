@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-22
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `2603986`
 
 **Input**: User description: "GUI task fidelity: schedule round-trip and group
 assignment. Fixes GitHub issues #3 and #4 against v0.3.0. (1) The Edit Task

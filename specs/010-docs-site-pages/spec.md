@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-23
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `3e99d6a` and release `v0.8.0`
 
 **Input**: User description: "Publish docs/ as a GitHub Pages documentation site and consolidate in-repo READMEs against it so nothing drifts (closes #11)."
 

@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-23
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `eb76c8e` and release `v0.6.0`
 
 **Input**: User description: "Close issues #5 #6 #7 (MSI PATH, least-privilege
 Windows service status, issue templates), refresh README to house style, and

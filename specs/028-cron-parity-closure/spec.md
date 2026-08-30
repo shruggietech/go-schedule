@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-29
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #63](https://github.com/shruggietech/go-schedule/pull/63)
 
 **Input**: Close issue #22 with one substantial fidelity slice: implement the remaining cron expression and crontab-file features that map cleanly to go-schedule, explicitly ratify incompatible features, and bring documentation and marketing into agreement with the resulting contract.
 

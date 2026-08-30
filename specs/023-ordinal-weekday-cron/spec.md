@@ -2,7 +2,9 @@
 
 **Feature Branch**: `codex/023-ordinal-weekday-cron`
 **Created**: 2026-08-28
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #58](https://github.com/shruggietech/go-schedule/pull/58)
 **Input**: Add faithful two-way conversion for the cron `#` ordinal-weekday extension as the next focused slice of issue #22.
 
 ## User Scenarios & Testing *(mandatory)*

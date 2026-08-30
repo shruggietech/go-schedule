@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-27
 
-**Status**: Local Complete - Publication Pending
+**Status**: Implemented
+
+**Delivery**: [PR #46](https://github.com/shruggietech/go-schedule/pull/46)
 
 **Traceability**: Closes GitHub issues
 [#26](https://github.com/shruggietech/go-schedule/issues/26),

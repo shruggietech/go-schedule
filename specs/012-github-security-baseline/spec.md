@@ -5,7 +5,9 @@ directly to local `main`)
 
 **Created**: 2026-08-26
 
-**Status**: Local Complete - Hosted Activation Pending
+**Status**: Implemented
+
+**Delivery**: [PR #44](https://github.com/shruggietech/go-schedule/pull/44)
 
 **Input**: User description: "Combine GitHub issues #38 and #39 into the next
 focused Spec-Kit work slice and run it end-to-end under the build-phase

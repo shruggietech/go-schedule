@@ -6,7 +6,9 @@
 
 **Created**: 2026-07-23
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `a71172a` and release `v0.7.0`
 
 **Input**: User description: "Cron interoperability and calendar-anomaly policy.
 Give users with an existing crontab a native, bidirectional cron conversion

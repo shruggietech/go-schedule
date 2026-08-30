@@ -6,6 +6,10 @@
 
 **Status**: Draft
 
+<!-- Allowed states and transition evidence: specs/README.md -->
+
+**Delivery**: Pending implementation
+
 **Input**: User description: "$ARGUMENTS"
 
 ## User Scenarios & Testing *(mandatory)*

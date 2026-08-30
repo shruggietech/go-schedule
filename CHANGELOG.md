@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Routine dependency discovery now opens reviewable proposals (Refs #40).**
+  Dependabot checks Go modules weekly and GitHub Actions monthly, applies the
+  existing `dependencies` label, caps each ecosystem at five open proposals,
+  and groups compatible minor and patch version updates. Major and security
+  updates remain individually visible, and existing pull-request verification
+  applies without new branch or approval policy.
 - **Cron parity now has a complete, faithful boundary (Closes #22).** Crontab
   import preserves ordered `CRON_TZ`, process environment, effective `SHELL -c`
   command text, cron percent stdin, and optional system-crontab run-as users.
@@ -116,6 +122,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Specification lifecycle history is now accurate and enforced (Closes
+  #42).** All 29 Spec-Kit slices use one documented state vocabulary and cite
+  objective delivery evidence. Stale historical task markers are reconciled
+  with merge, release, or explicit waiver evidence. A fixture-backed offline
+  checker runs inside the existing automation gate and rejects invalid states,
+  missing evidence, contradictory task completion, and inventory drift.
+- **The remaining useful secret-scanning controls are active (Closes #39).**
+  Push protection, non-provider patterns, and validity checks now report
+  enabled alongside the existing secret scanning and Dependabot security
+  updates. Unrelated AI detection and delegated-dismissal controls remain
+  unchanged.
+- **The unverified Windows title/taskbar icon report is deferred from v0.9.**
+  Issue #33 remains open with `needs: verification`, but now lives in `Post-v1`
+  at P3 because its pre-brand-rollout premise has not been reproduced and the
+  maintainer explicitly deferred the required manual install observation.
+- **Pinned maintenance policy - lifecycle, dependency automation, and
+  `scripts/automation-check.sh` (2026-08-30).** The existing offline automation
+  gate now includes the Spec-Kit lifecycle contract and the exact two-ecosystem
+  Dependabot policy. Spec templates and autopilot guidance separate local
+  implementation completion from later PR publication bookkeeping.
 - **Pinned documentation policy - `scripts/docs-check.sh` (2026-08-28).** The
   bounded current-surface check now requires the delivered standard composite
   cron breadth and retains the day-field OR refusal instead of requiring the
@@ -244,6 +270,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-30 - Close v0.9 maintenance gaps without expanding solo-project
+  ceremony.** S029 combines lifecycle repair, low-noise dependency proposals,
+  and supported secret-scanning activation into one review slice. It adds no
+  branch protection, required approvals, auto-merge, dependency upgrade, or
+  application change. The evidence-blocked Windows icon report moves to
+  Post-v1 rather than interrupting the maintainer for a VM or manual install
+  session.
+- **2026-08-30 - Treat publication as evidence, not an implementation task.**
+  Feature state now describes requirement, implementation, and verification
+  maturity. Push, PR, review, merge, and branch cleanup are recorded through
+  delivery evidence, preventing completed specs from retaining stale open
+  bookkeeping tasks after publication.
 - **2026-08-29 - Treat five/seven-hour transition gaps as wall-clock behavior,
   not an interval defect.** A six-hour local cycle remains six clock hours apart
   when the UTC offset changes, so its elapsed gap is legitimately five or seven

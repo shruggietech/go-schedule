@@ -135,5 +135,5 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/028-cron-parity-closure/plan.md
+at specs/029-v09-closure/plan.md
 <!-- SPECKIT END -->

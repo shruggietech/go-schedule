@@ -4,7 +4,9 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: [PR #55](https://github.com/shruggietech/go-schedule/pull/55)
 
 **Input**: User description: "Complete issue #50's remaining functional gap by allowing supported cron expressions in the existing GUI task editor, including validation, preview, edit prefill, and save/update behavior."
 

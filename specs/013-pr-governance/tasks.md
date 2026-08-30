@@ -1,5 +1,7 @@
 # Tasks: Lightweight Pull-Request Workflow
 
+**Task Reconciliation**: PR #45 merged and its review branch was removed; the 2026-08-30 lifecycle audit records the completed publication bookkeeping.
+
 ## Phase 1: Scope correction
 
 - [X] T001 Record the operator's decision that PRs exist for AI review, not
@@ -31,4 +33,4 @@
 - [X] T011 After authorization, push and open a PR with `Closes #23`.
 - [X] T012 Consider third-party AI review comments, respond under each, and
   leave final review and merge to the maintainer.
-- [ ] T013 After merge, remove the merged branch and synchronize local `main`.
+- [x] T013 After merge, remove the merged branch and synchronize local `main`.

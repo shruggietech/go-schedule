@@ -8,6 +8,8 @@
 **Tests**: Required by constitution Principle II. Workflow-policy fixtures are
 written and observed failing before implementation.
 
+**Task Reconciliation**: PR #44 delivered the local baseline. Hosted activation was completed across subsequent maintainer sessions, with the final requested secret-scanning controls verified by S029 on 2026-08-30.
+
 ## Phase 1: Setup and Baseline Evidence
 
 **Purpose**: Fix the feature boundary and preserve evidence of the pre-change
@@ -126,17 +128,17 @@ commit before the one remote-operations halt.
 
 **Purpose**: Publish and activate the already verified local feature.
 
-- [ ] T019 Push local `main` to `origin/main` after explicit authorization.
-- [ ] T020 [US1] Enable private vulnerability reporting and validate the API,
+- [x] T019 Push local `main` to `origin/main` after explicit authorization.
+- [x] T020 [US1] Enable private vulnerability reporting and validate the API,
   authenticated/unauthenticated route behavior, and administrator triage access
   without submitting a fabricated report.
-- [ ] T021 [US2] Request enablement of secret scanning, push protection,
+- [x] T021 [US2] Request enablement of secret scanning, push protection,
   non-provider patterns, and validity checks individually; read back and classify
   each result without exposing alert contents.
-- [ ] T022 [US2] Observe the CodeQL `main` run and available code-scanning API
+- [x] T022 [US2] Observe the CodeQL `main` run and available code-scanning API
   evidence; record success, token-scope limitations, and aggregate alert counts
   only.
-- [ ] T023 Update the feature evidence and lifecycle state with hosted results,
+- [x] T023 Update the feature evidence and lifecycle state with hosted results,
   run the canonical aggregate for any resulting documentation commit, and
   publish it within the already authorized activation continuation.
 

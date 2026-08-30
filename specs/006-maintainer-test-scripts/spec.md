@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-23
 
-**Status**: Draft
+**Status**: Implemented
+
+**Delivery**: Commit `78b33b8` and release `v0.5.0`
 
 **Input**: User description: "Maintainer test scripts and vendored skills. Ship three
 cross-platform script pairs under `test/scripts/` so a maintainer can verify an installed
