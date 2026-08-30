@@ -281,7 +281,8 @@ else
   if grep -Fq -- 'git push origin HEAD:main' "$RELEASE"; then
     report "$RELEASE: release workflow must not push directly to main"
   fi
-  if grep -Fq -- 'ref: main' "$RELEASE"; then
+  if grep -Eq "^[[:space:]]*ref:[[:space:]]*(main|'main'|\"main\")[[:space:]]*(#.*)?$" \
+    "$RELEASE"; then
     report "$RELEASE: release validation must inspect the tagged checkout"
   fi
   if ! awk '

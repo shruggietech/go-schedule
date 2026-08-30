@@ -224,6 +224,13 @@ run_automation_cases() {
   run_expect_fail main-checkout 'must inspect the tagged checkout' \
     sh "$CHECK" "$main_checkout"
 
+  quoted_main_checkout="$tmp/quoted-main-checkout"
+  cp -R "$good" "$quoted_main_checkout"
+  printf '      - uses: actions/checkout@v7\n        with:\n          ref: "main"\n' >> \
+    "$quoted_main_checkout/.github/workflows/release.yml"
+  run_expect_fail quoted-main-checkout 'must inspect the tagged checkout' \
+    sh "$CHECK" "$quoted_main_checkout"
+
   ungated_release="$tmp/ungated-release"
   cp -R "$good" "$ungated_release"
   sed 's/needs: readme-version/needs: binaries/' \
