@@ -234,6 +234,15 @@ run_automation_cases() {
   run_expect_fail ungated-release 'README version preflight dependency' \
     sh "$CHECK" "$ungated_release"
 
+  nested_dependency="$tmp/nested-dependency"
+  cp -R "$good" "$nested_dependency"
+  sed 's/^    needs: readme-version$/    env:\
+      needs: readme-version/' \
+    "$good/.github/workflows/release.yml" > \
+    "$nested_dependency/.github/workflows/release.yml"
+  run_expect_fail nested-dependency 'README version preflight dependency' \
+    sh "$CHECK" "$nested_dependency"
+
   missing_wayland="$tmp/missing-wayland"
   cp -R "$good" "$missing_wayland"
   sed 's/libwayland-dev //' "$good/.github/workflows/release.yml" > \

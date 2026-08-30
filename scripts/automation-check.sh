@@ -287,7 +287,7 @@ else
   if ! awk '
     /^  binaries:[[:space:]]*$/ { in_binaries = 1; next }
     in_binaries && /^  [[:alnum:]_-]+:[[:space:]]*$/ { exit }
-    in_binaries && /^[[:space:]]+needs:[[:space:]]*readme-version[[:space:]]*$/ {
+    in_binaries && /^    needs:[[:space:]]*readme-version[[:space:]]*$/ {
       found = 1
     }
     END { exit !found }
