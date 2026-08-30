@@ -1,0 +1,37 @@
+{
+  "meta": { "name": "go-schedule", "version": "1.0.0", "parent": "ShruggieTech", "status": "approved" },
+  "color": {
+    "night": { "value": "#071014", "role": "primary dark background" },
+    "panel": { "value": "#0D171C", "role": "cards and code surfaces" },
+    "raised": { "value": "#13232A", "role": "elevated and selected surfaces" },
+    "line": { "value": "#28414B", "role": "rails, borders, inactive schedule structure" },
+    "text": { "value": "#F3F7F8", "role": "primary text on dark surfaces" },
+    "muted": { "value": "#9BAEB6", "role": "secondary text on dark surfaces" },
+    "paper": { "value": "#F6F8F7", "role": "light reading background" },
+    "ink": { "value": "#132027", "role": "primary text on light surfaces" },
+    "light_muted": { "value": "#4A616B", "role": "secondary text on light surfaces" },
+    "interval": { "value": "#62D9B7", "role": "recurrence, ready state, primary identity" },
+    "anchor": { "value": "#58A6FF", "role": "exact run points, links, focus" },
+    "hold": { "value": "#F2B84B", "role": "pending policy, catch-up, warning" },
+    "stop": { "value": "#E05F5F", "role": "failure and destructive state" },
+    "light_interval": { "value": "#087A62", "role": "accessible interval accent on Paper" },
+    "light_anchor": { "value": "#0067C5", "role": "accessible anchor accent on Paper" },
+    "light_hold": { "value": "#805500", "role": "accessible hold accent on Paper" },
+    "light_stop": { "value": "#B4232A", "role": "accessible stop accent on Paper" }
+  },
+  "contrast": {
+    "text_on_night": 17.81, "muted_on_night": 8.35, "interval_on_night": 11.09,
+    "anchor_on_night": 7.60, "hold_on_night": 10.73, "stop_on_night": 5.46,
+    "ink_on_paper": 15.58, "light_muted_on_paper": 6.13, "light_interval_on_paper": 4.96,
+    "light_anchor_on_paper": 5.26, "light_hold_on_paper": 6.12, "light_stop_on_paper": 6.12,
+    "interval_on_paper": 1.62
+  },
+  "typography": {
+    "display": { "family": "Space Grotesk", "weights": [500, 700] },
+    "body": { "family": "Geist", "weights": [400, 500] },
+    "technical": { "family": "Geist Mono", "weights": [400] }
+  },
+  "spacing": { "1": "4px", "2": "8px", "3": "12px", "4": "16px", "6": "24px", "8": "32px", "12": "48px" },
+  "radius": { "small": "4px", "medium": "8px", "pill": "999px" },
+  "motion": { "fast": "120ms", "normal": "180ms", "slow": "240ms", "curve": "cubic-bezier(.2,.6,.2,1)" }
+}

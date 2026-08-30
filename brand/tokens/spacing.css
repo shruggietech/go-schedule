@@ -1,0 +1,8 @@
+:root {
+  --gs-space-1: 4px; --gs-space-2: 8px; --gs-space-3: 12px; --gs-space-4: 16px;
+  --gs-space-6: 24px; --gs-space-8: 32px; --gs-space-12: 48px;
+  --gs-radius-sm: 4px; --gs-radius-md: 8px; --gs-radius-pill: 999px;
+  --gs-stroke: 1px; --gs-focus-stroke: 2px;
+  --gs-motion-fast: 120ms; --gs-motion-normal: 180ms; --gs-motion-slow: 240ms;
+  --gs-motion-curve: cubic-bezier(.2,.6,.2,1);
+}

@@ -1,6 +1,9 @@
 package gui
 
 import (
+	"bytes"
+	"image"
+	_ "image/png"
 	"testing"
 
 	"fyne.io/fyne/v2"
@@ -8,6 +11,28 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
+
+func TestEmbeddedBrandIconsUseApprovedSizes(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		data   []byte
+		width  int
+		height int
+	}{
+		{name: "full mark", data: iconBytes, width: 1024, height: 1024},
+		{name: "reduced mark", data: windowIconBytes, width: 256, height: 256},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config, _, err := image.DecodeConfig(bytes.NewReader(test.data))
+			if err != nil {
+				t.Fatalf("decode embedded icon: %v", err)
+			}
+			if config.Width != test.width || config.Height != test.height {
+				t.Fatalf("embedded icon is %dx%d, want %dx%d", config.Width, config.Height, test.width, test.height)
+			}
+		})
+	}
+}
 
 func TestUI_InfoContentUsesLocalIdentityAndExactLinks(t *testing.T) {
 	const version = "2026.08.28-development-build-with-long-id"

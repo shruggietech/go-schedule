@@ -43,7 +43,16 @@ run_expect_fail() {
 make_fixture() {
   fixture=$1
   manifest=$2
-  mkdir -p "$fixture/.github/workflows" "$fixture/scripts" "$fixture/specs"
+  mkdir -p "$fixture/.github/workflows" "$fixture/scripts/brand-check" "$fixture/specs"
+  cat > "$fixture/go.mod" <<'EOF'
+module fixture
+
+go 1.25.0
+EOF
+  cat > "$fixture/scripts/brand-check/main.go" <<'EOF'
+package main
+func main() {}
+EOF
   cat > "$fixture/.github/workflows/ci.yml" <<'EOF'
 name: fixture
 jobs:
@@ -63,6 +72,25 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      gui-minor-and-patch:
+        patterns:
+          - fyne.io/*
+        update-types:
+          - minor
+          - patch
+      storage-minor-and-patch:
+        patterns:
+          - modernc.org/sqlite
+        update-types:
+          - minor
+          - patch
+      platform-minor-and-patch:
+        patterns:
+          - github.com/kardianos/service
+          - golang.org/x/sys
+        update-types:
+          - minor
+          - patch
       routine-minor-and-patch:
         update-types:
           - minor
@@ -113,6 +141,16 @@ jobs:
       - name: Build
         run: CGO_ENABLED=0 go build ./...
       - uses: github/codeql-action/analyze@v4
+EOF
+  cat > "$fixture/.github/workflows/release.yml" <<'EOF'
+name: Release
+jobs:
+  release:
+    steps:
+      - run: go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 -icon=brand/platform/windows/go-schedule.ico
+      - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
+      - run: cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
+      - run: cp -R brand/platform/linux/hicolor "$stage/share/icons/"
 EOF
   cat > "$fixture/scripts/verify.sh" <<EOF
 #!/bin/sh
@@ -248,6 +286,20 @@ run_automation_cases() {
     "$bracket_secret/.github/workflows/codeql.yml"
   run_expect_fail bracket-secret 'must not consume' \
     sh "$CHECK" "$bracket_secret"
+
+  stale_brand="$tmp/stale-brand"
+  cp -R "$good" "$stale_brand"
+  sed 's#brand/platform/macos/go-schedule.icns#gui/assets/icon.png#' \
+    "$good/.github/workflows/release.yml" > \
+    "$stale_brand/.github/workflows/release.yml"
+  run_expect_fail stale-brand 'canonical macOS ICNS' \
+    sh "$CHECK" "$stale_brand"
+
+  missing_brand_check="$tmp/missing-brand-check"
+  cp -R "$good" "$missing_brand_check"
+  rm -rf "$missing_brand_check/scripts/brand-check"
+  run_expect_fail missing-brand-check 'brand integrity command not found' \
+    sh "$CHECK" "$missing_brand_check"
 
   missing="$tmp/missing"
   make_fixture "$missing" 'format vet lint race gui coverage docs'

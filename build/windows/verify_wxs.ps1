@@ -69,8 +69,8 @@ try {
 
   if (-not $icon) {
     $fail += 'canonical Icon Id="GoSchedule.ico" is missing'
-  } elseif ($icon.SourceFile -ne 'cmd/gosched-gui/icon.ico') {
-    $fail += 'canonical Icon SourceFile must be "cmd/gosched-gui/icon.ico"'
+  } elseif ($icon.SourceFile -ne 'brand/platform/windows/go-schedule.ico') {
+    $fail += 'canonical Icon SourceFile must be "brand/platform/windows/go-schedule.ico"'
   } else {
     $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     $iconPath = Join-Path $repoRoot $icon.SourceFile

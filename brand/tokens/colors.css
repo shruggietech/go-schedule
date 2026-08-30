@@ -1,0 +1,14 @@
+:root {
+  --gs-night: #071014; --gs-panel: #0D171C; --gs-raised: #13232A; --gs-line: #28414B;
+  --gs-text: #F3F7F8; --gs-muted: #9BAEB6; --gs-paper: #F6F8F7; --gs-ink: #132027;
+  --gs-light-muted: #4A616B; --gs-interval: #62D9B7; --gs-anchor: #58A6FF;
+  --gs-hold: #F2B84B; --gs-stop: #E05F5F;
+  --gs-bg: var(--gs-night); --gs-surface: var(--gs-panel); --gs-surface-raised: var(--gs-raised);
+  --gs-fg: var(--gs-text); --gs-fg-muted: var(--gs-muted); --gs-accent: var(--gs-interval);
+  --gs-link: var(--gs-anchor); --gs-warning: var(--gs-hold); --gs-danger: var(--gs-stop);
+}
+.gs-light {
+  --gs-bg: var(--gs-paper); --gs-surface: #FFFFFF; --gs-surface-raised: #EDF2F0;
+  --gs-fg: var(--gs-ink); --gs-fg-muted: var(--gs-light-muted); --gs-accent: #087A62;
+  --gs-link: #0067C5; --gs-warning: #805500; --gs-danger: #B4232A;
+}

@@ -12,7 +12,7 @@ import (
 
 const (
 	canonicalIconID     = "GoSchedule.ico"
-	canonicalIconSource = "cmd/gosched-gui/icon.ico"
+	canonicalIconSource = "brand/platform/windows/go-schedule.ico"
 	adminGroupID        = "GoScheduleAdminGroup"
 	adminGroupName      = "goschedadmin"
 )
@@ -163,7 +163,7 @@ func TestWindowsInstallerIdentityContract(t *testing.T) {
 
 func TestWindowsInstallerIdentityRejectsBrokenRelationships(t *testing.T) {
 	valid := `<Wix><Package>
-<Icon Id="GoSchedule.ico" SourceFile="cmd/gosched-gui/icon.ico" />
+<Icon Id="GoSchedule.ico" SourceFile="brand/platform/windows/go-schedule.ico" />
 <Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />
 <Shortcut Id="GuiShortcut" Icon="GoSchedule.ico" />
 </Package></Wix>`
@@ -174,7 +174,7 @@ func TestWindowsInstallerIdentityRejectsBrokenRelationships(t *testing.T) {
 		replacement string
 		want        string
 	}{
-		{"missing icon", `<Icon Id="GoSchedule.ico" SourceFile="cmd/gosched-gui/icon.ico" />`, "", "canonical Icon declaration is missing"},
+		{"missing icon", `<Icon Id="GoSchedule.ico" SourceFile="brand/platform/windows/go-schedule.ico" />`, "", "canonical Icon declaration is missing"},
 		{"wrong icon source", canonicalIconSource, "gui/assets/icon.ico", "canonical Icon SourceFile is incorrect"},
 		{"missing ARP property", `<Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />`, "", "ARPPRODUCTICON property is missing"},
 		{"wrong ARP reference", `<Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />`, `<Property Id="ARPPRODUCTICON" Value="Other.ico" />`, "ARPPRODUCTICON does not reference the canonical Icon"},
@@ -248,7 +248,10 @@ func TestWindowsInstallerGUIResourceContract(t *testing.T) {
 	required := []string{
 		"go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1",
 		"-64",
-		"-icon=cmd/gosched-gui/icon.ico",
+		"-icon=brand/platform/windows/go-schedule.ico",
+		`cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"`,
+		`cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"`,
+		`cp -R brand/platform/linux/hicolor "$stage/share/icons/"`,
 		"-o=cmd/gosched-gui/resource_windows_amd64.syso",
 		"./cmd/gosched-gui",
 	}

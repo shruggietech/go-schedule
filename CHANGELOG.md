@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The complete go-schedule brand system is now repository-owned (Closes #10
+  and #34).** The full BrandBuilder-standard kit now lives under `brand/` with
+  its guide, portable masters, generated outputs, tokens, licensed fonts,
+  platform assets, build source, verification report, and checksum inventory.
+  A public Brand system page explains selection, accessibility, attribution,
+  misuse, and downloads. An offline Go verifier checks all 108 inventoried
+  artifacts and 59 declared consumer copies, and routine automation rejects
+  checksum, encoding, SVG-portability, or downstream-copy drift.
 - **`@reboot` is now a first-class scheduler-startup trigger (Closes #64).**
   `@reboot` and `at scheduler startup` round-trip through conversion, preview,
   task authoring, desktop editing, crontab import, and faithful export. Eligible
@@ -292,6 +300,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-30 - Consume committed platform artwork directly and verify brand
+  copies without expanding the gate set.** The release workflow and WiX source
+  now consume the canonical Windows ICO, macOS ICNS, Linux desktop entry, and
+  hicolor icons rather than resampling artwork during release assembly.
+  `scripts/automation-check.sh` runs the repository brand verifier inside the
+  existing automation gate, preserving the eight-gate contract and adding no
+  application runtime dependency. `.gitattributes` preserves canonical and
+  declared consumer asset bytes so cross-platform line-ending normalization
+  cannot invalidate approved hashes or create false drift. Issue #33 remains
+  deferred because this slice does not claim manual Windows install/uninstall
+  observation.
 - **2026-08-30 - Reuse the retained event schedule shape without restoring the
   removed trigger subsystem.** Startup uses `kind=event` with
   `trigger_id=scheduler_startup` and the existing storage column.

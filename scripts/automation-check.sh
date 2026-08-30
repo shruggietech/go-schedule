@@ -250,6 +250,39 @@ elif ! lifecycle_output=$(sh "$LIFECYCLE" "$ROOT" 2>&1); then
   report "$lifecycle_output"
 fi
 
+RELEASE="$ROOT/.github/workflows/release.yml"
+require_release_text() {
+  text=$1
+  description=$2
+  if ! grep -Fq -- "$text" "$RELEASE"; then
+    report "$RELEASE: missing $description"
+  fi
+}
+
+if [ ! -f "$RELEASE" ]; then
+  report "$RELEASE: release workflow not found"
+else
+  require_release_text '-icon=brand/platform/windows/go-schedule.ico' \
+    'canonical Windows ICO'
+  require_release_text \
+    'cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"' \
+    'canonical macOS ICNS'
+  require_release_text \
+    'cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"' \
+    'canonical Linux desktop entry'
+  require_release_text \
+    'cp -R brand/platform/linux/hicolor "$stage/share/icons/"' \
+    'canonical Linux hicolor tree'
+fi
+
+BRAND_CHECK="$ROOT/scripts/brand-check"
+if [ ! -d "$BRAND_CHECK" ]; then
+  report "$BRAND_CHECK: brand integrity command not found"
+elif ! brand_output=$(cd "$ROOT" && go run ./scripts/brand-check 2>&1); then
+  report "$BRAND_CHECK: brand integrity contract failed"
+  report "$brand_output"
+fi
+
 VERIFY="$ROOT/scripts/verify.sh"
 if [ ! -f "$VERIFY" ]; then
   report "$VERIFY: verification driver not found"
@@ -270,4 +303,4 @@ if [ -s "$FAILURES" ]; then
   exit 1
 fi
 
-printf 'automation-check: OK - actions, CodeQL, Dependabot, lifecycle, and 8 gates\n'
+printf 'automation-check: OK - actions, CodeQL, Dependabot, brand, lifecycle, and 8 gates\n'

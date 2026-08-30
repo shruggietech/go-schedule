@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=go-schedule
+Comment=Cross-platform task scheduler
+Exec=gosched-gui
+Icon=go-schedule
+Terminal=false
+Categories=Utility;System;

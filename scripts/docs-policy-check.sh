@@ -19,6 +19,7 @@ require_text() {
 CURRENT_FILES="
 README.md
 docs/README.md
+docs/brand.md
 docs/cli.md
 docs/cron.md
 docs/gui-fields.md
@@ -64,6 +65,25 @@ require_text specs/001-task-scheduler/spec.md 'cron knowledge is optional' \
   'accessible master-product promise'
 require_text specs/001-task-scheduler/contracts/local-api.md 'schedule_syntax' \
   'API syntax discriminator contract'
+require_text docs/brand.md 'go-schedule-mark-color\.svg' \
+  'canonical full-mark download'
+require_text docs/brand.md 'go-schedule-mark-reduced\.svg' \
+  'reduced small-size mark download'
+require_text docs/brand.md 'go-schedule-horizontal-(color|black)\.svg' \
+  'horizontal lockup download'
+require_text docs/brand.md 'go-schedule-mark-(white|black)\.svg' \
+  'monochrome mark download'
+require_text docs/brand.md 'go-schedule-social-preview-1280x640\.png' \
+  'social-preview download'
+require_text docs/brand.md 'brand-guide\.pdf' 'long-form brand guide download'
+require_text docs/brand.md 'brand/manifest\.json' 'complete kit inventory link'
+require_text docs/brand.md '#071014.*#62D9B7.*#58A6FF' \
+  'core palette values'
+require_text docs/brand.md 'Space Grotesk.*Geist.*Geist Mono' \
+  'brand typography roles'
+require_text docs/brand.md 'A ShruggieTech project' \
+  'parent-brand endorsement rule'
+require_text docs/brand.md 'Do not' 'logo misuse guidance'
 
 if [ -s "$FAILURES" ]; then
   cat "$FAILURES" >&2
@@ -72,4 +92,4 @@ if [ -s "$FAILURES" ]; then
   exit 1
 fi
 
-printf '%s\n' 'docs-policy-check: OK (current dual-syntax surfaces aligned)'
+printf '%s\n' 'docs-policy-check: OK (current product and brand surfaces aligned)'
