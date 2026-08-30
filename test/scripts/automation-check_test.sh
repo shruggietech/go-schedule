@@ -43,7 +43,10 @@ run_expect_fail() {
 make_fixture() {
   fixture=$1
   manifest=$2
-  mkdir -p "$fixture/.github/workflows" "$fixture/scripts/brand-check" "$fixture/specs"
+  mkdir -p "$fixture/.github/workflows" \
+    "$fixture/.github/release-notes" \
+    "$fixture/scripts/brand-check" \
+    "$fixture/specs"
   cat > "$fixture/go.mod" <<'EOF'
 module fixture
 
@@ -151,6 +154,20 @@ jobs:
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
       - run: cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
       - run: cp -R brand/platform/linux/hicolor "$stage/share/icons/"
+      - uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: false
+          body_path: .github/release-notes/${{ github.ref_name }}.md
+EOF
+  cat > "$fixture/.github/release-notes/v0.9.0.md" <<'EOF'
+## Highlights
+
+- Complete scheduled work with durable follow-on task chains.
+- Translate and validate broader cron expressions in either supported syntax.
+- Preserve scheduling intent through daylight-saving transitions.
+- Use a consistent visual identity across the desktop application and packages.
+
+Read the [full changelog](https://github.com/shruggietech/go-schedule/blob/v0.9.0/CHANGELOG.md#090---2026-08-30) for every change.
 EOF
   cat > "$fixture/scripts/verify.sh" <<EOF
 #!/bin/sh
@@ -171,6 +188,70 @@ run_automation_cases() {
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
   run_expect_pass approved sh "$CHECK" "$good"
+
+  generated_notes="$tmp/generated-notes"
+  cp -R "$good" "$generated_notes"
+  sed 's/generate_release_notes: false/generate_release_notes: true/' \
+    "$good/.github/workflows/release.yml" > \
+    "$generated_notes/.github/workflows/release.yml"
+  run_expect_fail generated-notes 'generated release notes must remain disabled' \
+    sh "$CHECK" "$generated_notes"
+
+  fixed_body_path="$tmp/fixed-body-path"
+  cp -R "$good" "$fixed_body_path"
+  sed 's/${{ github.ref_name }}/v0.9.0/' \
+    "$good/.github/workflows/release.yml" > \
+    "$fixed_body_path/.github/workflows/release.yml"
+  run_expect_fail fixed-body-path 'dynamic tag-specific release-note body path' \
+    sh "$CHECK" "$fixed_body_path"
+
+  missing_changelog="$tmp/missing-changelog"
+  cp -R "$good" "$missing_changelog"
+  sed '/Read the \[full changelog\]/d' \
+    "$good/.github/release-notes/v0.9.0.md" > \
+    "$missing_changelog/.github/release-notes/v0.9.0.md"
+  run_expect_fail missing-changelog 'tagged full changelog link' \
+    sh "$CHECK" "$missing_changelog"
+
+  too_few_highlights="$tmp/too-few-highlights"
+  cp -R "$good" "$too_few_highlights"
+  sed '/consistent visual identity/d' \
+    "$good/.github/release-notes/v0.9.0.md" > \
+    "$too_few_highlights/.github/release-notes/v0.9.0.md"
+  run_expect_fail too-few-highlights 'four to six highlight bullets' \
+    sh "$CHECK" "$too_few_highlights"
+
+  too_many_highlights="$tmp/too-many-highlights"
+  cp -R "$good" "$too_many_highlights"
+  sed '/Read the \[full changelog\]/i\
+- Improve local daemon maintenance.\
+- Refresh contributor automation.\
+- Strengthen release packaging checks.' \
+    "$good/.github/release-notes/v0.9.0.md" > \
+    "$too_many_highlights/.github/release-notes/v0.9.0.md"
+  run_expect_fail too-many-highlights 'four to six highlight bullets' \
+    sh "$CHECK" "$too_many_highlights"
+
+  exhaustive_copy="$tmp/exhaustive-copy"
+  cp -R "$good" "$exhaustive_copy"
+  printf '\n## Installation\n\nDownload the package for your platform.\n' >> \
+    "$exhaustive_copy/.github/release-notes/v0.9.0.md"
+  run_expect_fail exhaustive-copy 'highlights-only release copy' \
+    sh "$CHECK" "$exhaustive_copy"
+
+  paragraph_copy="$tmp/paragraph-copy"
+  cp -R "$good" "$paragraph_copy"
+  printf '\nInstall the package and register the service before first use.\n' >> \
+    "$paragraph_copy/.github/release-notes/v0.9.0.md"
+  run_expect_fail paragraph-copy 'highlights-only release copy' \
+    sh "$CHECK" "$paragraph_copy"
+
+  h3_copy="$tmp/h3-copy"
+  cp -R "$good" "$h3_copy"
+  printf '\n### Installation\n\nRegister the service after extracting the package.\n' >> \
+    "$h3_copy/.github/release-notes/v0.9.0.md"
+  run_expect_fail h3-copy 'highlights-only release copy' \
+    sh "$CHECK" "$h3_copy"
 
   old="$tmp/old"
   cp -R "$good" "$old"
