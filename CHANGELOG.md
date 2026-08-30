@@ -122,6 +122,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Privileged IPC now uses a dedicated administrative group (Closes #13).**
+  The default `goschedadmin` group is resolved before the daemon listens.
+  Windows uses its SID in a protected named-pipe descriptor; Linux and macOS
+  apply and read back exact group ownership plus `0770` directory and `0660`
+  socket modes. Missing or invalid non-empty groups fail closed. Explicitly
+  empty `admin_group` retains broad local compatibility access with a warning.
+  The Windows MSI creates or reuses the group, adds the installing account, and
+  preserves group state on uninstall; Unix install guides provide the one-time
+  setup commands.
 - **Specification lifecycle history is now accurate and enforced (Closes
   #42).** All 29 Spec-Kit slices use one documented state vocabulary and cite
   objective delivery evidence. Stale historical task markers are reconciled
@@ -275,6 +284,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-30 - Fail closed for configured IPC groups and leave custom Unix
+  directories operator-owned.** A non-empty `admin_group` never falls back to
+  broad access. The daemon may secure its default data directory or create a
+  missing custom parent, but it only verifies an existing custom parent. This
+  avoids silently changing `/tmp` or another shared path. WiX and both required
+  extensions move together from 5.0.2 to 6.0.2 because v6 is the first stable
+  line with declarative local-group creation; the installer preserves the group
+  and membership on uninstall to avoid deleting shared administrator state.
 - **2026-08-30 - Close v0.9 maintenance gaps without expanding solo-project
   ceremony.** S029 combines lifecycle repair, low-noise dependency proposals,
   and supported secret-scanning activation into one review slice. It adds no

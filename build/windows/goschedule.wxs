@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  WiX v5 source for the go-schedule Windows installer (.msi).
+  WiX v6 source for the go-schedule Windows installer (.msi).
 
   Builds a per-machine installer that:
     * installs goschedd.exe / gosched-gui.exe / gosched.exe to
@@ -12,7 +12,7 @@
       C:\ProgramData\goschedule is created by the daemon at runtime and is left
       in place on uninstall.
 
-  Build (CI, on a Windows runner with WiX v5):
+  Build (CI, on a Windows runner with WiX v6):
     wix build build/windows/goschedule.wxs -arch x64 ^
       -d Version=%VERSION_NUMERIC% -d StageDir=%STAGE% ^
       -o dist\go-schedule_%VERSION%_windows_amd64.msi
@@ -76,7 +76,36 @@
     <Feature Id="Main" Title="go-schedule" Level="1">
       <ComponentGroupRef Id="AppComponents" />
       <ComponentRef Id="AppShortcut" />
+      <ComponentRef Id="AdminAccessProvisioning" />
     </Feature>
+
+    <!-- WiX v6 schedules group creation before user membership and before files
+         and services are installed. Existing groups are reused. The group and
+         membership deliberately survive uninstall so unrelated administrator
+         choices are not destructively reversed. -->
+    <Component Id="AdminAccessProvisioning" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue Root="HKLM" Key="Software\ShruggieTech\go-schedule" Name="admin-access" Type="integer" Value="1" KeyPath="yes" />
+      <util:Group
+          Id="GoScheduleAdminGroup"
+          Name="goschedadmin"
+          Domain="[ComputerName]"
+          CreateGroup="yes"
+          FailIfExists="no"
+          RemoveOnUninstall="no"
+          UpdateIfExists="yes"
+          Vital="yes" />
+      <util:User
+          Id="InstallingUser"
+          Name="[LogonUser]"
+          Domain="[%USERDOMAIN]"
+          CreateUser="no"
+          FailIfExists="no"
+          RemoveOnUninstall="no"
+          UpdateIfExists="yes"
+          Vital="yes">
+        <util:GroupRef Id="GoScheduleAdminGroup" />
+      </util:User>
+    </Component>
 
     <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
       <!-- The daemon, hosted as a Windows service. -->

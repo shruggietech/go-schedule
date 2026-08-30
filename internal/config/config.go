@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/platform"
@@ -84,6 +85,9 @@ var (
 func (c Config) Validate() error {
 	if c.DataDir == "" {
 		return fmt.Errorf("config: data_dir must not be empty")
+	}
+	if c.AdminGroup != "" && c.AdminGroup != strings.TrimSpace(c.AdminGroup) {
+		return fmt.Errorf("config: admin_group %q must not have leading or trailing whitespace", c.AdminGroup)
 	}
 	if !validLevels[c.LogLevel] {
 		return fmt.Errorf("config: log_level %q is invalid (want one of debug, info, warn, error)", c.LogLevel)

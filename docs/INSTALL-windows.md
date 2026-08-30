@@ -39,7 +39,10 @@ shortcut. There is no "extract a zip and run an exe from Downloads" step.
    administrator approval (UAC) — this is required because the installer
    registers a system service. Approve it.
 
-That is all. The installer:
+The installer creates or reuses the local **`goschedadmin`** group and adds the
+interactive account that launched setup. Sign out and back in once after the
+first install so Windows puts that new group SID into your login token. The
+installer then:
 
 - installs `gosched-gui.exe`, `goschedd.exe`, and `gosched.exe` to
   `C:\Program Files\go-schedule\`;
@@ -48,6 +51,8 @@ That is all. The installer:
   logged in;
 - adds `C:\Program Files\go-schedule\` to the machine `PATH`, so `gosched` works
   as a command;
+- grants daemon IPC access to SYSTEM, built-in Administrators, and members of
+  `goschedadmin`;
 - adds a **go-schedule** shortcut to the Start Menu.
 
 Launch **go-schedule** from the Start Menu to open the desktop app. It connects
@@ -119,6 +124,10 @@ uninstalling:
 Remove-Item -Recurse -Force "C:\ProgramData\goschedule"
 ```
 
+The `goschedadmin` group and its memberships are also preserved. Other tools or
+administrators may rely on them, so uninstall does not erase that shared OS
+state. Remove them manually only if you are certain they are no longer wanted.
+
 ## Troubleshooting
 
 **`gosched` is not recognized as a command.** The `PATH` entry is added at
@@ -142,7 +151,16 @@ anyway* if it matches.
 
 **The GUI opens but says "daemon unreachable".** Check the service with
 `gosched service status`. If it reports `stopped`, start it from an
-**elevated** shell with `gosched service start`.
+**elevated** shell with `gosched service start`. After a first install, also
+sign out and back in so your token includes `goschedadmin`.
+
+**The service reports an `admin_group` lookup error.** Confirm the group exists
+with `Get-LocalGroup goschedadmin` and that your account appears in
+`Get-LocalGroupMember goschedadmin`. A foreground daemon can deliberately use
+the former broad local policy by passing `--config <path>` with
+`{"admin_group":""}` after stopping the service. That compatibility mode admits
+Authenticated Users and emits a startup warning; normal MSI service installs
+use the secure group default.
 
 **Where are the logs?** `C:\ProgramData\goschedule\logs\goschedule.log` and its
 rotated siblings, or the **Activity** view in the app, or `gosched logs`.
