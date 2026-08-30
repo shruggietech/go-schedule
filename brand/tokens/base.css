@@ -1,0 +1,8 @@
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: dark; }
+body { margin: 0; background: var(--gs-bg); color: var(--gs-fg); font-family: var(--gs-font-body); line-height: var(--gs-body-line-height); }
+h1, h2, h3 { font-family: var(--gs-font-display); letter-spacing: var(--gs-display-tracking); line-height: 1.12; }
+code, pre, kbd, samp { font-family: var(--gs-font-mono); font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+a { color: var(--gs-link); }
+:focus-visible { outline: var(--gs-focus-stroke) solid var(--gs-link); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

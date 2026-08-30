@@ -17,6 +17,7 @@ works rather than how a Go project conventionally works, because on two points
 - [Pinned artifacts](#pinned-artifacts)
 - [What is never weakened](#what-is-never-weakened)
 - [Documentation](#documentation)
+- [Brand assets](#brand-assets)
 - [Conventions](#conventions)
 
 ## Before you write code
@@ -180,6 +181,25 @@ Run the check before pushing any documentation change (CI runs the same script):
 ```bash
 sh scripts/verify.sh docs
 ```
+
+## Brand assets
+
+The canonical, complete kit lives in [`brand/`](brand/). Read
+[`brand/REPOSITORY.md`](brand/REPOSITORY.md) before changing a logo, font,
+favicon, application icon, packaging icon, or documentation download. Product
+surfaces use exact copies declared in `brand/repository-consumers.json`; do not
+edit those copies independently.
+
+Routine validation needs only the repository's Go toolchain:
+
+```bash
+go run ./scripts/brand-check
+```
+
+The optional generation dependencies documented by the kit are needed only
+when deliberately rebuilding brand outputs. After an approved regeneration,
+update the canonical inventory, synchronize every declared consumer, run the
+brand check, and run the full eight-gate verification aggregate.
 
 ## Conventions
 

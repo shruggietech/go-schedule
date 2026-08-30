@@ -1,0 +1,547 @@
+{
+  "name": "go-schedule brand kit",
+  "version": "1.0.0",
+  "generated_at": "2026-08-30T12:03:05+00:00",
+  "files": [
+    {
+      "path": "brand-guide.pdf",
+      "bytes": 265551,
+      "sha256": "2c955d6859e4a67ce3244d0599079f20f808f977278fe74f6a211c08c7ddd3e8"
+    },
+    {
+      "path": "build/brand-guide.html",
+      "bytes": 26448,
+      "sha256": "1456cbea20cd9d39537008617fe9daeacfebbff17bc9c7bcb7179163742c174e"
+    },
+    {
+      "path": "build/build_icons.py",
+      "bytes": 1380,
+      "sha256": "7255f047204e15fcdcc09a57bdd73d5c39296fbc58094cdf1ff9176988150fd8"
+    },
+    {
+      "path": "build/build_logos.py",
+      "bytes": 7669,
+      "sha256": "3b146ad6c355b63a3fdccd6915c813d22a3a3745f555b7180f7f0e61ca3a23be"
+    },
+    {
+      "path": "build/build_raster.py",
+      "bytes": 4514,
+      "sha256": "2bd5805c11524d11212d017c3b76d7860ea568c3619260793d40ccd5f1eecbaf"
+    },
+    {
+      "path": "build/build_specimen.py",
+      "bytes": 2368,
+      "sha256": "0a4dc9707165f65f1026b36651091609fc79a932fbcc2513197a0765cbc5667e"
+    },
+    {
+      "path": "build/check_pages.js",
+      "bytes": 3212,
+      "sha256": "9a83f3888c7f2a6a341f34bc1b7aa0f6b4af4aa6c081224fccfdb58033d25e80"
+    },
+    {
+      "path": "build/finish_pdf.py",
+      "bytes": 2008,
+      "sha256": "448f698227377e7261fc61f52d7b3eaf3718576bd3b9bce2bcc662b48923f5cb"
+    },
+    {
+      "path": "build/geometry.py",
+      "bytes": 2517,
+      "sha256": "2c480ea548acaf0b5f1e6464c11a5342c7f4dc494c1edaf0fb63aa3a5bf17d96"
+    },
+    {
+      "path": "build/print_pdf.js",
+      "bytes": 795,
+      "sha256": "535f24450f6294bb526cc74241800efaa1e8aaa3c5c45e660c39f0b2b3f854eb"
+    },
+    {
+      "path": "build/README.md",
+      "bytes": 1535,
+      "sha256": "dba6d6645ef74c2a22cdd3147bb1b8c1f445f44005b1d30144357e3c7dc58e67"
+    },
+    {
+      "path": "build/typeset.py",
+      "bytes": 2451,
+      "sha256": "33aa53dc7c740403658902a6d4a5704d0f7f8c84add28407545681f391dcdc58"
+    },
+    {
+      "path": "build/verify.py",
+      "bytes": 11987,
+      "sha256": "d7f73aace91d016b09c54977b253a7f2ee348c4ab2d94338bb0945b98d1dca23"
+    },
+    {
+      "path": "components/components.css",
+      "bytes": 1993,
+      "sha256": "113fd96b7050c56497c89c3db304348385fbaab2486973d37ea770417ffccde2"
+    },
+    {
+      "path": "components/core/Badge.jsx",
+      "bytes": 190,
+      "sha256": "dd113d014b6e2e989d132b761a8c3f32db40ce12237a40214ff4336e8fbcb47a"
+    },
+    {
+      "path": "components/core/Button.jsx",
+      "bytes": 240,
+      "sha256": "1e8ba98c08f62e06f90464e58295b88f07eb83a7703b810c07b6984392f19d0b"
+    },
+    {
+      "path": "components/core/Card.jsx",
+      "bytes": 130,
+      "sha256": "544457328cbf0e2398f9e992138ee80e0769c4f2c1f5b2e6b0387a22404f5e37"
+    },
+    {
+      "path": "components/core/ScheduleRow.jsx",
+      "bytes": 283,
+      "sha256": "e224e5c0bbdcc76da6593650434b357a566742048c1123400e04d2a22e73e1cb"
+    },
+    {
+      "path": "components/forms/Input.jsx",
+      "bytes": 155,
+      "sha256": "498f03e74f4ca83ac1ffdff98835b796e65cc0e3267de612c75198b35b974012"
+    },
+    {
+      "path": "components/forms/Select.jsx",
+      "bytes": 185,
+      "sha256": "a2204f2288bcab2b0660f2250013c51c2feffc381b5d68dd9c258443187a4668"
+    },
+    {
+      "path": "components/README.md",
+      "bytes": 480,
+      "sha256": "818a11cb2a8df95643d256b8ae8b425f7b72b21ace34f2bec36dc3cc81e92f68"
+    },
+    {
+      "path": "favicons/android-chrome-192x192.png",
+      "bytes": 4446,
+      "sha256": "6bbc80e0d7465318eab83834793ee7554c99291479db92a8230a9c812447d851"
+    },
+    {
+      "path": "favicons/android-chrome-512x512.png",
+      "bytes": 9563,
+      "sha256": "ee2854a86aab8c3f3da1bc0bd56389706bb04b273fb668bb47c96f19842fdec6"
+    },
+    {
+      "path": "favicons/apple-touch-icon.png",
+      "bytes": 4289,
+      "sha256": "52d72ba8c589ae24033f43cdabb99a1d17a1a77783aa6e1163004f15e0f13a77"
+    },
+    {
+      "path": "favicons/favicon-16x16.png",
+      "bytes": 321,
+      "sha256": "13ad41865e3911255af0a5d0d0748c4f8535f037bd5416a215634838171f73c7"
+    },
+    {
+      "path": "favicons/favicon-256x256.png",
+      "bytes": 5025,
+      "sha256": "ebbb3979fbfda6d5dbed22cc6ed55e01241b817ba09967ba9486a63640c33963"
+    },
+    {
+      "path": "favicons/favicon-32x32.png",
+      "bytes": 628,
+      "sha256": "bf4dab23a68fe7aac33f8cbb7d8578a99c207fe3fb93af305a7801c0b44f7397"
+    },
+    {
+      "path": "favicons/favicon-48x48.png",
+      "bytes": 1016,
+      "sha256": "74e458acba8676259df09f09179e9528d77a0c097c1b46ed70c911b473e89d88"
+    },
+    {
+      "path": "favicons/favicon.ico",
+      "bytes": 11108,
+      "sha256": "5bffe651d22d83c29f73be582b5a03bdc91e76baf21495bbf4c8e4901e911d82"
+    },
+    {
+      "path": "favicons/favicon.svg",
+      "bytes": 995,
+      "sha256": "abc6d8914431dae9278598205903e662fb91bf62e630309c2789c0cce39ceedb"
+    },
+    {
+      "path": "favicons/site.webmanifest",
+      "bytes": 397,
+      "sha256": "b728fc28cd451924d57a723acd12e2b82bfc029de70c5f31ffe5a9ff60a9a7a2"
+    },
+    {
+      "path": "fonts/fonts.css",
+      "bytes": 789,
+      "sha256": "a20c6c011eab3f0de3bd7ed548367e49c62b3f093c19cdc9e64a959c21008e3a"
+    },
+    {
+      "path": "fonts/licenses/OFL-Geist.txt",
+      "bytes": 4383,
+      "sha256": "942560b236adfa83745b2c64e5fc09ebaf91cb331751b1157eb92187e5d6e930"
+    },
+    {
+      "path": "fonts/licenses/OFL-Space-Grotesk.txt",
+      "bytes": 4401,
+      "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943"
+    },
+    {
+      "path": "fonts/README.md",
+      "bytes": 227,
+      "sha256": "d143e8a3a1e84076fc65c4bc59e813f53919375e50b24da4edd7f481f1ab3a65"
+    },
+    {
+      "path": "fonts/ttf/Geist-Medium.ttf",
+      "bytes": 90528,
+      "sha256": "b649842011528395954b56221749719041cc6a7b84cb4d29d4f5189338cb62df"
+    },
+    {
+      "path": "fonts/ttf/Geist-Regular.ttf",
+      "bytes": 90440,
+      "sha256": "43065e72260288e84672cd1f27e1a8f8889b636a74f5f9252649365c41e8eca8"
+    },
+    {
+      "path": "fonts/ttf/GeistMono-Regular.ttf",
+      "bytes": 101868,
+      "sha256": "990f0e094fe02b8872429209c09abf4c03d22183c33c2a2ddb891dc7f086271c"
+    },
+    {
+      "path": "fonts/ttf/SpaceGrotesk-Bold.ttf",
+      "bytes": 88404,
+      "sha256": "4372b0b9200ee5f40edbfbe46285f1048afd4cea35ee62999f8f4fef93395022"
+    },
+    {
+      "path": "fonts/ttf/SpaceGrotesk-Medium.ttf",
+      "bytes": 88500,
+      "sha256": "9483bddc72cef2760eae1f432ecb7d2c9fd537c99768d57d29fefcbb08fa0a68"
+    },
+    {
+      "path": "fonts/woff2/Geist-Medium.woff2",
+      "bytes": 46356,
+      "sha256": "0b50074337a05ed834a1474d3d13fc6bd8480e2ce3075d02f1d38c017a8ac2a4"
+    },
+    {
+      "path": "fonts/woff2/Geist-Regular.woff2",
+      "bytes": 45172,
+      "sha256": "faed18848df4a6e1b5503b589bbbc055fbdab0e1780781edf5105457395e1e5d"
+    },
+    {
+      "path": "fonts/woff2/GeistMono-Regular.woff2",
+      "bytes": 50196,
+      "sha256": "c88d20967768754cbdca230acd74ecb25de78d0dc47e31694aa8bd2c528fec26"
+    },
+    {
+      "path": "fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "bytes": 12840,
+      "sha256": "35f8aec56cfd5cbfdb03cc68733a54a0b05bb3617ffcd5fd332badc0b045ca55"
+    },
+    {
+      "path": "fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "bytes": 13312,
+      "sha256": "1b1a8131d9edf975d9decee81e2f2bf504812f7a4f498e5500f28a613e22e64c"
+    },
+    {
+      "path": "guidelines/index.html",
+      "bytes": 5156,
+      "sha256": "f223a0941c9a2417149dfe44273295a93698bca269c0590d5331ca709f6b127b"
+    },
+    {
+      "path": "icons/calendar.svg",
+      "bytes": 386,
+      "sha256": "8032b594a9c70536482d86d6de6093a37636046a3b019f5f29d69adff8641347"
+    },
+    {
+      "path": "icons/clock.svg",
+      "bytes": 327,
+      "sha256": "1b9029bed157a60adcce1a11ef9c9bbf7498b9e6f879742ebba9607b9b621164"
+    },
+    {
+      "path": "icons/history.svg",
+      "bytes": 344,
+      "sha256": "115fe9eadf22559b741492c56a827d32858df7490eb8798a25888acf43765066"
+    },
+    {
+      "path": "icons/play.svg",
+      "bytes": 292,
+      "sha256": "c190978967167843e29599c36096532e19d02eae05d4756dcb81338c5d48c923"
+    },
+    {
+      "path": "icons/README.md",
+      "bytes": 388,
+      "sha256": "a912a0c33ce3227a31ff7c9449949533498996e79412563a60c2e2efd503093d"
+    },
+    {
+      "path": "icons/repeat.svg",
+      "bytes": 326,
+      "sha256": "ad844c958b6d5821c7a41238f3d1f6b45c8490663821d5e03f9812b4a7af600f"
+    },
+    {
+      "path": "icons/terminal.svg",
+      "bytes": 362,
+      "sha256": "1d941ad15638fe107c7b880b8fd3cf17b527b67ab9256d798eeb08913432900c"
+    },
+    {
+      "path": "logos/png/go-schedule-header-1600x400.png",
+      "bytes": 26881,
+      "sha256": "ddd68ace1ec795b8ba26c111de0503547ea1a063fe73ef68e2f165ce474b337c"
+    },
+    {
+      "path": "logos/png/go-schedule-horizontal-dark-2400.png",
+      "bytes": 51023,
+      "sha256": "293b2f496d1b6590dc0e7a054d4f98877120e3861a7cb192a5815f74a5027414"
+    },
+    {
+      "path": "logos/png/go-schedule-horizontal-light-2400.png",
+      "bytes": 51512,
+      "sha256": "5dee753821f09323c54f8ff5d05ae6a375cb3efff2b0cf4954ff7fdf09d974f7"
+    },
+    {
+      "path": "logos/png/go-schedule-horizontal-white-2400.png",
+      "bytes": 39948,
+      "sha256": "822455660b23c59b7d13817b939b8c47056893afeed0eb7532b801fb1bac89f9"
+    },
+    {
+      "path": "logos/png/go-schedule-mark-color-1024.png",
+      "bytes": 22838,
+      "sha256": "1936b0eac74274dcd90284bf9bbb84d5d20ea6afb667aace7be00ec5417d884e"
+    },
+    {
+      "path": "logos/png/go-schedule-mark-dark-1024.png",
+      "bytes": 33637,
+      "sha256": "c13b8be58d45182b42ded968b856379427fc92f8134e8ee03e7d23797c7f821b"
+    },
+    {
+      "path": "logos/png/go-schedule-mark-light-1024.png",
+      "bytes": 34334,
+      "sha256": "44d05a8d24e736c0f63bfa28631cab2596f2ee6c382aa8edf035c6149a6d405b"
+    },
+    {
+      "path": "logos/png/go-schedule-social-preview-1280x640.png",
+      "bytes": 87062,
+      "sha256": "4991095d571f3cb9e58ca302c92bd3dfd3f4fbab17e21a8e3b6270d9c0342035"
+    },
+    {
+      "path": "logos/png/go-schedule-stacked-dark-2048.png",
+      "bytes": 63593,
+      "sha256": "9fcdb3faf5810e4395482bd954e28215bb4aa4535e9ced187a8e8429c0d0e723"
+    },
+    {
+      "path": "logos/png/go-schedule-stacked-light-2048.png",
+      "bytes": 64135,
+      "sha256": "c1e6ec45d54db1630014c6eca1c10479b978f1b4cfd571fc91a3b55a8427f284"
+    },
+    {
+      "path": "logos/png/go-schedule-wordmark-black-1440.png",
+      "bytes": 30473,
+      "sha256": "b63b8569db6228a0726ccc6ef58d38f770d5f4791ecb113ea72b367383cf37c8"
+    },
+    {
+      "path": "logos/png/go-schedule-wordmark-interval-1440.png",
+      "bytes": 31993,
+      "sha256": "3bc15f44ddf294cc6401cffaa2810e4f301696b1defe373eb092edb2c9414de5"
+    },
+    {
+      "path": "logos/png/go-schedule-wordmark-white-1440.png",
+      "bytes": 23702,
+      "sha256": "64eb6ff24f3c58b4b168711700f883d3f60e4b7c10d64143a795b0a7a16d4c50"
+    },
+    {
+      "path": "logos/svg/go-schedule-header.svg",
+      "bytes": 7853,
+      "sha256": "f8f8a15ca9dd01c91a11dc5e909a2d661cc12f2d2eae9c3cded99685500da885"
+    },
+    {
+      "path": "logos/svg/go-schedule-horizontal-black.svg",
+      "bytes": 7559,
+      "sha256": "f60fb7f15ed3dad3dace20c5bbc364e748b55f6199b76281f3468456af0cb144"
+    },
+    {
+      "path": "logos/svg/go-schedule-horizontal-color.svg",
+      "bytes": 7559,
+      "sha256": "03faa529f72feb00d6fbc715284108f91e994e37a3aa21761edb7b5fb3caa080"
+    },
+    {
+      "path": "logos/svg/go-schedule-horizontal-dark.svg",
+      "bytes": 7610,
+      "sha256": "dfd89b60b0f5c11d6fe1fa922e754a4605020cc0e12aa4133ee1e7144295f10b"
+    },
+    {
+      "path": "logos/svg/go-schedule-horizontal-light.svg",
+      "bytes": 7610,
+      "sha256": "6f9412203bc6c74b9e54442900d8eba3d80413eab64deed7039ea1fa7e6f0276"
+    },
+    {
+      "path": "logos/svg/go-schedule-horizontal-white.svg",
+      "bytes": 7559,
+      "sha256": "ff47b9cd83ff21b7b61a3c6246267c428d1ffe9c65a1805b8db8766311de654a"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-black.svg",
+      "bytes": 2077,
+      "sha256": "aa72b32ba0c8beed5d71ec8fc78973c82db788f97a60abfe49901e68c026094e"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-color.svg",
+      "bytes": 2077,
+      "sha256": "971d56ddf1ac275eb1e7cb4629e8a3dd288e33a3a3342fbe5bba126be8ad5eff"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-dark-background.svg",
+      "bytes": 2135,
+      "sha256": "147378a289d8ed6440f25565d98284cb076f1b46738befe0e24440494b891d36"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-light-background.svg",
+      "bytes": 2135,
+      "sha256": "bdfac5cd4d3348598353f4d9287b23eca01789e65480f67b4ce40d00820f43ee"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-reduced.svg",
+      "bytes": 937,
+      "sha256": "ebf68dfe733d440b848b9015316a7c1a7d54177226c6e65517da11db21c36f47"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-white.svg",
+      "bytes": 2077,
+      "sha256": "50f41aeb01206f8e2b4f9149ab5c2ac0f0a210009b7a251cf7617186c14582bb"
+    },
+    {
+      "path": "logos/svg/go-schedule-social-preview.svg",
+      "bytes": 32554,
+      "sha256": "38c67301277b48007dfa102784e2576d08caa1127569d6ac44bb5edc0873a552"
+    },
+    {
+      "path": "logos/svg/go-schedule-stacked-black.svg",
+      "bytes": 7558,
+      "sha256": "e5be7682f1ecf5960b51cb1b8473e8fd3737537dc2211c018abed8c85cc22401"
+    },
+    {
+      "path": "logos/svg/go-schedule-stacked-dark.svg",
+      "bytes": 7610,
+      "sha256": "740e86c77ab03b90bde1023e390d377b931a308ddf4c343e00f2dded7b2f5d11"
+    },
+    {
+      "path": "logos/svg/go-schedule-stacked-light.svg",
+      "bytes": 7610,
+      "sha256": "6bd824ced19f49c23469fe848520850252dc8d66377042b358dbfadeb07a3dea"
+    },
+    {
+      "path": "logos/svg/go-schedule-stacked-white.svg",
+      "bytes": 7558,
+      "sha256": "51879331d58c2e5a0657bddf4abbdd7c42b57779457b479116f0255be2a87603"
+    },
+    {
+      "path": "logos/svg/go-schedule-wordmark-black.svg",
+      "bytes": 5499,
+      "sha256": "e41262d48f58be347c1bb420ef7b267acfc459c0c7cde8aba73c0ac0263bb582"
+    },
+    {
+      "path": "logos/svg/go-schedule-wordmark-interval.svg",
+      "bytes": 5499,
+      "sha256": "386d5675619d6e90eb520980ec37d82cfa08a4fc554cecb22a4115cee8d40971"
+    },
+    {
+      "path": "logos/svg/go-schedule-wordmark-white.svg",
+      "bytes": 5499,
+      "sha256": "6620bcd8f1061648c3670dafd080fd3328ec58ddca6001c0d4046d3d40226cf6"
+    },
+    {
+      "path": "platform/linux/go-schedule.desktop",
+      "bytes": 164,
+      "sha256": "fe1955e508d127ba7e8609e52a9ee7d4256db03aaa8b4144b15b60e814250c31"
+    },
+    {
+      "path": "platform/linux/hicolor/128x128/apps/go-schedule.png",
+      "bytes": 2751,
+      "sha256": "76df0c78e0bb1f7c4aee211fc28c42885c53e11c58bdf2e691b6ec976fba04eb"
+    },
+    {
+      "path": "platform/linux/hicolor/16x16/apps/go-schedule.png",
+      "bytes": 321,
+      "sha256": "13ad41865e3911255af0a5d0d0748c4f8535f037bd5416a215634838171f73c7"
+    },
+    {
+      "path": "platform/linux/hicolor/256x256/apps/go-schedule.png",
+      "bytes": 5025,
+      "sha256": "ebbb3979fbfda6d5dbed22cc6ed55e01241b817ba09967ba9486a63640c33963"
+    },
+    {
+      "path": "platform/linux/hicolor/32x32/apps/go-schedule.png",
+      "bytes": 628,
+      "sha256": "bf4dab23a68fe7aac33f8cbb7d8578a99c207fe3fb93af305a7801c0b44f7397"
+    },
+    {
+      "path": "platform/linux/hicolor/48x48/apps/go-schedule.png",
+      "bytes": 1016,
+      "sha256": "74e458acba8676259df09f09179e9528d77a0c097c1b46ed70c911b473e89d88"
+    },
+    {
+      "path": "platform/linux/hicolor/512x512/apps/go-schedule.png",
+      "bytes": 9563,
+      "sha256": "ee2854a86aab8c3f3da1bc0bd56389706bb04b273fb668bb47c96f19842fdec6"
+    },
+    {
+      "path": "platform/linux/hicolor/64x64/apps/go-schedule.png",
+      "bytes": 1441,
+      "sha256": "68732c2fb375d2ffdfb222cf27afcb5420ff4cddb97c09085c1421541eb60795"
+    },
+    {
+      "path": "platform/macos/go-schedule.icns",
+      "bytes": 71340,
+      "sha256": "447ee4e75384b2eabf822b14962413ed8f5b9fef35eb5c6da597beda1bbe2991"
+    },
+    {
+      "path": "platform/windows/go-schedule.ico",
+      "bytes": 11108,
+      "sha256": "5bffe651d22d83c29f73be582b5a03bdc91e76baf21495bbf4c8e4901e911d82"
+    },
+    {
+      "path": "README.md",
+      "bytes": 14161,
+      "sha256": "3c273e9b462c1e4b28c26fed31108a96f640db3de10ea5310f2bdee6f79cc32c"
+    },
+    {
+      "path": "SKILL.md",
+      "bytes": 1490,
+      "sha256": "9f9d86f38468f9b04fc69e423e51b2eb1844c23a146bc40ac22c76fbd09c0ec6"
+    },
+    {
+      "path": "specimens/go-schedule-type-specimen.png",
+      "bytes": 135428,
+      "sha256": "689cbe937f550140b63ac4934b77aea5b16e1c73379591088d194c62b34bb748"
+    },
+    {
+      "path": "specimens/go-schedule-type-specimen.svg",
+      "bytes": 142409,
+      "sha256": "2b5a89a1f416475e92ee8c33b85c8aa762b32bbbf561bbf4e043e6f6cbffaa29"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 171,
+      "sha256": "1b05e4fcdb855f3f1c7d32ec2b3f468bc52ded5f6c77a5928dc5cf1d945de3b7"
+    },
+    {
+      "path": "tokens/base.css",
+      "bytes": 742,
+      "sha256": "778934b5ab286a4c7d899400d0ba5e7a99243bc8ef3c754eef83b22e3ee1a254"
+    },
+    {
+      "path": "tokens/brand.tokens.json",
+      "bytes": 2398,
+      "sha256": "d7640d619c6d2b74222bde8fc00faf293dbbe4c70f432ef6b7e3c5275bbaf8e5"
+    },
+    {
+      "path": "tokens/colors.css",
+      "bytes": 824,
+      "sha256": "a0cf6f99530be451161e59101f7ef019e71d7fc8780cee5c9615fc434bcc01e0"
+    },
+    {
+      "path": "tokens/spacing.css",
+      "bytes": 392,
+      "sha256": "a8c09127552994aaaf923ce730a4e5170eec2dbd7b0d8873712222f333f5f8e6"
+    },
+    {
+      "path": "tokens/typography.css",
+      "bytes": 411,
+      "sha256": "ac032b0aa3a308837fc5154bb00a8bf4b8be6fb5afcf6b3d87702c46bebd8329"
+    },
+    {
+      "path": "ui_kits/go-schedule-web/index.html",
+      "bytes": 3013,
+      "sha256": "e755fd207abab3365a15e695ecc8f97c3c8f0444f807b053f5ffe5eba5acc651"
+    },
+    {
+      "path": "ui_kits/go-schedule-web/README.md",
+      "bytes": 259,
+      "sha256": "bceef8c28cc3e364c147c3cce6bfcde37924406dace033ad1bc5cfddc6d772c6"
+    }
+  ]
+}

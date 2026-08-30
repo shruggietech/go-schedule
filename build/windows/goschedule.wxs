@@ -44,7 +44,7 @@
 
     <!-- One canonical icon row serves every installer-created identity surface.
          The GUI executable embeds this same asset in the release workflow. -->
-    <Icon Id="GoSchedule.ico" SourceFile="cmd/gosched-gui/icon.ico" />
+    <Icon Id="GoSchedule.ico" SourceFile="brand/platform/windows/go-schedule.ico" />
     <Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />
 
     <!-- Before installing files, terminate any running daemon (a leftover from a

@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/go-schedule-horizontal-dark-transparent.svg">
-  <img alt="go-schedule" src="docs/assets/brand/go-schedule-horizontal-ink.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/go-schedule-horizontal-color.svg">
+  <img alt="go-schedule" src="docs/assets/brand/go-schedule-horizontal-black.svg" width="100%">
 </picture>
 
 [![CI](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml)
@@ -26,6 +26,7 @@ or not any window is open, and a desktop app gives you a calendar view of it all
 - [Install](#install)
 - [Quick start](#quick-start)
 - [Architecture](#architecture)
+- [Brand system](#brand-system)
 - [Project layout](#project-layout)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -230,6 +231,14 @@ See the platform installation guide and [security policy](SECURITY.md).
 The full design is in
 [`specs/001-task-scheduler/plan.md`](specs/001-task-scheduler/plan.md).
 
+## Brand system
+
+The complete, repository-owned brand kit lives in [`brand/`](brand/). Start
+with [`brand/REPOSITORY.md`](brand/REPOSITORY.md) for approved assets,
+regeneration guidance, and the rules for synchronized product copies. The
+public [Brand system](docs/brand.md) page provides selection guidance and
+downloads without requiring the optional graphics toolchain.
+
 ## Project layout
 
 ```text
@@ -237,8 +246,9 @@ cmd/        goschedd (daemon) · gosched (CLI) · gosched-gui (Fyne GUI)
 internal/   engine · schedule · task · store · executor · catchup · timezone
             api · ipc · service · config · platform · logbus · autostart
 gui/        Fyne views — schedule list, calendar, editor, groups, logs
+brand/      canonical brand guide · masters · outputs · tokens · platform assets
 test/       integration tests · maintainer test scripts
-docs/       install guides · CLI reference · GUI fields · test scripts
+docs/       install guides · CLI reference · GUI fields · brand system
 specs/      spec-driven development artifacts
 ```
 

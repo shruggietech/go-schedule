@@ -24,6 +24,7 @@ start with the guide for your platform; if you are contributing, start with
 | [`gosched` command reference](cli.md) | Every command and flag the CLI exposes, with exit codes and elevation requirements. |
 | [GUI field reference](gui-fields.md) | What every field in the desktop task editor accepts and means. |
 | [Cron interoperability](cron.md) | The documented five- and six-field subset, task authoring, operational crontab import, export, and named fidelity refusals. |
+| [Brand system](brand.md) | Approved identity, asset selection, accessibility, attribution, misuse rules, and downloads. |
 
 ## Verifying an installation
 
@@ -44,6 +45,7 @@ attachment to a bug report.
 | [Constitution](https://github.com/shruggietech/go-schedule/blob/main/.specify/memory/constitution.md) | The engineering principles the project is governed by. |
 | [Master specification](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/spec.md) | What the scheduler is and why, with the plan, data model, and contracts alongside it. |
 | [Changelog](changelog.md) | Release history, including the dated decisions behind changes to pinned artifacts. |
+| [Canonical brand kit](https://github.com/shruggietech/go-schedule/tree/main/brand) | Brand masters, outputs, tokens, platform assets, build source, and repository validation guidance. |
 
 ## Reporting problems
 

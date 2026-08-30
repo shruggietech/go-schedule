@@ -19,6 +19,21 @@ copy_fixture() {
     mkdir -p "$dest/$(dirname "$file")"
     cp "$ROOT/$file" "$dest/$file"
   done
+
+  cat > "$dest/docs/brand.md" <<'EOF'
+# Brand system
+
+Use `go-schedule-mark-color.svg` for the full mark and
+`go-schedule-mark-reduced.svg` below 32 px. Horizontal choices include
+`go-schedule-horizontal-color.svg` and `go-schedule-horizontal-black.svg`;
+single-color choices include `go-schedule-mark-white.svg` and
+`go-schedule-mark-black.svg`. Download `go-schedule-social-preview-1280x640.png`,
+`brand-guide.pdf`, and inspect `brand/manifest.json` for the full inventory.
+
+Palette: #071014 #62D9B7 #58A6FF #F2B84B #E05F5F.
+Typography: Space Grotesk, Geist, and Geist Mono.
+Use the endorsement “A ShruggieTech project”. Do not recolor or distort assets.
+EOF
 }
 
 GOOD="$TMP/good"
@@ -51,4 +66,22 @@ if sh "$CHECK" "$STALE_BREADTH" >/dev/null 2>&1; then
   exit 1
 fi
 
-printf '%s\n' 'docs-policy fixtures: OK (aligned copy accepted; stale and missing copy rejected)'
+MISSING_BRAND_ASSET="$TMP/missing-brand-asset"
+copy_fixture "$MISSING_BRAND_ASSET"
+sed 's/go-schedule-mark-reduced\.svg/reduced-mark-omitted.svg/' \
+  "$MISSING_BRAND_ASSET/docs/brand.md" > "$MISSING_BRAND_ASSET/docs/brand.md.tmp"
+mv "$MISSING_BRAND_ASSET/docs/brand.md.tmp" "$MISSING_BRAND_ASSET/docs/brand.md"
+if sh "$CHECK" "$MISSING_BRAND_ASSET" >/dev/null 2>&1; then
+  printf '%s\n' 'docs-policy fixture: missing reduced-mark download passed unexpectedly' >&2
+  exit 1
+fi
+
+MISSING_BRAND_PAGE="$TMP/missing-brand-page"
+copy_fixture "$MISSING_BRAND_PAGE"
+rm "$MISSING_BRAND_PAGE/docs/brand.md"
+if sh "$CHECK" "$MISSING_BRAND_PAGE" >/dev/null 2>&1; then
+  printf '%s\n' 'docs-policy fixture: missing brand page passed unexpectedly' >&2
+  exit 1
+fi
+
+printf '%s\n' 'docs-policy fixtures: OK (product and brand copy accepted; stale and missing copy rejected)'

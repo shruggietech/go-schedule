@@ -24,3 +24,12 @@ test/scripts/lib/*.ps1 text eol=lf
 *.dll binary
 *.png binary
 *.ico binary
+
+# Brand integrity is byte-for-byte. Preserve canonical manifest inputs and the
+# declared consumer-copy directories exactly across every checkout so Git's
+# text normalization cannot create false drift or invalidate approved hashes.
+brand/** -text -eol -whitespace
+docs/assets/brand/** -text -eol -whitespace
+docs/assets/favicons/** -text -eol -whitespace
+docs/assets/fonts/** -text -eol -whitespace
+gui/assets/fonts/** -text -eol -whitespace

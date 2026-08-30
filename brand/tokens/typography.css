@@ -1,0 +1,8 @@
+:root {
+  --gs-font-display: "Space Grotesk", system-ui, sans-serif;
+  --gs-font-body: "Geist", system-ui, sans-serif;
+  --gs-font-mono: "Geist Mono", ui-monospace, monospace;
+  --gs-display-tracking: -0.025em; --gs-body-line-height: 1.65; --gs-label-tracking: 0.10em;
+  --gs-text-xs: 0.75rem; --gs-text-sm: 0.875rem; --gs-text-md: 1rem;
+  --gs-text-lg: 1.25rem; --gs-text-xl: 1.75rem; --gs-text-2xl: 2.5rem;
+}
