@@ -120,6 +120,7 @@ func (m *Model) ApplyEvent(e events.Event) {
 	case events.KindTask:
 		if e.Task != nil {
 			m.st.Tasks = applyTaskEvent(m.st.Tasks, e.Task)
+			m.st.Chains = applyTaskEventToChains(m.st.Chains, e.Task)
 		}
 	case events.KindGroup:
 		if e.Group != nil {
@@ -193,6 +194,32 @@ func applyTaskEvent(tasks []domain.Task, ev *events.TaskEvent) []domain.Task {
 		}
 	}
 	return append([]domain.Task{*ev.Task}, tasks...)
+}
+
+// applyTaskEventToChains keeps denormalized task names and task-delete cascades
+// in the live chain cache consistent with the API's persisted view.
+func applyTaskEventToChains(chains []domain.CompletionChain, ev *events.TaskEvent) []domain.CompletionChain {
+	if ev.Verb == events.VerbDeleted {
+		out := chains[:0]
+		for _, chain := range chains {
+			if chain.SourceTaskID != ev.ID && chain.TargetTaskID != ev.ID {
+				out = append(out, chain)
+			}
+		}
+		return out
+	}
+	if ev.Task == nil {
+		return chains
+	}
+	for i := range chains {
+		if chains[i].SourceTaskID == ev.ID {
+			chains[i].SourceTaskName = ev.Task.Name
+		}
+		if chains[i].TargetTaskID == ev.ID {
+			chains[i].TargetTaskName = ev.Task.Name
+		}
+	}
+	return chains
 }
 
 // applyGroupEvent folds a group change into the slice (upsert/remove).

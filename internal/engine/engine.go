@@ -326,7 +326,9 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 	if e.onRun != nil {
 		e.onRun(run)
 	}
-	e.drainCompletionDeliveries()
+	if e.runCtx.Err() == nil {
+		e.drainCompletionDeliveries()
+	}
 }
 
 // drainCompletionDeliveries claims durable pending work in bounded batches and
@@ -335,12 +337,18 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 // completion chaining adds no polling loop or long-lived goroutine.
 func (e *Engine) drainCompletionDeliveries() {
 	for {
+		if e.runCtx.Err() != nil {
+			return
+		}
 		deliveries, err := e.store.ClaimCompletionDeliveries(100)
 		if err != nil {
 			e.log.Error("engine: claim completion deliveries", "err", err)
 			return
 		}
 		for _, delivery := range deliveries {
+			if e.runCtx.Err() != nil {
+				return
+			}
 			if _, err := e.store.GetCompletionChain(delivery.ChainID); err != nil {
 				e.resolveCompletionDelivery(delivery.ID, "completion chain no longer exists")
 				continue

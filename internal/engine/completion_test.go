@@ -199,3 +199,35 @@ func TestCompletionDeliveryResolvesWhenChainDeletedBeforeClaim(t *testing.T) {
 	default:
 	}
 }
+
+func TestRecordRunLeavesCompletionDeliveryPendingDuringShutdown(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	source := setupTask(t, st, domain.OverlapQueueOne)
+	target := setupTask(t, st, domain.OverlapQueueOne)
+	addChain(t, st, source, target, domain.CompletionOnSuccess)
+	runner := &completionRunner{outcomes: map[string]domain.RunOutcome{}, runs: make(chan domain.Run, 1)}
+	e := newEngine(st, runner)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	e.runCtx = ctx
+
+	run := domain.Run{TaskID: source.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+	e.recordRun(run, "")
+
+	deliveries, err := st.ListCompletionDeliveries()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deliveries) != 1 || deliveries[0].State != domain.DeliveryPending || deliveries[0].Attempts != 0 {
+		t.Fatalf("shutdown delivery = %+v, want one unattempted pending delivery", deliveries)
+	}
+	select {
+	case got := <-runner.runs:
+		t.Fatalf("target dispatched during shutdown: %+v", got)
+	default:
+	}
+}

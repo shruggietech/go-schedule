@@ -106,6 +106,50 @@ func TestApplyEvent_TaskUpsertAndRemove(t *testing.T) {
 	}
 }
 
+func TestApplyEvent_TaskChangesReconcileChains(t *testing.T) {
+	m := New(&fakeAPI{})
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
+		Verb: events.VerbCreated,
+		ID:   "c1",
+		Chain: &domain.CompletionChain{
+			ID: "c1", SourceTaskID: "source", SourceTaskName: "old source",
+			TargetTaskID: "target", TargetTaskName: "old target",
+		},
+	}})
+
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbUpdated, ID: "source", Task: &domain.Task{ID: "source", Name: "new source"},
+	}})
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbUpdated, ID: "target", Task: &domain.Task{ID: "target", Name: "new target"},
+	}})
+	got := m.Snapshot().Chains
+	if len(got) != 1 || got[0].SourceTaskName != "new source" || got[0].TargetTaskName != "new target" {
+		t.Fatalf("chains after task renames = %+v", got)
+	}
+
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbDeleted, ID: "source",
+	}})
+	if got := m.Snapshot().Chains; len(got) != 0 {
+		t.Fatalf("chains after source deletion = %+v", got)
+	}
+
+	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
+		Verb: events.VerbCreated,
+		ID:   "c2",
+		Chain: &domain.CompletionChain{
+			ID: "c2", SourceTaskID: "other", TargetTaskID: "target",
+		},
+	}})
+	m.ApplyEvent(events.Event{Kind: events.KindTask, Task: &events.TaskEvent{
+		Verb: events.VerbDeleted, ID: "target",
+	}})
+	if got := m.Snapshot().Chains; len(got) != 0 {
+		t.Fatalf("chains after target deletion = %+v", got)
+	}
+}
+
 func TestApplyEvent_GroupUpsertAndRemove(t *testing.T) {
 	m := New(&fakeAPI{})
 	m.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
