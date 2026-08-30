@@ -214,28 +214,28 @@ run_automation_cases() {
   cp -R "$good" "$direct_main_push"
   printf '      - run: git push origin HEAD:main\n' >> \
     "$direct_main_push/.github/workflows/release.yml"
-  run_expect_fail direct-main-push 'must not run git push' \
+  run_expect_fail direct-main-push 'must not invoke git' \
     sh "$CHECK" "$direct_main_push"
 
   quoted_main_push="$tmp/quoted-main-push"
   cp -R "$good" "$quoted_main_push"
   printf "      - run: git push origin 'HEAD:main'\n" >> \
     "$quoted_main_push/.github/workflows/release.yml"
-  run_expect_fail quoted-main-push 'must not run git push' \
+  run_expect_fail quoted-main-push 'must not invoke git' \
     sh "$CHECK" "$quoted_main_push"
 
   full_main_refspec="$tmp/full-main-refspec"
   cp -R "$good" "$full_main_refspec"
   printf '      - run: git push origin HEAD:refs/heads/main\n' >> \
     "$full_main_refspec/.github/workflows/release.yml"
-  run_expect_fail full-main-refspec 'must not run git push' \
+  run_expect_fail full-main-refspec 'must not invoke git' \
     sh "$CHECK" "$full_main_refspec"
 
   global_option_push="$tmp/global-option-push"
   cp -R "$good" "$global_option_push"
   printf '      - run: git -C "$GITHUB_WORKSPACE" push origin HEAD:main\n' >> \
     "$global_option_push/.github/workflows/release.yml"
-  run_expect_fail global-option-push 'must not run git push' \
+  run_expect_fail global-option-push 'must not invoke git' \
     sh "$CHECK" "$global_option_push"
 
   continued_push="$tmp/continued-push"
@@ -243,8 +243,16 @@ run_automation_cases() {
   printf '%s\n' '      - run: |' '          git \' \
     '            push origin HEAD:main' >> \
     "$continued_push/.github/workflows/release.yml"
-  run_expect_fail continued-push 'must not run git push' \
+  run_expect_fail continued-push 'must not invoke git' \
     sh "$CHECK" "$continued_push"
+
+  folded_push="$tmp/folded-push"
+  cp -R "$good" "$folded_push"
+  printf '%s\n' '      - run: >' '          git' \
+    '          push origin HEAD:main' >> \
+    "$folded_push/.github/workflows/release.yml"
+  run_expect_fail folded-push 'must not invoke git' \
+    sh "$CHECK" "$folded_push"
 
   main_checkout="$tmp/main-checkout"
   cp -R "$good" "$main_checkout"
