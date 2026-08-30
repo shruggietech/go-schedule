@@ -14,7 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   example edits directly to `main`. Release preparation now owns those edits,
   while the tag workflow verifies both lines without mutating the repository.
   Offline automation rejects any future direct-main push in the release
-  workflow.
+  workflow. The Linux desktop release job also installs the same Wayland
+  development headers and protocols as GUI CI, preventing a tag-only build
+  failure after the GLFW dependency gained Wayland support.
 
 ## [0.9.0] - 2026-08-30
 

@@ -154,6 +154,7 @@ jobs:
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
       - run: cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
       - run: cp -R brand/platform/linux/hicolor "$stage/share/icons/"
+      - run: sudo apt-get install -y libwayland-dev wayland-protocols
       - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: false
@@ -211,6 +212,13 @@ run_automation_cases() {
     "$direct_main_push/.github/workflows/release.yml"
   run_expect_fail direct-main-push 'must not push directly to main' \
     sh "$CHECK" "$direct_main_push"
+
+  missing_wayland="$tmp/missing-wayland"
+  cp -R "$good" "$missing_wayland"
+  sed 's/libwayland-dev //' "$good/.github/workflows/release.yml" > \
+    "$missing_wayland/.github/workflows/release.yml"
+  run_expect_fail missing-wayland 'Wayland development headers' \
+    sh "$CHECK" "$missing_wayland"
 
   missing_changelog="$tmp/missing-changelog"
   cp -R "$good" "$missing_changelog"

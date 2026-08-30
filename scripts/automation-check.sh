@@ -286,6 +286,10 @@ else
   require_release_text \
     "body_path: .github/release-notes/\${{ github.ref_name }}.md" \
     'dynamic tag-specific release-note body path'
+  require_release_text 'libwayland-dev' \
+    'Linux desktop Wayland development headers'
+  require_release_text 'wayland-protocols' \
+    'Linux desktop Wayland protocols'
 fi
 
 if [ ! -d "$RELEASE_NOTES_DIR" ]; then
