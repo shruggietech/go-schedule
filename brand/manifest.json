@@ -70,8 +70,8 @@
     },
     {
       "path": "components/components.css",
-      "bytes": 1993,
-      "sha256": "113fd96b7050c56497c89c3db304348385fbaab2486973d37ea770417ffccde2"
+      "bytes": 2034,
+      "sha256": "0f55e4e32d4d89afa305953381b1b8e1bc04597f5c3bda6ee85cde28e4376efe"
     },
     {
       "path": "components/core/Badge.jsx",
@@ -95,13 +95,13 @@
     },
     {
       "path": "components/forms/Input.jsx",
-      "bytes": 155,
-      "sha256": "498f03e74f4ca83ac1ffdff98835b796e65cc0e3267de612c75198b35b974012"
+      "bytes": 193,
+      "sha256": "b1be03b9d9a6e86236dd907e787697bda0a2d326a2650615ef11e01d07a0eb3b"
     },
     {
       "path": "components/forms/Select.jsx",
-      "bytes": 185,
-      "sha256": "a2204f2288bcab2b0660f2250013c51c2feffc381b5d68dd9c258443187a4668"
+      "bytes": 223,
+      "sha256": "fa8c95c223371f29dd999ef3c20cdfd863737381c39f74ebf7cb2fe9a70c461d"
     },
     {
       "path": "components/README.md",

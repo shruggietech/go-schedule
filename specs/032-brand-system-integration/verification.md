@@ -55,3 +55,9 @@ Implementation is authorized to proceed.
 - Encoding audit: PASS, 129 changed or added text files decode as strict UTF-8 without BOM. A direct mojibake-marker scan is clean; the verifier's corruption fixtures use Unicode escapes so intentional negative-test values cannot be mistaken for damaged source.
 - Diff audit: PASS. `git diff --check` reports no whitespace errors. Canonical and declared consumer asset directories are marked `-text` in `.gitattributes`, preventing Git line-ending normalization from invalidating approved hashes or producing checkout-dependent copy drift.
 - Historical inventory correction: the stale local-review evidence for already merged S030 and S031 was updated to PR #68 and PR #69. This small deviation is required to keep the lifecycle index truthful and does not expand S032 product scope.
+
+## Pull-request review follow-through
+
+- AI review identified that `Input` and `Select` allowed a caller `className` to replace their required base class. Both wrappers now destructure and merge the caller class after `gs-input` or `gs-select`, with routine Go contract coverage for both components.
+- AI review identified insufficient normal-text contrast for primary buttons inside `.gs-light`. Light-surface primary buttons now use white text against both the `#087A62` default background and `#0067C5` hover background; the later secondary-button rule retains its semantic foreground. Routine contract coverage pins the accessible override.
+- The three changed canonical artifact lengths and SHA-256 values were refreshed in `brand/manifest.json`; repository brand verification and the full local aggregate were rerun before the review commit was published.

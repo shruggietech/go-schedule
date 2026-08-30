@@ -1,6 +1,7 @@
 .gs-card { background: var(--gs-surface); border: 1px solid var(--gs-line); border-radius: var(--gs-radius-md); padding: var(--gs-space-4); }
 .gs-button { appearance: none; border: 1px solid var(--gs-accent); border-radius: var(--gs-radius-sm); background: var(--gs-accent); color: var(--gs-night); font: 500 var(--gs-text-sm)/1 var(--gs-font-body); padding: 10px 14px; cursor: pointer; transition: background var(--gs-motion-fast) var(--gs-motion-curve); }
 .gs-button:hover { background: var(--gs-link); border-color: var(--gs-link); }
+.gs-light .gs-button { color: #FFFFFF; }
 .gs-button--secondary { background: transparent; color: var(--gs-fg); border-color: var(--gs-line); }
 .gs-badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid currentColor; border-radius: var(--gs-radius-pill); color: var(--gs-fg-muted); font: 400 var(--gs-text-xs)/1 var(--gs-font-mono); letter-spacing: var(--gs-label-tracking); padding: 5px 9px; text-transform: uppercase; }
 .gs-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
