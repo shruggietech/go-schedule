@@ -148,12 +148,17 @@ EOF
   cat > "$fixture/.github/workflows/release.yml" <<'EOF'
 name: Release
 jobs:
-  release:
+  readme-version:
+    steps:
+      - run: true
+  binaries:
+    needs: readme-version
     steps:
       - run: go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 -icon=brand/platform/windows/go-schedule.ico
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
       - run: cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
       - run: cp -R brand/platform/linux/hicolor "$stage/share/icons/"
+      - run: sudo apt-get install -y libwayland-dev wayland-protocols
       - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: false
@@ -204,6 +209,97 @@ run_automation_cases() {
     "$fixed_body_path/.github/workflows/release.yml"
   run_expect_fail fixed-body-path 'dynamic tag-specific release-note body path' \
     sh "$CHECK" "$fixed_body_path"
+
+  direct_main_push="$tmp/direct-main-push"
+  cp -R "$good" "$direct_main_push"
+  printf '      - run: git push origin HEAD:main\n' >> \
+    "$direct_main_push/.github/workflows/release.yml"
+  run_expect_fail direct-main-push 'must not invoke git' \
+    sh "$CHECK" "$direct_main_push"
+
+  quoted_main_push="$tmp/quoted-main-push"
+  cp -R "$good" "$quoted_main_push"
+  printf "      - run: git push origin 'HEAD:main'\n" >> \
+    "$quoted_main_push/.github/workflows/release.yml"
+  run_expect_fail quoted-main-push 'must not invoke git' \
+    sh "$CHECK" "$quoted_main_push"
+
+  full_main_refspec="$tmp/full-main-refspec"
+  cp -R "$good" "$full_main_refspec"
+  printf '      - run: git push origin HEAD:refs/heads/main\n' >> \
+    "$full_main_refspec/.github/workflows/release.yml"
+  run_expect_fail full-main-refspec 'must not invoke git' \
+    sh "$CHECK" "$full_main_refspec"
+
+  global_option_push="$tmp/global-option-push"
+  cp -R "$good" "$global_option_push"
+  printf '      - run: git -C "$GITHUB_WORKSPACE" push origin HEAD:main\n' >> \
+    "$global_option_push/.github/workflows/release.yml"
+  run_expect_fail global-option-push 'must not invoke git' \
+    sh "$CHECK" "$global_option_push"
+
+  continued_push="$tmp/continued-push"
+  cp -R "$good" "$continued_push"
+  printf '%s\n' '      - run: |' '          git \' \
+    '            push origin HEAD:main' >> \
+    "$continued_push/.github/workflows/release.yml"
+  run_expect_fail continued-push 'must not invoke git' \
+    sh "$CHECK" "$continued_push"
+
+  folded_push="$tmp/folded-push"
+  cp -R "$good" "$folded_push"
+  printf '%s\n' '      - run: >' '          git' \
+    '          push origin HEAD:main' >> \
+    "$folded_push/.github/workflows/release.yml"
+  run_expect_fail folded-push 'must not invoke git' \
+    sh "$CHECK" "$folded_push"
+
+  main_checkout="$tmp/main-checkout"
+  cp -R "$good" "$main_checkout"
+  printf '      - uses: actions/checkout@v7\n        with:\n          ref: main\n' >> \
+    "$main_checkout/.github/workflows/release.yml"
+  run_expect_fail main-checkout 'must inspect the tagged checkout' \
+    sh "$CHECK" "$main_checkout"
+
+  quoted_main_checkout="$tmp/quoted-main-checkout"
+  cp -R "$good" "$quoted_main_checkout"
+  printf '      - uses: actions/checkout@v7\n        with:\n          ref: "main"\n' >> \
+    "$quoted_main_checkout/.github/workflows/release.yml"
+  run_expect_fail quoted-main-checkout 'must inspect the tagged checkout' \
+    sh "$CHECK" "$quoted_main_checkout"
+
+  qualified_main_checkout="$tmp/qualified-main-checkout"
+  cp -R "$good" "$qualified_main_checkout"
+  printf "      - uses: actions/checkout@v7\n        with:\n          ref: 'refs/heads/main'\n" >> \
+    "$qualified_main_checkout/.github/workflows/release.yml"
+  run_expect_fail qualified-main-checkout 'must inspect the tagged checkout' \
+    sh "$CHECK" "$qualified_main_checkout"
+
+  ungated_release="$tmp/ungated-release"
+  cp -R "$good" "$ungated_release"
+  sed 's/needs: readme-version/needs: binaries/' \
+    "$good/.github/workflows/release.yml" > \
+    "$ungated_release/.github/workflows/release.yml"
+  printf '  gui: # desktop release\n    needs: readme-version\n' >> \
+    "$ungated_release/.github/workflows/release.yml"
+  run_expect_fail ungated-release 'README version preflight dependency' \
+    sh "$CHECK" "$ungated_release"
+
+  nested_dependency="$tmp/nested-dependency"
+  cp -R "$good" "$nested_dependency"
+  sed 's/^    needs: readme-version$/    env:\
+      needs: readme-version/' \
+    "$good/.github/workflows/release.yml" > \
+    "$nested_dependency/.github/workflows/release.yml"
+  run_expect_fail nested-dependency 'README version preflight dependency' \
+    sh "$CHECK" "$nested_dependency"
+
+  missing_wayland="$tmp/missing-wayland"
+  cp -R "$good" "$missing_wayland"
+  sed 's/libwayland-dev //' "$good/.github/workflows/release.yml" > \
+    "$missing_wayland/.github/workflows/release.yml"
+  run_expect_fail missing-wayland 'Wayland development headers' \
+    sh "$CHECK" "$missing_wayland"
 
   missing_changelog="$tmp/missing-changelog"
   cp -R "$good" "$missing_changelog"

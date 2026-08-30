@@ -278,11 +278,32 @@ else
   if grep -Fq -- 'generate_release_notes: true' "$RELEASE"; then
     report "$RELEASE: generated release notes must remain disabled"
   fi
+  if grep -Eq '(^|[^[:alnum:]_])git([^[:alnum:]_]|$)' "$RELEASE"; then
+    report "$RELEASE: release workflow must not invoke git"
+  fi
+  if grep -Eq "^[[:space:]]*ref:[[:space:]]*(main|refs/heads/main|'main'|'refs/heads/main'|\"main\"|\"refs/heads/main\")[[:space:]]*(#.*)?$" \
+    "$RELEASE"; then
+    report "$RELEASE: release validation must inspect the tagged checkout"
+  fi
+  if ! awk '
+    /^  binaries:[[:space:]]*$/ { in_binaries = 1; next }
+    in_binaries && /^  [[:alnum:]_-]+:[[:space:]]*(#.*)?$/ { exit }
+    in_binaries && /^    needs:[[:space:]]*readme-version[[:space:]]*$/ {
+      found = 1
+    }
+    END { exit !found }
+  ' "$RELEASE"; then
+    report "$RELEASE: binaries job missing README version preflight dependency"
+  fi
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
   require_release_text \
     "body_path: .github/release-notes/\${{ github.ref_name }}.md" \
     'dynamic tag-specific release-note body path'
+  require_release_text 'libwayland-dev' \
+    'Linux desktop Wayland development headers'
+  require_release_text 'wayland-protocols' \
+    'Linux desktop Wayland protocols'
 fi
 
 if [ ! -d "$RELEASE_NOTES_DIR" ]; then

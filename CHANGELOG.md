@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Release-time README synchronization now respects reviewed changes.** The
+  v0.9.0 tag exposed that the old release job tried to push badge and health
+  example edits directly to `main`. Release preparation now owns those edits,
+  while the tag workflow verifies both lines without mutating the repository.
+  Every publication job is gated on that tagged-tree preflight, and offline
+  automation rejects both an ungated release and any future direct-main push.
+  The Linux desktop release job also installs the same Wayland development
+  headers and protocols as GUI CI, preventing a tag-only build failure after
+  the GLFW dependency gained Wayland support.
+
 ## [0.9.0] - 2026-08-30
 
 ### Added
