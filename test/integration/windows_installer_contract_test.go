@@ -118,6 +118,7 @@ func validateInstallerAdminGroup(data []byte) []string {
 	} else {
 		want := map[string]string{
 			"Name":              "[LogonUser]",
+			"Domain":            "[%USERDOMAIN]",
 			"CreateUser":        "no",
 			"FailIfExists":      "no",
 			"RemoveOnUninstall": "no",
@@ -216,7 +217,7 @@ func TestWindowsInstallerAdminGroupContract(t *testing.T) {
 func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
 	valid := `<Wix><Package><Feature><ComponentRef Id="AdminAccessProvisioning" /></Feature><Component Id="AdminAccessProvisioning">
 <Group Id="GoScheduleAdminGroup" Name="goschedadmin" Domain="[ComputerName]" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />
-<User Id="InstallingUser" Name="[LogonUser]" CreateUser="no" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes"><GroupRef Id="GoScheduleAdminGroup" /></User>
+<User Id="InstallingUser" Name="[LogonUser]" Domain="[%USERDOMAIN]" CreateUser="no" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes"><GroupRef Id="GoScheduleAdminGroup" /></User>
 </Component></Package></Wix>`
 	for _, test := range []struct {
 		name        string
@@ -227,6 +228,7 @@ func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
 		{name: "missing group", old: `<Group Id="GoScheduleAdminGroup" Name="goschedadmin" Domain="[ComputerName]" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />`, want: "administrative Group declaration is missing"},
 		{name: "wrong group name", old: `Name="goschedadmin"`, replacement: `Name="other"`, want: "administrative Group Name"},
 		{name: "destructive uninstall", old: `RemoveOnUninstall="no"`, replacement: `RemoveOnUninstall="yes"`, want: "administrative Group RemoveOnUninstall"},
+		{name: "unqualified user", old: `Domain="[%USERDOMAIN]"`, want: "installing User Domain"},
 		{name: "creates user", old: `CreateUser="no"`, replacement: `CreateUser="yes"`, want: "installing User CreateUser"},
 		{name: "missing membership", old: `<GroupRef Id="GoScheduleAdminGroup" />`, want: "GroupRef is missing"},
 		{name: "feature omission", old: `<ComponentRef Id="AdminAccessProvisioning" />`, want: "component is absent"},

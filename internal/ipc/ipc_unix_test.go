@@ -32,6 +32,20 @@ func currentGroup(t *testing.T) (string, int) {
 	return group.Name, gid
 }
 
+func shortTempDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "gs-ipc-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Errorf("remove temporary directory: %v", err)
+		}
+	})
+	return dir
+}
+
 func pathGID(t *testing.T, path string) int {
 	t.Helper()
 	info, err := os.Stat(path)
@@ -44,7 +58,7 @@ func pathGID(t *testing.T, path string) int {
 func TestListenUnixRestrictedPermissions(t *testing.T) {
 	group, gid := currentGroup(t)
 	cfg := config.Default()
-	cfg.DataDir = filepath.Join(t.TempDir(), "data")
+	cfg.DataDir = filepath.Join(shortTempDir(t), "data")
 	cfg.AdminGroup = group
 	ln, access, err := Listen(cfg)
 	if err != nil {
@@ -71,7 +85,7 @@ func TestListenUnixRestrictedPermissions(t *testing.T) {
 
 func TestListenUnixMissingGroupFailsClosed(t *testing.T) {
 	cfg := config.Default()
-	cfg.DataDir = filepath.Join(t.TempDir(), "data")
+	cfg.DataDir = filepath.Join(shortTempDir(t), "data")
 	cfg.AdminGroup = "group-that-does-not-exist-for-goschedule-tests"
 	_, _, err := Listen(cfg)
 	if err == nil || !strings.Contains(err.Error(), "admin_group") || !strings.Contains(err.Error(), cfg.AdminGroup) {
@@ -84,7 +98,7 @@ func TestListenUnixMissingGroupFailsClosed(t *testing.T) {
 
 func TestListenUnixDoesNotRewriteUnsafeCustomParent(t *testing.T) {
 	group, _ := currentGroup(t)
-	parent := filepath.Join(t.TempDir(), "custom")
+	parent := filepath.Join(shortTempDir(t), "custom")
 	if err := os.Mkdir(parent, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +123,7 @@ func TestListenUnixDoesNotRewriteUnsafeCustomParent(t *testing.T) {
 
 func TestListenUnixCompatibilityMode(t *testing.T) {
 	cfg := config.Default()
-	cfg.DataDir = filepath.Join(t.TempDir(), "data")
+	cfg.DataDir = filepath.Join(shortTempDir(t), "data")
 	cfg.AdminGroup = ""
 	ln, access, err := Listen(cfg)
 	if err != nil {
@@ -132,7 +146,7 @@ func TestListenUnixCompatibilityMode(t *testing.T) {
 
 func TestListenUnixSecuresEveryCreatedCustomParent(t *testing.T) {
 	group, gid := currentGroup(t)
-	root := t.TempDir()
+	root := shortTempDir(t)
 	first := filepath.Join(root, "first")
 	parent := filepath.Join(first, "second")
 	cfg := config.Default()
@@ -160,7 +174,7 @@ func TestListenUnixSecuresEveryCreatedCustomParent(t *testing.T) {
 func TestListenUnixRemovesStaleSocket(t *testing.T) {
 	group, _ := currentGroup(t)
 	cfg := config.Default()
-	cfg.DataDir = filepath.Join(t.TempDir(), "data")
+	cfg.DataDir = filepath.Join(shortTempDir(t), "data")
 	cfg.AdminGroup = group
 	first, _, err := Listen(cfg)
 	if err != nil {
@@ -179,7 +193,7 @@ func TestListenUnixRemovesStaleSocket(t *testing.T) {
 func TestListenUnixCleansUpAfterPermissionFailure(t *testing.T) {
 	group, _ := currentGroup(t)
 	cfg := config.Default()
-	cfg.DataDir = filepath.Join(t.TempDir(), "data")
+	cfg.DataDir = filepath.Join(shortTempDir(t), "data")
 	cfg.AdminGroup = group
 	endpoint := Endpoint(cfg)
 	ops := productionUnixIPCOperations

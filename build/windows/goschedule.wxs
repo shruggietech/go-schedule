@@ -97,6 +97,7 @@
       <util:User
           Id="InstallingUser"
           Name="[LogonUser]"
+          Domain="[%USERDOMAIN]"
           CreateUser="no"
           FailIfExists="no"
           RemoveOnUninstall="no"

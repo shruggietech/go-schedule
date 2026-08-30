@@ -108,7 +108,7 @@ try {
     $fail += 'util:User Id="InstallingUser" is missing'
   } else {
     $expectedUserAttributes = @{
-      Name = '[LogonUser]'; CreateUser = 'no'; FailIfExists = 'no'
+      Name = '[LogonUser]'; Domain = '[%USERDOMAIN]'; CreateUser = 'no'; FailIfExists = 'no'
       RemoveOnUninstall = 'no'; UpdateIfExists = 'yes'; Vital = 'yes'
     }
     foreach ($attribute in $expectedUserAttributes.Keys) {
