@@ -285,6 +285,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1.24 and refused to analyze the module, to v2.12.0, the latest upstream
   release whose declared build baseline remains Go 1.25. The verifier and
   current contributor instructions now use the same compatible pin.
+- **The highlights-only release contract validates the entire document.**
+  Tag-specific notes must contain only their heading, four to six one-line
+  highlights, and the tagged full-changelog link. Extra paragraphs and nested
+  headings are rejected instead of slipping into the public release body.
 - **S029 maintenance checks now reject permissive near-misses.** Lifecycle
   validation requires recognizable commit, release, pull-request, or review-
   branch evidence instead of accepting the template placeholder. Dependabot

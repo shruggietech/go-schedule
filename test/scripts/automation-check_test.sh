@@ -239,6 +239,20 @@ run_automation_cases() {
   run_expect_fail exhaustive-copy 'highlights-only release copy' \
     sh "$CHECK" "$exhaustive_copy"
 
+  paragraph_copy="$tmp/paragraph-copy"
+  cp -R "$good" "$paragraph_copy"
+  printf '\nInstall the package and register the service before first use.\n' >> \
+    "$paragraph_copy/.github/release-notes/v0.9.0.md"
+  run_expect_fail paragraph-copy 'highlights-only release copy' \
+    sh "$CHECK" "$paragraph_copy"
+
+  h3_copy="$tmp/h3-copy"
+  cp -R "$good" "$h3_copy"
+  printf '\n### Installation\n\nRegister the service after extracting the package.\n' >> \
+    "$h3_copy/.github/release-notes/v0.9.0.md"
+  run_expect_fail h3-copy 'highlights-only release copy' \
+    sh "$CHECK" "$h3_copy"
+
   old="$tmp/old"
   cp -R "$good" "$old"
   sed 's#actions/checkout@v7#actions/checkout@v4#' \

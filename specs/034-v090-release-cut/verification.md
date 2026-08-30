@@ -82,8 +82,8 @@ The final verification results were:
 - Complete canonical gate: PASS for format, vet, lint, race, GUI, coverage,
   docs, and automation. The six coverage thresholds were 84.1% through 91.3%.
 - Changelog retention: PASS. The 61 original top-level Unreleased entries are
-  retained under v0.9.0; the section now has 63 top-level entries after adding
-  the S034 release-note decision and lint-gate fix.
+  retained under v0.9.0; the section now has 64 top-level entries after adding
+  the S034 release-note decision, lint-gate fix, and review hardening.
 - Workflow scope: PASS. The workflow diff changes only the release body's note
   source; package jobs, dependency ordering, asset globs, matrices, and final
   checksum job are unchanged.
@@ -93,3 +93,10 @@ The final verification results were:
   20 changed or added files, and zero mojibake candidates.
 - Hosted guards: issue #79 remains open, and no v0.9.0 tag or release was
   created during implementation.
+
+## Review Hardening
+
+Codex review identified that an H2 count alone did not reject extra plain
+paragraphs or H3 sections. The checker now validates the complete physical
+document shape, and focused negative fixtures cover both bypasses in addition
+to the original H2 installation case.

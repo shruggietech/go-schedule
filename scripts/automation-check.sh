@@ -303,7 +303,25 @@ else
       report "$notes: expected four to six highlight bullets"
     fi
 
-    if [ "$(grep -c '^## ' "$notes" || true)" -ne 1 ]; then
+    line_count=$(awk 'END { print NR }' "$notes")
+    expected_line_count=$((highlight_count + 4))
+    last_bullet_line=$((highlight_count + 2))
+    separator_line=$((highlight_count + 3))
+    link_line=$((highlight_count + 4))
+    invalid_body=false
+
+    if [ "$line_count" -ne "$expected_line_count" ] ||
+       [ -n "$(sed -n '2p' "$notes")" ] ||
+       [ -n "$(sed -n "${separator_line}p" "$notes")" ] ||
+       sed -n "3,${last_bullet_line}p" "$notes" | grep -vq '^- ' ||
+       ! sed -n "${link_line}p" "$notes" |
+         grep -Eq '^Read the \[full changelog\]\(.+\) for every change\.$'; then
+      invalid_body=true
+    fi
+
+    if [ "$invalid_body" = true ] ||
+       [ "$(grep -c '^## ' "$notes" || true)" -ne 1 ] ||
+       grep -E '^#{1,6} ' "$notes" | grep -qv '^## Highlights$'; then
       report "$notes: expected highlights-only release copy"
     fi
 
