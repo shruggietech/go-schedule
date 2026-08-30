@@ -58,6 +58,9 @@ for spec in "$SPECS"/[0-9][0-9][0-9]-*/spec.md; do
     Implemented)
       if [ -z "$delivery" ]; then
         report "$spec: missing delivery evidence"
+      elif ! printf '%s\n' "$delivery" | grep -Eiq \
+        '(commit[[:space:]]|releases?[[:space:]]|pull/[0-9]+|PR #[0-9]+|review branch[[:space:]])'; then
+        report "$spec: invalid delivery evidence: $delivery"
       fi
       if [ "$open" -ne 0 ]; then
         report "$spec: Implemented has $open unresolved task(s)"

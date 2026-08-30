@@ -170,6 +170,22 @@ require_dependabot_pattern() {
 if [ ! -f "$DEPENDABOT" ]; then
   report "$DEPENDABOT: Dependabot configuration not found"
 else
+  ecosystem_count=$(grep -Ec '^  - package-ecosystem:' "$DEPENDABOT" || true)
+  if [ "$ecosystem_count" -ne 2 ]; then
+    report "$DEPENDABOT: expected exactly two package ecosystems"
+  fi
+
+  invalid_ecosystems=$(awk '
+    /^  - package-ecosystem:/ {
+      ecosystem = $0
+      sub(/^  - package-ecosystem:[[:space:]]*/, "", ecosystem)
+      if (ecosystem != "gomod" && ecosystem != "github-actions") print ecosystem
+    }
+  ' "$DEPENDABOT")
+  if [ -n "$invalid_ecosystems" ]; then
+    report "$DEPENDABOT: unapproved package ecosystem(s): $invalid_ecosystems"
+  fi
+
   for ecosystem in gomod github-actions; do
     count=$(grep -Ec "^  - package-ecosystem: $ecosystem$" "$DEPENDABOT" || true)
     if [ "$count" -ne 1 ]; then
@@ -197,6 +213,14 @@ else
     esac
     require_dependabot_pattern "$block" "^      interval: $cadence$" \
       "$ecosystem $cadence cadence"
+
+    if printf '%s\n' "$block" | grep -Eq '^          - major$'; then
+      report "$DEPENDABOT: $ecosystem routine group must not group major updates"
+    fi
+    if printf '%s\n' "$block" | grep -Eq \
+      '^        applies-to: security-updates$'; then
+      report "$DEPENDABOT: $ecosystem routine group must not group security updates"
+    fi
   done
 fi
 

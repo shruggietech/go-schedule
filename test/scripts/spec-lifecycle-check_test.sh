@@ -88,6 +88,18 @@ write_tasks "$missing_delivery" x
 write_inventory "$missing_delivery" Implemented
 expect_fail missing-delivery 'missing delivery evidence' "$missing_delivery"
 
+placeholder_delivery="$tmp/placeholder-delivery"
+write_spec "$placeholder_delivery" Implemented 'Pending implementation'
+write_tasks "$placeholder_delivery" x
+write_inventory "$placeholder_delivery" Implemented
+expect_fail placeholder-delivery 'invalid delivery evidence' "$placeholder_delivery"
+
+arbitrary_delivery="$tmp/arbitrary-delivery"
+write_spec "$arbitrary_delivery" Implemented 'done somewhere'
+write_tasks "$arbitrary_delivery" x
+write_inventory "$arbitrary_delivery" Implemented
+expect_fail arbitrary-delivery 'invalid delivery evidence' "$arbitrary_delivery"
+
 draft_complete="$tmp/draft-complete"
 write_spec "$draft_complete" Draft ''
 write_tasks "$draft_complete" x

@@ -215,6 +215,32 @@ run_automation_cases() {
   run_expect_fail missing-dependency-label 'dependencies label' \
     sh "$CHECK" "$missing_label"
 
+  extra_ecosystem="$tmp/extra-ecosystem"
+  cp -R "$good" "$extra_ecosystem"
+  printf '%s\n' \
+    '  - package-ecosystem: npm' \
+    '    directory: /' \
+    '    schedule:' \
+    '      interval: weekly' >> "$extra_ecosystem/.github/dependabot.yml"
+  run_expect_fail extra-ecosystem 'unapproved package ecosystem' \
+    sh "$CHECK" "$extra_ecosystem"
+
+  grouped_major="$tmp/grouped-major"
+  cp -R "$good" "$grouped_major"
+  sed '/          - minor/a\          - major' \
+    "$good/.github/dependabot.yml" > \
+    "$grouped_major/.github/dependabot.yml"
+  run_expect_fail grouped-major 'must not group major updates' \
+    sh "$CHECK" "$grouped_major"
+
+  grouped_security="$tmp/grouped-security"
+  cp -R "$good" "$grouped_security"
+  sed '/      routine-minor-and-patch:/a\        applies-to: security-updates' \
+    "$good/.github/dependabot.yml" > \
+    "$grouped_security/.github/dependabot.yml"
+  run_expect_fail grouped-security 'must not group security updates' \
+    sh "$CHECK" "$grouped_security"
+
   bracket_secret="$tmp/bracket-secret"
   cp -R "$good" "$bracket_secret"
   sed "/    steps:/a\      - run: echo \"\${{ secrets['NAME'] }}\"" \

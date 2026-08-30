@@ -246,6 +246,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **S029 maintenance checks now reject permissive near-misses.** Lifecycle
+  validation requires recognizable commit, release, pull-request, or review-
+  branch evidence instead of accepting the template placeholder. Dependabot
+  validation rejects extra ecosystems plus major or security updates added to
+  routine groups.
 - **Windows installs now carry the go-schedule mark on the Start Menu shortcut
   and installed-apps entry (closes #24 and #25).** The MSI declares one
   canonical icon row sourced from the same multi-resolution icon embedded in

@@ -44,3 +44,15 @@ The cross-artifact analysis found no constitution conflict or uncovered function
 - Coverage: engine 88.1%, schedule 89.0%, timezone 91.3%, store 86.9%, catchup 88.9%, and logbus 91.1%.
 - `git diff --check`: PASS.
 - UTF-8 without BOM, mojibake, task-state, issue-closing-language, and final hosted-state audits: PASS.
+
+## Third-Party Review Remediation
+
+The Codex review on PR #65 identified three valid permissiveness gaps. The
+lifecycle checker now rejects `Pending implementation` and arbitrary nonempty
+delivery text. The Dependabot checker now requires exactly the two approved
+ecosystems and rejects both `major` update types and
+`applies-to: security-updates` in routine groups. Each finding received a
+focused failing fixture before the checker was tightened.
+
+Post-remediation ShellCheck and all eight canonical verification gates passed
+in the foreground with the same coverage results recorded above.
