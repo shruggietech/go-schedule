@@ -107,7 +107,12 @@ jobs:
       - name: Install Fyne build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev xorg-dev libxkbcommon-dev
+          sudo apt-get install -y \
+            libgl1-mesa-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            wayland-protocols \
+            xorg-dev
       - name: Build GUI (cgo + OpenGL driver)
         env:
           CGO_ENABLED: "1"

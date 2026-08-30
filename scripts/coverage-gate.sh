@@ -26,7 +26,18 @@ COVERPKG="./internal/engine,./internal/schedule,./internal/timezone,./internal/s
 # drags stale blocks — including blocks for files that have since been deleted —
 # into the merged profile, inflating the denominator and failing the gate for
 # code that no longer exists.
-go test -count=1 -coverpkg="$COVERPKG" ./... -coverprofile="$PROFILE" >/dev/null
+test_output=$(mktemp)
+if go test -count=1 -coverpkg="$COVERPKG" ./... -coverprofile="$PROFILE" \
+    >"$test_output" 2>&1; then
+    rm -f "$test_output"
+else
+    status=$?
+    # Successful package-by-package output is intentionally quiet, but failures
+    # must retain the compiler error, panic, or failing-test detail needed to act.
+    cat "$test_output" >&2
+    rm -f "$test_output"
+    exit "$status"
+fi
 
 # A block key can appear once per test binary in the merged profile, so blocks
 # are deduplicated by key and counted as covered if any binary reached them.
