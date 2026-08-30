@@ -103,7 +103,7 @@ required, along with `--command`.
 | `--env` | An environment variable as `KEY=VALUE`. Repeatable. |
 | `--group` | Group ID to file the task under. |
 | `--tz` | IANA timezone, e.g. `America/New_York`. Defaults to the system zone. |
-| `--schedule` | Human-readable recurrence or supported five- or six-field cron expression. |
+| `--schedule` | Human-readable schedule or supported five- or six-field cron expression, including `at scheduler startup` / `@reboot`. |
 | `--at` | One-off run time, RFC 3339. |
 | `--overlap` | `queue_one` (default), `skip`, or `allow_concurrent`. |
 | `--catchup` | `one` (default) or `none`. |
@@ -129,6 +129,9 @@ The schedule can be written the way you would say it, such as `every 15
 minutes`, `every weekday at 09:00`, or `3rd wednesday monthly at 14:00`. The
 documented cron subset is also accepted, such as `0 9 * * 1-5` or the
 seconds-precision `*/30 * * * * *`.
+Use `@reboot` or `at scheduler startup` for one run per daemon start. This is a
+daemon lifecycle event, so task detail prints no upcoming times and edits,
+imports, enables, and reloads wait until the next daemon start.
 On success the command echoes back how it understood you, and the next few run
 times. It also names the effective timing basis and transition behavior, so a
 misreading is visible immediately rather than at 02:30 tomorrow:
@@ -279,6 +282,9 @@ gosched cron convert "0 9 LW * *"
 
 gosched cron convert "*/10 9-17 * * MON,WED,FRI"
 # every 10 minutes during hours 9 through 17 on Monday, Wednesday, and Friday
+
+gosched cron convert "@reboot"
+# at scheduler startup
 ```
 
 Automatic mode treats `@`-prefixed input and five or six cron-shaped fields as
@@ -299,8 +305,9 @@ produces no stdout, a named stderr diagnostic, and exit code 2. With global
 the same five fields (`input_syntax`, `output_syntax`, `input`, `output`, and
 `refusal_reason`) to stderr and still exits 2.
 
-Use `convert` for one pure string, `explain` for a cron expression plus upcoming
-runs, `import` for a crontab file, and `export` for stored tasks.
+Use `convert` for one pure string, `explain` for a cron expression and any
+applicable upcoming runs, `import` for a crontab file, and `export` for stored
+tasks. `@reboot` explains successfully without upcoming times.
 
 ### `cron explain <expression>`
 
@@ -317,6 +324,7 @@ gosched cron explain "0 9 LW * *"
 gosched cron explain "0 9,17 * * *"
 gosched cron explain "*/10 9-17 * * MON,WED,FRI"
 gosched cron explain "*/30 * * * * *"
+gosched cron explain "@reboot"
 ```
 
 `--timezone` sets the zone the run times are shown in; `--count` how many to

@@ -102,11 +102,11 @@ line 5: */15 * * * *
   phrase:  every 15 minutes starting at 00:00
   command: /usr/local/bin/probe
 line 6: @reboot
-  unsupported: @reboot fires at boot rather than on a schedule, which has no
-  equivalent here
+  phrase:  at scheduler startup
+  command: /bin/sh -c /usr/local/bin/warm
 
-8 line(s) read: 2 would create, 3 skipped (comments, blanks, variables),
-2 unsupported, 1 error(s)
+8 line(s) read: 3 would create, 3 skipped (comments, blanks, variables),
+1 unsupported, 1 error(s)
 ```
 
 The preview is not advisory. Preview and creation use the same conversion
@@ -135,8 +135,8 @@ gosched cron import --file quartz.cron --dialect quartz --dry-run
 
 A line that cannot be converted never stops the ones that can: the supported
 lines are still created, and the summary counts every line of the file. Reading
-the file successfully is a success, whatever the mix of outcomes — a crontab of
-nothing but `@reboot` lines converts to a report of refusals and exits 0. Only
+the file successfully is a success, whatever the mix of outcomes. A crontab of
+nothing but `@reboot` lines previews or creates startup tasks. Only
 an unreadable file, an unknown timezone, or a failed creation is a failure.
 
 Importing the same crontab twice creates two sets of tasks. There is no
@@ -239,6 +239,7 @@ before treating exported text as portable.
 | Month and weekday names | Names are case-insensitive; their first three letters are significant. |
 | Sunday as `0` or `7` | Both are accepted |
 | `@hourly`, `@daily`, `@midnight`, `@weekly`, `@monthly`, `@yearly`, `@annually` | Expanded to their documented five-field equivalents |
+| `@reboot` | A non-clock event that runs once per scheduler daemon start; `at scheduler startup` is the symmetric human form. |
 
 ### Issue #22 audit decisions
 
@@ -247,7 +248,7 @@ capability; "out of scope" means the converter refuses instead of approximating.
 
 | Row | Feature | Decision and rationale |
 | --- | --- | --- |
-| A1 | `@reboot` | **Deferred to event triggers (#17).** Boot is an event, not a recurrence. |
+| A1 | `@reboot` | **Supported startup event.** It runs once per daemon process start, not on reload, and has no upcoming clock occurrence. |
 | A2 | Arbitrary field combinations | **Supported.** Safe combinations compile directly to one durable recurrence. |
 | A3 | Minute/hour/date/month lists | **Supported.** Values remain ordered and deduplicated. |
 | A4 | Arbitrary weekday sets | **Supported.** Names, lists, ranges, and Unix Sunday aliases normalize exactly. |

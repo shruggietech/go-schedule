@@ -53,8 +53,7 @@ type Spec struct {
 }
 
 // Unsupported is a named refusal. It is a value rather than an error because a
-// refusal is an outcome the caller reports, not a failure of the run: a crontab
-// of three @reboot lines converts successfully to three refusals.
+// refusal is an outcome the caller reports, not a failure of the run.
 type Unsupported struct {
 	Input  string
 	Reason string
@@ -62,12 +61,14 @@ type Unsupported struct {
 
 func (u Unsupported) String() string { return u.Reason }
 
-// Result is the outcome of converting one expression: exactly one of Spec or
-// Unsupported is meaningful, discriminated by OK.
+// Result is the outcome of parsing one expression. OK distinguishes supported
+// input from a named refusal; Startup distinguishes the supported non-field
+// event from a timing Spec.
 type Result struct {
-	Spec Spec
-	Bad  Unsupported
-	OK   bool
+	Spec    Spec
+	Bad     Unsupported
+	OK      bool
+	Startup bool
 }
 
 // field bounds, in crontab order.
@@ -89,7 +90,7 @@ var dowNames = map[string]int{
 }
 
 // shorthands are the macros with an exact five-field equivalent. @reboot is
-// deliberately absent: it has no schedule at all, and is refused by name.
+// parsed separately because it is a supported event rather than field timing.
 var shorthands = map[string]string{
 	"@yearly":   "0 0 1 1 *",
 	"@annually": "0 0 1 1 *",
@@ -114,7 +115,7 @@ func Parse(expr string) (Result, error) {
 	if strings.HasPrefix(raw, "@") {
 		key := strings.ToLower(raw)
 		if key == "@reboot" {
-			return refuse(raw, "@reboot fires at boot rather than on a schedule, which has no equivalent here"), nil
+			return Result{OK: true, Startup: true}, nil
 		}
 		expanded, ok := shorthands[key]
 		if !ok {

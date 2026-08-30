@@ -6,6 +6,11 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
+type pendingRun struct {
+	scheduledFor time.Time
+	trigger      domain.RunTrigger
+}
+
 // dispatch applies the task's overlap policy and either runs the task now,
 // queues a single pending run, or skips it.
 //
@@ -34,7 +39,7 @@ func (e *Engine) dispatch(task domain.Task, scheduledFor time.Time, trigger doma
 				e.mu.Unlock()
 				return // one already pending; drop extra triggers
 			}
-			e.queued[task.ID] = scheduledFor
+			e.queued[task.ID] = pendingRun{scheduledFor: scheduledFor, trigger: trigger}
 			e.mu.Unlock()
 			e.log.Warn("task still running at next trigger; queued one pending run",
 				"task", task.ID, "name", task.Name, "scheduled_for", scheduledFor)

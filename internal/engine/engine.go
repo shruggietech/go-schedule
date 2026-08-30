@@ -48,7 +48,7 @@ type Engine struct {
 	tasks   map[string]taskCtx   // active tasks by ID
 	next    map[string]time.Time // next scheduled run (UTC) by task ID
 	running map[string]bool
-	queued  map[string]time.Time // queued pending run's scheduled time, by task ID
+	queued  map[string]pendingRun // one queued pending run, by task ID
 
 	reload  chan struct{}
 	runCtx  context.Context
@@ -71,7 +71,7 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 		tasks:   map[string]taskCtx{},
 		next:    map[string]time.Time{},
 		running: map[string]bool{},
-		queued:  map[string]time.Time{},
+		queued:  map[string]pendingRun{},
 		reload:  make(chan struct{}, 1),
 	}
 }
@@ -98,6 +98,7 @@ func (e *Engine) Reload() {
 func (e *Engine) Start(ctx context.Context) error {
 	e.runCtx = ctx
 	e.recompute(e.clk.Now())
+	e.runStartup(e.clk.Now())
 	e.runCatchup(e.clk.Now())
 	for {
 		d, has := e.untilNext(e.clk.Now())
@@ -122,6 +123,22 @@ func (e *Engine) Start(ctx context.Context) error {
 		case now := <-wake:
 			e.runDue(now)
 		}
+	}
+}
+
+// runStartup dispatches the eligible startup-event snapshot loaded by the
+// initial recompute. Start calls it exactly once; Reload never does.
+func (e *Engine) runStartup(now time.Time) {
+	e.mu.Lock()
+	tasks := make([]domain.Task, 0)
+	for _, tc := range e.tasks {
+		if schedule.IsStartup(tc.sch) {
+			tasks = append(tasks, tc.task)
+		}
+	}
+	e.mu.Unlock()
+	for _, task := range tasks {
+		e.dispatch(task, now, domain.TriggerStartup)
 	}
 }
 
@@ -294,7 +311,7 @@ func (e *Engine) recordRun(run domain.Run) {
 func (e *Engine) finish(task domain.Task) {
 	e.mu.Lock()
 	e.running[task.ID] = false
-	qFor, queued := e.queued[task.ID]
+	pending, queued := e.queued[task.ID]
 	delete(e.queued, task.ID)
 	e.mu.Unlock()
 
@@ -302,7 +319,7 @@ func (e *Engine) finish(task domain.Task) {
 		e.mu.Lock()
 		e.running[task.ID] = true
 		e.mu.Unlock()
-		e.launch(task, qFor, domain.TriggerSchedule)
+		e.launch(task, pending.scheduledFor, pending.trigger)
 	}
 }
 

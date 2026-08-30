@@ -82,6 +82,12 @@ faithfully is refused by name rather than approximated. Imported tasks retain
 their cron expression for later editing. See [Cron interoperability](docs/cron.md)
 for the fidelity table.
 
+**Run once whenever the scheduler starts.** `@reboot` and the readable
+`at scheduler startup` form create the same cross-platform startup task. It
+runs once per daemon process start, not on task edits or engine reloads, and it
+does not claim that the physical host rebooted or that dependent services are
+ready yet.
+
 **Groups that nest.** Tasks live in groups, groups live in groups, and enabling
 or disabling one cascades through its whole subtree — one command to silence a
 region of the schedule.
@@ -151,7 +157,8 @@ gosched task add weekday-report \
 
 For example, `*/10 9-17 * * MON,WED,FRI` runs every ten minutes during business
 hours on Monday, Wednesday, and Friday. Cron's special day-of-month/day-of-week
-OR behavior and non-clock dialect features remain explicit refusals.
+OR behavior remains an explicit refusal. The non-clock `@reboot` form is
+supported as a daemon-start event and has no upcoming clock times.
 
 Seconds precision uses six fields, for example `*/30 * * * * *`. Quartz `?`
 is supported in a day field, and the fidelity guide states the exact dialect

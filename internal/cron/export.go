@@ -9,6 +9,7 @@ import (
 	"github.com/teambition/rrule-go"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/schedule"
 )
 
 // Export renders a task's schedule as a crontab timing expression, or refuses by
@@ -33,6 +34,8 @@ func Export(task domain.Task, sch domain.Schedule) (expr string, bad Unsupported
 // export and string conversion.
 func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr string, bad Unsupported, ok bool) {
 	switch {
+	case schedule.IsStartup(sch):
+		return "@reboot", Unsupported{}, true
 	case sch.Kind == domain.ScheduleOneOff:
 		return "", Unsupported{Reason: "cron cannot express a schedule that fires exactly once"}, false
 	case sch.Kind != domain.ScheduleRecurring:

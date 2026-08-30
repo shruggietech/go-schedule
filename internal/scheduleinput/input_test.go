@@ -23,6 +23,8 @@ func TestParseAutoDetectsAndRetainsSource(t *testing.T) {
 		{name: "human", input: "weekdays at 09:00", want: SyntaxHuman},
 		{name: "five-field human", input: "3rd wednesday monthly at 14:00", want: SyntaxHuman},
 		{name: "last-weekday human", input: "last wednesday of the month at 14:00", want: SyntaxHuman},
+		{name: "startup cron", input: "@reboot", want: SyntaxCron},
+		{name: "startup human", input: "at scheduler startup", want: SyntaxHuman},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -37,7 +39,7 @@ func TestParseAutoDetectsAndRetainsSource(t *testing.T) {
 				t.Errorf("retained expression = %q / %q, want %q",
 					got.Expression, got.Schedule.Expression, strings.TrimSpace(tt.input))
 			}
-			if got.Schedule.RRULE == "" || got.Schedule.Anchor == nil {
+			if got.Schedule.Kind == domain.ScheduleRecurring && (got.Schedule.RRULE == "" || got.Schedule.Anchor == nil) {
 				t.Errorf("compiled schedule is incomplete: %+v", got.Schedule)
 			}
 		})
@@ -69,7 +71,6 @@ func TestParseCronRefusalsNeverFallBack(t *testing.T) {
 		want  string
 	}{
 		{input: "61 9 * * *", want: "minute"},
-		{input: "@reboot", want: "boot"},
 		{input: "0 9 1 * 1", want: "either"},
 	}
 	for _, tt := range tests {
@@ -134,5 +135,8 @@ func TestSourceSyntaxOmitsNonRecurringOrExpressionlessSchedules(t *testing.T) {
 	}
 	if got := SourceSyntax(domain.Schedule{Kind: domain.ScheduleRecurring, Expression: "0 9 * * *"}); got != SyntaxCron {
 		t.Errorf("cron source syntax = %q, want cron", got)
+	}
+	if got := SourceSyntax(schedule.NewStartup("@reboot")); got != SyntaxCron {
+		t.Errorf("startup source syntax = %q, want cron", got)
 	}
 }

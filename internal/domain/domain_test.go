@@ -2,6 +2,18 @@ package domain
 
 import "testing"
 
+func TestStartupEventIdentityAndRunOrigin(t *testing.T) {
+	if StartupEventID != "scheduler_startup" {
+		t.Fatalf("StartupEventID = %q, want scheduler_startup", StartupEventID)
+	}
+	if TriggerStartup != "startup" {
+		t.Fatalf("TriggerStartup = %q, want startup", TriggerStartup)
+	}
+	if TriggerStartup == TriggerSchedule || TriggerStartup == TriggerEvent {
+		t.Fatalf("startup origin must remain distinct: startup=%q schedule=%q event=%q", TriggerStartup, TriggerSchedule, TriggerEvent)
+	}
+}
+
 func TestSchedulePolicyEffectiveDefaults(t *testing.T) {
 	got := (SchedulePolicy{}).Effective()
 	if got.TimeBasis != TimeBasisWallClock || got.DSTGap != DSTGapNextValid ||

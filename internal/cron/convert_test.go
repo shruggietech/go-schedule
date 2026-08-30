@@ -48,7 +48,6 @@ func TestConvertCronRefusalNeverFallsBackToHuman(t *testing.T) {
 		wantReason string
 	}{
 		{input: "61 9 * * *", wantReason: "minute"},
-		{input: "@reboot", wantReason: "boot"},
 		{input: "0 9 * * FUNDAY", wantReason: "day-of-week"},
 	}
 	for _, tt := range tests {

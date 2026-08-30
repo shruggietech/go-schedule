@@ -140,6 +140,7 @@ Human parsing is case-insensitive. Supported human forms include:
 | A single weekday | `every monday at 9am` |
 | Monthly ordinal weekday | `3rd wednesday monthly at 14:00`, `last friday of the month` |
 | Monthly calendar selector | `last day of every month at 09:00`, `nearest weekday to the 15th of every month at 09:00`, `last weekday of every month at 09:00` |
+| Scheduler startup | `at scheduler startup`, `@reboot` |
 
 **Units** (any spelling): `second`/`sec`/`s`, `minute`/`min`/`m`, `hour`/`hr`/`h`, `day`/`d`,
 `week`/`w`.
@@ -170,6 +171,12 @@ back from its readable preview. Standard lists, ranges, and field-local steps
 such as `*/10 9-17 * * MON,WED,FRI` and `0 9 */2 * *` retain their exact timing.
 The preview is display text; the compiled recurrence, not a generated English
 phrase, is authoritative for execution.
+
+Startup schedules are non-clock events. Their preview reads **At scheduler
+startup** and intentionally has no next-run list. They run once for each daemon
+process start, never merely because a task was edited, enabled, imported, moved,
+or reloaded. This does not prove a physical host reboot, and other services may
+not be ready when the command begins.
 
 > ⚠️ **Sub-daily intervals can't take an `at` time.** Seconds/minutes/hours fire on a rolling
 > interval, so `every 15 minutes at 09:00` is **rejected**. The `at <time>` clause is only valid

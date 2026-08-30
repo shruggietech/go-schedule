@@ -21,7 +21,8 @@ Verb-noun command tree (cobra). Global rules (constitution UX-consistency princi
 | `gosched task run-now <id>` | Trigger a manual run immediately | |
 
 - `--schedule <spec>` accepts human-readable forms (e.g. `"weekdays at 09:00"`) or
-  go-schedule's supported five-field cron subset (e.g. `"0 9 * * 1-5"`). Detection is automatic;
+  go-schedule's supported cron subset (e.g. `"0 9 * * 1-5"`) or startup event (`"@reboot"` /
+  `"at scheduler startup"`). Startup has no upcoming clock times and fires once per daemon start. Detection is automatic;
   cron-shaped invalid or unfaithful input is not retried as human text. The CLI echoes the
   resulting plain-language summary. `--at` creates a one-off (FR-004a); a past `--at` is rejected
   with exit 2.

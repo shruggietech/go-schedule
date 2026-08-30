@@ -74,10 +74,10 @@ func selectSyntax(input string, hint Syntax) (Syntax, error) {
 }
 
 // SourceSyntax derives response identity from a retained recurring expression.
-// It returns empty for one-offs, event schedules, and legacy expressionless
-// rows. The value is response metadata and is never an execution input.
+// It returns empty for one-offs and legacy expressionless rows. The value is
+// response metadata and is never an execution input.
 func SourceSyntax(sch domain.Schedule) Syntax {
-	if sch.Kind != domain.ScheduleRecurring || strings.TrimSpace(sch.Expression) == "" {
+	if (sch.Kind != domain.ScheduleRecurring && !schedule.IsStartup(sch)) || strings.TrimSpace(sch.Expression) == "" {
 		return ""
 	}
 	return cron.DetectSyntax(sch.Expression)

@@ -257,6 +257,19 @@ it does not certify.
 
 ### Does it survive a restart?
 
+Startup-event lifecycle is covered without a manual install/restart session:
+
+```bash
+go test ./internal/engine -run Startup
+go test ./internal/api/server ./internal/cron ./internal/store -run 'Startup|Reboot'
+```
+
+The controlled tests open the store, start two independent engines, inject the
+startup instant, exercise a reload inside one lifecycle, and check disabled
+task/group, history origin, import/export, and persistence behavior. Installed
+daemon smoke testing may still use the service restart below, but it is not a
+release gate and no physical Windows VM observation is required.
+
 ```bash
 gosched service restart
 ```

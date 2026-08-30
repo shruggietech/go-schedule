@@ -60,6 +60,47 @@ func TestMigration_V3IdempotentReopen(t *testing.T) {
 	_ = st2.Close()
 }
 
+func TestStartupScheduleAndRunPersistAcrossReopenWithoutTriggerTables(t *testing.T) {
+	path := t.TempDir() + "/startup.db"
+	st, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sch := domain.Schedule{Kind: domain.ScheduleEvent, TriggerID: domain.StartupEventID, HumanSummary: "At scheduler startup", Expression: "@reboot"}
+	if err := st.CreateSchedule(&sch); err != nil {
+		t.Fatal(err)
+	}
+	task := domain.Task{Name: "boot", Command: "x", Enabled: true, Timezone: "UTC", ScheduleID: sch.ID, State: domain.TaskActive}
+	if err := st.CreateTask(&task); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CreateRun(&domain.Run{TaskID: task.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerStartup}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	st, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	got, err := st.GetSchedule(sch.ID)
+	if err != nil || got.Kind != domain.ScheduleEvent || got.TriggerID != domain.StartupEventID || got.Expression != "@reboot" {
+		t.Fatalf("reopened schedule = %+v, err=%v", got, err)
+	}
+	runs, err := st.ListRuns(task.ID, 0)
+	if err != nil || len(runs) != 1 || runs[0].Trigger != domain.TriggerStartup {
+		t.Fatalf("reopened runs = %+v, err=%v", runs, err)
+	}
+	for _, table := range []string{"triggers", "dedup_ledger"} {
+		var count int
+		if err := st.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&count); err != nil || count != 0 {
+			t.Fatalf("removed table %q count=%d err=%v", table, count, err)
+		}
+	}
+}
+
 func TestGroups_RenameReparentTreeAndChain(t *testing.T) {
 	st := openMem(t)
 	root := &domain.Group{Name: "root", Enabled: true}

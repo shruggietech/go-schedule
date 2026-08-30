@@ -425,7 +425,7 @@ func (e *taskEditor) prefillSchedule() {
 		local := sch.RunAt.In(loc)
 		e.oneOffDate.SetText(local.Format("2006-01-02"))
 		e.oneOffTime.SetText(local.Format("15:04"))
-	case sch.Kind == domain.ScheduleRecurring:
+	case sch.Kind == domain.ScheduleRecurring || sch.Kind == domain.ScheduleEvent && sch.TriggerID == domain.StartupEventID:
 		e.storedMode = modeRecurring
 		phrase, anchor := splitAnchorClause(sch.Expression)
 		e.schedule.SetText(phrase)
@@ -793,6 +793,8 @@ Schedules are interpreted here; storage is UTC with DST handled.
 The same field also accepts supported five- or six-field cron, such as ` + "`0 9 * * 1-5`" + `, and
 six-field seconds input such as ` + "`*/30 * * * * *`" + `.
 ` + "`0 9 L * *`" + `, ` + "`0 9 15W * *`" + `, or ` + "`0 9 LW * *`" + `.
+Use ` + "`at scheduler startup`" + ` or ` + "`@reboot`" + ` for one run per daemon start;
+startup events have no upcoming clock times and do not fire on task edits or reloads.
 Cron-shaped input is validated as cron without falling back to a human phrase. See the
 [cron fidelity guide](https://shruggietech.github.io/go-schedule/cron/#fidelity)
 (` + "`docs/cron.md#fidelity`" + ` in the repository) for the supported boundary.

@@ -239,7 +239,7 @@ func TestImport_DryRunCreatesNothing(t *testing.T) {
 		"MAILTO",                     // the assignment is warned about, not dropped
 		"every 15 minutes",           // a translated line
 		"every day at 02:00",         // another
-		"boot",                       // @reboot declined by name
+		"at scheduler startup",       // @reboot is a supported non-clock event
 		"at minutes 0, 7, 14",        // uneven field step is described as a field set
 		"no command follows",         // the schedule-only line is an error
 		"This was a preview",         // the run says it changed nothing
@@ -259,10 +259,10 @@ func TestImport_CountsEveryLine(t *testing.T) {
 	if got, want := rep.Read, 8; got != want {
 		t.Fatalf("read %d lines, want %d", got, want)
 	}
-	if got, want := rep.Jobs, 3; got != want {
+	if got, want := rep.Jobs, 4; got != want {
 		t.Errorf("jobs = %d, want %d", got, want)
 	}
-	if got, want := rep.Declined, 1; got != want {
+	if got, want := rep.Declined, 0; got != want {
 		t.Errorf("declined = %d, want %d", got, want)
 	}
 	if got, want := rep.Errors, 1; got != want {
@@ -285,8 +285,8 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	if err := runImport(&buf, rep, importOptions{timezone: "UTC", group: "g1"}, fc); err != nil {
 		t.Fatalf("import returned an error: %v", err)
 	}
-	if len(fc.reqs) != 3 {
-		t.Fatalf("created %d task(s), want 3", len(fc.reqs))
+	if len(fc.reqs) != 4 {
+		t.Fatalf("created %d task(s), want 4", len(fc.reqs))
 	}
 	first := fc.reqs[0]
 	if first.Command != "/bin/sh" {
@@ -304,8 +304,11 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	if first.Timezone != "UTC" || first.GroupID != "g1" {
 		t.Errorf("timezone/group not applied: %q / %q", first.Timezone, first.GroupID)
 	}
-	if rep.Created != 3 {
-		t.Errorf("report Created = %d, want 3", rep.Created)
+	if rep.Created != 4 {
+		t.Errorf("report Created = %d, want 4", rep.Created)
+	}
+	if fc.reqs[2].Schedule != "@reboot" || fc.reqs[2].ScheduleSyntax != "cron" {
+		t.Errorf("startup import = %+v", fc.reqs[2])
 	}
 }
 
@@ -529,6 +532,15 @@ func TestPrintExplain_RefusalIsAnAnswer(t *testing.T) {
 	}
 	if strings.Contains(out, "phrase:") {
 		t.Errorf("a refusal must not print a phrase:\n%s", out)
+	}
+}
+
+func TestPrintExplain_StartupHasNoClockTimes(t *testing.T) {
+	var buf bytes.Buffer
+	printExplain(&buf, explainResult{Expression: "@reboot", Phrase: "at scheduler startup", Timezone: "UTC"})
+	out := buf.String()
+	if !strings.Contains(out, "phrase: at scheduler startup") || strings.Contains(out, "next:") {
+		t.Fatalf("startup explanation = %q", out)
 	}
 }
 

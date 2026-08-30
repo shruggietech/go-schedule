@@ -43,6 +43,9 @@ func Parse(input, tzName string, now time.Time) (domain.Schedule, error) {
 	// show the user their own phrase again when editing (domain.Schedule.
 	// Expression). It never feeds back into evaluation.
 	expr := strings.TrimSpace(input)
+	if s == StartupPhrase {
+		return NewStartup(expr), nil
+	}
 
 	if sch, ok, err := parseOrdinal(s); ok || err != nil {
 		return finish(sch, tzName, now, nil, expr, err)

@@ -48,3 +48,4 @@ Run `sh scripts/spec-lifecycle-check.sh .` locally. The canonical automation gat
 | 028-cron-parity-closure | Implemented | PR [#63](https://github.com/shruggietech/go-schedule/pull/63) |
 | 029-v09-closure | Implemented | PR [#65](https://github.com/shruggietech/go-schedule/pull/65) |
 | 030-ipc-admin-group | Implemented | review branch `codex/030-ipc-admin-group`; local verification completed 2026-08-30 |
+| 031-reboot-startup-trigger | Implemented | Review branch `codex/031-reboot-startup-trigger`; local verification completed 2026-08-30 |

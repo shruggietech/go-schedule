@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // missingDateUsage is shared by add and edit so the two cannot drift. The values
@@ -79,7 +80,8 @@ func taskEdit() *cobra.Command {
 			if jsonOut {
 				return printJSON(resp)
 			}
-			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\ntiming: %s\n", resp.Task.ID, resp.Schedule.HumanSummary, resp.PolicySummary)
+			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\n", resp.Task.ID, resp.Schedule.HumanSummary)
+			printPolicySummary(resp.PolicySummary)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
@@ -121,7 +123,7 @@ func taskAdd() *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "add <name>",
-		Short: "Create a task (recurring via --schedule or one-off via --at)",
+		Short: "Create a task (schedule or startup event via --schedule; one-off via --at)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, a []string) error {
 			if command == "" {
@@ -156,7 +158,8 @@ func taskAdd() *cobra.Command {
 			if jsonOut {
 				return printJSON(resp)
 			}
-			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\ntiming: %s\n", resp.Task.ID, resp.Task.Name, resp.Schedule.HumanSummary, resp.PolicySummary)
+			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\n", resp.Task.ID, resp.Task.Name, resp.Schedule.HumanSummary)
+			printPolicySummary(resp.PolicySummary)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
@@ -168,7 +171,7 @@ func taskAdd() *cobra.Command {
 	f.StringArrayVar(&env, "env", nil, "environment variable KEY=VALUE (repeatable)")
 	f.StringVar(&group, "group", "", "group ID")
 	f.StringVar(&tz, "tz", "", "IANA timezone (default: system local)")
-	f.StringVar(&sched, "schedule", "", `human-readable recurrence or supported cron expression, e.g. "every 15 minutes" or "0 9 * * 1-5"`)
+	f.StringVar(&sched, "schedule", "", `human-readable schedule or supported cron expression, e.g. "every 15 minutes", "0 9 * * 1-5", or "@reboot"`)
 	f.StringVar(&at, "at", "", "one-off run time (RFC3339)")
 	f.StringVar(&overlap, "overlap", "", "overlap policy: queue_one|skip|allow_concurrent")
 	f.StringVar(&catchup, "catchup", "", "catch-up policy: one|none")
@@ -223,10 +226,16 @@ func taskShow() *cobra.Command {
 				return printJSON(resp)
 			}
 			t := resp.Task
-			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\ntiming: %s\noverlap: %s  catch-up: %s  missing dates: %s\ntime basis: %s  DST gap: %s  DST overlap: %s\n",
+			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\n",
 				t.ID, t.Name, t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "),
-				resp.Schedule.HumanSummary, resp.PolicySummary, t.OverlapPolicy, t.CatchupPolicy, t.MissingDatePolicy,
-				t.TimeBasis, t.DSTGapPolicy, t.DSTOverlapPolicy)
+				resp.Schedule.HumanSummary)
+			if resp.Schedule.Kind == domain.ScheduleEvent {
+				fmt.Fprintf(os.Stdout, "overlap: %s\n", t.OverlapPolicy)
+			} else {
+				printPolicySummary(resp.PolicySummary)
+				fmt.Fprintf(os.Stdout, "overlap: %s  catch-up: %s  missing dates: %s\ntime basis: %s  DST gap: %s  DST overlap: %s\n",
+					t.OverlapPolicy, t.CatchupPolicy, t.MissingDatePolicy, t.TimeBasis, t.DSTGapPolicy, t.DSTOverlapPolicy)
+			}
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
@@ -313,5 +322,11 @@ func printNextRuns(runs []time.Time) {
 	fmt.Fprintln(os.Stdout, "next runs:")
 	for _, r := range runs {
 		fmt.Fprintf(os.Stdout, "  %s\n", r.Format(time.RFC3339))
+	}
+}
+
+func printPolicySummary(summary string) {
+	if summary != "" {
+		fmt.Fprintf(os.Stdout, "timing: %s\n", summary)
 	}
 }

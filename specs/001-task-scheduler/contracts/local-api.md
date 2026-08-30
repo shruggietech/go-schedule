@@ -22,8 +22,8 @@ Codes: `validation_failed` (→ CLI exit 2), `not_found`, `conflict`, `internal`
 
 ### Tasks
 - `GET    /v1/tasks` — list (filters: `group`, `state`)
-- `POST   /v1/tasks` — create (body = task + `schedule` or one-off `at`). Recurring input accepts
-  human phrases or supported cron. Optional `schedule_syntax` (`human` or `cron`) forces one
+- `POST   /v1/tasks` — create (body = task + `schedule` or one-off `at`). Schedule input accepts
+  human phrases, supported cron, and the startup event (`at scheduler startup` / `@reboot`). Optional `schedule_syntax` (`human` or `cron`) forces one
   parser; omitted syntax is selected automatically with no fallback after classification.
   Server validates timezone and rejects past one-offs.
 - `GET    /v1/tasks/{id}` — detail incl. computed `next_runs` (UTC + rendered local) and recent runs
@@ -37,8 +37,9 @@ Codes: `validation_failed` (→ CLI exit 2), `not_found`, `conflict`, `internal`
   `timezone`, and `missing_date_policy`; returns `{ rrule, calendar_adjustment?,
   human_summary, next_runs[], source_syntax }`. Preview and create use the same
   shared classifier and compiler. The optional adjustment is execution metadata
-  for a recurrence that RRULE cannot completely express.
-- Recurring task responses retain the normalized `schedule.expression` and expose derived
+  for a recurrence that RRULE cannot completely express. Startup preview returns an event
+  schedule summary with an empty `next_runs` array.
+- Recurring and startup-event responses retain normalized `schedule.expression` and expose derived
   `schedule.source_syntax`. One-offs and legacy expressionless schedules omit source identity.
 
 ### Groups

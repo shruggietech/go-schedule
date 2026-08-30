@@ -75,6 +75,20 @@ func TestEditor_PrefillsRecurringSchedule(t *testing.T) {
 	}
 }
 
+func TestEditor_PrefillsStartupSchedule(t *testing.T) {
+	detail := recurringDetail("@reboot")
+	detail.Schedule.Kind = domain.ScheduleEvent
+	detail.Schedule.TriggerID = domain.StartupEventID
+	detail.Schedule.RRULE = ""
+	e, fb := newTestEditorDetail(t, detail)
+	if e.mode.Selected != modeRecurring || e.schedule.Text != "@reboot" || e.scheduleUnreadable {
+		t.Fatalf("startup prefill: mode=%q schedule=%q unreadable=%v", e.mode.Selected, e.schedule.Text, e.scheduleUnreadable)
+	}
+	if _, req := fb.lastPreviewCall(); req.Schedule != "@reboot" || req.ScheduleSyntax != "cron" {
+		t.Fatalf("startup preview request = %+v", req)
+	}
+}
+
 func TestEditor_CronPrefillAndSyntaxSwitchFollowCurrentText(t *testing.T) {
 	detail := recurringDetail("0 9 * * 1-5")
 	detail.Schedule.SourceSyntax = "human" // Deliberately stale metadata.

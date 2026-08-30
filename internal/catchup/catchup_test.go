@@ -66,6 +66,15 @@ func TestEvaluate_NoPriorRun(t *testing.T) {
 	}
 }
 
+func TestEvaluate_StartupEventNeverCatchesUp(t *testing.T) {
+	last := time.Date(2026, 8, 29, 12, 0, 0, 0, time.UTC)
+	now := last.Add(24 * time.Hour)
+	dec, err := Evaluate(schedule.NewStartup("@reboot"), "UTC", last, true, domain.CatchupOne, domain.MissingDateSkip, now)
+	if err != nil || dec.ShouldCatchUp {
+		t.Fatalf("startup catch-up = %+v, err=%v", dec, err)
+	}
+}
+
 func TestEvaluate_NearestWeekdayUsesAdjustedOccurrence(t *testing.T) {
 	anchor := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	sch := domain.Schedule{
