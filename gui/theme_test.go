@@ -89,3 +89,14 @@ func TestBrandThemeRadii(t *testing.T) {
 		t.Errorf("delegated text size = %v, want > 0", got)
 	}
 }
+
+func TestApplyBrandThemeIsIdempotent(t *testing.T) {
+	applyBrandTheme(testApp.Settings())
+	installed := testApp.Settings().Theme()
+
+	applyBrandTheme(testApp.Settings())
+
+	if got := testApp.Settings().Theme(); got != installed {
+		t.Fatal("applyBrandTheme replaced an already-installed brand theme")
+	}
+}

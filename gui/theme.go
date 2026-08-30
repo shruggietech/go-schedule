@@ -69,6 +69,17 @@ type brandTheme struct{ fyne.Theme }
 // newBrandTheme returns the go-schedule brand theme.
 func newBrandTheme() fyne.Theme { return &brandTheme{Theme: theme.DefaultTheme()} }
 
+// applyBrandTheme installs the go-schedule theme unless this app already uses
+// it. Reapplying a Fyne theme refreshes every window and clears shared font and
+// theme caches, which is unnecessary for repeated UI construction and can
+// invalidate text rendering that is already in progress.
+func applyBrandTheme(settings fyne.Settings) {
+	if _, ok := settings.Theme().(*brandTheme); ok {
+		return
+	}
+	settings.SetTheme(newBrandTheme())
+}
+
 // withAlpha returns c with its alpha replaced.
 func withAlpha(c color.NRGBA, a uint8) color.NRGBA { c.A = a; return c }
 
