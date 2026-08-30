@@ -54,10 +54,10 @@ or the supported five-field cron subset. The CLI, API, and desktop editor accept
 both. Under the hood, RFC 5545 recurrence
 is authoritative, and every accepted input is summarized before it runs.
 
-**Timezones that hold up.** Every task carries an IANA timezone. Scheduling is
-computed in UTC and presented in the task's zone, with explicit next-valid and
-first-occurrence handling across DST transitions — the two cases that quietly
-break naive schedulers twice a year.
+**Timezones that hold up.** Every task carries an IANA timezone and states
+whether recurrence follows the local wall clock, a fixed elapsed interval, or
+UTC. Spring gaps can advance or skip, and fall overlaps can use the first,
+both, or last occurrence. Scheduling and storage remain UTC throughout.
 
 **Runs that survive the machine.** The daemon registers as a system service
 (systemd, launchd, or a Windows service), so the schedule starts on boot and

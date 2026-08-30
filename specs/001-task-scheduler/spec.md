@@ -15,7 +15,7 @@
 - Q: How should the scheduler run on each machine — does it need to execute tasks when no user is logged in? → A: System-wide service (runs at boot regardless of login state; closest to cron parity; requires install-time admin privileges).
 - Q: How should the Material Design GUI be delivered? → A: Go-native desktop application (packaged native window, no browser).
 - Q: Which event-trigger sources should v1 support? → A: Another task's completion only (external CLI/API triggers and file/folder watch are out of scope for v1).
-- Q: How should tasks behave across DST transitions for skipped (spring-forward) or repeated (fall-back) times? → A: Next-valid / first-occurrence — skipped-hour tasks run at the next valid instant; repeated-hour tasks run once, on the first occurrence.
+- Q: How should tasks behave across DST transitions for skipped (spring-forward) or repeated (fall-back) times? → A: Per-task advanced policies, defaulting to next-valid / first-occurrence for compatibility. Tasks may instead skip a spring gap or use both or the last fall occurrence, and may anchor recurrence to wall-clock, elapsed, or UTC intent.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -242,10 +242,10 @@ change the per-task catch-up setting and confirm the alternate behavior.
 - **FR-016**: System MUST store and compute scheduling internally in UTC ("Zulu time").
 - **FR-017**: System MUST support a per-task timezone, defaulting to the local system timezone
   when none is specified.
-- **FR-018**: System MUST correctly account for Daylight Saving Time transitions so each
-  intended occurrence runs exactly once at the correct local moment, using the next-valid-instant
-  rule for skipped (spring-forward) times and the first-occurrence rule for repeated (fall-back)
-  times.
+- **FR-018**: System MUST correctly account for Daylight Saving Time transitions. Each task MUST
+  state wall-clock, fixed elapsed, or UTC recurrence intent and MUST state its spring-gap and
+  fall-overlap policies. Compatibility defaults are wall-clock, next-valid spring resolution,
+  and first-occurrence fall resolution.
 
 **Organization & grouping**
 

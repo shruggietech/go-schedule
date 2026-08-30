@@ -196,8 +196,8 @@ These hold regardless of the decision policy:
   - Clock discipline: engine code takes time through the injected `Clock`
     interface, never `time.Now()` directly, and scheduling tests stay
     deterministic rather than leaning on real `time.Sleep`.
-  - Timezone and DST correctness: per-task IANA timezone handling, including
-    next-valid and first-occurrence resolution across DST transitions.
+  - Timezone and DST correctness: per-task IANA timezone handling, explicit
+    recurrence basis, and every supported spring-gap and fall-overlap policy.
   - Store migrations: forward-only, non-destructive, and covered by a test that
     runs the migration against a database from the prior schema version.
   - Restart and catch-up recovery: persisted state survives a daemon restart and

@@ -100,3 +100,25 @@ func BenchmarkNextRunCompositeCron(b *testing.B) {
 		})
 	}
 }
+
+func BenchmarkNextRunDSTPolicy(b *testing.B) {
+	anchor := time.Date(2026, time.October, 31, 13, 0, 0, 0, time.UTC)
+	sch, err := schedule.Parse("every 6 hours starting at 09:00", "America/New_York", anchor)
+	if err != nil {
+		b.Fatal(err)
+	}
+	after := time.Date(2026, time.November, 1, 4, 0, 0, 0, time.UTC)
+	for name, policy := range map[string]domain.SchedulePolicy{
+		"wall_clock": {TimeBasis: domain.TimeBasisWallClock, DSTOverlap: domain.DSTOverlapBoth},
+		"elapsed":    {TimeBasis: domain.TimeBasisElapsed},
+		"utc":        {TimeBasis: domain.TimeBasisUTC},
+	} {
+		b.Run(name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				if _, _, err := schedule.NextRunWithPolicy(sch, "America/New_York", policy, after); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}

@@ -17,6 +17,12 @@ import (
 // match the flag name; consistency across the policy flags wins.
 const missingDateUsage = "what to do in a period with no matching date: skip|last_valid|next_valid"
 
+const (
+	timeBasisUsage  = "recurrence clock: wall_clock|elapsed|utc"
+	dstGapUsage     = "nonexistent local time: next_valid|skip"
+	dstOverlapUsage = "repeated local time: first|both|last"
+)
+
 func newTaskCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "task", Short: "Create and manage tasks"}
 	cmd.AddCommand(taskAdd(), taskList(), taskShow(), taskEdit(), taskEnable(), taskDisable(), taskRm(), taskRunNow())
@@ -36,6 +42,7 @@ func groupIntent(cmd *cobra.Command, group string) *string {
 
 func taskEdit() *cobra.Command {
 	var command, cwd, group, tz, sched, at, overlap, catchup, missingDate string
+	var timeBasis, dstGap, dstOverlap string
 	var args, env []string
 	cmd := &cobra.Command{
 		Use:   "edit <id>",
@@ -53,6 +60,7 @@ func taskEdit() *cobra.Command {
 				Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
 				MissingDatePolicy: missingDate,
+				TimeBasis:         timeBasis, DSTGapPolicy: dstGap, DSTOverlapPolicy: dstOverlap,
 			}
 			req.GroupID = groupIntent(cmd, group)
 			if at != "" {
@@ -71,7 +79,7 @@ func taskEdit() *cobra.Command {
 			if jsonOut {
 				return printJSON(resp)
 			}
-			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\n", resp.Task.ID, resp.Schedule.HumanSummary)
+			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\ntiming: %s\n", resp.Task.ID, resp.Schedule.HumanSummary, resp.PolicySummary)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
@@ -88,6 +96,9 @@ func taskEdit() *cobra.Command {
 	f.StringVar(&overlap, "overlap", "", "overlap policy: queue_one|skip|allow_concurrent")
 	f.StringVar(&catchup, "catchup", "", "catch-up policy: one|none")
 	f.StringVar(&missingDate, "missing-date", "", missingDateUsage)
+	f.StringVar(&timeBasis, "time-basis", "", timeBasisUsage)
+	f.StringVar(&dstGap, "dst-gap", "", dstGapUsage)
+	f.StringVar(&dstOverlap, "dst-overlap", "", dstOverlapUsage)
 	return cmd
 }
 
@@ -104,6 +115,9 @@ func taskAdd() *cobra.Command {
 		overlap     string
 		catchup     string
 		missingDate string
+		timeBasis   string
+		dstGap      string
+		dstOverlap  string
 	)
 	cmd := &cobra.Command{
 		Use:   "add <name>",
@@ -124,6 +138,7 @@ func taskAdd() *cobra.Command {
 				Name: a[0], Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				GroupID: group, Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
 				MissingDatePolicy: missingDate,
+				TimeBasis:         timeBasis, DSTGapPolicy: dstGap, DSTOverlapPolicy: dstOverlap,
 			}
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
@@ -141,7 +156,7 @@ func taskAdd() *cobra.Command {
 			if jsonOut {
 				return printJSON(resp)
 			}
-			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\n", resp.Task.ID, resp.Task.Name, resp.Schedule.HumanSummary)
+			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\ntiming: %s\n", resp.Task.ID, resp.Task.Name, resp.Schedule.HumanSummary, resp.PolicySummary)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
@@ -158,6 +173,9 @@ func taskAdd() *cobra.Command {
 	f.StringVar(&overlap, "overlap", "", "overlap policy: queue_one|skip|allow_concurrent")
 	f.StringVar(&catchup, "catchup", "", "catch-up policy: one|none")
 	f.StringVar(&missingDate, "missing-date", "", missingDateUsage)
+	f.StringVar(&timeBasis, "time-basis", "", timeBasisUsage)
+	f.StringVar(&dstGap, "dst-gap", "", dstGapUsage)
+	f.StringVar(&dstOverlap, "dst-overlap", "", dstOverlapUsage)
 	return cmd
 }
 
@@ -205,9 +223,10 @@ func taskShow() *cobra.Command {
 				return printJSON(resp)
 			}
 			t := resp.Task
-			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\noverlap: %s  catch-up: %s  missing dates: %s\n",
+			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\ntiming: %s\noverlap: %s  catch-up: %s  missing dates: %s\ntime basis: %s  DST gap: %s  DST overlap: %s\n",
 				t.ID, t.Name, t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "),
-				resp.Schedule.HumanSummary, t.OverlapPolicy, t.CatchupPolicy, t.MissingDatePolicy)
+				resp.Schedule.HumanSummary, resp.PolicySummary, t.OverlapPolicy, t.CatchupPolicy, t.MissingDatePolicy,
+				t.TimeBasis, t.DSTGapPolicy, t.DSTOverlapPolicy)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},

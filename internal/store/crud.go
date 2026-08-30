@@ -165,8 +165,8 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 		sch.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO schedules(id,kind,rrule,anchor,run_at,trigger_id,human_summary,expression,calendar_adjustment) VALUES(?,?,?,?,?,?,?,?,?)`,
-		sch.ID, string(sch.Kind), nullStr(sch.RRULE), fmtTimePtr(sch.Anchor), fmtTimePtr(sch.RunAt),
+		`INSERT INTO schedules(id,kind,rrule,anchor,elapsed_epoch,run_at,trigger_id,human_summary,expression,calendar_adjustment) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+		sch.ID, string(sch.Kind), nullStr(sch.RRULE), fmtTimePtr(sch.Anchor), fmtTimePtr(sch.ElapsedEpoch), fmtTimePtr(sch.RunAt),
 		nullStr(sch.TriggerID), sch.HumanSummary, sch.Expression, string(sch.CalendarAdjustment),
 	)
 	if err != nil {
@@ -177,12 +177,12 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 
 // GetSchedule returns the schedule by id, or ErrNotFound.
 func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
-	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,run_at,trigger_id,human_summary,expression,calendar_adjustment FROM schedules WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,elapsed_epoch,run_at,trigger_id,human_summary,expression,calendar_adjustment FROM schedules WHERE id=?`, id)
 	var sch domain.Schedule
 	var rrule, trigger sql.NullString
-	var anchor, runAt sql.NullString
+	var anchor, elapsedEpoch, runAt sql.NullString
 	var kind string
-	if err := row.Scan(&sch.ID, &kind, &rrule, &anchor, &runAt, &trigger, &sch.HumanSummary, &sch.Expression, &sch.CalendarAdjustment); err != nil {
+	if err := row.Scan(&sch.ID, &kind, &rrule, &anchor, &elapsedEpoch, &runAt, &trigger, &sch.HumanSummary, &sch.Expression, &sch.CalendarAdjustment); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Schedule{}, ErrNotFound
 		}
@@ -195,6 +195,9 @@ func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
 	if sch.Anchor, err = parseTimePtr(anchor); err != nil {
 		return domain.Schedule{}, fmt.Errorf("store: schedule anchor: %w", err)
 	}
+	if sch.ElapsedEpoch, err = parseTimePtr(elapsedEpoch); err != nil {
+		return domain.Schedule{}, fmt.Errorf("store: schedule elapsed_epoch: %w", err)
+	}
 	if sch.RunAt, err = parseTimePtr(runAt); err != nil {
 		return domain.Schedule{}, fmt.Errorf("store: schedule run_at: %w", err)
 	}
@@ -205,6 +208,7 @@ func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
 
 // CreateTask inserts t, assigning an ID and timestamps when empty.
 func (s *Store) CreateTask(t *domain.Task) error {
+	normalizeTaskSchedulePolicy(t)
 	if t.ID == "" {
 		t.ID = newID()
 	}
@@ -216,11 +220,11 @@ func (s *Store) CreateTask(t *domain.Task) error {
 	argsJSON, _ := json.Marshal(t.Args)
 	envJSON, _ := json.Marshal(t.Env)
 	_, err := s.db.Exec(
-		`INSERT INTO tasks(id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,state,created_at,updated_at)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO tasks(id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,state,created_at,updated_at)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		t.ID, t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON),
 		t.RunAs, boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy),
-		string(t.CatchupPolicy), string(missingDateOrDefault(t.MissingDatePolicy)),
+		string(t.CatchupPolicy), string(t.MissingDatePolicy), string(t.TimeBasis), string(t.DSTGapPolicy), string(t.DSTOverlapPolicy),
 		string(t.State), fmtTime(t.CreatedAt), fmtTime(t.UpdatedAt),
 	)
 	if err != nil {
@@ -231,15 +235,16 @@ func (s *Store) CreateTask(t *domain.Task) error {
 
 // UpdateTask persists changes to a task's mutable fields.
 func (s *Store) UpdateTask(t *domain.Task) error {
+	normalizeTaskSchedulePolicy(t)
 	t.UpdatedAt = time.Now().UTC()
 	argsJSON, _ := json.Marshal(t.Args)
 	envJSON, _ := json.Marshal(t.Env)
 	res, err := s.db.Exec(
 		`UPDATE tasks SET name=?,group_id=?,command=?,args_json=?,working_dir=?,env_json=?,run_as=?,
-		 enabled=?,timezone=?,schedule_id=?,overlap_policy=?,catchup_policy=?,missing_date_policy=?,state=?,updated_at=? WHERE id=?`,
+		 enabled=?,timezone=?,schedule_id=?,overlap_policy=?,catchup_policy=?,missing_date_policy=?,time_basis=?,dst_gap_policy=?,dst_overlap_policy=?,state=?,updated_at=? WHERE id=?`,
 		t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON), t.RunAs,
 		boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy), string(t.CatchupPolicy),
-		string(missingDateOrDefault(t.MissingDatePolicy)), string(t.State), fmtTime(t.UpdatedAt), t.ID,
+		string(t.MissingDatePolicy), string(t.TimeBasis), string(t.DSTGapPolicy), string(t.DSTOverlapPolicy), string(t.State), fmtTime(t.UpdatedAt), t.ID,
 	)
 	return affected(res, err, "update task")
 }
@@ -300,7 +305,7 @@ func (s *Store) DeleteTask(id string) error {
 	return affected(res, err, "delete task")
 }
 
-const taskSelect = `SELECT id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,state,created_at,updated_at FROM tasks`
+const taskSelect = `SELECT id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,state,created_at,updated_at FROM tasks`
 
 // missingDateOrDefault normalizes an unset policy to the default. An empty value
 // reaches here from a caller that never set the field; it must read as "skip"
@@ -313,14 +318,22 @@ func missingDateOrDefault(p domain.MissingDatePolicy) domain.MissingDatePolicy {
 	return p
 }
 
+func normalizeTaskSchedulePolicy(t *domain.Task) {
+	p := t.SchedulePolicy()
+	t.MissingDatePolicy = p.MissingDate
+	t.TimeBasis = p.TimeBasis
+	t.DSTGapPolicy = p.DSTGap
+	t.DSTOverlapPolicy = p.DSTOverlap
+}
+
 func scanTask(sc scanner) (domain.Task, error) {
 	var t domain.Task
 	var group sql.NullString
 	var argsJSON, envJSON string
 	var enabled int
-	var overlap, catchup, missingDate, state, created, updated string
+	var overlap, catchup, missingDate, timeBasis, dstGap, dstOverlap, state, created, updated string
 	if err := sc.Scan(&t.ID, &t.Name, &group, &t.Command, &argsJSON, &t.WorkingDir, &envJSON, &t.RunAs,
-		&enabled, &t.Timezone, &t.ScheduleID, &overlap, &catchup, &missingDate, &state, &created, &updated); err != nil {
+		&enabled, &t.Timezone, &t.ScheduleID, &overlap, &catchup, &missingDate, &timeBasis, &dstGap, &dstOverlap, &state, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Task{}, ErrNotFound
 		}
@@ -333,6 +346,10 @@ func scanTask(sc scanner) (domain.Task, error) {
 	t.OverlapPolicy = domain.OverlapPolicy(overlap)
 	t.CatchupPolicy = domain.CatchupPolicy(catchup)
 	t.MissingDatePolicy = missingDateOrDefault(domain.MissingDatePolicy(missingDate))
+	t.TimeBasis = domain.TimeBasis(timeBasis)
+	t.DSTGapPolicy = domain.DSTGapPolicy(dstGap)
+	t.DSTOverlapPolicy = domain.DSTOverlapPolicy(dstOverlap)
+	normalizeTaskSchedulePolicy(&t)
 	t.State = domain.TaskState(state)
 	t.CreatedAt, _ = parseTime(created)
 	t.UpdatedAt, _ = parseTime(updated)

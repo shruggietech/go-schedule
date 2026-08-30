@@ -108,6 +108,9 @@ required, along with `--command`.
 | `--overlap` | `queue_one` (default), `skip`, or `allow_concurrent`. |
 | `--catchup` | `one` (default) or `none`. |
 | `--missing-date` | `skip` (default), `last_valid`, or `next_valid`. |
+| `--time-basis` | `wall_clock` (default), `elapsed`, or `utc`. |
+| `--dst-gap` | `next_valid` (default) or `skip`. |
+| `--dst-overlap` | `first` (default), `both`, or `last`. |
 
 ```sh
 gosched task add nightly-backup \
@@ -126,11 +129,13 @@ The schedule can be written the way you would say it, such as `every 15
 minutes`, `every weekday at 09:00`, or `3rd wednesday monthly at 14:00`. The
 supported five-field cron subset is also accepted, such as `0 9 * * 1-5`.
 On success the command echoes back how it understood you, and the next few run
-times, so a misreading is visible immediately rather than at 02:30 tomorrow:
+times. It also names the effective timing basis and transition behavior, so a
+misreading is visible immediately rather than at 02:30 tomorrow:
 
 ```text
 created task 6f1c… (nightly-backup)
 schedule: every day at 02:30 (America/New_York)
+timing: Local wall clock; spring gap: next valid; fall overlap: first
 next runs:
   2026-07-24T06:30:00Z
   2026-07-25T06:30:00Z
@@ -165,6 +170,19 @@ schedule: The 31st of every month at 09:00, or the last day of the month when
 there is no such date
 ```
 
+**Time basis** decides which clock anchors a recurrence. `wall_clock` keeps
+local readings fixed, so a six-hour local cycle can span five or seven elapsed
+hours when the offset changes. `elapsed` keeps the real interval fixed and lets
+the displayed local reading shift; it is accepted only for fixed-duration
+interval schedules. `utc` evaluates recurrence fields against UTC and uses the
+task timezone only for local display.
+
+For `wall_clock`, **DST gap** decides whether a nonexistent spring-forward time
+runs at the first valid instant (`next_valid`) or is omitted (`skip`). **DST
+overlap** chooses the earlier (`first`), both (`both`), or later (`last`)
+instant when a fall-back wall reading occurs twice. The transition choices stay
+stored but are inert under `elapsed` and `utc`.
+
 ### `task edit <id>`
 
 Modify a task. Only the fields you pass change; everything else is left alone.
@@ -198,8 +216,8 @@ gosched task list --group 4b2e… --state active
 
 ### `task show <id>`
 
-Full detail for one task — command, timezone, state, how its schedule was
-understood, and the upcoming run times.
+Full detail for one task, including command, timezone, state, all effective
+scheduling policies, how its schedule was understood, and upcoming run times.
 
 ### `task enable <id>` · `task disable <id>`
 

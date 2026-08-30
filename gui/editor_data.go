@@ -39,10 +39,30 @@ var missingDateChoices = []policyChoice[domain.MissingDatePolicy]{
 	{"Roll into the next period", domain.MissingDateNextValid},
 }
 
+var timeBasisChoices = []policyChoice[domain.TimeBasis]{
+	{"Local wall clock", domain.TimeBasisWallClock},
+	{"Fixed elapsed time", domain.TimeBasisElapsed},
+	{"UTC clock", domain.TimeBasisUTC},
+}
+
+var dstGapChoices = []policyChoice[domain.DSTGapPolicy]{
+	{"Run at the next valid time", domain.DSTGapNextValid},
+	{"Skip that occurrence", domain.DSTGapSkip},
+}
+
+var dstOverlapChoices = []policyChoice[domain.DSTOverlapPolicy]{
+	{"First occurrence", domain.DSTOverlapFirst},
+	{"Both occurrences", domain.DSTOverlapBoth},
+	{"Last occurrence", domain.DSTOverlapLast},
+}
+
 // overlapLabels / catchupLabels are the ordered display strings for the selects.
 func overlapLabels() []string     { return labelsOf(overlapChoices) }
 func catchupLabels() []string     { return labelsOf(catchupChoices) }
 func missingDateLabels() []string { return labelsOf(missingDateChoices) }
+func timeBasisLabels() []string   { return labelsOf(timeBasisChoices) }
+func dstGapLabels() []string      { return labelsOf(dstGapChoices) }
+func dstOverlapLabels() []string  { return labelsOf(dstOverlapChoices) }
 
 func labelsOf[T ~string](cs []policyChoice[T]) []string {
 	out := make([]string, len(cs))
@@ -82,6 +102,21 @@ func missingDateValue(label string) domain.MissingDatePolicy {
 	return missingDateChoices[0].value
 }
 
+func timeBasisValue(label string) domain.TimeBasis { return valueOf(timeBasisChoices, label) }
+func dstGapValue(label string) domain.DSTGapPolicy { return valueOf(dstGapChoices, label) }
+func dstOverlapValue(label string) domain.DSTOverlapPolicy {
+	return valueOf(dstOverlapChoices, label)
+}
+
+func valueOf[T ~string](choices []policyChoice[T], label string) T {
+	for _, choice := range choices {
+		if choice.label == label {
+			return choice.value
+		}
+	}
+	return choices[0].value
+}
+
 // overlapLabel maps a stored value back to its display label (default label for
 // unknown values).
 func overlapLabel(v domain.OverlapPolicy) string {
@@ -109,6 +144,21 @@ func missingDateLabel(v domain.MissingDatePolicy) string {
 		}
 	}
 	return missingDateChoices[0].label
+}
+
+func timeBasisLabel(v domain.TimeBasis) string { return labelOf(timeBasisChoices, v) }
+func dstGapLabel(v domain.DSTGapPolicy) string { return labelOf(dstGapChoices, v) }
+func dstOverlapLabel(v domain.DSTOverlapPolicy) string {
+	return labelOf(dstOverlapChoices, v)
+}
+
+func labelOf[T ~string](choices []policyChoice[T], value T) string {
+	for _, choice := range choices {
+		if choice.value == value {
+			return choice.label
+		}
+	}
+	return choices[0].label
 }
 
 // --- group choices -------------------------------------------------------

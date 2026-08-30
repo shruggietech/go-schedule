@@ -25,10 +25,16 @@ type Decision struct {
 // (nothing to be "behind" on), or when the next scheduled occurrence after the
 // last run is still in the future.
 func Evaluate(sch domain.Schedule, tzName string, lastScheduled time.Time, hasPrior bool, policy domain.CatchupPolicy, missingDate domain.MissingDatePolicy, now time.Time) (Decision, error) {
+	return EvaluateWithPolicy(sch, tzName, lastScheduled, hasPrior, policy, domain.SchedulePolicy{MissingDate: missingDate}, now)
+}
+
+// EvaluateWithPolicy applies the complete task scheduling policy while keeping
+// catch-up capped at one execution.
+func EvaluateWithPolicy(sch domain.Schedule, tzName string, lastScheduled time.Time, hasPrior bool, policy domain.CatchupPolicy, schedulePolicy domain.SchedulePolicy, now time.Time) (Decision, error) {
 	if policy != domain.CatchupOne || !hasPrior {
 		return Decision{}, nil
 	}
-	next, ok, err := schedule.NextRun(sch, tzName, missingDate, lastScheduled)
+	next, ok, err := schedule.NextRunWithPolicy(sch, tzName, schedulePolicy, lastScheduled)
 	if err != nil {
 		return Decision{}, err
 	}

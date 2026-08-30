@@ -148,6 +148,20 @@ func TestEditor_SaveGating_BadTimezone(t *testing.T) {
 	}
 }
 
+func TestEditor_SaveGating_ElapsedRejectsCalendarSchedule(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.name.SetText("monthly")
+	e.command.SetText("cmd")
+	e.schedule.SetText("3rd wednesday monthly at 14:00")
+	if e.save.Disabled() {
+		t.Fatal("precondition: wall-clock monthly schedule should be valid")
+	}
+	e.timeBasis.SetSelected(timeBasisLabel(domain.TimeBasisElapsed))
+	if !e.save.Disabled() {
+		t.Fatal("Save should disable when elapsed time is incompatible with the recurrence")
+	}
+}
+
 // --- US3: combined preview -----------------------------------------------
 
 func TestEditor_CommandPreview(t *testing.T) {
@@ -391,6 +405,9 @@ func TestEditor_AdvancedLabelsMapToWire(t *testing.T) {
 	e.schedule.SetText("every 15 minutes")
 	e.overlap.SetSelected("Allow concurrent runs")
 	e.catchup.SetSelected("Skip missed runs")
+	e.timeBasis.SetSelected(timeBasisLabel(domain.TimeBasisElapsed))
+	e.dstGap.SetSelected(dstGapLabel(domain.DSTGapSkip))
+	e.dstOverlap.SetSelected(dstOverlapLabel(domain.DSTOverlapBoth))
 
 	f := e.buildForm()
 	if f.overlap != string(domain.OverlapAllowConcurrent) {
@@ -398,6 +415,9 @@ func TestEditor_AdvancedLabelsMapToWire(t *testing.T) {
 	}
 	if f.catchup != string(domain.CatchupNone) {
 		t.Fatalf("catchup wire = %q, want %q", f.catchup, domain.CatchupNone)
+	}
+	if f.timeBasis != string(domain.TimeBasisElapsed) || f.dstGap != string(domain.DSTGapSkip) || f.dstOverlap != string(domain.DSTOverlapBoth) {
+		t.Fatalf("DST policy wire = %q/%q/%q", f.timeBasis, f.dstGap, f.dstOverlap)
 	}
 }
 

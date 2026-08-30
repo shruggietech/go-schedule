@@ -150,7 +150,7 @@ func (e *Engine) recompute(now time.Time) {
 			continue
 		}
 		e.tasks[task.ID] = taskCtx{task: task, sch: sch}
-		if n, ok, err := schedule.NextRun(sch, task.Timezone, task.MissingDatePolicy, now); err == nil && ok {
+		if n, ok, err := schedule.NextRunWithPolicy(sch, task.Timezone, task.SchedulePolicy(), now); err == nil && ok {
 			newNext[task.ID] = n
 		}
 	}
@@ -174,7 +174,7 @@ func (e *Engine) runCatchup(now time.Time) {
 		if err != nil || len(runs) == 0 {
 			continue // never run → nothing to catch up
 		}
-		dec, err := catchup.Evaluate(tc.sch, tc.task.Timezone, runs[0].ScheduledFor, true, tc.task.CatchupPolicy, tc.task.MissingDatePolicy, now)
+		dec, err := catchup.EvaluateWithPolicy(tc.sch, tc.task.Timezone, runs[0].ScheduledFor, true, tc.task.CatchupPolicy, tc.task.SchedulePolicy(), now)
 		if err != nil {
 			e.log.Error("engine: catchup evaluate", "task", tc.task.ID, "err", err)
 			continue
@@ -239,7 +239,7 @@ func (e *Engine) runDue(now time.Time) {
 			e.completeOneOff(id)
 			continue
 		}
-		if n, ok, err := schedule.NextRun(tc.sch, tc.task.Timezone, tc.task.MissingDatePolicy, scheduledFor); err == nil && ok {
+		if n, ok, err := schedule.NextRunWithPolicy(tc.sch, tc.task.Timezone, tc.task.SchedulePolicy(), scheduledFor); err == nil && ok {
 			e.mu.Lock()
 			e.next[id] = n
 			e.mu.Unlock()

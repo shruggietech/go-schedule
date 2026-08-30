@@ -184,20 +184,24 @@ func weekdayOf(w rrule.Weekday) time.Weekday {
 // applying policy to periods that have no matching date. The returned time is a
 // wall-clock time in loc; the caller applies DST normalization to it, so this
 // function never reasons about offsets.
-func resolveMissingDate(in targetDate, opt *rrule.ROption, loc *time.Location, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool) {
+func resolveMissingDate(in targetDate, opt *rrule.ROption, loc *time.Location, policy domain.SchedulePolicy, after time.Time) (time.Time, bool) {
 	h, mi, s := timeOfDay(opt)
+	anchor := opt.Dtstart.UTC()
+	afterLocal := after.In(loc)
 	// Start from the anchor's period so INTERVAL is counted from where the
 	// operator anchored the rule, then jump forward by whole intervals to just
 	// before `after`. Without the jump, a rule anchored years ago would spend
 	// the whole walk budget replaying periods that are already past.
 	period := periodStart(opt.Dtstart.In(loc), in.yearly, in.month, loc)
-	if skip := wholeIntervalsBefore(period, after, in); skip > 0 {
+	if skip := wholeIntervalsBefore(period, afterLocal, in); skip > 0 {
 		period = advanceBy(period, in, skip)
 	}
 
 	for i := 0; i < maxPeriodWalk; i++ {
-		if occ, ok := occurrenceIn(in, period, h, mi, s, policy, loc); ok && occ.After(after) {
-			return occ, true
+		if intent, ok := occurrenceIn(in, period, h, mi, s, policy.MissingDate); ok {
+			if occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after); ok {
+				return occ, true
+			}
 		}
 		period = advance(period, in)
 	}
@@ -207,7 +211,7 @@ func resolveMissingDate(in targetDate, opt *rrule.ROption, loc *time.Location, p
 // resolveNearestWeekday executes the monthly calendar adjustment that a single
 // RRULE cannot represent. Missing-date policy resolves the numbered date before
 // weekend adjustment.
-func resolveNearestWeekday(opt *rrule.ROption, loc *time.Location, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool, error) {
+func resolveNearestWeekday(opt *rrule.ROption, loc *time.Location, policy domain.SchedulePolicy, after time.Time) (time.Time, bool, error) {
 	if opt.Freq != rrule.MONTHLY || opt.Interval > 1 || len(opt.Bymonthday) != 1 ||
 		opt.Bymonthday[0] < 1 || opt.Bymonthday[0] > 31 || len(opt.Byweekday) != 0 ||
 		len(opt.Bymonth) != 0 || len(opt.Bysetpos) != 0 || len(opt.Byyearday) != 0 ||
@@ -220,17 +224,17 @@ func resolveNearestWeekday(opt *rrule.ROption, loc *time.Location, policy domain
 	h, mi, s := timeOfDay(opt)
 	anchor := opt.Dtstart.In(loc)
 	period := periodStart(anchor, false, 0, loc)
-	if skip := wholeIntervalsBefore(period, after, in); skip > 0 {
+	if skip := wholeIntervalsBefore(period, after.In(loc), in); skip > 0 {
 		period = advanceBy(period, in, skip)
 	}
 	for i := 0; i < maxPeriodWalk; i++ {
-		if year, month, day, ok := resolvedMonthDay(period, in.day, policy); ok {
+		if year, month, day, ok := resolvedMonthDay(period, in.day, policy.MissingDate); ok {
 			// Resolve and adjust the calendar date before applying the requested
 			// wall clock. Otherwise a nonexistent time on the unadjusted Sunday
 			// can be normalized before the date moves to Monday.
-			adjusted := nearestWeekday(time.Date(year, month, day, 12, 0, 0, 0, loc))
-			occ := timezone.WallTime(loc, adjusted.Year(), adjusted.Month(), adjusted.Day(), h, mi, s)
-			if !occ.Before(anchor) && occ.After(after) {
+			adjusted := nearestWeekday(time.Date(year, month, day, 12, 0, 0, 0, time.UTC))
+			intent := time.Date(adjusted.Year(), adjusted.Month(), adjusted.Day(), h, mi, s, 0, time.UTC)
+			if occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after); ok {
 				return occ, true, nil
 			}
 		}
@@ -301,68 +305,11 @@ func compositeDailySet(opt *rrule.ROption) bool {
 	return true
 }
 
-// resolveCompositeDailySet walks calendar dates rather than asking rrule-go to
-// construct a timestamp at the requested clock first. That preserves the wall
-// clock across DST gaps: 02:30 remains the requested input to WallTime instead
-// of arriving already normalized to 01:30.
-func resolveCompositeDailySet(opt *rrule.ROption, loc *time.Location, after time.Time) (time.Time, bool) {
-	anchor := opt.Dtstart.In(loc)
-	afterLocal := after.In(loc)
-	start := afterLocal
-	if anchor.After(start) {
-		start = anchor
-	}
-	// UTC noon is only a Gregorian date carrier. Occurrences are constructed in
-	// loc below, after all date filters have been applied.
-	date := time.Date(start.Year(), start.Month(), start.Day(), 12, 0, 0, 0, time.UTC)
-	// A February 29 selector can span eight years across a non-leap century
-	// (for example, 2096 to 2104), which is the widest gap in Gregorian cron.
-	for i := 0; i < 366*8; i++ {
-		if monthSelected(opt.Bymonth, date.Month()) && daySelected(opt.Bymonthday, date.Day()) &&
-			weekdaySelected(opt.Byweekday, date.Weekday()) {
-			for _, hour := range opt.Byhour {
-				for _, minute := range opt.Byminute {
-					occ := timezone.WallTime(loc, date.Year(), date.Month(), date.Day(), hour, minute, 0)
-					if !occ.Before(anchor) && occ.After(after) {
-						return occ, true
-					}
-				}
-			}
-		}
-		date = date.AddDate(0, 0, 1)
-	}
-	return time.Time{}, false
-}
-
-func daySelected(days []int, day int) bool {
-	if len(days) == 0 {
-		return true
-	}
-	for _, selected := range days {
-		if selected == day {
-			return true
-		}
-	}
-	return false
-}
-
-func weekdaySelected(weekdays []rrule.Weekday, weekday time.Weekday) bool {
-	if len(weekdays) == 0 {
-		return true
-	}
-	for _, selected := range weekdays {
-		if weekdayOf(selected) == weekday {
-			return true
-		}
-	}
-	return false
-}
-
-func resolveCompositeDateSet(opt *rrule.ROption, loc *time.Location, policy domain.MissingDatePolicy, after time.Time) (time.Time, bool) {
+func resolveCompositeDateSet(opt *rrule.ROption, loc *time.Location, policy domain.SchedulePolicy, after time.Time) (time.Time, bool) {
 	anchor := opt.Dtstart.In(loc)
 	period := periodStart(anchor, false, 0, loc)
 	in := targetDate{kind: intentMonthDay, interval: 1}
-	if skip := wholeIntervalsBefore(period, after, in); skip > 0 {
+	if skip := wholeIntervalsBefore(period, after.In(loc), in); skip > 0 {
 		period = period.AddDate(0, skip, 0)
 	}
 
@@ -370,14 +317,15 @@ func resolveCompositeDateSet(opt *rrule.ROption, loc *time.Location, policy doma
 		if monthSelected(opt.Bymonth, period.Month()) {
 			var best time.Time
 			for _, target := range opt.Bymonthday {
-				year, month, day, ok := resolvedMonthDay(period, target, policy)
+				year, month, day, ok := resolvedMonthDay(period, target, policy.MissingDate)
 				if !ok {
 					continue
 				}
 				for _, hour := range opt.Byhour {
 					for _, minute := range opt.Byminute {
-						occ := timezone.WallTime(loc, year, month, day, hour, minute, 0)
-						if occ.Before(anchor) || !occ.After(after) || !best.IsZero() && !occ.Before(best) {
+						intent := time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
+						occ, ok := resolvedIntentAfter(loc, intent, policy, anchor, after)
+						if !ok || !best.IsZero() && !occ.Before(best) {
 							continue
 						}
 						best = occ
@@ -470,21 +418,21 @@ func advance(period time.Time, in targetDate) time.Time {
 // the target date does not exist. It reports false only for the skip policy,
 // which the caller does not use — kept explicit so the three-way decision is
 // readable in one place.
-func occurrenceIn(in targetDate, period time.Time, h, mi, s int, policy domain.MissingDatePolicy, loc *time.Location) (time.Time, bool) {
+func occurrenceIn(in targetDate, period time.Time, h, mi, s int, policy domain.MissingDatePolicy) (time.Time, bool) {
 	switch in.kind {
 	case intentMonthDay:
 		last := daysIn(period)
 		switch {
 		case in.day <= last:
-			return time.Date(period.Year(), period.Month(), in.day, h, mi, s, 0, loc), true
+			return time.Date(period.Year(), period.Month(), in.day, h, mi, s, 0, time.UTC), true
 		case policy == domain.MissingDateLastValid:
-			return time.Date(period.Year(), period.Month(), last, h, mi, s, 0, loc), true
+			return time.Date(period.Year(), period.Month(), last, h, mi, s, 0, time.UTC), true
 		case policy == domain.MissingDateNextValid:
 			// The first day of the following period. This is a distinct
 			// occurrence from that period's own target date, which the walk
 			// still produces on its own turn (FR-019a).
 			next := period.AddDate(0, 1, 0)
-			return time.Date(next.Year(), next.Month(), 1, h, mi, s, 0, loc), true
+			return time.Date(next.Year(), next.Month(), 1, h, mi, s, 0, time.UTC), true
 		}
 		return time.Time{}, false
 
@@ -492,18 +440,30 @@ func occurrenceIn(in targetDate, period time.Time, h, mi, s int, policy domain.M
 		day, ok := nthWeekday(period, in.nth, in.weekday)
 		switch {
 		case ok:
-			return time.Date(period.Year(), period.Month(), day, h, mi, s, 0, loc), true
+			return time.Date(period.Year(), period.Month(), day, h, mi, s, 0, time.UTC), true
 		case policy == domain.MissingDateLastValid:
 			// The last occurrence of that weekday in this month — what "the
 			// fifth Friday, or the last one when there is none" means.
-			return time.Date(period.Year(), period.Month(), lastWeekday(period, in.weekday), h, mi, s, 0, loc), true
+			return time.Date(period.Year(), period.Month(), lastWeekday(period, in.weekday), h, mi, s, 0, time.UTC), true
 		case policy == domain.MissingDateNextValid:
 			next := period.AddDate(0, 1, 0)
-			return time.Date(next.Year(), next.Month(), firstWeekday(next, in.weekday), h, mi, s, 0, loc), true
+			return time.Date(next.Year(), next.Month(), firstWeekday(next, in.weekday), h, mi, s, 0, time.UTC), true
 		}
 		return time.Time{}, false
 	}
 	return time.Time{}, false
+}
+
+func resolvedIntentAfter(loc *time.Location, intent time.Time, policy domain.SchedulePolicy, anchor, after time.Time) (time.Time, bool) {
+	var best time.Time
+	for _, candidate := range timezone.ResolveWallTime(loc, intent.Year(), intent.Month(), intent.Day(), intent.Hour(), intent.Minute(), intent.Second(), policy.DSTGap, policy.DSTOverlap) {
+		candidate = candidate.UTC()
+		if candidate.Before(anchor) || !candidate.After(after) || !best.IsZero() && !candidate.Before(best) {
+			continue
+		}
+		best = candidate
+	}
+	return best, !best.IsZero()
 }
 
 // daysIn returns the number of days in the month containing period.

@@ -34,13 +34,17 @@ type TaskCreateRequest struct {
 	// MissingDatePolicy defaults to skip, which is the behavior of every task
 	// created before the policy existed.
 	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
+	TimeBasis         string `json:"time_basis,omitempty"`
+	DSTGapPolicy      string `json:"dst_gap_policy,omitempty"`
+	DSTOverlapPolicy  string `json:"dst_overlap_policy,omitempty"`
 }
 
 // TaskResponse is the detail returned for a task.
 type TaskResponse struct {
-	Task     domain.Task     `json:"task"`
-	Schedule domain.Schedule `json:"schedule"`
-	NextRuns []time.Time     `json:"next_runs"`
+	Task          domain.Task     `json:"task"`
+	Schedule      domain.Schedule `json:"schedule"`
+	PolicySummary string          `json:"policy_summary"`
+	NextRuns      []time.Time     `json:"next_runs"`
 }
 
 func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
@@ -116,6 +120,30 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "missing_date_policy", "must be skip, last_valid, or next_valid")
 		return
 	}
+	timeBasis := domain.TimeBasis(orDefault(req.TimeBasis, string(domain.TimeBasisWallClock)))
+	if !validTimeBasis(timeBasis) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", "must be wall_clock, elapsed, or utc")
+		return
+	}
+	dstGap := domain.DSTGapPolicy(orDefault(req.DSTGapPolicy, string(domain.DSTGapNextValid)))
+	if !validDSTGap(dstGap) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "dst_gap_policy", "must be next_valid or skip")
+		return
+	}
+	dstOverlap := domain.DSTOverlapPolicy(orDefault(req.DSTOverlapPolicy, string(domain.DSTOverlapFirst)))
+	if !validDSTOverlap(dstOverlap) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "dst_overlap_policy", "must be first, both, or last")
+		return
+	}
+	policy := domain.SchedulePolicy{MissingDate: missingDate, TimeBasis: timeBasis, DSTGap: dstGap, DSTOverlap: dstOverlap}
+	if err := schedule.ValidatePolicy(sch, policy); err != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+		return
+	}
+	if err := schedule.PrepareForPolicy(&sch, tz, policy); err != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+		return
+	}
 
 	if err := s.store.CreateSchedule(&sch); err != nil {
 		s.internal(w, err)
@@ -125,7 +153,8 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		Name: req.Name, GroupID: req.GroupID, Command: req.Command, Args: req.Args,
 		WorkingDir: req.WorkingDir, Env: req.Env, RunAs: req.RunAs, Enabled: true,
 		Timezone: tz, ScheduleID: sch.ID, OverlapPolicy: overlap, CatchupPolicy: catchup,
-		MissingDatePolicy: missingDate, State: domain.TaskActive,
+		MissingDatePolicy: missingDate, TimeBasis: timeBasis, DSTGapPolicy: dstGap,
+		DSTOverlapPolicy: dstOverlap, State: domain.TaskActive,
 	}
 	if err := s.store.CreateTask(task); err != nil {
 		s.internal(w, err)
@@ -208,6 +237,9 @@ type PreviewRequest struct {
 	// phrase produces different run times under different policies, so a preview
 	// that ignored it would show times the created task would not keep.
 	MissingDatePolicy string `json:"missing_date_policy,omitempty"`
+	TimeBasis         string `json:"time_basis,omitempty"`
+	DSTGapPolicy      string `json:"dst_gap_policy,omitempty"`
+	DSTOverlapPolicy  string `json:"dst_overlap_policy,omitempty"`
 }
 
 type PreviewResponse struct {
@@ -216,6 +248,7 @@ type PreviewResponse struct {
 	HumanSummary       string                    `json:"human_summary"`
 	NextRuns           []time.Time               `json:"next_runs"`
 	SourceSyntax       string                    `json:"source_syntax,omitempty"`
+	PolicySummary      string                    `json:"policy_summary"`
 }
 
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
@@ -232,6 +265,18 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "missing_date_policy", "invalid policy")
 		return
 	}
+	if req.TimeBasis != "" && !validTimeBasis(domain.TimeBasis(req.TimeBasis)) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", "invalid policy")
+		return
+	}
+	if req.DSTGapPolicy != "" && !validDSTGap(domain.DSTGapPolicy(req.DSTGapPolicy)) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "dst_gap_policy", "invalid policy")
+		return
+	}
+	if req.DSTOverlapPolicy != "" && !validDSTOverlap(domain.DSTOverlapPolicy(req.DSTOverlapPolicy)) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "dst_overlap_policy", "invalid policy")
+		return
+	}
 	tz := orDefault(req.Timezone, "Local")
 	now := time.Now().UTC()
 	input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), tz, now)
@@ -244,27 +289,40 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sch := input.Schedule
-	runs, _ := schedule.UpcomingRuns(sch, tz, domain.MissingDatePolicy(req.MissingDatePolicy), now, 5)
+	policy := (domain.SchedulePolicy{
+		MissingDate: domain.MissingDatePolicy(req.MissingDatePolicy), TimeBasis: domain.TimeBasis(req.TimeBasis),
+		DSTGap: domain.DSTGapPolicy(req.DSTGapPolicy), DSTOverlap: domain.DSTOverlapPolicy(req.DSTOverlapPolicy),
+	}).Effective()
+	if err := schedule.ValidatePolicy(sch, policy); err != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+		return
+	}
+	if err := schedule.PrepareForPolicy(&sch, tz, policy); err != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+		return
+	}
+	runs, _ := schedule.UpcomingRunsWithPolicy(sch, tz, policy, now, 5)
 	writeJSON(w, http.StatusOK, PreviewResponse{
 		RRULE:              sch.RRULE,
 		CalendarAdjustment: sch.CalendarAdjustment,
 		HumanSummary:       schedule.Describe(sch, domain.MissingDatePolicy(req.MissingDatePolicy)),
 		NextRuns:           runs,
 		SourceSyntax:       string(input.Syntax),
+		PolicySummary:      schedule.DescribePolicy(policy),
 	})
 }
 
 // ---- helpers ------------------------------------------------------------
 
 func (s *Server) taskDetail(task domain.Task, sch domain.Schedule, now time.Time) TaskResponse {
-	runs, _ := schedule.UpcomingRuns(sch, task.Timezone, task.MissingDatePolicy, now, 5)
+	runs, _ := schedule.UpcomingRunsWithPolicy(sch, task.Timezone, task.SchedulePolicy(), now, 5)
 	// The summary is rendered against the task's policy on the way out rather
 	// than stored, because the policy can change without the phrase changing. The
 	// stored HumanSummary stays the phrase-level sentence; every client reads
 	// this one, so none of them can claim a rule fires in a period it skips.
 	sch.HumanSummary = schedule.Describe(sch, task.MissingDatePolicy)
 	sch.SourceSyntax = string(scheduleinput.SourceSyntax(sch))
-	return TaskResponse{Task: task, Schedule: sch, NextRuns: runs}
+	return TaskResponse{Task: task, Schedule: sch, PolicySummary: schedule.DescribePolicy(task.SchedulePolicy()), NextRuns: runs}
 }
 
 func (s *Server) reload() {
@@ -307,6 +365,26 @@ func validMissingDate(p domain.MissingDatePolicy) bool {
 func validOverlap(p domain.OverlapPolicy) bool {
 	switch p {
 	case domain.OverlapQueueOne, domain.OverlapSkip, domain.OverlapAllowConcurrent:
+		return true
+	}
+	return false
+}
+
+func validTimeBasis(p domain.TimeBasis) bool {
+	switch p {
+	case domain.TimeBasisWallClock, domain.TimeBasisElapsed, domain.TimeBasisUTC:
+		return true
+	}
+	return false
+}
+
+func validDSTGap(p domain.DSTGapPolicy) bool {
+	return p == domain.DSTGapNextValid || p == domain.DSTGapSkip
+}
+
+func validDSTOverlap(p domain.DSTOverlapPolicy) bool {
+	switch p {
+	case domain.DSTOverlapFirst, domain.DSTOverlapBoth, domain.DSTOverlapLast:
 		return true
 	}
 	return false
