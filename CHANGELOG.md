@@ -9,7 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The Windows desktop now recovers from named-pipe access denial (Closes
+- **Installed Windows access now works for direct `goschedadmin` users whose
+  standard token omits the new alias SID (Closes #90).** The restricted pipe
+  retains SYSTEM, Built-in Administrators, and configured-group ACEs while
+  adding validated, deterministic direct-user SID ACEs at service startup.
+  Authenticated Users and unrelated accounts remain excluded, and a native
+  standard-token regression proves the formerly denied connection.
+
+- **Installed Windows task execution now has a real service-boundary contract
+  (Closes #93).** The lifecycle probe creates tasks through the installed CLI
+  and requires manual and scheduled LocalSystem execution, exit code 0,
+  expected output, and marker effects. Nonzero child exits remain distinct from
+  process-start failures, whose diagnostics name only the executable and OS
+  error without disclosing arguments, stdin, or environment values.
+
+- **The Windows desktop now recovers from named-pipe access denial (Refs
   #90).** Shared client errors distinguish daemon absence, access denial,
   timeout, other transport failures, and API responses. Concurrent model,
   calendar, and event-stream failures coalesce into one reachable in-frame
@@ -30,6 +44,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-01 - Expand only verified direct users at Windows pipe startup.**
+  S038 intentionally supersedes S036's ACL exclusion because the presentation
+  repair left ordinary installed access broken. Netapi32 enumerates direct
+  local-group members once, the daemon validates and de-duplicates user SIDs,
+  and the configured-group ACE remains for fresh and nested membership tokens.
+  Enumeration failures fail closed; access is never broadened to Authenticated
+  Users or Everyone.
+
+- **2026-09-01 - Require real service-hosted execution evidence for the core
+  Windows promise.** In-process executor tests and the scheduler's recording
+  runner cannot prove LocalSystem process creation. The pinned Windows
+  lifecycle probe now uses an absolute inbox executable, manual and scheduled
+  markers, run history, and controlled failure cases. The pinned CI workflow
+  also runs a disposable binary-level LocalSystem probe and uploads its JSON
+  evidence. The broader candidate-MSI release gate remains tracked separately
+  by #94.
 
 - **2026-08-31 - Preserve restricted IPC authorization while diagnosing the
   current Windows session.** S036 reads service, local-group, account-member,

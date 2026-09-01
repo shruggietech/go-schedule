@@ -298,7 +298,7 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	lifecycle := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerLifecycle.ps1"))
 	for _, fragment := range []string{
 		"[ValidateSet('candidate', 'published')]",
-		"[ValidateSet('fresh','upgrade','access-probe')]",
+		"[ValidateSet('fresh','upgrade','access-probe','installed-core-probe')]",
 		"[string]$ArtifactClass",
 		"[string]$ArtifactOrigin",
 		`"- Evidence class: **$ArtifactClass artifact**"`,
@@ -317,11 +317,20 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		"CandidateProductCode",
 		"Installed product identity does not match the candidate MSI",
 		"Token contains goschedadmin SID",
+		"Expected restricted pipe descriptor",
 		"AccessProbeExitCode",
 		"AccessProbeOutput",
 		"Daemon admin_group is",
 		"PSChildName",
-		"Current token does not contain the goschedadmin SID",
+		"Invoke-InstalledCoreExecutionProbe",
+		"'*/5 * * * * *'",
+		"Wait-TaskRun -TaskId $successTask.id",
+		"-Trigger manual",
+		"-Trigger schedule",
+		"S038-controlled-failure",
+		"missing-s038-executable.exe",
+		"process start failed for",
+		"ExecutionEnvironmentKeys = '<none>'",
 		"Cleanup uninstall failed",
 		"Write-Evidence -Status $status -Problems $problems",
 		"$OperationArguments[0]",
@@ -348,5 +357,35 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	writePosition := strings.LastIndex(lifecycle, "Write-Evidence -Status $status")
 	if finallyPosition < 0 || writePosition < finallyPosition {
 		t.Error("lifecycle verifier writes final evidence before cleanup completes")
+	}
+
+	serviceProbe := string(readRepositoryFile(t, "test", "windows", "Invoke-ServiceCoreCI.ps1"))
+	for _, fragment := range []string{
+		"Probe token unexpectedly contains the newly created group SID",
+		"Invoke-ProbeCli -Arguments @('service', 'install')",
+		"Wait-ProbeRun -TaskId $successTask.id -Trigger manual",
+		"Wait-ProbeRun -TaskId $successTask.id -Trigger schedule",
+		"S038-controlled-failure",
+		"missing-s038-executable.exe",
+		"service_account = $service.StartName",
+		"environment_keys = @()",
+		"} finally {",
+		"Remove-LocalGroup -Name $groupName",
+	} {
+		if !strings.Contains(serviceProbe, fragment) {
+			t.Errorf("service-core verifier is missing boundary fragment %q", fragment)
+		}
+	}
+
+	ci := string(readRepositoryFile(t, ".github", "workflows", "ci.yml"))
+	for _, fragment := range []string{
+		"windows-service-core:",
+		"runs-on: windows-latest",
+		"Invoke-ServiceCoreCI.ps1",
+		"windows-service-core-evidence",
+	} {
+		if !strings.Contains(ci, fragment) {
+			t.Errorf("CI workflow is missing service-core fragment %q", fragment)
+		}
 	}
 }

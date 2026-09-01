@@ -175,8 +175,10 @@ anyway* if it matches.
 
 **The GUI opens but says "daemon unreachable".** Check the service with
 `gosched service status`. If it reports `stopped`, start it from an
-**elevated** shell with `gosched service start`. After a first install, also
-sign out and back in so your token includes `goschedadmin`.
+**elevated** shell with `gosched service start`. A current daemon authorizes a
+direct `goschedadmin` user by the stable user SID as well as by the group SID,
+so a first launch does not require permanent elevation or a sign-out solely to
+refresh group claims.
 
 Current versions keep the application frame visible when the daemon connection
 fails. One connection panel replaces repeated error dialogs and always offers
@@ -196,10 +198,12 @@ whoami /groups | Select-String -Pattern 'goschedadmin|S-1-5-32|Group Name'
 ```
 
 If the local group exists and your account appears in its membership but
-`whoami /groups` does not show the group's SID, the current login token is stale.
-Save your work, sign out of Windows, and sign back in. Launch go-schedule again;
-it should connect without reinstalling. **Retry** is also available for a
-stopped service or other transient condition. If the account is not listed in
+`whoami /groups` does not show the group's SID, the daemon's restricted pipe
+still includes the stable SID of every direct user member discovered when the
+service starts. Restart the service after a membership change, then choose
+**Retry**. A fresh sign-in remains useful for normal Windows group-token
+refresh, including nested-group membership, but is not required for the direct
+installing-user path. If the account is not listed in
 `Get-LocalGroupMember`, retain the installer log described above and ask an
 administrator to verify installation and local account policy. Do not weaken
 the pipe ACL or run the desktop application permanently elevated as a workaround.
@@ -214,3 +218,13 @@ use the secure group default.
 
 **Where are the logs?** `C:\ProgramData\goschedule\logs\goschedule.log` and its
 rotated siblings, or the **Activity** view in the app, or `gosched logs`.
+
+**A task fails on Windows.** The daemon is a noninteractive LocalSystem service,
+so do not assume the interactive user's profile, mapped drives, PATH additions,
+or current directory are available. Put only the executable in **Command**, put
+one argument per line in **Arguments**, prefer an absolute executable path, and
+choose a working directory and output path accessible to the service. A child
+that starts and exits nonzero retains its exit code and output. A child that
+cannot start has no exit code and reports `process start failed for
+"<executable>"` with the Windows error. Arguments, stdin, and environment
+values are omitted from that diagnostic because they may contain secrets.
