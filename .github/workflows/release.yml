@@ -37,10 +37,11 @@ jobs:
             echo "::error file=README.md::Expected exactly one health version line; found ${HEALTH_LINE_COUNT}."
             exit 1
           fi
-          sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fqx -- "$BADGE" || {
+          BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
+          if [ "$BADGE_LINE_COUNT" -ne 1 ]; then
             echo "::error file=README.md::Release badge does not match ${VERSION}. Update it in the release-preparation pull request."
             exit 1
-          }
+          fi
           grep -Fqx -- "$HEALTH" README.md || {
             echo "::error file=README.md::Health example does not match ${VERSION}. Update it in the release-preparation pull request."
             exit 1

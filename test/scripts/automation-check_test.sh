@@ -150,7 +150,9 @@ name: Release
 jobs:
   readme-version:
     steps:
-      - run: true
+      - run: |
+          BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
+          test "$BADGE_LINE_COUNT" -eq 1
   binaries:
     needs: readme-version
     steps:
@@ -293,6 +295,14 @@ run_automation_cases() {
     "$nested_dependency/.github/workflows/release.yml"
   run_expect_fail nested-dependency 'README version preflight dependency' \
     sh "$CHECK" "$nested_dependency"
+
+  sigpipe_preflight="$tmp/sigpipe-preflight"
+  cp -R "$good" "$sigpipe_preflight"
+  sed '/BADGE_LINE_COUNT=/c\          sed '\''s/^[[:space:]]*//; s/[[:space:]]*$//'\'' README.md | grep -Fqx -- "$BADGE"' \
+    "$good/.github/workflows/release.yml" > \
+    "$sigpipe_preflight/.github/workflows/release.yml"
+  run_expect_fail sigpipe-preflight 'SIGPIPE-safe README badge count' \
+    sh "$CHECK" "$sigpipe_preflight"
 
   missing_wayland="$tmp/missing-wayland"
   cp -R "$good" "$missing_wayland"
