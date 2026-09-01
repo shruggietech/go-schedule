@@ -178,6 +178,32 @@ anyway* if it matches.
 **elevated** shell with `gosched service start`. After a first install, also
 sign out and back in so your token includes `goschedadmin`.
 
+Current versions keep the application frame visible when the daemon connection
+fails. One connection panel replaces repeated error dialogs and always offers
+**Retry** and **Exit**. The panel distinguishes a missing or stopped daemon, a
+timeout, and an IPC authorization failure. **Access denied** means Windows
+rejected the current process token at the existing named pipe; it does not by
+itself mean the service is stopped.
+
+For a first-install access denial, collect these four observations in a normal,
+non-elevated PowerShell window:
+
+```powershell
+Get-Service goschedd | Select-Object Name, Status, StartType
+Get-LocalGroup goschedadmin | Select-Object Name, SID
+Get-LocalGroupMember goschedadmin | Select-Object Name, ObjectClass, PrincipalSource
+whoami /groups | Select-String -Pattern 'goschedadmin|S-1-5-32|Group Name'
+```
+
+If the local group exists and your account appears in its membership but
+`whoami /groups` does not show the group's SID, the current login token is stale.
+Save your work, sign out of Windows, and sign back in. Launch go-schedule again;
+it should connect without reinstalling. **Retry** is also available for a
+stopped service or other transient condition. If the account is not listed in
+`Get-LocalGroupMember`, retain the installer log described above and ask an
+administrator to verify installation and local account policy. Do not weaken
+the pipe ACL or run the desktop application permanently elevated as a workaround.
+
 **The service reports an `admin_group` lookup error.** Confirm the group exists
 with `Get-LocalGroup goschedadmin` and that your account appears in
 `Get-LocalGroupMember goschedadmin`. A foreground daemon can deliberately use

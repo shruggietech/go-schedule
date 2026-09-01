@@ -61,7 +61,7 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("api: %s: %w (is the daemon running?)", path, err)
+		return NewConnectionError("GET "+path, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
