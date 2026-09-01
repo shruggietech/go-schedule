@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-08-31
+
 ### Fixed
 
 - **Windows MSI group provisioning now uses WiX's elevated local-group path
@@ -28,6 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the GLFW dependency gained Wayland support.
 
 ### Decisions
+
+- **2026-08-31 — Ship the Windows installer recovery as a v0.9.1 patch
+  release.** The patch release contains the corrected WiX local-group
+  authoring, stronger installer contracts and lifecycle tooling, and the
+  release-pipeline corrections made after v0.9.0. Issue #83 closes only after
+  the published artifact set and checksums are audited; the unavailable native
+  Windows 11 lifecycle run remains disclosed rather than being inferred from
+  source or package inspection.
 
 - **2026-08-31 — Treat an omitted WiX group domain as a pinned Windows
   installer security contract.** S030 encoded `[ComputerName]` as local-group
@@ -1432,7 +1442,8 @@ that a pre-rebrand `goscheduler` data directory is no longer picked up — see
     archive bundling the GUI + daemon + CLI, so desktop users download one file and
     just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/shruggietech/go-schedule/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/shruggietech/go-schedule/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/shruggietech/go-schedule/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/shruggietech/go-schedule/compare/v0.6.0...v0.7.0

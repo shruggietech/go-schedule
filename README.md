@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v0.9.0-58A6FF"></a>
+<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v0.9.1-58A6FF"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-62D9B7"></a>
   <a href="https://shruggietech.github.io/go-schedule/"><img alt="Docs" src="https://img.shields.io/badge/docs-shruggietech.github.io-58A6FF"></a>
 </p>
@@ -136,7 +136,7 @@ gosched health
 ```
 
 ```text
-daemon ok (version 0.9.0)
+daemon ok (version 0.9.1)
 ```
 
 Create a weekday report with a readable phrase:
