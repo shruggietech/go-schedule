@@ -148,15 +148,19 @@ try {
     $systemCommand = [System.IO.Path]::Combine(
         $env:SystemRoot,
         'System32',
-        'cmd.exe'
+        'WindowsPowerShell',
+        'v1.0',
+        'powershell.exe'
     )
     $suffix = Get-Date -Format 'yyyyMMddHHmmssfff'
-    $successCommand = "echo S038-marker>>`"$marker`" & echo S038-output"
+    $escapedMarker = $marker.Replace("'", "''")
+    $successCommand = "[IO.File]::AppendAllText('$escapedMarker', 'S038-marker' + [Environment]::NewLine); [Console]::Out.Write('S038-output')"
     $success = Invoke-ProbeCli -ExpectJson -Arguments @(
         '--json', 'task', 'add', "s038-ci-success-$suffix",
         '--command', $systemCommand,
         '--schedule', '*/5 * * * * *', '--tz', 'UTC',
-        '--arg', '/d', '--arg', '/q', '--arg', '/c',
+        '--arg', '-NoLogo', '--arg', '-NoProfile',
+        '--arg', '-NonInteractive', '--arg', '-Command',
         '--arg', $successCommand
     )
     $successTask = $success.task
@@ -185,8 +189,9 @@ try {
         '--json', 'task', 'add', "s038-ci-exit-$suffix",
         '--command', $systemCommand,
         '--at', '2099-01-01T00:00:00Z', '--tz', 'UTC',
-        '--arg', '/d', '--arg', '/q', '--arg', '/c',
-        '--arg', 'echo S038-controlled-failure & exit /b 7'
+        '--arg', '-NoLogo', '--arg', '-NoProfile',
+        '--arg', '-NonInteractive', '--arg', '-Command',
+        '--arg', "[Console]::Out.Write('S038-controlled-failure'); exit 7"
     )
     $createdTaskIds.Add([string]$exitFailure.task.id)
     [void](Invoke-ProbeCli -Arguments @(

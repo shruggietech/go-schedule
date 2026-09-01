@@ -46,9 +46,9 @@ The first four facts reproduce the authorization mismatch recorded by S036. The 
 
 ## Decision 5: Use an absolute inbox executable and marker side effects
 
-**Decision**: Use `%SystemRoot%\\System32\\cmd.exe` with `/d /q /c`, explicit marker paths, and no interactive input.
+**Decision**: Use absolute inbox Windows PowerShell with `-NoLogo -NoProfile -NonInteractive -Command`, direct .NET marker-file I/O, explicit marker paths, and no interactive input.
 
-**Rationale**: An absolute inbox path removes service PATH ambiguity. Output plus marker files proves both record persistence and external process effects. Explicit `/d` disables AutoRun commands and `/q` disables echo, reducing host-specific behavior.
+**Rationale**: An absolute inbox path removes service PATH ambiguity. Output plus marker files proves both record persistence and external process effects. Direct .NET file I/O avoids `cmd.exe`'s documented nonstandard argument parsing around redirection and quoting.
 
 ## Decision 6: Improve only verified diagnostic weakness
 

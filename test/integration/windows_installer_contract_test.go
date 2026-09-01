@@ -324,6 +324,8 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		"PSChildName",
 		"Invoke-InstalledCoreExecutionProbe",
 		"'*/5 * * * * *'",
+		"'WindowsPowerShell'",
+		"[IO.File]::AppendAllText",
 		"Wait-TaskRun -TaskId $successTask.id",
 		"-Trigger manual",
 		"-Trigger schedule",

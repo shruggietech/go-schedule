@@ -95,7 +95,7 @@ An ordinary authorized user creates a Windows task through the installed product
 - The installer continues to enroll the intended account as a direct member of the local `goschedadmin` alias.
 - Windows evaluates a user-SID ACE against the standard token even when UAC or session staleness omits the newly added local alias SID.
 - Direct-member expansion is evaluated at daemon startup; membership changes become effective after service restart or the normal fresh-token path.
-- `%SystemRoot%\\System32\\cmd.exe` is present on supported Windows hosts and can provide deterministic output and marker effects when invoked with explicit noninteractive arguments.
+- `%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` is present on supported Windows hosts and can provide deterministic output and marker effects when invoked with explicit noninteractive arguments and direct .NET file I/O.
 - A clean release-equivalent MSI walkthrough may require a disposable Windows host. Repository tests and scripts must report unavailable native evidence honestly rather than substitute a fake backend.
 
 ## Out of Scope

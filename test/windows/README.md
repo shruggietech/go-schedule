@@ -88,7 +88,7 @@ pwsh .\Invoke-InstallerLifecycle.ps1 `
 
 This scenario first proves ordinary IPC access, then creates tasks through the
 installed CLI. The real LocalSystem daemon executes an absolute
-`%SystemRoot%\System32\cmd.exe` command manually and on a five-second schedule.
+inbox Windows PowerShell command manually and on a five-second schedule.
 Evidence contains both run records, exit code 0, output, and a two-line marker
 file. It also records a controlled exit-code 7 run and a missing-executable
 process-start failure. Probe tasks are removed afterward; marker evidence is

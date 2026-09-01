@@ -548,7 +548,9 @@ Param(
         $systemCommand = [System.IO.Path]::Combine(
             $env:SystemRoot,
             'System32',
-            'cmd.exe'
+            'WindowsPowerShell',
+            'v1.0',
+            'powershell.exe'
         )
         if (-not (Test-Path -LiteralPath $systemCommand -PathType Leaf)) {
             throw "Absolute system command is missing: $systemCommand"
@@ -556,12 +558,14 @@ Param(
         $suffix = Get-Date -Format 'yyyyMMddHHmmssfff'
         $createdTaskIds = [System.Collections.Generic.List[string]]::new()
         try {
-            $successCommand = "echo S038-marker>>`"$markerPath`" & echo S038-output"
+            $escapedMarker = $markerPath.Replace("'", "''")
+            $successCommand = "[IO.File]::AppendAllText('$escapedMarker', 'S038-marker' + [Environment]::NewLine); [Console]::Out.Write('S038-output')"
             $successArgs = @(
                 '--json', 'task', 'add', "s038-success-$suffix",
                 '--command', $systemCommand,
                 '--schedule', '*/5 * * * * *', '--tz', 'UTC',
-                '--arg', '/d', '--arg', '/q', '--arg', '/c',
+                '--arg', '-NoLogo', '--arg', '-NoProfile',
+                '--arg', '-NonInteractive', '--arg', '-Command',
                 '--arg', $successCommand
             )
             $successCreate = Invoke-InstalledCli -ExpectJson `
@@ -596,12 +600,13 @@ Param(
             Copy-Item -LiteralPath $markerPath `
                 -Destination $markerEvidencePath
 
-            $failureCommand = 'echo S038-controlled-failure & exit /b 7'
+            $failureCommand = "[Console]::Out.Write('S038-controlled-failure'); exit 7"
             $failureCreate = Invoke-InstalledCli -ExpectJson -Arguments @(
                 '--json', 'task', 'add', "s038-exit-failure-$suffix",
                 '--command', $systemCommand,
                 '--at', '2099-01-01T00:00:00Z', '--tz', 'UTC',
-                '--arg', '/d', '--arg', '/q', '--arg', '/c',
+                '--arg', '-NoLogo', '--arg', '-NoProfile',
+                '--arg', '-NonInteractive', '--arg', '-Command',
                 '--arg', $failureCommand
             )
             $failureTask = $failureCreate.Value.task

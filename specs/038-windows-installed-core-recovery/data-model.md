@@ -30,8 +30,8 @@ Existing `domain.Task` persisted through the public product boundary.
 | Field | Probe contract |
 | --- | --- |
 | Name | Unique evidence-scoped name |
-| Command | Absolute `%SystemRoot%\\System32\\cmd.exe` |
-| Args | Explicit `/d`, `/q`, `/c`, output and ProgramData marker operation |
+| Command | Absolute inbox Windows PowerShell executable |
+| Args | Explicit noninteractive switches plus output and ProgramData .NET marker operation |
 | WorkingDir | Empty or explicit evidence directory, recorded in evidence |
 | Env | Keys recorded; values redacted |
 | Schedule | Near-term recurring schedule for scheduled proof |

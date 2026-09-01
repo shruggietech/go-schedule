@@ -52,7 +52,7 @@ Resolve the configured group, enumerate member records, validate every SID with 
 
 ### Prove execution through the installed service boundary
 
-Extend `Invoke-InstallerLifecycle.ps1` with an execution-probe scenario that requires an elevated installed lifecycle context only for setup, but calls the installed CLI and daemon for all product operations. It creates deterministic tasks using `%SystemRoot%\\System32\\cmd.exe`, evidence-directory marker files, and explicit noninteractive arguments. It captures manual and scheduled run JSON, marker hashes/content, service account, and correlated logs. The existing fake integration runner remains useful for scheduler timing but is not accepted as Windows execution proof.
+Extend `Invoke-InstallerLifecycle.ps1` with an execution-probe scenario that requires an elevated installed lifecycle context only for setup, but calls the installed CLI and daemon for all product operations. It creates deterministic tasks using absolute inbox Windows PowerShell, direct .NET marker-file I/O, and explicit noninteractive arguments. It captures manual and scheduled run JSON, marker hashes/content, service account, and correlated logs. The existing fake integration runner remains useful for scheduler timing but is not accepted as Windows execution proof.
 
 Add a narrower disposable Windows CI probe that builds the daemon and CLI,
 creates the authorization alias, registers the daemon as LocalSystem, and
