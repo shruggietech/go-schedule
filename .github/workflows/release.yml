@@ -236,6 +236,10 @@ jobs:
               -d Version="${VER_NUMERIC}" \
               -d StageDir="$(pwd -W 2>/dev/null || pwd)/${stage}" \
               -o "dist/go-schedule_${VERSION}_windows_amd64.msi"
+            pwsh test/windows/inspect-installer.ps1 \
+              -MsiPath "dist/go-schedule_${VERSION}_windows_amd64.msi" \
+              -ArtifactClass candidate \
+              -ArtifactOrigin "release workflow build from commit ${GITHUB_SHA}"
           else
             tar -czf "dist/${stage}.tar.gz" "$stage"
           fi

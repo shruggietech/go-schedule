@@ -5,21 +5,22 @@ import "fyne.io/fyne/v2"
 // defaultWindowSize is used when the screen work area can't be determined.
 var defaultWindowSize = fyne.NewSize(1280, 800)
 
-// windowSizeFor converts a screen work area (in physical pixels, excluding the
-// taskbar) to Fyne units for the main window, leaving a small margin for the
-// window chrome so the frame stays within the work area. When the work area is
-// unknown (workW/workH <= 0, e.g. non-Windows) it returns a generous default.
+// windowSizeFor converts a monitor work area (in physical pixels, excluding the
+// taskbar) to Fyne units for the main window. A fresh launch prefers 1280x800
+// but is capped independently to 90 percent of each available logical
+// dimension. When the work area is unknown it returns the preferred default.
 func windowSizeFor(workW, workH int, scale float32) fyne.Size {
 	if workW <= 0 || workH <= 0 || scale <= 0 {
 		return defaultWindowSize
 	}
-	w := float32(workW)/scale - 2
-	h := float32(workH)/scale - 32 // leave room for the title bar
-	if w < 640 {
-		w = 640
+	const workAreaFraction = float32(0.9)
+	w := float32(workW) / scale * workAreaFraction
+	h := float32(workH) / scale * workAreaFraction
+	if w > defaultWindowSize.Width {
+		w = defaultWindowSize.Width
 	}
-	if h < 480 {
-		h = 480
+	if h > defaultWindowSize.Height {
+		h = defaultWindowSize.Height
 	}
 	return fyne.NewSize(w, h)
 }

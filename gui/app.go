@@ -76,10 +76,13 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 	fyneApp.SetIcon(appIcon)
 	a.win = fyneApp.NewWindow("go-schedule")
 	a.win.SetIcon(windowIcon) // crisp small tile for the title bar (see icon.go)
-	// Open at the screen work area (maximized appearance), respecting the taskbar
-	// (FR-001). Falls back to a generous size where the work area is unknown.
-	ww, wh := workAreaPx()
-	a.win.Resize(windowSizeFor(ww, wh, a.win.Canvas().Scale()))
+	// Open as a bounded restored window on the launch monitor, respecting its
+	// taskbar and display scale. Unknown work area retains the 1280x800 fallback.
+	ww, wh, monitorScale := workAreaPx()
+	if monitorScale <= 0 {
+		monitorScale = a.win.Canvas().Scale()
+	}
+	a.win.Resize(windowSizeFor(ww, wh, monitorScale))
 	a.win.CenterOnScreen()
 	a.win.SetContent(a.buildRoot())
 	a.model.OnChange = func() { fyne.Do(a.onModelChange) }

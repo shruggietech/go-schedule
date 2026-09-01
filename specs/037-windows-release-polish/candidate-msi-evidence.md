@@ -1,0 +1,22 @@
+# Windows MSI Artifact Evidence
+
+- Date: 2026-08-31
+- Artifact: `C:\Users\H8RT3R~1\AppData\Local\Temp\go-schedule-s037-artifact\go-schedule_v0.9.2-s037_windows_amd64.msi`
+- Evidence class: **candidate artifact**
+- Artifact origin: local build from S037 working tree on 2026-08-31
+- SHA-256: `648bfa402752af1504155fa911cc60679c34e8ea20c1350f22c74cb5ff48bde5`
+- Product version: `0.9.2`
+- ProductName: `go-schedule`
+- Manufacturer: `ShruggieTech`
+- UpgradeCode: `{B6F3C2E1-7A4D-4C9E-9B2A-1F6D8E5A0C34}`
+- candidate artifact status: **proven**
+- Summary Title (PID 2): `Installation Database`
+- Summary Subject (PID 3): `go-schedule: cross-platform task scheduler`
+- Summary Author (PID 4): `ShruggieTech`
+- Summary Comments (PID 6): `This installer database contains the logic and data required to install go-schedule.`
+- Explorer property-system Subject: `go-schedule: cross-platform task scheduler`
+- Icon row: `GoSchedule.ico`
+- ARPPRODUCTICON: `GoSchedule.ico`
+- GuiShortcut Icon_: `GoSchedule.ico`
+- PATH row: `=-*PATH` | `[~];[INSTALLFOLDER]` | `Gosched`
+- Administrative group row: `GoScheduleAdminGroup` | `goschedadmin` | domain ``
