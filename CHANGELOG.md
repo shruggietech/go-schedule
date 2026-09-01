@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   state with Retry and Exit, while one cancelable reconnect loop uses bounded
   backoff and clears the incident after connectivity returns.
 
+- **The desktop GUI now opens in a bounded restored window (Closes #89).**
+  Fresh launches prefer 1280x800 logical units and cap each dimension to 90
+  percent of the selected monitor's work area after display scaling. The
+  work area is a hard bound on small displays, top-level actions remain
+  reachable at effective 800x600, and user-controlled window states remain
+  unchanged.
+
+- **The Windows MSI now exposes concise Explorer Subject copy (Closes #88).**
+  Summary Information PID 3 is `go-schedule: cross-platform task scheduler`.
+  Source verification prevents drift, and candidate-MSI inspection records the
+  artifact hash, exact Summary value, unchanged identity fields, and the native
+  Shell `System.Subject` consumed by Explorer.
+
 ### Decisions
 
 - **2026-08-31 - Preserve restricted IPC authorization while diagnosing the
@@ -24,6 +37,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not mutate membership, elevate the GUI, or change named-pipe ACL identities.
   The pinned Windows installation guide now records the diagnostic and
   sign-out/sign-in walkthrough required by issue #90.
+
+- **2026-08-31 - Replace specification 003's full-work-area startup with a
+  DPI-aware restored-window contract.** Before a native window has stable
+  placement, Windows monitor discovery uses the monitor nearest the launch
+  pointer. The preferred 1280x800 logical size is capped independently to 90
+  percent of that monitor's work area, without the former 640x480 enlargement
+  that could exceed a constrained display. Saved placement and task-editor
+  dialog sizing remain out of scope.
+
+- **2026-08-31 - Pin the Windows installer Subject at both source and compiled
+  artifact boundaries.** The pinned WiX source and verifier under `build/`
+  approve one colon-separated Subject, while the pinned release workflow runs
+  the Windows artifact inspector after WiX compilation and before attachment.
+  This changes no installer product identity, UpgradeCode, filename, signing,
+  lifecycle behavior, or other platform output.
 
 - **2026-09-01 - Separate native token diagnosis from deterministic recovery
   verification.** Issue #90 no longer requires an operator to terminate an

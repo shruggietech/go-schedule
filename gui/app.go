@@ -10,6 +10,7 @@ package gui
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -92,10 +93,13 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 	fyneApp.SetIcon(appIcon)
 	a.win = fyneApp.NewWindow("go-schedule")
 	a.win.SetIcon(windowIcon) // crisp small tile for the title bar (see icon.go)
-	// Open at the screen work area (maximized appearance), respecting the taskbar
-	// (FR-001). Falls back to a generous size where the work area is unknown.
-	ww, wh := workAreaPx()
-	a.win.Resize(windowSizeFor(ww, wh, a.win.Canvas().Scale()))
+	// Open as a bounded restored window on the launch monitor, respecting its
+	// taskbar and display scale. Unknown work area retains the 1280x800 fallback.
+	ww, wh, monitorScale := workAreaPx()
+	if monitorScale <= 0 {
+		monitorScale = a.win.Canvas().Scale()
+	}
+	a.win.Resize(windowSizeFor(ww, wh, monitorScale))
 	a.win.CenterOnScreen()
 	a.win.SetContent(a.buildRoot())
 	a.win.SetCloseIntercept(func() {
@@ -159,7 +163,11 @@ func (a *App) refreshAllOnce() error {
 	ctx, cancel := context.WithTimeout(a.runCtx, 10*time.Second)
 	defer cancel()
 	if err := a.model.Refresh(ctx); err != nil {
-		fyne.Do(func() { a.showError(err) })
+		fyne.Do(func() {
+			a.connection.finishRetry()
+			a.showError(err)
+			a.renderConnectionIncident()
+		})
 		return err
 	}
 	a.connection.clear()
@@ -176,7 +184,9 @@ func (a *App) refreshAllOnce() error {
 func (a *App) streamEvents() {
 	delay := time.Duration(0)
 	for {
+		var streamRecovered atomic.Bool
 		err := a.backend.StreamEvents(a.runCtx, func(e events.Event) {
+			streamRecovered.Store(true)
 			a.model.ApplyEvent(e)
 		})
 		if a.runCtx.Err() != nil {
@@ -189,13 +199,11 @@ func (a *App) streamEvents() {
 			fyne.Do(func() { a.showError(err) })
 			return
 		}
-		delay = nextReconnectDelay(delay)
+		delay = reconnectDelayAfterAttempt(delay, streamRecovered.Load())
 		if !waitForReconnect(a.runCtx, delay, a.retrySignal) {
 			return
 		}
-		if err := a.refreshAllOnce(); err == nil {
-			delay = 0
-		}
+		_ = a.refreshAllOnce()
 	}
 }
 
@@ -206,7 +214,6 @@ func (a *App) retryConnection() {
 	case a.retrySignal <- struct{}{}:
 	default:
 	}
-	a.refreshAll()
 }
 
 func (a *App) reportConnectionError(err error) bool {

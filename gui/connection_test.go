@@ -8,19 +8,23 @@ import (
 	"testing"
 	"time"
 
+	"fyne.io/fyne/v2"
+
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 type recoveringBackend struct {
 	fakeBackend
-	mu      sync.Mutex
-	failing bool
+	mu        sync.Mutex
+	failing   bool
+	listCalls int
 }
 
 func (b *recoveringBackend) ListTasks(context.Context, string, string) ([]domain.Task, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.listCalls++
 	if b.failing {
 		return nil, client.NewConnectionError("GET /v1/tasks", os.ErrPermission)
 	}
@@ -31,6 +35,12 @@ func (b *recoveringBackend) setFailing(failing bool) {
 	b.mu.Lock()
 	b.failing = failing
 	b.mu.Unlock()
+}
+
+func (b *recoveringBackend) calls() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.listCalls
 }
 
 func TestConnectionIncidentDeduplicatesConcurrentSources(t *testing.T) {
@@ -87,11 +97,46 @@ func TestSuccessfulRetryClearsIncidentWithoutReinstall(t *testing.T) {
 		return active
 	})
 	backend.setFailing(false)
-	ui.retryConnection()
+	fyne.DoAndWait(ui.retryConnection)
+	if got := backend.calls(); got != 1 {
+		t.Fatalf("Retry performed %d refreshes directly, want none", got-1)
+	}
+	select {
+	case <-ui.retrySignal:
+	default:
+		t.Fatal("Retry did not notify the reconnect coordinator")
+	}
+	if err := ui.refreshAllOnce(); err != nil {
+		t.Fatalf("coordinated retry failed: %v", err)
+	}
 	waitFor(t, func() bool {
 		_, active := ui.connection.snapshot()
 		return !active
 	})
+	if got := backend.calls(); got != 2 {
+		t.Fatalf("ListTasks calls = %d, want initial attempt plus one coordinated retry", got)
+	}
+}
+
+func TestFailedRetryReEnablesControlForAPIStatusError(t *testing.T) {
+	ui := NewUI(testApp, &statusErrorBackend{fakeBackend: fakeBackend{}})
+	ui.connection.report(client.NewConnectionError("GET /v1/tasks", os.ErrPermission))
+	ui.connection.setRetrying()
+	if err := ui.refreshAllOnce(); err == nil {
+		t.Fatal("retry unexpectedly succeeded")
+	}
+	incident, active := ui.connection.snapshot()
+	if !active || incident.Retrying {
+		t.Fatalf("incident active=%v retrying=%v, want active retryable incident", active, incident.Retrying)
+	}
+}
+
+type statusErrorBackend struct {
+	fakeBackend
+}
+
+func (b *statusErrorBackend) ListTasks(context.Context, string, string) ([]domain.Task, error) {
+	return nil, &client.StatusError{Code: "internal", Message: "temporary API failure"}
 }
 
 func TestAPIStatusErrorDoesNotCreateTransportIncident(t *testing.T) {
@@ -155,5 +200,15 @@ func TestReconnectBackoffIsBounded(t *testing.T) {
 		if delay != expected {
 			t.Fatalf("delay %d = %s, want %s", i, delay, expected)
 		}
+	}
+}
+
+func TestReconnectBackoffResetsOnlyAfterStreamEvent(t *testing.T) {
+	t.Parallel()
+	if got := reconnectDelayAfterAttempt(2*time.Second, false); got != 4*time.Second {
+		t.Fatalf("delay without stream event = %s, want 4s", got)
+	}
+	if got := reconnectDelayAfterAttempt(16*time.Second, true); got != 2*time.Second {
+		t.Fatalf("delay after stream event = %s, want 2s", got)
 	}
 }

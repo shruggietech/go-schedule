@@ -4,9 +4,10 @@
 
 .DESCRIPTION
   Reads Windows Installer tables through the built-in COM API and verifies the
-  canonical icon, machine PATH, and local administrative-group relationships
-  authored by the WiX source. This is compiled candidate/published artifact
-  evidence, not native lifecycle observation.
+  Summary Information Subject, canonical identity, icon, machine PATH, and
+  local administrative-group relationships authored by the WiX source. This is
+  compiled candidate/published artifact evidence, not native Explorer or
+  lifecycle observation.
 #>
 param(
   [Parameter(Mandatory)]
@@ -41,6 +42,7 @@ if ($ArtifactClass -eq 'published') {
 $resolvedMsi = (Resolve-Path -LiteralPath $MsiPath).Path
 $installer = New-Object -ComObject WindowsInstaller.Installer
 $database = $installer.OpenDatabase($resolvedMsi, 0)
+$summary = $database.SummaryInformation(0)
 
 function Get-MsiString {
   param(
@@ -58,10 +60,61 @@ function Get-MsiString {
 
 $fail = [System.Collections.Generic.List[string]]::new()
 $canonicalIcon = 'GoSchedule.ico'
+$canonicalSubject = 'go-schedule: cross-platform task scheduler'
+
+$summaryTitle = $summary.Property(2)
+$summarySubject = $summary.Property(3)
+$summaryAuthor = $summary.Property(4)
+$summaryComments = $summary.Property(6)
+if ($summaryTitle -ne 'Installation Database') {
+  $fail.Add("Summary Title is '$summaryTitle'; expected 'Installation Database'")
+}
+if ($summarySubject -ne $canonicalSubject) {
+  $fail.Add("Summary Subject is '$summarySubject'; expected '$canonicalSubject'")
+}
+if ($summarySubject.Contains([char]0x2014)) {
+  $fail.Add('Summary Subject contains U+2014')
+}
+if ($summaryAuthor -ne 'ShruggieTech') {
+  $fail.Add("Summary Author is '$summaryAuthor'; expected 'ShruggieTech'")
+}
+$canonicalComments = 'This installer database contains the logic and data required to install go-schedule.'
+if ($summaryComments -ne $canonicalComments) {
+  $fail.Add("Summary Comments is '$summaryComments'; expected '$canonicalComments'")
+}
+
+# Windows Explorer reads the same Shell property system. Query System.Subject
+# through that native handler as direct evidence of the value Explorer exposes.
+$shell = New-Object -ComObject Shell.Application
+$shellFolder = $shell.NameSpace([System.IO.Path]::GetDirectoryName($resolvedMsi))
+$shellItem = $shellFolder.ParseName([System.IO.Path]::GetFileName($resolvedMsi))
+$explorerSubject = $shellItem.ExtendedProperty('System.Subject')
+if ($explorerSubject -ne $canonicalSubject) {
+  $fail.Add("Explorer System.Subject is '$explorerSubject'; expected '$canonicalSubject'")
+}
 
 $version = Get-MsiString -Database $database `
   -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ProductVersion'"
 if (-not $version) { $version = '<missing>' }
+
+$productName = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ProductName'"
+if ($productName -ne 'go-schedule') {
+  $fail.Add("Property.ProductName is '$productName'; expected 'go-schedule'")
+}
+
+$manufacturer = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='Manufacturer'"
+if ($manufacturer -ne 'ShruggieTech') {
+  $fail.Add("Property.Manufacturer is '$manufacturer'; expected 'ShruggieTech'")
+}
+
+$upgradeCode = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='UpgradeCode'"
+$canonicalUpgradeCode = '{B6F3C2E1-7A4D-4C9E-9B2A-1F6D8E5A0C34}'
+if ($upgradeCode.ToUpperInvariant() -ne $canonicalUpgradeCode) {
+  $fail.Add("Property.UpgradeCode is '$upgradeCode'; expected '$canonicalUpgradeCode'")
+}
 
 $arpIcon = Get-MsiString -Database $database `
   -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ARPPRODUCTICON'"
@@ -136,7 +189,15 @@ $evidence = @(
   "- Artifact origin: $ArtifactOrigin"
   "- SHA-256: ``$hash``"
   "- Product version: ``$version``"
+  "- ProductName: ``$productName``"
+  "- Manufacturer: ``$manufacturer``"
+  "- UpgradeCode: ``$upgradeCode``"
   "- $ArtifactClass artifact status: **$status**"
+  "- Summary Title (PID 2): ``$summaryTitle``"
+  "- Summary Subject (PID 3): ``$summarySubject``"
+  "- Summary Author (PID 4): ``$summaryAuthor``"
+  "- Summary Comments (PID 6): ``$summaryComments``"
+  "- Explorer property-system Subject: ``$explorerSubject``"
   "- Icon row: ``$iconName``"
   "- ARPPRODUCTICON: ``$arpIcon``"
   "- GuiShortcut Icon_: ``$shortcutIcon``"
@@ -163,5 +224,5 @@ if ($fail.Count -gt 0) {
 }
 
 Write-Output (
-  "installer-inspect: OK - version $version, canonical icon, PATH, and local-group rows proven"
+  "installer-inspect: OK - SHA-256 $hash, Subject '$summarySubject', canonical identity, icon, PATH, and local-group rows proven"
 )

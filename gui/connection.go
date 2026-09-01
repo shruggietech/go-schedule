@@ -95,6 +95,16 @@ func (s *connectionState) setRetrying() {
 	s.incident.Revision++
 }
 
+func (s *connectionState) finishRetry() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.active || !s.incident.Retrying {
+		return
+	}
+	s.incident.Retrying = false
+	s.incident.Revision++
+}
+
 func (s *connectionState) clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -137,6 +147,13 @@ func nextReconnectDelay(current time.Duration) time.Duration {
 		return maximumReconnectDelay
 	}
 	return next
+}
+
+func reconnectDelayAfterAttempt(current time.Duration, streamRecovered bool) time.Duration {
+	if streamRecovered {
+		current = 0
+	}
+	return nextReconnectDelay(current)
 }
 
 func waitForReconnect(ctx context.Context, delay time.Duration, retry <-chan struct{}) bool {

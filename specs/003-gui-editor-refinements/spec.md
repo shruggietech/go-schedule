@@ -108,20 +108,21 @@ form confirm Cancel closes with no prompt.
 
 ---
 
-### User Story 5 - Full-size window on open (Priority: P3)
+### User Story 5 - Bounded windowed launch (Priority: P3)
 
-When the application launches, its main window opens at full/maximized size instead of a small
-fixed default, so the task list, calendar, and other tabs have room.
+When the application launches, its main window opens at a useful restored size with visible
+desktop margins. Specification 037 intentionally supersedes the original full-work-area choice
+after first-run observation showed that it looked maximized and consumed the user's workspace.
 
 **Why this priority**: Quality-of-life; independent of the editor changes.
 
-**Independent Test**: Launch the app and confirm the main window opens maximized (or at the
-working area's full size).
+**Independent Test**: Launch the app and confirm it requests 1280x800 logical units when space
+permits, capped independently to 90 percent of the selected monitor's logical work area.
 
 **Acceptance Scenarios**:
 
-1. **Given** the app is launched, **When** the main window appears, **Then** it fills the screen's
-   available working area (maximized) rather than a small fixed size.
+1. **Given** the app is launched, **When** the main window appears, **Then** it is restored,
+   centered, and bounded within 90 percent of the selected monitor's work area.
 
 ---
 
@@ -156,10 +157,10 @@ confirm the cursor becomes a pointer/hand.
 - **Closing via window chrome / Escape**: dismissing the dialog by means other than the Cancel
   button should follow the same dirty-confirmation behavior where feasible (so input isn't lost
   silently).
-- **Very small screens**: the wider two-pane modal must still fit within the available screen work
-  area (scroll or shrink gracefully rather than exceed the screen).
-- **Window already maximized / multi-monitor**: opening maximized should target the monitor the app
-  appears on and respect the OS work area (not cover the taskbar).
+- **Very small screens**: the main window and wider two-pane modal must stay within the available
+  screen work area, using existing scroll regions rather than forcing a nominal minimum beyond it.
+- **Multi-monitor launch**: startup sizing uses the selected monitor's reserved work area rather
+  than dimensions from a different, larger primary monitor.
 - **Pointer cursor coverage**: disabled buttons need not show the pointer; only enabled, clickable
   controls do.
 
@@ -169,8 +170,9 @@ confirm the cursor becomes a pointer/hand.
 
 #### Window & layout
 
-- **FR-001**: The main application window MUST open at the screen's full available working area
-  (maximized) by default instead of a small fixed size.
+- **FR-001**: As corrected by specification 037, the main application window MUST open restored at
+  `min(1280x800, 90 percent of the selected monitor work area)` in logical units. This requirement
+  intentionally reverses the original full-work-area behavior.
 - **FR-002**: The task editor modal MUST be approximately twice its previous width and MUST present
   a two-pane layout: form fields on the left, a right-hand pane for Preview/Help.
 - **FR-003**: The Preview content (schedule summary + next runs, and the command preview) MUST
@@ -219,8 +221,8 @@ confirm the cursor becomes a pointer/hand.
 
 ### Measurable Outcomes
 
-- **SC-001**: On launch, the main window fills the available screen work area without the user
-  resizing it.
+- **SC-001**: On launch, the main window requests 1280x800 logical units where space permits and
+  never exceeds 90 percent of either available logical work-area dimension.
 - **SC-002**: In the editor, a user can view their inputs and the live preview side by side without
   scrolling the preview out of view.
 - **SC-003**: A first-time user can open Help and find an explanation and example for every field
@@ -235,8 +237,8 @@ confirm the cursor becomes a pointer/hand.
 ## Assumptions
 
 - Target is the Go-native Fyne desktop GUI (`gosched-gui`); no daemon/CLI/API changes are required.
-- "Maximized" uses the OS window-maximize state where available, falling back to sizing the window
-  to the monitor's work area; it respects the taskbar/menu bar.
+- The startup window remains restored. User-controlled maximize, restore, resize, minimize, and
+  fullscreen behavior remains available after launch.
 - "Twice the width" is approximate; the exact dimensions are chosen so the two panes are comfortable
   and the modal still fits common screens.
 - The right-hand pane defaults to showing the Preview; Help is shown on demand and toggles back.

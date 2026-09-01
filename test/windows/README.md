@@ -13,9 +13,13 @@ pwsh test/windows/inspect-installer.ps1 `
   -ArtifactOrigin 'local build from commit <full-commit-id>'
 ```
 
-The inspector reads icon, shortcut, PATH, and `Wix4Group` rows. The
-`GoScheduleAdminGroup` row must name `goschedadmin` with an empty domain. This
-proves compiled authoring, not runtime execution.
+The inspector reads Summary Information PID 3 plus canonical product identity,
+icon, shortcut, PATH, and `Wix4Group` rows. PID 3 must equal
+`go-schedule: cross-platform task scheduler`; evidence records that value and
+the artifact SHA-256. It also queries `System.Subject` through the native Shell
+property handler that Explorer uses. The `GoScheduleAdminGroup` row must name
+`goschedadmin` with an empty domain. This proves compiled authoring and the
+Explorer property-system value, not installer lifecycle execution.
 
 ## Run the fresh lifecycle
 
@@ -72,7 +76,8 @@ elevated session and revert the host.
 ## Evidence boundaries
 
 - Source contracts prove tracked authoring.
-- MSI inspection proves compiled table contents.
+- MSI inspection proves compiled table and Summary Information contents.
+- The Shell `System.Subject` assertion proves the native value consumed by Explorer tooltip and Properties presentation.
 - Fresh and upgrade runs prove native execution on their named host.
 - The access probe proves post-refresh membership-based client access.
 - `unavailable` cannot close an issue that requires runtime evidence.

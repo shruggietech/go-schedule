@@ -34,7 +34,7 @@
       Scope="perMachine"
       Compressed="yes">
 
-    <SummaryInformation Description="go-schedule — cross-platform task scheduler" />
+    <SummaryInformation Description="go-schedule: cross-platform task scheduler" />
 
     <MajorUpgrade
         AllowSameVersionUpgrades="yes"
