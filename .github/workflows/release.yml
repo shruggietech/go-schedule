@@ -25,9 +25,9 @@ jobs:
           VERSION="${GITHUB_REF_NAME}"
           MSG="${VERSION//-/--}"
           PLAIN="${VERSION#v}"
-          BADGE="[![Release](https://img.shields.io/badge/release-${MSG}-58A6FF)](https://github.com/shruggietech/go-schedule/releases/latest)"
+          BADGE="<a href=\"https://github.com/shruggietech/go-schedule/releases/latest\"><img alt=\"Release\" src=\"https://img.shields.io/badge/release-${MSG}-58A6FF\"></a>"
           HEALTH="daemon ok (version ${PLAIN})"
-          RELEASE_BADGE_COUNT=$(grep -Fc -- '[![Release](' README.md || true)
+          RELEASE_BADGE_COUNT=$(grep -Fc -- '<img alt="Release"' README.md || true)
           if [ "$RELEASE_BADGE_COUNT" -ne 1 ]; then
             echo "::error file=README.md::Expected exactly one release badge line; found ${RELEASE_BADGE_COUNT}."
             exit 1
@@ -37,7 +37,7 @@ jobs:
             echo "::error file=README.md::Expected exactly one health version line; found ${HEALTH_LINE_COUNT}."
             exit 1
           fi
-          grep -Fqx -- "$BADGE" README.md || {
+          sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fqx -- "$BADGE" || {
             echo "::error file=README.md::Release badge does not match ${VERSION}. Update it in the release-preparation pull request."
             exit 1
           }
