@@ -19,6 +19,10 @@ func (a *App) showError(err error) {
 	if err == nil {
 		return
 	}
+	if a.recordConnectionError(err) {
+		a.renderConnectionIncident()
+		return
+	}
 	dialog.ShowError(err, a.win)
 }
 

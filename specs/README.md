@@ -53,4 +53,5 @@ Run `sh scripts/spec-lifecycle-check.sh .` locally. The canonical automation gat
 | 033-task-completion-chains | Implemented | PR [#78](https://github.com/shruggietech/go-schedule/pull/78) |
 | 034-v090-release-cut | Implemented | review branch `codex/034-v090-release-cut`; local verification completed 2026-08-30 |
 | 035-windows-msi-local-group | In Progress | implementation and verification in progress on `codex/083-fix-msi-local-group` |
+| 036-ipc-access-denied-recovery | Implemented | native Windows diagnosis, deterministic recovery, and canonical eight-gate verification passed 2026-09-01 |
 | 037-windows-release-polish | Implemented | review branch `codex/037-windows-release-polish`; local verification completed 2026-08-31 |

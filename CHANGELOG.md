@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Windows desktop now recovers from named-pipe access denial (Closes
+  #90).** Shared client errors distinguish daemon absence, access denial,
+  timeout, other transport failures, and API responses. Concurrent model,
+  calendar, and event-stream failures coalesce into one reachable in-frame
+  state with Retry and Exit, while one cancelable reconnect loop uses bounded
+  backoff and clears the incident after connectivity returns.
+
 - **The desktop GUI now opens in a bounded restored window (Closes #89).**
   Fresh launches prefer 1280x800 logical units and cap each dimension to 90
   percent of the selected monitor's work area after display scaling. The
@@ -24,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Decisions
 
+- **2026-08-31 - Preserve restricted IPC authorization while diagnosing the
+  current Windows session.** S036 reads service, local-group, account-member,
+  and process-token evidence only to select accurate recovery guidance. It does
+  not mutate membership, elevate the GUI, or change named-pipe ACL identities.
+  The pinned Windows installation guide now records the diagnostic and
+  sign-out/sign-in walkthrough required by issue #90.
+
 - **2026-08-31 - Replace specification 003's full-work-area startup with a
   DPI-aware restored-window contract.** Before a native window has stable
   placement, Windows monitor discovery uses the monitor nearest the launch
@@ -38,6 +52,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the Windows artifact inspector after WiX compilation and before attachment.
   This changes no installer product identity, UpgradeCode, filename, signing,
   lifecycle behavior, or other platform output.
+
+- **2026-09-01 - Separate native token diagnosis from deterministic recovery
+  verification.** Issue #90 no longer requires an operator to terminate an
+  active Windows session solely to refresh a token during development. The
+  installed host proves real service, group, account, token, restricted-pipe,
+  and guidance behavior; an authorization-transition regression proves Retry
+  restores the complete GUI without weakening the IPC boundary.
 
 ## [0.9.1] - 2026-08-31
 

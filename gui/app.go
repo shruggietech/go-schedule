@@ -10,10 +10,12 @@ package gui
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/gui/viewmodel"
 	"github.com/shruggietech/go-schedule/internal/api/server"
@@ -59,15 +61,30 @@ type App struct {
 	tabs       *container.AppTabs
 	logsTab    *container.TabItem
 	refreshers []func()
+
+	connection         *connectionState
+	connectionCard     *widget.Card
+	connectionTitle    *widget.Label
+	connectionGuidance *widget.Label
+	connectionDetail   *widget.Label
+	retryButton        *widget.Button
+	runCtx             context.Context
+	runCancel          context.CancelFunc
+	retrySignal        chan struct{}
 }
 
 // NewUI builds the GUI against fyneApp (created by the caller with the GL driver)
 // and backend. It constructs the window content but does not show it.
 func NewUI(fyneApp fyne.App, backend Backend) *App {
+	runCtx, runCancel := context.WithCancel(context.Background())
 	a := &App{
-		fyne:    fyneApp,
-		backend: backend,
-		model:   viewmodel.New(backend),
+		fyne:        fyneApp,
+		backend:     backend,
+		model:       viewmodel.New(backend),
+		connection:  newConnectionState(diagnoseAccess),
+		runCtx:      runCtx,
+		runCancel:   runCancel,
+		retrySignal: make(chan struct{}, 1),
 	}
 	// Apply the go-schedule brand theme (dark-first palette + brand fonts). Wired
 	// here so the windowed entry point and the headless test driver share one
@@ -85,6 +102,11 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 	a.win.Resize(windowSizeFor(ww, wh, monitorScale))
 	a.win.CenterOnScreen()
 	a.win.SetContent(a.buildRoot())
+	a.win.SetCloseIntercept(func() {
+		a.stop()
+		a.win.SetCloseIntercept(nil)
+		a.win.Close()
+	})
 	a.model.OnChange = func() { fyne.Do(a.onModelChange) }
 	return a
 }
@@ -101,7 +123,26 @@ func (a *App) buildRoot() fyne.CanvasObject {
 	a.tabs.Append(a.logsTab)
 	a.tabs.Append(container.NewTabItem("Info", a.buildInfoTab()))
 	a.tabs.SetTabLocation(container.TabLocationLeading)
-	return a.tabs
+	a.connectionTitle = widget.NewLabel("")
+	a.connectionTitle.TextStyle = fyne.TextStyle{Bold: true}
+	a.connectionGuidance = widget.NewLabel("")
+	a.connectionGuidance.Wrapping = fyne.TextWrapWord
+	a.connectionDetail = widget.NewLabel("")
+	a.connectionDetail.Wrapping = fyne.TextWrapWord
+	a.retryButton = widget.NewButton("Retry", a.retryConnection)
+	exitButton := widget.NewButton("Exit", func() {
+		a.stop()
+		a.win.SetCloseIntercept(nil)
+		a.win.Close()
+	})
+	a.connectionCard = widget.NewCard("Connection", "", container.NewVBox(
+		a.connectionTitle,
+		a.connectionGuidance,
+		a.connectionDetail,
+		container.NewHBox(a.retryButton, exitButton),
+	))
+	a.connectionCard.Hide()
+	return container.NewBorder(a.connectionCard, nil, nil, nil, a.tabs)
 }
 
 // Run shows the window, kicks off the first data load and the live event stream,
@@ -110,39 +151,113 @@ func (a *App) Run() {
 	a.refreshAll()
 	go a.streamEvents()
 	a.win.ShowAndRun()
+	a.stop()
 }
 
 // refreshAll reloads model state and every tab's local view.
 func (a *App) refreshAll() {
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := a.model.Refresh(ctx); err != nil {
-			fyne.Do(func() { a.showError(err) })
-		}
-		for _, r := range a.refreshers {
-			rr := r
-			fyne.Do(rr)
-		}
-	}()
+	go func() { _ = a.refreshAllOnce() }()
+}
+
+func (a *App) refreshAllOnce() error {
+	ctx, cancel := context.WithTimeout(a.runCtx, 10*time.Second)
+	defer cancel()
+	if err := a.model.Refresh(ctx); err != nil {
+		fyne.Do(func() {
+			a.connection.finishRetry()
+			a.showError(err)
+			a.renderConnectionIncident()
+		})
+		return err
+	}
+	a.connection.clear()
+	fyne.Do(a.renderConnectionIncident)
+	for _, r := range a.refreshers {
+		rr := r
+		fyne.Do(rr)
+	}
+	return nil
 }
 
 // streamEvents consumes the SSE stream and folds events into the model,
 // reconnecting after a short delay if the stream drops.
 func (a *App) streamEvents() {
+	delay := time.Duration(0)
 	for {
-		ctx, cancel := context.WithCancel(context.Background())
-		err := a.backend.StreamEvents(ctx, func(e events.Event) {
+		var streamRecovered atomic.Bool
+		err := a.backend.StreamEvents(a.runCtx, func(e events.Event) {
+			streamRecovered.Store(true)
 			a.model.ApplyEvent(e)
 		})
-		cancel()
+		if a.runCtx.Err() != nil {
+			return
+		}
 		if err == nil {
 			return
 		}
-		time.Sleep(2 * time.Second) // reconnect backoff
-		// Re-sync from scratch before resuming the stream so any events missed
-		// while disconnected are reconciled (FR-024). Folding is idempotent.
-		a.refreshAll()
+		if !a.reportConnectionError(err) {
+			fyne.Do(func() { a.showError(err) })
+			return
+		}
+		delay = reconnectDelayAfterAttempt(delay, streamRecovered.Load())
+		if !waitForReconnect(a.runCtx, delay, a.retrySignal) {
+			return
+		}
+		_ = a.refreshAllOnce()
+	}
+}
+
+func (a *App) retryConnection() {
+	a.connection.setRetrying()
+	a.renderConnectionIncident()
+	select {
+	case a.retrySignal <- struct{}{}:
+	default:
+	}
+}
+
+func (a *App) reportConnectionError(err error) bool {
+	if !a.recordConnectionError(err) {
+		return false
+	}
+	fyne.Do(a.renderConnectionIncident)
+	return true
+}
+
+func (a *App) recordConnectionError(err error) bool {
+	connectionErr, ok := asConnectionError(err)
+	if !ok {
+		return false
+	}
+	a.connection.report(connectionErr)
+	return true
+}
+
+func (a *App) renderConnectionIncident() {
+	if a.connectionCard == nil {
+		return
+	}
+	incident, active := a.connection.snapshot()
+	if !active {
+		a.connectionCard.Hide()
+		return
+	}
+	a.connectionTitle.SetText(incident.Title)
+	a.connectionGuidance.SetText(incident.Guidance)
+	a.connectionDetail.SetText(incident.Detail)
+	if incident.Retrying {
+		a.retryButton.SetText("Retrying…")
+		a.retryButton.Disable()
+	} else {
+		a.retryButton.SetText("Retry")
+		a.retryButton.Enable()
+	}
+	a.connectionCard.Show()
+}
+
+func (a *App) stop() {
+	if a.runCancel != nil {
+		a.runCancel()
 	}
 }
 

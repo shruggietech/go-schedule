@@ -171,7 +171,7 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("api: %s %s: %w (is the daemon running?)", method, path, err)
+		return NewConnectionError(method+" "+path, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {

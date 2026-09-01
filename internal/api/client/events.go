@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -29,15 +30,22 @@ func (c *Client) StreamEvents(ctx context.Context, onEvent func(events.Event)) e
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return err
+		return NewConnectionError("GET /v1/events", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode >= http.StatusMultipleChoices {
+		var apiErr server.APIError
+		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err == nil && apiErr.Error.Message != "" {
+			return &StatusError{Code: apiErr.Error.Code, Field: apiErr.Error.Field, Message: apiErr.Error.Message}
+		}
+		return &StatusError{Code: server.CodeInternal, Message: fmt.Sprintf("GET /v1/events: status %d", resp.StatusCode)}
+	}
 
 	reader := bufio.NewReader(resp.Body)
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			return err
+			return NewConnectionError("GET /v1/events", err)
 		}
 		line = strings.TrimRight(line, "\r\n")
 		if !strings.HasPrefix(line, "data: ") {
