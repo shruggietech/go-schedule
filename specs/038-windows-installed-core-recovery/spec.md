@@ -4,11 +4,11 @@
 
 **Created**: 2026-09-01
 
-**Status**: In Progress
+**Status**: Implemented
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: implementation and verification in progress on `codex/038-windows-installed-core-recovery`
+**Delivery**: local canonical verification and hosted LocalSystem workflow run [33508591264](https://github.com/shruggietech/go-schedule/actions/runs/33508591264) passed on 2026-09-01; pull request [#95](https://github.com/shruggietech/go-schedule/pull/95)
 
 **Input**: GitHub issues #90 and #93: restore ordinary-user IPC access and real service-hosted task execution on installed Windows systems.
 

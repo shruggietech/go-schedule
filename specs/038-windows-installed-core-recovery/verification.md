@@ -4,7 +4,7 @@
 
 **Branch**: `codex/038-windows-installed-core-recovery`
 
-**Status**: local implementation verified; hosted LocalSystem CI evidence pending
+**Status**: implemented; local and hosted LocalSystem verification passed
 
 ## Pre-change baseline
 
@@ -72,12 +72,37 @@ The repository now contains two non-fake proof paths:
    non-elevated session and records MSI, authorization, service, run, marker,
    and daemon-log evidence.
 
-The hosted CI job has not run before pull-request publication and remains a
-required delivery check. The candidate-MSI installed-core probe is unavailable
-on this workstation because `goschedd` and `C:\\Program Files\\go-schedule`
-are absent and the current session is not elevated. No fake runner, foreground
-daemon, or injected backend is substituted for that missing installed proof.
-The broader candidate release gate remains tracked by #94.
+The hosted `Windows LocalSystem execution` job passed in workflow run
+[`33508591264`](https://github.com/shruggietech/go-schedule/actions/runs/33508591264),
+job [`99858512438`](https://github.com/shruggietech/go-schedule/actions/runs/33508591264/job/99858512438),
+at commit `5c644bf`. Its `windows-service-core-evidence` artifact
+(`9800693172`, SHA-256 digest
+`d90ed84fde5aaf6b25bf189160c16d61b2c8472e13d225bea4be523ebb47bb77`)
+recorded:
+
+- `LocalSystem` service account and `Running` service state;
+- direct local-group membership with the group SID absent from the ordinary
+  user's token;
+- manual and scheduled success with exit code 0 and `S038-output`;
+- a controlled child-process exit code of 7;
+- a missing-executable process-start failure without argument, standard-input,
+  or environment disclosure; and
+- three service-authored marker lines with artifact SHA-256
+  `2f5573d4b6bd4fc6d5c835b0a8b233c82d409ea5a0dd204b59e99d3ee0bdbc39`.
+
+The first two hosted attempts correctly failed rather than producing false
+proof. Run `33507430229` exposed that the service could not write into the
+runner account's temporary directory. Run `33508009559` exposed a quoting flaw
+in the probe's `cmd.exe` command that allowed a final `echo` to hide the failed
+marker write. The probe now uses the absolute inbox Windows PowerShell path,
+non-interactive flags, and direct .NET file output to a service-writable
+ProgramData location. Run `33508591264` then proved the intended path.
+
+The candidate-MSI installed-core probe remains unavailable on this workstation
+because `goschedd` and `C:\\Program Files\\go-schedule` are absent and the
+current session is not elevated. No fake runner, foreground daemon, or injected
+backend substitutes for that unavailable proof. The broader candidate release
+gate remains tracked by #94, as required by FR-017.
 
 ## Canonical verification
 
@@ -104,9 +129,8 @@ Final result: PASS.
 | docs | PASS | 14 pages plus policy fixtures |
 | automation | PASS | actions, CodeQL, Dependabot, release notes, brand, lifecycle, and eight-gate contract |
 
-## Remaining delivery gate
+## Delivery disposition
 
-S038 remains `In Progress` until the pull request's `Windows LocalSystem
-execution` job passes and its artifact is available. After that evidence and
-the required external reviews are satisfied, the specification can transition
-to `Implemented` before the final maintainer merge ritual.
+S038 implementation and required verification are complete. Pull-request CI,
+external review, maintainer approval, and merge remain publication workflow
+evidence rather than open feature tasks under the repository lifecycle policy.

@@ -55,4 +55,4 @@ Run `sh scripts/spec-lifecycle-check.sh .` locally. The canonical automation gat
 | 035-windows-msi-local-group | In Progress | implementation and verification in progress on `codex/083-fix-msi-local-group` |
 | 036-ipc-access-denied-recovery | Implemented | native Windows diagnosis, deterministic recovery, and canonical eight-gate verification passed 2026-09-01 |
 | 037-windows-release-polish | Implemented | review branch `codex/037-windows-release-polish`; local verification completed 2026-08-31 |
-| 038-windows-installed-core-recovery | In Progress | implementation and verification in progress on `codex/038-windows-installed-core-recovery` |
+| 038-windows-installed-core-recovery | Implemented | PR [#95](https://github.com/shruggietech/go-schedule/pull/95), local canonical verification, and hosted LocalSystem run [33508591264](https://github.com/shruggietech/go-schedule/actions/runs/33508591264) |

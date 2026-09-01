@@ -59,7 +59,7 @@
 - [x] T016 Update `CHANGELOG.md` with the S038 correction and a dated decision covering pinned Windows surfaces and the S036 authorization-scope deviation.
 - [x] T017 Run the native evidence probe when host prerequisites are available; otherwise record an explicit unavailable result without substituting fake evidence in `specs/038-windows-installed-core-recovery/verification.md`.
 - [x] T018 Run all eight canonical gates with `C:\Program Files\Git\bin\bash.exe scripts/verify.sh all` and record exact outcomes in `specs/038-windows-installed-core-recovery/verification.md`.
-- [ ] T019 Check all text outputs for UTF-8 without BOM and mojibake, then update `spec.md`, `tasks.md`, and `specs/README.md` to `Implemented` with objective verification evidence.
+- [x] T019 Check all text outputs for UTF-8 without BOM and mojibake, then update `spec.md`, `tasks.md`, and `specs/README.md` to `Implemented` with objective verification evidence.
 - [x] T020 Review the final diff for scope, security boundary, issue traceability, and accidental unrelated changes.
 
 ## Dependencies & Execution Order
