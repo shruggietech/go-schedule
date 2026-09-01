@@ -216,6 +216,23 @@ func TestWindowsInstallerAdminGroupContract(t *testing.T) {
 	}
 }
 
+func TestWindowsInstallGuideDirectMemberTokenRefreshContract(t *testing.T) {
+	guide := string(readRepositoryFile(t, "docs", "INSTALL-windows.md"))
+	for _, fragment := range []string{
+		"authorizes that direct user",
+		"launch immediately without",
+		"signing out or running the desktop application elevated",
+		"nested-group membership",
+	} {
+		if !strings.Contains(guide, fragment) {
+			t.Errorf("Windows install guide is missing direct-member guidance %q", fragment)
+		}
+	}
+	if strings.Contains(guide, "Sign out and back in once after the first install") {
+		t.Error("Windows install guide still mandates the obsolete direct-member sign-out workaround")
+	}
+}
+
 func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
 	domainQualifiedGroup := `<Wix><Package><Feature><ComponentRef Id="AdminAccessProvisioning" /></Feature><Component Id="AdminAccessProvisioning">
 <Group Id="GoScheduleAdminGroup" Name="goschedadmin" Domain="[ComputerName]" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />

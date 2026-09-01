@@ -40,9 +40,11 @@ shortcut. There is no "extract a zip and run an exe from Downloads" step.
    registers a system service. Approve it.
 
 The installer creates or reuses the local **`goschedadmin`** group and adds the
-interactive account that launched setup. Sign out and back in once after the
-first install so Windows puts that new group SID into your login token. The
-installer then:
+interactive account that launched setup. The daemon authorizes that direct user
+by its stable user SID, so the installing user can launch immediately without
+signing out or running the desktop application elevated. A fresh sign-in is
+only needed when normal Windows group-token refresh matters, such as for
+nested-group membership. The installer then:
 
 - installs `gosched-gui.exe`, `goschedd.exe`, and `gosched.exe` to
   `C:\Program Files\go-schedule\`;
