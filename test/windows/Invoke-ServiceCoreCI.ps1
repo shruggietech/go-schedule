@@ -130,7 +130,15 @@ try {
 
     $markerDirectory = [System.IO.Path]::GetDirectoryName($evidence)
     [void][System.IO.Directory]::CreateDirectory($markerDirectory)
+    $serviceDataDirectory = [System.IO.Path]::Combine(
+        $env:ProgramData,
+        'goschedule'
+    )
     $marker = [System.IO.Path]::Combine(
+        $serviceDataDirectory,
+        's038-service-marker.txt'
+    )
+    $markerEvidence = [System.IO.Path]::Combine(
         $markerDirectory,
         's038-service-marker.txt'
     )
@@ -171,6 +179,7 @@ try {
     if (@($markerLines | Where-Object { $_ -eq 'S038-marker' }).Count -lt 2) {
         throw 'Manual and scheduled marker effects were not both observed.'
     }
+    Copy-Item -LiteralPath $marker -Destination $markerEvidence
 
     $exitFailure = Invoke-ProbeCli -ExpectJson -Arguments @(
         '--json', 'task', 'add', "s038-ci-exit-$suffix",
@@ -230,6 +239,7 @@ try {
         exit_failure_run = $exitRun
         start_failure_run = $startRun
         marker_path = $marker
+        marker_evidence_path = $markerEvidence
         marker_sha256 = (Get-FileHash -LiteralPath $marker `
             -Algorithm SHA256).Hash.ToLowerInvariant()
         marker_lines = $markerLines.Count
@@ -248,5 +258,8 @@ try {
     if ($groupCreated -and
         (Get-LocalGroup -Name $groupName -ErrorAction SilentlyContinue)) {
         Remove-LocalGroup -Name $groupName
+    }
+    if ($marker -and (Test-Path -LiteralPath $marker -PathType Leaf)) {
+        Remove-Item -LiteralPath $marker -Force
     }
 }

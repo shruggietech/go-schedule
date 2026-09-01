@@ -31,7 +31,7 @@ Existing `domain.Task` persisted through the public product boundary.
 | --- | --- |
 | Name | Unique evidence-scoped name |
 | Command | Absolute `%SystemRoot%\\System32\\cmd.exe` |
-| Args | Explicit `/d`, `/q`, `/c`, output and marker operation |
+| Args | Explicit `/d`, `/q`, `/c`, output and ProgramData marker operation |
 | WorkingDir | Empty or explicit evidence directory, recorded in evidence |
 | Env | Keys recorded; values redacted |
 | Schedule | Near-term recurring schedule for scheduled proof |
@@ -48,8 +48,8 @@ Markdown evidence assembled from existing task/run JSON, filesystem effects, ser
 | Authorization | installing identity, user/group SIDs, direct membership, token SIDs, pipe descriptor, connection result |
 | Service | name, state, start mode, account, executable path |
 | Task | ID, command, args, working directory, environment key names |
-| Manual run | trigger, outcome, exit code, output, marker content/hash |
-| Scheduled run | trigger, outcome, exit code, output, marker content/hash |
+| Manual run | trigger, outcome, exit code, output, service-writable marker content/hash |
+| Scheduled run | trigger, outcome, exit code, output, retained marker evidence |
 | Failure controls | nonzero exit record and process-start failure record |
 | Logs | bounded correlated daemon-log excerpt with secrets redacted |
 

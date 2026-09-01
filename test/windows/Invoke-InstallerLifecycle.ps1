@@ -534,6 +534,11 @@ Param(
         )
         [void][System.IO.Directory]::CreateDirectory($artifactDirectory)
         $markerPath = [System.IO.Path]::Combine(
+            $env:ProgramData,
+            'goschedule',
+            "s038-service-execution-marker-$evidenceStem.txt"
+        )
+        $markerEvidencePath = [System.IO.Path]::Combine(
             $artifactDirectory,
             'service-execution-marker.txt'
         )
@@ -588,6 +593,8 @@ Param(
                 @($markerLines | Where-Object { $_ -eq 'S038-marker' }).Count -lt 2) {
                 throw 'Service-hosted marker side effects were not observed twice.'
             }
+            Copy-Item -LiteralPath $markerPath `
+                -Destination $markerEvidencePath
 
             $failureCommand = 'echo S038-controlled-failure & exit /b 7'
             $failureCreate = Invoke-InstalledCli -ExpectJson -Arguments @(
@@ -659,6 +666,7 @@ Param(
             $script:ExecutionStartFailureRun = $startFailureRun |
                 ConvertTo-Json -Compress -Depth 10
             $script:ExecutionMarkerPath = $markerPath
+            $script:ExecutionMarkerEvidencePath = $markerEvidencePath
             $script:ExecutionMarkerSha256 = (Get-FileHash `
                 -LiteralPath $markerPath -Algorithm SHA256).Hash.ToLowerInvariant()
             $script:ExecutionMarkerLines = $markerLines.Count
@@ -674,6 +682,9 @@ Param(
                     Write-Log "Could not remove probe task $taskId`: $_" `
                         -Level Warn -Source 'execution'
                 }
+            }
+            if (Test-Path -LiteralPath $markerPath -PathType Leaf) {
+                Remove-Item -LiteralPath $markerPath -Force
             }
         }
     }
@@ -726,6 +737,7 @@ Param(
                 '## Service-hosted task execution probe'
                 "- Environment keys: $script:ExecutionEnvironmentKeys (values redacted)"
                 "- Marker: ``$script:ExecutionMarkerPath``"
+                "- Retained marker evidence: ``$script:ExecutionMarkerEvidencePath``"
                 "- Marker SHA-256: ``$script:ExecutionMarkerSha256``"
                 "- Marker line count: $script:ExecutionMarkerLines"
                 ''
@@ -852,6 +864,7 @@ Param(
     $script:ExecutionExitFailureRun = '<not run>'
     $script:ExecutionStartFailureRun = '<not run>'
     $script:ExecutionMarkerPath = '<not run>'
+    $script:ExecutionMarkerEvidencePath = '<not run>'
     $script:ExecutionMarkerSha256 = '<not run>'
     $script:ExecutionMarkerLines = 0
     $script:ExecutionEnvironmentKeys = '<not run>'

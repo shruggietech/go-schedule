@@ -70,7 +70,7 @@ An ordinary authorized user creates a Windows task through the installed product
 - **FR-006**: Generated SDDL MUST be deterministic, de-duplicate SIDs case-insensitively, and validate every interpolated SID using Windows SID parsing before the listener opens.
 - **FR-007**: IPC access reporting MUST identify restricted mode and the configured group without logging member identities.
 - **FR-008**: Production daemon wiring MUST use the real executor in service-hosted integration coverage; an injected fake runner cannot satisfy Windows execution verification.
-- **FR-009**: The Windows execution probe MUST create a task through the public API or CLI, invoke an absolute inbox system executable, use explicit arguments and a deterministic writable marker under the probe's evidence directory, and redact environment values.
+- **FR-009**: The Windows execution probe MUST create a task through the public API or CLI, invoke an absolute inbox system executable, use explicit arguments and a deterministic service-writable marker under the daemon data directory, retain a copy with the probe evidence, and redact environment values.
 - **FR-010**: The probe MUST prove both manual and scheduled execution with distinct run records, exit code 0, expected output, and marker side effects.
 - **FR-011**: The probe MUST exercise a deliberate nonzero exit and distinguish it from a process-start failure with retained output or operating-system error detail.
 - **FR-012**: Process-start failures MUST record the executable boundary and wrapped OS error while avoiding arguments, stdin, and environment values that may contain secrets.
