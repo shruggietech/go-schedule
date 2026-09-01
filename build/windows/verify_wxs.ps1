@@ -95,13 +95,16 @@ try {
     $fail += 'administrative util:Group Id="GoScheduleAdminGroup" is missing'
   } else {
     $expectedGroupAttributes = @{
-      Name = 'goschedadmin'; Domain = '[ComputerName]'; CreateGroup = 'yes'
+      Name = 'goschedadmin'; CreateGroup = 'yes'
       FailIfExists = 'no'; RemoveOnUninstall = 'no'; UpdateIfExists = 'yes'; Vital = 'yes'
     }
     foreach ($attribute in $expectedGroupAttributes.Keys) {
       if ($adminGroup.GetAttribute($attribute) -ne $expectedGroupAttributes[$attribute]) {
         $fail += "administrative group $attribute must be `"$($expectedGroupAttributes[$attribute])`""
       }
+    }
+    if ($adminGroup.GetAttribute('Domain')) {
+      $fail += 'administrative group Domain must be empty for elevated local-group creation'
     }
   }
   if (-not $installingUser) {

@@ -79,16 +79,17 @@
       <ComponentRef Id="AdminAccessProvisioning" />
     </Feature>
 
-    <!-- WiX v6 schedules group creation before user membership and before files
-         and services are installed. Existing groups are reused. The group and
-         membership deliberately survive uninstall so unrelated administrator
-         choices are not destructively reversed. -->
+    <!-- An omitted group Domain selects WiX's elevated machine-local group
+         action. Any non-empty value selects its impersonated domain-group path,
+         even when that value formats to this computer's name. WiX schedules
+         local group creation before user membership and service startup.
+         Existing groups are reused, and both group and membership deliberately
+         survive uninstall. -->
     <Component Id="AdminAccessProvisioning" Directory="INSTALLFOLDER" Guid="*">
       <RegistryValue Root="HKLM" Key="Software\ShruggieTech\go-schedule" Name="admin-access" Type="integer" Value="1" KeyPath="yes" />
       <util:Group
           Id="GoScheduleAdminGroup"
           Name="goschedadmin"
-          Domain="[ComputerName]"
           CreateGroup="yes"
           FailIfExists="no"
           RemoveOnUninstall="no"

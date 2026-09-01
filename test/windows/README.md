@@ -1,71 +1,78 @@
 # Windows installer verification
 
-These tools separate compiled MSI evidence from observations that only a clean
-Windows desktop can provide. They are maintainer procedures, not release
-automation, and they never count an unavailable prerequisite as a pass.
+These tools separate compiled-MSI evidence from native lifecycle evidence. They
+are maintainer procedures and never count a missing prerequisite as a pass.
 
 ## Inspect an MSI without installing it
 
-On Windows with PowerShell 7:
-
 ```powershell
 pwsh test/windows/inspect-installer.ps1 `
-  -MsiPath C:\path\to\go-schedule_vX.Y.Z_windows_amd64.msi `
-  -EvidencePath C:\path\to\artifact-evidence.md `
+  -MsiPath C:\verify\candidate.msi `
+  -EvidencePath C:\verify\artifact.md `
   -ArtifactClass candidate `
   -ArtifactOrigin 'local build from commit <full-commit-id>'
 ```
 
-The command reads the MSI's Icon, Property, Shortcut, and Environment tables.
-It does not install, repair, uninstall, start a service, or change PATH. For a
-downloaded release asset, use `-ArtifactClass published` and supply its absolute
-HTTPS release-asset URL as `-ArtifactOrigin`. The generated record keeps these
-evidence classes distinct.
+The inspector reads icon, shortcut, PATH, and `Wix4Group` rows. The
+`GoScheduleAdminGroup` row must name `goschedadmin` with an empty domain. This
+proves compiled authoring, not runtime execution.
 
-## Run the clean lifecycle
+## Run the fresh lifecycle
 
-Use a fresh Windows VM, Windows Sandbox, or a physical machine that has never
-had go-schedule installed. Take a disposable snapshot first. Copy the MSI and
-this directory into that environment, open an elevated PowerShell 7 session,
-and run:
+Use a clean disposable Windows 11 snapshot with no product, service, install
+directory, PATH entry, or `goschedadmin`. Open elevated PowerShell 7:
 
 ```powershell
-pwsh .\install-lifecycle.ps1 `
-  -MsiPath C:\verify\go-schedule_vX.Y.Z_windows_amd64.msi `
-  -EvidencePath C:\verify\lifecycle-evidence.md `
-  -ArtifactClass published `
-  -ArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/<tag>/<asset>' `
-  -PauseForNativeObservation
+pwsh .\Invoke-InstallerLifecycle.ps1 `
+  -Scenario fresh -MsiPath C:\verify\candidate.msi `
+  -EvidencePath C:\verify\fresh.md -ArtifactClass candidate `
+  -ArtifactOrigin 'local build from commit <full-commit-id>' `
+  -Confirm:$false
 ```
 
-The script refuses to proceed if `gosched` already resolves, the install
-directory exists, an installed-product entry exists, or machine PATH already
-contains the install directory. It installs silently, probes commands with a
-freshly composed machine/user PATH, reinstalls, and uninstalls. It always tries
-to remove the package in `finally` after installation begins. Failed runs write
-cleanup results and the final product, directory, and PATH state into evidence.
+The script installs, repairs, reinstalls, and uninstalls. It records exit codes,
+verbose-log paths/hashes, diagnostics, group SID/members, service state, product
+state, install directory, and PATH. Uninstall must preserve group membership.
 
-## Record native icon observations
+## Run the v0.9.0 upgrade lifecycle
 
-While the package is installed during a paused clean lifecycle run, inspect
-these four surfaces. For each prompt, enter `proven`, `failed`, or `unavailable`,
-then enter an optional note or screenshot reference:
+Revert to a separate clean snapshot. The script preprovisions `goschedadmin`
+and the current account so v0.9.0 can establish an upgrade baseline:
 
-1. Start Menu shortcut.
-2. Settings > Apps > Installed apps.
-3. GUI window title area after launching go-schedule.
-4. Taskbar entry while the GUI is running.
+```powershell
+pwsh .\Invoke-InstallerLifecycle.ps1 `
+  -Scenario upgrade -MsiPath C:\verify\candidate.msi `
+  -PriorMsiPath C:\verify\v0.9.0.msi `
+  -EvidencePath C:\verify\upgrade.md -ArtifactClass candidate `
+  -ArtifactOrigin 'local build from commit <full-commit-id>' `
+  -PriorArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/v0.9.0/go-schedule_v0.9.0_windows_amd64.msi' `
+  -Confirm:$false
+```
 
-The script retains those responses even when a later reinstall or uninstall
-step fails. If Windows shows an older cached icon, refresh the Start Menu/taskbar
-shell view or sign out and in, then record both the initial and refreshed result.
-Do not repair or reinstall the package merely to make a cached image change;
-that would blur package behavior with shell-cache behavior.
+Do not reuse the fresh host without reverting it. Preserved group state makes
+that baseline intentionally unclean.
+
+## Prove refreshed non-elevated access
+
+On another disposable installation, install the candidate, sign out and back in
+as the enrolled account, then run from normal PowerShell 7:
+
+```powershell
+pwsh .\Invoke-InstallerLifecycle.ps1 `
+  -Scenario access-probe -MsiPath C:\verify\candidate.msi `
+  -EvidencePath C:\verify\access.md -ArtifactClass candidate `
+  -ArtifactOrigin 'local build from commit <full-commit-id>'
+```
+
+The probe requires the current token to contain the `goschedadmin` SID and
+requires `gosched health` to succeed. An elevated probe is rejected because
+Administrators have independent daemon access. Uninstall afterward from an
+elevated session and revert the host.
 
 ## Evidence boundaries
 
-- A locally built candidate can prove future MSI table contents.
-- Issue #16 requires a downloaded published MSI and a clean environment.
-- Issue #33 requires native window and taskbar observation.
-- The `.msi` file's own Explorer icon is a Windows Installer surface and is not
-  part of this verification.
+- Source contracts prove tracked authoring.
+- MSI inspection proves compiled table contents.
+- Fresh and upgrade runs prove native execution on their named host.
+- The access probe proves post-refresh membership-based client access.
+- `unavailable` cannot close an issue that requires runtime evidence.

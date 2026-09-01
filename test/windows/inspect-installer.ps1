@@ -4,8 +4,9 @@
 
 .DESCRIPTION
   Reads Windows Installer tables through the built-in COM API and verifies the
-  canonical icon and machine PATH relationships authored by the WiX source.
-  This is candidate/published artifact evidence, not native shell observation.
+  canonical icon, machine PATH, and local administrative-group relationships
+  authored by the WiX source. This is compiled candidate/published artifact
+  evidence, not native lifecycle observation.
 #>
 param(
   [Parameter(Mandatory)]
@@ -105,6 +106,25 @@ if (-not $environmentName) {
   }
 }
 
+$groupQuery = "SELECT ``Name``, ``Domain`` FROM ``Wix4Group`` WHERE ``Group``='GoScheduleAdminGroup'"
+$adminGroupName = Get-MsiString -Database $database -Query $groupQuery -Field 1
+if (-not $adminGroupName) {
+  $adminGroupName = ''
+  $adminGroupDomain = ''
+  $fail.Add('Wix4Group.GoScheduleAdminGroup row is missing')
+} else {
+  $adminGroupDomain = Get-MsiString -Database $database -Query $groupQuery -Field 2
+  if ($adminGroupName -ne 'goschedadmin') {
+    $fail.Add("Wix4Group.GoScheduleAdminGroup.Name is '$adminGroupName'; expected 'goschedadmin'")
+  }
+  if ($adminGroupDomain) {
+    $fail.Add(
+      "Wix4Group.GoScheduleAdminGroup.Domain is '$adminGroupDomain'; " +
+      'expected empty for elevated local-group creation'
+    )
+  }
+}
+
 $hash = (Get-FileHash -LiteralPath $resolvedMsi -Algorithm SHA256).Hash.ToLowerInvariant()
 $status = if ($fail.Count -eq 0) { 'proven' } else { 'failed' }
 $evidence = @(
@@ -121,6 +141,7 @@ $evidence = @(
   "- ARPPRODUCTICON: ``$arpIcon``"
   "- GuiShortcut Icon_: ``$shortcutIcon``"
   "- PATH row: ``$environmentName`` | ``$environmentValue`` | ``$environmentComponent``"
+  "- Administrative group row: ``GoScheduleAdminGroup`` | ``$adminGroupName`` | domain ``$adminGroupDomain``"
 )
 if ($fail.Count -gt 0) {
   $evidence += ''
@@ -141,4 +162,6 @@ if ($fail.Count -gt 0) {
   exit 1
 }
 
-Write-Output "installer-inspect: OK - version $version, canonical icon and PATH rows proven"
+Write-Output (
+  "installer-inspect: OK - version $version, canonical icon, PATH, and local-group rows proven"
+)

@@ -145,6 +145,30 @@ Versions before 0.6.0 did not add the entry at all; upgrading fixes it.
 **UAC prompt on install.** Expected — registering a system service needs
 elevation. Declining cancels the install cleanly, leaving nothing behind.
 
+**The installer rolls back or reports error 1603.** Retry from an elevated
+PowerShell window with verbose logging so the failed Windows Installer action is
+preserved:
+
+```powershell
+$log = Join-Path $env:TEMP 'go-schedule-install.log'
+$packages = @(Get-ChildItem -LiteralPath . `
+  -Filter 'go-schedule_*_windows_amd64.msi' -File)
+if ($packages.Count -ne 1) {
+  throw "Expected exactly one go-schedule MSI; found $($packages.Count)."
+}
+& msiexec.exe /i $packages[0].FullName /L*v $log
+Write-Output "Verbose installer log: $log"
+```
+
+Search that log for `Return value 3`, `0x80070005`, error `26421`,
+`CreateGroup`, and `StartServices`. Confirm `Get-LocalGroup goschedadmin` works,
+your account appears in `Get-LocalGroupMember goschedadmin`, and
+`Get-Service goschedd` reports the service state. Error 26421 with
+`0x80070005` means group provisioning was denied; on a current installer, check
+local security policy or account-management restrictions and retain the log for
+support. The v0.9.0 installer had a known authoring defect that produced this
+combination even for local administrators; use a newer candidate or release.
+
 **SmartScreen or antivirus warning.** The installer is currently unsigned.
 Verify the SHA-256 hash against `SHA256SUMS.txt` and choose *More info → Run
 anyway* if it matches.
