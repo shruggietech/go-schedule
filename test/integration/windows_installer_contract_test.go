@@ -98,7 +98,6 @@ func validateInstallerAdminGroup(data []byte) []string {
 	} else {
 		want := map[string]string{
 			"Name":              adminGroupName,
-			"Domain":            "[ComputerName]",
 			"CreateGroup":       "yes",
 			"FailIfExists":      "no",
 			"RemoveOnUninstall": "no",
@@ -109,6 +108,9 @@ func validateInstallerAdminGroup(data []byte) []string {
 			if group.attrs[attr] != value {
 				failures = append(failures, fmt.Sprintf("administrative Group %s must be %q", attr, value))
 			}
+		}
+		if group.attrs["Domain"] != "" {
+			failures = append(failures, "administrative Group Domain must be empty for elevated local-group creation")
 		}
 	}
 
@@ -215,8 +217,17 @@ func TestWindowsInstallerAdminGroupContract(t *testing.T) {
 }
 
 func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
-	valid := `<Wix><Package><Feature><ComponentRef Id="AdminAccessProvisioning" /></Feature><Component Id="AdminAccessProvisioning">
+	domainQualifiedGroup := `<Wix><Package><Feature><ComponentRef Id="AdminAccessProvisioning" /></Feature><Component Id="AdminAccessProvisioning">
 <Group Id="GoScheduleAdminGroup" Name="goschedadmin" Domain="[ComputerName]" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />
+<User Id="InstallingUser" Name="[LogonUser]" Domain="[%USERDOMAIN]" CreateUser="no" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes"><GroupRef Id="GoScheduleAdminGroup" /></User>
+</Component></Package></Wix>`
+	domainFailures := strings.Join(validateInstallerAdminGroup([]byte(domainQualifiedGroup)), "\n")
+	if !strings.Contains(domainFailures, "administrative Group Domain must be empty") {
+		t.Fatalf("domain-qualified local group failures %q do not reject domain routing", domainFailures)
+	}
+
+	valid := `<Wix><Package><Feature><ComponentRef Id="AdminAccessProvisioning" /></Feature><Component Id="AdminAccessProvisioning">
+<Group Id="GoScheduleAdminGroup" Name="goschedadmin" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />
 <User Id="InstallingUser" Name="[LogonUser]" Domain="[%USERDOMAIN]" CreateUser="no" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes"><GroupRef Id="GoScheduleAdminGroup" /></User>
 </Component></Package></Wix>`
 	for _, test := range []struct {
@@ -225,7 +236,7 @@ func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
 		replacement string
 		want        string
 	}{
-		{name: "missing group", old: `<Group Id="GoScheduleAdminGroup" Name="goschedadmin" Domain="[ComputerName]" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />`, want: "administrative Group declaration is missing"},
+		{name: "missing group", old: `<Group Id="GoScheduleAdminGroup" Name="goschedadmin" CreateGroup="yes" FailIfExists="no" RemoveOnUninstall="no" UpdateIfExists="yes" Vital="yes" />`, want: "administrative Group declaration is missing"},
 		{name: "wrong group name", old: `Name="goschedadmin"`, replacement: `Name="other"`, want: "administrative Group Name"},
 		{name: "destructive uninstall", old: `RemoveOnUninstall="no"`, replacement: `RemoveOnUninstall="yes"`, want: "administrative Group RemoveOnUninstall"},
 		{name: "unqualified user", old: `Domain="[%USERDOMAIN]"`, want: "installing User Domain"},
@@ -271,6 +282,10 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		`"- Evidence class: **$ArtifactClass artifact**"`,
 		`"- Artifact origin: $ArtifactOrigin"`,
 		`"- $ArtifactClass artifact status: **$status**"`,
+		"FROM ``Wix4Group`` WHERE ``Group``='GoScheduleAdminGroup'",
+		"Wix4Group.GoScheduleAdminGroup.Domain",
+		"expected empty for elevated local-group creation",
+		"- Administrative group row:",
 	} {
 		if !strings.Contains(inspector, fragment) {
 			t.Errorf("MSI inspector is missing evidence-provenance fragment %q", fragment)
@@ -280,28 +295,57 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		t.Error("MSI inspector combines candidate and published evidence statuses")
 	}
 
-	lifecycle := string(readRepositoryFile(t, "test", "windows", "install-lifecycle.ps1"))
+	lifecycle := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerLifecycle.ps1"))
 	for _, fragment := range []string{
 		"[ValidateSet('candidate', 'published')]",
+		"[ValidateSet('fresh','upgrade','access-probe')]",
 		"[string]$ArtifactClass",
 		"[string]$ArtifactOrigin",
 		`"- Evidence class: **$ArtifactClass artifact**"`,
 		`"- Artifact origin: $ArtifactOrigin"`,
-		"function Read-NativeObservation",
-		`$nativeObservations[$surface] = Read-NativeObservation -Surface $surface`,
-		"Cleanup uninstall failed; the package may remain installed",
-		"Final machine state: product registered=",
-		"Write-Evidence -Status $lifecycleStatus -Problems $failures",
+		"-WindowStyle Hidden",
+		"candidate-repair",
+		"candidate-reinstall",
+		"candidate-upgrade",
+		"GroupSid",
+		"IntendedMemberPresent",
+		"GroupBeforeService",
+		"MembershipBeforeService",
+		"Windows 11 client required",
+		"ExpectedPriorHash",
+		"Installed candidate CLI is missing",
+		"CandidateProductCode",
+		"Installed product identity does not match the candidate MSI",
+		"Token contains goschedadmin SID",
+		"AccessProbeExitCode",
+		"AccessProbeOutput",
+		"Daemon admin_group is",
+		"PSChildName",
+		"Current token does not contain the goschedadmin SID",
+		"Cleanup uninstall failed",
+		"Write-Evidence -Status $status -Problems $problems",
+		"$OperationArguments[0]",
+		"$OperationArguments | Select-Object -Skip 1",
+		"if (-not $PSCmdlet.ShouldProcess(",
+		"Lifecycle action skipped; stopping without evidence.",
+		"if (-not $actionSkipped -and",
 	} {
 		if !strings.Contains(lifecycle, fragment) {
 			t.Errorf("lifecycle verifier is missing evidence-integrity fragment %q", fragment)
 		}
 	}
-	if strings.Contains(lifecycle, "unavailable until recorded by the operator") {
-		t.Error("lifecycle verifier still hard-codes unavailable native observations")
+	if strings.Contains(lifecycle, "Start-Process -FilePath 'msiexec.exe' -ArgumentList") &&
+		!strings.Contains(lifecycle, "-WindowStyle Hidden") {
+		t.Error("lifecycle verifier launches msiexec without a hidden-window guarantee")
+	}
+	if strings.Contains(lifecycle, "$arguments = @($OperationArguments) + @(") {
+		t.Error("lifecycle verifier appends the MSI after reinstall properties")
+	}
+	if got := strings.Count(lifecycle, "if (-not $PSCmdlet.ShouldProcess("); got < 7 {
+		t.Errorf("lifecycle verifier gates only %d destructive actions; want at least 7", got)
 	}
 	finallyPosition := strings.LastIndex(lifecycle, "} finally {")
-	writePosition := strings.LastIndex(lifecycle, "Write-Evidence -Status $lifecycleStatus")
+	writePosition := strings.LastIndex(lifecycle, "Write-Evidence -Status $status")
 	if finallyPosition < 0 || writePosition < finallyPosition {
 		t.Error("lifecycle verifier writes final evidence before cleanup completes")
 	}

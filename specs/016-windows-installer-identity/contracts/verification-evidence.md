@@ -22,6 +22,12 @@ used to close an issue whose acceptance criteria require that evidence class.
 
 ## Clean lifecycle sequence
 
+This identity-era sequence is historical. S035 supersedes its installer
+security and lifecycle boundary with compiled `Wix4Group` inspection, separate
+fresh and v0.9.0-upgrade hosts, explicit repair/reinstall, group SID/member
+invariance, service-order diagnostics, and a non-elevated post-refresh access
+probe. See `specs/035-windows-msi-local-group/contracts/lifecycle-evidence.md`.
+
 1. Prove no CLI resolution, install directory, or machine PATH entry.
 2. Record Windows build and artifact version/origin/hash.
 3. Install per-machine.

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows MSI group provisioning now uses WiX's elevated local-group path
+  (Refs #83).** The installer no longer qualifies `goschedadmin` with the
+  computer name, which WiX 6 misclassified as an impersonated domain operation
+  and failed with `0x80070005`. Source and compiled-MSI contracts reject any
+  non-empty group domain, and the Windows lifecycle verifier now records repair,
+  reinstall, v0.9.0 upgrade, uninstall, group/member identity, service ordering,
+  exit codes, verbose logs, and post-refresh non-elevated client access.
+
 - **Release-time README synchronization now respects reviewed changes.** The
   v0.9.0 tag exposed that the old release job tried to push badge and health
   example edits directly to `main`. Release preparation now owns those edits,
@@ -18,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The Linux desktop release job also installs the same Wayland development
   headers and protocols as GUI CI, preventing a tag-only build failure after
   the GLFW dependency gained Wayland support.
+
+### Decisions
+
+- **2026-08-31 — Treat an omitted WiX group domain as a pinned Windows
+  installer security contract.** S030 encoded `[ComputerName]` as local-group
+  intent, but WiX 6 selects its unelevated domain action for every non-empty
+  value. S035 deliberately removes that attribute while preserving the
+  installing-user domain, group membership, service ordering, and uninstall
+  state. Static source or MSI-table inspection remains necessary but cannot
+  substitute for disposable Windows 11 lifecycle evidence.
 
 ## [0.9.0] - 2026-08-30
 
