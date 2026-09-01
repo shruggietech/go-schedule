@@ -206,6 +206,10 @@ creation, and clean shutdown.
 ## Out of Scope
 
 - Changing named-pipe ACLs, `goschedadmin`, or the daemon authorization model.
+  This was the historical S036 boundary and is superseded by S038 only for the
+  direct-member SID expansion required to resolve issue #90. S036's typed
+  errors, single in-frame incident, diagnostics, and retry behavior remain in
+  force.
 - Automatically modifying group membership, elevating the GUI, restarting the
   service, signing the user out, or bypassing access checks.
 - Installer authoring changes beyond documentation or verification evidence

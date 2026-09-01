@@ -7,6 +7,7 @@ package executor
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -72,7 +73,7 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 			code := ee.ExitCode()
 			run.ExitCode = &code
 		} else if run.Output == "" {
-			run.Output = err.Error()
+			run.Output = fmt.Sprintf("process start failed for %q: %v", task.Command, err)
 		}
 		return run
 	}

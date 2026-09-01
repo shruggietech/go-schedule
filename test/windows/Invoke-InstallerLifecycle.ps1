@@ -3,11 +3,12 @@
     Exercise and record the security-sensitive lifecycle of a go-schedule MSI.
 
 .DESCRIPTION
-    Runs one of three disposable-host scenarios: a clean candidate lifecycle,
-    an upgrade from the published v0.9.0 MSI, or a non-elevated access probe
-    after login-session refresh. Fresh and upgrade scenarios install, inspect,
-    and uninstall software and therefore require an elevated PowerShell 7
-    session on a disposable Windows 11 host.
+    Runs one of four disposable-host scenarios: a clean candidate lifecycle,
+    an upgrade from the published v0.9.0 MSI, a non-elevated access probe, or a
+    non-elevated installed-core probe that also exercises real service-hosted
+    task execution. Fresh and upgrade scenarios install, inspect, and uninstall
+    software and therefore require an elevated PowerShell 7 session on a
+    disposable Windows 11 host.
 
     Every Windows Installer process is noninteractive, hidden, and writes a
     verbose log beside the evidence file. Evidence includes process exit codes,
@@ -21,7 +22,7 @@
     membership after uninstall.
 
 .PARAMETER Scenario
-    Scenario to run: fresh, upgrade, or access-probe.
+    Scenario to run: fresh, upgrade, access-probe, or installed-core-probe.
     Alias: s
 
 .PARAMETER MsiPath
@@ -72,12 +73,16 @@
 .EXAMPLE
     .\Invoke-InstallerLifecycle.ps1 -Scenario access-probe -MsiPath C:\verify\candidate.msi -EvidencePath C:\verify\access.md -ArtifactClass candidate -ArtifactOrigin 'local build from commit abc'
     After sign-out/sign-in, prove a non-elevated token reaches the daemon.
+
+.EXAMPLE
+    .\Invoke-InstallerLifecycle.ps1 -Scenario installed-core-probe -MsiPath C:\verify\candidate.msi -EvidencePath C:\verify\installed-core.md -ArtifactClass candidate -ArtifactOrigin 'local build from commit abc'
+    Prove ordinary IPC access plus manual, scheduled, and failing service-hosted task execution.
 #>
 [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High',DefaultParameterSetName='Default')]
 Param(
     [Parameter(Mandatory=$true,ParameterSetName='Default')]
     [Alias("s")]
-    [ValidateSet('fresh','upgrade','access-probe')]
+    [ValidateSet('fresh','upgrade','access-probe','installed-core-probe')]
     [string]$Scenario,
 
     [Parameter(Mandatory=$true,ParameterSetName='Default')]
@@ -241,10 +246,36 @@ Param(
         )
         $group = Get-LocalGroup -Name $script:AdminGroupName `
             -ErrorAction SilentlyContinue
+        $memberRecords = @()
         $members = @()
+        $memberSids = @()
+        $directUserSids = @()
         if ($group) {
-            $members = @(Get-LocalGroupMember -Group $script:AdminGroupName |
-                ForEach-Object { $_.Name } | Sort-Object -Unique)
+            $memberRecords = @(Get-LocalGroupMember `
+                -Group $script:AdminGroupName)
+            $members = @($memberRecords | ForEach-Object { $_.Name } |
+                Sort-Object -Unique)
+            $memberSids = @($memberRecords | ForEach-Object { $_.SID.Value } |
+                Where-Object { $_ } | Sort-Object -Unique)
+            $directUserSids = @($memberRecords |
+                Where-Object ObjectClass -eq 'User' |
+                ForEach-Object { $_.SID.Value } | Where-Object { $_ } |
+                Sort-Object -Unique)
+        }
+        $tokenSids = @(
+            [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            [Security.Principal.WindowsIdentity]::GetCurrent().Groups |
+                ForEach-Object { $_.Value }
+        ) | Sort-Object -Unique
+        $descriptor = ''
+        if ($group) {
+            $descriptor = 'D:P(A;;GA;;;SY)(A;;GA;;;BA)' +
+                "(A;;GRGW;;;$($group.SID.Value))"
+            foreach ($memberSid in $directUserSids) {
+                if ($memberSid -ne $group.SID.Value) {
+                    $descriptor += "(A;;GRGW;;;$memberSid)"
+                }
+            }
         }
         $service = Get-CimInstance -ClassName Win32_Service `
             -Filter "Name='goschedd'" -ErrorAction SilentlyContinue
@@ -256,6 +287,10 @@ Param(
             GroupPresent = [bool]$group
             GroupSid = if ($group) { $group.SID.Value } else { '' }
             Members = $members
+            MemberSids = $memberSids
+            DirectUserSids = $directUserSids
+            TokenSids = $tokenSids
+            ExpectedPipeDescriptor = $descriptor
             IntendedMemberPresent = $members -contains $script:CurrentIdentity
             ServicePresent = [bool]$service
             ServiceState = if ($service) { $service.State } else { '' }
@@ -422,6 +457,243 @@ Param(
         }
     }
 
+    function Invoke-InstalledCli {
+        [CmdletBinding()]
+        Param(
+            [Parameter(Mandatory=$true)]
+            [string[]]$Arguments,
+
+            [Parameter(Mandatory=$false)]
+            [Switch]$ExpectJson
+        )
+        $installedCli = [System.IO.Path]::Combine(
+            $script:InstallDir,
+            'gosched.exe'
+        )
+        if (-not (Test-Path -LiteralPath $installedCli -PathType Leaf)) {
+            throw "Installed candidate CLI is missing: $installedCli"
+        }
+        $output = & $installedCli @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+        $text = (($output | Out-String).Trim())
+        if ($exitCode -ne 0) {
+            throw "gosched $($Arguments -join ' ') failed with exit $exitCode`: $text"
+        }
+        $value = $null
+        if ($ExpectJson) {
+            try {
+                $value = $text | ConvertFrom-Json -Depth 20
+            } catch {
+                throw "gosched returned invalid JSON: $($_.Exception.Message)"
+            }
+        }
+        [pscustomobject]@{
+            Command = "$installedCli $($Arguments -join ' ')"
+            ExitCode = $exitCode
+            Output = $text
+            Value = $value
+        }
+    }
+
+    function Wait-TaskRun {
+        [CmdletBinding()]
+        Param(
+            [Parameter(Mandatory=$true)]
+            [string]$TaskId,
+
+            [Parameter(Mandatory=$true)]
+            [ValidateSet('manual','schedule')]
+            [string]$Trigger,
+
+            [Parameter(Mandatory=$false)]
+            [int]$TimeoutSeconds = 45
+        )
+        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        do {
+            $response = Invoke-InstalledCli -ExpectJson -Arguments @(
+                '--json', 'runs', '--task', $TaskId, '--limit', '20'
+            )
+            $run = @($response.Value) |
+                Where-Object trigger -eq $Trigger |
+                Select-Object -First 1
+            if ($run -and $run.ended_at) { return $run }
+            Start-Sleep -Milliseconds 1000
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Timed out waiting for $Trigger run of task $TaskId"
+    }
+
+    function Invoke-InstalledCoreExecutionProbe {
+        [CmdletBinding()]
+        Param()
+        Initialize-EvidenceDirectory
+        $artifactDirectory = [System.IO.Path]::Combine(
+            [System.IO.Path]::GetDirectoryName($script:ResolvedEvidence),
+            ([System.IO.Path]::GetFileNameWithoutExtension(
+                $script:ResolvedEvidence
+            ) + '.artifacts')
+        )
+        [void][System.IO.Directory]::CreateDirectory($artifactDirectory)
+        $markerPath = [System.IO.Path]::Combine(
+            $env:ProgramData,
+            'goschedule',
+            "s038-service-execution-marker-$evidenceStem.txt"
+        )
+        $markerEvidencePath = [System.IO.Path]::Combine(
+            $artifactDirectory,
+            'service-execution-marker.txt'
+        )
+        if (Test-Path -LiteralPath $markerPath) {
+            throw "Execution marker already exists: $markerPath"
+        }
+        $systemCommand = [System.IO.Path]::Combine(
+            $env:SystemRoot,
+            'System32',
+            'WindowsPowerShell',
+            'v1.0',
+            'powershell.exe'
+        )
+        if (-not (Test-Path -LiteralPath $systemCommand -PathType Leaf)) {
+            throw "Absolute system command is missing: $systemCommand"
+        }
+        $suffix = Get-Date -Format 'yyyyMMddHHmmssfff'
+        $createdTaskIds = [System.Collections.Generic.List[string]]::new()
+        try {
+            $escapedMarker = $markerPath.Replace("'", "''")
+            $successCommand = "[IO.File]::AppendAllText('$escapedMarker', 'S038-marker' + [Environment]::NewLine); [Console]::Out.Write('S038-output')"
+            $successArgs = @(
+                '--json', 'task', 'add', "s038-success-$suffix",
+                '--command', $systemCommand,
+                '--schedule', '*/5 * * * * *', '--tz', 'UTC',
+                '--arg', '-NoLogo', '--arg', '-NoProfile',
+                '--arg', '-NonInteractive', '--arg', '-Command',
+                '--arg', $successCommand
+            )
+            $successCreate = Invoke-InstalledCli -ExpectJson `
+                -Arguments $successArgs
+            $successTask = $successCreate.Value.task
+            if (-not $successTask.id) {
+                throw 'Successful execution probe did not return a task id.'
+            }
+            $createdTaskIds.Add([string]$successTask.id)
+            [void](Invoke-InstalledCli -Arguments @(
+                'task', 'run-now', [string]$successTask.id
+            ))
+            $manualRun = Wait-TaskRun -TaskId $successTask.id `
+                -Trigger manual
+            $scheduledRun = Wait-TaskRun -TaskId $successTask.id `
+                -Trigger schedule
+            if ($manualRun.outcome -ne 'success' -or `
+                $manualRun.exit_code -ne 0 -or `
+                $manualRun.output -notmatch 'S038-output') {
+                throw 'Manual service-hosted execution contract failed.'
+            }
+            if ($scheduledRun.outcome -ne 'success' -or `
+                $scheduledRun.exit_code -ne 0 -or `
+                $scheduledRun.output -notmatch 'S038-output') {
+                throw 'Scheduled service-hosted execution contract failed.'
+            }
+            $markerLines = @(Get-Content -LiteralPath $markerPath)
+            if ($markerLines.Count -lt 2 -or `
+                @($markerLines | Where-Object { $_ -eq 'S038-marker' }).Count -lt 2) {
+                throw 'Service-hosted marker side effects were not observed twice.'
+            }
+            Copy-Item -LiteralPath $markerPath `
+                -Destination $markerEvidencePath
+
+            $failureCommand = "[Console]::Out.Write('S038-controlled-failure'); exit 7"
+            $failureCreate = Invoke-InstalledCli -ExpectJson -Arguments @(
+                '--json', 'task', 'add', "s038-exit-failure-$suffix",
+                '--command', $systemCommand,
+                '--at', '2099-01-01T00:00:00Z', '--tz', 'UTC',
+                '--arg', '-NoLogo', '--arg', '-NoProfile',
+                '--arg', '-NonInteractive', '--arg', '-Command',
+                '--arg', $failureCommand
+            )
+            $failureTask = $failureCreate.Value.task
+            $createdTaskIds.Add([string]$failureTask.id)
+            [void](Invoke-InstalledCli -Arguments @(
+                'task', 'run-now', [string]$failureTask.id
+            ))
+            $failureRun = Wait-TaskRun -TaskId $failureTask.id `
+                -Trigger manual
+            if ($failureRun.outcome -ne 'failure' -or `
+                $failureRun.exit_code -ne 7 -or `
+                $failureRun.output -notmatch 'S038-controlled-failure') {
+                throw 'Controlled nonzero-exit contract failed.'
+            }
+
+            $missingCommand = [System.IO.Path]::Combine(
+                $artifactDirectory,
+                'missing-s038-executable.exe'
+            )
+            $startFailureCreate = Invoke-InstalledCli -ExpectJson -Arguments @(
+                '--json', 'task', 'add', "s038-start-failure-$suffix",
+                '--command', $missingCommand,
+                '--at', '2099-01-02T00:00:00Z', '--tz', 'UTC'
+            )
+            $startFailureTask = $startFailureCreate.Value.task
+            $createdTaskIds.Add([string]$startFailureTask.id)
+            [void](Invoke-InstalledCli -Arguments @(
+                'task', 'run-now', [string]$startFailureTask.id
+            ))
+            $startFailureRun = Wait-TaskRun -TaskId $startFailureTask.id `
+                -Trigger manual
+            if ($startFailureRun.outcome -ne 'failure' -or `
+                $null -ne $startFailureRun.exit_code -or `
+                $startFailureRun.output -notmatch `
+                    '^process start failed for .*missing-s038-executable') {
+                throw 'Process-start failure contract failed.'
+            }
+
+            $daemonLog = [System.IO.Path]::Combine(
+                $env:ProgramData,
+                'goschedule',
+                'logs',
+                'goschedule.log'
+            )
+            $taskPattern = ($createdTaskIds | ForEach-Object {
+                [regex]::Escape($_)
+            }) -join '|'
+            $logExcerpt = @()
+            if (Test-Path -LiteralPath $daemonLog -PathType Leaf) {
+                $logExcerpt = @(Get-Content -LiteralPath $daemonLog -Tail 300 |
+                    Where-Object { $_ -match $taskPattern } |
+                    Select-Object -Last 20)
+            }
+
+            $script:ExecutionTask = $successCreate.Output
+            $script:ExecutionManualRun = $manualRun |
+                ConvertTo-Json -Compress -Depth 10
+            $script:ExecutionScheduledRun = $scheduledRun |
+                ConvertTo-Json -Compress -Depth 10
+            $script:ExecutionExitFailureRun = $failureRun |
+                ConvertTo-Json -Compress -Depth 10
+            $script:ExecutionStartFailureRun = $startFailureRun |
+                ConvertTo-Json -Compress -Depth 10
+            $script:ExecutionMarkerPath = $markerPath
+            $script:ExecutionMarkerEvidencePath = $markerEvidencePath
+            $script:ExecutionMarkerSha256 = (Get-FileHash `
+                -LiteralPath $markerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $script:ExecutionMarkerLines = $markerLines.Count
+            $script:ExecutionEnvironmentKeys = '<none>'
+            $script:ExecutionLogExcerpt = $logExcerpt -join "`n"
+        } finally {
+            foreach ($taskId in $createdTaskIds) {
+                try {
+                    [void](Invoke-InstalledCli -Arguments @(
+                        'task', 'rm', [string]$taskId
+                    ))
+                } catch {
+                    Write-Log "Could not remove probe task $taskId`: $_" `
+                        -Level Warn -Source 'execution'
+                }
+            }
+            if (Test-Path -LiteralPath $markerPath -PathType Leaf) {
+                Remove-Item -LiteralPath $markerPath -Force
+            }
+        }
+    }
+
     function Write-Evidence {
         [CmdletBinding()]
         Param(
@@ -452,14 +724,57 @@ Param(
             $lines += "- Prior artifact origin: $PriorArtifactOrigin"
             $lines += "- Prior SHA-256: ``$script:PriorHash``"
         }
-        if ($Scenario -eq 'access-probe') {
+        if ($Scenario -in @('access-probe', 'installed-core-probe')) {
             $lines += @(
                 ''
-                '## Refreshed non-elevated access probe'
+                '## Ordinary non-elevated access probe'
                 "- Token contains goschedadmin SID: $script:AccessTokenContainsGroup"
+                "- Token SID count: $($script:AccessTokenSids.Count)"
+                "- Expected restricted pipe descriptor: ``$script:AccessPipeDescriptor``"
                 "- Command: ``$script:AccessProbeCommand``"
                 "- Exit code: $script:AccessProbeExitCode"
                 "- Output: $script:AccessProbeOutput"
+            )
+        }
+        if ($Scenario -eq 'installed-core-probe') {
+            $lines += @(
+                ''
+                '## Service-hosted task execution probe'
+                "- Environment keys: $script:ExecutionEnvironmentKeys (values redacted)"
+                "- Marker: ``$script:ExecutionMarkerPath``"
+                "- Retained marker evidence: ``$script:ExecutionMarkerEvidencePath``"
+                "- Marker SHA-256: ``$script:ExecutionMarkerSha256``"
+                "- Marker line count: $script:ExecutionMarkerLines"
+                ''
+                '### Created success task'
+                '```json'
+                $script:ExecutionTask
+                '```'
+                ''
+                '### Manual success run'
+                '```json'
+                $script:ExecutionManualRun
+                '```'
+                ''
+                '### Scheduled success run'
+                '```json'
+                $script:ExecutionScheduledRun
+                '```'
+                ''
+                '### Controlled nonzero-exit run'
+                '```json'
+                $script:ExecutionExitFailureRun
+                '```'
+                ''
+                '### Process-start failure run'
+                '```json'
+                $script:ExecutionStartFailureRun
+                '```'
+                ''
+                '### Correlated daemon log excerpt'
+                '```jsonl'
+                $script:ExecutionLogExcerpt
+                '```'
             )
         }
         $lines += @('', '## MSI operations')
@@ -490,13 +805,18 @@ Param(
                 $memberList = if ($state.Members.Count) {
                     $state.Members -join ', '
                 } else { '<none>' }
+                $memberSidList = if ($state.MemberSids.Count) {
+                    $state.MemberSids -join ', '
+                } else { '<none>' }
                 $lines += (
                     "- $($state.Label): product=$($state.ProductPresent); " +
                     "directory=$($state.InstallDirectoryPresent); " +
                     "PATH entries=$($state.PathEntries); " +
                     "group=$($state.GroupPresent); SID=``$($state.GroupSid)``; " +
                     "intended member=$($state.IntendedMemberPresent); " +
-                    "members=``$memberList``; service=$($state.ServicePresent); " +
+                    "members=``$memberList``; member SIDs=``$memberSidList``; " +
+                    "expected pipe descriptor=``$($state.ExpectedPipeDescriptor)``; " +
+                    "service=$($state.ServicePresent); " +
                     "state=``$($state.ServiceState)``; " +
                     "start=``$($state.ServiceStartMode)``; " +
                     "account=``$($state.ServiceAccount)``; " +
@@ -538,9 +858,22 @@ Param(
     $script:ExpectedPriorHash = `
         '0365f8ea592321100ffb2875d4c66649d2ab53407faddba5a1168a4ae1e1fb1c'
     $script:AccessTokenContainsGroup = $false
+    $script:AccessTokenSids = @()
+    $script:AccessPipeDescriptor = '<not observed>'
     $script:AccessProbeCommand = ''
     $script:AccessProbeExitCode = -1
     $script:AccessProbeOutput = '<not run>'
+    $script:ExecutionTask = '<not run>'
+    $script:ExecutionManualRun = '<not run>'
+    $script:ExecutionScheduledRun = '<not run>'
+    $script:ExecutionExitFailureRun = '<not run>'
+    $script:ExecutionStartFailureRun = '<not run>'
+    $script:ExecutionMarkerPath = '<not run>'
+    $script:ExecutionMarkerEvidencePath = '<not run>'
+    $script:ExecutionMarkerSha256 = '<not run>'
+    $script:ExecutionMarkerLines = 0
+    $script:ExecutionEnvironmentKeys = '<not run>'
+    $script:ExecutionLogExcerpt = '<not run>'
     $script:CurrentIdentity = `
         [Security.Principal.WindowsIdentity]::GetCurrent().Name
 
@@ -613,12 +946,12 @@ Param(
         exit 2
     }
 
-    if ($Scenario -eq 'access-probe') {
+    if ($Scenario -in @('access-probe', 'installed-core-probe')) {
         $problems = [System.Collections.Generic.List[string]]::new()
         if ($isAdministrator) {
-            $problems.Add('Access probe must run from a non-elevated session.')
+            $problems.Add('Installed probe must run from a non-elevated session.')
         }
-        $state = Get-SecurityState -Label 'post-refresh access probe'
+        $state = Get-SecurityState -Label 'ordinary installed access probe'
         $script:States.Add($state)
         try {
             Assert-InstalledState -State $state
@@ -635,13 +968,11 @@ Param(
         }
         $group = Get-LocalGroup -Name $script:AdminGroupName `
             -ErrorAction SilentlyContinue
-        $tokenSids = @([Security.Principal.WindowsIdentity]::GetCurrent().Groups |
-            ForEach-Object { $_.Value })
+        $tokenSids = @($state.TokenSids)
+        $script:AccessTokenSids = $tokenSids
+        $script:AccessPipeDescriptor = $state.ExpectedPipeDescriptor
         $script:AccessTokenContainsGroup = [bool]$group -and `
             $tokenSids -contains $group.SID.Value
-        if (-not $script:AccessTokenContainsGroup) {
-            $problems.Add('Current token does not contain the goschedadmin SID.')
-        }
         $configPath = [System.IO.Path]::Combine(
             $env:ProgramData,
             'goschedule',
@@ -683,11 +1014,20 @@ Param(
         } catch {
             $problems.Add("gosched health could not run: $($_.Exception.Message)")
         }
+        if ($Scenario -eq 'installed-core-probe') {
+            try {
+                Invoke-InstalledCoreExecutionProbe
+            } catch {
+                $problems.Add(
+                    "Installed task execution probe failed: $($_.Exception.Message)"
+                )
+            }
+        }
         $status = if ($problems.Count) { 'failed' } else { 'proven' }
         Write-Evidence -Status $status -Problems $problems
         if ($problems.Count) { exit 1 }
-        Write-Log 'Non-elevated access probe proven.' -Level Success `
-            -Source 'access'
+        Write-Log "$Scenario proven from a non-elevated session." `
+            -Level Success -Source 'access'
         exit 0
     }
 

@@ -53,6 +53,43 @@ func TestExecutor_Failure(t *testing.T) {
 	}
 }
 
+func TestExecutor_ProcessStartFailureNamesBoundaryWithoutSecrets(t *testing.T) {
+	task := domain.Task{
+		Command: "definitely-not-a-real-go-schedule-executable-xyz",
+		Args:    []string{"--secret-argument"},
+		Env:     map[string]string{"GO_SCHEDULE_SECRET": "secret-environment-value"},
+		Stdin:   "secret-stdin-value",
+	}
+	run := New(0).Run(context.Background(), task, time.Now().UTC(), domain.TriggerManual)
+	if run.Outcome != domain.OutcomeFailure || run.ExitCode != nil {
+		t.Fatalf("run = %#v, want process-start failure without exit code", run)
+	}
+	if !strings.Contains(run.Output, `process start failed for "definitely-not-a-real-go-schedule-executable-xyz"`) {
+		t.Fatalf("output = %q, want named process-start boundary", run.Output)
+	}
+	for _, secret := range []string{"--secret-argument", "secret-environment-value", "secret-stdin-value"} {
+		if strings.Contains(run.Output, secret) {
+			t.Fatalf("output disclosed %q: %q", secret, run.Output)
+		}
+	}
+}
+
+func TestExecutor_NonzeroExitPreservesChildOutput(t *testing.T) {
+	task := failTask()
+	if runtime.GOOS == "windows" {
+		task.Args = []string{"/d", "/q", "/c", "echo controlled failure & exit /b 7"}
+	} else {
+		task.Args = []string{"-c", "printf 'controlled failure'; exit 7"}
+	}
+	run := New(0).Run(context.Background(), task, time.Now().UTC(), domain.TriggerManual)
+	if run.Outcome != domain.OutcomeFailure || run.ExitCode == nil || *run.ExitCode != 7 {
+		t.Fatalf("run = %#v, want child exit 7", run)
+	}
+	if !strings.Contains(run.Output, "controlled failure") || strings.Contains(run.Output, "process start failed") {
+		t.Fatalf("output = %q, want unchanged child output", run.Output)
+	}
+}
+
 func TestExecutor_OutputCap(t *testing.T) {
 	e := New(10) // cap to 10 bytes
 	var task domain.Task

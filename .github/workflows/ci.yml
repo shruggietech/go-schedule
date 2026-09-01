@@ -57,6 +57,37 @@ jobs:
           CGO_ENABLED: "1"
         run: sh scripts/verify.sh race
 
+  windows-service-core:
+    name: Windows LocalSystem execution
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build service probe binaries
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP 's038-service-core\bin'
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          go build -o (Join-Path $stage 'goschedd.exe') ./cmd/goschedd
+          go build -o (Join-Path $stage 'gosched.exe') ./cmd/gosched
+      - name: Prove LocalSystem task execution
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 's038-service-core'
+          & ./test/windows/Invoke-ServiceCoreCI.ps1 `
+            -StageDirectory (Join-Path $root 'bin') `
+            -EvidencePath (Join-Path $root 'evidence.json')
+      - name: Upload service-boundary evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-service-core-evidence
+          path: ${{ runner.temp }}/s038-service-core
+          if-no-files-found: warn
+
   coverage:
     name: Coverage gate (core packages ≥80%)
     runs-on: ubuntu-latest
