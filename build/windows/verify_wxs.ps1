@@ -6,6 +6,7 @@
   Cheap guard against the WiX source drifting from reality:
     * the three expected binaries are referenced as File sources,
     * the canonical icon feeds both installed-apps and Start Menu identity,
+    * the Explorer-visible Summary Subject is the approved project copy,
     * the Windows service Name is exactly "goschedd" (the name the CLI
       `gosched service ...` control layer expects),
     * the install folder is "go-schedule" and the package is per-machine.
@@ -60,12 +61,22 @@ try {
   $ns.AddNamespace('w', 'http://wixtoolset.org/schemas/v4/wxs')
   $ns.AddNamespace('util', 'http://wixtoolset.org/schemas/v4/wxs/util')
   $icon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Icon[@Id="GoSchedule.ico"]', $ns)
+  $summary = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:SummaryInformation', $ns)
   $arpIcon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPPRODUCTICON"]', $ns)
   $shortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="GuiShortcut"]', $ns)
   $adminGroup = $wxsXml.SelectSingleNode('//util:Group[@Id="GoScheduleAdminGroup"]', $ns)
   $installingUser = $wxsXml.SelectSingleNode('//util:User[@Id="InstallingUser"]', $ns)
   $adminGroupRef = $wxsXml.SelectSingleNode('//util:User[@Id="InstallingUser"]/util:GroupRef[@Id="GoScheduleAdminGroup"]', $ns)
   $adminComponentRef = $wxsXml.SelectSingleNode('//w:Feature[@Id="Main"]/w:ComponentRef[@Id="AdminAccessProvisioning"]', $ns)
+
+  $expectedSubject = 'go-schedule: cross-platform task scheduler'
+  if (-not $summary) {
+    $fail += 'SummaryInformation is missing'
+  } elseif ($summary.Description -ne $expectedSubject) {
+    $fail += "SummaryInformation Description must be `"$expectedSubject`""
+  } elseif ($summary.Description.Contains([char]0x2014)) {
+    $fail += 'SummaryInformation Description must not contain U+2014'
+  }
 
   if (-not $icon) {
     $fail += 'canonical Icon Id="GoSchedule.ico" is missing'

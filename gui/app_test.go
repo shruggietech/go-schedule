@@ -68,6 +68,15 @@ func waitFor(t *testing.T, cond func() bool) {
 	t.Fatal("timed out waiting for the expected backend call")
 }
 
+func TestRootContentFitsEffective800x600Launch(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	available := windowSizeFor(800, 600, 1)
+	minimum := ui.win.Content().MinSize()
+	if minimum.Width > available.Width || minimum.Height > available.Height {
+		t.Fatalf("root minimum %v exceeds effective 800x600 launch viewport %v", minimum, available)
+	}
+}
+
 func (f *fakeBackend) ListTasks(context.Context, string, string) ([]domain.Task, error) {
 	return f.tasks, nil
 }
