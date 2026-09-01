@@ -324,6 +324,11 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		"Current token does not contain the goschedadmin SID",
 		"Cleanup uninstall failed",
 		"Write-Evidence -Status $status -Problems $problems",
+		"$OperationArguments[0]",
+		"$OperationArguments | Select-Object -Skip 1",
+		"if (-not $PSCmdlet.ShouldProcess(",
+		"Lifecycle action skipped; stopping without evidence.",
+		"if (-not $actionSkipped -and",
 	} {
 		if !strings.Contains(lifecycle, fragment) {
 			t.Errorf("lifecycle verifier is missing evidence-integrity fragment %q", fragment)
@@ -332,6 +337,12 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	if strings.Contains(lifecycle, "Start-Process -FilePath 'msiexec.exe' -ArgumentList") &&
 		!strings.Contains(lifecycle, "-WindowStyle Hidden") {
 		t.Error("lifecycle verifier launches msiexec without a hidden-window guarantee")
+	}
+	if strings.Contains(lifecycle, "$arguments = @($OperationArguments) + @(") {
+		t.Error("lifecycle verifier appends the MSI after reinstall properties")
+	}
+	if got := strings.Count(lifecycle, "if (-not $PSCmdlet.ShouldProcess("); got < 7 {
+		t.Errorf("lifecycle verifier gates only %d destructive actions; want at least 7", got)
 	}
 	finallyPosition := strings.LastIndex(lifecycle, "} finally {")
 	writePosition := strings.LastIndex(lifecycle, "Write-Evidence -Status $status")

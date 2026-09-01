@@ -50,5 +50,10 @@ remains In Progress, and the pull request must use `Refs #83`.
   installer/security behavior, and spec/test evidence. All findings were fixed,
   and all three final re-reviews reported no actionable issue at confidence
   80% or higher.
+- Pull-request review found that reinstall properties preceded the MSI path and
+  that declined `ShouldProcess` actions fell through to lifecycle assertions.
+  The argument builder now keeps the package immediately after the operation
+  switch, and every skipped destructive phase stops without false evidence or
+  cleanup side effects.
 - UTF-8 without BOM, replacement-character, trailing-whitespace, task/checklist,
   issue-reference, and worktree-scope audits completed locally.

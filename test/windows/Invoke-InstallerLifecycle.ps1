@@ -15,8 +15,10 @@
     product state, install-directory state, and machine PATH cardinality.
 
     Exit codes: 0 proven, 1 an assertion failed, 2 a prerequisite prevented the
-    scenario from starting. Fresh and upgrade runs intentionally preserve the
-    goschedadmin group and membership after uninstall.
+    scenario from starting. A declined confirmation or -WhatIf stops at the
+    first skipped phase with exit code 0 and no final evidence or cleanup.
+    Fresh and upgrade runs intentionally preserve the goschedadmin group and
+    membership after uninstall.
 
 .PARAMETER Scenario
     Scenario to run: fresh, upgrade, or access-probe.
@@ -327,12 +329,22 @@ Param(
             [Parameter(Mandatory=$true)]
             [bool]$RequireGroupOrder
         )
+        Initialize-EvidenceDirectory
         $logPath = [System.IO.Path]::Combine(
             $script:LogDirectory,
             "$Label.log"
         )
-        $arguments = @($OperationArguments) + @(
-            ('"{0}"' -f $PackagePath),
+        if ($OperationArguments.Count -lt 1) {
+            throw "Windows Installer '$Label' has no operation switch."
+        }
+        $arguments = @(
+            $OperationArguments[0],
+            ('"{0}"' -f $PackagePath)
+        )
+        if ($OperationArguments.Count -gt 1) {
+            $arguments += @($OperationArguments | Select-Object -Skip 1)
+        }
+        $arguments += @(
             '/qn',
             '/norestart',
             '/L*v',
@@ -366,6 +378,20 @@ Param(
             throw "Windows Installer '$Label' verbose-log contract failed"
         }
         $result
+    }
+
+    function Initialize-EvidenceDirectory {
+        [CmdletBinding()]
+        Param()
+        $evidenceDirectory = [System.IO.Path]::GetDirectoryName(
+            $script:ResolvedEvidence
+        )
+        if (-not [System.IO.Directory]::Exists($evidenceDirectory)) {
+            [void][System.IO.Directory]::CreateDirectory($evidenceDirectory)
+        }
+        if (-not [System.IO.Directory]::Exists($script:LogDirectory)) {
+            [void][System.IO.Directory]::CreateDirectory($script:LogDirectory)
+        }
     }
 
     function Assert-InstalledState {
@@ -405,6 +431,7 @@ Param(
             [Parameter(Mandatory=$false)]
             [string[]]$Problems = @()
         )
+        Initialize-EvidenceDirectory
         $lines = @(
             '# Windows Installer Lifecycle Evidence'
             ''
@@ -551,9 +578,6 @@ Param(
     $evidenceDirectory = [System.IO.Path]::GetDirectoryName(
         $script:ResolvedEvidence
     )
-    if (-not [System.IO.Directory]::Exists($evidenceDirectory)) {
-        [void][System.IO.Directory]::CreateDirectory($evidenceDirectory)
-    }
     $evidenceStem = [System.IO.Path]::GetFileNameWithoutExtension(
         $script:ResolvedEvidence
     )
@@ -561,8 +585,6 @@ Param(
         $evidenceDirectory,
         "$evidenceStem.logs"
     )
-    [void][System.IO.Directory]::CreateDirectory($script:LogDirectory)
-
     $principal = [Security.Principal.WindowsPrincipal]::new(
         [Security.Principal.WindowsIdentity]::GetCurrent()
     )
@@ -721,43 +743,56 @@ Param(
     }
 
     $installed = $false
+    $actionSkipped = $false
     $problems = [System.Collections.Generic.List[string]]::new()
     try {
         if ($Scenario -eq 'upgrade') {
-            if ($PSCmdlet.ShouldProcess(
+            if (-not $PSCmdlet.ShouldProcess(
                 $script:AdminGroupName,
                 'Preprovision v0.9.0 local group and membership'
             )) {
-                New-LocalGroup -Name $script:AdminGroupName | Out-Null
-                Add-LocalGroupMember -Group $script:AdminGroupName `
-                    -Member $script:CurrentIdentity
+                $actionSkipped = $true
+                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                    -Level Warn -Source 'lifecycle'
+                return
             }
-            if ($PSCmdlet.ShouldProcess(
+            New-LocalGroup -Name $script:AdminGroupName | Out-Null
+            Add-LocalGroupMember -Group $script:AdminGroupName `
+                -Member $script:CurrentIdentity
+            if (-not $PSCmdlet.ShouldProcess(
                 $script:ResolvedPriorMsi,
                 'Install published v0.9.0 baseline'
             )) {
-                $script:CleanupPackage = $script:ResolvedPriorMsi
-                Invoke-MsiOperation -Label 'prior-install' `
-                    -PackagePath $script:ResolvedPriorMsi `
-                    -OperationArguments @('/i') -RequireGroupOrder $false |
-                    Out-Null
+                $actionSkipped = $true
+                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                    -Level Warn -Source 'lifecycle'
+                return
             }
+            $script:CleanupPackage = $script:ResolvedPriorMsi
+            Invoke-MsiOperation -Label 'prior-install' `
+                -PackagePath $script:ResolvedPriorMsi `
+                -OperationArguments @('/i') -RequireGroupOrder $false |
+                Out-Null
             $installed = $true
             $priorState = Get-SecurityState -Label 'v0.9.0 installed'
             $script:States.Add($priorState)
             Assert-InstalledState -State $priorState
             $baselineSid = $priorState.GroupSid
             $baselineMembers = $priorState.Members -join '|'
-            if ($PSCmdlet.ShouldProcess(
+            if (-not $PSCmdlet.ShouldProcess(
                 $script:ResolvedMsi,
                 'Upgrade v0.9.0 to candidate'
             )) {
-                $script:CleanupPackage = $script:ResolvedMsi
-                Invoke-MsiOperation -Label 'candidate-upgrade' `
-                    -PackagePath $script:ResolvedMsi `
-                    -OperationArguments @('/i') -RequireGroupOrder $true |
-                    Out-Null
+                $actionSkipped = $true
+                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                    -Level Warn -Source 'lifecycle'
+                return
             }
+            $script:CleanupPackage = $script:ResolvedMsi
+            Invoke-MsiOperation -Label 'candidate-upgrade' `
+                -PackagePath $script:ResolvedMsi `
+                -OperationArguments @('/i') -RequireGroupOrder $true |
+                Out-Null
             $candidateState = Get-SecurityState -Label 'candidate upgraded'
             $script:States.Add($candidateState)
             Assert-InstalledState -State $candidateState
@@ -766,44 +801,56 @@ Param(
                 throw 'Upgrade changed the administrative group SID or members.'
             }
         } else {
-            if ($PSCmdlet.ShouldProcess(
+            if (-not $PSCmdlet.ShouldProcess(
                 $script:ResolvedMsi,
                 'Install candidate MSI'
             )) {
-                $script:CleanupPackage = $script:ResolvedMsi
-                Invoke-MsiOperation -Label 'candidate-install' `
-                    -PackagePath $script:ResolvedMsi `
-                    -OperationArguments @('/i') -RequireGroupOrder $true |
-                    Out-Null
+                $actionSkipped = $true
+                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                    -Level Warn -Source 'lifecycle'
+                return
             }
+            $script:CleanupPackage = $script:ResolvedMsi
+            Invoke-MsiOperation -Label 'candidate-install' `
+                -PackagePath $script:ResolvedMsi `
+                -OperationArguments @('/i') -RequireGroupOrder $true |
+                Out-Null
             $installed = $true
             $installState = Get-SecurityState -Label 'candidate installed'
             $script:States.Add($installState)
             Assert-InstalledState -State $installState
             $baselineSid = $installState.GroupSid
             $baselineMembers = $installState.Members -join '|'
-            if ($PSCmdlet.ShouldProcess(
+            if (-not $PSCmdlet.ShouldProcess(
                 $script:ResolvedMsi,
                 'Repair candidate MSI'
             )) {
-                Invoke-MsiOperation -Label 'candidate-repair' `
-                    -PackagePath $script:ResolvedMsi `
-                    -OperationArguments @('/fa') -RequireGroupOrder $false |
-                    Out-Null
+                $actionSkipped = $true
+                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                    -Level Warn -Source 'lifecycle'
+                return
             }
+            Invoke-MsiOperation -Label 'candidate-repair' `
+                -PackagePath $script:ResolvedMsi `
+                -OperationArguments @('/fa') -RequireGroupOrder $false |
+                Out-Null
             $repairState = Get-SecurityState -Label 'candidate repaired'
             $script:States.Add($repairState)
             Assert-InstalledState -State $repairState
-            if ($PSCmdlet.ShouldProcess(
+            if (-not $PSCmdlet.ShouldProcess(
                 $script:ResolvedMsi,
                 'Reinstall candidate MSI'
             )) {
-                Invoke-MsiOperation -Label 'candidate-reinstall' `
-                    -PackagePath $script:ResolvedMsi `
-                    -OperationArguments @(
-                        '/i','REINSTALL=ALL','REINSTALLMODE=vomus'
-                    ) -RequireGroupOrder $false | Out-Null
+                $actionSkipped = $true
+                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                    -Level Warn -Source 'lifecycle'
+                return
             }
+            Invoke-MsiOperation -Label 'candidate-reinstall' `
+                -PackagePath $script:ResolvedMsi `
+                -OperationArguments @(
+                    '/i','REINSTALL=ALL','REINSTALLMODE=vomus'
+                ) -RequireGroupOrder $false | Out-Null
             $reinstallState = Get-SecurityState -Label 'candidate reinstalled'
             $script:States.Add($reinstallState)
             Assert-InstalledState -State $reinstallState
@@ -815,15 +862,19 @@ Param(
             }
         }
 
-        if ($PSCmdlet.ShouldProcess(
+        if (-not $PSCmdlet.ShouldProcess(
             $script:ResolvedMsi,
             'Uninstall candidate MSI'
         )) {
-            Invoke-MsiOperation -Label 'candidate-uninstall' `
-                -PackagePath $script:ResolvedMsi `
-                -OperationArguments @('/x') -RequireGroupOrder $false |
-                Out-Null
+            $actionSkipped = $true
+            Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                -Level Warn -Source 'lifecycle'
+            return
         }
+        Invoke-MsiOperation -Label 'candidate-uninstall' `
+            -PackagePath $script:ResolvedMsi `
+            -OperationArguments @('/x') -RequireGroupOrder $false |
+            Out-Null
         $installed = $false
         $finalState = Get-SecurityState -Label 'candidate uninstalled'
         $script:States.Add($finalState)
@@ -840,7 +891,8 @@ Param(
     } catch {
         $problems.Add($_.Exception.Message)
     } finally {
-        if ($installed -or [bool](Get-InstalledProduct)) {
+        if (-not $actionSkipped -and `
+            ($installed -or [bool](Get-InstalledProduct))) {
             try {
                 $registeredProduct = Get-InstalledProduct
                 $cleanupTarget = if ($registeredProduct) {
