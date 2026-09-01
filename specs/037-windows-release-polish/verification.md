@@ -29,6 +29,18 @@
   record now document the intentional reversal. No maximize, restore, resize,
   minimize, fullscreen, or placement-persistence behavior was added or removed.
 
+### Review Resolution (2026-09-01)
+
+- The mixed-DPI review found that the selected monitor's physical work area was
+  divided by the not-yet-positioned Fyne window's scale, which could belong to
+  a different display.
+- The Windows adapter now obtains `MDT_EFFECTIVE_DPI` with `GetDpiForMonitor`
+  from the same `HMONITOR` used by `GetMonitorInfoW`. The initial canvas scale
+  is retained only as a compatibility fallback when monitor DPI is unavailable.
+- The regression test proves both lookups receive the same selected monitor
+  handle and that 192 DPI produces a 2.0 scale. A separate fallback test proves
+  a valid work area remains usable when the DPI API is unavailable.
+
 ## Issue #88: MSI Explorer Subject
 
 - `pwsh build/windows/verify_wxs.ps1`: PASS with the exact approved source value.
