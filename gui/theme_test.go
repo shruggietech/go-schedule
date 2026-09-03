@@ -31,6 +31,11 @@ func TestBrandThemeTextContrastAndFocusVisibility(t *testing.T) {
 					t.Errorf("mode=%s variant=%v %s contrast = %.2f, want >= 4.5", mode, variant, name, ratio)
 				}
 			}
+			for _, surface := range []fyne.ThemeColorName{theme.ColorNameBackground, theme.ColorNameInputBackground} {
+				if ratio := contrastRatio(th.Color(theme.ColorNameError, variant), th.Color(surface, variant)); ratio < 3 {
+					t.Errorf("mode=%s variant=%v standalone error on %s contrast = %.2f, want >= 3", mode, variant, surface, ratio)
+				}
+			}
 			focus := blendThemeColor(background, th.Color(theme.ColorNameFocus, variant))
 			if ratio := contrastRatio(focus, background); ratio < 3 {
 				t.Errorf("mode=%s variant=%v focus contrast = %.2f, want >= 3", mode, variant, ratio)
@@ -76,11 +81,11 @@ func TestBrandThemeColors(t *testing.T) {
 		{theme.ColorNameInputBackground, cPanel},
 		{theme.ColorNameInputBorder, cLine},
 		{theme.ColorNamePlaceHolder, cMuted},
-		// Contrast rule: ink on light accents is Night; text on red stays light.
+		// Contrast rule: ink on the light accents is Night.
 		{theme.ColorNameForegroundOnPrimary, cNight},
 		{theme.ColorNameForegroundOnSuccess, cNight},
 		{theme.ColorNameForegroundOnWarning, cNight},
-		{theme.ColorNameForegroundOnError, cText},
+		{theme.ColorNameForegroundOnError, cNight},
 	}
 	for _, tc := range cases {
 		got := nrgba(t, th.Color(tc.name, theme.VariantDark))
@@ -217,6 +222,9 @@ func TestBrandThemeButtonStateCompositesRemainReadable(t *testing.T) {
 			{name: "warning", fg: theme.ColorNameForegroundOnWarning, bg: theme.ColorNameWarning},
 		}
 		for _, pair := range pairs {
+			if ratio := contrastRatio(th.Color(pair.fg, variant), th.Color(pair.bg, variant)); ratio < 4.5 {
+				t.Errorf("mode=%s %s rest text contrast = %.2f, want >= 4.5", mode, pair.name, ratio)
+			}
 			for _, state := range states {
 				background := blendThemeColor(th.Color(pair.bg, variant), th.Color(state, variant))
 				if ratio := contrastRatio(th.Color(pair.fg, variant), background); ratio < 4.5 {

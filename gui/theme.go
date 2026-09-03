@@ -31,7 +31,7 @@ var (
 	cInterval = color.NRGBA{R: 0x62, G: 0xD9, B: 0xB7, A: 0xFF} // Interval Mint — success/recurrence
 	cAnchor   = color.NRGBA{R: 0x58, G: 0xA6, B: 0xFF, A: 0xFF} // Anchor Blue — primary/focus/links
 	cHold     = color.NRGBA{R: 0xF2, G: 0xB8, B: 0x4B, A: 0xFF} // Hold Amber — warning (rare)
-	cStop     = color.NRGBA{R: 0x97, G: 0x1C, B: 0x2C, A: 0xFF} // Stop Red — error only
+	cStop     = color.NRGBA{R: 0xE0, G: 0x5F, B: 0x5F, A: 0xFF} // Stop Red — error only
 
 	// Light surfaces retain the same semantic accents while supplying sufficient
 	// contrast for body text, selection, inputs, and focus.
@@ -164,13 +164,10 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) c
 		return cHold
 	case theme.ColorNameError:
 		return cStop
-	// Text drawn ON a filled accent. The accents are light, so ink is Night;
-	// the red is dark enough that white text reads better on it.
+	// Text drawn ON a filled accent. The accents are light, so ink is Night.
 	case theme.ColorNameForegroundOnPrimary, theme.ColorNameForegroundOnSuccess,
-		theme.ColorNameForegroundOnWarning:
+		theme.ColorNameForegroundOnWarning, theme.ColorNameForegroundOnError:
 		return cNight
-	case theme.ColorNameForegroundOnError:
-		return cText
 	default:
 		// Anything unmapped uses the default dark theme so new Fyne color roles
 		// still resolve sensibly.

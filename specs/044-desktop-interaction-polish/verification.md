@@ -49,10 +49,11 @@ requirement-to-test traceability, Fyne renderer state composition, preference
 and callback concurrency, repository history and scope, embedded-font licensing
 and hashes, shutdown behavior, storage ownership wording, and evidence claims.
 It corrected the storage text widget to use Fyne's selectable Label contract,
-tightened Stop Red so danger text remains above 4.5:1 after every overlay, kept
-scroll-only changes from reinstalling the theme, added a long-path small-window
-layout regression, and removed a false system-native font claim. No unresolved
-high-confidence code or evidence finding remains.
+paired bright standalone Stop Red with dark text on filled danger controls so
+both indicator and text thresholds survive every state, kept scroll-only changes
+from reinstalling the theme, added a long-path small-window layout regression,
+and removed a false system-native font claim. No unresolved high-confidence
+code or evidence finding remains.
 
 ## Integrity
 
