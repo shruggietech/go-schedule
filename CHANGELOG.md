@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Windows release readiness now has a pre-publication demo qualification step
+  (Refs #94, #98, #96, #101, #104, #105, #106).** S043 produces a distinctly
+  labeled local MSI, exhausts non-attended verification, and binds operator
+  testing to its exact hash before the review branch is published. Passing demo
+  evidence reduces review risk but does not replace the later byte-identical
+  draft-release candidate gate.
+
 - **The desktop GUI now has an Options view and an owned navigation rail (Refs
   #104, #105, #106).** Users can switch among Dark, Light, and Follow system
   modes plus Brand, System, and Monospace fonts, restore the Dark and Brand
@@ -93,6 +100,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-03 - Separate pre-PR demo testing from formal candidate evidence.**
+  The maintainer requires attended testing before a pull request, while #94
+  requires a Release-workflow MSI staged from reviewed and merged source. S043
+  therefore uses a clearly marked local demo for early testing and preserves the
+  full exact-candidate matrix for the later authorized tag. Relabeling or
+  promoting the local build would weaken provenance and is prohibited.
 
 - **2026-09-03 - Own desktop navigation and bound appearance choices.** Fyne's
   leading AppTabs cannot provide both controlled rail spacing and a bottom
