@@ -130,7 +130,7 @@ As a scheduler operator, I can scan Activity rows under stable column headers, r
 
 ## Assumptions
 
-- This slice changes desktop presentation and interaction only; daemon, API, persistence, scheduling, and execution contracts remain unchanged.
+- This slice changes desktop presentation and interaction plus one backward-compatible Calendar response detail: past occurrences expose their existing stored run ID so equal-time records retain stable identity. Daemon behavior, requests, persistence, scheduling, and execution contracts remain unchanged.
 - Current backend ordering remains authoritative: Schedule is chronological and Activity is newest-first. S045 does not add user-selectable sorting.
 - Schedule Calendar mode retains its existing calendar presentation; the structured table applies to Schedule List mode.
 - Existing Activity detail is the authoritative full-value disclosure for Activity rows. Tasks and Schedule may use an equivalent non-mutating disclosure suited to their interaction model.
@@ -150,6 +150,6 @@ As a scheduler operator, I can scan Activity rows under stable column headers, r
 
 - Task command-line entry redesign (#110).
 - Richer task-run failure capture and diagnostics (#102).
-- New daemon/API fields, persistence migrations, scheduling semantics, or execution behavior.
+- New daemon fields, request fields, persistence migrations, scheduling semantics, execution behavior, or API expansion beyond the optional existing run ID needed for Schedule row identity.
 - New user-selectable sorting, column customization, exporting, or global search.
 - Redesign of Schedule Calendar mode, Groups, or Chains.

@@ -31,10 +31,10 @@ func scheduleRowModels(occurrences []server.Occurrence) []structuredRowModel {
 		if taskIdentity == "" {
 			taskIdentity = occurrence.TaskName
 		}
-		baseIdentity := stablePresentationIdentity(
-			taskIdentity,
-			occurrence.Time.UTC().Format(time.RFC3339Nano),
-		)
+		baseIdentity := stablePresentationIdentity("scheduled", taskIdentity, occurrence.Time.UTC().Format(time.RFC3339Nano))
+		if occurrence.RunID != "" {
+			baseIdentity = stablePresentationIdentity("run", occurrence.RunID)
+		}
 		ordinal := duplicates[baseIdentity]
 		duplicates[baseIdentity] = ordinal + 1
 		identity := baseIdentity + "#" + strconv.Itoa(ordinal)

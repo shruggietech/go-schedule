@@ -13,6 +13,7 @@ import (
 type Occurrence struct {
 	TaskID   string            `json:"task_id"`
 	TaskName string            `json:"task_name"`
+	RunID    string            `json:"run_id,omitempty"`
 	Time     time.Time         `json:"time"`
 	Kind     string            `json:"kind"` // "past" | "scheduled"
 	Outcome  domain.RunOutcome `json:"outcome,omitempty"`
@@ -53,7 +54,7 @@ func (s *Server) handleCalendar(w http.ResponseWriter, r *http.Request) {
 		for _, run := range runs {
 			if !run.ScheduledFor.Before(from) && !run.ScheduledFor.After(to) {
 				occ = append(occ, Occurrence{
-					TaskID: task.ID, TaskName: task.Name, Time: run.ScheduledFor,
+					TaskID: task.ID, TaskName: task.Name, RunID: run.ID, Time: run.ScheduledFor,
 					Kind: "past", Outcome: run.Outcome,
 				})
 			}

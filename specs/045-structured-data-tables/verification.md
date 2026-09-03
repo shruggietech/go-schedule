@@ -40,11 +40,23 @@
   'Test(Activity|MergeLogEntries|UI_Activity)' -count=1` passed in 0.197s.
 - Combined S045 focused selection passed in 0.352s.
 
+## First-Round Review
+
+- Codex identified that equal-time queued and completed Schedule records could
+  exchange ordinal-derived identities when backend order changed.
+- Resolution: Calendar past occurrences now expose their existing stored run ID
+  as optional `run_id`; Schedule identities use it before the computed-future
+  task/time fallback. The API request, storage, scheduling, and execution models
+  remain unchanged.
+- Regression evidence covers distinct equal-time run IDs across reversed query
+  order and verifies the server returns the exact stored run ID. Focused normal
+  and race selections passed for both `internal/api/server` and `gui`.
+
 ## Verification Gates
 
 - `gofmt` on all changed Go files: PASS.
 - `go test ./gui -count=1`: PASS (`ok`, 72.043s before the final Unicode
-  normalization test; final canonical GUI rerun passed in 79.986s afterward).
+  normalization test; post-review canonical GUI rerun passed in 85.413s).
 - Deterministic S045 race selection covering layout, mapping, normalization,
   identity, virtualization, summary, and contrast: PASS (`ok`, 1.338s).
 - A broader headless GUI race diagnostic reproduced Fyne 2.8.1's font-cache
@@ -80,8 +92,9 @@
 | FR-028, SC-007..SC-008 | Focused, full GUI, race, repository, and canonical gates pass. The exact native Windows dark/light matrix is documented in `test/windows/README.md` and remains a release-candidate gate. |
 
 All 28 functional requirements and all 8 measurable outcomes have repository
-delivery evidence. No daemon, API, persistence, command-entry (#110), or richer
-failure-diagnostic (#102) scope was introduced.
+delivery evidence. No daemon behavior, persistence, command-entry (#110), or
+richer failure-diagnostic (#102) scope was introduced. The one additive API
+response field is the minimal source identity required by FR-011 and SC-006.
 
 ## Native Windows Qualification Boundary
 

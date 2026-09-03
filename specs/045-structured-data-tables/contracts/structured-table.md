@@ -48,6 +48,10 @@ When | Task | Event | Outcome
 | Unknown | COMPLETED | normalized source value | ? | Neutral |
 
 - Existing ascending chronological order, live refresh, range selection, and Calendar switching remain unchanged.
+- Past rows use the Calendar response's optional stored run ID as their stable
+  identity. Equal-time run records must not depend on query order or row ordinal.
+- Future computed rows, which do not yet have a run, use task identity plus
+  scheduled timestamp as their deterministic fallback.
 - Selecting a list row exposes all complete values in a read-only disclosure.
 
 ## Activity contract

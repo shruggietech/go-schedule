@@ -26,7 +26,8 @@ func TestCalendar_PastAndScheduled(t *testing.T) {
 	_ = json.Unmarshal(create.Body.Bytes(), &resp)
 
 	past := time.Now().UTC().Add(-2 * time.Hour)
-	_ = s.store.CreateRun(&domain.Run{TaskID: resp.Task.ID, ScheduledFor: past, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerSchedule})
+	pastRun := &domain.Run{TaskID: resp.Task.ID, ScheduledFor: past, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerSchedule}
+	_ = s.store.CreateRun(pastRun)
 
 	from := time.Now().UTC().Add(-24 * time.Hour).Format(time.RFC3339)
 	to := time.Now().UTC().Add(24 * time.Hour).Format(time.RFC3339)
@@ -40,7 +41,7 @@ func TestCalendar_PastAndScheduled(t *testing.T) {
 	}
 	var hasPast, hasScheduled bool
 	for _, o := range cal.Occurrences {
-		if o.Kind == "past" && o.Outcome == domain.OutcomeSuccess {
+		if o.Kind == "past" && o.Outcome == domain.OutcomeSuccess && o.RunID == pastRun.ID {
 			hasPast = true
 		}
 		if o.Kind == "scheduled" {

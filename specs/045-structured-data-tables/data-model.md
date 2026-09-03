@@ -1,6 +1,8 @@
 # Data Model: Structured Desktop Data Tables
 
-S045 introduces presentation models only. No database, API, event, or persisted preference schema changes.
+S045 introduces presentation models and exposes the existing stored run ID as
+an optional Calendar occurrence response field. No database, event, request, or
+persisted preference schema changes are required.
 
 ## Structured Column
 
@@ -50,7 +52,7 @@ Identity is the existing task ID. Selection, toolbar actions, and double activat
 
 ## Schedule Row
 
-Source: existing `server.Occurrence`.
+Source: `server.Occurrence`, extended with optional `run_id` for past records.
 
 | Column | Display normalization | Semantic role |
 | --- | --- | --- |
@@ -59,7 +61,7 @@ Source: existing `server.Occurrence`.
 | Event | `SCHEDULED` for future or `COMPLETED` for past | Informational or neutral |
 | Outcome | Glyph plus normalized outcome or `— Not available` | Success, error, warning, informational, disabled, or neutral |
 
-Known outcomes: `SUCCESS`, `FAILURE`, `SKIPPED`, `CAUGHT UP`, `QUEUED`. Unknown values are uppercased with underscores changed to spaces and retain the neutral glyph `?`. Occurrence identity combines timestamp, task identity/name, kind, normalized outcome, and duplicate ordinal so visually identical records cannot activate a neighboring row.
+Known outcomes: `SUCCESS`, `FAILURE`, `SKIPPED`, `CAUGHT UP`, `QUEUED`. Unknown values are uppercased with underscores changed to spaces and retain the neutral glyph `?`. Past occurrence identity uses the stored run ID so equal-time queued and completed records remain distinct across query-order changes. Computed future occurrences fall back to task identity plus timestamp because no run exists yet; a duplicate ordinal only disambiguates repeated representations of the same source identity.
 
 ## Activity Row
 

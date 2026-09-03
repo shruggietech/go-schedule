@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and restrained semantic roles; Activity aligns source and summary beneath
   uppercase INFO, WARNING, and ERROR labels. Alternating surfaces, ellipsis with
   complete-value disclosure, documented fallbacks, and proportional columns
-  keep all three views usable without horizontal scrolling.
+  keep all three views usable without horizontal scrolling. Calendar responses
+  include the existing run ID for past occurrences so equal-time history rows
+  remain distinct even when backend ordering changes.
 
 - **Desktop interaction and appearance are now consistently readable and
   responsive (Refs #101, #104, #105, #106, #109, #111).** S044 makes System the

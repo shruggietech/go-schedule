@@ -81,6 +81,20 @@ func TestScheduleRowModelsPreserveUnicodeFallbacksAndDuplicateIdentity(t *testin
 	}
 }
 
+func TestScheduleRowModelsUseRunIDForEqualTimeRecords(t *testing.T) {
+	at := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	queued := server.Occurrence{TaskID: "task", RunID: "run-queued", Time: at, Kind: "past", Outcome: domain.OutcomeQueued}
+	completed := server.Occurrence{TaskID: "task", RunID: "run-completed", Time: at, Kind: "past", Outcome: domain.OutcomeSuccess}
+	first := scheduleRowModels([]server.Occurrence{queued, completed})
+	reordered := scheduleRowModels([]server.Occurrence{completed, queued})
+	if first[0].Identity == first[1].Identity {
+		t.Fatal("equal-time runs share an identity")
+	}
+	if first[0].Identity != reordered[1].Identity || first[1].Identity != reordered[0].Identity {
+		t.Fatalf("run identities changed with equal-time order: %q/%q vs %q/%q", first[0].Identity, first[1].Identity, reordered[0].Identity, reordered[1].Identity)
+	}
+}
+
 func TestScheduleTableHasFixedHeadersAndDisclosure(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
 	if ui.scheduleTable == nil || ui.scheduleTable.header == nil {

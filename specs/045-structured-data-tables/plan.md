@@ -6,7 +6,7 @@
 
 ## Summary
 
-Replace the concatenated text rows in Tasks, Schedule List, and Activity with one shared structured-list presentation: a fixed header outside a virtualized vertical row list, responsive columns that always consume the available width, ellipsized cells with full-value disclosure, stable identity-based selection, subtle alternating row surfaces, and normalized semantic labels/glyphs. Reuse Fyne's mature `widget.List` row selection, hover, focus, virtualization, and keyboard behavior instead of `widget.Table`, whose interaction model highlights individual cells and permits horizontal scrolling. No daemon, API, persistence, dependency, or scheduling contract changes are required.
+Replace the concatenated text rows in Tasks, Schedule List, and Activity with one shared structured-list presentation: a fixed header outside a virtualized vertical row list, responsive columns that always consume the available width, ellipsized cells with full-value disclosure, stable identity-based selection, subtle alternating row surfaces, and normalized semantic labels/glyphs. Reuse Fyne's mature `widget.List` row selection, hover, focus, virtualization, and keyboard behavior instead of `widget.Table`, whose interaction model highlights individual cells and permits horizontal scrolling. No daemon, persistence, dependency, or scheduling contract changes are required. First-round review proved that the existing Calendar response omitted the stored run identity needed to distinguish equal-time history rows, so S045 adds that existing ID as one optional response field.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Replace the concatenated text rows in Tasks, Schedule List, and Activity with on
 
 **Performance Goals**: Preserve virtualized row creation; mapping and refresh remain O(rows × visible columns), with 100-row headless build/refresh completing within 100 ms on the local verifier
 
-**Constraints**: No horizontal scrolling; fixed headers; 4.5:1 normal-text and 3:1 essential-indicator contrast; stable identity across refresh; no new API data; no shell/process behavior changes; existing selection and activation semantics preserved
+**Constraints**: No horizontal scrolling; fixed headers; 4.5:1 normal-text and 3:1 essential-indicator contrast; stable identity across refresh; only the existing run ID may be added to Calendar response data; no shell/process behavior changes; existing selection and activation semantics preserved
 
 **Scale/Scope**: Three desktop views, five task columns, four Schedule columns, four Activity columns, at least 100 rows per view, dark/light/follow-system appearances, and all five supported interface font families
 
@@ -41,7 +41,7 @@ Replace the concatenated text rows in Tasks, Schedule List, and Activity with on
 | V. Autonomous Build-Phase Execution | S045 is issue-backed (#112, #113), uses a review branch, runs every spec-kit phase, and will publish only under explicit user authorization | PASS: user explicitly authorized push/PR and up to two review rounds; final merge remains with the maintainer |
 | Go/toolchain and dependency constraint | Existing Go/Fyne stack is sufficient | PASS: no module or toolchain change |
 | Supported platforms | Pure-Go GUI widget construction remains headless-testable and platform-neutral | PASS: no platform-specific implementation; Windows qualification steps documented |
-| Backward compatibility | No persisted or external schema changes | PASS: all source data and backend contracts are unchanged |
+| Backward compatibility | No persisted schema changes; additive response data remains optional | PASS: Calendar's optional `run_id` exposes an existing value without changing requests or older-client decoding |
 | Security | Presentation only; no secrets, execution, transport, or authorization changes | PASS: full values remain local and are exposed only through existing view interactions |
 
 ### Workflow Tooling Deviation
