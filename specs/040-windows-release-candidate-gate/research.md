@@ -73,3 +73,4 @@
 - Current GUI startup requests 1280 by 800 logical content and caps each dimension at 90 percent of a selected work area. A mixed-monitor risk exists because sizing selects the pointer monitor while pre-show centering may select the primary monitor; native evidence must determine whether it is real.
 - Connection incidents are deduplicated in one in-frame card in application state, but native proof must observe Fyne overlays and top-level windows for two minutes per induced condition.
 - The repository has no self-hosted runner or release environment and main is not branch-protected. Workflow controls govern the supported release path but cannot prevent a repository administrator from bypassing GitHub manually.
+- GitHub may increment a workflow run's current attempt when only failed jobs are rerun. Candidate origin therefore binds the manifest's recorded attempt to its successful Windows staging job instead of requiring it to equal the overall run's latest attempt.

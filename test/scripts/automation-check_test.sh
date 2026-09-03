@@ -191,6 +191,8 @@ jobs:
            go run ./scripts/windows-release-gate verify-candidate
            go run ./scripts/windows-release-gate verify-bundle \
              --candidate-manifest "$MANIFEST"
+          gh api "repos/x/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}/jobs?per_page=100"
+          Build & stage GUI (windows-latest)
           LC_ALL=C sha256sum * > SHA256SUMS.txt
           sha256sum -c SHA256SUMS.txt
            gh release upload "$RELEASE_TAG" SHA256SUMS.txt
@@ -401,6 +403,15 @@ run_automation_cases() {
     "$no_asset_allowlist/.github/workflows/promote-release.yml"
   run_expect_fail no-asset-allowlist 'exact draft asset allowlist' \
     sh "$CHECK" "$no_asset_allowlist"
+
+  no_attempt_job="$tmp/no-attempt-job"
+  cp -R "$good" "$no_attempt_job"
+  sed '/attempts\/.*\/jobs?per_page=100/d' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$no_attempt_job/.github/workflows/promote-release.yml"
+  run_expect_fail no-attempt-job \
+    'candidate-producing workflow-attempt job validation' \
+    sh "$CHECK" "$no_attempt_job"
 
   no_tag_recheck="$tmp/no-tag-recheck"
   cp -R "$good" "$no_tag_recheck"

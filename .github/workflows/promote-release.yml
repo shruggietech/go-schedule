@@ -112,11 +112,22 @@ jobs:
           test "$(printf '%s' "$RUN_JSON" | jq -r '.conclusion')" = success
           test "$(printf '%s' "$RUN_JSON" | jq -r '.event')" = push
           test "$(printf '%s' "$RUN_JSON" | jq -r '.head_sha')" = "$TAG_COMMIT"
-          test "$(printf '%s' "$RUN_JSON" | jq -r '.run_attempt')" = "$RUN_ATTEMPT"
           test "$(printf '%s' "$RUN_JSON" | jq -r '.path')" = \
             '.github/workflows/release.yml'
           test "$(printf '%s' "$RUN_JSON" | jq -r '.name')" = "$RUN_WORKFLOW"
           test "$RUN_WORKFLOW" = Release
+
+          ATTEMPT_JOBS=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}/jobs?per_page=100")
+          WINDOWS_JOB_COUNT=$(printf '%s' "$ATTEMPT_JOBS" | jq \
+            '[.jobs[] | select(
+              .name == "Build & stage GUI (windows-latest)" and
+              .status == "completed" and .conclusion == "success"
+            )] | length')
+          test "$WINDOWS_JOB_COUNT" -eq 1 || {
+            echo "::error::Candidate manifest attempt does not identify one successful Windows staging job."
+            exit 1
+          }
 
           go run ./scripts/windows-release-gate verify-candidate \
             --candidate-manifest "$MANIFEST" \

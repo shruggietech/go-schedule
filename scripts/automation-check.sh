@@ -362,6 +362,10 @@ else
     'server-side final asset verification'
   require_promotion_text 'gh release upload' 'final checksum upload'
   require_promotion_text 'expected-assets.txt' 'exact draft asset allowlist'
+  require_promotion_text '/attempts/${RUN_ATTEMPT}/jobs?per_page=100' \
+    'candidate-producing workflow-attempt job validation'
+  require_promotion_text 'Build & stage GUI (windows-latest)' \
+    'exact Windows candidate-producing job identity'
   require_promotion_text 'git ls-remote origin' 'last-moment tag identity check'
   require_promotion_text '-F draft=false' 'final draft promotion'
   if grep -Eq '(^|[[:space:]])(go|wix)[[:space:]]+build([[:space:]]|$)' \

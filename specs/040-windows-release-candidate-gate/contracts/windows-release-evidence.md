@@ -78,7 +78,7 @@ All launched console applications use hidden, redirected, noninteractive child p
 - Promotion requires `contents: write` and `actions: read`; validation jobs otherwise use least privilege.
 - It retrieves the existing draft release and rejects missing, already-public, wrong-target, or mismatched-tag state.
 - It rejects missing or unrecognized assets, then downloads the exact allowlisted draft asset set.
-- It validates the tag target, independently checks the candidate manifest, validates evidence, ProductCode, version, size, SHA-256, repository, workflow run, and attempt, then rechecks the remote tag immediately before publication.
+- It validates the tag target, independently checks the candidate manifest, validates evidence, ProductCode, version, size, SHA-256, repository, workflow run, and the successful Windows staging job from the manifest's recorded attempt, then rechecks the remote tag immediately before publication. The workflow's latest attempt may be newer when GitHub reruns only failed jobs.
 - It generates `SHA256SUMS.txt` after all final assets exist, verifies the file, uploads it, and only then changes the release from draft to public.
 - A failure at any point leaves the release draft. The workflow does not rebuild or substitute the MSI.
 - A second invocation after publication fails safely instead of mutating the public release.

@@ -55,6 +55,8 @@ func TestPromotionOrdersExactGateChecksumsAndPublication(t *testing.T) {
 		"--candidate-manifest \"$MANIFEST\"",
 		".github/workflows/release.yml",
 		".conclusion')\" = success",
+		"/attempts/${RUN_ATTEMPT}/jobs?per_page=100",
+		"Build & stage GUI (windows-latest)",
 	} {
 		if !strings.Contains(workflow, required) {
 			t.Fatalf("promotion missing %q", required)
