@@ -35,6 +35,7 @@
 - `go test ./... -count=1` passed, including the complete GUI package (103.368s) and integration package (65.142s).
 - The canonical `scripts/verify.sh all` run passed all eight gates in order: format, vet, lint (zero issues), race, GUI, coverage, docs, and automation. Core coverage remained above policy: engine 86.4%, schedule 89.2%, timezone 91.3%, store 84.1%, catchup 88.9%, and logbus 91.1%.
 - The first canonical invocation revealed three lint findings in new code (one unchecked cache call and two `WriteString(fmt.Sprintf(...))` uses). They were corrected before the clean all-gates pass; no lint suppressions were added.
+- The second and final external Codex review found two valid edge cases. The update contract now distinguishes omitted arguments from an explicit empty list so GUI edits can clear stale arguments, and exact preview rendering now escapes non-ASCII Unicode space separators. Focused regressions and the full canonical gates passed after both corrections.
 
 ## Requirements Audit
 

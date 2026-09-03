@@ -108,8 +108,8 @@ func TestFormatRejectsProcessInvalidInvocation(t *testing.T) {
 }
 
 func TestQuoteDisplayMakesBoundariesVisible(t *testing.T) {
-	want := `"empty=\"\" tab=\"a\tb\" line=\"a\r\nb\" slash=\"C:\\x\""`
-	got := QuoteDisplay("empty=\"\" tab=\"a\tb\" line=\"a\r\nb\" slash=\"C:\\x\"")
+	want := `"empty=\"\" tab=\"a\tb\" line=\"a\r\nb\" slash=\"C:\\x\" spaces=\u00a0\u2003"`
+	got := QuoteDisplay("empty=\"\" tab=\"a\tb\" line=\"a\r\nb\" slash=\"C:\\x\" spaces=\u00a0\u2003")
 	if got != want {
 		t.Fatalf("QuoteDisplay = %s, want %s", got, want)
 	}

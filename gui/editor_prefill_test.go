@@ -101,6 +101,21 @@ func TestEditor_ExistingCommandRoundTripsWithoutLoss(t *testing.T) {
 	}
 }
 
+func TestEditor_ExistingCommandCanClearAllArguments(t *testing.T) {
+	detail := recurringDetail("weekdays at 09:00")
+	detail.Task.Command = "program"
+	detail.Task.Args = []string{"stale", "target"}
+
+	e, fb := newTestEditorDetail(t, detail)
+	e.commandLine.SetText("program")
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	_, _, req := fb.lastUpdateCall()
+	if req.Args == nil || len(req.Args) != 0 {
+		t.Fatalf("cleared update args = %#v, want explicit non-nil empty slice", req.Args)
+	}
+}
+
 func TestEditor_PrefillsStartupSchedule(t *testing.T) {
 	detail := recurringDetail("@reboot")
 	detail.Schedule.Kind = domain.ScheduleEvent

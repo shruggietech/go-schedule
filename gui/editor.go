@@ -653,8 +653,11 @@ func (e *taskEditor) submit() { e.app.submitTask(e.existing, e.buildForm()) }
 // interval anchor to the schedule phrase.
 func (e *taskEditor) buildForm() taskForm {
 	invocation, _ := e.invocation()
+	// Keep zero arguments distinct from an omitted update. TaskUpdateRequest
+	// serializes a non-nil empty slice as [], which explicitly clears stale args.
+	args := append([]string{}, invocation.Args...)
 	f := taskForm{
-		name: e.name.Text, command: invocation.Program, args: invocation.Args,
+		name: e.name.Text, command: invocation.Program, args: args,
 		tz: e.tzName(), mode: e.mode.Selected,
 		overlap:     string(overlapValue(e.overlap.Selected)),
 		catchup:     string(catchupValue(e.catchup.Selected)),

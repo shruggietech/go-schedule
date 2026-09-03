@@ -155,9 +155,28 @@ func Format(program string, args []string) (string, error) {
 	return strings.Join(parts, " "), nil
 }
 
-// QuoteDisplay renders an exact value for the launch preview. It is display
-// only and is never fed back to Parse or a process launcher.
-func QuoteDisplay(value string) string { return strconv.QuoteToGraphic(value) }
+// QuoteDisplay renders an exact value for the launch preview. Unicode space
+// separators are escaped even though they are graphic, because otherwise an
+// NBSP or em-space can look identical to ordinary ASCII spacing. This text is
+// display only and is never fed back to Parse or a process launcher.
+func QuoteDisplay(value string) string {
+	var out strings.Builder
+	out.WriteByte('"')
+	for _, r := range value {
+		if r > unicode.MaxASCII && unicode.IsSpace(r) {
+			if r <= 0xffff {
+				fmt.Fprintf(&out, `\u%04x`, r)
+			} else {
+				fmt.Fprintf(&out, `\U%08x`, r)
+			}
+			continue
+		}
+		quoted := strconv.QuoteToGraphic(string(r))
+		out.WriteString(quoted[1 : len(quoted)-1])
+	}
+	out.WriteByte('"')
+	return out.String()
+}
 
 func formatWord(value string) string {
 	if value == "" {

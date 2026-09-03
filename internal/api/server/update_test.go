@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
@@ -51,6 +52,35 @@ func newGroupFor(t *testing.T, s *Server, name string) domain.Group {
 }
 
 func ptr(s string) *string { return &s }
+
+func TestUpdateTask_ArgsTriState(t *testing.T) {
+	s := newTestServer(t)
+	task := newTaskFor(t, s, TaskCreateRequest{
+		Name: "args", Command: "/bin/echo", Args: []string{"old", "values"}, Schedule: "every day at 09:00", Timezone: "UTC",
+	})
+	path := "/v1/tasks/" + task.Task.ID
+
+	if rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Name: "renamed"}); rec.Code != http.StatusOK {
+		t.Fatalf("retain: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Args; !reflect.DeepEqual(got, []string{"old", "values"}) {
+		t.Fatalf("omitted args = %#v, want original values", got)
+	}
+
+	if rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Args: []string{"replacement"}}); rec.Code != http.StatusOK {
+		t.Fatalf("replace: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Args; !reflect.DeepEqual(got, []string{"replacement"}) {
+		t.Fatalf("replaced args = %#v", got)
+	}
+
+	if rec := doJSON(t, s, http.MethodPatch, path, TaskUpdateRequest{Args: []string{}}); rec.Code != http.StatusOK {
+		t.Fatalf("clear: status %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Args; len(got) != 0 {
+		t.Fatalf("cleared args = %#v, want none", got)
+	}
+}
 
 func TestUpdateTask_StdinTriState(t *testing.T) {
 	s := newTestServer(t)
