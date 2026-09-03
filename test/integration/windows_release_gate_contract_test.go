@@ -101,6 +101,19 @@ func TestAttendedCollectorUsesCanonicalScenariosAndHiddenChildren(t *testing.T) 
 			t.Fatalf("attended collector must template %q for both reinstall outcomes", metric)
 		}
 	}
+	for _, required := range []string{
+		"New-ScenarioTemplate",
+		"$scenarioId.StartsWith('desktop.')",
+		"minimum_text_contrast",
+		"touchpad_unavailable_reason",
+		"schedule_row_count",
+		"activity_row_count",
+		"horizontal_scrollbar_present",
+	} {
+		if !strings.Contains(script, required) {
+			t.Fatalf("S047 collector template contract missing %q", required)
+		}
+	}
 }
 
 func TestMSIInspectorCanWriteExactCandidateManifest(t *testing.T) {

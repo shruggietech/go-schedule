@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Windows release promotion now requires complete desktop qualification
+  evidence (Refs #96, #98, #101, #104, #105, #106, #109, #111, #112,
+  #113).** S047 expands the existing exact-candidate gate from 36 to 43 fixed
+  scenarios. Seven native desktop observations cover standard and scaled
+  appearance, control interaction states, navigation and Options, wheel and
+  touchpad input, Tasks, and Schedule/Activity tables. The attended collector
+  creates complete fail-closed templates, and the validator binds every result
+  to an intended-user installed context and image evidence.
+
 - **Task command entry now accepts one familiar, portable command line (Closes
   #110).** The roomy editor parses one program and ordered arguments with the
   same documented quotation rules on Windows, macOS, and Linux, while direct
@@ -135,6 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-03 - Close desktop release work by scenario evidence, not slice
+  association.** S042, S044, S045, and S046 supplied implementation and
+  headless contracts, but those facts do not prove Windows rasterization,
+  physical input, scaling, or installed behavior. S047 makes seven grouped
+  native observations mandatory in the same exact-candidate promotion gate as
+  setup, removal, access, error, window, and task execution. Each linked issue
+  remains independently open until its own criteria and evidence are reviewed.
 
 - **2026-09-03 - Use fixed-header virtualized rows for structured desktop data.**
   Fyne's cell-oriented Table selects and highlights individual cells and permits
