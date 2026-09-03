@@ -32,6 +32,16 @@ var (
 	cAnchor   = color.NRGBA{R: 0x58, G: 0xA6, B: 0xFF, A: 0xFF} // Anchor Blue — primary/focus/links
 	cHold     = color.NRGBA{R: 0xF2, G: 0xB8, B: 0x4B, A: 0xFF} // Hold Amber — warning (rare)
 	cStop     = color.NRGBA{R: 0xE0, G: 0x5F, B: 0x5F, A: 0xFF} // Stop Red — error only
+
+	// Light surfaces retain the same semantic accents while supplying sufficient
+	// contrast for body text, selection, inputs, and focus.
+	cPaper       = color.NRGBA{R: 0xF7, G: 0xFA, B: 0xFB, A: 0xFF}
+	cLightPanel  = color.NRGBA{R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}
+	cLightRaised = color.NRGBA{R: 0xE7, G: 0xF0, B: 0xF4, A: 0xFF}
+	cLightLine   = color.NRGBA{R: 0xB9, G: 0xC9, B: 0xD0, A: 0xFF}
+	cInk         = color.NRGBA{R: 0x0D, G: 0x17, B: 0x1C, A: 0xFF}
+	cLightMuted  = color.NRGBA{R: 0x4E, G: 0x63, B: 0x6C, A: 0xFF}
+	cLightAnchor = color.NRGBA{R: 0x0B, G: 0x62, B: 0xB5, A: 0xFF}
 )
 
 // Brand geometry: small radii, calm technical surfaces.
@@ -61,31 +71,46 @@ var (
 	resDisplayBold = fyne.NewStaticResource("SpaceGrotesk-Bold.ttf", fontDisplayBold)
 )
 
-// brandTheme is the go-schedule Fyne theme. It is dark-first: it ignores the
-// requested variant and always returns the dark palette, so the app presents
-// the brand consistently regardless of the OS light/dark setting.
-type brandTheme struct{ fyne.Theme }
+// brandTheme is the go-schedule Fyne theme configured from bounded appearance
+// preferences. It remains immutable after construction so a settings refresh
+// cannot observe a partially changed palette or font.
+type brandTheme struct {
+	fyne.Theme
+	appearance appearancePreferences
+}
 
 // newBrandTheme returns the go-schedule brand theme.
-func newBrandTheme() fyne.Theme { return &brandTheme{Theme: theme.DefaultTheme()} }
+func newBrandTheme() fyne.Theme { return newBrandThemeFor(defaultAppearancePreferences()) }
+
+func newBrandThemeFor(appearance appearancePreferences) *brandTheme {
+	return &brandTheme{Theme: theme.DefaultTheme(), appearance: appearance.normalized()}
+}
 
 // applyBrandTheme installs the go-schedule theme unless this app already uses
 // it. Reapplying a Fyne theme refreshes every window and clears shared font and
 // theme caches, which is unnecessary for repeated UI construction and can
 // invalidate text rendering that is already in progress.
-func applyBrandTheme(settings fyne.Settings) {
-	if _, ok := settings.Theme().(*brandTheme); ok {
+func applyBrandTheme(settings fyne.Settings, choices ...appearancePreferences) {
+	appearance := defaultAppearancePreferences()
+	if len(choices) > 0 {
+		appearance = choices[0].normalized()
+	}
+	if installed, ok := settings.Theme().(*brandTheme); ok && installed.appearance == appearance {
 		return
 	}
-	settings.SetTheme(newBrandTheme())
+	settings.SetTheme(newBrandThemeFor(appearance))
 }
 
 // withAlpha returns c with its alpha replaced.
 func withAlpha(c color.NRGBA, a uint8) color.NRGBA { c.A = a; return c }
 
-// Color maps Fyne's semantic color roles onto the brand palette. The variant is
-// ignored on purpose (dark-first, see the type doc).
-func (t *brandTheme) Color(n fyne.ThemeColorName, _ fyne.ThemeVariant) color.Color {
+// Color maps Fyne's semantic color roles onto the selected palette. Explicit
+// modes force their variant; Follow system honors the driver's current value.
+func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) color.Color {
+	variant, _ := t.appearance.Mode.themeVariant(requested)
+	if variant == theme.VariantLight {
+		return t.lightColor(n, variant)
+	}
 	switch n {
 	case theme.ColorNameBackground:
 		return cNight
@@ -127,20 +152,65 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, _ fyne.ThemeVariant) color.Col
 	default:
 		// Anything unmapped uses the default dark theme so new Fyne color roles
 		// still resolve sensibly.
-		return t.Theme.Color(n, theme.VariantDark)
+		return t.Theme.Color(n, variant)
+	}
+}
+
+func (t *brandTheme) lightColor(n fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	switch n {
+	case theme.ColorNameBackground, theme.ColorNameScrollBarBackground:
+		return cPaper
+	case theme.ColorNameForeground:
+		return cInk
+	case theme.ColorNamePrimary, theme.ColorNameFocus, theme.ColorNameHyperlink:
+		return cLightAnchor
+	case theme.ColorNameButton, theme.ColorNameInputBackground,
+		theme.ColorNameMenuBackground, theme.ColorNameOverlayBackground,
+		theme.ColorNameHeaderBackground:
+		return cLightPanel
+	case theme.ColorNameSelection:
+		return withAlpha(cLightAnchor, 0x38)
+	case theme.ColorNameHover, theme.ColorNamePressed, theme.ColorNameDisabledButton:
+		return cLightRaised
+	case theme.ColorNameInputBorder, theme.ColorNameSeparator:
+		return cLightLine
+	case theme.ColorNameScrollBar:
+		return withAlpha(cLightLine, 0xD0)
+	case theme.ColorNamePlaceHolder, theme.ColorNameDisabled:
+		return cLightMuted
+	case theme.ColorNameShadow:
+		return color.NRGBA{A: 0x30}
+	case theme.ColorNameSuccess:
+		return color.NRGBA{R: 0x0C, G: 0x78, B: 0x5D, A: 0xFF}
+	case theme.ColorNameWarning:
+		return color.NRGBA{R: 0x8A, G: 0x58, B: 0x00, A: 0xFF}
+	case theme.ColorNameError:
+		return color.NRGBA{R: 0xB1, G: 0x2B, B: 0x34, A: 0xFF}
+	case theme.ColorNameForegroundOnPrimary, theme.ColorNameForegroundOnSuccess,
+		theme.ColorNameForegroundOnWarning, theme.ColorNameForegroundOnError:
+		return cLightPanel
+	default:
+		return t.Theme.Color(n, variant)
 	}
 }
 
 // Font selects a brand face per text style. The branch order matches Fyne's own
 // default selection (Monospace, then Bold, then Symbol, then regular).
 func (t *brandTheme) Font(s fyne.TextStyle) fyne.Resource {
+	if s.Symbol {
+		return t.Theme.Font(s)
+	}
+	switch t.appearance.Font {
+	case fontSystem:
+		return t.Theme.Font(s)
+	case fontMonospace:
+		return resMono
+	}
 	switch {
 	case s.Monospace:
 		return resMono
 	case s.Bold:
 		return resDisplayBold
-	case s.Symbol:
-		return t.Theme.Font(s) // keep the default symbol font
 	default:
 		return resBody
 	}

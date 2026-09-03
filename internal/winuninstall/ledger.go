@@ -8,6 +8,14 @@ import (
 	"path/filepath"
 )
 
+const cleanupResultFolder = `ShruggieTech\go-schedule-uninstall\b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34`
+
+// CleanupResultPath returns the fixed application-owned maintenance evidence
+// path beneath a resolved ProgramData root. It performs no filesystem access.
+func CleanupResultPath(programData string) string {
+	return filepath.Join(programData, cleanupResultFolder, "cleanup-result.json")
+}
+
 func writeLedger(path string, result Result) (resultErr error) {
 	data, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {

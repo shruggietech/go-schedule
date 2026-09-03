@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The desktop GUI now has an Options view and an owned navigation rail (Refs
+  #104, #105, #106).** Users can switch among Dark, Light, and Follow system
+  modes plus Brand, System, and Monospace fonts, restore the Dark and Brand
+  defaults, and inspect or copy a read-only inventory of machine, per-user,
+  runtime, installation, and Windows maintenance paths. The wider rail keeps
+  Options above Info and a separate one-shot Exit command at the bottom-right.
+
+- **Task rows now open Edit on double-click (Refs #103).** Single-click and
+  keyboard selection remain available, while stable task identities survive
+  list reorder, stale rows fail closed, detail-fetch fallback is retained, and
+  one editor guard prevents stacked dialogs.
+
 - **Windows releases now have an exact-candidate attended gate (Refs #94,
   #98, #96).** Version tags stage draft assets and a manifest instead of
   publishing immediately. A shared validator binds native Windows 11 evidence
@@ -32,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   evidence for incomplete cleanup. Shared `goschedadmin` state is preserved.
 
 ### Fixed
+
+- **Info version and attribution labels now use the unwrapped body-text layout
+  path (Refs #101).** Their text, centered alignment, and dynamic build version
+  remain unchanged. Headless tests pin the construction invariant; #94 retains
+  exact-candidate Windows proof at standard and scaled DPI.
 
 - **Windows Settings can no longer bypass the guided preserve-or-wipe
   uninstall flow (Refs #98).** The MSI registers maintenance as its supported
@@ -74,6 +91,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-03 - Own desktop navigation and bound appearance choices.** Fyne's
+  leading AppTabs cannot provide both controlled rail spacing and a bottom
+  command without treating Exit as selectable content. S042 replaces that shell
+  with seven ordinary destinations and one separate command. Appearance remains
+  a small validated per-user preference over bundled or framework fonts; no
+  arbitrary font parser, filesystem scan, path mutation, or daemon setting is
+  introduced. Native text sharpness and scaled-DPI placement remain release
+  candidate observations under #94.
 
 - **2026-09-02 - Route attended Windows removal through MSI maintenance.** The
   system's direct MSI Remove entry can use reduced UI and skip package-authored

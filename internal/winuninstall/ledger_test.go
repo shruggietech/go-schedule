@@ -8,6 +8,14 @@ import (
 	"testing"
 )
 
+func TestCleanupResultPath(t *testing.T) {
+	base := filepath.Join(t.TempDir(), "ProgramData")
+	want := filepath.Join(base, "ShruggieTech", "go-schedule-uninstall", "b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34", "cleanup-result.json")
+	if got := CleanupResultPath(base); got != want {
+		t.Fatalf("CleanupResultPath() = %q, want %q", got, want)
+	}
+}
+
 func TestWriteLedgerIsUTF8WithoutBOMAndReplacesAtomically(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "cleanup-result.json")
 	first := Result{Schema: resultSchema, State: StateRunning}

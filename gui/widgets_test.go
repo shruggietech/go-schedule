@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -18,6 +19,39 @@ func TestCursorButton_PointerCursorAndTap(t *testing.T) {
 	b.OnTapped()
 	if !tapped {
 		t.Fatal("tap handler not invoked")
+	}
+}
+
+func TestTaskRowDoubleActivationUsesBoundIdentity(t *testing.T) {
+	var selected []string
+	var activated []string
+	row := newTaskRow(
+		func(id string) { selected = append(selected, id) },
+		func(id string) { activated = append(activated, id) },
+	)
+	row.bind("task-a", "Task A")
+	if row.Text != "Task A" {
+		t.Fatalf("row text = %q", row.Text)
+	}
+	test.Tap(row)
+	if len(selected) != 1 || selected[0] != "task-a" || len(activated) != 0 {
+		t.Fatalf("single tap selected=%v activated=%v", selected, activated)
+	}
+	test.DoubleTap(row)
+	row.bind("task-b", "Task B")
+	test.DoubleTap(row)
+	if len(activated) != 2 || activated[0] != "task-a" || activated[1] != "task-b" {
+		t.Fatalf("activated IDs = %v", activated)
+	}
+}
+
+func TestTaskRowIgnoresUnboundIdentity(t *testing.T) {
+	selected, activated := false, false
+	row := newTaskRow(func(string) { selected = true }, func(string) { activated = true })
+	test.Tap(row)
+	test.DoubleTap(row)
+	if selected || activated {
+		t.Fatal("unbound row selected or activated a task")
 	}
 }
 

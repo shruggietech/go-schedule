@@ -63,8 +63,8 @@ func TestUI_ActivityTabBuilds(t *testing.T) {
 		logs:   []domain.LogRecord{{ID: "l1", Severity: domain.SeverityError, Message: "boom"}},
 		alerts: []domain.Alert{{ID: "a1", Severity: domain.SeverityWarning, Kind: domain.AlertRunFailed, Message: "warn"}},
 	})
-	if ui.logsTab == nil || ui.logsTab.Text != "Activity" {
-		t.Fatalf("activity tab missing or mislabeled: %+v", ui.logsTab)
+	if ui.navigation.contentFor(navigationActivity) == nil || ui.navigation.label(navigationActivity) != "Activity" {
+		t.Fatal("Activity destination missing or mislabeled")
 	}
 }
 
@@ -100,14 +100,14 @@ func TestUI_ActivityDiagnosticsRefreshesExactPath(t *testing.T) {
 	for _, refresh := range ui.refreshers {
 		refresh()
 	}
-	if got := findLabelText(ui.logsTab.Content, "Full daemon log:"); !strings.Contains(got, want) {
+	if got := findLabelText(ui.navigation.contentFor(navigationActivity), "Full daemon log:"); !strings.Contains(got, want) {
 		t.Fatalf("Activity diagnostics = %q, want exact path %q", got, want)
 	}
 }
 
 func TestUI_ActivityDiagnosticsInitiallyUnavailable(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
-	if got := findLabelText(ui.logsTab.Content, "Full daemon log:"); !strings.Contains(got, "unavailable until daemon responds") {
+	if got := findLabelText(ui.navigation.contentFor(navigationActivity), "Full daemon log:"); !strings.Contains(got, "unavailable until daemon responds") {
 		t.Fatalf("initial Activity diagnostics = %q", got)
 	}
 }
@@ -164,7 +164,7 @@ func TestUI_ActivityClearControlExplainsNonDestructiveBehavior(t *testing.T) {
 			}
 		}
 	}
-	walk(ui.logsTab.Content)
+	walk(ui.navigation.contentFor(navigationActivity))
 
 	if clearButton == nil {
 		t.Fatal("Activity view has no Clear View control")

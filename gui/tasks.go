@@ -47,17 +47,40 @@ func (a *App) taskDetailFor(t domain.Task) *server.TaskResponse {
 
 func (a *App) buildTasksTab() fyne.CanvasObject {
 	var tasks []domain.Task
-	selected := -1
+	selectedID := ""
+	var list *widget.List
 
-	list := widget.NewList(
+	list = widget.NewList(
 		func() int { return len(tasks) },
-		func() fyne.CanvasObject { return widget.NewLabel("template") },
+		func() fyne.CanvasObject {
+			return newTaskRow(
+				func(id string) {
+					for i, task := range tasks {
+						if task.ID == id {
+							list.Select(i)
+							return
+						}
+					}
+				},
+				func(id string) { a.editTaskByID(id) },
+			)
+		},
 		func(i widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText(taskRowText(tasks[i], a.model.Snapshot().Groups))
+			row := o.(*taskRow)
+			if i < 0 || i >= len(tasks) {
+				row.bind("", "")
+				return
+			}
+			row.bind(tasks[i].ID, taskRowText(tasks[i], a.model.Snapshot().Groups))
 		},
 	)
-	list.OnSelected = func(id widget.ListItemID) { selected = id }
-	list.OnUnselected = func(widget.ListItemID) { selected = -1 }
+	a.taskList = list
+	list.OnSelected = func(id widget.ListItemID) {
+		if id >= 0 && id < len(tasks) {
+			selectedID = tasks[id].ID
+		}
+	}
+	list.OnUnselected = func(widget.ListItemID) { selectedID = "" }
 
 	refresh := func() {
 		tasks = a.model.Snapshot().Tasks
@@ -66,10 +89,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 	a.registerRefresher(refresh)
 
 	cur := func() (domain.Task, bool) {
-		if selected < 0 || selected >= len(tasks) {
-			return domain.Task{}, false
-		}
-		return tasks[selected], true
+		return currentTaskByID(tasks, selectedID)
 	}
 	withSel := func(fn func(t domain.Task)) {
 		if t, ok := cur(); ok {
@@ -103,4 +123,25 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 	// No manual Refresh: the view updates live from the event stream (FR-023).
 	toolbar := container.NewHBox(newBtn, editBtn, runBtn, toggleBtn, delBtn)
 	return container.NewBorder(toolbar, nil, nil, nil, list)
+}
+
+func currentTaskByID(tasks []domain.Task, id string) (domain.Task, bool) {
+	if id == "" {
+		return domain.Task{}, false
+	}
+	for _, task := range tasks {
+		if task.ID == id {
+			return task, true
+		}
+	}
+	return domain.Task{}, false
+}
+
+func (a *App) editTaskByID(id string) bool {
+	task, ok := currentTaskByID(a.model.Snapshot().Tasks, id)
+	if !ok {
+		return false
+	}
+	a.showTaskEditor(a.taskDetailFor(task))
+	return true
 }

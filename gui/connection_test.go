@@ -81,8 +81,8 @@ func TestConnectionPanelKeepsRecoveryControlsReachable(t *testing.T) {
 	if !active || incident.VisibleCount != 1 {
 		t.Fatalf("incident active=%v visible=%d, want active single incident", active, incident.VisibleCount)
 	}
-	if !ui.connectionCard.Visible() || ui.retryButton.Text != "Retry" || ui.tabs == nil {
-		t.Fatalf("panel=%v retry=%q tabs=%v", ui.connectionCard.Visible(), ui.retryButton.Text, ui.tabs != nil)
+	if !ui.connectionCard.Visible() || ui.retryButton.Text != "Retry" || ui.navigation == nil {
+		t.Fatalf("panel=%v retry=%q navigation=%v", ui.connectionCard.Visible(), ui.retryButton.Text, ui.navigation != nil)
 	}
 }
 
