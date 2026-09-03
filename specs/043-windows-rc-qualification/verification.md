@@ -68,9 +68,9 @@ boundaries, and changed documentation were reviewed against the constitution,
 #94, #98, and the S040 through S042 verification history. No finding at or above
 the 80-percent confidence threshold remains.
 
-All 13 changed or added text files decode as strict UTF-8, none has a UTF-8 BOM,
-and no mojibake signature was found. `git diff --check` passed. The template and
-clarification scan found no unresolved placeholder.
+All changed or added text files decode as strict UTF-8, none has a UTF-8 BOM,
+and no mojibake signature was found. The template and clarification scan found
+no unresolved placeholder.
 
 ## Demo identity
 
@@ -91,10 +91,24 @@ issues, all coverage packages remained above 80 percent, and documentation plus
 automation completed cleanly.
 
 The corrected demo was rebuilt from commit
-`cd877817fdfe3eac9ceeb7f8500f7ef7a55ceffa`. The later evidence-only commit does
-not change any staged executable, README, license, changelog, WiX source, icon,
-or other MSI input, so another rebuild would create a different hash without
-changing the tested product source.
+`cd877817fdfe3eac9ceeb7f8500f7ef7a55ceffa`. That commit remains reachable in
+the review branch and is an ancestor of its final head. The later commits are
+enumerated rather than described collectively as evidence-only:
+
+- `3add766` changes only the S043 task and verification records.
+- `576fbad` records the attended result in CHANGELOG, the S043 checklist, spec,
+  tasks, verification, and specification inventory.
+- `9baed96` removes extra EOF whitespace from four S043 Markdown files.
+- The final review-response commit changes only this verification record to make
+  the source and payload boundary explicit.
+
+The runtime product code, compiled executables, WiX authoring, icons, README,
+license, and every MSI input except CHANGELOG are unchanged after `cd877817`.
+The tested MSI therefore contains the earlier CHANGELOG revision and is not
+claimed to be byte-equivalent to a build from the final pull-request head.
+Rebuilding it after the walkthrough would invalidate the operator-bound hash for
+a documentation-only payload difference. The later formal candidate will be
+staged from the merged reviewed source and must repeat #94's exact-artifact gate.
 
 | Field | Value |
 | --- | --- |
@@ -204,3 +218,6 @@ After recording the attended results and issue disposition, the complete eight-
 gate suite passed again: format, vet, lint (zero issues), race, GUI, coverage,
 documentation, and automation. The coverage results remained engine 86.4%,
 schedule 89.2%, timezone 91.3%, store 84.1%, catchup 88.9%, and logbus 91.1%.
+After the first external review identified four pre-existing EOF blank lines,
+commit `9baed96` removed them and `git diff --check origin/main...HEAD` passed
+against the complete committed pull-request range.
