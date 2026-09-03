@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Windows releases now have an exact-candidate attended gate (Refs #94,
+  #98, #96).** Version tags stage draft assets and a manifest instead of
+  publishing immediately. A shared validator binds native Windows 11 evidence
+  to the MSI hash, ProductCode, source commit, staging run, required display
+  and account contexts, all core behavior scenarios, and hashed attachments.
+  A separate promotion workflow publishes only the same tested MSI after the
+  complete evidence archive passes.
+
 - **Windows setup now exposes user-controlled shell integration and completion
   actions (Refs #97).** Start Menu and desktop shortcuts are independent MSI
   features with safe defaults, maintenance support, and upgrade migration.
@@ -60,6 +68,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-02 - Build Windows release assets once, then promote the tested
+  draft.** Rebuilding after attended testing cannot guarantee byte identity,
+  while immediate tag publication leaves no interval for exact-MSI evidence.
+  S040 therefore makes the tag workflow draft-only, moves final all-asset
+  checksums into a fail-closed manual promotion, and retains the evidence ZIP
+  beside the published assets. Tooling completion does not close #94, #98, or
+  #96 until a real candidate passes every attended requirement.
+
+- **2026-09-02 - Distinguish native window geometry from literal Fyne canvas
+  size.** The attended collector records HWND, client, monitor, work-area, DPI,
+  and state measurements through Win32. A narrow opt-in GUI evidence file
+  records Fyne canvas size and scale from the installed process because an
+  external HWND probe cannot truthfully supply that toolkit-level value.
 
 - **2026-09-02 - Model Windows setup choices as native MSI features and one
   package-owned dialog flow.** S039 replaces the minimal dialog set because it

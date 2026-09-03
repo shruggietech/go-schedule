@@ -153,8 +153,13 @@ jobs:
       - run: |
           BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
           test "$BADGE_LINE_COUNT" -eq 1
-  binaries:
+  release-state:
     needs: readme-version
+    steps:
+      - name: Refuse to mutate an already-public release
+        run: test "$(printf '%s' "$BODY" | jq -r '.draft')" = true
+  binaries:
+    needs: release-state
     steps:
       - run: go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 -icon=brand/platform/windows/go-schedule.ico
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
@@ -163,8 +168,35 @@ jobs:
       - run: sudo apt-get install -y libwayland-dev wayland-protocols
       - uses: softprops/action-gh-release@v3
         with:
+          draft: true
           generate_release_notes: false
           body_path: .github/release-notes/${{ github.ref_name }}.md
+          files: windows-candidate-manifest.json
+EOF
+  cat > "$fixture/.github/workflows/promote-release.yml" <<'EOF'
+name: Promote Release
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+jobs:
+  promote:
+    steps:
+      - run: |
+          if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then exit 2; fi
+          test "$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')" = true
+           MANIFEST=assets/windows-candidate-manifest.json
+           EVIDENCE=assets/go-schedule_${RELEASE_TAG}_windows-attended-evidence.zip
+           expected-assets.txt
+           go run ./scripts/windows-release-gate verify-candidate
+           go run ./scripts/windows-release-gate verify-bundle \
+             --candidate-manifest "$MANIFEST"
+          LC_ALL=C sha256sum * > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+           gh release upload "$RELEASE_TAG" SHA256SUMS.txt
+           Re-download and verify the final draft asset set
+           git ls-remote origin "refs/tags/${RELEASE_TAG}"
+           gh api -F draft=false
 EOF
   cat > "$fixture/.github/release-notes/v0.9.0.md" <<'EOF'
 ## Highlights
@@ -310,6 +342,82 @@ run_automation_cases() {
     "$missing_wayland/.github/workflows/release.yml"
   run_expect_fail missing-wayland 'Wayland development headers' \
     sh "$CHECK" "$missing_wayland"
+
+  public_staging="$tmp/public-staging"
+  cp -R "$good" "$public_staging"
+  sed '/draft: true/d' "$good/.github/workflows/release.yml" > \
+    "$public_staging/.github/workflows/release.yml"
+  run_expect_fail public-staging 'explicitly use draft: true' \
+    sh "$CHECK" "$public_staging"
+
+  staging_checksums="$tmp/staging-checksums"
+  cp -R "$good" "$staging_checksums"
+  printf '      - run: sha256sum * > SHA256SUMS.txt\n' >> \
+    "$staging_checksums/.github/workflows/release.yml"
+  run_expect_fail staging-checksums 'must not publish or create final checksums' \
+    sh "$CHECK" "$staging_checksums"
+
+  missing_promotion="$tmp/missing-promotion"
+  cp -R "$good" "$missing_promotion"
+  rm -f "$missing_promotion/.github/workflows/promote-release.yml"
+  run_expect_fail missing-promotion 'promotion workflow not found' \
+    sh "$CHECK" "$missing_promotion"
+
+  rebuild_promotion="$tmp/rebuild-promotion"
+  cp -R "$good" "$rebuild_promotion"
+  printf '          go build ./cmd/gosched-gui\n' >> \
+    "$rebuild_promotion/.github/workflows/promote-release.yml"
+  run_expect_fail rebuild-promotion 'must not rebuild release artifacts' \
+    sh "$CHECK" "$rebuild_promotion"
+
+  ungated_promotion="$tmp/ungated-promotion"
+  cp -R "$good" "$ungated_promotion"
+  sed '/windows-release-gate verify-bundle/d' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$ungated_promotion/.github/workflows/promote-release.yml"
+  run_expect_fail ungated-promotion 'shared exact-candidate evidence gate' \
+    sh "$CHECK" "$ungated_promotion"
+
+  no_candidate_gate="$tmp/no-candidate-gate"
+  cp -R "$good" "$no_candidate_gate"
+  sed '/windows-release-gate verify-candidate/d' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$no_candidate_gate/.github/workflows/promote-release.yml"
+  run_expect_fail no-candidate-gate 'independent candidate-manifest gate' \
+    sh "$CHECK" "$no_candidate_gate"
+
+  no_actions_read="$tmp/no-actions-read"
+  cp -R "$good" "$no_actions_read"
+  sed '/actions: read/d' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$no_actions_read/.github/workflows/promote-release.yml"
+  run_expect_fail no-actions-read 'workflow-run read permission' \
+    sh "$CHECK" "$no_actions_read"
+
+  no_asset_allowlist="$tmp/no-asset-allowlist"
+  cp -R "$good" "$no_asset_allowlist"
+  sed '/expected-assets.txt/d' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$no_asset_allowlist/.github/workflows/promote-release.yml"
+  run_expect_fail no-asset-allowlist 'exact draft asset allowlist' \
+    sh "$CHECK" "$no_asset_allowlist"
+
+  no_tag_recheck="$tmp/no-tag-recheck"
+  cp -R "$good" "$no_tag_recheck"
+  sed '/git ls-remote origin/d' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$no_tag_recheck/.github/workflows/promote-release.yml"
+  run_expect_fail no-tag-recheck 'last-moment tag identity check' \
+    sh "$CHECK" "$no_tag_recheck"
+
+  early_promotion="$tmp/early-promotion"
+  cp -R "$good" "$early_promotion"
+  sed '/gh api -F draft=false/d; /go run .\/scripts\/windows-release-gate verify-candidate/i\
+          gh api -F draft=false' \
+    "$good/.github/workflows/promote-release.yml" > \
+    "$early_promotion/.github/workflows/promote-release.yml"
+  run_expect_fail early-promotion 'not ordered safely' \
+    sh "$CHECK" "$early_promotion"
 
   missing_changelog="$tmp/missing-changelog"
   cp -R "$good" "$missing_changelog"

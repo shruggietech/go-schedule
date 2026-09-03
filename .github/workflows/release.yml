@@ -8,10 +8,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   # Release preparation updates these static version lines through review.
   # Verify them in the tagged checkout without trying to push directly to
-  # main. This preflight gates every release publication job.
+  # main. This preflight gates every draft-release staging job.
   readme-version:
     name: Verify the static README version lines match this tag
     runs-on: ubuntu-latest
@@ -47,9 +51,42 @@ jobs:
             exit 1
           }
 
-  binaries:
-    name: Build & publish release binaries (daemon + CLI)
+  release-state:
+    name: Require absent or draft release state
     needs: readme-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Refuse to mutate an already-public release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          RESPONSE=$(curl --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --write-out $'\n%{http_code}' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}")
+          STATUS=${RESPONSE##*$'\n'}
+          BODY=${RESPONSE%$'\n'*}
+          case "$STATUS" in
+            200)
+              if [ "$(printf '%s' "$BODY" | jq -r '.draft')" != true ]; then
+                echo "::error::Release ${GITHUB_REF_NAME} is already public."
+                exit 1
+              fi
+              ;;
+            404) ;;
+            *)
+              echo "::error::Could not verify release state (HTTP ${STATUS})."
+              exit 1
+              ;;
+          esac
+
+  binaries:
+    name: Build & stage release binaries (daemon + CLI)
+    needs: release-state
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -85,16 +122,15 @@ jobs:
             rm -rf "$stage"
           done
 
-          # Checksums are NOT written here. This job only sees its own tarballs,
-          # so a SHA256SUMS.txt built now would omit the .msi and the desktop
-          # bundles that the gui job produces. The checksums job publishes one
-          # complete file once every asset exists.
+          # The final integrity inventory is added only during promotion, after
+          # every platform artifact and the attended evidence archive exist.
           echo "--- artifacts ---"; ls -la dist
           sha256sum dist/* # for the build log only
 
-      - name: Publish GitHub Release
+      - name: Stage binaries in the draft GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          draft: true
           name: ${{ github.ref_name }}
           generate_release_notes: false
           body_path: .github/release-notes/${{ github.ref_name }}.md
@@ -103,7 +139,7 @@ jobs:
             dist/*.msi
 
   gui:
-    name: Build & publish GUI (${{ matrix.os }})
+    name: Build & stage GUI (${{ matrix.os }})
     needs: binaries
     runs-on: ${{ matrix.os }}
     strategy:
@@ -242,7 +278,14 @@ jobs:
             pwsh test/windows/inspect-installer.ps1 \
               -MsiPath "dist/go-schedule_${VERSION}_windows_amd64.msi" \
               -ArtifactClass candidate \
-              -ArtifactOrigin "release workflow build from commit ${GITHUB_SHA}"
+              -ArtifactOrigin "draft release staging run ${GITHUB_RUN_ID} attempt ${GITHUB_RUN_ATTEMPT} from commit ${GITHUB_SHA}" \
+              -CandidateManifestPath "dist/windows-candidate-manifest.json" \
+              -Repository "${GITHUB_REPOSITORY}" \
+              -Tag "${GITHUB_REF_NAME}" \
+              -Commit "${GITHUB_SHA}" \
+              -Workflow "Release" \
+              -RunId "${GITHUB_RUN_ID}" \
+              -RunAttempt "${GITHUB_RUN_ATTEMPT}"
           else
             tar -czf "dist/${stage}.tar.gz" "$stage"
           fi
@@ -250,35 +293,11 @@ jobs:
 
       # Explicit patterns, not dist/*: `wix build` drops a .wixpdb (debug symbols)
       # next to the .msi, and a bare glob published it as a release asset.
-      - name: Attach GUI artifact to the release
+      - name: Stage GUI artifact in the draft release
         uses: softprops/action-gh-release@v3
         with:
+          draft: true
           files: |
             dist/*.tar.gz
             dist/*.msi
-
-  # Runs last, once every asset is attached, so the published checksum file
-  # covers the whole release — including the .msi and the desktop bundles, which
-  # are built in the gui job and so were previously unchecksummed.
-  checksums:
-    name: Publish SHA256SUMS for every asset
-    needs: [binaries, gui]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checksum every published asset
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          mkdir -p assets
-          cd assets
-          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --pattern '*'
-          # Idempotent on re-run: a checksum file from a previous attempt would
-          # otherwise be downloaded and listed inside its own replacement.
-          rm -f SHA256SUMS.txt
-          # Write outside the directory first: the glob must not pick up the file
-          # being created, and a partial upload must never overwrite a good one.
-          sha256sum * > "${RUNNER_TEMP}/SHA256SUMS.txt"
-          cat "${RUNNER_TEMP}/SHA256SUMS.txt"
-          gh release upload "${GITHUB_REF_NAME}" "${RUNNER_TEMP}/SHA256SUMS.txt" \
-            --repo "${GITHUB_REPOSITORY}" --clobber
+            dist/windows-candidate-manifest.json

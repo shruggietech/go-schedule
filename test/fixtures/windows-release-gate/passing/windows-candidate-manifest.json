@@ -1,0 +1,13 @@
+{
+  "repository": "shruggietech/go-schedule",
+  "tag": "v1.0.0",
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "workflow": "Release",
+  "run_id": 1234,
+  "run_attempt": 1,
+  "filename": "go-schedule_v1.0.0_windows_amd64.msi",
+  "bytes": 32,
+  "sha256": "415c48ac8b30027fcffa0a72900942132ae0226b658b18a8f507b2abf9f6c709",
+  "product_version": "1.0.0",
+  "product_code": "{11111111-2222-3333-4444-555555555555}"
+}

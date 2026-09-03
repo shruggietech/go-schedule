@@ -221,6 +221,29 @@ Only `0` and `1` are valid values for `GOSCHEDULE_REMOVE_DATA`. The choice is
 not persisted. Supplying the wipe property during install, repair, reinstall,
 or major upgrade never schedules cleanup.
 
+## Release-candidate safety
+
+Starting with the next release after S040, a version tag stages a draft release
+instead of immediately publishing it. The Windows installer, its candidate
+manifest, the other platform assets, and the attended evidence stay non-public
+until a maintainer completes the Windows 11 gate.
+
+The gate binds the installed MSI to its repository, tag commit, staging
+workflow run and attempt, ProductVersion, ProductCode, filename, byte size, and
+SHA-256. It requires normal-user access, native window and DPI measurements,
+two-minute connection-error observations, real manual and scheduled task runs,
+and the attended setup and uninstall matrix. Missing, failed, unavailable,
+skipped, timed-out, partial, stale, or altered evidence leaves the release in
+draft state.
+
+Promotion downloads and revalidates the same MSI bytes. It does not rebuild a
+nominally equivalent installer after testing. Final checksums are created only
+after the attended evidence archive joins the complete asset set. See
+`test/windows/README.md` and
+`specs/040-windows-release-candidate-gate/quickstart.md` for the maintainer
+procedure. Creating a tag, promoting a draft, or publishing a release remains
+a separately authorized maintainer action.
+
 ## Troubleshooting
 
 **`gosched` is not recognized as a command.** The `PATH` entry is added at

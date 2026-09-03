@@ -10,6 +10,7 @@ package gui
 
 import (
 	"context"
+	"log/slog"
 	"sync/atomic"
 	"time"
 
@@ -150,7 +151,11 @@ func (a *App) buildRoot() fyne.CanvasObject {
 func (a *App) Run() {
 	a.refreshAll()
 	go a.streamEvents()
-	a.win.ShowAndRun()
+	a.win.Show()
+	if err := writeWindowEvidence(a.win.Canvas().Size(), a.win.Canvas().Scale()); err != nil {
+		slog.Error("write attended window evidence", "error", err)
+	}
+	a.fyne.Run()
 	a.stop()
 }
 

@@ -21,7 +21,21 @@ param(
 
   [Parameter(Mandatory)]
   [ValidateNotNullOrEmpty()]
-  [string]$ArtifactOrigin
+  [string]$ArtifactOrigin,
+
+  [string]$CandidateManifestPath,
+
+  [string]$Repository,
+
+  [string]$Tag,
+
+  [string]$Commit,
+
+  [string]$Workflow,
+
+  [long]$RunId,
+
+  [int]$RunAttempt
 )
 
 $ErrorActionPreference = 'Stop'
@@ -152,6 +166,12 @@ $productName = Get-MsiString -Database $database `
   -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ProductName'"
 if ($productName -ne 'go-schedule') {
   $fail.Add("Property.ProductName is '$productName'; expected 'go-schedule'")
+}
+
+$productCode = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ProductCode'"
+if (-not $productCode) {
+  $fail.Add('Property.ProductCode is missing')
 }
 
 $manufacturer = Get-MsiString -Database $database `
@@ -511,6 +531,70 @@ if ($fail.Count -gt 0) {
     "installer-inspect: FAILED`n - " + ($fail -join "`n - ")
   )
   exit 1
+}
+
+if ($CandidateManifestPath) {
+  if ($ArtifactClass -ne 'candidate') {
+    throw 'Candidate manifest output requires ArtifactClass candidate.'
+  }
+  if (-not $Repository -or -not $Tag -or -not $Commit -or -not $Workflow -or
+      $RunId -le 0 -or $RunAttempt -le 0) {
+    throw 'Candidate manifest output requires complete workflow identity.'
+  }
+  if ($Tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$' -or
+      $Commit -notmatch '^[0-9a-f]{40}$') {
+    throw 'Candidate manifest tag or commit has invalid syntax.'
+  }
+  if ($version -ne $Tag.TrimStart('v')) {
+    throw "MSI ProductVersion '$version' does not match tag '$Tag'."
+  }
+  $candidateManifest = [ordered]@{
+    repository = $Repository
+    tag = $Tag
+    commit = $Commit
+    workflow = $Workflow
+    run_id = $RunId
+    run_attempt = $RunAttempt
+    filename = [System.IO.Path]::GetFileName($resolvedMsi)
+    bytes = (Get-Item -LiteralPath $resolvedMsi).Length
+    sha256 = $hash
+    product_version = $version
+    product_code = $productCode.ToUpperInvariant()
+  }
+  $candidateManifestFile = [System.IO.Path]::GetFullPath(
+    $CandidateManifestPath
+  )
+  $candidateManifestJson = $candidateManifest |
+    ConvertTo-Json -Depth 5
+  $candidateStream = [System.IO.File]::Open(
+    $candidateManifestFile,
+    [System.IO.FileMode]::CreateNew,
+    [System.IO.FileAccess]::Write,
+    [System.IO.FileShare]::None
+  )
+  $candidateComplete = $false
+  try {
+    $candidateWriter = [System.IO.StreamWriter]::new(
+      $candidateStream,
+      [System.Text.UTF8Encoding]::new($false)
+    )
+    try {
+      $candidateWriter.Write("$candidateManifestJson`n")
+      $candidateWriter.Flush()
+      $candidateComplete = $true
+    } finally {
+      $candidateWriter.Dispose()
+    }
+  } finally {
+    $candidateStream.Dispose()
+    if (-not $candidateComplete -and
+        (Test-Path -LiteralPath $candidateManifestFile)) {
+      [System.IO.File]::Delete($candidateManifestFile)
+    }
+  }
+  Write-Output (
+    "installer-inspect: candidate manifest written to $candidateManifestFile"
+  )
 }
 
 Write-Output (
