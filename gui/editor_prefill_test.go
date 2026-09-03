@@ -2,6 +2,7 @@ package gui
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -72,6 +73,31 @@ func TestEditor_PrefillsRecurringSchedule(t *testing.T) {
 	}
 	if e.schedule.Text != "weekdays at 09:00" {
 		t.Errorf("Schedule = %q, want the stored phrase", e.schedule.Text)
+	}
+}
+
+func TestEditor_ExistingCommandRoundTripsWithoutLoss(t *testing.T) {
+	detail := recurringDetail("weekdays at 09:00")
+	detail.Task.Command = `C:\Program Files\Tool's "runner".exe`
+	detail.Task.Args = []string{"", "--tag", "one", "--tag", "two", "héllo 世界", "tabs\there", "lines\r\nhere", `C:\trail\`, "$HOME", "|", "*.txt"}
+
+	e, fb := newTestEditorDetail(t, detail)
+	got, err := e.invocation()
+	if err != nil {
+		t.Fatalf("canonical prefill does not parse: %v", err)
+	}
+	if got.Program != detail.Task.Command || !reflect.DeepEqual(got.Args, detail.Task.Args) {
+		t.Fatalf("prefilled text %q produced %#v, want command %q args %#v", e.commandLine.Text, got, detail.Task.Command, detail.Task.Args)
+	}
+	if e.isDirty() {
+		t.Fatal("canonical command prefill must be the unchanged edit baseline")
+	}
+
+	e.submit()
+	waitFor(t, func() bool { n, _, _ := fb.lastUpdateCall(); return n == 1 })
+	_, _, req := fb.lastUpdateCall()
+	if req.Command != detail.Task.Command || !reflect.DeepEqual(req.Args, detail.Task.Args) {
+		t.Fatalf("unchanged update = command %q args %#v", req.Command, req.Args)
 	}
 }
 
@@ -299,7 +325,7 @@ func TestEditor_PrefillsAndSubmitsMissingDatePolicy(t *testing.T) {
 func TestEditor_NewTaskDefaultsMissingDatePolicy(t *testing.T) {
 	e, fb := newTestEditor(t, nil)
 	e.name.SetText("new")
-	e.command.SetText("/bin/true")
+	e.commandLine.SetText("/bin/true")
 	e.schedule.SetText("every day at 09:00")
 	e.submit()
 	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })

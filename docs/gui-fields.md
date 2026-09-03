@@ -34,7 +34,7 @@ is never the only indicator. Row identity, rather than the current visual
 index, controls selection and activation across live refreshes.
 
 The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run**
-(Name, Command, Arguments), **When** (Timezone, Mode, the relevant time field), and a collapsible
+(Name and Command line), **When** (Timezone, Mode, the relevant time field), and a collapsible
 **Advanced Settings** (Overlap, Catch-up, Missing dates, Time basis, Spring gap,
 Fall overlap) that starts closed - its disclosure arrow points ▶ when
 collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a
@@ -48,8 +48,7 @@ before discarding.
 | Field | Required | Format / options | Default |
 |-------|----------|------------------|---------|
 | **Name** | yes | any text label | — |
-| **Command** | yes | a single executable (name or full path) | — |
-| **Arguments** | no | one argument per line | empty |
+| **Command line** | yes | program followed by arguments in the portable direct-command syntax below | — |
 | **Group** | no | `(none)`, or a group shown by its path (`Backups / Nightly`) | `(none)` |
 | **Timezone** | no | searchable list of common zones, or any IANA name / `Local` | `Local` |
 | **Mode** | yes | `Recurring` or `One-off` | `Recurring` |
@@ -79,8 +78,9 @@ blank. That is safe — a blank field keeps the existing schedule — and typing
 it.
 
 **Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of
-the schedule with the next few run times, and the exact command and arguments as they will be
-invoked, rendered as a monospace code block.
+the schedule with the next few run times, and the exact Program plus numbered Arguments in order.
+Each value uses a quoted escaped display, so empty values, spaces, tabs, line breaks, quotes, and
+backslashes are visible instead of being hidden inside an ambiguous reconstructed command string.
 Changing **Missing dates** immediately refreshes this preview and sends the
 selected policy to the daemon, so date-sensitive schedules show the same runs
 that Save will create.
@@ -95,26 +95,44 @@ underlying policy values (`queue_one`/`skip`/`allow_concurrent`, `one`/`none`, a
 
 A label for the task — any text. Used only to identify the task in lists and the calendar.
 
-## Command
+## Command line
 
-The program to run — **just the executable, not a full command line.** Put any arguments in the
-**Arguments** field below, not here.
-
-- Examples: `cmd`, `python`, `notepad.exe`, `C:\Windows\System32\notepad.exe`, `/usr/bin/make-report`
-- Required and must be non-empty.
-
-## Arguments
-
-**One argument per line.** This is the most common point of confusion: don't paste a whole
-command line on one line. Each line becomes one separate argument passed to the command. Blank
-lines and surrounding whitespace are ignored.
-
-To run the equivalent of `cmd /c echo hello`:
+Type the executable and arguments together in the same roomy field:
 
 ```text
-/c
-echo hello
+python -m http.server --bind "127.0.0.1"
+"C:\Program Files\Tool\tool.exe" --name "Ada Lovelace"
+/usr/bin/printf '%s\n' 'hello world'
 ```
+
+The editor uses one portable direct-command grammar with identical value boundaries on Windows,
+macOS, and Linux:
+
+- Whitespace separates values outside quotation marks.
+- Single or double quotation marks keep spaces and literal line breaks inside one value. The
+  quotation marks are not part of the value.
+- Empty quotes (`''` or `""`) create an intentional empty argument.
+- Adjacent quoted and unquoted parts form one value.
+- Inside single quotes every enclosed character is literal. Inside double quotes a backslash can
+  escape a double quote; other backslashes remain literal.
+- Outside quotes, a backslash can escape whitespace or a quotation mark. Before an ordinary
+  character, another backslash, or the end of the field, it remains literal.
+- Invalid UTF-8 text, an unmatched quote, or an unsupported NUL character is an error. The Preview
+  identifies the problem (and the line and column for character-level syntax errors), and Save
+  remains disabled until it is corrected.
+
+This syntax only separates a program from its arguments. It does **not** expand environment
+variables or wildcards, create pipelines, perform redirects, interpret comments, or run a shell.
+Characters such as `$`, `%`, `*`, `|`, `>`, `;`, and `&` stay literal.
+
+To request shell behavior, name the shell explicitly. For example, use
+`cmd /c "echo hello > output.txt"` on Windows or `sh -c 'echo hello > output.txt'` on a POSIX
+host. That named shell then owns its platform-specific quoting, expansion, redirection, and
+security behavior. go-schedule still stores and launches one program plus its ordered arguments.
+
+The field is required, displays at least six lines at the default dialog size, and grows when the
+dialog gains vertical space. A quoted literal line break is part of one argument; an unquoted line
+break separates values.
 
 ## Group
 
@@ -319,8 +337,7 @@ A "heartbeat" task you can watch succeed within a couple of minutes:
 | Field | Value |
 |-------|-------|
 | Name | `heartbeat` |
-| Command | `cmd` |
-| Arguments | `/c` (line 1) · `echo %DATE% %TIME% >> C:\Users\you\gosched-test.txt` (line 2) |
+| Command line | `cmd /c "echo %DATE% %TIME% >> C:\Users\you\gosched-test.txt"` |
 | Timezone | `Local` |
 | Mode | `Recurring` |
 | Schedule | `every 1 minute` |

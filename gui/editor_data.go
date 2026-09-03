@@ -1,8 +1,10 @@
 package gui
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/shruggietech/go-schedule/internal/commandline"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/task"
 )
@@ -248,26 +250,23 @@ var commonZones = []string{
 	"Australia/Sydney", "Pacific/Auckland",
 }
 
-// commandLinePreview renders the resolved command line for display only: the
-// command followed by each argument, with whitespace-bearing tokens quoted for
-// readability. Execution still receives the raw argument slice — this never
-// re-parses or shell-splits.
-func commandLinePreview(command string, args []string) string {
-	command = strings.TrimSpace(command)
-	if command == "" {
-		return ""
+// commandPreviewText separates the direct process boundary into exact values.
+// QuoteDisplay makes empty strings and invisible characters visible; this text
+// is never parsed or executed.
+func commandPreviewText(program string, args []string) string {
+	var out strings.Builder
+	out.WriteString("Program\n")
+	out.WriteString(commandline.QuoteDisplay(program))
+	fmt.Fprintf(&out, "\nArguments in order (%d)\n", len(args))
+	if len(args) == 0 {
+		out.WriteString("None")
+		return out.String()
 	}
-	parts := make([]string, 0, len(args)+1)
-	parts = append(parts, quoteForDisplay(command))
-	for _, a := range args {
-		parts = append(parts, quoteForDisplay(a))
+	for i, arg := range args {
+		if i > 0 {
+			out.WriteByte('\n')
+		}
+		fmt.Fprintf(&out, "%d  %s", i+1, commandline.QuoteDisplay(arg))
 	}
-	return strings.Join(parts, " ")
-}
-
-func quoteForDisplay(s string) string {
-	if s == "" || strings.ContainsAny(s, " \t") {
-		return `"` + s + `"`
-	}
-	return s
+	return out.String()
 }

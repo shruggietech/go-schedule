@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -60,6 +61,25 @@ func TestCreateTask_PersistsStdin(t *testing.T) {
 	}
 	if resp.Task.Stdin != "alpha\nbeta\n" {
 		t.Fatalf("stdin = %q", resp.Task.Stdin)
+	}
+}
+
+func TestCreateTask_RoundTripsExactArguments(t *testing.T) {
+	s := newTestServer(t)
+	want := []string{"", "--tag", "one", "--tag", "two", "héllo 世界", "tabs\there", "lines\r\nhere", `C:\trail\`, "$HOME", "|", "*.txt"}
+	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+		Name: "exact-args", Command: `C:\Program Files\Tool\tool.exe`, Args: want,
+		Schedule: "every day at 09:00", Timezone: "UTC",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var resp TaskResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Task.Command != `C:\Program Files\Tool\tool.exe` || !reflect.DeepEqual(resp.Task.Args, want) {
+		t.Fatalf("task = command %q args %#v", resp.Task.Command, resp.Task.Args)
 	}
 }
 
