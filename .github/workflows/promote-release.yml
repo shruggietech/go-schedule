@@ -1,0 +1,198 @@
+name: Promote Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Exact staged release tag (vMAJOR.MINOR.PATCH)
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate-and-promote:
+    name: Validate exact Windows evidence and promote draft
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Validate tag input
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "${RELEASE_TAG}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag must match vMAJOR.MINOR.PATCH."
+            exit 2
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          fetch-depth: 1
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve tagged commit and require a draft release
+        id: release
+        run: |
+          set -euo pipefail
+          TAG_COMMIT=$(git rev-parse HEAD)
+          test "$(printf '%s' "$TAG_COMMIT" | wc -c)" -eq 40
+          RELEASE_JSON=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
+          if [ "$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')" != true ]; then
+            echo "::error::Release ${RELEASE_TAG} must exist and remain draft."
+            exit 1
+          fi
+          if [ "$(printf '%s' "$RELEASE_JSON" | jq -r '.tag_name')" != \
+            "$RELEASE_TAG" ]; then
+            echo "::error::Draft release tag identity does not match input."
+            exit 1
+          fi
+          printf 'tag_commit=%s\n' "$TAG_COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Download the complete staged asset set
+        run: |
+          set -euo pipefail
+          mkdir assets
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir assets \
+            --pattern '*'
+
+      - name: Verify staging run and required exact assets
+        env:
+          TAG_COMMIT: ${{ steps.release.outputs.tag_commit }}
+        run: |
+          set -euo pipefail
+          MSI="assets/go-schedule_${RELEASE_TAG}_windows_amd64.msi"
+          MANIFEST="assets/windows-candidate-manifest.json"
+          EVIDENCE="assets/go-schedule_${RELEASE_TAG}_windows-attended-evidence.zip"
+          test -f "$MSI" || { echo "::error::Exact Windows MSI is missing."; exit 1; }
+          test -f "$MANIFEST" || { echo "::error::Candidate manifest is missing."; exit 1; }
+          test -f "$EVIDENCE" || { echo "::error::Attended evidence is missing."; exit 1; }
+
+          cat > "$RUNNER_TEMP/expected-assets.txt" <<EOF
+          go-schedule_${RELEASE_TAG}_darwin_amd64.tar.gz
+          go-schedule_${RELEASE_TAG}_darwin_arm64.tar.gz
+          go-schedule_${RELEASE_TAG}_linux_amd64.tar.gz
+          go-schedule_${RELEASE_TAG}_linux_arm64.tar.gz
+          go-schedule-desktop_${RELEASE_TAG}_darwin_arm64.tar.gz
+          go-schedule-desktop_${RELEASE_TAG}_linux_amd64.tar.gz
+          go-schedule_${RELEASE_TAG}_windows_amd64.msi
+          go-schedule_${RELEASE_TAG}_windows-attended-evidence.zip
+          windows-candidate-manifest.json
+          EOF
+          find assets -maxdepth 1 -type f ! -name SHA256SUMS.txt \
+            -printf '%f\n' | LC_ALL=C sort \
+            > "$RUNNER_TEMP/observed-assets.txt"
+          LC_ALL=C sort -o "$RUNNER_TEMP/expected-assets.txt" \
+            "$RUNNER_TEMP/expected-assets.txt"
+          diff -u "$RUNNER_TEMP/expected-assets.txt" \
+            "$RUNNER_TEMP/observed-assets.txt" || {
+              echo "::error::Draft asset set is incomplete or contains unrecognized files."
+              exit 1
+            }
+
+          RUN_ID=$(jq -er '.run_id | select(type == "number" and . > 0)' "$MANIFEST")
+          RUN_ATTEMPT=$(jq -er '.run_attempt | select(type == "number" and . > 0)' "$MANIFEST")
+          RUN_WORKFLOW=$(jq -er '.workflow | select(type == "string" and length > 0)' "$MANIFEST")
+          RUN_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}")
+          test "$(printf '%s' "$RUN_JSON" | jq -r '.status')" = completed
+          test "$(printf '%s' "$RUN_JSON" | jq -r '.conclusion')" = success
+          test "$(printf '%s' "$RUN_JSON" | jq -r '.event')" = push
+          test "$(printf '%s' "$RUN_JSON" | jq -r '.head_sha')" = "$TAG_COMMIT"
+          test "$(printf '%s' "$RUN_JSON" | jq -r '.path')" = \
+            '.github/workflows/release.yml'
+          test "$(printf '%s' "$RUN_JSON" | jq -r '.name')" = "$RUN_WORKFLOW"
+          test "$RUN_WORKFLOW" = Release
+
+          ATTEMPT_JOBS=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}/jobs?per_page=100")
+          WINDOWS_JOB_COUNT=$(printf '%s' "$ATTEMPT_JOBS" | jq \
+            '[.jobs[] | select(
+              .name == "Build & stage GUI (windows-latest)" and
+              .status == "completed" and .conclusion == "success"
+            )] | length')
+          test "$WINDOWS_JOB_COUNT" -eq 1 || {
+            echo "::error::Candidate manifest attempt does not identify one successful Windows staging job."
+            exit 1
+          }
+
+          go run ./scripts/windows-release-gate verify-candidate \
+            --candidate-manifest "$MANIFEST" \
+            --artifact "$MSI" \
+            --repository "$GITHUB_REPOSITORY" \
+            --tag "$RELEASE_TAG" \
+            --commit "$TAG_COMMIT"
+
+          go run ./scripts/windows-release-gate verify-bundle \
+            --bundle "$EVIDENCE" \
+            --artifact "$MSI" \
+            --candidate-manifest "$MANIFEST" \
+            --repository "$GITHUB_REPOSITORY" \
+            --tag "$RELEASE_TAG" \
+            --commit "$TAG_COMMIT"
+
+      - name: Generate and verify final all-asset checksums
+        run: |
+          set -euo pipefail
+          rm -f assets/SHA256SUMS.txt
+          (
+            cd assets
+            LC_ALL=C sha256sum * > "$RUNNER_TEMP/SHA256SUMS.txt"
+            sha256sum -c "$RUNNER_TEMP/SHA256SUMS.txt"
+          )
+          cat "$RUNNER_TEMP/SHA256SUMS.txt"
+          gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/SHA256SUMS.txt" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Re-download and verify the final draft asset set
+        run: |
+          set -euo pipefail
+          mkdir final-assets
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir final-assets \
+            --pattern '*'
+          (
+            cd final-assets
+            sha256sum -c SHA256SUMS.txt
+            EXPECTED=$(wc -l < SHA256SUMS.txt)
+            OBSERVED=$(find . -maxdepth 1 -type f ! -name SHA256SUMS.txt | wc -l)
+            test "$OBSERVED" -eq "$EXPECTED"
+          )
+
+      - name: Promote the validated draft release
+        env:
+          TAG_COMMIT: ${{ steps.release.outputs.tag_commit }}
+        run: |
+          set -euo pipefail
+          REMOTE_TAG=$(git ls-remote origin "refs/tags/${RELEASE_TAG}^{}" |
+            awk 'NR == 1 { print $1 }')
+          if [ -z "$REMOTE_TAG" ]; then
+            REMOTE_TAG=$(git ls-remote origin "refs/tags/${RELEASE_TAG}" |
+              awk 'NR == 1 { print $1 }')
+          fi
+          test "$REMOTE_TAG" = "$TAG_COMMIT" || {
+            echo "::error::Release tag moved after candidate validation."
+            exit 1
+          }
+          RELEASE_JSON=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
+          test "$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')" = true
+          RELEASE_ID=$(printf '%s' "$RELEASE_JSON" | jq -er '.id')
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -F draft=false >/dev/null

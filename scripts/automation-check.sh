@@ -252,6 +252,7 @@ elif ! lifecycle_output=$(sh "$LIFECYCLE" "$ROOT" 2>&1); then
 fi
 
 RELEASE="$ROOT/.github/workflows/release.yml"
+PROMOTE_RELEASE="$ROOT/.github/workflows/promote-release.yml"
 RELEASE_NOTES_DIR="$ROOT/.github/release-notes"
 require_release_text() {
   text=$1
@@ -286,14 +287,16 @@ else
     report "$RELEASE: release validation must inspect the tagged checkout"
   fi
   if ! awk '
-    /^  binaries:[[:space:]]*$/ { in_binaries = 1; next }
-    in_binaries && /^  [[:alnum:]_-]+:[[:space:]]*(#.*)?$/ { exit }
-    in_binaries && /^    needs:[[:space:]]*readme-version[[:space:]]*$/ {
-      found = 1
-    }
-    END { exit !found }
+    /^  release-state:[[:space:]]*$/ { section = "state"; next }
+    /^  binaries:[[:space:]]*$/ { section = "binaries"; next }
+    /^  [[:alnum:]_-]+:[[:space:]]*(#.*)?$/ { section = "" }
+    section == "state" &&
+      /^    needs:[[:space:]]*readme-version[[:space:]]*$/ { state = 1 }
+    section == "binaries" &&
+      /^    needs:[[:space:]]*release-state[[:space:]]*$/ { binaries = 1 }
+    END { exit !(state && binaries) }
   ' "$RELEASE"; then
-    report "$RELEASE: binaries job missing README version preflight dependency"
+    report "$RELEASE: binaries job missing README version preflight dependency through release-state"
   fi
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
@@ -306,6 +309,81 @@ else
     'Linux desktop Wayland development headers'
   require_release_text 'wayland-protocols' \
     'Linux desktop Wayland protocols'
+  release_upload_count=$(grep -Ec \
+    'uses: softprops/action-gh-release@v3' "$RELEASE" || true)
+  draft_upload_count=$(grep -Ec '^[[:space:]]+draft: true$' \
+    "$RELEASE" || true)
+  if [ "$release_upload_count" -eq 0 ] ||
+     [ "$draft_upload_count" -ne "$release_upload_count" ]; then
+    report "$RELEASE: every staged release upload must explicitly use draft: true"
+  fi
+  if grep -Fq -- '--draft=false' "$RELEASE" ||
+     grep -Fq -- 'SHA256SUMS.txt' "$RELEASE"; then
+    report "$RELEASE: staging must not publish or create final checksums"
+  fi
+  require_release_text 'windows-candidate-manifest.json' \
+    'exact Windows candidate manifest'
+  require_release_text 'Refuse to mutate an already-public release' \
+    'public-release mutation guard'
+  require_release_text "jq -r '.draft'" \
+    'existing release draft-state validation'
+fi
+
+require_promotion_text() {
+  text=$1
+  description=$2
+  if ! grep -Fq -- "$text" "$PROMOTE_RELEASE"; then
+    report "$PROMOTE_RELEASE: missing $description"
+  fi
+}
+
+if [ ! -f "$PROMOTE_RELEASE" ]; then
+  report "$PROMOTE_RELEASE: release promotion workflow not found"
+else
+  require_promotion_text 'workflow_dispatch:' 'manual dispatch trigger'
+  require_promotion_text 'actions: read' 'workflow-run read permission'
+  require_promotion_text "grep -Eq '^v[0-9]+\\.[0-9]+\\.[0-9]+\$'" \
+    'strict semantic-version tag validation'
+  require_promotion_text "jq -r '.draft'" 'draft-state guard'
+  require_promotion_text 'windows-candidate-manifest.json' \
+    'candidate manifest retrieval'
+  require_promotion_text 'windows-attended-evidence.zip' \
+    'attended evidence retrieval'
+  require_promotion_text 'windows-release-gate verify-bundle' \
+    'shared exact-candidate evidence gate'
+  require_promotion_text 'windows-release-gate verify-candidate' \
+    'independent candidate-manifest gate'
+  require_promotion_text '--candidate-manifest "$MANIFEST"' \
+    'candidate-manifest comparison'
+  require_promotion_text 'LC_ALL=C sha256sum *' \
+    'complete deterministic checksum generation'
+  require_promotion_text 'sha256sum -c' 'checksum self-verification'
+  require_promotion_text 'Re-download and verify the final draft asset set' \
+    'server-side final asset verification'
+  require_promotion_text 'gh release upload' 'final checksum upload'
+  require_promotion_text 'expected-assets.txt' 'exact draft asset allowlist'
+  require_promotion_text '/attempts/${RUN_ATTEMPT}/jobs?per_page=100' \
+    'candidate-producing workflow-attempt job validation'
+  require_promotion_text 'Build & stage GUI (windows-latest)' \
+    'exact Windows candidate-producing job identity'
+  require_promotion_text 'git ls-remote origin' 'last-moment tag identity check'
+  require_promotion_text '-F draft=false' 'final draft promotion'
+  if grep -Eq '(^|[[:space:]])(go|wix)[[:space:]]+build([[:space:]]|$)' \
+    "$PROMOTE_RELEASE"; then
+    report "$PROMOTE_RELEASE: promotion must not rebuild release artifacts"
+  fi
+
+  gate_line=$(grep -n -F 'windows-release-gate verify-bundle' \
+    "$PROMOTE_RELEASE" | head -n 1 | cut -d: -f1 || true)
+  checksum_line=$(grep -n -F 'LC_ALL=C sha256sum *' \
+    "$PROMOTE_RELEASE" | head -n 1 | cut -d: -f1 || true)
+  promote_line=$(grep -n -F -- '-F draft=false' \
+    "$PROMOTE_RELEASE" | head -n 1 | cut -d: -f1 || true)
+  if [ -z "$gate_line" ] || [ -z "$checksum_line" ] ||
+     [ -z "$promote_line" ] || [ "$gate_line" -ge "$checksum_line" ] ||
+     [ "$checksum_line" -ge "$promote_line" ]; then
+    report "$PROMOTE_RELEASE: gate, final checksums, and promotion are not ordered safely"
+  fi
 fi
 
 if [ ! -d "$RELEASE_NOTES_DIR" ]; then
@@ -389,4 +467,4 @@ if [ -s "$FAILURES" ]; then
 fi
 
 printf '%s\n' \
-  'automation-check: OK - actions, CodeQL, Dependabot, release notes, brand, lifecycle, and 8 gates'
+  'automation-check: OK - actions, CodeQL, Dependabot, release staging/promotion, release notes, brand, lifecycle, and 8 gates'

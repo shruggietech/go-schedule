@@ -147,6 +147,120 @@ service-boundary evidence, not ordinary-token IPC proof or release-equivalent
 installer evidence. The script removes its tasks, service, and group in a
 `finally` block.
 
+## Attended release-candidate gate
+
+S040 adds `Invoke-ReleaseCandidateAttended.ps1` as the resumable collector for
+the clean Windows 11 work that cannot run credibly on a hosted server. The tag
+workflow first stages all platform assets in a draft GitHub release. Use the
+Windows MSI and `windows-candidate-manifest.json` from that exact draft. Never
+rebuild, rename, or substitute the MSI after evidence collection starts.
+
+Initialize a new workspace from a normal, non-elevated PowerShell 7 session:
+
+```powershell
+$commit = '0123456789abcdef0123456789abcdef01234567'
+pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
+  -Action Initialize `
+  -MsiPath C:\verify\go-schedule_v1.0.0_windows_amd64.msi `
+  -WorkspacePath C:\verify\v1.0.0-attended `
+  -Tag v1.0.0 -Commit $commit -RunId 123456789 -RunAttempt 1
+```
+
+Initialization reads ProductVersion and ProductCode from the compiled MSI and
+records repository, tag, commit, staging run and attempt, filename, byte size,
+and SHA-256. It creates all 36 required observations as explicit
+`unavailable` placeholders plus fail-closed setup/removal templates under
+`fragments`. Those templates enumerate required process/session, option,
+target, inventory, fingerprint, unaffected-control, security-state, and
+reinstall fields. The collector refuses an existing workspace so an
+interrupted run cannot silently erase evidence.
+
+Each operator-reviewed fragment contains one environment and one observation.
+Use genuine registered local profiles and identify accounts by role plus SID,
+not by personal name. Record the token integrity RID (8192 for medium, 12288
+for high, or 16384 for system). `RecordObservation` replaces one unused
+placeholder and refuses later overwrite. Every status is explicit: `pass`, `fail`, `unavailable`,
+`skipped`, `timed-out`, or `partial`. Only `pass` can satisfy promotion.
+
+### Native window capture
+
+Launch the exact installed GUI with
+`GOSCHEDULE_WINDOW_EVIDENCE_PATH` set to a new JSON file beneath the evidence
+workspace's `attachments` directory. The opt-in file records literal Fyne
+canvas width, height, and scale. Then capture the exact process and visible
+HWND:
+
+```powershell
+pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
+  -Action CaptureWindow `
+  -WorkspacePath C:\verify\v1.0.0-attended `
+  -ProcessId 1234 `
+  -ObservationId window.clean-standard `
+  -EnvironmentPath C:\verify\standard-environment.json `
+  -FyneEvidencePath C:\verify\v1.0.0-attended\attachments\windows\fyne.json `
+  -ScreenshotPath C:\verify\v1.0.0-attended\attachments\windows\screen.png
+```
+
+Capture requires a screenshot and records the executable path and hash,
+process session, user SID and token-integrity RID, single visible
+top-level HWND, outer and client rectangles, monitor and work-area rectangles,
+effective DPI, measured restored/maximized/minimized/fullscreen state, and Fyne metrics. It
+rejects a supplied environment whose account SID or integrity RID does not
+match the live process token. Review the generated
+fragment before changing its status to `pass`. In particular, record monitor
+identity and confirm visible margins, title bar, resize borders, and taskbar.
+The same exact MSI needs separate clean standard-DPI, clean high-DPI or
+mixed-DPI, retained v0.9.1 profile, state-transition, and subsequent-launch
+observations.
+
+### Required attended matrix
+
+- Prove normal-user service access and GUI task listing, LocalSystem service
+  identity, unrelated-user pipe denial, new-process PATH resolution, and PATH
+  absence after uninstall.
+- Exercise daemon unavailable, access denied, timeout, stream disconnect,
+  repeated refresh or reconnect, manual Retry, and recovery. Retain at least
+  120 seconds of timestamped samples for each repetition-sensitive condition.
+- Record one in-frame incident, zero modal overlays, and zero additional
+  top-level error windows. HWND enumeration cannot see Fyne canvas overlays,
+  so screenshots and attended visible-surface counts are both required.
+- Use distinct production run identities for manual success, scheduled
+  success, exit-code 7, and process-start failure, while binding every result
+  to the same candidate identity. Retain one
+  `attachments/tasks/task-runs.json` document with schema version `1`, kind
+  `task-run-evidence-v1`, and exactly one record per task observation. Each
+  record preserves the task definition, captured output, completion marker,
+  history result, production-run flag, expected/actual result, and diagnostic
+  category. Reference that attachment from all four task observations; the
+  gate independently hashes the retained values and compares them with the
+  observation metrics.
+- Exercise shortcut defaults and all selections, four independent completion
+  combinations, medium-integrity Finish launch, cancel, maintenance, upgrade,
+  invalid-input rejection, transactional rollback, preserve, wipe, locked
+  partial cleanup, at least two genuine profiles, and reinstall after both
+  removal modes.
+
+Finalize after all fragments are reviewed and recorded:
+
+```powershell
+pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
+  -Action Finalize `
+  -MsiPath C:\verify\go-schedule_v1.0.0_windows_amd64.msi `
+  -WorkspacePath C:\verify\v1.0.0-attended
+```
+
+Finalize hashes every referenced attachment and invokes the shared Go gate.
+It produces the canonical ZIP only if all identity, environment, scenario,
+timing, measurement, and attachment rules pass. Upload that archive to the
+same draft release. The manual Promote Release workflow revalidates the draft,
+staging run, last-observed remote tag commit, exact allowlisted asset set,
+manifest, archive, and exact MSI; creates the final
+all-asset checksum file; and only then makes the release public.
+
+The checked-in `test/fixtures/windows-release-gate/passing` data is plain text
+and explicitly non-native. It proves validator behavior only. It cannot close
+#94 or #98 and cannot authorize promotion.
+
 ## Evidence boundaries
 
 - Source contracts prove tracked authoring.

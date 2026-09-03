@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "native-window-v1",
+  "observation_id": "window.state-transitions",
+  "captured_at": "2026-09-02T12:01:00Z",
+  "process_id": 100,
+  "process_path": "C:\\Program Files\\go-schedule\\gosched-gui.exe",
+  "process_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "process_session_id": 1,
+  "process_user_sid": "S-1-5-21-1000",
+  "process_integrity_rid": 8192,
+  "hwnd": "0x00000001",
+  "outer_rect": {
+    "left": 100,
+    "top": 100,
+    "right": 1400,
+    "bottom": 940
+  },
+  "client_rect": {
+    "left": 110,
+    "top": 130,
+    "right": 1390,
+    "bottom": 930
+  },
+  "monitor_rect": {
+    "left": 0,
+    "top": 0,
+    "right": 2560,
+    "bottom": 1440
+  },
+  "work_area_rect": {
+    "left": 0,
+    "top": 0,
+    "right": 2560,
+    "bottom": 1400
+  },
+  "monitor_id": "fixture-monitor",
+  "effective_dpi": 96,
+  "show_command": 1,
+  "visible": true,
+  "maximized": false,
+  "minimized": false,
+  "fullscreen": false,
+  "restored": true,
+  "fyne": {
+    "schema_version": 1,
+    "process_id": 100,
+    "captured_at": "2026-09-02T12:01:00Z",
+    "content_width": 1280.0,
+    "content_height": 800.0,
+    "canvas_scale": 1.0
+  }
+}
