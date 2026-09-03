@@ -67,6 +67,11 @@ try {
   $icon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Icon[@Id="GoSchedule.ico"]', $ns)
   $summary = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:SummaryInformation', $ns)
   $arpIcon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPPRODUCTICON"]', $ns)
+  $arpNoRemove = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPNOREMOVE"]', $ns)
+  $arpNoModify = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPNOMODIFY"]', $ns)
+  $modifyPath = $wxsXml.SelectSingleNode('//w:RegistryValue[@Id="ApplicationManagementModifyPath"]', $ns)
+  $maintenanceDialog = $wxsXml.SelectSingleNode('//w:Dialog[@Id="GoScheduleMaintenanceTypeDlg"]', $ns)
+  $maintenanceRemove = $wxsXml.SelectSingleNode('//w:Dialog[@Id="GoScheduleMaintenanceTypeDlg"]/w:Control[@Id="RemoveButton"]', $ns)
   $shortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="GuiShortcut"]', $ns)
   $desktopShortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="DesktopShortcut"]', $ns)
   $mainFeature = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Feature[@Id="Main"]', $ns)
@@ -82,6 +87,7 @@ try {
   $installingUser = $wxsXml.SelectSingleNode('//util:User[@Id="InstallingUser"]', $ns)
   $adminGroupRef = $wxsXml.SelectSingleNode('//util:User[@Id="InstallingUser"]/util:GroupRef[@Id="GoScheduleAdminGroup"]', $ns)
   $adminComponentRef = $wxsXml.SelectSingleNode('//w:Feature[@Id="Main"]/w:ComponentRef[@Id="AdminAccessProvisioning"]', $ns)
+  $managementComponentRef = $wxsXml.SelectSingleNode('//w:Feature[@Id="Main"]/w:ComponentRef[@Id="ApplicationManagementRegistration"]', $ns)
 
   $expectedSubject = 'go-schedule: cross-platform task scheduler'
   if (-not $summary) {
@@ -108,6 +114,27 @@ try {
     $fail += 'ARPPRODUCTICON property is missing'
   } elseif ($arpIcon.Value -ne 'GoSchedule.ico') {
     $fail += 'ARPPRODUCTICON must reference "GoSchedule.ico"'
+  }
+
+  if (-not $arpNoRemove -or $arpNoRemove.Value -ne '1') {
+    $fail += 'ARPNOREMOVE must be 1 so Windows Settings uses full maintenance before removal'
+  }
+  if ($arpNoModify) {
+    $fail += 'ARPNOMODIFY must remain absent so Windows Settings exposes maintenance'
+  }
+  if (-not $modifyPath -or $modifyPath.Root -ne 'HKLM' -or
+      $modifyPath.Key -ne 'Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]' -or
+      $modifyPath.Name -ne 'ModifyPath' -or $modifyPath.Type -ne 'expandable' -or
+      $modifyPath.Value -ne 'MsiExec.exe /I[ProductCode]' -or $modifyPath.KeyPath -ne 'yes') {
+    $fail += 'ApplicationManagementModifyPath must own the current product maintenance command'
+  }
+  if (-not $managementComponentRef) {
+    $fail += 'Main feature must reference ApplicationManagementRegistration'
+  }
+  if (-not $maintenanceDialog -or -not $maintenanceRemove) {
+    $fail += 'package-owned maintenance dialog and Remove control are required'
+  } elseif ($maintenanceRemove.DisableCondition -match 'ARPNOREMOVE') {
+    $fail += 'package-owned maintenance Remove must ignore ARPNOREMOVE'
   }
 
   if (-not $shortcut) {
@@ -172,7 +199,7 @@ try {
   if (-not $ownedUi) {
     $fail += 'package-owned FeatureTree UI is missing'
   } else {
-    foreach ($dialogId in @('GoScheduleUninstallDlg', 'GoScheduleWipeConfirmDlg', 'GoScheduleExitDlg')) {
+    foreach ($dialogId in @('GoScheduleMaintenanceTypeDlg', 'GoScheduleUninstallDlg', 'GoScheduleWipeConfirmDlg', 'GoScheduleExitDlg')) {
       if (-not $ownedUi.SelectSingleNode("w:Dialog[@Id='$dialogId']", $ns)) {
         $fail += "$dialogId is missing from the package-owned UI"
       }
@@ -189,8 +216,8 @@ try {
     if (-not $directRemove -or $directRemove.Before -ne 'ProgressDlg' -or $directRemove.Condition -notmatch 'Preselected' -or $directRemove.Condition -notmatch 'REMOVE~="ALL"') {
       $fail += 'direct full-UI uninstall must route through GoScheduleUninstallDlg'
     }
-    $maintenanceRemove = $ownedUi.SelectSingleNode('w:Publish[@Dialog="MaintenanceTypeDlg" and @Control="RemoveButton" and @Event="NewDialog"]', $ns)
-    if (-not $maintenanceRemove -or $maintenanceRemove.Value -ne 'GoScheduleUninstallDlg') {
+    $maintenanceRemove = $ownedUi.SelectSingleNode('w:Publish[@Dialog="GoScheduleMaintenanceTypeDlg" and @Control="RemoveButton" and @Event="NewDialog"]', $ns)
+    if (-not $maintenanceRemove -or $maintenanceRemove.Value -ne 'GoScheduleUninstallDlg' -or $maintenanceRemove.Order -ne '4') {
       $fail += 'maintenance Remove must route through GoScheduleUninstallDlg'
     }
   }

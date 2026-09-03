@@ -222,16 +222,37 @@ func validateOwnedInstallerUI(data []byte) []string {
 		return []string{err.Error()}
 	}
 	var failures []string
+	removeARP, ok := findInstallerElement(elements, "Property", "ARPNOREMOVE")
+	if !ok || removeARP.attrs["Value"] != "1" {
+		failures = append(failures, "ARPNOREMOVE must disable the reduced-interface direct removal entry")
+	}
+	if _, ok := findInstallerElement(elements, "Property", "ARPNOMODIFY"); ok {
+		failures = append(failures, "ARPNOMODIFY must remain absent so maintenance opens the guided removal flow")
+	}
+	modifyPath, ok := findInstallerElement(elements, "RegistryValue", "ApplicationManagementModifyPath")
+	if !ok || modifyPath.attrs["Root"] != "HKLM" ||
+		modifyPath.attrs["Key"] != `Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]` ||
+		modifyPath.attrs["Name"] != "ModifyPath" || modifyPath.attrs["Type"] != "expandable" ||
+		modifyPath.attrs["Value"] != `MsiExec.exe /I[ProductCode]` || modifyPath.attrs["KeyPath"] != "yes" {
+		failures = append(failures, "ModifyPath must be an owned expandable maintenance command for the current ProductCode")
+	}
+	if _, ok := findInstallerElementWithin(elements, "Feature", "Main", "ComponentRef", "ApplicationManagementRegistration"); !ok {
+		failures = append(failures, "Main feature must install the application-management registration component")
+	}
 	for _, element := range elements {
 		if element.name == "WixUI" {
 			failures = append(failures, "stock WixUI must not be composed with the package-owned UI")
 			break
 		}
 	}
-	for _, dialog := range []string{"GoScheduleUninstallDlg", "GoScheduleWipeConfirmDlg", "GoScheduleExitDlg"} {
+	for _, dialog := range []string{"GoScheduleMaintenanceTypeDlg", "GoScheduleUninstallDlg", "GoScheduleWipeConfirmDlg", "GoScheduleExitDlg"} {
 		if _, ok := findInstallerElement(elements, "Dialog", dialog); !ok {
 			failures = append(failures, dialog+" is missing")
 		}
+	}
+	maintenanceRemove, ok := findInstallerElementWithin(elements, "Dialog", "GoScheduleMaintenanceTypeDlg", "Control", "RemoveButton")
+	if !ok || strings.Contains(maintenanceRemove.attrs["DisableCondition"], "ARPNOREMOVE") {
+		failures = append(failures, "package-owned maintenance Remove must remain enabled when direct ARP removal is suppressed")
 	}
 	for _, want := range []struct {
 		id, value string
@@ -303,7 +324,20 @@ func validateOwnedInstallerUI(data []byte) []string {
 			failures = append(failures, sequence+" must schedule exactly one package-owned success dialog")
 		}
 	}
-	if countInstallerElements(elements, "Publish", map[string]string{"Dialog": "MaintenanceTypeDlg", "Control": "RemoveButton", "Event": "NewDialog", "Value": "GoScheduleUninstallDlg"}) != 1 {
+	if _, ok := findInstallerPublish(elements, "GoScheduleMaintenanceTypeDlg", map[string]string{
+		"Property": "WixUI_InstallMode", "Value": "Remove", "Order": "1",
+	}); !ok {
+		failures = append(failures, "maintenance Remove must set the MSI maintenance mode first")
+	}
+	for _, want := range []map[string]string{
+		{"Dialog": "GoScheduleMaintenanceTypeDlg", "Control": "RemoveButton", "Property": "GOSCHEDULE_REMOVE_DATA", "Value": "0", "Order": "2"},
+		{"Dialog": "GoScheduleMaintenanceTypeDlg", "Control": "RemoveButton", "Property": "GoScheduleRemoveChoice", "Value": "preserve", "Order": "3"},
+	} {
+		if countInstallerElements(elements, "Publish", want) != 1 {
+			failures = append(failures, "maintenance Remove must reset the guided choice to preserve before navigation")
+		}
+	}
+	if countInstallerElements(elements, "Publish", map[string]string{"Dialog": "GoScheduleMaintenanceTypeDlg", "Control": "RemoveButton", "Event": "NewDialog", "Value": "GoScheduleUninstallDlg", "Order": "4"}) != 1 {
 		failures = append(failures, "maintenance Remove must route through the uninstall inventory")
 	}
 	foundDirectRemove := false
@@ -579,12 +613,14 @@ func TestWindowsInstallerLifecycleContractRejectsMutations(t *testing.T) {
 	}
 
 	uiFixture := `<Wix><Package>
-<Property Id="LAUNCH_GOSCHEDULE" Value="1"/><Property Id="GOSCHEDULE_REMOVE_DATA" Value="0" Secure="yes"/>
+	<Property Id="ARPNOREMOVE" Value="1"/><Property Id="LAUNCH_GOSCHEDULE" Value="1"/><Property Id="GOSCHEDULE_REMOVE_DATA" Value="0" Secure="yes"/>
+	<Feature Id="Main"><ComponentRef Id="ApplicationManagementRegistration"/></Feature><Component Id="ApplicationManagementRegistration"><RegistryValue Id="ApplicationManagementModifyPath" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]" Name="ModifyPath" Type="expandable" Value="MsiExec.exe /I[ProductCode]" KeyPath="yes"/></Component>
 <UI>
+<Dialog Id="GoScheduleMaintenanceTypeDlg"><Control Id="RemoveButton" Type="PushButton" DisableCondition="BURNMSIREPAIR OR BURNMSIMODIFY"><Publish Property="WixUI_InstallMode" Value="Remove" Order="1"/></Control></Dialog>
 <Dialog Id="GoScheduleUninstallDlg"><Control Id="AlwaysRemovedText"/><Control Id="PreservedDataText"/><Control Id="WipedDataText"/><Control Id="SecurityStateText"/><Control Id="RemoveChoice"/></Dialog>
 <Dialog Id="GoScheduleWipeConfirmDlg"><Control Id="ConfirmWipe" Type="PushButton" Default="no"/></Dialog>
 <Dialog Id="GoScheduleExitDlg"><Control Id="LaunchGuiCheckBox" Type="CheckBox" Property="LAUNCH_GOSCHEDULE" CheckBoxValue="1"/><Control Id="OpenDocsCheckBox" Type="CheckBox" Property="OPEN_GOSCHEDULE_DOCS" CheckBoxValue="1"/><Control Id="Finish"><Publish Property="WixUnelevatedShellExecTarget" Value="[#gosched_gui.exe]" Order="1" Condition='` + completionActionGuard + ` AND LAUNCH_GOSCHEDULE = "1"'/><Publish Event="DoAction" Value="LaunchGui" Order="2" Condition='` + completionActionGuard + ` AND LAUNCH_GOSCHEDULE = "1"'/><Publish Property="WixUnelevatedShellExecTarget" Value="https://shruggietech.github.io/go-schedule/" Order="3" Condition='` + completionActionGuard + ` AND OPEN_GOSCHEDULE_DOCS = "1"'/><Publish Event="DoAction" Value="OpenDocs" Order="4" Condition='` + completionActionGuard + ` AND OPEN_GOSCHEDULE_DOCS = "1"'/></Control></Dialog>
-<Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="GoScheduleUninstallDlg"/>
+<Publish Dialog="GoScheduleMaintenanceTypeDlg" Control="RemoveButton" Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="2"/><Publish Dialog="GoScheduleMaintenanceTypeDlg" Control="RemoveButton" Property="GoScheduleRemoveChoice" Value="preserve" Order="3"/><Publish Dialog="GoScheduleMaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="GoScheduleUninstallDlg" Order="4"/>
 <InstallUISequence><Show Dialog="GoScheduleUninstallDlg" Before="ProgressDlg" Condition='Installed AND REMOVE~="ALL" AND Preselected AND UILevel = 5'/><Show Dialog="GoScheduleExitDlg" OnExit="success"/></InstallUISequence><AdminUISequence><Show Dialog="GoScheduleExitDlg" OnExit="success"/></AdminUISequence>
 </UI>
 <CustomAction Id="LaunchGui" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixUnelevatedShellExec" Execute="immediate" Return="ignore"/><CustomAction Id="OpenDocs" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixUnelevatedShellExec" Execute="immediate" Return="ignore"/>
@@ -593,9 +629,15 @@ func TestWindowsInstallerLifecycleContractRejectsMutations(t *testing.T) {
 		name, old, replacement, want string
 	}{
 		{"stock UI composition", `<UI>`, `<WixUI Id="WixUI_FeatureTree"/><UI>`, "stock WixUI"},
+		{"direct Settings removal restored", `<Property Id="ARPNOREMOVE" Value="1"/>`, ``, "ARPNOREMOVE"},
+		{"maintenance suppressed", `<Property Id="ARPNOREMOVE" Value="1"/>`, `<Property Id="ARPNOREMOVE" Value="1"/><Property Id="ARPNOMODIFY" Value="1"/>`, "ARPNOMODIFY"},
+		{"maintenance command removed", `<RegistryValue Id="ApplicationManagementModifyPath" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]" Name="ModifyPath" Type="expandable" Value="MsiExec.exe /I[ProductCode]" KeyPath="yes"/>`, ``, "ModifyPath"},
+		{"maintenance command made destructive", `Value="MsiExec.exe /I[ProductCode]"`, `Value="MsiExec.exe /X[ProductCode]"`, "ModifyPath"},
+		{"maintenance component unreferenced", `<ComponentRef Id="ApplicationManagementRegistration"/>`, ``, "Main feature"},
+		{"maintenance Remove disabled", `DisableCondition="BURNMSIREPAIR OR BURNMSIMODIFY"`, `DisableCondition="ARPNOREMOVE OR BURNMSIREPAIR OR BURNMSIMODIFY"`, "maintenance Remove"},
 		{"launch elevation guard", ` AND UILevel = 5`, ``, "insufficiently guarded"},
 		{"second success dialog", `<Show Dialog="GoScheduleExitDlg" OnExit="success"/></InstallUISequence>`, `<Show Dialog="GoScheduleExitDlg" OnExit="success"/><Show Dialog="GoScheduleExitDlg" OnExit="success"/></InstallUISequence>`, "InstallUISequence must schedule exactly one"},
-		{"remove routing", `Value="GoScheduleUninstallDlg"/>`, `Value="VerifyReadyDlg"/>`, "maintenance Remove"},
+		{"remove routing", `Value="GoScheduleUninstallDlg" Order="4"/>`, `Value="VerifyReadyDlg" Order="4"/>`, "maintenance Remove"},
 		{"destructive default", `Id="ConfirmWipe" Type="PushButton" Default="no"`, `Id="ConfirmWipe" Type="PushButton" Default="yes"`, "explicit and non-default"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -741,6 +783,11 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		"Wix4Group.GoScheduleAdminGroup.Domain",
 		"expected empty for elevated local-group creation",
 		"- Administrative group row:",
+		"Property.ARPNOREMOVE",
+		"Property.ARPNOMODIFY must remain absent",
+		"Registry.ApplicationManagementModifyPath",
+		"GoScheduleMaintenanceTypeDlg.RemoveButton",
+		"- Application-management registration:",
 	} {
 		if !strings.Contains(inspector, fragment) {
 			t.Errorf("MSI inspector is missing evidence-provenance fragment %q", fragment)
@@ -748,6 +795,20 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	}
 	if strings.Contains(inspector, "Candidate/published artifact status") {
 		t.Error("MSI inspector combines candidate and published evidence statuses")
+	}
+
+	contractCI := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerContractCI.ps1"))
+	for _, fragment := range []string{
+		"function Assert-ApplicationManagementRegistration",
+		"NoRemove",
+		"NoModify",
+		"ModifyPath",
+		"UninstallString",
+		"application-management-registration",
+	} {
+		if !strings.Contains(contractCI, fragment) {
+			t.Errorf("installer CI harness is missing application-management evidence fragment %q", fragment)
+		}
 	}
 
 	lifecycle := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerLifecycle.ps1"))

@@ -174,6 +174,39 @@ if (-not $productCode) {
   $fail.Add('Property.ProductCode is missing')
 }
 
+$arpNoRemove = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ARPNOREMOVE'"
+if ($arpNoRemove -ne '1') {
+  $fail.Add("Property.ARPNOREMOVE is '$arpNoRemove'; expected '1'")
+}
+$arpNoModify = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ARPNOMODIFY'"
+if ($arpNoModify) {
+  $fail.Add("Property.ARPNOMODIFY must remain absent; found '$arpNoModify'")
+}
+
+$modifyPath = Require-SingleMsiRow -Database $database `
+  -Query "SELECT ``Root``, ``Key``, ``Name``, ``Value``, ``Component_`` FROM ``Registry`` WHERE ``Registry``='ApplicationManagementModifyPath'" `
+  -Description 'Registry.ApplicationManagementModifyPath' -Failures $fail
+if ($modifyPath) {
+  if ($modifyPath.Root -ne '2' -or
+      $modifyPath.Key -ne 'Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]' -or
+      $modifyPath.Name -ne 'ModifyPath' -or
+      $modifyPath.Value -ne '#%MsiExec.exe /I[ProductCode]' -or
+      $modifyPath.Component_ -ne 'ApplicationManagementRegistration') {
+    $fail.Add(
+      'Registry.ApplicationManagementModifyPath must be the HKLM expandable ' +
+      'maintenance command owned by ApplicationManagementRegistration'
+    )
+  }
+}
+$modifyPathFeature = Require-SingleMsiRow -Database $database `
+  -Query "SELECT ``Feature_`` FROM ``FeatureComponents`` WHERE ``Component_``='ApplicationManagementRegistration'" `
+  -Description 'FeatureComponents.ApplicationManagementRegistration' -Failures $fail
+if ($modifyPathFeature -and $modifyPathFeature.Feature_ -ne 'Main') {
+  $fail.Add("ApplicationManagementRegistration belongs to '$($modifyPathFeature.Feature_)'; expected Main")
+}
+
 $manufacturer = Get-MsiString -Database $database `
   -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='Manufacturer'"
 if ($manufacturer -ne 'ShruggieTech') {
@@ -299,11 +332,47 @@ foreach ($featureContract in @(
 }
 
 $dialogEvidence = [System.Collections.Generic.List[string]]::new()
-foreach ($dialogId in @('GoScheduleUninstallDlg','GoScheduleWipeConfirmDlg','GoScheduleExitDlg')) {
+foreach ($dialogId in @('GoScheduleMaintenanceTypeDlg','GoScheduleUninstallDlg','GoScheduleWipeConfirmDlg','GoScheduleExitDlg')) {
   $dialog = Require-SingleMsiRow -Database $database `
     -Query "SELECT ``Dialog`` FROM ``Dialog`` WHERE ``Dialog``='$dialogId'" `
     -Description "Dialog.$dialogId" -Failures $fail
   if ($dialog) { $dialogEvidence.Add($dialogId) }
+}
+
+$maintenanceRemoveControl = Require-SingleMsiRow -Database $database `
+  -Query "SELECT ``Type`` FROM ``Control`` WHERE ``Dialog_``='GoScheduleMaintenanceTypeDlg' AND ``Control``='RemoveButton'" `
+  -Description 'GoScheduleMaintenanceTypeDlg.RemoveButton' -Failures $fail
+$maintenanceRemoveConditions = @(Get-MsiRowsOrEmpty -Database $database `
+  -Query "SELECT ``Action``, ``Condition`` FROM ``ControlCondition`` WHERE ``Dialog_``='GoScheduleMaintenanceTypeDlg' AND ``Control_``='RemoveButton'")
+if (@($maintenanceRemoveConditions | Where-Object { $_.Condition -match 'ARPNOREMOVE' }).Count -ne 0) {
+  $fail.Add('GoScheduleMaintenanceTypeDlg.RemoveButton must not be disabled by ARPNOREMOVE')
+}
+$maintenanceRemoveRoute = Require-SingleMsiRow -Database $database `
+  -Query "SELECT ``Argument`` FROM ``ControlEvent`` WHERE ``Dialog_``='GoScheduleMaintenanceTypeDlg' AND ``Control_``='RemoveButton' AND ``Event``='NewDialog'" `
+  -Description 'GoScheduleMaintenanceTypeDlg.RemoveButton NewDialog' -Failures $fail
+if ($maintenanceRemoveRoute -and $maintenanceRemoveRoute.Argument -ne 'GoScheduleUninstallDlg') {
+  $fail.Add("Maintenance Remove routes to '$($maintenanceRemoveRoute.Argument)'; expected GoScheduleUninstallDlg")
+}
+$maintenanceRemoveEvents = @(Get-MsiRowsOrEmpty -Database $database `
+  -Query "SELECT ``Event``, ``Argument``, ``Condition``, ``Ordering`` FROM ``ControlEvent`` WHERE ``Dialog_``='GoScheduleMaintenanceTypeDlg' AND ``Control_``='RemoveButton'")
+foreach ($eventContract in @(
+  @{ Event = '[WixUI_InstallMode]'; Argument = 'Remove'; Ordering = '1' },
+  @{ Event = '[GOSCHEDULE_REMOVE_DATA]'; Argument = '0'; Ordering = '2' },
+  @{ Event = '[GoScheduleRemoveChoice]'; Argument = 'preserve'; Ordering = '3' },
+  @{ Event = 'NewDialog'; Argument = 'GoScheduleUninstallDlg'; Ordering = '4' }
+)) {
+  $matches = @($maintenanceRemoveEvents | Where-Object {
+    $_.Event -eq $eventContract.Event -and
+    $_.Argument -eq $eventContract.Argument -and
+    $_.Condition -eq '1' -and
+    $_.Ordering -eq $eventContract.Ordering
+  })
+  if ($matches.Count -ne 1) {
+    $fail.Add(
+      "GoScheduleMaintenanceTypeDlg.RemoveButton event $($eventContract.Event) " +
+      "must set '$($eventContract.Argument)' at order $($eventContract.Ordering)"
+    )
+  }
 }
 
 $launchControl = Require-SingleMsiRow -Database $database `
@@ -503,6 +572,7 @@ $evidence = @(
   "- Explorer property-system Subject: ``$explorerSubject``"
   "- Icon row: ``$iconName``"
   "- ARPPRODUCTICON: ``$arpIcon``"
+  "- Application-management registration: ``ARPNOREMOVE=$arpNoRemove``; ARPNOMODIFY absent=$(-not [bool]$arpNoModify); ModifyPath row=``$($modifyPath.Value)``"
   "- GuiShortcut Icon_: ``$shortcutIcon``"
   "- PATH row: ``$environmentName`` | ``$environmentValue`` | ``$environmentComponent``"
   "- Administrative group row: ``GoScheduleAdminGroup`` | ``$adminGroupName`` | domain ``$adminGroupDomain``"

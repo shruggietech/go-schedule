@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Windows Settings can no longer bypass the guided preserve-or-wipe
+  uninstall flow (Refs #98).** The MSI registers maintenance as its supported
+  attended application-management action and suppresses the reduced-interface
+  direct Remove entry. Users select Modify, then Remove in the full wizard;
+  direct silent preserve and explicit-wipe commands remain supported.
+
 - **Installed Windows access now works for direct `goschedadmin` users whose
   standard token omits the new alias SID (Closes #90).** The restricted pipe
   retains SYSTEM, Built-in Administrators, and configured-group ACEs while
@@ -68,6 +74,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-02 - Route attended Windows removal through MSI maintenance.** The
+  system's direct MSI Remove entry can use reduced UI and skip package-authored
+  data choices, as the maintainer observed against the unreleased S039 MSI.
+  S041 therefore uses Windows Installer's supported `ARPNOREMOVE` model, an
+  MSI-owned current-ProductCode `/I` registry value, and a package-owned
+  maintenance page. Hosted evidence proved that `ARPNOREMOVE` also omits the
+  generated `ModifyPath`, while WiX's stock page disables its Remove control.
+  A shadow ARP entry, bootstrapper, or execute-sequence popup would duplicate
+  product ownership or contaminate silent administration.
 
 - **2026-09-02 - Build Windows release assets once, then promote the tested
   draft.** Rebuilding after attended testing cannot guarantee byte identity,
