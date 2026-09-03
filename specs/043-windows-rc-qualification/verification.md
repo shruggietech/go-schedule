@@ -6,9 +6,9 @@
 
 ## Current result
 
-In progress. The local demo candidate is not ready for handoff until the Spec Kit
-analyze gate, automated checks, compiled inspection, identity audit, integrity
-scan, local commit, and final rebuild disposition are complete.
+Automated qualification is complete and the local demo is ready for attended
+testing. The branch remains local and the pull request remains withheld. S043 is
+still In Progress until the operator finishes the attended-demo checklist.
 
 ## Evidence classes
 
@@ -87,7 +87,34 @@ The race gate included the 54.026-second integration suite; lint reported zero
 issues, all coverage packages remained above 80 percent, and documentation plus
 automation completed cleanly.
 
-Final demo identity is pending a clean rebuild from the correction commit.
+The corrected demo was rebuilt from commit
+`cd877817fdfe3eac9ceeb7f8500f7ef7a55ceffa`. The later evidence-only commit does
+not change any staged executable, README, license, changelog, WiX source, icon,
+or other MSI input, so another rebuild would create a different hash without
+changing the tested product source.
+
+| Field | Value |
+| --- | --- |
+| Artifact | `dist/go-schedule_s043-demo_cd877817_windows_amd64.msi` |
+| Artifact class | `local-demo` |
+| Built at | `2026-09-03T09:17:01.782Z` |
+| Source commit | `cd877817fdfe3eac9ceeb7f8500f7ef7a55ceffa` |
+| Embedded version | `1.0.0-s043-demo.cd877817` |
+| ProductVersion | `1.0.0` |
+| ProductCode | `{593C2C48-6C61-4359-BB30-BFDBA2E59C7A}` |
+| UpgradeCode | `{B6F3C2E1-7A4D-4C9E-9B2A-1F6D8E5A0C34}` |
+| Byte size | `23511040` |
+| SHA-256 | `ef4a869af0e6971d445c53e8f7a237df655245287c7ae64d8e719941bda8ad59` |
+| Compiled inspection | PASS; `dist/s043-demo-cd877817-installer-inspection.md` |
+| Authenticode | Not signed (local demo) |
+
+Independent inspection queried the MSI Property table and matched the values
+above. `gosched --version` returned the embedded demo version, and a byte scan
+found the same marker in the CLI, daemon, GUI, and cleanup helper. The compiled
+inspector proved summary metadata, Explorer Subject, canonical product identity,
+icon and shortcut rows, PATH integration, local-group authoring, maintenance
+routing, completion actions, preserve default, explicit wipe condition, invalid-
+input guard, and close-application rows.
 
 ## Native evidence boundary
 
