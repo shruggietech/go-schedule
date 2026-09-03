@@ -87,8 +87,40 @@ removed or weakened.
 
 ## Local demo identity
 
-Pending committed source, build, and compiled inspection.
+PASS for local, non-release handoff.
+
+| Field | Value |
+| --- | --- |
+| Artifact | `dist/go-schedule_s047-demo_5151c069_windows_amd64.msi` |
+| Artifact class | `local-demo` |
+| Built at | `2026-09-03T21:46:54.0060000Z` |
+| Source commit | `5151c0698aaa65021b32ce697f84a6c7469bf3f6` |
+| Embedded version | `1.0.0-s047-demo.5151c069` |
+| ProductVersion | `1.0.0` |
+| ProductCode | `{98534477-793A-473C-9E3A-8C7E245C2220}` |
+| UpgradeCode | `{B6F3C2E1-7A4D-4C9E-9B2A-1F6D8E5A0C34}` |
+| Byte size | `24162304` |
+| SHA-256 | `31feabdb3f61334b7b46a81350297cce07f8b59882bcb80336f26248c260d2f7` |
+| Compiled inspection | PASS; `dist/s047-demo-5151c069-installer-inspection.md` |
+| Authenticode | Not signed (local demo) |
+
+The MSI was compiled through WiX 6.0.2 from the committed source above. `go
+version -m` reports the exact embedded version in all four staged executables,
+`gosched --version` reports the same value, and independent MSI-table inspection
+matches ProductVersion and ProductCode. The compiled inspector also proves the
+canonical product identity, Summary Subject, icon, PATH, administrative group,
+shortcut features, lifecycle dialogs, completion actions, wipe property and
+cleanup action, and stale-process handling.
+
+This artifact is suitable only for the pre-push attended walkthrough. It is not
+signed, staged by the Release workflow, or eligible for promotion.
+
+Post-build documentation policy, documentation integrity, specification
+lifecycle, strict UTF-8/no-BOM, mojibake, task-state, whitespace, and recorded
+artifact-identity checks all pass. The task audit reports 38 tasks with exactly
+four attended tasks intentionally open.
 
 ## Attended pre-push result
 
-Pending exact local-demo handoff and maintainer walkthrough.
+Pending maintainer execution of
+`checklists/attended-demo.md` against the exact identity above.

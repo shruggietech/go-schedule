@@ -110,10 +110,10 @@ last native pre-push walkthrough.
 commit, embedded version, ProductVersion, ProductCode, byte size, SHA-256, and
 `local-demo` class.
 
-- [ ] T031 [US3] Build the four Windows amd64 binaries from the committed source with `1.0.0-s047-demo.<short-commit>` embedded and stage only intended MSI inputs under untracked `dist/`
-- [ ] T032 [US3] Compile `dist/go-schedule_s047-demo_<short-commit>_windows_amd64.msi` through the pinned WiX 6.0.2 path
-- [ ] T033 [US3] Run compiled inspection with artifact class `local-demo`, verify embedded versions and hash, and record identity in `specs/047-windows-release-qualification/verification.md`
-- [ ] T034 [US3] Re-run documentation, lifecycle, diff, encoding, and artifact-identity checks after recording the demo and create an evidence-only local commit
+- [x] T031 [US3] Build the four Windows amd64 binaries from the committed source with `1.0.0-s047-demo.<short-commit>` embedded and stage only intended MSI inputs under untracked `dist/`
+- [x] T032 [US3] Compile `dist/go-schedule_s047-demo_<short-commit>_windows_amd64.msi` through the pinned WiX 6.0.2 path
+- [x] T033 [US3] Run compiled inspection with artifact class `local-demo`, verify embedded versions and hash, and record identity in `specs/047-windows-release-qualification/verification.md`
+- [x] T034 [US3] Re-run documentation, lifecycle, diff, encoding, and artifact-identity checks after recording the demo and create an evidence-only local commit
 
 **Checkpoint**: The exact linked local demo is ready for attended testing and no
 repository or release publication has occurred.
