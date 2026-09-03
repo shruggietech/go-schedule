@@ -53,4 +53,3 @@ Do not include account names or other personal data in screenshots.
 
 Report each item as pass, fail, partial, unavailable, or not run. Include the
 demo SHA-256 in the response so results cannot be attached to the wrong rebuild.
-

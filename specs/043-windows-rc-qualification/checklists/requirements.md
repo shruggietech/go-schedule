@@ -26,4 +26,3 @@
 - [x] CHK012 The compiled MSI can be independently hashed and inspected.
 - [x] CHK013 Operator observations bind to one immutable demo hash.
 - [x] CHK014 Rebuild invalidation and failed-observation handling are defined.
-

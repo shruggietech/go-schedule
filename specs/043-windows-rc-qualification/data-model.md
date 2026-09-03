@@ -50,4 +50,3 @@ Invariant: A failed observation is recorded before related product code changes.
 
 Invariant: FormalCandidate is created only by authorized tag staging after review.
 DemoCandidate evidence cannot be relabeled or copied into it as a pass.
-
