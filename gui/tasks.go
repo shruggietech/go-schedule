@@ -83,7 +83,17 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 	list.OnUnselected = func(widget.ListItemID) { selectedID = "" }
 
 	refresh := func() {
+		selectedBeforeRefresh := selectedID
 		tasks = a.model.Snapshot().Tasks
+		list.UnselectAll()
+		if selectedBeforeRefresh != "" {
+			for i, task := range tasks {
+				if task.ID == selectedBeforeRefresh {
+					list.Select(i)
+					break
+				}
+			}
+		}
 		list.Refresh()
 	}
 	a.registerRefresher(refresh)

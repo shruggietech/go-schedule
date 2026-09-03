@@ -94,6 +94,13 @@ The helper now joins each directory segment independently. The focused
 `go test -race ./internal/winuninstall -count=1` command passed, followed by a
 fresh successful run of all eight canonical gates.
 
+The automatic Codex review also identified that a numeric list selection could
+remain highlighted after tasks reordered while actions continued resolving the
+previous stable task ID. Refresh now clears the numeric selection and reselects
+the current row for that stable ID, or leaves the list unselected if the task
+was removed. A regression test covers both reorder and removal, and another
+full eight-gate run passed after the correction.
+
 ## Integrity
 
 All 42 changed or added files decoded as strict UTF-8, none had a UTF-8 BOM, the

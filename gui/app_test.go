@@ -346,6 +346,65 @@ func TestTaskListSingleDoubleRefreshAndStaleIdentity(t *testing.T) {
 	}
 }
 
+func TestTaskListRefreshReconcilesVisibleSelectionByStableID(t *testing.T) {
+	backend := &fakeBackend{tasks: []domain.Task{
+		{ID: "first", Name: "First", Timezone: "UTC"},
+		{ID: "second", Name: "Second", Timezone: "UTC"},
+	}}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	ui.taskList.Select(0)
+
+	var selected, unselected []widget.ListItemID
+	originalSelected := ui.taskList.OnSelected
+	originalUnselected := ui.taskList.OnUnselected
+	ui.taskList.OnSelected = func(id widget.ListItemID) {
+		selected = append(selected, id)
+		originalSelected(id)
+	}
+	ui.taskList.OnUnselected = func(id widget.ListItemID) {
+		unselected = append(unselected, id)
+		originalUnselected(id)
+	}
+
+	backend.tasks = []domain.Task{
+		{ID: "second", Name: "Second", Timezone: "UTC"},
+		{ID: "first", Name: "First", Timezone: "UTC"},
+	}
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if !reflect.DeepEqual(unselected, []widget.ListItemID{0}) {
+		t.Fatalf("unselected rows = %v, want [0]", unselected)
+	}
+	if !reflect.DeepEqual(selected, []widget.ListItemID{1}) {
+		t.Fatalf("selected rows = %v, want [1]", selected)
+	}
+
+	backend.tasks = []domain.Task{{ID: "second", Name: "Second", Timezone: "UTC"}}
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if !reflect.DeepEqual(unselected, []widget.ListItemID{0, 1}) {
+		t.Fatalf("unselected rows after removal = %v, want [0 1]", unselected)
+	}
+	if !reflect.DeepEqual(selected, []widget.ListItemID{1}) {
+		t.Fatalf("removed identity was reselected: %v", selected)
+	}
+}
+
 func TestActivityTabLabel(t *testing.T) {
 	tests := []struct {
 		count int
