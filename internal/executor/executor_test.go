@@ -1,7 +1,11 @@
 package executor
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"os"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -135,6 +139,36 @@ func TestExecutor_TaskEnvironmentOverridesParent(t *testing.T) {
 	run := New(0).Run(context.Background(), task, time.Now().UTC(), domain.TriggerManual)
 	if run.Outcome != domain.OutcomeSuccess || run.Output != "task" {
 		t.Fatalf("run = %#v, want task environment override", run)
+	}
+}
+
+func TestExecutor_DirectArgumentsRemainLiteral(t *testing.T) {
+	if os.Getenv("GO_SCHEDULE_EXECUTOR_ARG_HELPER") == "1" {
+		for i, arg := range os.Args {
+			if arg == "--" {
+				_ = json.NewEncoder(os.Stdout).Encode(os.Args[i+1:])
+				return
+			}
+		}
+		t.Fatal("helper separator missing")
+	}
+
+	want := []string{"", "hello world", "héllo 世界", "tabs\there", "lines\r\nhere", `C:\trail\`, "$HOME", "%PATH%", "|", ">", "*.txt", ";", "&"}
+	task := domain.Task{
+		Command: os.Args[0],
+		Args:    append([]string{"-test.run=^TestExecutor_DirectArgumentsRemainLiteral$", "--"}, want...),
+		Env:     map[string]string{"GO_SCHEDULE_EXECUTOR_ARG_HELPER": "1"},
+	}
+	run := New(0).Run(context.Background(), task, time.Now().UTC(), domain.TriggerManual)
+	if run.Outcome != domain.OutcomeSuccess {
+		t.Fatalf("helper run = %#v", run)
+	}
+	var got []string
+	if err := json.NewDecoder(bytes.NewBufferString(run.Output)).Decode(&got); err != nil {
+		t.Fatalf("decode helper output %q: %v", run.Output, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("received args = %#v, want %#v", got, want)
 	}
 }
 

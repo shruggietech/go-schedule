@@ -1,6 +1,7 @@
 package store
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -98,6 +99,29 @@ func TestStartupScheduleAndRunPersistAcrossReopenWithoutTriggerTables(t *testing
 		if err := st.db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&count); err != nil || count != 0 {
 			t.Fatalf("removed table %q count=%d err=%v", table, count, err)
 		}
+	}
+}
+
+func TestTaskCommandAndArgumentsRoundTripExactly(t *testing.T) {
+	st := openMem(t)
+	sch := &domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: "FREQ=DAILY", HumanSummary: "Daily"}
+	if err := st.CreateSchedule(sch); err != nil {
+		t.Fatal(err)
+	}
+	want := &domain.Task{
+		Name: "exact", Command: `C:\Program Files\Tool\tool.exe`,
+		Args:     []string{"", "--tag", "one", "--tag", "two", "héllo 世界", "tabs\there", "lines\r\nhere", `C:\trail\`, "$HOME", "|", "*.txt"},
+		Timezone: "UTC", ScheduleID: sch.ID, State: domain.TaskActive,
+	}
+	if err := st.CreateTask(want); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetTask(want.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Command != want.Command || !reflect.DeepEqual(got.Args, want.Args) {
+		t.Fatalf("task = command %q args %#v, want command %q args %#v", got.Command, got.Args, want.Command, want.Args)
 	}
 }
 

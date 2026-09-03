@@ -31,20 +31,19 @@ func TestPolicyLabelUnknownFallsBackToDefault(t *testing.T) {
 	}
 }
 
-func TestCommandLinePreview(t *testing.T) {
+func TestCommandPreviewTextExposesExactBoundaries(t *testing.T) {
 	tests := []struct {
 		command string
 		args    []string
 		want    string
 	}{
-		{"", nil, ""},
-		{"cmd", nil, "cmd"},
-		{"cmd", []string{"/c", "echo hello world"}, `cmd /c "echo hello world"`},
-		{"python", []string{"-m", "http.server"}, "python -m http.server"},
+		{"cmd", nil, "Program\n\"cmd\"\nArguments in order (0)\nNone"},
+		{"cmd", []string{"/c", "echo hello world"}, "Program\n\"cmd\"\nArguments in order (2)\n1  \"/c\"\n2  \"echo hello world\""},
+		{"program", []string{"", "a\tb", "a\r\nb", `C:\x`, `say "hi"`}, "Program\n\"program\"\nArguments in order (5)\n1  \"\"\n2  \"a\\tb\"\n3  \"a\\r\\nb\"\n4  \"C:\\\\x\"\n5  \"say \\\"hi\\\"\""},
 	}
 	for _, tt := range tests {
-		if got := commandLinePreview(tt.command, tt.args); got != tt.want {
-			t.Fatalf("commandLinePreview(%q, %v) = %q, want %q", tt.command, tt.args, got, tt.want)
+		if got := commandPreviewText(tt.command, tt.args); got != tt.want {
+			t.Fatalf("commandPreviewText(%q, %v) = %q, want %q", tt.command, tt.args, got, tt.want)
 		}
 	}
 }

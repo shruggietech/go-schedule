@@ -355,9 +355,12 @@ rotated siblings, or the **Activity** view in the app, or `gosched logs`.
 
 **A task fails on Windows.** The daemon is a noninteractive LocalSystem service,
 so do not assume the interactive user's profile, mapped drives, PATH additions,
-or current directory are available. Put only the executable in **Command**, put
-one argument per line in **Arguments**, prefer an absolute executable path, and
-choose a working directory and output path accessible to the service. A child
+or current directory are available. In **Command line**, enter the executable
+followed by its arguments, quote an executable path that contains spaces, prefer
+an absolute path, and choose a working directory and output path accessible to
+the service. The editor shows the exact Program and Arguments in order and does
+not infer a shell; name `cmd`, PowerShell, or another shell explicitly when its
+features are required. A child
 that starts and exits nonzero retains its exit code and output. A child that
 cannot start has no exit code and reports `process start failed for
 "<executable>"` with the Windows error. Arguments, stdin, and environment

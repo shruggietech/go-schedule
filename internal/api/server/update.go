@@ -15,7 +15,9 @@ import (
 )
 
 // TaskUpdateRequest carries optional task fields. Empty/nil fields are left
-// unchanged. Providing Schedule or At replaces the task's schedule.
+// unchanged, except Args where nil means unchanged and a non-nil empty slice
+// explicitly clears every argument. Providing Schedule or At replaces the
+// task's schedule.
 //
 // GroupID is a pointer because group membership needs three distinct intents,
 // and an empty string cannot carry two of them: nil leaves membership
@@ -25,7 +27,7 @@ type TaskUpdateRequest struct {
 	Name           string            `json:"name,omitempty"`
 	GroupID        *string           `json:"group_id,omitempty"`
 	Command        string            `json:"command,omitempty"`
-	Args           []string          `json:"args,omitempty"`
+	Args           []string          `json:"args"`
 	WorkingDir     string            `json:"working_dir,omitempty"`
 	Env            map[string]string `json:"env,omitempty"`
 	Stdin          *string           `json:"stdin,omitempty"`

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Task command entry now accepts one familiar, portable command line (Closes
+  #110).** The roomy editor parses one program and ordered arguments with the
+  same documented quotation rules on Windows, macOS, and Linux, while direct
+  execution remains shell-free by default. A separately labeled exact preview
+  exposes empty and invisible values, invalid quotation clears stale output,
+  and canonical formatting preserves existing tasks without a schema change.
+
 - **Tasks, Schedule, and Activity now present structured, responsive data rows
   (Refs #112, #113).** Fixed headers label each field while virtualized full-row
   interaction preserves stable identity across refreshes. Tasks separates

@@ -13,6 +13,7 @@ import (
 	xwidget "fyne.io/x/fyne/widget"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/commandline"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/schedule"
 	"github.com/shruggietech/go-schedule/internal/scheduleinput"
@@ -35,10 +36,10 @@ type taskEditor struct {
 	scheduleUnreadable bool
 
 	// What to run
-	name    *widget.Entry
-	command *widget.Entry
-	args    *widget.Entry
-	group   *widget.Select
+	name        *widget.Entry
+	commandLine *widget.Entry
+	group       *widget.Select
+	leftContent *fyne.Container
 	// groups is the snapshot the group choices were built from, so labels map
 	// back to IDs against the same data the user saw.
 	groups []domain.Group
@@ -80,12 +81,17 @@ type taskEditor struct {
 	baseline    editorSnapshot // field values at open, for dirty detection
 	ready       bool           // true once build() has wired the layout; gates OnChanged callbacks
 	previewSync bool           // tests set this to fetch the schedule preview synchronously
+
+	commandParsed     bool
+	commandParsedText string
+	commandInvocation commandline.Invocation
+	commandErr        error
 }
 
 // editorSnapshot captures the editor's field values so Cancel can detect unsaved
 // changes (FR-011/FR-012).
 type editorSnapshot struct {
-	name, command, args, tz, mode string
+	name, commandLine, tz, mode   string
 	schedule, startAt             string
 	oneOffDate, oneOffTime        string
 	overlap, catchup, group       string
@@ -134,9 +140,10 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	}
 
 	e.name = widget.NewEntry()
-	e.command = widget.NewEntry()
-	e.args = widget.NewMultiLineEntry()
-	e.args.SetPlaceHolder("one argument per line")
+	e.commandLine = widget.NewMultiLineEntry()
+	e.commandLine.SetMinRowsVisible(6)
+	e.commandLine.Wrapping = fyne.TextWrapWord
+	e.commandLine.SetPlaceHolder(`e.g. python -m http.server --bind "127.0.0.1"`)
 
 	e.groups = a.model.Snapshot().Groups
 	e.group = widget.NewSelect(groupChoiceLabels(e.groups), nil)
@@ -188,17 +195,16 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 // --- construction --------------------------------------------------------
 
 func (e *taskEditor) build() *fyne.Container {
-	// Left pane: the form sections.
-	runForm := widget.NewForm(
-		requiredItem("Name", e.name),
-		requiredItem("Command", e.command),
-	)
-	argsItem := widget.NewFormItem("Arguments", e.args)
-	argsItem.HintText = "One argument per line" // persistent caption (FR-020)
-	runForm.AppendItem(argsItem)
+	// Left pane: the command field stays outside widget.Form so its containing
+	// layout can assign it all additional vertical room (S046 FR-003).
+	nameForm := widget.NewForm(requiredItem("Name", e.name))
+	commandLabel := sectionHeader("Command line *")
+	commandHint := widget.NewLabel("Type the program and arguments together. Quotes preserve spaces; no shell is implied.")
+	commandHint.Wrapping = fyne.TextWrapWord
+	commandSection := container.NewBorder(container.NewVBox(commandLabel, commandHint), nil, nil, nil, e.commandLine)
 	groupItem := widget.NewFormItem("Group", e.group)
 	groupItem.HintText = "Groups can be enabled or disabled together"
-	runForm.AppendItem(groupItem)
+	groupForm := widget.NewForm(groupItem)
 
 	// rebuildWhen swaps a freshly-built form into whenHolder on every change; a
 	// fresh widget.Form (rather than mutating Items in place) guarantees every row
@@ -220,15 +226,18 @@ func (e *taskEditor) build() *fyne.Container {
 	advForm.AppendItem(withHint(widget.NewFormItem("Fall overlap", e.dstOverlap), "When a local time occurs twice"))
 	advanced := newCollapsible("Advanced Settings", advForm)
 
-	left := e.app.newVScroll(container.NewVBox(
+	e.leftContent = container.New(&stretchVBoxLayout{stretch: 2},
 		sectionHeader("What to run"),
-		runForm,
+		nameForm,
+		commandSection,
+		groupForm,
 		widget.NewSeparator(),
 		sectionHeader("When"),
 		e.whenHolder,
 		widget.NewSeparator(),
 		advanced,
-	))
+	)
+	left := e.app.newVScroll(e.leftContent)
 
 	// Right pane: Preview (default) / Help.
 	right := e.buildRightPane()
@@ -281,7 +290,7 @@ func (e *taskEditor) toggleHelp() {
 // snapshot captures current field values for dirty detection.
 func (e *taskEditor) snapshot() editorSnapshot {
 	return editorSnapshot{
-		name: e.name.Text, command: e.command.Text, args: e.args.Text, tz: e.tz.Text,
+		name: e.name.Text, commandLine: e.commandLine.Text, tz: e.tz.Text,
 		mode: e.mode.Selected, schedule: e.schedule.Text, startAt: e.startAt.Text,
 		oneOffDate: e.oneOffDate.Text, oneOffTime: e.oneOffTime.Text,
 		overlap: e.overlap.Selected, catchup: e.catchup.Selected,
@@ -354,7 +363,10 @@ func (e *taskEditor) rebuildWhen() {
 
 func (e *taskEditor) wireValidators() {
 	e.name.Validator = nonEmptyValidator("name")
-	e.command.Validator = nonEmptyValidator("command")
+	e.commandLine.Validator = func(s string) error {
+		_, err := e.parseCommand(s)
+		return err
+	}
 	e.tz.Validator = func(s string) error {
 		if _, err := timezone.Resolve(tzOrLocal(s)); err != nil {
 			return err
@@ -366,8 +378,10 @@ func (e *taskEditor) wireValidators() {
 	e.schedule.OnChanged = func(string) { e.onChange(true) }
 	e.startAt.OnChanged = func(string) { e.onChange(false) }
 	e.name.OnChanged = func(string) { e.onChange(false) }
-	e.command.OnChanged = func(string) { e.updateCmdPreview(); e.onChange(false) }
-	e.args.OnChanged = func(string) { e.updateCmdPreview(); e.onChange(false) }
+	e.commandLine.OnChanged = func(text string) {
+		_, _ = e.parseCommand(text) // cache the draft; validation and preview surface the error
+		e.onChange(false)
+	}
 	e.tz.OnChanged = func(string) { e.onChange(false) }
 	e.group.OnChanged = func(string) { e.onChange(false) }
 	e.missingDate.OnChanged = func(string) { e.onChange(false) }
@@ -399,8 +413,9 @@ func (e *taskEditor) prefill() {
 	}
 	t := e.existing
 	e.name.SetText(t.Name)
-	e.command.SetText(t.Command)
-	e.args.SetText(strings.Join(t.Args, "\n"))
+	if text, err := commandline.Format(t.Command, t.Args); err == nil {
+		e.commandLine.SetText(text)
+	}
 	if t.Timezone != "" {
 		e.tz.SetText(t.Timezone)
 	}
@@ -532,17 +547,20 @@ func (e *taskEditor) fetchSchedulePreview(input scheduleinput.Input) {
 	fyne.Do(set)
 }
 
-// updateCmdPreview renders the resolved command line as a monospace code block
-// with no prefix (FR-007/FR-008), or muted guidance text when empty.
+// updateCmdPreview renders the exact program and ordered arguments, or current
+// syntax guidance. An invalid draft can never leave a stale valid preview.
 func (e *taskEditor) updateCmdPreview() {
-	line := commandLinePreview(e.command.Text, splitArgs(e.args.Text))
-	if line == "" {
+	if strings.TrimSpace(e.commandLine.Text) == "" {
 		e.cmdPreview.Segments = []widget.RichTextSegment{
-			&widget.TextSegment{Style: widget.RichTextStyleInline, Text: "Enter a command to see what will run"},
+			&widget.TextSegment{Style: widget.RichTextStyleInline, Text: "Enter a command line to see the exact program and arguments"},
+		}
+	} else if invocation, err := e.invocation(); err != nil {
+		e.cmdPreview.Segments = []widget.RichTextSegment{
+			&widget.TextSegment{Style: widget.RichTextStyleInline, Text: "Fix the command line:\n" + err.Error()},
 		}
 	} else {
 		e.cmdPreview.Segments = []widget.RichTextSegment{
-			&widget.TextSegment{Style: widget.RichTextStyleCodeBlock, Text: line},
+			&widget.TextSegment{Style: widget.RichTextStyleCodeBlock, Text: commandPreviewText(invocation.Program, invocation.Args)},
 		}
 	}
 	e.cmdPreview.Refresh()
@@ -585,7 +603,10 @@ func (e *taskEditor) revalidate() {
 }
 
 func (e *taskEditor) valid() bool {
-	if strings.TrimSpace(e.name.Text) == "" || strings.TrimSpace(e.command.Text) == "" {
+	if strings.TrimSpace(e.name.Text) == "" {
+		return false
+	}
+	if _, err := e.invocation(); err != nil {
 		return false
 	}
 	if _, err := timezone.Resolve(e.tzName()); err != nil {
@@ -631,8 +652,12 @@ func (e *taskEditor) submit() { e.app.submitTask(e.existing, e.buildForm()) }
 // friendly overlap/catch-up labels back to their wire values and appending any
 // interval anchor to the schedule phrase.
 func (e *taskEditor) buildForm() taskForm {
+	invocation, _ := e.invocation()
+	// Keep zero arguments distinct from an omitted update. TaskUpdateRequest
+	// serializes a non-nil empty slice as [], which explicitly clears stale args.
+	args := append([]string{}, invocation.Args...)
 	f := taskForm{
-		name: e.name.Text, command: e.command.Text, args: splitArgs(e.args.Text),
+		name: e.name.Text, command: invocation.Program, args: args,
 		tz: e.tzName(), mode: e.mode.Selected,
 		overlap:     string(overlapValue(e.overlap.Selected)),
 		catchup:     string(catchupValue(e.catchup.Selected)),
@@ -673,6 +698,19 @@ func (e *taskEditor) groupIntent() *string {
 // --- helpers -------------------------------------------------------------
 
 func (e *taskEditor) tzName() string { return tzOrLocal(e.tz.Text) }
+
+func (e *taskEditor) invocation() (commandline.Invocation, error) {
+	return e.parseCommand(e.commandLine.Text)
+}
+
+func (e *taskEditor) parseCommand(text string) (commandline.Invocation, error) {
+	if !e.commandParsed || text != e.commandParsedText {
+		e.commandInvocation, e.commandErr = commandline.Parse(text)
+		e.commandParsedText = text
+		e.commandParsed = true
+	}
+	return e.commandInvocation, e.commandErr
+}
 
 // effectiveScheduleRaw is the typed schedule without the GUI anchor appended;
 // used to decide whether to offer the Start-at field.
@@ -776,11 +814,27 @@ const editorHelpMarkdown = `## Task editor help
 
 **Name** — a label to identify the task. _e.g._ ` + "`nightly-backup`" + `
 
-**Command** — the program to run (just the executable, not a full command line).
-_e.g._ ` + "`cmd`" + `, ` + "`python`" + `, ` + "`C:\\Windows\\System32\\notepad.exe`" + `
+**Command line**: type the program and its arguments together, for example
+` + "`python -m http.server --bind \"127.0.0.1\"`" + ` or
+` + "`\"C:\\Program Files\\Tool\\tool.exe\" --name \"Ada Lovelace\"`" + `.
 
-**Arguments** — one argument per line; each line is passed as a separate argument.
-For ` + "`cmd /c echo hi`" + ` enter ` + "`/c`" + ` on one line and ` + "`echo hi`" + ` on the next.
+More exact-boundary examples:
+- Windows path, repeated flags, and an empty argument:
+  ` + "`\"C:\\Program Files\\Tool\\tool.exe\" --tag one --tag two --empty ''`" + `
+- POSIX path, a backslash, and Unicode:
+  ` + "`/usr/bin/printf '%s\\n' 'héllo 世界'`" + `
+- One argument containing a literal newline: type ` + "`program \"first`" + `, press Enter,
+  then type ` + "`second\"`" + `.
+
+This portable syntax is the same on Windows, macOS, and Linux. Whitespace separates values;
+single or double quotes keep spaces together. Use ` + "`''`" + ` for an empty argument. Quoted
+text may contain a literal newline, and backslashes in ordinary Windows and POSIX paths stay literal.
+The Preview lists the exact Program and Arguments in order, including invisible characters.
+
+go-schedule does not run a shell or expand variables, wildcards, pipes, or redirects. To request
+shell behavior, name it explicitly, such as ` + "`cmd /c \"echo hi > output.txt\"`" + ` or
+` + "`sh -c 'echo hi > output.txt'`" + `. That shell then owns its platform-specific quoting,
+expansion and security behavior.
 
 **Timezone** — ` + "`Local`" + ` or an IANA name (` + "`UTC`" + `, ` + "`America/New_York`" + `).
 Schedules are interpreted here; storage is UTC with DST handled.
@@ -890,19 +944,55 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 	})
 }
 
-func splitArgs(s string) []string {
-	var out []string
-	for _, line := range strings.Split(s, "\n") {
-		if t := strings.TrimSpace(line); t != "" {
-			out = append(out, t)
-		}
-	}
-	return out
-}
-
 func tzOrLocal(s string) string {
 	if strings.TrimSpace(s) == "" {
 		return "Local"
 	}
 	return s
+}
+
+// stretchVBoxLayout behaves like a vertical box but gives all surplus height
+// to one designated object. Used inside the left scroll viewport, it keeps the
+// command editor at six rows on small dialogs and grows it on taller dialogs.
+type stretchVBoxLayout struct{ stretch int }
+
+func (l *stretchVBoxLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	var width, height float32
+	visible := 0
+	for _, object := range objects {
+		if !object.Visible() {
+			continue
+		}
+		size := object.MinSize()
+		if size.Width > width {
+			width = size.Width
+		}
+		height += size.Height
+		visible++
+	}
+	if visible > 1 {
+		height += float32(visible-1) * theme.Padding()
+	}
+	return fyne.NewSize(width, height)
+}
+
+func (l *stretchVBoxLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	minimum := l.MinSize(objects)
+	extra := size.Height - minimum.Height
+	if extra < 0 {
+		extra = 0
+	}
+	y := float32(0)
+	for index, object := range objects {
+		if !object.Visible() {
+			continue
+		}
+		height := object.MinSize().Height
+		if index == l.stretch {
+			height += extra
+		}
+		object.Move(fyne.NewPos(0, y))
+		object.Resize(fyne.NewSize(size.Width, height))
+		y += height + theme.Padding()
+	}
 }

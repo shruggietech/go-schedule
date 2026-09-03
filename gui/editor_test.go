@@ -1,9 +1,13 @@
 package gui
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
@@ -100,7 +104,7 @@ func TestEditor_SaveGating(t *testing.T) {
 	}
 
 	e.name.SetText("nightly")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	if !e.save.Disabled() {
 		t.Fatal("Save should stay disabled without a schedule")
 	}
@@ -119,7 +123,7 @@ func TestEditor_SaveGating(t *testing.T) {
 func TestEditor_SaveGating_OneOff(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	e.name.SetText("once")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.mode.SetSelected(modeOneOff)
 
 	e.oneOffDate.SetText("2000-01-01")
@@ -137,7 +141,7 @@ func TestEditor_SaveGating_OneOff(t *testing.T) {
 func TestEditor_SaveGating_BadTimezone(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	e.name.SetText("x")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText("every 15 minutes")
 	if e.save.Disabled() {
 		t.Fatal("precondition: Save enabled")
@@ -151,7 +155,7 @@ func TestEditor_SaveGating_BadTimezone(t *testing.T) {
 func TestEditor_SaveGating_ElapsedRejectsCalendarSchedule(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	e.name.SetText("monthly")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText("3rd wednesday monthly at 14:00")
 	if e.save.Disabled() {
 		t.Fatal("precondition: wall-clock monthly schedule should be valid")
@@ -162,18 +166,101 @@ func TestEditor_SaveGating_ElapsedRejectsCalendarSchedule(t *testing.T) {
 	}
 }
 
+func TestEditor_CommandFieldIsOneRoomyGrowingMultilineInput(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	if e.commandLine == nil || !e.commandLine.MultiLine {
+		t.Fatal("Command line must be one multiline entry")
+	}
+	defaultThreeRows := widget.NewMultiLineEntry().MinSize().Height
+	if got := e.commandLine.MinSize().Height; got < defaultThreeRows*1.7 {
+		t.Fatalf("Command line minimum height = %.1f, want at least six visible rows (default three = %.1f)", got, defaultThreeRows)
+	}
+	before := e.commandLine.Size().Height
+	e.leftContent.Resize(fyne.NewSize(e.leftContent.MinSize().Width, e.leftContent.MinSize().Height+120))
+	if after := e.commandLine.Size().Height; after <= before {
+		t.Fatalf("Command line height did not grow with available dialog content: %.1f -> %.1f", before, after)
+	}
+}
+
+func TestEditor_CommandValidationAndExactCreateSubmission(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.name.SetText("portable")
+	e.schedule.SetText("every day at 09:00")
+	e.commandLine.SetText(`"C:\Program Files\Tool\tool.exe" --tag one --tag two '' "héllo 世界"`)
+	if e.save.Disabled() {
+		t.Fatal("valid portable command line should enable Save when the rest of the form is valid")
+	}
+
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	_, req := fb.lastCreateCall()
+	if req.Command != `C:\Program Files\Tool\tool.exe` {
+		t.Fatalf("created command = %q", req.Command)
+	}
+	wantArgs := []string{"--tag", "one", "--tag", "two", "", "héllo 世界"}
+	if !reflect.DeepEqual(req.Args, wantArgs) {
+		t.Fatalf("created args = %#v, want %#v", req.Args, wantArgs)
+	}
+}
+
+func TestEditor_InvalidCommandDisablesSave(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.name.SetText("invalid")
+	e.schedule.SetText("every day at 09:00")
+	e.commandLine.SetText(`program "unclosed`)
+	if !e.save.Disabled() {
+		t.Fatal("unmatched quote must disable Save")
+	}
+}
+
 // --- US3: combined preview -----------------------------------------------
 
 func TestEditor_CommandPreview(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
-	e.command.SetText("cmd")
-	e.args.SetText("/c\necho hello world")
+	e.commandLine.SetText(`cmd /c "echo hello world"`)
 	got := e.cmdPreviewString()
-	if !strings.Contains(got, `cmd /c "echo hello world"`) {
+	for _, want := range []string{"Program", `"cmd"`, "Arguments in order (2)", `1  "/c"`, `2  "echo hello world"`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("cmd preview = %q, missing %q", got, want)
+		}
+	}
+	if strings.Contains(got, `cmd /c "echo hello world"`) {
 		t.Fatalf("cmd preview = %q", got)
 	}
 	if strings.Contains(got, "Will run") {
 		t.Fatalf("cmd preview should not have a 'Will run:' prefix: %q", got)
+	}
+}
+
+func TestEditor_InvalidCommandClearsStalePreviewAndRecovers(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.commandLine.SetText("program valid")
+	if got := e.cmdPreviewString(); !strings.Contains(got, "Arguments in order (1)") {
+		t.Fatalf("valid preview = %q", got)
+	}
+	e.commandLine.SetText("program\n'unclosed")
+	got := e.cmdPreviewString()
+	if strings.Contains(got, "Arguments in order") || !strings.Contains(got, "single quote opened at line 2, column 1") {
+		t.Fatalf("invalid preview = %q", got)
+	}
+	e.commandLine.SetText(`program '$HOME' '|' '*.txt'`)
+	got = e.cmdPreviewString()
+	for _, literal := range []string{`"$HOME"`, `"|"`, `"*.txt"`} {
+		if !strings.Contains(got, literal) {
+			t.Fatalf("recovered preview = %q, missing literal %q", got, literal)
+		}
+	}
+}
+
+func TestEditor_CommandHelpDocumentsPortableDirectExecution(t *testing.T) {
+	for _, want := range []string{
+		"Command line", "portable", "same on Windows, macOS, and Linux", "empty argument",
+		"literal newline", `C:\Program Files\Tool`, "--tag one --tag two", "--empty ''",
+		"héllo 世界", "press Enter", "does not run a shell", "cmd /c", "sh -c", "expansion and security",
+	} {
+		if !strings.Contains(editorHelpMarkdown, want) {
+			t.Errorf("editor help missing %q", want)
+		}
 	}
 }
 
@@ -195,7 +282,7 @@ func TestEditor_PreviewSelectsHumanSyntax(t *testing.T) {
 func TestEditor_CronPreviewAndCreateRetainSource(t *testing.T) {
 	e, fb := newTestEditor(t, nil)
 	e.name.SetText("weekday-cron")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText("  0 9 * * 1-5  ")
 
 	if e.save.Disabled() {
@@ -215,7 +302,7 @@ func TestEditor_CronPreviewAndCreateRetainSource(t *testing.T) {
 func TestEditor_MonthlyCalendarCronAndPolicyPreview(t *testing.T) {
 	e, fb := newTestEditor(t, nil)
 	e.name.SetText("calendar-cron")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText("0 9 31W * *")
 	if e.save.Disabled() {
 		t.Fatal("Save should be enabled for nearest-weekday cron")
@@ -255,7 +342,7 @@ func TestEditor_InvalidOrRefusedCronDisablesSaveWithoutPreview(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e, fb := newTestEditor(t, nil)
 			e.name.SetText("invalid-cron")
-			e.command.SetText("cmd")
+			e.commandLine.SetText("cmd")
 			before, _ := fb.lastPreviewCall()
 			e.schedule.SetText(tc.input)
 
@@ -275,7 +362,7 @@ func TestEditor_InvalidOrRefusedCronDisablesSaveWithoutPreview(t *testing.T) {
 func TestEditor_OneOffSubmissionOmitsRecurringSyntax(t *testing.T) {
 	e, fb := newTestEditor(t, nil)
 	e.name.SetText("once")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText("0 9 * * 1-5")
 	e.mode.SetSelected(modeOneOff)
 	e.oneOffDate.SetText("2099-01-01")
@@ -342,7 +429,7 @@ func TestEditor_DirtyDetection_EditBaseline(t *testing.T) {
 	if e.isDirty() {
 		t.Fatal("unchanged Edit form should not be dirty (baseline = prefilled values)")
 	}
-	e.command.SetText("python")
+	e.commandLine.SetText("python")
 	if !e.isDirty() {
 		t.Fatal("changing a prefilled field should mark the form dirty")
 	}
@@ -369,7 +456,7 @@ func TestEditor_StartAtVisibilityAndPhrase(t *testing.T) {
 		t.Fatalf("effectiveSchedule = %q", got)
 	}
 	e.name.SetText("x")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	if got := e.buildForm().schedule; got != "every 15 minutes starting at 09:00" {
 		t.Fatalf("submitted schedule = %q", got)
 	}
@@ -401,7 +488,7 @@ func TestEditor_TimezoneComboAndOneOffAssembly(t *testing.T) {
 func TestEditor_AdvancedLabelsMapToWire(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	e.name.SetText("x")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText("every 15 minutes")
 	e.overlap.SetSelected("Allow concurrent runs")
 	e.catchup.SetSelected("Skip missed runs")

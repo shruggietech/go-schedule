@@ -6,7 +6,7 @@ func TestEditor_CompositeCronPreviewCreateAndPrefill(t *testing.T) {
 	const expression = "*/10 9-17 * * MON,WED,FRI"
 	e, fb := newTestEditor(t, nil)
 	e.name.SetText("business-hours")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText(expression)
 
 	if e.save.Disabled() {
@@ -36,7 +36,7 @@ func TestEditor_SecondsCronKeepsSourceIdentity(t *testing.T) {
 	const expression = "*/30 * * * * *"
 	e, fb := newTestEditor(t, nil)
 	e.name.SetText("seconds")
-	e.command.SetText("cmd")
+	e.commandLine.SetText("cmd")
 	e.schedule.SetText(expression)
 	if _, req := fb.lastPreviewCall(); req.Schedule != expression || req.ScheduleSyntax != "cron" {
 		t.Fatalf("preview request=%+v", req)
