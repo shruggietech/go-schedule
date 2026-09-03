@@ -537,6 +537,19 @@ func TestWindowsInstallerCIScriptAcceptsCleanGUIProcessSnapshot(t *testing.T) {
 	}
 }
 
+func TestWindowsInstallerCIScriptComparesCanonicalShortcutPaths(t *testing.T) {
+	script := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerContractCI.ps1"))
+	for _, contract := range []string{
+		"function Test-EquivalentWindowsPath",
+		"Test-EquivalentWindowsPath -Actual $shortcut.TargetPath -Expected $expectedTarget",
+		"Test-EquivalentWindowsPath -Actual $shortcut.WorkingDirectory -Expected $installDirectory",
+	} {
+		if !strings.Contains(script, contract) {
+			t.Fatalf("installer CI harness must compare shortcut paths canonically; missing %q", contract)
+		}
+	}
+}
+
 func TestWindowsInstallerLifecycleContractRejectsMutations(t *testing.T) {
 	shortcutFixture := `<Wix><Package>
 <StandardDirectory Id="DesktopFolder" />

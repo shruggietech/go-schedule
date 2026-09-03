@@ -92,6 +92,17 @@ function Get-ShortcutPaths {
   }
 }
 
+function Test-EquivalentWindowsPath {
+  param(
+    [Parameter(Mandatory)] [string]$Actual,
+    [Parameter(Mandatory)] [string]$Expected
+  )
+
+  $actualFull = [IO.Path]::GetFullPath($Actual).TrimEnd('\', '/')
+  $expectedFull = [IO.Path]::GetFullPath($Expected).TrimEnd('\', '/')
+  return $actualFull.Equals($expectedFull, [StringComparison]::OrdinalIgnoreCase)
+}
+
 function Assert-ShortcutState {
   param(
     [Parameter(Mandatory)] [string]$Label,
@@ -112,16 +123,14 @@ function Assert-ShortcutState {
       $shell = New-Object -ComObject WScript.Shell
       $shortcut = $shell.CreateShortcut($contract.Path)
       $expectedTarget = Join-Path $installDirectory 'gosched-gui.exe'
-      if (-not $shortcut.TargetPath.Equals(
-          $expectedTarget,
-          [StringComparison]::OrdinalIgnoreCase
-        ) -or
-        -not $shortcut.WorkingDirectory.Equals(
-          $installDirectory,
-          [StringComparison]::OrdinalIgnoreCase
-        ) -or
-        $shortcut.Description -ne 'Open the go-schedule desktop app') {
-        throw "$Label $($contract.Kind) shortcut identity is not canonical"
+      if (-not (Test-EquivalentWindowsPath -Actual $shortcut.TargetPath -Expected $expectedTarget)) {
+        throw "$Label $($contract.Kind) shortcut target '$($shortcut.TargetPath)' is not '$expectedTarget'"
+      }
+      if (-not (Test-EquivalentWindowsPath -Actual $shortcut.WorkingDirectory -Expected $installDirectory)) {
+        throw "$Label $($contract.Kind) shortcut working directory '$($shortcut.WorkingDirectory)' is not '$installDirectory'"
+      }
+      if ($shortcut.Description -ne 'Open the go-schedule desktop app') {
+        throw "$Label $($contract.Kind) shortcut description '$($shortcut.Description)' is not canonical"
       }
     }
   }
