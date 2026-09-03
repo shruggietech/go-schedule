@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,7 +13,85 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
+
+var scheduleColumns = []structuredColumn{
+	{Header: "When", Minimum: 145},
+	{Header: "Task", Minimum: 160, Weight: 3},
+	{Header: "Event", Minimum: 105, Alignment: fyne.TextAlignCenter},
+	{Header: "Outcome", Minimum: 125, Weight: 1},
+}
+
+func scheduleRowModels(occurrences []server.Occurrence) []structuredRowModel {
+	rows := make([]structuredRowModel, len(occurrences))
+	duplicates := make(map[string]int, len(occurrences))
+	for index, occurrence := range occurrences {
+		taskIdentity := occurrence.TaskID
+		if taskIdentity == "" {
+			taskIdentity = occurrence.TaskName
+		}
+		baseIdentity := stablePresentationIdentity("scheduled", taskIdentity, occurrence.Time.UTC().Format(time.RFC3339Nano))
+		if occurrence.RunID != "" {
+			baseIdentity = stablePresentationIdentity("run", occurrence.RunID)
+		}
+		ordinal := duplicates[baseIdentity]
+		duplicates[baseIdentity] = ordinal + 1
+		identity := baseIdentity + "#" + strconv.Itoa(ordinal)
+
+		taskName := occurrence.TaskName
+		if taskName == "" {
+			taskName = "Unnamed task"
+		}
+		event, eventImportance := scheduleEventPresentation(occurrence.Kind)
+		outcome, outcomeImportance := scheduleOutcomePresentation(occurrence.Kind, occurrence.Outcome)
+		cells := []structuredCell{
+			{Text: fmtTime(occurrence.Time), TextStyle: fyne.TextStyle{Monospace: true}},
+			{Text: taskName},
+			{Text: event, Importance: eventImportance, TextStyle: fyne.TextStyle{Bold: true}},
+			{Text: outcome, Importance: outcomeImportance, TextStyle: fyne.TextStyle{Bold: true}},
+		}
+		rows[index] = structuredRowModel{
+			Identity: identity,
+			Cells:    cells,
+			Summary:  structuredRowSummary(scheduleColumns, cells),
+		}
+	}
+	return rows
+}
+
+func scheduleEventPresentation(kind string) (string, widget.Importance) {
+	switch kind {
+	case "scheduled":
+		return "▷ SCHEDULED", widget.HighImportance
+	case "past":
+		return "COMPLETED", widget.MediumImportance
+	default:
+		return "? " + normalizedWords(kind, "UNKNOWN", true), widget.MediumImportance
+	}
+}
+
+func scheduleOutcomePresentation(kind string, outcome domain.RunOutcome) (string, widget.Importance) {
+	if kind != "past" {
+		return "— NOT AVAILABLE", widget.LowImportance
+	}
+	switch outcome {
+	case domain.OutcomeSuccess:
+		return "✓ SUCCESS", widget.SuccessImportance
+	case domain.OutcomeFailure:
+		return "✗ FAILURE", widget.DangerImportance
+	case domain.OutcomeSkipped:
+		return "↷ SKIPPED", widget.LowImportance
+	case domain.OutcomeCaughtUp:
+		return "↻ CAUGHT UP", widget.HighImportance
+	case domain.OutcomeQueued:
+		return "⋯ QUEUED", widget.WarningImportance
+	case "":
+		return "• NOT AVAILABLE", widget.MediumImportance
+	default:
+		return "? " + normalizedWords(string(outcome), "UNKNOWN", true), widget.MediumImportance
+	}
+}
 
 // scheduleState holds the Schedule tab's shared state. It is guarded by a mutex
 // because the occurrences are written by the async loader goroutine and read by
@@ -41,26 +120,8 @@ func (s *scheduleState) setView(v string)             { s.mu.Lock(); s.view = v;
 // window is preserved across view toggles (FR-027) and both views update live.
 func (a *App) buildScheduleTab() fyne.CanvasObject {
 	st := &scheduleState{days: 7, view: "List"}
-
-	list := widget.NewList(
-		func() int { return len(st.snapshotOcc()) },
-		func() fyne.CanvasObject { return widget.NewLabel("template") },
-		func(i widget.ListItemID, o fyne.CanvasObject) {
-			occ := st.snapshotOcc()
-			if i < 0 || i >= len(occ) {
-				return
-			}
-			e := occ[i]
-			marker := "▷" // scheduled (future)
-			if e.Kind == "past" {
-				marker = "✓"
-				if e.Outcome != "success" && e.Outcome != "" {
-					marker = "✗"
-				}
-			}
-			o.(*widget.Label).SetText(fmt.Sprintf("%s  %s   %s", marker, fmtTime(e.Time), e.TaskName))
-		},
-	)
+	table := newStructuredList(scheduleColumns, "Select an occurrence to see its complete values.", nil, nil)
+	a.scheduleTable = table
 
 	calBox := container.NewVBox()
 	renderCalendar := func() {
@@ -73,13 +134,13 @@ func (a *App) buildScheduleTab() fyne.CanvasObject {
 		calBox.Refresh()
 	}
 
-	content := container.NewStack(list)
+	content := container.NewStack(table.root)
 	render := func() {
 		if st.getView() == "Calendar" {
 			renderCalendar()
 			content.Objects = []fyne.CanvasObject{calBox}
 		} else {
-			content.Objects = []fyne.CanvasObject{list}
+			content.Objects = []fyne.CanvasObject{table.root}
 		}
 		content.Refresh()
 	}
@@ -97,8 +158,9 @@ func (a *App) buildScheduleTab() fyne.CanvasObject {
 					a.showError(err)
 					return
 				}
-				st.setOcc(sortByTime(resp.Occurrences))
-				list.Refresh()
+				sorted := sortByTime(resp.Occurrences)
+				st.setOcc(sorted)
+				table.setRows(scheduleRowModels(sorted))
 				if st.getView() == "Calendar" {
 					renderCalendar()
 				}

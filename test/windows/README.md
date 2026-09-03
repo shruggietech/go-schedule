@@ -313,6 +313,39 @@ values used. Headless contrast math and scroll-delta tests establish the code
 contract but do not substitute for native font rasterization, physical wheel,
 touchpad, or display evidence.
 
+### S045 structured data table observations
+
+Use the exact release-candidate MSI to populate at least 100 rows in each
+applicable view and capture both Dark and Light modes at 100 percent scaling
+and at least one scaled-DPI setting. Repeat at the default 1280 by 800 size and
+the supported 800 by 600 clamp:
+
+- confirm **Tasks** keeps Task, Enabled, Lifecycle, Time zone, and Group headers
+  fixed while rows scroll; require Enabled and Lifecycle to remain visibly
+  separate, with no unexplained bracketed status text;
+- confirm **Schedule** List keeps When, Task, Event, and Outcome headers fixed
+  and presents scheduled, success, failure, skipped, caught-up, queued, missing,
+  and unknown states with the documented text and glyphs;
+- confirm **Activity** keeps When, Severity, Source, and Summary headers fixed,
+  uses uppercase INFO, WARNING, and ERROR with matching glyph treatment, and
+  opens the exact selected event's full detail;
+- at both window sizes, require no horizontal scrollbar, overlapping text, or
+  loss of primary identity; select truncated Tasks and Schedule rows and verify
+  that the complete labeled values remain available;
+- exercise pointer hover, keyboard focus, and selection on odd and even rows in
+  every view, requiring readable restrained colors and an identifiable selected
+  row when states overlap; and
+- reorder, update, and remove selected records through live refresh. Require a
+  retained record to keep its identity and a removed record to clear safely,
+  then verify task toolbar and double-click actions, Schedule range and Calendar
+  switching, and Activity filtering, clearing, alert acknowledgement, and
+  detail activation.
+
+Retain populated screenshots for each palette, size, DPI setting, and semantic
+state family. Headless layout, mapping, contrast, and identity tests do not
+substitute for native text rasterization and interaction evidence. Issues #112
+and #113 remain open until this exact-candidate evidence is reviewed.
+
 Finalize after all fragments are reviewed and recorded:
 
 ```powershell

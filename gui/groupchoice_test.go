@@ -143,7 +143,7 @@ func TestEditor_NoneMeansClearOnlyWhenItWasGrouped(t *testing.T) {
 	}
 }
 
-// TestTasksTab_RowShowsGroup covers FR-017.
+// TestTasksTab_RowShowsGroup covers the structured Group column.
 func TestTasksTab_RowShowsGroup(t *testing.T) {
 	groups := nestedGroups()
 	tasks := []domain.Task{
@@ -151,10 +151,10 @@ func TestTasksTab_RowShowsGroup(t *testing.T) {
 		{ID: "t2", Name: "loose", Command: "/bin/true", Timezone: "UTC", Enabled: true, State: domain.TaskActive},
 	}
 
-	if got := taskRowText(tasks[0], groups); !containsAll(got, "db-dump", "Nightly") {
+	if got := taskRowModel(tasks[0], groups).Summary; !containsAll(got, "Task: db-dump", "Group: Backups / Nightly") {
 		t.Errorf("grouped task row = %q, want it to name the task and its group", got)
 	}
-	if got := taskRowText(tasks[1], groups); !containsAll(got, "loose") {
+	if got := taskRowModel(tasks[1], groups).Summary; !containsAll(got, "Task: loose", "Group: Not assigned") {
 		t.Errorf("ungrouped task row = %q, want it to name the task", got)
 	}
 }

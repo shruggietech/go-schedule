@@ -72,6 +72,9 @@ type App struct {
 	storageInputs    storageLocationInputs
 	options          *optionsView
 	taskList         *widget.List
+	taskTable        *structuredList
+	scheduleTable    *structuredList
+	activityTable    *structuredList
 
 	navigation *navigationShell
 	refreshers []func()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 // logEntry is a unified row in the Activity view: either a daemon log record or a
 // scheduler alert, normalized to a common shape.
 type logEntry struct {
+	id       string
 	time     time.Time
 	severity domain.AlertSeverity
 	source   string
@@ -26,6 +28,13 @@ type logEntry struct {
 	detail   string
 	isAlert  bool
 	alertID  string
+}
+
+var activityColumns = []structuredColumn{
+	{Header: "When", Minimum: 145},
+	{Header: "Severity", Minimum: 110, Alignment: fyne.TextAlignCenter},
+	{Header: "Source", Minimum: 150, Weight: 1},
+	{Header: "Summary", Minimum: 200, Weight: 3},
 }
 
 // buildLogsTab shows a unified, filterable Activity view that merges daemon log
@@ -37,15 +46,16 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 	filter := domain.AlertSeverity("") // "" = all
 	var clearedAt time.Time            // Clear View cutoff
 
-	list := widget.NewList(
-		func() int { return len(rows) },
-		func() fyne.CanvasObject { return widget.NewLabel("template") },
-		func(i widget.ListItemID, o fyne.CanvasObject) {
-			e := rows[i]
-			o.(*widget.Label).SetText(fmt.Sprintf("%s  %s  [%s]  %s",
-				severityMark(e.severity), fmtTime(e.time), e.source, e.message))
-		},
-	)
+	var table *structuredList
+	table = newStructuredList(activityColumns, "", func(identity string) {
+		entry, ok := activityEntryForIdentity(rows, table.rows, identity)
+		if !ok {
+			return
+		}
+		a.showLogDetail(entry)
+		table.list.UnselectAll()
+	}, nil)
+	a.activityTable = table
 	diagnostics := widget.NewLabel(activityDiagnosticsText(""))
 	diagnostics.Wrapping = fyne.TextWrapBreak
 
@@ -53,17 +63,9 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 		snap := a.model.Snapshot()
 		rows = mergeLogEntries(snap.Logs, snap.Alerts, filter, clearedAt)
 		diagnostics.SetText(activityDiagnosticsText(snap.LogPath))
-		list.Refresh()
+		table.setRows(activityRowModels(rows))
 	}
 	a.registerRefresher(rebuild)
-
-	list.OnSelected = func(id widget.ListItemID) {
-		if id < 0 || id >= len(rows) {
-			return
-		}
-		a.showLogDetail(rows[id])
-		list.UnselectAll()
-	}
 
 	severitySel := widget.NewSelect(
 		[]string{"All", "Errors", "Warnings", "Info"},
@@ -106,7 +108,7 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 	toolbar := container.NewHBox(widget.NewLabel("Severity:"), severitySel, clearBtn)
 	help := widget.NewLabel("Hides current activity and acknowledges visible alerts. Records are not deleted.")
 	help.Wrapping = fyne.TextWrapWord
-	return container.NewBorder(container.NewVBox(toolbar, diagnostics, help), nil, nil, nil, list)
+	return container.NewBorder(container.NewVBox(toolbar, diagnostics, help), nil, nil, nil, table.root)
 }
 
 func activityDiagnosticsText(logPath string) string {
@@ -143,12 +145,14 @@ func mergeLogEntries(logs []domain.LogRecord, alerts []domain.Alert, filter doma
 	out := make([]logEntry, 0, len(logs)+len(alerts))
 	for _, l := range logs {
 		out = append(out, logEntry{
+			id:   l.ID,
 			time: l.Time, severity: l.Severity, source: srcOr(l.Source, "daemon"),
 			message: l.Message, detail: attrsDetail(l),
 		})
 	}
 	for _, al := range alerts {
 		out = append(out, logEntry{
+			id:   al.ID,
 			time: al.CreatedAt, severity: al.Severity, source: "alert: " + string(al.Kind),
 			message: al.Message, isAlert: true, alertID: al.ID,
 		})
@@ -167,15 +171,68 @@ func mergeLogEntries(logs []domain.LogRecord, alerts []domain.Alert, filter doma
 	return filtered
 }
 
-func severityMark(s domain.AlertSeverity) string {
-	switch s {
-	case domain.SeverityError:
-		return "✗ ERROR  "
-	case domain.SeverityWarning:
-		return "⚠ WARN   "
-	default:
-		return "• info   "
+func activityRowModels(entries []logEntry) []structuredRowModel {
+	rows := make([]structuredRowModel, len(entries))
+	identities := make(map[string]int, len(entries))
+	for index, entry := range entries {
+		severityText, importance := activitySeverityPresentation(entry.severity)
+		source := srcOr(entry.source, "daemon")
+		message := entry.message
+		if strings.TrimSpace(message) == "" {
+			message = "No message"
+		}
+		kind := "log"
+		if entry.isAlert {
+			kind = "alert"
+		}
+		identityParts := []string{kind, entry.id}
+		if entry.id == "" {
+			identityParts = append(identityParts,
+				entry.time.Format(time.RFC3339Nano),
+				string(entry.severity),
+				source,
+				message,
+			)
+		}
+		baseIdentity := stablePresentationIdentity(identityParts...)
+		ordinal := identities[baseIdentity]
+		identities[baseIdentity] = ordinal + 1
+		identity := stablePresentationIdentity(baseIdentity, strconv.Itoa(ordinal))
+		cells := []structuredCell{
+			{Text: fmtTime(entry.time), TextStyle: fyne.TextStyle{Monospace: true}},
+			{Text: severityText, Importance: importance},
+			{Text: source, FullText: source},
+			{Text: message, FullText: message},
+		}
+		rows[index] = structuredRowModel{
+			Identity: identity,
+			Cells:    cells,
+			Summary:  structuredRowSummary(activityColumns, cells),
+		}
 	}
+	return rows
+}
+
+func activitySeverityPresentation(severity domain.AlertSeverity) (string, widget.Importance) {
+	switch severity {
+	case "", domain.SeverityInfo:
+		return "• INFO", widget.HighImportance
+	case domain.SeverityWarning:
+		return "⚠ WARNING", widget.WarningImportance
+	case domain.SeverityError:
+		return "✗ ERROR", widget.DangerImportance
+	default:
+		return "? " + normalizedWords(string(severity), "UNKNOWN", true), widget.MediumImportance
+	}
+}
+
+func activityEntryForIdentity(entries []logEntry, rows []structuredRowModel, identity string) (logEntry, bool) {
+	for index, row := range rows {
+		if row.Identity == identity && index < len(entries) {
+			return entries[index], true
+		}
+	}
+	return logEntry{}, false
 }
 
 func srcOr(s, fallback string) string {

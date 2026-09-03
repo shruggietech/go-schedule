@@ -44,6 +44,37 @@ func TestBrandThemeTextContrastAndFocusVisibility(t *testing.T) {
 	}
 }
 
+func TestStructuredRowSurfacesPreserveTextAndStateContrast(t *testing.T) {
+	for _, mode := range []appearanceMode{appearanceDark, appearanceLight, appearanceSystem} {
+		for _, variant := range []fyne.ThemeVariant{theme.VariantDark, theme.VariantLight} {
+			th := newBrandThemeFor(appearancePreferences{Mode: mode, Font: fontSystem})
+			background := th.Color(theme.ColorNameBackground, variant)
+			alternate := blendThemeColor(background, th.Color(colorNameAlternateRow, variant))
+			for name, surface := range map[string]color.Color{"base": background, "alternate": alternate} {
+				if ratio := contrastRatio(th.Color(theme.ColorNameForeground, variant), surface); ratio < 4.5 {
+					t.Errorf("mode=%s variant=%v %s text contrast=%.2f, want >=4.5", mode, variant, name, ratio)
+				}
+				for stateName, state := range map[string]fyne.ThemeColorName{
+					"hover": theme.ColorNameHover, "focus": theme.ColorNameFocus, "selection": theme.ColorNameSelection,
+				} {
+					stateSurface := blendThemeColor(surface, th.Color(state, variant))
+					if ratio := contrastRatio(th.Color(theme.ColorNameForeground, variant), stateSurface); ratio < 4.5 {
+						t.Errorf("mode=%s variant=%v %s+%s text contrast=%.2f, want >=4.5", mode, variant, name, stateName, ratio)
+					}
+					if ratio := contrastRatio(stateSurface, surface); ratio < 1.1 {
+						t.Errorf("mode=%s variant=%v %s+%s surface contrast=%.2f, want >=1.1", mode, variant, name, stateName, ratio)
+					}
+				}
+			}
+			for _, semantic := range []fyne.ThemeColorName{theme.ColorNamePrimary, theme.ColorNameSuccess, theme.ColorNameWarning, theme.ColorNameError} {
+				if ratio := contrastRatio(th.Color(semantic, variant), background); ratio < 3 {
+					t.Errorf("mode=%s variant=%v semantic=%s contrast=%.2f, want >=3", mode, variant, semantic, ratio)
+				}
+			}
+		}
+	}
+}
+
 func contrastRatio(a, b color.Color) float64 {
 	la, lb := relativeLuminance(a), relativeLuminance(b)
 	if la < lb {

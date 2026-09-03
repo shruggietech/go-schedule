@@ -13,6 +13,26 @@ This page explains every field in the desktop GUI's **New Task** / **Edit Task**
 what it accepts, what's required, and what each option means. It's the GUI counterpart to the
 CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
+## Data view tables
+
+The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed
+headers above vertically scrolling rows. Columns contract proportionally when
+the window narrows, so these views do not introduce horizontal scrolling. Long
+values are shortened visually with an ellipsis. Selecting a Tasks or Schedule
+row exposes its complete labeled values below the list; selecting an Activity
+row opens its existing full-detail dialog.
+
+| View | Columns | Missing-value behavior | Semantic labels |
+| --- | --- | --- | --- |
+| **Tasks** | Task, Enabled, Lifecycle, Time zone, Group | `Unnamed task`, `Unknown`, or `Not assigned` | Enabled and lifecycle are separate concepts. Enabled uses success treatment, while Disabled is muted. Active uses informational treatment. |
+| **Schedule** List | When, Task, Event, Outcome | `Unnamed task` or `NOT AVAILABLE` | `▷ SCHEDULED`; completed outcomes use `✓ SUCCESS`, `✗ FAILURE`, `↷ SKIPPED`, `↻ CAUGHT UP`, or `⋯ QUEUED`. Unknown values remain neutral and readable. |
+| **Activity** | When, Severity, Source, Summary | `daemon` or `No message` | Severity is always uppercase: `• INFO`, `⚠ WARNING`, or `✗ ERROR`. Unknown values are normalized to uppercase with a neutral `?` glyph. |
+
+Alternating rows use a quiet theme-aware surface. Selection, hover, focus, and
+semantic meaning retain a text or glyph cue in every appearance mode, so color
+is never the only indicator. Row identity, rather than the current visual
+index, controls selection and activation across live refreshes.
+
 The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run**
 (Name, Command, Arguments), **When** (Timezone, Mode, the relevant time field), and a collapsible
 **Advanced Settings** (Overlap, Catch-up, Missing dates, Time basis, Spring gap,

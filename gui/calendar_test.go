@@ -1,11 +1,183 @@
 package gui
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/widget"
+
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
+
+func TestScheduleColumnsNameEveryField(t *testing.T) {
+	want := []string{"When", "Task", "Event", "Outcome"}
+	got := make([]string, len(scheduleColumns))
+	for i, column := range scheduleColumns {
+		got[i] = column.Header
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Schedule headers=%v, want %v", got, want)
+	}
+}
+
+func TestScheduleRowModelsNormalizeEventsAndOutcomes(t *testing.T) {
+	base := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name             string
+		occurrence       server.Occurrence
+		wantEvent        string
+		wantOutcome      string
+		wantEventStyle   widget.Importance
+		wantOutcomeStyle widget.Importance
+	}{
+		{name: "future", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "scheduled"}, wantEvent: "▷ SCHEDULED", wantOutcome: "— NOT AVAILABLE", wantEventStyle: widget.HighImportance, wantOutcomeStyle: widget.LowImportance},
+		{name: "success", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeSuccess}, wantEvent: "COMPLETED", wantOutcome: "✓ SUCCESS", wantOutcomeStyle: widget.SuccessImportance},
+		{name: "failure", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeFailure}, wantEvent: "COMPLETED", wantOutcome: "✗ FAILURE", wantOutcomeStyle: widget.DangerImportance},
+		{name: "skipped", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeSkipped}, wantEvent: "COMPLETED", wantOutcome: "↷ SKIPPED", wantOutcomeStyle: widget.LowImportance},
+		{name: "caught up", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeCaughtUp}, wantEvent: "COMPLETED", wantOutcome: "↻ CAUGHT UP", wantOutcomeStyle: widget.HighImportance},
+		{name: "queued", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeQueued}, wantEvent: "COMPLETED", wantOutcome: "⋯ QUEUED", wantOutcomeStyle: widget.WarningImportance},
+		{name: "missing", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past"}, wantEvent: "COMPLETED", wantOutcome: "• NOT AVAILABLE", wantOutcomeStyle: widget.MediumImportance},
+		{name: "unknown", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.RunOutcome("awaiting_review")}, wantEvent: "COMPLETED", wantOutcome: "? AWAITING REVIEW", wantOutcomeStyle: widget.MediumImportance},
+		{name: "unknown event", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "deferred"}, wantEvent: "? DEFERRED", wantOutcome: "— NOT AVAILABLE", wantEventStyle: widget.MediumImportance, wantOutcomeStyle: widget.LowImportance},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			row := scheduleRowModels([]server.Occurrence{tt.occurrence})[0]
+			if row.Cells[2].Text != tt.wantEvent || row.Cells[3].Text != tt.wantOutcome {
+				t.Fatalf("event/outcome=%q/%q, want %q/%q", row.Cells[2].Text, row.Cells[3].Text, tt.wantEvent, tt.wantOutcome)
+			}
+			if row.Cells[2].Importance != tt.wantEventStyle || row.Cells[3].Importance != tt.wantOutcomeStyle {
+				t.Fatalf("importance=%v/%v, want %v/%v", row.Cells[2].Importance, row.Cells[3].Importance, tt.wantEventStyle, tt.wantOutcomeStyle)
+			}
+			if !strings.Contains(row.Summary, "Task: Backup") || row.Identity == "" {
+				t.Fatalf("row summary/identity=%q/%q", row.Summary, row.Identity)
+			}
+		})
+	}
+}
+
+func TestScheduleRowModelsPreserveUnicodeFallbacksAndDuplicateIdentity(t *testing.T) {
+	occurrence := server.Occurrence{Time: time.Date(2026, 9, 3, 12, 0, 0, 123, time.UTC), Kind: "scheduled", TaskName: "備份 ✅"}
+	rows := scheduleRowModels([]server.Occurrence{occurrence, occurrence})
+	if rows[0].Identity == rows[1].Identity {
+		t.Fatalf("duplicate occurrence identities collide: %q", rows[0].Identity)
+	}
+	if rows[0].Cells[1].Text != "備份 ✅" {
+		t.Fatalf("Unicode task=%q", rows[0].Cells[1].Text)
+	}
+	empty := scheduleRowModels([]server.Occurrence{{Time: occurrence.Time, Kind: "scheduled"}})[0]
+	if empty.Cells[1].Text != "Unnamed task" {
+		t.Fatalf("missing task fallback=%q", empty.Cells[1].Text)
+	}
+	updated := occurrence
+	updated.Kind = "past"
+	updated.Outcome = domain.OutcomeSuccess
+	if got := scheduleRowModels([]server.Occurrence{updated})[0].Identity; got != rows[0].Identity {
+		t.Fatalf("same occurrence changed identity after outcome update: %q != %q", got, rows[0].Identity)
+	}
+}
+
+func TestScheduleRowModelsUseRunIDForEqualTimeRecords(t *testing.T) {
+	at := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	queued := server.Occurrence{TaskID: "task", RunID: "run-queued", Time: at, Kind: "past", Outcome: domain.OutcomeQueued}
+	completed := server.Occurrence{TaskID: "task", RunID: "run-completed", Time: at, Kind: "past", Outcome: domain.OutcomeSuccess}
+	first := scheduleRowModels([]server.Occurrence{queued, completed})
+	reordered := scheduleRowModels([]server.Occurrence{completed, queued})
+	if first[0].Identity == first[1].Identity {
+		t.Fatal("equal-time runs share an identity")
+	}
+	if first[0].Identity != reordered[1].Identity || first[1].Identity != reordered[0].Identity {
+		t.Fatalf("run identities changed with equal-time order: %q/%q vs %q/%q", first[0].Identity, first[1].Identity, reordered[0].Identity, reordered[1].Identity)
+	}
+}
+
+func TestScheduleTableHasFixedHeadersAndDisclosure(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	if ui.scheduleTable == nil || ui.scheduleTable.header == nil {
+		t.Fatal("Schedule did not expose the shared fixed-header table")
+	}
+	rows := scheduleRowModels([]server.Occurrence{{
+		TaskID: "a", TaskName: "Long running backup", Kind: "past",
+		Time: time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC), Outcome: domain.OutcomeFailure,
+	}})
+	ui.scheduleTable.setRows(rows)
+	ui.scheduleTable.list.Select(0)
+	for _, want := range []string{"Task: Long running backup", "Event: COMPLETED", "Outcome: ✗ FAILURE"} {
+		if !strings.Contains(ui.scheduleTable.disclosure.Text, want) {
+			t.Errorf("Schedule disclosure %q missing %q", ui.scheduleTable.disclosure.Text, want)
+		}
+	}
+}
+
+func TestScheduleControlsPreserveRangeAndListCalendarRoundTrip(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	root := ui.navigation.contentFor(navigationSchedule)
+	var viewSelect, rangeSelect *widget.Select
+	var walk func(fyne.CanvasObject)
+	walk = func(object fyne.CanvasObject) {
+		switch typed := object.(type) {
+		case *widget.Select:
+			switch {
+			case reflect.DeepEqual(typed.Options, []string{"List", "Calendar"}):
+				viewSelect = typed
+			case reflect.DeepEqual(typed.Options, []string{"1 day", "7 days", "30 days"}):
+				rangeSelect = typed
+			}
+		case *fyne.Container:
+			for _, child := range typed.Objects {
+				walk(child)
+			}
+		}
+	}
+	walk(root)
+	if viewSelect == nil || rangeSelect == nil {
+		t.Fatalf("Schedule selectors missing: view=%v range=%v", viewSelect, rangeSelect)
+	}
+	if viewSelect.Selected != "List" || rangeSelect.Selected != "7 days" {
+		t.Fatalf("initial controls=%q/%q", viewSelect.Selected, rangeSelect.Selected)
+	}
+
+	viewSelect.SetSelected("Calendar")
+	if got := findLabelText(root, "Select a day"); !strings.Contains(got, "Select a day") {
+		t.Fatalf("Calendar view did not render detail guidance: %q", got)
+	}
+	rangeSelect.SetSelected("30 days")
+	if rangeSelect.Selected != "30 days" {
+		t.Fatalf("range selection=%q", rangeSelect.Selected)
+	}
+	viewSelect.SetSelected("List")
+	if !canvasTreeContains(root, ui.scheduleTable.root) {
+		t.Fatal("Schedule List table was not restored after Calendar round trip")
+	}
+}
+
+func canvasTreeContains(root, target fyne.CanvasObject) bool {
+	if root == target {
+		return true
+	}
+	container, ok := root.(*fyne.Container)
+	if !ok {
+		return false
+	}
+	for _, child := range container.Objects {
+		if canvasTreeContains(child, target) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSortByTimeKeepsChronologicalOrder(t *testing.T) {
+	base := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	rows := sortByTime([]server.Occurrence{{TaskName: "late", Time: base.Add(time.Hour)}, {TaskName: "early", Time: base}})
+	if rows[0].TaskName != "early" || rows[1].TaskName != "late" {
+		t.Fatalf("order=%q/%q", rows[0].TaskName, rows[1].TaskName)
+	}
+}
 
 func TestOccurrencesByDay_Buckets(t *testing.T) {
 	base := time.Date(2026, 6, 10, 9, 0, 0, 0, time.Local)

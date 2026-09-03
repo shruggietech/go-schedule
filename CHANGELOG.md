@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tasks, Schedule, and Activity now present structured, responsive data rows
+  (Refs #112, #113).** Fixed headers label each field while virtualized full-row
+  interaction preserves stable identity across refreshes. Tasks separates
+  Enabled from Lifecycle; Schedule normalizes event and outcome text, glyphs,
+  and restrained semantic roles; Activity aligns source and summary beneath
+  uppercase INFO, WARNING, and ERROR labels. Alternating surfaces, ellipsis with
+  complete-value disclosure, documented fallbacks, and proportional columns
+  keep all three views usable without horizontal scrolling. Calendar responses
+  include the existing run ID for past occurrences so equal-time history rows
+  remain distinct even when backend ordering changes.
+
 - **Desktop interaction and appearance are now consistently readable and
   responsive (Refs #101, #104, #105, #106, #109, #111).** S044 makes System the
   clean-profile font default, adds packaged Inter and Ubuntu choices alongside
@@ -117,6 +128,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-03 - Use fixed-header virtualized rows for structured desktop data.**
+  Fyne's cell-oriented Table selects and highlights individual cells and permits
+  horizontal scrolling, which conflicts with the existing whole-record task and
+  activity interactions. S045 instead composes one shared column allocator with
+  a fixed header and virtualized full-row List body. This preserves row-level
+  keyboard selection, double activation, semantic surfaces, and stable identity
+  while scaling every column into the available width. Full values remain
+  available through selection disclosure or the existing Activity detail view.
 
 - **2026-09-03 - Separate pre-PR demo testing from formal candidate evidence.**
   The maintainer requires attended testing before a pull request, while #94

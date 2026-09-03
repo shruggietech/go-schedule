@@ -2,6 +2,7 @@ package gui
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,98 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
+
+func TestActivityColumnsNameEveryField(t *testing.T) {
+	want := []string{"When", "Severity", "Source", "Summary"}
+	got := make([]string, len(activityColumns))
+	for i, column := range activityColumns {
+		got[i] = column.Header
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Activity headers=%v, want %v", got, want)
+	}
+}
+
+func TestActivityRowModelsNormalizeSeverityAndFallbacks(t *testing.T) {
+	base := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name       string
+		entry      logEntry
+		wantLevel  string
+		wantSource string
+		wantText   string
+		importance widget.Importance
+	}{
+		{name: "info", entry: logEntry{id: "i", time: base, severity: domain.SeverityInfo, source: "daemon", message: "ready"}, wantLevel: "• INFO", wantSource: "daemon", wantText: "ready", importance: widget.HighImportance},
+		{name: "empty is info", entry: logEntry{id: "e", time: base, source: "", message: ""}, wantLevel: "• INFO", wantSource: "daemon", wantText: "No message", importance: widget.HighImportance},
+		{name: "warning", entry: logEntry{id: "w", time: base, severity: domain.SeverityWarning, source: "scheduler", message: "late"}, wantLevel: "⚠ WARNING", wantSource: "scheduler", wantText: "late", importance: widget.WarningImportance},
+		{name: "error", entry: logEntry{id: "x", time: base, severity: domain.SeverityError, source: "alert: run_failed", message: "boom"}, wantLevel: "✗ ERROR", wantSource: "alert: run_failed", wantText: "boom", importance: widget.DangerImportance},
+		{name: "unknown", entry: logEntry{id: "u", time: base, severity: domain.AlertSeverity("notice_level"), source: "agent", message: "hello"}, wantLevel: "? NOTICE LEVEL", wantSource: "agent", wantText: "hello", importance: widget.MediumImportance},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			row := activityRowModels([]logEntry{tt.entry})[0]
+			if row.Cells[1].Text != tt.wantLevel || row.Cells[1].Importance != tt.importance || row.Cells[2].Text != tt.wantSource || row.Cells[3].Text != tt.wantText {
+				t.Fatalf("row cells=%+v", row.Cells)
+			}
+			if row.Identity == "" || !strings.Contains(row.Summary, "Severity: "+tt.wantLevel) {
+				t.Fatalf("identity/summary=%q/%q", row.Identity, row.Summary)
+			}
+		})
+	}
+}
+
+func TestActivityRowModelsKeepLogAlertAndDuplicateIdentityDistinct(t *testing.T) {
+	base := time.Date(2026, 9, 3, 12, 0, 0, 123, time.UTC)
+	entries := []logEntry{
+		{id: "same", time: base, severity: domain.SeverityInfo, message: "備份 ✅"},
+		{id: "same", time: base, severity: domain.SeverityInfo, message: "備份 ✅", isAlert: true},
+		{id: "same", time: base, severity: domain.SeverityInfo, message: "備份 ✅"},
+	}
+	rows := activityRowModels(entries)
+	seen := make(map[string]bool)
+	for _, row := range rows {
+		if seen[row.Identity] {
+			t.Fatalf("duplicate identity %q", row.Identity)
+		}
+		seen[row.Identity] = true
+		if row.Cells[3].Text != "備份 ✅" {
+			t.Fatalf("Unicode message=%q", row.Cells[3].Text)
+		}
+	}
+	for index, row := range rows {
+		entry, ok := activityEntryForIdentity(entries, rows, row.Identity)
+		if !ok || entry.isAlert != entries[index].isAlert {
+			t.Fatalf("identity %d resolved %+v, %v", index, entry, ok)
+		}
+	}
+	if _, ok := activityEntryForIdentity(entries, rows, "removed"); ok {
+		t.Fatal("stale Activity identity resolved")
+	}
+	updated := entries[0]
+	updated.message = "updated presentation"
+	updated.severity = domain.SeverityWarning
+	if got := activityRowModels([]logEntry{updated})[0].Identity; got != rows[0].Identity {
+		t.Fatalf("same backend event changed identity after presentation update: %q != %q", got, rows[0].Identity)
+	}
+}
+
+func TestActivityTableHasFixedHeadersAndSemanticCells(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	if ui.activityTable == nil || ui.activityTable.header == nil {
+		t.Fatal("Activity did not expose the shared fixed-header table")
+	}
+	rows := activityRowModels([]logEntry{{
+		id: "error", time: time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC),
+		severity: domain.SeverityError, source: "alert: run_failed", message: "task run failed",
+	}})
+	ui.activityTable.setRows(rows)
+	row := ui.activityTable.list.CreateItem().(*structuredRow)
+	ui.activityTable.list.UpdateItem(0, row)
+	if row.labels[1].Text != "✗ ERROR" || row.labels[1].Importance != widget.DangerImportance {
+		t.Fatalf("severity cell=%q/%v", row.labels[1].Text, row.labels[1].Importance)
+	}
+}
 
 func TestMergeLogEntries_MergesSortsAndFilters(t *testing.T) {
 	t0 := time.Unix(100, 0)
@@ -30,6 +123,9 @@ func TestMergeLogEntries_MergesSortsAndFilters(t *testing.T) {
 	}
 	if all[0].message != "err" || all[2].message != "info" {
 		t.Fatalf("not newest-first: %v", []string{all[0].message, all[1].message, all[2].message})
+	}
+	if all[0].id != "l2" || all[1].id != "a1" || all[2].id != "l1" {
+		t.Fatalf("source identities not preserved: %q/%q/%q", all[0].id, all[1].id, all[2].id)
 	}
 
 	// Error filter: only the error log.
