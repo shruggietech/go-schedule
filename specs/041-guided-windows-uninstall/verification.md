@@ -72,9 +72,23 @@ evidence then passed locally with pinned WiX 6.0.2:
   visible choice to preserve, then open `GoScheduleUninstallDlg`;
 - no `ARPNOREMOVE` ControlCondition on the package-owned Remove control.
 
-Installed-state evidence remains pending the corrected hosted run because the
-local workstation is not the disposable environment authorized for MSI
-lifecycle mutation.
+Corrected hosted run
+[33721417882](https://github.com/shruggietech/go-schedule/actions/runs/33721417882)
+then passed compiled inspection and the complete silent lifecycle on the
+disposable Windows runner. Its candidate MSI had SHA-256
+`2685673212ad6abc45e78a499c258e1d609a1dce41918aef4beb746785738b29`.
+Fresh install, repair, and candidate upgrade each recorded:
+
+- `NoRemove=1`;
+- no `NoModify` value;
+- no `UninstallString` value;
+- `ModifyPath=MsiExec.exe /I{9BBAE24B-DE14-4493-8CA8-9E5CCB0277E7}` for the
+  installed current ProductCode; and
+- exactly one visible go-schedule application-management entry.
+
+The same run passed preserve, wipe, repair, upgrade, invalid-input, shortcut,
+cleanup-safety, non-launch, compiled-table, and evidence-upload checks. Its
+machine-readable evidence status is `proven`.
 
 The retained old-candidate rejection report is an ignored local artifact at
 `dist/s041-old-candidate-rejection.md`; it is not release evidence.
@@ -128,3 +142,11 @@ After the hosted correction, the focused installer and cleanup suites, pinned
 WiX build and inspection, PowerShell parsing, and all eight canonical gates
 passed again before the corrective commit. The 15 corrected text files also
 passed strict UTF-8, BOM, mojibake, and diff-integrity checks.
+
+## Pull-request review
+
+Both permitted third-party Codex review rounds completed without findings or
+unresolved threads. The first round acknowledged the pull request with a
+thumbs-up reaction. The single authorized follow-up request produced the
+explicit result `Didn't find any major issues.` No further review round was
+requested.

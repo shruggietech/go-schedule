@@ -99,7 +99,7 @@
 - [x] T023 Record the failed hosted assertion that `ARPNOREMOVE` omitted `ModifyPath` and inspect the compiled WiX 6.0.2 stock maintenance control conditions
 - [x] T024 Add failing source, compiled-table, and mutation contracts for an MSI-owned `/I[ProductCode]` registration and package-owned enabled Remove control
 - [x] T025 Implement the owned application-management registry component and maintenance page, then update every affected specification and decision record
-- [ ] T026 Run focused and canonical verification, amend and push the correction, then require green compiled/installed hosted evidence and resolve the authorized second Codex review
+- [x] T026 Run focused and canonical verification, amend and push the correction, then require green compiled/installed hosted evidence and resolve the authorized second Codex review
 
 ---
 
