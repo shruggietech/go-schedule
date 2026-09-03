@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/winuninstall"
 )
 
@@ -27,22 +27,27 @@ func TestResolveStorageLocationsClassifiesDeclaredPaths(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "machine")
 	prefs := filepath.Join(t.TempDir(), "preferences")
 	exe := filepath.Join(t.TempDir(), "install", "gosched-gui.exe")
-	cfg := config.Default()
-	cfg.DataDir = root
-	cfg.LogFilePath = filepath.Join(root, "custom", "events.log")
+	runtimeInfo := server.RuntimeInfoResponse{
+		DataDir:      root,
+		DatabasePath: filepath.Join(root, "goschedule.db"),
+		ConfigPath:   filepath.Join(root, "config.json"),
+		LogPath:      filepath.Join(root, "custom", "events.log"),
+		LockPath:     filepath.Join(root, "goschedd.lock"),
+	}
 
 	var inspected []string
 	exists := map[string]bool{
 		root:                                     true,
-		cfg.DBPath():                             true,
+		runtimeInfo.DatabasePath:                 true,
 		filepath.Join(prefs, "preferences.json"): true,
 		filepath.Dir(exe):                        true,
 	}
 	locations := resolveStorageLocations(storageLocationInputs{
-		Config:          cfg,
-		PreferencesRoot: prefs,
-		ExecutablePath:  exe,
-		GOOS:            "linux",
+		Runtime:              runtimeInfo,
+		OwnedMachineDataRoot: root,
+		PreferencesRoot:      prefs,
+		ExecutablePath:       exe,
+		GOOS:                 "linux",
 		Stat: func(path string) (os.FileInfo, error) {
 			inspected = append(inspected, path)
 			if exists[path] {
@@ -69,6 +74,9 @@ func TestResolveStorageLocationsClassifiesDeclaredPaths(t *testing.T) {
 		if location.Scope == "" || location.SoftwareOnlyRemoval == "" || location.ExplicitDataWipe == "" {
 			t.Errorf("%s lacks ownership/lifecycle copy: %+v", location.Category, location)
 		}
+		if strings.Contains(location.ExplicitDataWipe, "Removed by") {
+			t.Errorf("%s claims a non-Windows data wipe: %+v", location.Category, location)
+		}
 	}
 	assertStorageLocation(t, locations, "Machine data", storageScopeMachine, storagePresent)
 	assertStorageLocation(t, locations, "Desktop preferences", storageScopeUser, storagePresent)
@@ -77,10 +85,16 @@ func TestResolveStorageLocationsClassifiesDeclaredPaths(t *testing.T) {
 
 func TestResolveStorageLocationsWindowsMaintenanceAndUnknownState(t *testing.T) {
 	base := filepath.Join(t.TempDir(), "ProgramData")
-	cfg := config.Default()
-	cfg.DataDir = filepath.Join(base, "goschedule")
+	dataDir := filepath.Join(base, "goschedule")
 	locations := resolveStorageLocations(storageLocationInputs{
-		Config:                  cfg,
+		Runtime: server.RuntimeInfoResponse{
+			DataDir:      dataDir,
+			DatabasePath: filepath.Join(dataDir, "goschedule.db"),
+			ConfigPath:   filepath.Join(dataDir, "config.json"),
+			LogPath:      filepath.Join(dataDir, "logs", "goschedule.log"),
+			LockPath:     filepath.Join(dataDir, "goschedd.lock"),
+		},
+		OwnedMachineDataRoot:    dataDir,
 		PreferencesRoot:         filepath.Join(t.TempDir(), "prefs"),
 		ExecutablePath:          filepath.Join(t.TempDir(), "gosched-gui.exe"),
 		GOOS:                    "windows",
@@ -90,16 +104,26 @@ func TestResolveStorageLocationsWindowsMaintenanceAndUnknownState(t *testing.T) 
 		},
 	})
 	assertStorageLocation(t, locations, "Maintenance evidence", storageScopeMachine, storageUnknown)
+	for _, location := range locations {
+		if location.Category == "Machine data" && location.ExplicitDataWipe != "Removed by an explicit data wipe" {
+			t.Fatalf("Windows machine data wipe text = %q", location.ExplicitDataWipe)
+		}
+	}
 }
 
 func TestResolveStorageLocationsRejectsRelativeValues(t *testing.T) {
-	cfg := config.Default()
-	cfg.DataDir = "relative-data"
 	locations := resolveStorageLocations(storageLocationInputs{
-		Config:          cfg,
-		PreferencesRoot: "relative-preferences",
-		ExecutablePath:  "relative-executable",
-		GOOS:            "linux",
+		Runtime: server.RuntimeInfoResponse{
+			DataDir:      "relative-data",
+			DatabasePath: "relative-data/db",
+			ConfigPath:   "relative-config",
+			LogPath:      "relative-log",
+			LockPath:     "relative-lock",
+		},
+		OwnedMachineDataRoot: "relative-owned-root",
+		PreferencesRoot:      "relative-preferences",
+		ExecutablePath:       "relative-executable",
+		GOOS:                 "linux",
 		Stat: func(string) (os.FileInfo, error) {
 			t.Fatal("relative unavailable paths must not be inspected")
 			return nil, nil
@@ -132,15 +156,21 @@ func TestStorageExistenceDoesNotTraverse(t *testing.T) {
 
 func TestResolveStorageLocationsDoesNotClaimExternalLogAsWipeOwned(t *testing.T) {
 	base := t.TempDir()
-	cfg := config.Default()
-	cfg.DataDir = filepath.Join(base, "owned")
-	cfg.LogFilePath = filepath.Join(base, "operator", "events.log")
+	owned := filepath.Join(base, "owned")
+	configured := filepath.Join(base, "operator")
 	locations := resolveStorageLocations(storageLocationInputs{
-		Config:          cfg,
-		PreferencesRoot: filepath.Join(base, "preferences"),
-		ExecutablePath:  filepath.Join(base, "gosched-gui.exe"),
-		GOOS:            "linux",
-		Stat:            func(string) (os.FileInfo, error) { return nil, os.ErrNotExist },
+		Runtime: server.RuntimeInfoResponse{
+			DataDir:      configured,
+			DatabasePath: filepath.Join(configured, "goschedule.db"),
+			ConfigPath:   filepath.Join(configured, "config.json"),
+			LogPath:      filepath.Join(base, "operator-logs", "events.log"),
+			LockPath:     filepath.Join(configured, "goschedd.lock"),
+		},
+		OwnedMachineDataRoot: owned,
+		PreferencesRoot:      filepath.Join(base, "preferences"),
+		ExecutablePath:       filepath.Join(base, "gosched-gui.exe"),
+		GOOS:                 "linux",
+		Stat:                 func(string) (os.FileInfo, error) { return nil, os.ErrNotExist },
 	})
 	for _, location := range locations {
 		if location.Category != "Logs" {

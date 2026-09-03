@@ -2,12 +2,35 @@ package main
 
 import (
 	"log/slog"
+	"path/filepath"
 	"testing"
 
+	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 	"github.com/shruggietech/go-schedule/internal/logbus"
 )
+
+func TestDaemonRuntimeInfoResolvesEffectivePaths(t *testing.T) {
+	cfg := config.Default()
+	cfg.DataDir = filepath.Join("relative", "daemon-data")
+	cfg.LogFilePath = filepath.Join("relative", "logs", "events.log")
+	got, err := daemonRuntimeInfo(cfg, filepath.Join("relative", "daemon.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, path := range map[string]string{
+		"data": got.DataDir, "database": got.DatabasePath, "config": got.ConfigPath,
+		"log": got.LogPath, "lock": got.LockPath,
+	} {
+		if !filepath.IsAbs(path) {
+			t.Errorf("%s path = %q, want absolute", name, path)
+		}
+	}
+	if filepath.Dir(got.DatabasePath) != got.DataDir || filepath.Dir(got.LockPath) != got.DataDir {
+		t.Fatalf("derived paths do not share data root: %+v", got)
+	}
+}
 
 func TestLogDaemonReady(t *testing.T) {
 	ring := logbus.NewRing(10)

@@ -25,9 +25,9 @@ import (
 
 	"github.com/shruggietech/go-schedule/gui/viewmodel"
 	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/internal/platform"
 	"github.com/shruggietech/go-schedule/internal/winuninstall"
 )
 
@@ -56,6 +56,7 @@ type Backend interface {
 
 	AckAlert(ctx context.Context, id string) error
 	GetCalendar(ctx context.Context, from, to time.Time) (server.CalendarResponse, error)
+	RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, error)
 	StreamEvents(ctx context.Context, onEvent func(events.Event)) error
 }
 
@@ -68,6 +69,7 @@ type App struct {
 	model            *viewmodel.Model
 	appearance       appearancePreferences
 	storageLocations []storageLocation
+	storageInputs    storageLocationInputs
 	options          *optionsView
 	taskList         *widget.List
 
@@ -117,18 +119,19 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 	if root := fyneApp.Storage().RootURI(); root != nil && root.Scheme() == "file" {
 		preferencesRoot = root.Path()
 	}
-	cfg := config.Default()
+	ownedMachineDataRoot := platform.DataDir()
 	maintenanceEvidencePath := ""
 	if runtime.GOOS == "windows" {
-		maintenanceEvidencePath = winuninstall.CleanupResultPath(filepath.Dir(cfg.DataDir))
+		maintenanceEvidencePath = winuninstall.CleanupResultPath(filepath.Dir(ownedMachineDataRoot))
 	}
-	a.storageLocations = resolveStorageLocations(storageLocationInputs{
-		Config:                  cfg,
+	a.storageInputs = storageLocationInputs{
+		OwnedMachineDataRoot:    ownedMachineDataRoot,
 		PreferencesRoot:         preferencesRoot,
 		ExecutablePath:          executablePath,
 		GOOS:                    runtime.GOOS,
 		MaintenanceEvidencePath: maintenanceEvidencePath,
-	})
+	}
+	a.storageLocations = resolveStorageLocations(a.storageInputs)
 	a.win.SetIcon(windowIcon) // crisp small tile for the title bar (see icon.go)
 	// Open as a bounded restored window on the launch monitor, respecting its
 	// taskbar and display scale. Unknown work area retains the 1280x800 fallback.
@@ -206,6 +209,7 @@ func (a *App) refreshAllOnce() error {
 		})
 		return err
 	}
+	a.refreshStorageLocations(ctx)
 	a.connection.clear()
 	fyne.Do(a.renderConnectionIncident)
 	for _, r := range a.refreshers {
@@ -213,6 +217,22 @@ func (a *App) refreshAllOnce() error {
 		fyne.Do(rr)
 	}
 	return nil
+}
+
+func (a *App) refreshStorageLocations(ctx context.Context) {
+	runtimeInfo, err := a.backend.RuntimeInfo(ctx)
+	if err != nil {
+		return
+	}
+	storageInputs := a.storageInputs
+	storageInputs.Runtime = runtimeInfo
+	storageLocations := resolveStorageLocations(storageInputs)
+	fyne.Do(func() {
+		a.storageLocations = storageLocations
+		if a.options != nil {
+			a.options.setStorageLocations(storageLocations, a.clipboard)
+		}
+	})
 }
 
 // streamEvents consumes the SSE stream and folds events into the model,

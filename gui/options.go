@@ -16,11 +16,12 @@ type storageRowView struct {
 }
 
 type optionsView struct {
-	root        fyne.CanvasObject
-	mode        *widget.Select
-	font        *widget.Select
-	reset       *cursorButton
-	storageRows []*storageRowView
+	root           fyne.CanvasObject
+	mode           *widget.Select
+	font           *widget.Select
+	reset          *cursorButton
+	storageContent *fyne.Container
+	storageRows    []*storageRowView
 }
 
 func (a *App) buildOptionsTab() fyne.CanvasObject {
@@ -53,16 +54,11 @@ func (a *App) buildOptionsTab() fyne.CanvasObject {
 		container.NewHBox(view.reset),
 	))
 
-	storageItems := []fyne.CanvasObject{
-		widget.NewLabel("These locations are read-only. Paths outside the application-owned defaults are not listed or claimed as wipe targets."),
-	}
-	storageItems[0].(*widget.Label).Wrapping = fyne.TextWrapWord
-	for _, location := range a.storageLocations {
-		row := newStorageRowView(location, a.clipboard)
-		view.storageRows = append(view.storageRows, row)
-		storageItems = append(storageItems, row.root)
-	}
-	storage := widget.NewCard("Application storage", "Scope and removal behavior for known local application paths.", container.NewVBox(storageItems...))
+	storageIntro := widget.NewLabel("These locations are read-only. Daemon paths come from the connected daemon; paths outside application-owned defaults are not claimed as wipe targets.")
+	storageIntro.Wrapping = fyne.TextWrapWord
+	view.storageContent = container.NewVBox(storageIntro)
+	view.setStorageLocations(a.storageLocations, a.clipboard)
+	storage := widget.NewCard("Application storage", "Scope and removal behavior for known local application paths.", view.storageContent)
 
 	content := container.NewVBox(
 		widget.NewLabelWithStyle("Options", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -72,6 +68,18 @@ func (a *App) buildOptionsTab() fyne.CanvasObject {
 	view.root = container.NewVScroll(container.NewPadded(content))
 	a.options = view
 	return view.root
+}
+
+func (v *optionsView) setStorageLocations(locations []storageLocation, clipboard fyne.Clipboard) {
+	v.storageRows = nil
+	objects := v.storageContent.Objects[:1]
+	for _, location := range locations {
+		row := newStorageRowView(location, clipboard)
+		v.storageRows = append(v.storageRows, row)
+		objects = append(objects, row.root)
+	}
+	v.storageContent.Objects = objects
+	v.storageContent.Refresh()
 }
 
 func newStorageRowView(location storageLocation, clipboard fyne.Clipboard) *storageRowView {

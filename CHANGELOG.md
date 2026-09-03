@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   #104, #105, #106).** Users can switch among Dark, Light, and Follow system
   modes plus Brand, System, and Monospace fonts, restore the Dark and Brand
   defaults, and inspect or copy a read-only inventory of machine, per-user,
-  runtime, installation, and Windows maintenance paths. The wider rail keeps
+  runtime, installation, and Windows maintenance paths. Daemon paths reflect
+  the connected daemon's effective configuration, while lifecycle text avoids
+  claiming Windows-only wipe behavior on other platforms. The wider rail keeps
   Options above Info and a separate one-shot Exit command at the bottom-right.
 
 - **Task rows now open Edit on double-click (Refs #103).** Single-click and

@@ -29,18 +29,26 @@
 ## Storage contract
 
 1. Options distinguishes machine data from current-user desktop preferences.
-2. Each available row displays a clean resolved path, ownership scope, existence state,
+2. Daemon-owned rows use absolute effective paths reported by the connected
+   daemon, including a custom configuration file and its derived data paths.
+3. Each available row displays a clean resolved path, ownership scope, existence state,
    software-only removal behavior, and explicit-wipe behavior.
-3. Selectable text and Copy produce the exact same path string.
-4. Missing paths are reported absent without being created.
-5. Indeterminate or platform-inapplicable paths are omitted or marked
+4. Selectable text and Copy produce the exact same path string.
+5. Missing paths are reported absent without being created.
+6. Indeterminate or platform-inapplicable paths are omitted or marked
    unavailable; no path is fabricated.
-6. Resolution inspects only the declared path itself and never walks a parent,
+7. Resolution inspects only the declared path itself and never walks a parent,
    profile, drive, or sibling directory.
-7. External user-created and custom-configured locations are not claimed as
+8. External user-created and custom-configured locations are not claimed as
    application-owned or wipe targets.
-8. A running development executable is not represented as installer-owned or
+9. Non-Windows platforms do not claim that the Windows-only explicit data-wipe
+   workflow will remove any path.
+10. A running development executable is not represented as installer-owned or
    promised to be removed by uninstall.
+
+`GET /v1/runtime-info` returns `data_dir`, `database_path`, optional
+`config_path`, `log_path`, and `lock_path` for the running daemon. The paths are
+absolute and reflect the daemon's effective configuration.
 
 ## Task interaction contract
 

@@ -167,8 +167,8 @@ dialog ownership, fallback behavior, and unchanged selection behavior.
 - **FR-009**: Users MUST be able to restore both appearance choices to their documented defaults in one action.
 - **FR-010**: Every offered appearance and font combination MUST retain readable contrast, visible focus, unclipped controls, and consistent dialog presentation.
 - **FR-011**: The Info-page version and attribution lines MUST remain centered and unwrapped, preserve their exact semantic text and dynamic version source, and use the same body-text rendering contract as sharp nearby interface text.
-- **FR-012**: Options MUST present resolved application-owned categories for the machine data root, task database, logs, runtime state, per-user desktop preferences, executable directory, installed documentation when discoverable, and platform-specific maintenance evidence when meaningful.
-- **FR-013**: Every storage row MUST state its category, ownership scope, current existence, and expected behavior under software-only removal and explicit data wipe; development paths MUST NOT be represented as installer-owned.
+- **FR-012**: Options MUST present the connected daemon's absolute effective machine data, task database, configuration, log, and runtime paths, plus per-user desktop preferences, executable directory, installed documentation when discoverable, and platform-specific maintenance evidence when meaningful.
+- **FR-013**: Every storage row MUST state its category, ownership scope, current existence, and expected behavior under software-only removal and explicit data wipe; development paths MUST NOT be represented as installer-owned, and non-Windows platforms MUST NOT claim Windows-only wipe behavior.
 - **FR-014**: Every available displayed path MUST be selectable and have an explicit Copy action that copies the exact resolved value.
 - **FR-015**: Storage discovery MUST be read-only, MUST NOT scan unrelated profiles, MUST NOT create missing paths, and MUST NOT imply that user-created exports or configured external locations are application-owned.
 - **FR-016**: Double-clicking a valid task row MUST open the same Edit workflow and current-detail lookup used by the toolbar Edit command.
@@ -209,15 +209,16 @@ dialog ownership, fallback behavior, and unchanged selection behavior.
   users who make no choice.
 - System font means the framework's platform-appropriate default family;
   Monospace means the existing bundled monospace face.
-- The machine data directory represents the owned umbrella for task data,
-  default configuration/runtime state, database, and logs. An optional daemon
-  configuration overlay outside that root cannot be discovered from the current
-  local client contract and must not be claimed as wipe-owned.
+- The platform-default machine data directory represents the owned umbrella for
+  task data, default runtime state, database, and logs. The connected daemon
+  reports its effective paths through a read-only local endpoint; configured
+  paths outside the owned root remain visible but are not claimed as wipe-owned.
 - Installed-file and documentation locations are derived from the running
   executable and may be labeled unavailable in development or non-installed
   contexts.
-- This slice changes no scheduler, daemon protocol, installer deletion boundary,
-  or release-promotion rule.
+- This slice adds one read-only daemon runtime-information response. It changes
+  no scheduler behavior, configuration mutation, installer deletion boundary,
+  privilege boundary, or release-promotion rule.
 
 ## Scope Boundaries
 

@@ -6,11 +6,18 @@ nav_order: 5.5
 # Local API
 
 **Audience:** client and integration authors\
-**Applies to:** the unreleased task-completion chaining slice\
+**Applies to:** the current unreleased local API contract\
 **Transport:** local Unix socket or Windows named pipe, never a public TCP port
 
 The CLI and desktop app use the same versioned JSON API hosted by `goschedd`.
 Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.
+
+## Runtime storage information
+
+`GET /v1/runtime-info` returns the absolute effective paths used by the running
+daemon: `data_dir`, `database_path`, optional `config_path`, `log_path`, and
+`lock_path`. Desktop clients use this endpoint for read-only storage disclosure,
+including when the daemon was launched with a custom configuration path.
 
 ## Completion chains
 

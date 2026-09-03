@@ -46,10 +46,11 @@ candidate gate defined by #94.
 
 ### Post-design re-check
 
-All principles remain satisfied. No dependency, executable, protocol, daemon
-schema, privilege boundary, or deletion boundary changes. `CHANGELOG.md` and
-the exact-candidate validation instructions are pinned release artifacts whose
-updates are required to record the user-visible behavior and evidence boundary.
+All principles remain satisfied. No dependency, executable, database schema,
+privilege boundary, or deletion boundary changes. A bounded read-only local API
+response is added so Options cannot misrepresent a custom daemon configuration.
+`CHANGELOG.md` and the exact-candidate validation instructions are pinned release
+artifacts whose updates are required to record the behavior and evidence boundary.
 
 ## Architecture and Decision Log
 
@@ -81,15 +82,16 @@ licensing, accessibility, and persistence risk beyond the reported need.
 
 ### Resolve storage locations from explicit inputs only
 
-Build storage rows from the active default configuration, the Fyne app storage
-root, the running executable directory, and documented platform-specific
-maintenance evidence. Each row carries scope, existence, and preserve/wipe copy.
-The resolver receives injectable stat and executable functions for deterministic
+Build daemon storage rows from absolute effective paths returned by a read-only
+local runtime-information endpoint, then combine them with the Fyne app storage
+root, running executable directory, and documented platform-specific maintenance
+evidence. Each row carries scope, existence, and platform-accurate preserve/wipe
+copy. The resolver receives injectable stat and platform inputs for deterministic
 tests. It probes exact declared paths only and never walks a profile or filesystem.
 
 Documentation is shown only when a known installed documentation path can be
-derived and exists. Custom external configuration is not presented as owned or
-wiped because the GUI currently has no authoritative contract for discovering it.
+derived and exists. Custom external configuration is presented from daemon
+metadata but is never represented as owned or wiped.
 
 ### Bind task gestures to identity and guard editor ownership
 

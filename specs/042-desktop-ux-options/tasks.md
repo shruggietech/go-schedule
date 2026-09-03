@@ -78,7 +78,7 @@
 ### Implementation for User Story 2
 
 - [x] T020 [US2] Build the Storage section with selectable paths and explicit Copy controls in `gui/options.go`
-- [x] T021 [US2] Wire active configuration, Fyne storage root, executable directory, and the shared cleanup-evidence resolver in `gui/app.go`, `gui/storage_locations.go`, and `internal/winuninstall/`
+- [x] T021 [US2] Wire connected-daemon runtime metadata, Fyne storage root, executable directory, and the shared cleanup-evidence resolver in `gui/app.go`, `gui/storage_locations.go`, `internal/api/`, and `internal/winuninstall/`
 - [x] T022 [US2] Run focused storage resolver and Options interaction tests and confirm no path is created, traversed, or misclassified
 
 **Checkpoint**: Storage transparency works independently and makes no deletion or external-ownership claim.

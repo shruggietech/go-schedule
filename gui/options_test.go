@@ -1,11 +1,15 @@
 package gui
 
 import (
+	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
+
+	"github.com/shruggietech/go-schedule/internal/api/server"
 )
 
 func TestOptionsAppearanceAppliesPersistsAndResets(t *testing.T) {
@@ -102,6 +106,59 @@ func TestOptionsStorageRowsExposeLifecycleAndScope(t *testing.T) {
 			if !containsString(labels, want) {
 				t.Errorf("storage row %s missing visible value %q", row.location.Category, want)
 			}
+		}
+	}
+}
+
+func TestOptionsRefreshUsesConnectedDaemonRuntimePaths(t *testing.T) {
+	base := t.TempDir()
+	custom := filepath.Join(base, "custom-daemon")
+	backend := &fakeBackend{runtimeInfo: server.RuntimeInfoResponse{
+		DataDir:      custom,
+		DatabasePath: filepath.Join(custom, "custom.db"),
+		ConfigPath:   filepath.Join(base, "daemon.json"),
+		LogPath:      filepath.Join(base, "logs", "custom.log"),
+		LockPath:     filepath.Join(custom, "custom.lock"),
+	}}
+	ui := NewUI(testApp, backend)
+	ui.refreshStorageLocations(t.Context())
+
+	want := map[string]string{
+		"Machine data":  backend.runtimeInfo.DataDir,
+		"Task database": backend.runtimeInfo.DatabasePath,
+		"Configuration": backend.runtimeInfo.ConfigPath,
+		"Logs":          backend.runtimeInfo.LogPath,
+		"Runtime state": backend.runtimeInfo.LockPath,
+	}
+	for _, row := range ui.options.storageRows {
+		if path, ok := want[row.location.Category]; ok {
+			if row.location.Path != path {
+				t.Errorf("%s path = %q, want %q", row.location.Category, row.location.Path, path)
+			}
+			delete(want, row.location.Category)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing daemon runtime rows: %v", want)
+	}
+
+	// A second refresh must replace, not append to, the daemon inventory.
+	backend.runtimeInfo.DataDir = filepath.Join(base, "moved")
+	backend.runtimeInfo.DatabasePath = filepath.Join(backend.runtimeInfo.DataDir, "custom.db")
+	ui.refreshStorageLocations(t.Context())
+	for _, row := range ui.options.storageRows {
+		if row.location.Category == "Machine data" && row.location.Path != backend.runtimeInfo.DataDir {
+			t.Fatalf("refreshed machine data = %q, want %q", row.location.Path, backend.runtimeInfo.DataDir)
+		}
+	}
+
+	backend.runtimeErr = errors.New("runtime metadata temporarily unavailable")
+	previous := backend.runtimeInfo.DataDir
+	backend.runtimeInfo.DataDir = filepath.Join(base, "must-not-replace-known-state")
+	ui.refreshStorageLocations(t.Context())
+	for _, row := range ui.options.storageRows {
+		if row.location.Category == "Machine data" && row.location.Path != previous {
+			t.Fatalf("failed metadata refresh replaced known path with %q", row.location.Path)
 		}
 	}
 }

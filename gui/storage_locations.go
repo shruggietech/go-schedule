@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/api/server"
 )
 
 type storageScope string
@@ -38,7 +38,8 @@ type storageLocation struct {
 }
 
 type storageLocationInputs struct {
-	Config                  config.Config
+	Runtime                 server.RuntimeInfoResponse
+	OwnedMachineDataRoot    string
 	PreferencesRoot         string
 	ExecutablePath          string
 	GOOS                    string
@@ -52,22 +53,32 @@ func resolveStorageLocations(inputs storageLocationInputs) []storageLocation {
 		stat = os.Stat
 	}
 	preserve := "Preserved"
-	wipe := "Removed by an explicit data wipe"
+	wipe := "No built-in data wipe on this platform"
+	if inputs.GOOS == "windows" {
+		wipe = "Removed by an explicit data wipe"
+	}
 	software := "Removed with the application"
 
-	logScope := storageScopeMachine
-	logSoftwareOnly, logWipe := preserve, wipe
-	if !pathWithin(inputs.Config.DataDir, inputs.Config.LogPath()) {
-		logScope = storageScopeExternal
-		logSoftwareOnly = "Preserved"
-		logWipe = "Preserved; outside the application-owned data root"
+	machineScope := func(path string) (storageScope, string) {
+		if path == "" {
+			return storageScopeMachine, wipe
+		}
+		if pathWithin(inputs.OwnedMachineDataRoot, path) {
+			return storageScopeMachine, wipe
+		}
+		return storageScopeExternal, "Preserved; outside the application-owned data root"
 	}
+	dataScope, dataWipe := machineScope(inputs.Runtime.DataDir)
+	databaseScope, databaseWipe := machineScope(inputs.Runtime.DatabasePath)
+	configScope, configWipe := machineScope(inputs.Runtime.ConfigPath)
+	logScope, logWipe := machineScope(inputs.Runtime.LogPath)
+	runtimeScope, runtimeWipe := machineScope(inputs.Runtime.LockPath)
 	locations := []storageLocation{
-		newStorageLocation("Machine data", inputs.Config.DataDir, storageScopeMachine, preserve, wipe, stat),
-		newStorageLocation("Task database", inputs.Config.DBPath(), storageScopeMachine, preserve, wipe, stat),
-		newStorageLocation("Configuration", filepath.Join(inputs.Config.DataDir, "config.json"), storageScopeMachine, preserve, wipe, stat),
-		newStorageLocation("Logs", inputs.Config.LogPath(), logScope, logSoftwareOnly, logWipe, stat),
-		newStorageLocation("Runtime state", filepath.Join(inputs.Config.DataDir, "goschedd.lock"), storageScopeMachine, preserve, wipe, stat),
+		newStorageLocation("Machine data", inputs.Runtime.DataDir, dataScope, preserve, dataWipe, stat),
+		newStorageLocation("Task database", inputs.Runtime.DatabasePath, databaseScope, preserve, databaseWipe, stat),
+		newStorageLocation("Configuration", inputs.Runtime.ConfigPath, configScope, preserve, configWipe, stat),
+		newStorageLocation("Logs", inputs.Runtime.LogPath, logScope, preserve, logWipe, stat),
+		newStorageLocation("Runtime state", inputs.Runtime.LockPath, runtimeScope, preserve, runtimeWipe, stat),
 		newStorageLocation("Desktop application data", inputs.PreferencesRoot, storageScopeUser, preserve, wipe, stat),
 		newStorageLocation("Desktop preferences", filepath.Join(inputs.PreferencesRoot, "preferences.json"), storageScopeUser, preserve, wipe, stat),
 	}

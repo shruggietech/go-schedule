@@ -53,6 +53,16 @@ func (c *Client) Health(ctx context.Context) (server.HealthResponse, error) {
 	return out, nil
 }
 
+// RuntimeInfo returns the effective storage paths reported by the connected
+// daemon instance.
+func (c *Client) RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, error) {
+	var out server.RuntimeInfoResponse
+	if err := c.get(ctx, "/v1/runtime-info", &out); err != nil {
+		return server.RuntimeInfoResponse{}, err
+	}
+	return out, nil
+}
+
 // get performs a GET and decodes a JSON body, surfacing the API error envelope.
 func (c *Client) get(ctx context.Context, path string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+path, nil)

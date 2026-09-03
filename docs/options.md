@@ -46,8 +46,15 @@ state, per-user desktop application data and preferences, the running executable
 directory, installed documentation when discoverable, and Windows maintenance
 evidence when applicable.
 
+Daemon-owned rows come from the connected daemon's effective configuration, so
+launching `goschedd` with a custom configuration file displays that file and the
+actual derived data, database, log, and lock paths. A path configured outside
+the standard application-owned roots is shown as external and preserved rather
+than being described as an uninstall or wipe target. On Linux and macOS, the
+view states that the Windows-only guided data wipe is unavailable.
+
 This view is informational and read-only. It does not create, open, scan,
-delete, or relocate paths. User-created exports and administrator-configured
-locations outside the application-owned defaults are excluded and are never
-represented as wipe targets. A development executable is identified as the
-running application location, not promised to be installer-owned.
+delete, or relocate paths. User-created exports are not discovered, and
+administrator-configured locations outside the application-owned defaults are
+never represented as wipe targets. A development executable is identified as
+the running application location, not promised to be installer-owned.

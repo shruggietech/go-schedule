@@ -21,14 +21,16 @@ import (
 
 // fakeBackend implements Backend with in-memory data for headless UI tests.
 type fakeBackend struct {
-	tasks      []domain.Task
-	groups     []domain.Group
-	chains     []domain.CompletionChain
-	alerts     []domain.Alert
-	logs       []domain.LogRecord
-	logPath    string
-	created    int
-	lastCreate server.TaskCreateRequest
+	tasks       []domain.Task
+	groups      []domain.Group
+	chains      []domain.CompletionChain
+	alerts      []domain.Alert
+	logs        []domain.LogRecord
+	logPath     string
+	runtimeInfo server.RuntimeInfoResponse
+	runtimeErr  error
+	created     int
+	lastCreate  server.TaskCreateRequest
 
 	// details keyed by task ID; GetTask serves these and records failures.
 	details    map[string]server.TaskResponse
@@ -94,6 +96,10 @@ func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) 
 }
 func (f *fakeBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	return server.LogsResponse{Logs: f.logs, LogPath: f.logPath}, nil
+}
+
+func (f *fakeBackend) RuntimeInfo(context.Context) (server.RuntimeInfoResponse, error) {
+	return f.runtimeInfo, f.runtimeErr
 }
 func (f *fakeBackend) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
 	// Under the same mutex as the updates, and for the same reason: App.run

@@ -85,13 +85,13 @@ the deepest tap-capable row child once it implements double activation.
 
 ## Decision 5: Present a bounded storage inventory
 
-**Decision**: Resolve only known application-owned locations: machine data
-root, database, logs, runtime lock/state, Fyne preference root/file, executable
-directory, installed documentation when discoverable, and Windows cleanup
-evidence when meaningful. Show the machine configuration path and the per-user
-Fyne root separately from their files. Probe those exact paths with `os.Stat`
-and no traversal. Running executable paths use ownership-neutral lifecycle copy
-because a development binary is not necessarily installer-owned.
+**Decision**: Resolve daemon-owned locations from a small read-only local API
+response containing the running daemon's absolute effective data, database,
+configuration, log, and lock paths. Combine those with the Fyne preference
+root/file, executable directory, installed documentation when discoverable, and
+Windows cleanup evidence when meaningful. Probe those exact paths with
+`os.Stat` and no traversal. Running executable paths use ownership-neutral
+lifecycle copy because a development binary is not necessarily installer-owned.
 
 **Rationale**: Users need transparent support and uninstall information, not a
 filesystem browser. Scope, existence, and preserve/wipe language prevent a path
@@ -104,8 +104,10 @@ inputs make the contract deterministic in headless tests.
   privacy-invasive, and cannot establish ownership.
 - Show hard-coded Windows paths on every platform: rejected because the values
   would be false outside Windows and can vary by environment.
-- Claim custom daemon configuration paths are wipe-owned: rejected because the
-  GUI cannot currently discover or authorize deletion of arbitrary overlays.
+- Derive daemon paths from client-side defaults: rejected after review because
+  a supported custom daemon configuration makes those values false.
+- Claim custom daemon configuration paths are wipe-owned: rejected because
+  disclosure does not authorize deletion of arbitrary overlays.
 
 ## Decision 6: Separate automated and native visual evidence
 

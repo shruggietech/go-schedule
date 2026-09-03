@@ -27,9 +27,9 @@ initiating UI action; persistence does not claim a multi-key transaction.
 | Software-only removal | Plain-language retention behavior |
 | Explicit data wipe | Plain-language removal or retention behavior |
 
-Resolution is a pure ordered transformation over explicit configuration,
-platform, executable, application-storage, and stat inputs. It never creates,
-deletes, opens, or recursively searches a path.
+Resolution is a pure ordered transformation over daemon-reported runtime paths,
+the platform-owned root, executable, application-storage, and stat inputs. It
+never creates, deletes, opens, or recursively searches a path.
 
 ## Navigation destination
 

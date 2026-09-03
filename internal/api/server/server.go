@@ -28,14 +28,32 @@ type Server struct {
 	broker  *events.Broker
 	logs    *logbus.Ring
 	logPath string
+	runtime RuntimeInfoResponse
 	log     *slog.Logger
 	mux     *http.ServeMux
+}
+
+// RuntimeInfoResponse identifies the daemon's effective local storage paths.
+// These values come from the configuration used by the running daemon, not
+// from client-side defaults.
+type RuntimeInfoResponse struct {
+	DataDir      string `json:"data_dir"`
+	DatabasePath string `json:"database_path"`
+	ConfigPath   string `json:"config_path,omitempty"`
+	LogPath      string `json:"log_path"`
+	LockPath     string `json:"lock_path"`
 }
 
 // New constructs a Server and registers routes. sched, broker, and logs may be
 // nil (e.g. in tests that exercise only persistence-backed endpoints).
 func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, log *slog.Logger) *Server {
-	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, log: log, mux: http.NewServeMux()}
+	return NewWithRuntimeInfo(st, sched, broker, logs, logPath, RuntimeInfoResponse{}, log)
+}
+
+// NewWithRuntimeInfo constructs a Server with authoritative daemon storage
+// metadata for GET /v1/runtime-info.
+func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, runtime RuntimeInfoResponse, log *slog.Logger) *Server {
+	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux()}
 	s.routes()
 	return s
 }
@@ -45,6 +63,7 @@ func (s *Server) Handler() http.Handler { return s.mux }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/health", s.handleHealth)
+	s.mux.HandleFunc("GET /v1/runtime-info", s.handleRuntimeInfo)
 
 	s.mux.HandleFunc("GET /v1/tasks", s.handleListTasks)
 	s.mux.HandleFunc("POST /v1/tasks", s.handleCreateTask)
@@ -95,6 +114,10 @@ type HealthResponse struct {
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, HealthResponse{Status: "ok", Version: buildinfo.Version})
+}
+
+func (s *Server) handleRuntimeInfo(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.runtime)
 }
 
 // ---- response helpers ---------------------------------------------------

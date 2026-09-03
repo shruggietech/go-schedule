@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -46,6 +47,13 @@ func mainErr(configPath string) error {
 	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
 		return err
 	}
+	resolvedConfigPath := ""
+	if configPath != "" {
+		resolvedConfigPath, err = filepath.Abs(configPath)
+		if err != nil {
+			return fmt.Errorf("resolve config path: %w", err)
+		}
+	}
 
 	// Single-instance guard, acquired before the service machinery so a second
 	// daemon fails fast (a second scheduler would double-execute every task).
@@ -58,11 +66,15 @@ func mainErr(configPath string) error {
 	// Run under the service manager when launched as a service; otherwise this
 	// runs in the foreground until interrupted.
 	return service.Run(func(ctx context.Context) error {
-		return runDaemon(ctx, cfg)
+		return runDaemon(ctx, cfg, resolvedConfigPath)
 	})
 }
 
-func runDaemon(ctx context.Context, cfg config.Config) error {
+func runDaemon(ctx context.Context, cfg config.Config, configPath string) error {
+	runtimeInfo, err := daemonRuntimeInfo(cfg, configPath)
+	if err != nil {
+		return err
+	}
 	// Live-event broker doubles as the log publisher, so it is created first.
 	broker := events.NewBroker()
 
@@ -107,7 +119,7 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	}
 
 	srv := &http.Server{
-		Handler:           server.New(st, eng, broker, ring, cfg.LogPath(), log).Handler(),
+		Handler:           server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -134,6 +146,31 @@ func runDaemon(ctx context.Context, cfg config.Config) error {
 	case err := <-engErr:
 		return err
 	}
+}
+
+func daemonRuntimeInfo(cfg config.Config, configPath string) (server.RuntimeInfoResponse, error) {
+	dataDir := cfg.DataDir
+	databasePath := cfg.DBPath()
+	logPath := cfg.LogPath()
+	lockPath := filepath.Join(cfg.DataDir, "goschedd.lock")
+	paths := []*string{&dataDir, &databasePath, &logPath, &lockPath}
+	if configPath != "" {
+		paths = append(paths, &configPath)
+	}
+	for _, path := range paths {
+		absolute, err := filepath.Abs(*path)
+		if err != nil {
+			return server.RuntimeInfoResponse{}, fmt.Errorf("resolve runtime path %q: %w", *path, err)
+		}
+		*path = filepath.Clean(absolute)
+	}
+	return server.RuntimeInfoResponse{
+		DataDir:      dataDir,
+		DatabasePath: databasePath,
+		ConfigPath:   configPath,
+		LogPath:      logPath,
+		LockPath:     lockPath,
+	}, nil
 }
 
 func logDaemonReady(log *slog.Logger, endpoint, dbPath, logPath string) {

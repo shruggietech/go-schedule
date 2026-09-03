@@ -264,7 +264,9 @@ both 100 percent scaling and at least one scaled-DPI setting:
   persistence, restore defaults, and inspect current plus newly opened dialogs;
 - inspect every storage row, select and copy representative machine and
   per-user paths, and compare the displayed lifecycle copy with the #98
-  preserve-or-wipe inventory; and
+  preserve-or-wipe inventory; repeat with a daemon launched from a custom
+  configuration and confirm its effective paths are shown while locations
+  outside owned roots are marked preserved; and
 - single-click, keyboard-select, toolbar-edit, and double-click task rows before
   and after a live refresh, confirming one correctly populated editor and no
   stacked dialogs.
