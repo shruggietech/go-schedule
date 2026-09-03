@@ -18,7 +18,6 @@ const (
 	profileListKey = `SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList`
 	profileLeaf    = `AppData\Roaming\fyne\tech.shruggie.goschedule`
 	resultKey      = `Software\ShruggieTech\go-schedule-uninstall`
-	resultFolder   = `ShruggieTech\go-schedule-uninstall\b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34`
 )
 
 type windowsBackend struct {
@@ -40,7 +39,7 @@ func Wipe() Result {
 	}
 	backend := &windowsBackend{
 		programData: filepath.Clean(programData),
-		resultPath:  filepath.Join(programData, resultFolder, "cleanup-result.json"),
+		resultPath:  CleanupResultPath(programData),
 		bounds:      make(map[string]trustedBounds),
 	}
 	return Run(backend)
@@ -222,7 +221,7 @@ func (b *windowsBackend) ClearResult() (resultErr error) {
 		return fmt.Errorf("delete cleanup status key: %w", err)
 	}
 	volumeRoot := filepath.VolumeName(b.programData) + `\`
-	relative, err := filepath.Rel(volumeRoot, filepath.Join(b.programData, resultFolder))
+	relative, err := filepath.Rel(volumeRoot, filepath.Dir(CleanupResultPath(b.programData)))
 	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, `..\`) {
 		return fmt.Errorf("derive volume-relative cleanup result path")
 	}

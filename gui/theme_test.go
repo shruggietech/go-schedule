@@ -2,6 +2,7 @@ package gui
 
 import (
 	"image/color"
+	"math"
 	"testing"
 
 	"fyne.io/fyne/v2"
@@ -18,6 +19,43 @@ func nrgba(t *testing.T, c color.Color) color.NRGBA {
 	}
 	r, g, b, a := c.RGBA()
 	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
+}
+
+func TestBrandThemeTextContrastAndFocusVisibility(t *testing.T) {
+	for _, mode := range []appearanceMode{appearanceDark, appearanceLight, appearanceSystem} {
+		for _, variant := range []fyne.ThemeVariant{theme.VariantDark, theme.VariantLight} {
+			th := newBrandThemeFor(appearancePreferences{Mode: mode, Font: fontBrand})
+			background := th.Color(theme.ColorNameBackground, variant)
+			for _, name := range []fyne.ThemeColorName{theme.ColorNameForeground, theme.ColorNameHyperlink} {
+				if ratio := contrastRatio(th.Color(name, variant), background); ratio < 4.5 {
+					t.Errorf("mode=%s variant=%v %s contrast = %.2f, want >= 4.5", mode, variant, name, ratio)
+				}
+			}
+			if ratio := contrastRatio(th.Color(theme.ColorNameFocus, variant), background); ratio < 3 {
+				t.Errorf("mode=%s variant=%v focus contrast = %.2f, want >= 3", mode, variant, ratio)
+			}
+		}
+	}
+}
+
+func contrastRatio(a, b color.Color) float64 {
+	la, lb := relativeLuminance(a), relativeLuminance(b)
+	if la < lb {
+		la, lb = lb, la
+	}
+	return (la + 0.05) / (lb + 0.05)
+}
+
+func relativeLuminance(value color.Color) float64 {
+	r, g, b, _ := value.RGBA()
+	linear := func(component uint32) float64 {
+		c := float64(component) / 65535
+		if c <= 0.04045 {
+			return c / 12.92
+		}
+		return math.Pow((c+0.055)/1.055, 2.4)
+	}
+	return 0.2126*linear(r) + 0.7152*linear(g) + 0.0722*linear(b)
 }
 
 func TestBrandThemeColors(t *testing.T) {
@@ -51,11 +89,28 @@ func TestBrandThemeColors(t *testing.T) {
 	}
 }
 
-// The theme is dark-first: a Light variant request still returns the dark color.
-func TestBrandThemeIgnoresVariant(t *testing.T) {
-	th := newBrandTheme()
-	if got := nrgba(t, th.Color(theme.ColorNameBackground, theme.VariantLight)); got != cNight {
-		t.Errorf("Background under VariantLight = %v, want Night %v", got, cNight)
+func TestBrandThemeAppearanceVariants(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		mode     appearanceMode
+		variant  fyne.ThemeVariant
+		wantBack color.NRGBA
+		wantText color.NRGBA
+	}{
+		{name: "dark ignores light request", mode: appearanceDark, variant: theme.VariantLight, wantBack: cNight, wantText: cText},
+		{name: "light ignores dark request", mode: appearanceLight, variant: theme.VariantDark, wantBack: cPaper, wantText: cInk},
+		{name: "system dark", mode: appearanceSystem, variant: theme.VariantDark, wantBack: cNight, wantText: cText},
+		{name: "system light", mode: appearanceSystem, variant: theme.VariantLight, wantBack: cPaper, wantText: cInk},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			th := newBrandThemeFor(appearancePreferences{Mode: tc.mode, Font: fontBrand})
+			if got := nrgba(t, th.Color(theme.ColorNameBackground, tc.variant)); got != tc.wantBack {
+				t.Errorf("background = %v, want %v", got, tc.wantBack)
+			}
+			if got := nrgba(t, th.Color(theme.ColorNameForeground, tc.variant)); got != tc.wantText {
+				t.Errorf("foreground = %v, want %v", got, tc.wantText)
+			}
+		})
 	}
 }
 
@@ -73,6 +128,32 @@ func TestBrandThemeFonts(t *testing.T) {
 		if got := th.Font(tc.style).Name(); got != tc.want {
 			t.Errorf("Font(%+v) = %q, want %q", tc.style, got, tc.want)
 		}
+	}
+}
+
+func TestBrandThemeFontChoices(t *testing.T) {
+	regular := fyne.TextStyle{}
+	bold := fyne.TextStyle{Bold: true}
+	symbol := fyne.TextStyle{Symbol: true}
+	defaults := theme.DefaultTheme()
+
+	systemTheme := newBrandThemeFor(appearancePreferences{Mode: appearanceDark, Font: fontSystem})
+	if got, want := systemTheme.Font(regular).Name(), defaults.Font(regular).Name(); got != want {
+		t.Fatalf("system regular font = %q, want %q", got, want)
+	}
+	if got, want := systemTheme.Font(bold).Name(), defaults.Font(bold).Name(); got != want {
+		t.Fatalf("system bold font = %q, want %q", got, want)
+	}
+
+	monoTheme := newBrandThemeFor(appearancePreferences{Mode: appearanceLight, Font: fontMonospace})
+	if got := monoTheme.Font(regular).Name(); got != "GeistMono-Regular.ttf" {
+		t.Fatalf("monospace regular font = %q", got)
+	}
+	if got := monoTheme.Font(bold).Name(); got != "GeistMono-Regular.ttf" {
+		t.Fatalf("monospace bold font = %q", got)
+	}
+	if got, want := monoTheme.Font(symbol).Name(), defaults.Font(symbol).Name(); got != want {
+		t.Fatalf("symbol font = %q, want delegated %q", got, want)
 	}
 }
 

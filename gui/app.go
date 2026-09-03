@@ -11,17 +11,24 @@ package gui
 import (
 	"context"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/gui/viewmodel"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/internal/winuninstall"
 )
 
 // Backend is everything the GUI needs from the daemon. The API client satisfies
@@ -49,18 +56,24 @@ type Backend interface {
 
 	AckAlert(ctx context.Context, id string) error
 	GetCalendar(ctx context.Context, from, to time.Time) (server.CalendarResponse, error)
+	RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, error)
 	StreamEvents(ctx context.Context, onEvent func(events.Event)) error
 }
 
 // App is the GUI application.
 type App struct {
-	fyne    fyne.App
-	win     fyne.Window
-	backend Backend
-	model   *viewmodel.Model
+	fyne             fyne.App
+	win              fyne.Window
+	clipboard        fyne.Clipboard
+	backend          Backend
+	model            *viewmodel.Model
+	appearance       appearancePreferences
+	storageLocations []storageLocation
+	storageInputs    storageLocationInputs
+	options          *optionsView
+	taskList         *widget.List
 
-	tabs       *container.AppTabs
-	logsTab    *container.TabItem
+	navigation *navigationShell
 	refreshers []func()
 
 	connection         *connectionState
@@ -72,6 +85,12 @@ type App struct {
 	runCtx             context.Context
 	runCancel          context.CancelFunc
 	retrySignal        chan struct{}
+	stopOnce           sync.Once
+	closeOnce          sync.Once
+	closeWindow        func()
+	editorMu           sync.Mutex
+	taskEditorOpen     bool
+	activeTaskDialog   dialog.Dialog
 }
 
 // NewUI builds the GUI against fyneApp (created by the caller with the GL driver)
@@ -87,12 +106,32 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 		runCancel:   runCancel,
 		retrySignal: make(chan struct{}, 1),
 	}
-	// Apply the go-schedule brand theme (dark-first palette + brand fonts). Wired
-	// here so the windowed entry point and the headless test driver share one
-	// theme, and every NewUI-based test exercises the real palette.
-	applyBrandTheme(fyneApp.Settings())
+	// Apply the validated per-user theme before constructing widgets. Dark and
+	// Brand remain the safe defaults, and the windowed entry point and headless
+	// test driver exercise the same palette and font selection.
+	a.appearance = loadAppearancePreferences(fyneApp.Preferences())
+	applyBrandTheme(fyneApp.Settings(), a.appearance)
 	fyneApp.SetIcon(appIcon)
 	a.win = fyneApp.NewWindow("go-schedule")
+	a.clipboard = fyneApp.Clipboard()
+	executablePath, _ := os.Executable()
+	preferencesRoot := ""
+	if root := fyneApp.Storage().RootURI(); root != nil && root.Scheme() == "file" {
+		preferencesRoot = root.Path()
+	}
+	ownedMachineDataRoot := platform.DataDir()
+	maintenanceEvidencePath := ""
+	if runtime.GOOS == "windows" {
+		maintenanceEvidencePath = winuninstall.CleanupResultPath(filepath.Dir(ownedMachineDataRoot))
+	}
+	a.storageInputs = storageLocationInputs{
+		OwnedMachineDataRoot:    ownedMachineDataRoot,
+		PreferencesRoot:         preferencesRoot,
+		ExecutablePath:          executablePath,
+		GOOS:                    runtime.GOOS,
+		MaintenanceEvidencePath: maintenanceEvidencePath,
+	}
+	a.storageLocations = resolveStorageLocations(a.storageInputs)
 	a.win.SetIcon(windowIcon) // crisp small tile for the title bar (see icon.go)
 	// Open as a bounded restored window on the launch monitor, respecting its
 	// taskbar and display scale. Unknown work area retains the 1280x800 fallback.
@@ -103,27 +142,26 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 	a.win.Resize(windowSizeFor(ww, wh, monitorScale))
 	a.win.CenterOnScreen()
 	a.win.SetContent(a.buildRoot())
-	a.win.SetCloseIntercept(func() {
-		a.stop()
+	a.closeWindow = func() {
 		a.win.SetCloseIntercept(nil)
 		a.win.Close()
-	})
+	}
+	a.win.SetCloseIntercept(a.requestClose)
 	a.model.OnChange = func() { fyne.Do(a.onModelChange) }
 	return a
 }
 
-// buildRoot assembles the tabbed layout.
+// buildRoot assembles the leading navigation rail and active content.
 func (a *App) buildRoot() fyne.CanvasObject {
-	a.tabs = container.NewAppTabs(
-		container.NewTabItem("Tasks", a.buildTasksTab()),
-		container.NewTabItem("Groups", a.buildGroupsTab()),
-		container.NewTabItem("Chains", a.buildChainsTab()),
-		container.NewTabItem("Schedule", a.buildScheduleTab()),
-	)
-	a.logsTab = container.NewTabItem(activityTabLabel(0), a.buildLogsTab())
-	a.tabs.Append(a.logsTab)
-	a.tabs.Append(container.NewTabItem("Info", a.buildInfoTab()))
-	a.tabs.SetTabLocation(container.TabLocationLeading)
+	a.navigation = newNavigationShell([]navigationDestinationSpec{
+		{ID: navigationTasks, Label: "Tasks", Content: a.buildTasksTab()},
+		{ID: navigationGroups, Label: "Groups", Content: a.buildGroupsTab()},
+		{ID: navigationChains, Label: "Chains", Content: a.buildChainsTab()},
+		{ID: navigationSchedule, Label: "Schedule", Content: a.buildScheduleTab()},
+		{ID: navigationActivity, Label: activityTabLabel(0), Content: a.buildLogsTab()},
+		{ID: navigationOptions, Label: "Options", Content: a.buildOptionsTab()},
+		{ID: navigationInfo, Label: "Info", Content: a.buildInfoTab()},
+	}, a.requestClose)
 	a.connectionTitle = widget.NewLabel("")
 	a.connectionTitle.TextStyle = fyne.TextStyle{Bold: true}
 	a.connectionGuidance = widget.NewLabel("")
@@ -131,11 +169,7 @@ func (a *App) buildRoot() fyne.CanvasObject {
 	a.connectionDetail = widget.NewLabel("")
 	a.connectionDetail.Wrapping = fyne.TextWrapWord
 	a.retryButton = widget.NewButton("Retry", a.retryConnection)
-	exitButton := widget.NewButton("Exit", func() {
-		a.stop()
-		a.win.SetCloseIntercept(nil)
-		a.win.Close()
-	})
+	exitButton := widget.NewButton("Exit", a.requestClose)
 	a.connectionCard = widget.NewCard("Connection", "", container.NewVBox(
 		a.connectionTitle,
 		a.connectionGuidance,
@@ -143,7 +177,7 @@ func (a *App) buildRoot() fyne.CanvasObject {
 		container.NewHBox(a.retryButton, exitButton),
 	))
 	a.connectionCard.Hide()
-	return container.NewBorder(a.connectionCard, nil, nil, nil, a.tabs)
+	return container.NewBorder(a.connectionCard, nil, nil, nil, a.navigation.root)
 }
 
 // Run shows the window, kicks off the first data load and the live event stream,
@@ -175,6 +209,7 @@ func (a *App) refreshAllOnce() error {
 		})
 		return err
 	}
+	a.refreshStorageLocations(ctx)
 	a.connection.clear()
 	fyne.Do(a.renderConnectionIncident)
 	for _, r := range a.refreshers {
@@ -182,6 +217,22 @@ func (a *App) refreshAllOnce() error {
 		fyne.Do(rr)
 	}
 	return nil
+}
+
+func (a *App) refreshStorageLocations(ctx context.Context) {
+	runtimeInfo, err := a.backend.RuntimeInfo(ctx)
+	if err != nil {
+		return
+	}
+	storageInputs := a.storageInputs
+	storageInputs.Runtime = runtimeInfo
+	storageLocations := resolveStorageLocations(storageInputs)
+	fyne.Do(func() {
+		a.storageLocations = storageLocations
+		if a.options != nil {
+			a.options.setStorageLocations(storageLocations, a.clipboard)
+		}
+	})
 }
 
 // streamEvents consumes the SSE stream and folds events into the model,
@@ -261,12 +312,46 @@ func (a *App) renderConnectionIncident() {
 }
 
 func (a *App) stop() {
-	if a.runCancel != nil {
-		a.runCancel()
-	}
+	a.stopOnce.Do(func() {
+		if a.runCancel != nil {
+			a.runCancel()
+		}
+	})
 }
 
-// onModelChange refreshes the Activity badge and every tab's view when state changes.
+func (a *App) requestClose() {
+	a.closeOnce.Do(func() {
+		a.stop()
+		if a.closeWindow != nil {
+			a.closeWindow()
+		}
+	})
+}
+
+func (a *App) claimTaskEditor() bool {
+	a.editorMu.Lock()
+	defer a.editorMu.Unlock()
+	if a.taskEditorOpen {
+		return false
+	}
+	a.taskEditorOpen = true
+	return true
+}
+
+func (a *App) releaseTaskEditor() {
+	a.editorMu.Lock()
+	a.taskEditorOpen = false
+	a.activeTaskDialog = nil
+	a.editorMu.Unlock()
+}
+
+func (a *App) setActiveTaskDialog(dialog dialog.Dialog) {
+	a.editorMu.Lock()
+	a.activeTaskDialog = dialog
+	a.editorMu.Unlock()
+}
+
+// onModelChange refreshes the Activity badge and every destination view when state changes.
 func (a *App) onModelChange() {
 	a.updateLogsBadge()
 	for _, r := range a.refreshers {
@@ -275,15 +360,12 @@ func (a *App) onModelChange() {
 }
 
 // updateLogsBadge shows the bounded count of unacknowledged alerts (the
-// actionable subset of activity) on the Activity tab.
+// actionable subset of activity) on the Activity destination.
 func (a *App) updateLogsBadge() {
-	if a.logsTab == nil {
+	if a.navigation == nil {
 		return
 	}
-	a.logsTab.Text = activityTabLabel(a.model.UnacknowledgedAlerts())
-	if a.tabs != nil {
-		a.tabs.Refresh()
-	}
+	a.navigation.updateLabel(navigationActivity, activityTabLabel(a.model.UnacknowledgedAlerts()))
 }
 
 func activityTabLabel(unacknowledged int) string {
@@ -300,7 +382,11 @@ func (a *App) registerRefresher(f func()) { a.refreshers = append(a.refreshers, 
 
 // bgCtx returns a short-lived context for a backend call.
 func (a *App) bgCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 10*time.Second)
+	base := a.runCtx
+	if base == nil {
+		base = context.Background()
+	}
+	return context.WithTimeout(base, 10*time.Second)
 }
 
 // run executes a backend mutation in the background and refreshes on success.

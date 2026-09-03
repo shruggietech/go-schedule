@@ -23,10 +23,8 @@ func buildInfoContent(version string) fyne.CanvasObject {
 	title := widget.NewLabelWithStyle("go-schedule", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 	versionLabel := widget.NewLabel("Version " + version)
 	versionLabel.Alignment = fyne.TextAlignCenter
-	versionLabel.Wrapping = fyne.TextWrapBreak
 	attribution := widget.NewLabel("Built and maintained by ShruggieTech")
 	attribution.Alignment = fyne.TextAlignCenter
-	attribution.Wrapping = fyne.TextWrapWord
 
 	content := container.NewVBox(
 		container.NewCenter(mark),

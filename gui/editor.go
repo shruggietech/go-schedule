@@ -104,6 +104,9 @@ const (
 // for an edit it carries the task and its schedule so the dialog can show what
 // the task is actually set to.
 func (a *App) showTaskEditor(detail *server.TaskResponse) {
+	if !a.claimTaskEditor() {
+		return
+	}
 	e := newTaskEditor(a, detail)
 	body := e.build()
 
@@ -112,6 +115,8 @@ func (a *App) showTaskEditor(detail *server.TaskResponse) {
 		title = "Edit Task"
 	}
 	d := dialog.NewCustomWithoutButtons(title, body, a.win)
+	d.SetOnClosed(a.releaseTaskEditor)
+	a.setActiveTaskDialog(d)
 	e.save.OnTapped = func() {
 		e.submit()
 		d.Hide()

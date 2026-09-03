@@ -42,6 +42,34 @@ func TestHealth_OK(t *testing.T) {
 	}
 }
 
+func TestRuntimeInfoReturnsEffectiveDaemonPaths(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	want := RuntimeInfoResponse{
+		DataDir:      `/srv/custom schedule`,
+		DatabasePath: `/srv/custom schedule/goschedule.db`,
+		ConfigPath:   `/etc/go-schedule/custom.json`,
+		LogPath:      `/var/log/go-schedule/events.log`,
+		LockPath:     `/srv/custom schedule/goschedd.lock`,
+	}
+	s := NewWithRuntimeInfo(st, nil, nil, nil, want.LogPath, want, config.NewLogger(config.Default(), discard{}))
+	rec := httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/runtime-info", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var got RuntimeInfoResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("runtime info = %+v, want %+v", got, want)
+	}
+}
+
 func TestErrorEnvelope_OnUnknownRoute(t *testing.T) {
 	s := newTestServer(t)
 	rec := httptest.NewRecorder()

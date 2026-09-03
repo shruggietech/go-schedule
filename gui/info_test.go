@@ -73,6 +73,35 @@ func TestUI_InfoContentUsesLocalIdentityAndExactLinks(t *testing.T) {
 	}
 }
 
+func TestUI_InfoBodyLabelsAreCenteredAndUnwrapped(t *testing.T) {
+	content := buildInfoContent("1.2.3-test")
+	want := map[string]bool{
+		"Version 1.2.3-test":                   false,
+		"Built and maintained by ShruggieTech": false,
+	}
+	walkInfoObjects(content, func(object fyne.CanvasObject) {
+		label, ok := object.(*widget.Label)
+		if !ok {
+			return
+		}
+		if _, tracked := want[label.Text]; !tracked {
+			return
+		}
+		want[label.Text] = true
+		if label.Alignment != fyne.TextAlignCenter {
+			t.Errorf("%q alignment = %v, want center", label.Text, label.Alignment)
+		}
+		if label.Wrapping != fyne.TextWrapOff {
+			t.Errorf("%q wrapping = %v, want off", label.Text, label.Wrapping)
+		}
+	})
+	for text, found := range want {
+		if !found {
+			t.Errorf("missing tracked Info label %q", text)
+		}
+	}
+}
+
 func walkInfoObjects(object fyne.CanvasObject, visit func(fyne.CanvasObject)) {
 	visit(object)
 	switch object := object.(type) {
@@ -81,6 +110,8 @@ func walkInfoObjects(object fyne.CanvasObject, visit func(fyne.CanvasObject)) {
 			walkInfoObjects(child, visit)
 		}
 	case *container.Scroll:
+		walkInfoObjects(object.Content, visit)
+	case *widget.Card:
 		walkInfoObjects(object.Content, visit)
 	}
 }

@@ -8,6 +8,41 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// taskRow forwards single taps to widget.List selection and sends double taps
+// to editing. Fyne targets the deepest tap-capable object, so explicit forwarding
+// is required once the child implements DoubleTappable.
+type taskRow struct {
+	widget.Label
+	taskID     string
+	onSelect   func(string)
+	onActivate func(string)
+}
+
+func newTaskRow(onSelect, onActivate func(string)) *taskRow {
+	row := &taskRow{onSelect: onSelect, onActivate: onActivate}
+	row.ExtendBaseWidget(row)
+	return row
+}
+
+// Tapped implements fyne.Tappable and preserves ordinary list selection.
+func (r *taskRow) Tapped(*fyne.PointEvent) {
+	if r.taskID != "" && r.onSelect != nil {
+		r.onSelect(r.taskID)
+	}
+}
+
+func (r *taskRow) bind(taskID, text string) {
+	r.taskID = taskID
+	r.SetText(text)
+}
+
+// DoubleTapped implements fyne.DoubleTappable.
+func (r *taskRow) DoubleTapped(*fyne.PointEvent) {
+	if r.taskID != "" && r.onActivate != nil {
+		r.onActivate(r.taskID)
+	}
+}
+
 // cursorButton is a widget.Button that shows the pointer (hand) cursor on hover.
 // Fyne's stock button keeps the default arrow cursor, giving no visual hint that
 // it is clickable; implementing desktop.Cursorable opts into the link-style

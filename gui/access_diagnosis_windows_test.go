@@ -55,7 +55,7 @@ func TestNativeWindowsConnectionRecovery(t *testing.T) {
 	if _, active := ui.connection.snapshot(); active {
 		t.Fatal("connection incident remained active after native recovery")
 	}
-	if ui.tabs == nil || len(ui.tabs.Items) == 0 {
-		t.Fatal("normal GUI tabs are unavailable after native recovery")
+	if ui.navigation == nil || len(ui.navigation.destinations) == 0 {
+		t.Fatal("normal GUI navigation is unavailable after native recovery")
 	}
 }

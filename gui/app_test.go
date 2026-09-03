@@ -2,12 +2,16 @@ package gui
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
@@ -17,18 +21,21 @@ import (
 
 // fakeBackend implements Backend with in-memory data for headless UI tests.
 type fakeBackend struct {
-	tasks      []domain.Task
-	groups     []domain.Group
-	chains     []domain.CompletionChain
-	alerts     []domain.Alert
-	logs       []domain.LogRecord
-	logPath    string
-	created    int
-	lastCreate server.TaskCreateRequest
+	tasks       []domain.Task
+	groups      []domain.Group
+	chains      []domain.CompletionChain
+	alerts      []domain.Alert
+	logs        []domain.LogRecord
+	logPath     string
+	runtimeInfo server.RuntimeInfoResponse
+	runtimeErr  error
+	created     int
+	lastCreate  server.TaskCreateRequest
 
 	// details keyed by task ID; GetTask serves these and records failures.
 	details    map[string]server.TaskResponse
 	getTaskErr error
+	getTaskIDs []string
 
 	// Updates are recorded under mu: App.run dispatches them on a goroutine, so
 	// a test reading them races the UI unless both sides synchronize.
@@ -90,6 +97,10 @@ func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) 
 func (f *fakeBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	return server.LogsResponse{Logs: f.logs, LogPath: f.logPath}, nil
 }
+
+func (f *fakeBackend) RuntimeInfo(context.Context) (server.RuntimeInfoResponse, error) {
+	return f.runtimeInfo, f.runtimeErr
+}
 func (f *fakeBackend) CreateTask(_ context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
 	// Under the same mutex as the updates, and for the same reason: App.run
 	// dispatches creates on a goroutine too.
@@ -112,6 +123,9 @@ func (f *fakeBackend) lastPreviewCall() (int, server.PreviewRequest) {
 	return f.previews, f.lastPreview
 }
 func (f *fakeBackend) GetTask(_ context.Context, id string) (server.TaskResponse, error) {
+	f.mu.Lock()
+	f.getTaskIDs = append(f.getTaskIDs, id)
+	f.mu.Unlock()
 	if f.getTaskErr != nil {
 		return server.TaskResponse{}, f.getTaskErr
 	}
@@ -124,6 +138,12 @@ func (f *fakeBackend) GetTask(_ context.Context, id string) (server.TaskResponse
 		}
 	}
 	return server.TaskResponse{}, nil
+}
+
+func (f *fakeBackend) requestedTaskDetails() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.getTaskIDs...)
 }
 func (f *fakeBackend) UpdateTask(_ context.Context, id string, req server.TaskUpdateRequest) (server.TaskResponse, error) {
 	f.mu.Lock()
@@ -169,21 +189,16 @@ func (f *fakeBackend) StreamEvents(ctx context.Context, _ func(events.Event)) er
 	return ctx.Err()
 }
 
-func TestUI_BuildsAllTabs(t *testing.T) {
+func TestUI_BuildsCompleteNavigation(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{
 		tasks:  []domain.Task{{ID: "t1", Name: "nightly", State: domain.TaskActive, Enabled: true, Timezone: "UTC"}},
 		groups: []domain.Group{{ID: "g1", Name: "Backups", Enabled: true}},
 		alerts: []domain.Alert{{ID: "a1", Kind: domain.AlertRunFailed, Message: "boom"}},
 	})
 
-	want := []string{"Tasks", "Groups", "Chains", "Schedule", "Activity", "Info"}
-	if len(ui.tabs.Items) != len(want) {
-		t.Fatalf("want %d tabs, got %d", len(want), len(ui.tabs.Items))
-	}
-	for i, w := range want {
-		if ui.tabs.Items[i].Text != w {
-			t.Fatalf("tab %d = %q, want %q", i, ui.tabs.Items[i].Text, w)
-		}
+	want := []string{"Tasks", "Groups", "Chains", "Schedule", "Activity", "Options", "Info"}
+	if got := ui.navigation.labels(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("navigation = %v, want %v", got, want)
 	}
 }
 
@@ -214,9 +229,7 @@ func TestUI_NoRefreshControls(t *testing.T) {
 			}
 		}
 	}
-	for _, tab := range ui.tabs.Items {
-		walk(tab.Content)
-	}
+	walk(ui.win.Content())
 }
 
 func TestUI_TaskEditorBuilds(t *testing.T) {
@@ -225,6 +238,176 @@ func TestUI_TaskEditorBuilds(t *testing.T) {
 	ui.showTaskEditor(nil)
 	if ui.win.Canvas() == nil {
 		t.Fatal("window canvas missing")
+	}
+}
+
+func TestTaskEditorPreventsStackingAndReleasesOnClose(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	ui.showTaskEditor(nil)
+	first := ui.activeTaskDialog
+	if first == nil {
+		t.Fatal("first task editor was not opened")
+	}
+	ui.showTaskEditor(nil)
+	if ui.activeTaskDialog != first {
+		t.Fatal("second activation stacked another task editor")
+	}
+	first.Hide()
+	if ui.activeTaskDialog != nil {
+		t.Fatal("dialog close did not release active editor")
+	}
+	ui.showTaskEditor(nil)
+	if ui.activeTaskDialog == nil || ui.activeTaskDialog == first {
+		t.Fatal("editor did not reopen after close")
+	}
+	ui.activeTaskDialog.Hide()
+}
+
+func TestCurrentTaskByIDSurvivesReorderAndRejectsStale(t *testing.T) {
+	tasks := []domain.Task{{ID: "second", Name: "Second"}, {ID: "first", Name: "First"}}
+	got, ok := currentTaskByID(tasks, "first")
+	if !ok || got.ID != "first" || got.Name != "First" {
+		t.Fatalf("currentTaskByID after reorder = %+v, %v", got, ok)
+	}
+	if _, ok := currentTaskByID(tasks, "removed"); ok {
+		t.Fatal("stale task ID resolved to an unrelated task")
+	}
+}
+
+func TestEditTaskByIDUsesCurrentModelAndDegradedDetail(t *testing.T) {
+	backend := &fakeBackend{
+		tasks:      []domain.Task{{ID: "wanted", Name: "Wanted"}},
+		getTaskErr: errors.New("temporary detail failure"),
+	}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if ui.editTaskByID("stale") {
+		t.Fatal("stale identity opened an editor")
+	}
+	if !ui.editTaskByID("wanted") {
+		t.Fatal("current identity did not open an editor")
+	}
+	if ui.activeTaskDialog == nil {
+		t.Fatal("degraded detail lookup did not preserve the edit fallback")
+	}
+	ui.activeTaskDialog.Hide()
+}
+
+func TestTaskListSingleDoubleRefreshAndStaleIdentity(t *testing.T) {
+	backend := &fakeBackend{tasks: []domain.Task{
+		{ID: "first", Name: "First", Timezone: "UTC"},
+		{ID: "second", Name: "Second", Timezone: "UTC"},
+	}}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+
+	row := ui.taskList.CreateItem().(*taskRow)
+	ui.taskList.UpdateItem(0, row)
+	test.Tap(row)
+	if ui.activeTaskDialog != nil || len(backend.requestedTaskDetails()) != 0 {
+		t.Fatal("single tap opened or fetched an editor")
+	}
+	test.DoubleTap(row)
+	if got := backend.requestedTaskDetails(); !reflect.DeepEqual(got, []string{"first"}) {
+		t.Fatalf("double activation fetched %v, want first", got)
+	}
+	ui.activeTaskDialog.Hide()
+
+	backend.tasks = []domain.Task{
+		{ID: "second", Name: "Second", Timezone: "UTC"},
+		{ID: "first", Name: "First", Timezone: "UTC"},
+	}
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	ui.taskList.UpdateItem(1, row)
+	test.DoubleTap(row)
+	if got := backend.requestedTaskDetails(); !reflect.DeepEqual(got, []string{"first", "first"}) {
+		t.Fatalf("reordered row fetched %v, want stable first identity", got)
+	}
+	ui.activeTaskDialog.Hide()
+
+	backend.tasks = []domain.Task{{ID: "second", Name: "Second", Timezone: "UTC"}}
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	test.DoubleTap(row)
+	if got := backend.requestedTaskDetails(); !reflect.DeepEqual(got, []string{"first", "first"}) {
+		t.Fatalf("stale row fetched details: %v", got)
+	}
+}
+
+func TestTaskListRefreshReconcilesVisibleSelectionByStableID(t *testing.T) {
+	backend := &fakeBackend{tasks: []domain.Task{
+		{ID: "first", Name: "First", Timezone: "UTC"},
+		{ID: "second", Name: "Second", Timezone: "UTC"},
+	}}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	ui.taskList.Select(0)
+
+	var selected, unselected []widget.ListItemID
+	originalSelected := ui.taskList.OnSelected
+	originalUnselected := ui.taskList.OnUnselected
+	ui.taskList.OnSelected = func(id widget.ListItemID) {
+		selected = append(selected, id)
+		originalSelected(id)
+	}
+	ui.taskList.OnUnselected = func(id widget.ListItemID) {
+		unselected = append(unselected, id)
+		originalUnselected(id)
+	}
+
+	backend.tasks = []domain.Task{
+		{ID: "second", Name: "Second", Timezone: "UTC"},
+		{ID: "first", Name: "First", Timezone: "UTC"},
+	}
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if !reflect.DeepEqual(unselected, []widget.ListItemID{0}) {
+		t.Fatalf("unselected rows = %v, want [0]", unselected)
+	}
+	if !reflect.DeepEqual(selected, []widget.ListItemID{1}) {
+		t.Fatalf("selected rows = %v, want [1]", selected)
+	}
+
+	backend.tasks = []domain.Task{{ID: "second", Name: "Second", Timezone: "UTC"}}
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if !reflect.DeepEqual(unselected, []widget.ListItemID{0, 1}) {
+		t.Fatalf("unselected rows after removal = %v, want [0 1]", unselected)
+	}
+	if !reflect.DeepEqual(selected, []widget.ListItemID{1}) {
+		t.Fatalf("removed identity was reselected: %v", selected)
 	}
 }
 
@@ -248,21 +431,72 @@ func TestActivityTabLabel(t *testing.T) {
 	}
 }
 
+func TestEditorOwnershipGuard(t *testing.T) {
+	ui := &App{}
+	if !ui.claimTaskEditor() {
+		t.Fatal("first editor claim should succeed")
+	}
+	if ui.claimTaskEditor() {
+		t.Fatal("second editor claim should be rejected")
+	}
+	ui.releaseTaskEditor()
+	if !ui.claimTaskEditor() {
+		t.Fatal("claim should succeed after close release")
+	}
+}
+
+func TestShutdownCoordinatorRunsCancellationAndCloseOnce(t *testing.T) {
+	ui := &App{}
+	var cancelCount atomic.Int32
+	var closeCount atomic.Int32
+	ui.runCancel = func() { cancelCount.Add(1) }
+	ui.closeWindow = func() { closeCount.Add(1) }
+
+	var wg sync.WaitGroup
+	for range 32 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ui.requestClose()
+			ui.stop()
+		}()
+	}
+	wg.Wait()
+	if got := cancelCount.Load(); got != 1 {
+		t.Fatalf("cancellation count = %d, want 1", got)
+	}
+	if got := closeCount.Load(); got != 1 {
+		t.Fatalf("close count = %d, want 1", got)
+	}
+}
+
+func TestShutdownCancelsBackendContexts(t *testing.T) {
+	runCtx, cancel := context.WithCancel(context.Background())
+	ui := &App{runCtx: runCtx, runCancel: cancel, closeWindow: func() {}}
+	backendCtx, backendCancel := ui.bgCtx()
+	defer backendCancel()
+	ui.requestClose()
+	select {
+	case <-backendCtx.Done():
+	default:
+		t.Fatal("orderly shutdown did not cancel an in-flight backend context")
+	}
+}
+
 func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
-	if len(ui.tabs.Items) != 6 || ui.tabs.Items[4] != ui.logsTab || ui.tabs.Items[5].Text != "Info" {
-		t.Fatalf("Activity tab is not stable at index 4: %+v", ui.tabs.Items)
+	if got := ui.navigation.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Groups", "Chains", "Schedule", "Activity", "Options", "Info"}) {
+		t.Fatalf("initial navigation = %v", got)
 	}
-	infoTab := ui.tabs.Items[5]
 	// Drive the badge synchronously: the production OnChange marshals through
 	// fyne.Do on another goroutine, which would race with the assertion below.
 	ui.model.OnChange = nil
 	ui.model.ApplyEvent(events.Event{Kind: events.KindAlert, Alert: &domain.Alert{ID: "x", Acknowledged: false}})
 	ui.updateLogsBadge()
-	if ui.logsTab.Text != "Activity (1)" {
-		t.Fatalf("activity badge = %q, want Activity (1)", ui.logsTab.Text)
+	if got := ui.navigation.label(navigationActivity); got != "Activity (1)" {
+		t.Fatalf("activity badge = %q, want Activity (1)", got)
 	}
-	if ui.tabs.Items[4] != ui.logsTab || ui.tabs.Items[5] != infoTab {
-		t.Fatal("Activity badge update moved Activity or Info")
+	if got := ui.navigation.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Groups", "Chains", "Schedule", "Activity (1)", "Options", "Info"}) {
+		t.Fatal("Activity badge update moved navigation destinations")
 	}
 }

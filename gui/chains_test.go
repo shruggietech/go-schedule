@@ -38,7 +38,7 @@ func TestChainOutcomeChoicesRoundTrip(t *testing.T) {
 
 func TestUIBuildsChainsTabWithEmptyState(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
-	if len(ui.tabs.Items) < 3 || ui.tabs.Items[2].Text != "Chains" {
-		t.Fatalf("chains tab missing: %+v", ui.tabs.Items)
+	if ui.navigation.contentFor(navigationChains) == nil {
+		t.Fatal("Chains destination missing")
 	}
 }

@@ -8,6 +8,20 @@ import (
 	"path/filepath"
 )
 
+const cleanupResultProductCode = "b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34"
+
+// CleanupResultPath returns the fixed application-owned maintenance evidence
+// path beneath a resolved ProgramData root. It performs no filesystem access.
+func CleanupResultPath(programData string) string {
+	return filepath.Join(
+		programData,
+		"ShruggieTech",
+		"go-schedule-uninstall",
+		cleanupResultProductCode,
+		"cleanup-result.json",
+	)
+}
+
 func writeLedger(path string, result Result) (resultErr error) {
 	data, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {

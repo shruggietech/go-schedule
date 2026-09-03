@@ -246,6 +246,35 @@ observations.
   partial cleanup, at least two genuine profiles, and reinstall after both
   removal modes.
 
+### S042 desktop UX observations
+
+Use the exact installed candidate for these additional GUI observations. At
+both 100 percent scaling and at least one scaled-DPI setting:
+
+- compare the Info version and attribution lines with the adjacent title,
+  navigation text, and links in Dark and Light modes; require centered,
+  unclipped, sharp text after resize, minimize/restore, and reopen;
+- record the complete destination order and confirm the rail has balanced
+  horizontal spacing at 1280 by 800 and the supported 800 by 600 clamp;
+- confirm **Options** is immediately above **Info**, while **Exit** stays
+  visually separate at the rail's bottom-right and never becomes selected;
+- use pointer and keyboard navigation, and record visible focus, hover, and
+  selected states across the full intended targets;
+- apply all color modes and font choices, reopen the application to prove
+  persistence, restore defaults, and inspect current plus newly opened dialogs;
+- inspect every storage row, select and copy representative machine and
+  per-user paths, and compare the displayed lifecycle copy with the #98
+  preserve-or-wipe inventory; repeat with a daemon launched from a custom
+  configuration and confirm its effective paths are shown while locations
+  outside owned roots are marked preserved; and
+- single-click, keyboard-select, toolbar-edit, and double-click task rows before
+  and after a live refresh, confirming one correctly populated editor and no
+  stacked dialogs.
+
+Screenshots and observations must retain the candidate identity and native
+window metrics already required by `CaptureWindow`. Headless S042 tests do not
+substitute for these native observations.
+
 Finalize after all fragments are reviewed and recorded:
 
 ```powershell
