@@ -143,8 +143,12 @@ older package did not contain matching shortcut-feature identities.
 
 ## Uninstalling
 
-Use **Settings -> Apps -> Installed apps -> go-schedule -> Uninstall**. In a
-normal full-UI removal, setup explains the inventory and offers:
+Use **Settings -> Apps -> Installed apps -> go-schedule -> Modify**. Windows
+Installer's direct **Uninstall** action can run with a reduced interface that
+does not show package-authored choices, so go-schedule deliberately disables
+that Settings action. **Modify** opens the full maintenance wizard. Select
+**Remove** there to reach the removal inventory and these choices before any
+software or data is removed:
 
 - **Remove software and preserve application data** (default). This stops and
   removes the service, binaries, product registration, machine `PATH` entry,
@@ -181,6 +185,10 @@ cleanup evidence.
 The `goschedadmin` group and its memberships are also preserved. Other tools or
 administrators may rely on them, so uninstall does not erase that shared OS
 state. Remove them manually only if you are certain they are no longer wanted.
+
+The missing direct **Uninstall** action affects only the Windows application
+list. Administrators and deployment tools can still use the silent commands
+below. Running the `.msi` directly also opens the same maintenance wizard.
 
 ## Managed and silent setup
 

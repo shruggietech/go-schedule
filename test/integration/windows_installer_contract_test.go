@@ -222,6 +222,13 @@ func validateOwnedInstallerUI(data []byte) []string {
 		return []string{err.Error()}
 	}
 	var failures []string
+	removeARP, ok := findInstallerElement(elements, "Property", "ARPNOREMOVE")
+	if !ok || removeARP.attrs["Value"] != "1" {
+		failures = append(failures, "ARPNOREMOVE must disable the reduced-interface direct removal entry")
+	}
+	if _, ok := findInstallerElement(elements, "Property", "ARPNOMODIFY"); ok {
+		failures = append(failures, "ARPNOMODIFY must remain absent so maintenance opens the guided removal flow")
+	}
 	for _, element := range elements {
 		if element.name == "WixUI" {
 			failures = append(failures, "stock WixUI must not be composed with the package-owned UI")
@@ -579,7 +586,7 @@ func TestWindowsInstallerLifecycleContractRejectsMutations(t *testing.T) {
 	}
 
 	uiFixture := `<Wix><Package>
-<Property Id="LAUNCH_GOSCHEDULE" Value="1"/><Property Id="GOSCHEDULE_REMOVE_DATA" Value="0" Secure="yes"/>
+	<Property Id="ARPNOREMOVE" Value="1"/><Property Id="LAUNCH_GOSCHEDULE" Value="1"/><Property Id="GOSCHEDULE_REMOVE_DATA" Value="0" Secure="yes"/>
 <UI>
 <Dialog Id="GoScheduleUninstallDlg"><Control Id="AlwaysRemovedText"/><Control Id="PreservedDataText"/><Control Id="WipedDataText"/><Control Id="SecurityStateText"/><Control Id="RemoveChoice"/></Dialog>
 <Dialog Id="GoScheduleWipeConfirmDlg"><Control Id="ConfirmWipe" Type="PushButton" Default="no"/></Dialog>
@@ -593,6 +600,8 @@ func TestWindowsInstallerLifecycleContractRejectsMutations(t *testing.T) {
 		name, old, replacement, want string
 	}{
 		{"stock UI composition", `<UI>`, `<WixUI Id="WixUI_FeatureTree"/><UI>`, "stock WixUI"},
+		{"direct Settings removal restored", `<Property Id="ARPNOREMOVE" Value="1"/>`, ``, "ARPNOREMOVE"},
+		{"maintenance suppressed", `<Property Id="ARPNOREMOVE" Value="1"/>`, `<Property Id="ARPNOREMOVE" Value="1"/><Property Id="ARPNOMODIFY" Value="1"/>`, "ARPNOMODIFY"},
 		{"launch elevation guard", ` AND UILevel = 5`, ``, "insufficiently guarded"},
 		{"second success dialog", `<Show Dialog="GoScheduleExitDlg" OnExit="success"/></InstallUISequence>`, `<Show Dialog="GoScheduleExitDlg" OnExit="success"/><Show Dialog="GoScheduleExitDlg" OnExit="success"/></InstallUISequence>`, "InstallUISequence must schedule exactly one"},
 		{"remove routing", `Value="GoScheduleUninstallDlg"/>`, `Value="VerifyReadyDlg"/>`, "maintenance Remove"},
@@ -741,6 +750,9 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		"Wix4Group.GoScheduleAdminGroup.Domain",
 		"expected empty for elevated local-group creation",
 		"- Administrative group row:",
+		"Property.ARPNOREMOVE",
+		"Property.ARPNOMODIFY must remain absent",
+		"- Application-management registration:",
 	} {
 		if !strings.Contains(inspector, fragment) {
 			t.Errorf("MSI inspector is missing evidence-provenance fragment %q", fragment)
@@ -748,6 +760,20 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	}
 	if strings.Contains(inspector, "Candidate/published artifact status") {
 		t.Error("MSI inspector combines candidate and published evidence statuses")
+	}
+
+	contractCI := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerContractCI.ps1"))
+	for _, fragment := range []string{
+		"function Assert-ApplicationManagementRegistration",
+		"NoRemove",
+		"NoModify",
+		"ModifyPath",
+		"UninstallString",
+		"application-management-registration",
+	} {
+		if !strings.Contains(contractCI, fragment) {
+			t.Errorf("installer CI harness is missing application-management evidence fragment %q", fragment)
+		}
 	}
 
 	lifecycle := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerLifecycle.ps1"))

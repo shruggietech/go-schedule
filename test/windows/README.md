@@ -20,7 +20,8 @@ the artifact SHA-256. It also queries `System.Subject` through the native Shell
 property handler that Explorer uses. The `GoScheduleAdminGroup` row must name
 `goschedadmin` with an empty domain. S039 inspection additionally proves the
 compiled shortcut feature/component relationships, both shortcut identities,
-the package-owned uninstall and completion dialogs, independent completion
+the package-owned uninstall and completion dialogs, maintenance-only Windows
+application-management registration, independent completion
 controls and Finish events, secure preserve-by-default removal property,
 invalid-value guard, embedded windowless cleanup action, exact removal
 condition, and daemon/GUI close rows. This proves compiled authoring and the
@@ -48,6 +49,10 @@ invalid `GOSCHEDULE_REMOVE_DATA` rejection; repair and upgrade non-wipe
 controls; preserve and explicit-wipe removal; out-of-scope sentinels; retained
 `goschedadmin`; a locked-file partial cleanup; cleanup-result evidence; and the
 absence of GUI or documentation completion actions from every silent MSI log.
+After fresh install, repair, and upgrade, it also proves one visible product
+entry with `NoRemove=1`, no `NoModify`, no direct `UninstallString`, and a
+current native `ModifyPath`. This is the supported Settings entry into the full
+maintenance wizard; direct silent `/x` remains available to administrators.
 
 `GOSCHEDULE_REMOVE_DATA=0` (or an absent property) preserves application data.
 Only exact `GOSCHEDULE_REMOVE_DATA=1` requests a committed wipe. The helper's
@@ -60,9 +65,10 @@ removal, so the lifecycle probe separately verifies the cleanup result.
 The hosted runner is Windows Server and has no attended desktop session. Its
 evidence is explicitly labelled `hosted Windows Server silent installer
 contract`. It does not prove visible dialog defaults, confirmation and cancel
-interaction, Explorer launches, browser handling, interactive-user integrity,
-or native window behavior. Those release-candidate observations remain the
-clean Windows 11 gate in #94, and #97/#98 remain open until that gate passes.
+interaction, the Windows 11 Settings wording/navigation, Explorer launches,
+browser handling, interactive-user integrity, or native window behavior. Those
+release-candidate observations remain the clean Windows 11 gate in #94, and
+#97/#98 remain open until that gate passes.
 
 ## Run the fresh lifecycle
 

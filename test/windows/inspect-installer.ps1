@@ -174,6 +174,17 @@ if (-not $productCode) {
   $fail.Add('Property.ProductCode is missing')
 }
 
+$arpNoRemove = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ARPNOREMOVE'"
+if ($arpNoRemove -ne '1') {
+  $fail.Add("Property.ARPNOREMOVE is '$arpNoRemove'; expected '1'")
+}
+$arpNoModify = Get-MsiString -Database $database `
+  -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='ARPNOMODIFY'"
+if ($arpNoModify) {
+  $fail.Add("Property.ARPNOMODIFY must remain absent; found '$arpNoModify'")
+}
+
 $manufacturer = Get-MsiString -Database $database `
   -Query "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='Manufacturer'"
 if ($manufacturer -ne 'ShruggieTech') {
@@ -503,6 +514,7 @@ $evidence = @(
   "- Explorer property-system Subject: ``$explorerSubject``"
   "- Icon row: ``$iconName``"
   "- ARPPRODUCTICON: ``$arpIcon``"
+  "- Application-management registration: ``ARPNOREMOVE=$arpNoRemove``; ARPNOMODIFY absent=$(-not [bool]$arpNoModify)"
   "- GuiShortcut Icon_: ``$shortcutIcon``"
   "- PATH row: ``$environmentName`` | ``$environmentValue`` | ``$environmentComponent``"
   "- Administrative group row: ``GoScheduleAdminGroup`` | ``$adminGroupName`` | domain ``$adminGroupDomain``"

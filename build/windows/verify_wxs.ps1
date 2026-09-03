@@ -67,6 +67,8 @@ try {
   $icon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Icon[@Id="GoSchedule.ico"]', $ns)
   $summary = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:SummaryInformation', $ns)
   $arpIcon = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPPRODUCTICON"]', $ns)
+  $arpNoRemove = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPNOREMOVE"]', $ns)
+  $arpNoModify = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Property[@Id="ARPNOMODIFY"]', $ns)
   $shortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="GuiShortcut"]', $ns)
   $desktopShortcut = $wxsXml.SelectSingleNode('//w:Shortcut[@Id="DesktopShortcut"]', $ns)
   $mainFeature = $wxsXml.SelectSingleNode('/w:Wix/w:Package/w:Feature[@Id="Main"]', $ns)
@@ -108,6 +110,13 @@ try {
     $fail += 'ARPPRODUCTICON property is missing'
   } elseif ($arpIcon.Value -ne 'GoSchedule.ico') {
     $fail += 'ARPPRODUCTICON must reference "GoSchedule.ico"'
+  }
+
+  if (-not $arpNoRemove -or $arpNoRemove.Value -ne '1') {
+    $fail += 'ARPNOREMOVE must be 1 so Windows Settings uses full maintenance before removal'
+  }
+  if ($arpNoModify) {
+    $fail += 'ARPNOMODIFY must remain absent so Windows Settings exposes maintenance'
   }
 
   if (-not $shortcut) {

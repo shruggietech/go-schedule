@@ -47,6 +47,12 @@
          The GUI executable embeds this same asset in the release workflow. -->
     <Icon Id="GoSchedule.ico" SourceFile="brand/platform/windows/go-schedule.ico" />
     <Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />
+    <!-- Windows Settings can invoke an MSI's generated direct Remove entry
+         with reduced UI, which bypasses authored preserve-or-wipe dialogs.
+         Suppress only that ARP entry and deliberately retain Modify: the full
+         maintenance wizard routes its Remove button through our inventory and
+         confirmation flow. Direct administrative msiexec /x remains valid. -->
+    <Property Id="ARPNOREMOVE" Value="1" />
     <Property Id="GOSCHEDULE_REMOVE_DATA" Value="0" Secure="yes" />
     <Property Id="GoScheduleRemoveChoice" Value="preserve" />
     <Property Id="LAUNCH_GOSCHEDULE" Value="1" />

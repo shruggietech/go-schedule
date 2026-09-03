@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-  Exercises the S039 MSI's silent installer contract on a disposable CI host.
+  Exercises the Windows MSI's silent installer contract on a disposable CI host.
 
 .DESCRIPTION
   This probe is deliberately restricted to GitHub-hosted Windows automation.
   It verifies compiled feature behavior, silent non-launch, maintenance,
-  upgrade migration, preserve-by-default removal, explicit wipe, invalid-mode
-  rejection, sentinels, security-state preservation, and cleanup-result
-  evidence. It is not the clean Windows 11 attended-desktop gate owned by #94.
+  upgrade migration, application-management registration,
+  preserve-by-default removal, explicit wipe, invalid-mode rejection,
+  sentinels, security-state preservation, and cleanup-result evidence. It is
+  not the clean Windows 11 attended-desktop gate owned by #94.
 #>
 [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High')]
 param(
@@ -76,6 +77,53 @@ function Assert-ProductState {
     label = $Label
     product_code = $ProductCode
     installed = $actual
+  })
+}
+
+function Assert-ApplicationManagementRegistration {
+  param(
+    [Parameter(Mandatory)] [string]$Label,
+    [Parameter(Mandatory)] [string]$ProductCode
+  )
+
+  $key = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$ProductCode"
+  $values = Get-ItemProperty -LiteralPath $key
+  $propertyNames = @($values.PSObject.Properties.Name)
+  if ([int]$values.NoRemove -ne 1) {
+    throw "$Label NoRemove is '$($values.NoRemove)'; expected 1"
+  }
+  if ($propertyNames -contains 'NoModify') {
+    throw "$Label unexpectedly suppresses the maintenance action"
+  }
+  if ($propertyNames -contains 'UninstallString') {
+    throw "$Label exposes a direct removal command that can bypass guided choices"
+  }
+  if (-not $values.ModifyPath -or
+      $values.ModifyPath -notmatch '(?i)msiexec(?:\.exe)?\s+/I' -or
+      $values.ModifyPath -notmatch [regex]::Escape($ProductCode)) {
+    throw "$Label ModifyPath '$($values.ModifyPath)' does not open maintenance for $ProductCode"
+  }
+
+  $visibleEntries = @(Get-ChildItem `
+      -LiteralPath 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
+    ForEach-Object { Get-ItemProperty -LiteralPath $_.PSPath } |
+    Where-Object {
+      $_.DisplayName -eq 'go-schedule' -and
+      (-not $_.PSObject.Properties['SystemComponent'] -or [int]$_.SystemComponent -ne 1)
+    })
+  if ($visibleEntries.Count -ne 1) {
+    throw "$Label visible go-schedule entry count is $($visibleEntries.Count); expected 1"
+  }
+
+  $observations.Add([pscustomobject]@{
+    kind = 'application-management-registration'
+    label = $Label
+    product_code = $ProductCode
+    no_remove = [int]$values.NoRemove
+    no_modify_present = $propertyNames -contains 'NoModify'
+    uninstall_string_present = $propertyNames -contains 'UninstallString'
+    modify_path = [string]$values.ModifyPath
+    visible_entry_count = $visibleEntries.Count
   })
 }
 
@@ -450,6 +498,8 @@ try {
   Invoke-MsiOperation -Label 'default-install' -Operation '/i' -Package $resolvedMsi
   Assert-ProductState -Label 'default install' -ProductCode $candidateProductCode `
     -Installed $true
+  Assert-ApplicationManagementRegistration -Label 'default install' `
+    -ProductCode $candidateProductCode
   Assert-ShortcutState -Label 'default install' -StartMenu $true -Desktop $false
   $group = Get-LocalGroup -Name $adminGroupName
   $groupSid = $group.SID.Value
@@ -488,6 +538,8 @@ try {
   $repairSeed = Write-SeedData -Label 'repair-control'
   Invoke-MsiOperation -Label 'repair-with-wipe-property' -Operation '/fa' `
     -Package $resolvedMsi -Properties @('GOSCHEDULE_REMOVE_DATA=1')
+  Assert-ApplicationManagementRegistration -Label 'repair' `
+    -ProductCode $candidateProductCode
   Assert-SeedPreserved -Seed $repairSeed -Label 'repair control'
   Invoke-MsiOperation -Label 'repair-control-uninstall' -Operation '/x' -Package $resolvedMsi
   Assert-ProductState -Label 'repair control uninstall' `
@@ -503,6 +555,8 @@ try {
   $upgradeSeed = Write-SeedData -Label 'upgrade-control'
   Invoke-MsiOperation -Label 'candidate-upgrade' -Operation '/i' -Package $resolvedMsi `
     -Properties @('GOSCHEDULE_REMOVE_DATA=1')
+  Assert-ApplicationManagementRegistration -Label 'candidate upgrade' `
+    -ProductCode $candidateProductCode
   Assert-ShortcutState -Label 'candidate upgrade' -StartMenu $false -Desktop $true
   Assert-SeedPreserved -Seed $upgradeSeed -Label 'upgrade control'
   Invoke-MsiOperation -Label 'upgrade-control-uninstall' -Operation '/x' -Package $resolvedMsi
