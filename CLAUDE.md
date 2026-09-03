@@ -135,5 +135,5 @@ human-readable layer; injected `Clock` interface; `log/slog` structured logs;
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/042-desktop-ux-options/plan.md
+at specs/044-desktop-interaction-polish/plan.md
 <!-- SPECKIT END -->

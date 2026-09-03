@@ -111,6 +111,8 @@ func walkInfoObjects(object fyne.CanvasObject, visit func(fyne.CanvasObject)) {
 		}
 	case *container.Scroll:
 		walkInfoObjects(object.Content, visit)
+	case *sensitiveVScroll:
+		walkInfoObjects(object.Content, visit)
 	case *widget.Card:
 		walkInfoObjects(object.Content, visit)
 	}

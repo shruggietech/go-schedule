@@ -37,6 +37,7 @@ type navigationShell struct {
 	root         fyne.CanvasObject
 	rail         *fyne.Container
 	content      *fyne.Container
+	boundary     *widget.Separator
 	exit         *cursorButton
 	destinations []*navigationDestination
 	selected     navigationID
@@ -60,11 +61,13 @@ func newNavigationShell(specs []navigationDestinationSpec, onExit func()) *navig
 	}
 
 	shell.content = container.NewStack(contents...)
-	shell.exit = newCursorButton("Exit", theme.LogoutIcon(), widget.MediumImportance, onExit)
+	shell.exit = newCursorButton("Exit", theme.LogoutIcon(), widget.DangerImportance, onExit)
 	shell.exit.Alignment = widget.ButtonAlignTrailing
 	top := container.NewVBox(buttons...)
 	shell.rail = container.New(&navigationRailLayout{minimumWidth: navigationRailMinimumWidth(labels)}, top, widget.NewSeparator(), shell.exit)
-	shell.root = container.NewBorder(nil, nil, shell.rail, nil, shell.content)
+	shell.boundary = widget.NewSeparator()
+	railWithBoundary := container.NewBorder(nil, nil, shell.rail, shell.boundary)
+	shell.root = container.NewBorder(nil, nil, railWithBoundary, nil, shell.content)
 	if len(shell.destinations) > 0 {
 		shell.selectDestination(shell.destinations[0].id)
 	}

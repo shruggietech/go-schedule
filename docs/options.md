@@ -12,23 +12,34 @@ orderly shutdown as the title-bar close control.
 
 ## Appearance
 
-**Options** provides two independent appearance choices:
+**Options** provides three independent appearance choices:
 
 | Setting | Choices | Default |
 | --- | --- | --- |
 | Color mode | Dark, Light, Follow system | Dark |
-| Interface font | Brand, System, Monospace | Brand |
+| Interface font | System, Geist (brand), Inter, Ubuntu, Monospace | System |
+| Scroll sensitivity | 1x through 4x in 0.5x steps | 2x |
 
 Changes apply immediately across the current interface and are saved for the
-current user. **Restore defaults** returns both settings to Dark and Brand.
-Unsupported or damaged saved values also fall back to those defaults rather
+current user. **Restore defaults** returns the settings to Dark, System, and
+2x. Unsupported or damaged saved values also fall back to those defaults rather
 than preventing startup.
 
-The Brand choice uses the bundled Geist body face, Space Grotesk headings, and
-Geist Mono where the interface requests fixed-width text. System delegates to
-the platform font selected by the GUI framework. Monospace uses bundled Geist
-Mono throughout non-symbol interface text. The choices do not load external
-font files.
+System delegates to the platform font selected by the GUI framework. Geist
+(brand) uses the bundled Geist body face, Space Grotesk headings, and Geist
+Mono where the interface requests fixed-width text. Inter and Ubuntu package
+their upstream regular and bold faces; fixed-width text still uses Geist Mono.
+Monospace uses bundled Geist Mono throughout non-symbol interface text. Symbols
+always use the GUI framework's symbol face. The packaged Inter and Ubuntu files
+retain their upstream OFL and Ubuntu Font Licence notices in `gui/assets/fonts/`;
+no choice loads font files from the network or enumerates locally installed
+fonts.
+
+The font and color selectors show the active value when closed and omit it from
+the menu of alternatives. Conventional vertical mouse-wheel steps are multiplied
+by Scroll sensitivity in application-owned long views. Precision touchpad
+deltas, keyboard navigation, scrollbar use, and drag scrolling retain the GUI
+framework's behavior.
 
 ## Application storage
 
@@ -40,7 +51,11 @@ platform and labels each with:
 - what software-only removal does; and
 - what an explicitly confirmed data wipe does.
 
-Available paths are selectable and have a **Copy** action. The inventory covers
+Locations appear as compact aligned rows under Category, Location and removal
+details, and Action headers. Long paths wrap vertically, and no horizontal
+scrolling is introduced. Available paths are selectable and have a **Copy**
+action. Unavailable locations mute the complete row and disable selection and
+Copy. The inventory covers
 the machine data root, task database, machine configuration, logs, runtime
 state, per-user desktop application data and preferences, the running executable
 directory, installed documentation when discoverable, and Windows maintenance

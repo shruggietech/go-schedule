@@ -220,7 +220,7 @@ func (e *taskEditor) build() *fyne.Container {
 	advForm.AppendItem(withHint(widget.NewFormItem("Fall overlap", e.dstOverlap), "When a local time occurs twice"))
 	advanced := newCollapsible("Advanced Settings", advForm)
 
-	left := container.NewVScroll(container.NewVBox(
+	left := e.app.newVScroll(container.NewVBox(
 		sectionHeader("What to run"),
 		runForm,
 		widget.NewSeparator(),
@@ -250,8 +250,8 @@ func (e *taskEditor) build() *fyne.Container {
 // Help/Preview toggle, over a holder that swaps between the live Preview and the
 // Help guidance (FR-003/FR-004).
 func (e *taskEditor) buildRightPane() fyne.CanvasObject {
-	e.previewContent = container.NewVScroll(container.NewVBox(e.schedPreview, e.cmdPreview))
-	e.helpContent = helpView()
+	e.previewContent = e.app.newVScroll(container.NewVBox(e.schedPreview, e.cmdPreview))
+	e.helpContent = helpView(e.app)
 	e.helpContent.Hide()
 	e.rightHolder = container.NewStack(e.previewContent, e.helpContent)
 
@@ -822,10 +822,10 @@ Elapsed time is available only for fixed-duration interval schedules.
 **Spring gap / Fall overlap** — for wall-clock schedules, choose whether a nonexistent time
 advances or skips and whether a repeated time uses the first, both, or last occurrence.`
 
-func helpView() fyne.CanvasObject {
+func helpView(app *App) fyne.CanvasObject {
 	r := widget.NewRichTextFromMarkdown(editorHelpMarkdown)
 	r.Wrapping = fyne.TextWrapWord
-	return container.NewVScroll(r)
+	return app.newVScroll(r)
 }
 
 // taskForm carries the submitted values from the editor to submitTask.

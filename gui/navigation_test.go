@@ -42,9 +42,30 @@ func TestNavigationOrderSelectionAndLabelUpdate(t *testing.T) {
 	if shell.destinations[4].button.Text != "Activity (99+)" {
 		t.Fatalf("Activity label = %q", shell.destinations[4].button.Text)
 	}
+	if shell.exit.Importance != widget.DangerImportance || shell.exit.Icon != theme.LogoutIcon() {
+		t.Fatalf("Exit treatment = importance %v icon %v", shell.exit.Importance, shell.exit.Icon)
+	}
 	shell.exit.OnTapped()
 	if exited != 1 || shell.selected != navigationOptions {
 		t.Fatalf("Exit changed selection or did not execute: selected=%q count=%d", shell.selected, exited)
+	}
+}
+
+func TestNavigationRailHasFullHeightContentBoundary(t *testing.T) {
+	shell := newNavigationShell([]navigationDestinationSpec{
+		{ID: navigationTasks, Label: "Tasks", Content: canvas.NewRectangle(nil)},
+		{ID: navigationInfo, Label: "Info", Content: canvas.NewRectangle(nil)},
+	}, func() {})
+	if shell.boundary == nil {
+		t.Fatal("navigation shell has no rail/content boundary")
+	}
+	shell.root.Resize(fyne.NewSize(800, 600))
+	shell.root.Refresh()
+	if got := shell.boundary.Size().Height; got < 600-theme.Padding()*2 {
+		t.Fatalf("boundary height = %v, want full shell height", got)
+	}
+	if got := shell.boundary.Position().X; got < shell.rail.MinSize().Width-theme.Padding() {
+		t.Fatalf("boundary x = %v, rail width %v", got, shell.rail.MinSize().Width)
 	}
 }
 

@@ -1,13 +1,21 @@
 package gui
 
 import (
+	"math"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
 )
 
 const (
-	appearanceModePreferenceKey = "appearance.mode"
-	appearanceFontPreferenceKey = "appearance.font"
+	appearanceModePreferenceKey    = "appearance.mode"
+	appearanceFontPreferenceKey    = "appearance.font"
+	scrollSensitivityPreferenceKey = "appearance.scroll_sensitivity"
+
+	minimumScrollSensitivity = 1.0
+	maximumScrollSensitivity = 4.0
+	scrollSensitivityStep    = 0.5
+	defaultScrollSensitivity = 2.0
 )
 
 type appearanceMode string
@@ -23,22 +31,30 @@ type fontChoice string
 const (
 	fontBrand     fontChoice = "brand"
 	fontSystem    fontChoice = "system"
+	fontInter     fontChoice = "inter"
+	fontUbuntu    fontChoice = "ubuntu"
 	fontMonospace fontChoice = "monospace"
 )
 
 type appearancePreferences struct {
-	Mode appearanceMode
-	Font fontChoice
+	Mode              appearanceMode
+	Font              fontChoice
+	ScrollSensitivity float64
 }
 
 func defaultAppearancePreferences() appearancePreferences {
-	return appearancePreferences{Mode: appearanceDark, Font: fontBrand}
+	return appearancePreferences{
+		Mode:              appearanceDark,
+		Font:              fontSystem,
+		ScrollSensitivity: defaultScrollSensitivity,
+	}
 }
 
 func loadAppearancePreferences(preferences fyne.Preferences) appearancePreferences {
 	return appearancePreferences{
-		Mode: normalizeAppearanceMode(preferences.String(appearanceModePreferenceKey)),
-		Font: normalizeFontChoice(preferences.String(appearanceFontPreferenceKey)),
+		Mode:              normalizeAppearanceMode(preferences.String(appearanceModePreferenceKey)),
+		Font:              normalizeFontChoice(preferences.String(appearanceFontPreferenceKey)),
+		ScrollSensitivity: normalizeScrollSensitivity(preferences.FloatWithFallback(scrollSensitivityPreferenceKey, defaultScrollSensitivity)),
 	}
 }
 
@@ -46,6 +62,7 @@ func saveAppearancePreferences(preferences fyne.Preferences, value appearancePre
 	value = value.normalized()
 	preferences.SetString(appearanceModePreferenceKey, string(value.Mode))
 	preferences.SetString(appearanceFontPreferenceKey, string(value.Font))
+	preferences.SetFloat(scrollSensitivityPreferenceKey, value.ScrollSensitivity)
 }
 
 func resetAppearancePreferences(preferences fyne.Preferences) {
@@ -54,9 +71,16 @@ func resetAppearancePreferences(preferences fyne.Preferences) {
 
 func (p appearancePreferences) normalized() appearancePreferences {
 	return appearancePreferences{
-		Mode: normalizeAppearanceMode(string(p.Mode)),
-		Font: normalizeFontChoice(string(p.Font)),
+		Mode:              normalizeAppearanceMode(string(p.Mode)),
+		Font:              normalizeFontChoice(string(p.Font)),
+		ScrollSensitivity: normalizeScrollSensitivity(p.ScrollSensitivity),
 	}
+}
+
+func (p appearancePreferences) sameTheme(other appearancePreferences) bool {
+	p = p.normalized()
+	other = other.normalized()
+	return p.Mode == other.Mode && p.Font == other.Font
 }
 
 func normalizeAppearanceMode(value string) appearanceMode {
@@ -70,11 +94,19 @@ func normalizeAppearanceMode(value string) appearanceMode {
 
 func normalizeFontChoice(value string) fontChoice {
 	switch fontChoice(value) {
-	case fontBrand, fontSystem, fontMonospace:
+	case fontBrand, fontSystem, fontInter, fontUbuntu, fontMonospace:
 		return fontChoice(value)
 	default:
-		return fontBrand
+		return fontSystem
 	}
+}
+
+func normalizeScrollSensitivity(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) || value < minimumScrollSensitivity || value > maximumScrollSensitivity {
+		return defaultScrollSensitivity
+	}
+	steps := math.Round((value - minimumScrollSensitivity) / scrollSensitivityStep)
+	return minimumScrollSensitivity + steps*scrollSensitivityStep
 }
 
 func appearanceModeLabels() []string {
@@ -82,7 +114,7 @@ func appearanceModeLabels() []string {
 }
 
 func fontChoiceLabels() []string {
-	return []string{"Brand", "System", "Monospace"}
+	return []string{"System", "Geist (brand)", "Inter", "Ubuntu", "Monospace"}
 }
 
 func appearanceModeForLabel(label string) appearanceMode {
@@ -109,23 +141,31 @@ func (m appearanceMode) label() string {
 
 func fontChoiceForLabel(label string) fontChoice {
 	switch label {
-	case "System":
-		return fontSystem
+	case "Geist (brand)":
+		return fontBrand
+	case "Inter":
+		return fontInter
+	case "Ubuntu":
+		return fontUbuntu
 	case "Monospace":
 		return fontMonospace
 	default:
-		return fontBrand
+		return fontSystem
 	}
 }
 
 func (f fontChoice) label() string {
 	switch normalizeFontChoice(string(f)) {
-	case fontSystem:
-		return "System"
+	case fontBrand:
+		return "Geist (brand)"
+	case fontInter:
+		return "Inter"
+	case fontUbuntu:
+		return "Ubuntu"
 	case fontMonospace:
 		return "Monospace"
 	default:
-		return "Brand"
+		return "System"
 	}
 }
 

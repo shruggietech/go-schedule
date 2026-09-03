@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Desktop interaction and appearance are now consistently readable and
+  responsive (Refs #101, #104, #105, #106, #109, #111).** S044 makes System the
+  clean-profile font default, adds packaged Inter and Ubuntu choices alongside
+  Geist and Monospace, and ensures appearance menus offer only unapplied
+  alternatives. Application storage is presented as compact aligned rows,
+  unavailable rows are muted as a whole, the navigation rail has a full-height
+  boundary and semantic Exit treatment, and a persisted 1x-to-4x wheel setting
+  controls every application-owned vertical view while preserving precision
+  deltas. Shared translucent interaction overlays keep text and glyphs readable
+  across ordinary, selected, primary, and semantic button states in both
+  palettes.
+
 - **Windows release readiness now has a pre-publication demo qualification step
   (Refs #94, #98, #96, #101, #104, #105, #106).** S043 produces a distinctly
   labeled local MSI, exhausts non-attended verification, and binds operator
