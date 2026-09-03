@@ -2,9 +2,9 @@
 
 ## Decision 1: Use the supported maintenance entry
 
-**Decision**: Set `ARPNOREMOVE=1`, leave `ARPNOMODIFY` unset, and direct attended Windows Settings users through Modify, then Remove inside the full maintenance wizard.
+**Decision**: Set `ARPNOREMOVE=1`, leave `ARPNOMODIFY` unset, write an MSI-owned `MsiExec.exe /I[ProductCode]` value as `ModifyPath`, and direct attended Windows Settings users through Modify, then Remove inside a package-owned maintenance wizard.
 
-**Rationale**: Microsoft documents that `ARPNOREMOVE` suppresses the Add/Remove Programs Remove button while a package with a removal-capable UI can still be removed through Change. The existing S039 maintenance graph already routes Remove through the data inventory and preserve-or-wipe pages. This prevents the exact bypass the maintainer observed without changing deletion code.
+**Rationale**: Microsoft documents that `ARPNOREMOVE` suppresses direct Remove and `UninstallString`. Hosted CI proved that Windows Installer also omitted `ModifyPath`, and WiX 6.0.2's stock maintenance dialog disables its internal Remove control under the same property. An owned Registry-table value and maintenance page preserve the safe `/I` entry and guided Remove route without changing deletion code.
 
 **Alternatives considered**:
 
@@ -28,7 +28,7 @@
 
 **Decision**: Validate the authored source, compiled MSI tables, and installed registry result, then defer the actual Windows 11 Settings interaction to #94.
 
-**Rationale**: Source-only checks missed the S039 defect. Compiled tables prove property emission, and a disposable-host install proves Windows Installer materialized the expected `NoRemove`, `ModifyPath`, and absence-of-`UninstallString` contract. Only attended Windows 11 observation can prove the final Settings wording and navigation.
+**Rationale**: Source-only checks missed the S039 defect and the first S041 implementation's one-property assumption. Compiled tables prove property, registry, dialog, control-condition, and routing rows. A disposable-host install proves the expected `NoRemove`, owned `ModifyPath`, and absence-of-`UninstallString` contract. Only attended Windows 11 observation can prove the final Settings wording and navigation.
 
 **Alternatives considered**:
 

@@ -19,7 +19,7 @@ For the installed current ProductCode under the machine application-registration
 - `DisplayName` equals `go-schedule`;
 - `NoRemove` equals integer `1`;
 - `NoModify` is absent;
-- `ModifyPath` is non-empty and identifies the current ProductCode through Windows Installer maintenance;
+- `ModifyPath` is an MSI-owned expandable value that identifies the current ProductCode through Windows Installer `/I` maintenance;
 - `UninstallString` is absent;
 - no second visible entry identifies the same product.
 

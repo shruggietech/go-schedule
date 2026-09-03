@@ -92,6 +92,17 @@
 
 ---
 
+## Phase 6: Hosted Evidence Correction
+
+**Purpose**: Correct the Windows Installer behavior discovered only after PR publication.
+
+- [x] T023 Record the failed hosted assertion that `ARPNOREMOVE` omitted `ModifyPath` and inspect the compiled WiX 6.0.2 stock maintenance control conditions
+- [x] T024 Add failing source, compiled-table, and mutation contracts for an MSI-owned `/I[ProductCode]` registration and package-owned enabled Remove control
+- [x] T025 Implement the owned application-management registry component and maintenance page, then update every affected specification and decision record
+- [ ] T026 Run focused and canonical verification, amend and push the correction, then require green compiled/installed hosted evidence and resolve the authorized second Codex review
+
+---
+
 ## Dependencies and Execution Order
 
 ### Phase Dependencies
@@ -117,9 +128,10 @@
 
 1. Preserve the maintainer report and authoritative registration decision.
 2. Make all four verification layers fail against the current source/candidate where locally possible.
-3. Add the one declarative MSI property.
+3. Add the declarative ARP property, owned maintenance registration, and owned maintenance page.
 4. Turn local contracts green and use hosted CI for fresh compiled/installed evidence.
-5. Leave #98 open until #94 captures the exact-candidate Windows 11 attended journey.
+5. Correct every hosted or review finding without weakening the attended-evidence boundary.
+6. Leave #98 open until #94 captures the exact-candidate Windows 11 attended journey.
 
 ## Notes
 

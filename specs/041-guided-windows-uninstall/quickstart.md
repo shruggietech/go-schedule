@@ -11,7 +11,7 @@ Use only a disposable Windows test machine or hosted CI runner for install/remov
 go test ./test/integration -run WindowsInstallerContract -count=1
 ```
 
-Expected: source and mutation contracts require `ARPNOREMOVE=1`, require maintenance to remain enabled, and retain every existing removal guard.
+Expected: source and mutation contracts require `ARPNOREMOVE=1`, the owned `/I[ProductCode]` registration, the package-owned maintenance page with guided Remove enabled, and every existing removal guard.
 
 ## 2. Build and inspect the MSI
 
@@ -35,7 +35,7 @@ Expected after fresh install, repair, and upgrade:
 - one visible go-schedule application entry;
 - `NoRemove=1`;
 - `NoModify` absent;
-- native `ModifyPath` present for the current ProductCode;
+- MSI-owned `ModifyPath` present for the current ProductCode;
 - `UninstallString` absent;
 - every established silent preserve/wipe and safety scenario passes.
 

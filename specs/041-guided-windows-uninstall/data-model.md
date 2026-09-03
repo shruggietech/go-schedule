@@ -9,7 +9,7 @@ S041 adds no application database entity or persistence migration. It defines an
 | Visible product identity | Exactly one current go-schedule entry | The Windows application list must not show duplicate native or shadow records. |
 | `NoRemove` | `1` | The system must not offer the reduced-interface direct attended removal entry. |
 | `NoModify` | Absent | The system must retain the full maintenance entry. |
-| `ModifyPath` | Present, native Windows Installer maintenance command for the current ProductCode | Opens the package-owned maintenance wizard. |
+| `ModifyPath` | Present, MSI-owned expandable `/I` maintenance command for the current ProductCode | Opens the package-owned maintenance wizard even though `ARPNOREMOVE` suppresses the generated value. |
 | `UninstallString` | Absent | Prevents Windows Settings from starting the bypassing direct removal command. |
 | ProductCode | Current compiled package identity | Binds maintenance to the installed candidate. |
 | Display name/version/publisher/icon | Existing canonical values | Keeps the visible entry recognizable and current. |

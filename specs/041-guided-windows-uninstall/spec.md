@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-02
 
-**Status**: Implemented
+**Status**: In Progress
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
@@ -25,6 +25,7 @@ This is a focused repair of the entry path into the existing #98 workflow. It do
 - Q: Should S041 try to force custom dialogs into the reduced native removal path? -> A: No. Use Windows Installer's supported maintenance entry, then let users select Remove inside the full package-owned wizard.
 - Q: What should remain available to automation? -> A: Direct unattended removal remains supported and preserves data unless the exact documented wipe opt-in is supplied.
 - Q: Does the operator's up-front publication direction satisfy the usual autopilot pre-push authorization? -> A: Yes for this S041 review branch and pull request only; merge, tag, and release remain unauthorized.
+- Q: What if `ARPNOREMOVE` suppresses the maintenance command or disables Remove inside the stock WiX maintenance page? -> A: Own the current ProductCode's `/I` registration and maintenance page explicitly; keep the external direct Remove action suppressed without disabling guided removal inside the package.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -107,7 +108,7 @@ As an administrator, I can still repair, change, preserve-remove, or explicitly 
 
 ## Assumptions
 
-- Windows Installer's documented application-management model permits disabling direct Remove while retaining Change/Modify, and a package-authored maintenance wizard may offer removal from that full-interface path.
+- Windows Installer permits disabling direct Remove while a package-owned maintenance command and wizard still provide guided removal; the package must explicitly preserve both pieces on Windows versions where `ARPNOREMOVE` suppresses the generated `ModifyPath` and WiX disables its stock Remove control.
 - Windows Settings wording can vary by Windows release; the contract is the visible maintenance action and guided flow, not one immutable button label.
 - The S039 preserve/wipe implementation and cleanup ownership boundaries remain correct unless S041 testing exposes a regression.
 - Hosted Windows Server can prove registration and silent lifecycle semantics, while the final Windows 11 Settings interaction remains attended evidence owned by #94.

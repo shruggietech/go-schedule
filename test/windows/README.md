@@ -51,7 +51,7 @@ controls; preserve and explicit-wipe removal; out-of-scope sentinels; retained
 absence of GUI or documentation completion actions from every silent MSI log.
 After fresh install, repair, and upgrade, it also proves one visible product
 entry with `NoRemove=1`, no `NoModify`, no direct `UninstallString`, and a
-current native `ModifyPath`. This is the supported Settings entry into the full
+current MSI-owned `ModifyPath`. This is the supported Settings entry into the full
 maintenance wizard; direct silent `/x` remains available to administrators.
 
 `GOSCHEDULE_REMOVE_DATA=0` (or an absent property) preserves application data.

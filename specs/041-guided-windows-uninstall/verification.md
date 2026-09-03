@@ -6,11 +6,12 @@
 
 ## Result
 
-S041's implementation and local repository verification are complete. The MSI
-now suppresses Windows Installer's reduced-interface direct Remove entry while
-retaining its full maintenance entry. The existing maintenance Remove control
-continues to route through the package-owned inventory and preserve-or-wipe
-dialogs.
+S041's first implementation passed local repository verification, but hosted
+installed-state evidence correctly rejected its one-property assumption. The
+corrected MSI suppresses Windows Installer's reduced-interface direct Remove
+entry, owns the current ProductCode's `/I` maintenance registration, and uses a
+package-owned maintenance page whose Remove control routes through the inventory
+and preserve-or-wipe dialogs.
 
 This result does not claim exact-candidate attended acceptance. GitHub issue
 #98 remains open until the Windows 11 journey and cancellation behavior are
@@ -36,16 +37,57 @@ After the declarative WiX change:
 | PowerShell parser checks for all three modified verification scripts | PASS |
 | `scripts/verify.sh automation` after lifecycle bookkeeping correction | PASS |
 
+## Hosted correction evidence
+
+PR #107's first Windows MSI run built and inspected the package successfully,
+then failed the fresh installed-state assertion:
+
+```text
+default install ModifyPath '' does not open maintenance for
+{C71909CC-85FE-4764-8713-E8BB82CC65E7}
+```
+
+Inspection of that compiled MSI also showed WiX 6.0.2's stock
+`MaintenanceTypeDlg.RemoveButton` had a `Disable` condition containing
+`ARPNOREMOVE`. The original plan would therefore have hidden the unsafe direct
+action without leaving a usable guided action.
+
+New regression contracts were made red before the correction. They required:
+
+- an MSI-owned expandable `MsiExec.exe /I[ProductCode]` Registry-table row in
+  the native current-product uninstall key;
+- installation of that row through the required Main feature;
+- a package-owned maintenance page whose Remove control is not disabled by
+  `ARPNOREMOVE`;
+- an exact control-event route from that Remove control to
+  `GoScheduleUninstallDlg`.
+
+The source contracts and PowerShell structural checks turned green after the
+owned registration component and maintenance page were added. Positive compiled
+evidence then passed locally with pinned WiX 6.0.2:
+
+- candidate SHA-256: `1196eca252e9c275c205ba8e1fcb4aa579032103d01901b8ec9c77c22035fef4`;
+- Registry value: `#%MsiExec.exe /I[ProductCode]`;
+- ordered Remove events: set maintenance mode, reset wipe property, reset the
+  visible choice to preserve, then open `GoScheduleUninstallDlg`;
+- no `ARPNOREMOVE` ControlCondition on the package-owned Remove control.
+
+Installed-state evidence remains pending the corrected hosted run because the
+local workstation is not the disposable environment authorized for MSI
+lifecycle mutation.
+
 The retained old-candidate rejection report is an ignored local artifact at
 `dist/s041-old-candidate-rejection.md`; it is not release evidence.
 
 ## Registration evidence layers
 
-- Source validation requires `ARPNOREMOVE=1`, forbids `ARPNOMODIFY`, and keeps
-  the existing maintenance Remove route to `GoScheduleUninstallDlg`.
-- Compiled-MSI inspection requires the corresponding Property-table values.
+- Source validation requires `ARPNOREMOVE=1`, forbids `ARPNOMODIFY`, requires
+  the owned current-ProductCode `/I` registration, and keeps the package-owned
+  maintenance Remove route to `GoScheduleUninstallDlg` enabled.
+- Compiled-MSI inspection requires the corresponding Property, Registry,
+  FeatureComponents, Dialog, Control, ControlCondition, and ControlEvent rows.
 - Hosted lifecycle verification checks fresh install, repair, and upgrade for
-  `NoRemove=1`, absent `NoModify` and `UninstallString`, a current native
+  `NoRemove=1`, absent `NoModify` and `UninstallString`, the current MSI-owned
   `ModifyPath`, and exactly one visible go-schedule entry.
 - Exact Windows 11 Settings wording, interaction, defaults, and cancellation
   remain attended evidence owned by #94.
@@ -81,3 +123,8 @@ UTF-8 without BOM, mojibake, and diff integrity.
 No finding at or above the 80-percent confidence threshold remained after the
 review. All 21 changed or new text files decoded as strict UTF-8, none had a
 UTF-8 BOM or mojibake signature, and `git diff --check` passed.
+
+After the hosted correction, the focused installer and cleanup suites, pinned
+WiX build and inspection, PowerShell parsing, and all eight canonical gates
+passed again before the corrective commit. The 15 corrected text files also
+passed strict UTF-8, BOM, mojibake, and diff-integrity checks.

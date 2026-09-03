@@ -6,7 +6,7 @@
 
 ## Summary
 
-Repair the Windows Settings entry that currently starts a reduced-interface direct MSI removal and bypasses S039's preserve-or-wipe pages. Author the native MSI application-management contract so Windows exposes maintenance, not direct Remove, as the supported attended entry. The maintenance wizard already routes its Remove choice through the package-owned inventory and confirmation pages. Extend source, compiled-MSI, and hosted lifecycle checks to prove the registration values while retaining direct silent preserve/wipe commands.
+Repair the Windows Settings entry that currently starts a reduced-interface direct MSI removal and bypasses S039's preserve-or-wipe pages. Suppress direct Remove, author an MSI-owned maintenance command for the current ProductCode, and use a package-owned maintenance page whose internal Remove control routes through the inventory and confirmation pages. Extend source, compiled-MSI, and hosted lifecycle checks to prove the registration values while retaining direct silent preserve/wipe commands.
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ Repair the Windows Settings entry that currently starts a reduced-interface dire
 
 **Constraints**: One visible product entry; no custom ARP shadow entry; no bootstrapper; no custom-action popup; direct silent `/x` must remain functional; preserve remains default; hidden/noninteractive console execution; UTF-8 without BOM; no release, tag, or merge
 
-**Scale/Scope**: One MSI property, one native registration contract, three existing verification layers, Windows install documentation, and S041 evidence artifacts
+**Scale/Scope**: One MSI property, one MSI-owned registry component, one package-owned maintenance page, three existing verification layers, Windows install documentation, and S041 evidence artifacts
 
 ## Constitution Check
 
@@ -46,9 +46,9 @@ All principles remain satisfied. The MSI source and verification scripts are pin
 
 ### Route attended system management through native MSI maintenance
 
-Set the Windows Installer `ARPNOREMOVE` product property to `1` and deliberately leave `ARPNOMODIFY` unset. Windows Installer then suppresses its generated direct `UninstallString`/Remove action while retaining the generated `ModifyPath`. The system application list therefore offers maintenance as the supported attended action. That action opens the full package UI, whose existing `MaintenanceTypeDlg.RemoveButton` route leads to `GoScheduleUninstallDlg` before execution.
+Set the Windows Installer `ARPNOREMOVE` product property to `1` and deliberately leave `ARPNOMODIFY` unset. Windows Installer suppresses its generated direct `UninstallString`/Remove action. Hosted evidence then proved that it also omits `ModifyPath`, contrary to the original one-property plan. An MSI-owned registry component therefore writes the expandable `MsiExec.exe /I[ProductCode]` maintenance command into the same native product key.
 
-This follows Microsoft's documented MSI model: `ARPNOREMOVE` changes only the Add/Remove Programs surface, and removal remains available through Change when the package UI offers it. Direct Windows Installer command-line and API removal remain supported. It also matches the maintainer's actual failure: Windows Settings used the direct Remove entry and removed the product without showing authored wizard pages.
+WiX 6.0.2's stock `MaintenanceTypeDlg` also disables its Remove control when `ARPNOREMOVE` is set. S041 owns the maintenance page so that external direct removal remains suppressed while internal guided removal remains available. Change and Repair retain their standard modes; Remove resets the existing choice to preserve and routes to `GoScheduleUninstallDlg`. Direct Windows Installer command-line and API removal remain supported.
 
 ### Keep unattended removal explicit and stable
 
@@ -62,7 +62,7 @@ No condition on the cleanup action, completion actions, shortcut features, or se
 
 ### Prove source, package, and installed registration separately
 
-`build/windows/verify_wxs.ps1` rejects source that omits `ARPNOREMOVE=1` or suppresses maintenance through `ARPNOMODIFY`. `test/integration/windows_installer_contract_test.go` gains the same regression contract and mutation cases. `test/windows/inspect-installer.ps1` proves compiled Property-table values. `test/windows/Invoke-InstallerContractCI.ps1` records and asserts the installed product key has `NoRemove=1`, no `NoModify`, no `UninstallString`, a native `ModifyPath`, and one visible go-schedule identity.
+`build/windows/verify_wxs.ps1` rejects source that omits `ARPNOREMOVE=1`, suppresses maintenance through `ARPNOMODIFY`, omits the owned `/I` registry value, or lets `ARPNOREMOVE` disable the package-owned Remove control. `test/integration/windows_installer_contract_test.go` carries the same regression and mutation cases. `test/windows/inspect-installer.ps1` proves Property, Registry, Dialog, Control, ControlCondition, and ControlEvent rows. `test/windows/Invoke-InstallerContractCI.ps1` asserts that installed state has `NoRemove=1`, no `NoModify`, no `UninstallString`, the owned current-ProductCode `ModifyPath`, and one visible go-schedule identity.
 
 Compiled rows prove what Windows Installer will register; the installed registry probe proves standard actions actually produced that state. Neither is misrepresented as the final Windows 11 Settings observation, which remains in #94.
 
@@ -74,6 +74,8 @@ A hidden native MSI plus a hand-authored shadow ARP key could force any command,
 
 - [Microsoft: Configuring Add/Remove Programs with Windows Installer](https://learn.microsoft.com/en-us/windows/win32/msi/configuring-add-remove-programs-with-windows-installer) documents that `ARPNOREMOVE` hides direct Remove while Change can still remove products whose package UI offers removal.
 - [Microsoft: Windows Installer properties for the Uninstall registry key](https://learn.microsoft.com/en-us/windows/win32/msi/uninstall-registry-key) identifies `ModifyPath` and `UninstallString` as Windows Installer-generated values.
+- [Microsoft: Registry table](https://learn.microsoft.com/en-us/windows/win32/msi/registry-table) defines MSI-owned, formatted, expandable registry values and their component lifecycle.
+- [WiX 6.0.2: MaintenanceTypeDlg source](https://github.com/wixtoolset/wix/blob/v6.0.2/src/ext/UI/wixlib/MaintenanceTypeDlg.wxs) shows the stock Remove control is disabled by `ARPNOREMOVE`.
 - [Microsoft: msiexec](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/msiexec) confirms `/x` remains the direct administrative uninstall mechanism and UI levels are independently selectable.
 
 ## Project Structure
