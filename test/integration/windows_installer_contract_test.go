@@ -528,6 +528,15 @@ func TestWindowsInstallerLifecycleAuthoringContract(t *testing.T) {
 	}
 }
 
+func TestWindowsInstallerCIScriptAcceptsCleanGUIProcessSnapshot(t *testing.T) {
+	script := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerContractCI.ps1"))
+	script = strings.ReplaceAll(script, "\r\n", "\n")
+	contract := "[AllowEmptyCollection()]\n    [int[]]$GuiProcessIdsBefore"
+	if !strings.Contains(script, contract) {
+		t.Fatalf("installer CI harness must accept an empty pre-operation GUI process snapshot")
+	}
+}
+
 func TestWindowsInstallerLifecycleContractRejectsMutations(t *testing.T) {
 	shortcutFixture := `<Wix><Package>
 <StandardDirectory Id="DesktopFolder" />

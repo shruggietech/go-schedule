@@ -13,6 +13,7 @@
 - Installer lifecycle authoring initially produced 36 missing-contract diagnostics before the shortcut, UI, and removal authoring was added.
 - Mutation tests were added for feature defaults and ownership, completion guards and sequence uniqueness, destructive confirmation, helper embedding, commit timing, upgrade exclusion, and invalid wipe values.
 - Internal review later reproduced `TestRunRewritesTerminalStateAfterInitialResultFailure` failing with one write instead of the required running-plus-terminal retry before the implementation was corrected.
+- Hosted run `33700662461` exposed a clean-runner empty GUI-process snapshot that the lifecycle harness rejected during parameter binding. `TestWindowsInstallerCIScriptAcceptsCleanGUIProcessSnapshot` was added and observed failing before the parameter accepted an empty collection, then passed after the correction.
 
 ## Focused local verification
 

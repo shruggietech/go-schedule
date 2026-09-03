@@ -139,7 +139,9 @@ function Assert-NoCompletionLaunch {
   param(
     [Parameter(Mandatory)] [string]$Label,
     [Parameter(Mandatory)] [string]$LogPath,
-    [Parameter(Mandatory)] [int[]]$GuiProcessIdsBefore
+    [Parameter(Mandatory)]
+    [AllowEmptyCollection()]
+    [int[]]$GuiProcessIdsBefore
   )
 
   $newGui = @(Get-Process -Name 'gosched-gui' -ErrorAction SilentlyContinue |
