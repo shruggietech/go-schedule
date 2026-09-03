@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   labeled local MSI, exhausts non-attended verification, and binds operator
   testing to its exact hash before the review branch is published. Passing demo
   evidence reduces review risk but does not replace the later byte-identical
-  draft-release candidate gate.
+  draft-release candidate gate. Compiled inspection now labels these artifacts
+  as `local-demo` instead of borrowing formal candidate provenance.
 
 - **The desktop GUI now has an Options view and an owned navigation rail (Refs
   #104, #105, #106).** Users can switch among Dark, Light, and Follow system
@@ -106,7 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requires a Release-workflow MSI staged from reviewed and merged source. S043
   therefore uses a clearly marked local demo for early testing and preserves the
   full exact-candidate matrix for the later authorized tag. Relabeling or
-  promoting the local build would weaken provenance and is prohibited.
+  promoting the local build would weaken provenance and is prohibited. The
+  compiled inspector accepts `local-demo` for this narrow purpose while keeping
+  candidate-manifest generation and published-origin validation unchanged.
 
 - **2026-09-03 - Own desktop navigation and bound appearance choices.** Fyne's
   leading AppTabs cannot provide both controlled rail spacing and a bottom

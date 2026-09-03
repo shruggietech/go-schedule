@@ -71,7 +71,23 @@ clarification scan found no unresolved placeholder.
 
 ## Demo identity
 
-Pending.
+The first local compilation succeeded, but its inspection report used the only
+available non-published class, `candidate`. Although the origin explicitly said
+it was not staged, the generated heading and status still called it a candidate
+artifact. That report and MSI are superseded and will not be handed off.
+
+A regression assertion was changed first and failed because the inspector did
+not expose `[ValidateSet('candidate', 'published', 'local-demo')]`. After adding
+only that provenance value, the focused integration contract and PowerShell
+parser check passed. Candidate-manifest generation remains restricted to
+`candidate`, and the published class retains its repository HTTPS-origin check.
+
+The complete eight-gate suite then passed again with the correction in place.
+The race gate included the 54.026-second integration suite; lint reported zero
+issues, all coverage packages remained above 80 percent, and documentation plus
+automation completed cleanly.
+
+Final demo identity is pending a clean rebuild from the correction commit.
 
 ## Native evidence boundary
 

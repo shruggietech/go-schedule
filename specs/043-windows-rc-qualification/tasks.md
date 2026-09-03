@@ -23,26 +23,27 @@
 ## Phase 3: Demo candidate
 
 - [x] T011 [US1] Ensure WiX Toolset 6.0.2 and matching UI/Util extensions are available without changing repository dependencies.
-- [ ] T012 [US1] Build GUI, daemon, CLI, and cleanup helper with the S043 demo version into a clean local staging directory.
-- [ ] T013 [US1] Validate the stage with `build/windows/verify_wxs.ps1` and compile one numeric-version 1.0.0 MSI.
-- [ ] T014 [US1] Inspect the compiled MSI with `test/windows/inspect-installer.ps1` and retain its report.
-- [ ] T015 [US1] Independently verify embedded versions, ProductVersion, ProductCode, byte size, SHA-256, and source commit.
+- [x] T012 [US1] Add a failing contract then extend `test/windows/inspect-installer.ps1` with truthful `local-demo` provenance without relaxing candidate or published validation.
+- [ ] T013 [US1] Build GUI, daemon, CLI, and cleanup helper with the S043 demo version into a clean local staging directory.
+- [ ] T014 [US1] Validate the stage with `build/windows/verify_wxs.ps1` and compile one numeric-version 1.0.0 MSI.
+- [ ] T015 [US1] Inspect the compiled MSI with `test/windows/inspect-installer.ps1` and retain its report.
+- [ ] T016 [US1] Independently verify embedded versions, ProductVersion, ProductCode, byte size, SHA-256, and source commit.
 
 ## Phase 4: Handoff and attended testing
 
-- [x] T016 [US3] Record all automated results and boundaries in `verification.md`.
-- [x] T017 [US3] Update `specs/README.md` and `CHANGELOG.md` for the in-progress local demo qualification.
-- [x] T018 [US3] Run UTF-8 without BOM, mojibake, diff-integrity, and local review checks.
-- [ ] T019 [US3] Commit the reviewed S043 source and evidence locally without pushing.
-- [ ] T020 [US1] Rebuild if the local commit changed any artifact input, then link the exact final MSI with its complete identity.
-- [ ] T021 [US3] Hand off `checklists/attended-demo.md`; wait for the operator to complete demo testing before any push or PR.
+- [x] T017 [US3] Record all automated results and boundaries in `verification.md`.
+- [x] T018 [US3] Update `specs/README.md` and `CHANGELOG.md` for the in-progress local demo qualification.
+- [x] T019 [US3] Run final UTF-8 without BOM, mojibake, diff-integrity, and local review checks.
+- [x] T020 [US3] Commit the initial reviewed S043 source and evidence locally without pushing.
+- [ ] T021 [US1] Rebuild after the local-demo correction commit, then link the exact final MSI with its complete identity.
+- [ ] T022 [US3] Hand off `checklists/attended-demo.md`; wait for the operator to complete demo testing before any push or PR.
 
 ## Phase 5: Post-demo disposition
 
-- [ ] T022 [US3] Record operator observations against the exact demo hash.
-- [ ] T023 [US3] Reproduce and correct any confirmed blocking defect under TDD and #94 proof ordering, then rebuild and repeat affected checks.
-- [ ] T024 [US3] After all demo checks are complete, prepare the branch for the separately authorized pull request.
-- [ ] T025 [US3] After review/merge and separate tag authorization, run the full formal exact-candidate matrix before closing #94/#98/#96.
+- [ ] T023 [US3] Record operator observations against the exact demo hash.
+- [ ] T024 [US3] Reproduce and correct any confirmed blocking defect under TDD and #94 proof ordering, then rebuild and repeat affected checks.
+- [ ] T025 [US3] After all demo checks are complete, prepare the branch for the separately authorized pull request.
+- [ ] T026 [US3] After review/merge and separate tag authorization, run the full formal exact-candidate matrix before closing #94/#98/#96.
 
 ## Dependencies & execution order
 

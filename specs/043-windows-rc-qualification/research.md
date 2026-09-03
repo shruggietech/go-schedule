@@ -57,3 +57,12 @@ in `test/windows/README.md` for the later staged candidate.
 It must not silently redefine the release gate or imply that omitted formal
 observations passed.
 
+## Decision 6: Give the compiled inspector an explicit local-demo class
+
+**Decision**: Extend only `inspect-installer.ps1` with `local-demo`; retain
+`candidate` as the sole class allowed to emit workflow candidate manifests and
+retain the existing HTTPS release-origin rule for `published`.
+
+**Rationale**: The first compiled run proved that the existing two-value set
+forced a misleading `candidate artifact` heading. A first-class local-demo label
+is the smallest truthful correction and does not weaken either formal class.

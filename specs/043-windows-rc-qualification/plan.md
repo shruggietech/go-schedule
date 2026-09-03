@@ -91,9 +91,10 @@ dist/
 └── s043-demo-installer-inspection.md
 ```
 
-**Structure Decision**: Retain the existing single Go repository and existing
-Windows/release tooling. Only Spec Kit and durable verification documentation are
-tracked unless testing discovers a confirmed product defect.
+**Structure Decision**: Retain the existing single Go repository and Windows/
+release tooling. Compiled execution exposed that the inspector could only label
+a local demo as a formal candidate, so S043 adds one bounded `local-demo`
+provenance value without relaxing candidate-manifest or published-origin checks.
 
 ## Implementation phases
 
@@ -108,4 +109,3 @@ tracked unless testing discovers a confirmed product defect.
 ## Complexity Tracking
 
 No constitutional violation or new architectural complexity is introduced.
-
