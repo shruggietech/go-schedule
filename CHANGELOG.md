@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   testing to its exact hash before the review branch is published. Passing demo
   evidence reduces review risk but does not replace the later byte-identical
   draft-release candidate gate. Compiled inspection now labels these artifacts
-  as `local-demo` instead of borrowing formal candidate provenance.
+  as `local-demo` instead of borrowing formal candidate provenance. The attended
+  walkthrough accepted setup, shortcuts, Finish actions, task double-click,
+  Exit, guided uninstall, and wipe behavior; its UI findings remain tracked in
+  #101, #104, #105, #106, #109, #110, #111, #112, and #113 instead of
+  expanding the qualification slice.
 
 - **The desktop GUI now has an Options view and an owned navigation rail (Refs
   #104, #105, #106).** Users can switch among Dark, Light, and Follow system

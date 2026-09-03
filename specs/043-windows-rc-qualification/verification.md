@@ -6,9 +6,12 @@
 
 ## Current result
 
-Automated qualification is complete and the local demo is ready for attended
-testing. The branch remains local and the pull request remains withheld. S043 is
-still In Progress until the operator finishes the attended-demo checklist.
+Automated qualification and the operator's attended local-demo walkthrough are
+complete. The demo found usability defects, all of which remain outside S043
+implementation and are tracked in GitHub. No release-blocking regression in the
+setup, shortcut, Finish-action, double-click, Exit, guided-uninstall, or wipe
+paths was reported. The operator authorized branch publication through the pull-
+request review boundary; formal release-candidate evidence remains separate.
 
 ## Evidence classes
 
@@ -120,5 +123,84 @@ input guard, and close-application rows.
 
 No unattended or headless result will be represented as proof of visual quality,
 Windows Settings interaction, native window geometry, or user judgment. The demo
-remains unofficial and the pull request remains withheld until the operator
-finishes attended testing.
+remains unofficial and cannot close #94, #98, or #96.
+
+## Attended demo result
+
+The operator installed the one linked S043 demo artifact and explicitly ended
+testing on 2026-09-03. An independent operator-side hash computation and exact
+Windows build/scale record were not supplied, so the observations are bound to
+the handoff artifact but are not promoted to formal exact-candidate evidence.
+
+Passed observations:
+
+- setup was seamless;
+- Desktop and Start Menu shortcuts worked;
+- the selected Finish actions opened the app and documentation together;
+- task-row double-click opened Edit;
+- the bottom Exit action worked;
+- Windows Settings reached the guided uninstall and presented wipe choices.
+
+The operator intentionally did not execute manual, scheduled, nonzero-exit, or
+process-start-failure task cases. The headless suite still exercised scheduler,
+store, API/client-server, executor, Windows process creation, and integration
+behavior, including successful and failed execution classes. That is meaningful
+source-level proof, but it does not replace #94's installed LocalSystem and
+ordinary-user exact-candidate matrix.
+
+### Post-wipe system audit
+
+A read-only audit captured at `2026-09-03T06:22:41-04:00` found all declared
+owned and installer state absent:
+
+| State | Result |
+| --- | --- |
+| `C:\Program Files\go-schedule` | Absent |
+| `goschedd` service | Absent |
+| MSI product registration | Absent |
+| Public Desktop/current-user/all-users Start Menu shortcuts | Absent |
+| `C:\ProgramData\goschedule` | Absent |
+| Fyne app root in all five registered Windows profiles | Absent |
+| cleanup-result ledger and cleanup-status registry key | Absent |
+
+The registered-profile audit covered SYSTEM, LocalService, NetworkService, the
+maintainer profile, and CodexSandboxOffline. The implementation retains a ledger
+and registry status for incomplete cleanup, so absence of both owned roots and
+failure evidence is consistent with a complete wipe. The unrelated-sentinel and
+preserve/cancel matrices were not performed in this attended walkthrough and
+remain open under #98/#94.
+
+### Issue-only disposition of walkthrough feedback
+
+No UI product code was added to S043. New bounded issues were created for:
+
+- #109 systemic hover/active/focus contrast;
+- #110 natural command entry and a larger arguments editor;
+- #111 Windows wheel sensitivity and its Options setting;
+- #112 a labeled, frozen-header Tasks table; and
+- #113 tabulated, color-coded Schedule and Activity rows.
+
+Existing issues were updated instead of duplicated: #101 and #106 now carry the
+System-font A/B result and font-family/default work; #106 also owns compact
+storage rows and selector behavior; #104 owns the sidebar boundary; and #105
+owns the Exit-glyph refinement. Confirmation evidence was added to #103, #97,
+#98, and #94.
+
+Accessibility acceptance in #109, #112, and #113 uses measurable shared-state
+criteria: at least 4.5:1 contrast for normal text, 3:1 for large text and
+essential non-text indicators, visible hover and keyboard focus, and no color-
+only meaning. This prevents another one-control color patch from masking the
+systemic defect.
+
+## Final disposition
+
+S043 achieved its pre-publication purpose: one identified demo was built,
+automated checks passed, attended findings were recorded before any correction,
+the wipe result was independently inspected, and unfinished exact-candidate
+proof remains open. The branch may proceed through pull-request CI and review,
+but no tag, release, merge, or issue closure is authorized by this record.
+
+After recording the attended results and issue disposition, the complete eight-
+gate suite passed again: format, vet, lint (zero issues), race, GUI, coverage,
+documentation, and automation. The coverage results remained engine 86.4%,
+schedule 89.2%, timezone 91.3%, store 84.1%, catchup 88.9%, and logbus 91.1%.

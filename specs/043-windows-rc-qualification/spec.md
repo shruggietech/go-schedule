@@ -4,9 +4,9 @@
 
 **Created**: 2026-09-03
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: Local demo candidate awaiting attended verification; no push or pull request before the operator completes testing
+**Delivery**: review branch `codex/043-windows-rc-qualification`; S043 demo SHA-256 `ef4a869af0e6971d445c53e8f7a237df655245287c7ae64d8e719941bda8ad59`; canonical verification, attended walkthrough, and post-wipe audit recorded in `verification.md`
 
 **Input**: Qualify the Windows release work as far as possible without operator help, then provide a locally built demo installer for attended testing before publishing a pull request.
 
@@ -44,8 +44,9 @@ close #94, #98, or #96 by itself.
 
 ### Scope out
 
-- Pushing a branch, opening a pull request, tagging, staging a GitHub release,
-  publishing a release, or claiming formal release-candidate qualification.
+- Pushing a branch or opening a pull request before the operator completes demo
+  testing; tagging, staging or publishing a GitHub release; or claiming formal
+  release-candidate qualification.
 - Closing issues whose native or exact-candidate evidence remains incomplete.
 - Implementing #102 unless testing proves its current behavior blocks the v1
   release gate rather than remaining a documented Post-v1 diagnostic improvement.
@@ -70,6 +71,10 @@ close #94, #98, or #96 by itself.
   table inspection, tests, and operator-driven installation.
 - Q: When may the S043 branch leave the machine? -> A: Only after the operator
   completes demo testing and explicitly authorizes publication.
+- Q: What is the disposition of UI complaints found in the completed demo? ->
+  A: File or update GitHub issues only. Do not expand S043 product scope. The
+  operator authorized publication through CI and pull-request review, with merge
+  still reserved for the final review ritual.
 
 ## User Scenarios & Testing
 
@@ -215,4 +220,3 @@ setup, GUI, task, and uninstall observation against its recorded hash.
   Windows desktop, while the agent performs all headless work.
 - A local build is suitable for exploratory approval before PR publication but
   cannot replace the later draft-release artifact.
-

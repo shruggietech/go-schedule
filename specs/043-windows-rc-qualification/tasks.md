@@ -36,14 +36,20 @@
 - [x] T019 [US3] Run final UTF-8 without BOM, mojibake, diff-integrity, and local review checks.
 - [x] T020 [US3] Commit the initial reviewed S043 source and evidence locally without pushing.
 - [x] T021 [US1] Rebuild after the local-demo correction commit, then link the exact final MSI with its complete identity.
-- [ ] T022 [US3] Hand off `checklists/attended-demo.md`; wait for the operator to complete demo testing before any push or PR.
+- [x] T022 [US3] Hand off `checklists/attended-demo.md`; wait for the operator to complete demo testing before any push or PR.
 
 ## Phase 5: Post-demo disposition
 
-- [ ] T023 [US3] Record operator observations against the exact demo hash.
-- [ ] T024 [US3] Reproduce and correct any confirmed blocking defect under TDD and #94 proof ordering, then rebuild and repeat affected checks.
-- [ ] T025 [US3] After all demo checks are complete, prepare the branch for the separately authorized pull request.
-- [ ] T026 [US3] After review/merge and separate tag authorization, run the full formal exact-candidate matrix before closing #94/#98/#96.
+- [x] T023 [US3] Record operator observations against the handed-off demo hash,
+  including explicit incomplete/failed checks and the post-wipe audit.
+- [x] T024 [US3] Disposition confirmed non-blocking UI findings to #101, #104,
+  #105, #106, #109, #110, #111, #112, and #113 without expanding S043 product
+  scope; no product correction or rebuild was required.
+- [x] T025 [US3] After demo completion, prepare the branch for the authorized
+  pull-request CI and review boundary.
+- [x] T026 [US3] **Deferred by scope:** after review/merge and separate tag
+  authorization, the release ritual must run the formal exact-candidate matrix
+  before closing #94/#98/#96. S043 does not claim or waive that future gate.
 
 ## Dependencies & execution order
 
