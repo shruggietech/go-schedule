@@ -88,6 +88,80 @@ jobs:
           path: ${{ runner.temp }}/s038-service-core
           if-no-files-found: warn
 
+  windows-msi-contract:
+    name: Windows MSI compiled & silent contract
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Stage Windows installer binaries
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 's039-msi-contract'
+          $stage = Join-Path $root 'stage'
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 `
+            -64 `
+            -icon=brand/platform/windows/go-schedule.ico `
+            -o=cmd/gosched-gui/resource_windows_amd64.syso `
+            cmd/gosched-gui/versioninfo.json
+          go build -ldflags '-H windowsgui' `
+            -o (Join-Path $stage 'gosched-gui.exe') ./cmd/gosched-gui
+          go build -o (Join-Path $stage 'goschedd.exe') ./cmd/goschedd
+          go build -o (Join-Path $stage 'gosched.exe') ./cmd/gosched
+          go build -ldflags '-H windowsgui' `
+            -o (Join-Path $stage 'gosched-cleanup.exe') ./cmd/gosched-cleanup
+      - name: Install pinned WiX Toolset
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:RUNNER_TEMP 's039-wix'
+          dotnet tool install --tool-path $tools wix --version 6.0.2
+          $wix = Join-Path $tools 'wix.exe'
+          & $wix --version
+          & $wix extension add -g WixToolset.UI.wixext/6.0.2
+          & $wix extension add -g WixToolset.Util.wixext/6.0.2
+      - name: Build and inspect compiled MSI contracts
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 's039-msi-contract'
+          $stage = Join-Path $root 'stage'
+          $tools = Join-Path $env:RUNNER_TEMP 's039-wix'
+          $wix = Join-Path $tools 'wix.exe'
+          $baseline = Join-Path $root 'go-schedule_s039-baseline.msi'
+          $candidate = Join-Path $root 'go-schedule_s039-candidate.msi'
+          & ./build/windows/verify_wxs.ps1 -StageDir $stage
+          & $wix build build/windows/goschedule.wxs -arch x64 `
+            -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
+            -d Version=1.0.0 -d "StageDir=$stage" -o $baseline
+          & $wix build build/windows/goschedule.wxs -arch x64 `
+            -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
+            -d Version=1.0.1 -d "StageDir=$stage" -o $candidate
+          & ./test/windows/inspect-installer.ps1 `
+            -MsiPath $candidate `
+            -EvidencePath (Join-Path $root 'compiled-msi.md') `
+            -ArtifactClass candidate `
+            -ArtifactOrigin "CI build from commit $env:GITHUB_SHA"
+      - name: Exercise silent installer lifecycle contract
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 's039-msi-contract'
+          & ./test/windows/Invoke-InstallerContractCI.ps1 `
+            -BaselineMsiPath (Join-Path $root 'go-schedule_s039-baseline.msi') `
+            -MsiPath (Join-Path $root 'go-schedule_s039-candidate.msi') `
+            -EvidencePath (Join-Path $root 'silent-lifecycle.json') `
+            -ArtifactOrigin "CI build from commit $env:GITHUB_SHA" `
+            -Confirm:$false
+      - name: Upload compiled and silent MSI evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-msi-contract-evidence
+          path: ${{ runner.temp }}/s039-msi-contract
+          if-no-files-found: warn
+
   coverage:
     name: Coverage gate (core packages ≥80%)
     runs-on: ubuntu-latest

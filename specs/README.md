@@ -56,3 +56,4 @@ Run `sh scripts/spec-lifecycle-check.sh .` locally. The canonical automation gat
 | 036-ipc-access-denied-recovery | Implemented | native Windows diagnosis, deterministic recovery, and canonical eight-gate verification passed 2026-09-01 |
 | 037-windows-release-polish | Implemented | review branch `codex/037-windows-release-polish`; local verification completed 2026-08-31 |
 | 038-windows-installed-core-recovery | Implemented | PR [#95](https://github.com/shruggietech/go-schedule/pull/95), local canonical verification, and hosted LocalSystem run [33508591264](https://github.com/shruggietech/go-schedule/actions/runs/33508591264) |
+| 039-windows-setup-lifecycle-control | Implemented | canonical eight-gate verification and local WiX 6.0.2 compiled-MSI inspection in `verification.md`; hosted silent evidence runs in pull-request CI; #94 retains attended Windows 11 acceptance for #97/#98 |

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Windows setup now exposes user-controlled shell integration and completion
+  actions (Refs #97).** Start Menu and desktop shortcuts are independent MSI
+  features with safe defaults, maintenance support, and upgrade migration.
+  Fresh attended setup offers independent options to launch the unelevated GUI
+  and open project documentation; unattended and non-fresh flows launch
+  neither.
+
+- **Windows uninstall now offers preserve-by-default or explicitly confirmed
+  application-data cleanup (Refs #98).** Managed removal uses one exact wipe
+  property. The installer-private helper derives only declared ProgramData and
+  registered local-profile preference roots, refuses unsafe or redirected
+  targets before deletion, avoids reparse traversal, and retains protected
+  evidence for incomplete cleanup. Shared `goschedadmin` state is preserved.
+
 ### Fixed
 
 - **Installed Windows access now works for direct `goschedadmin` users whose
@@ -44,6 +60,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-02 - Model Windows setup choices as native MSI features and one
+  package-owned dialog flow.** S039 replaces the minimal dialog set because it
+  cannot expose optional features or two independent completion actions. Stable
+  child features give install, maintenance, managed deployment, and later
+  upgrades one consistent shortcut state model. Completion actions exist only
+  as guarded full-UI Finish events and use the interactive user's shell.
+
+- **2026-09-02 - Delay explicit data wipe until uninstall commit and preserve
+  uncertain security state.** A windowless helper embedded in the MSI derives
+  fixed product-owned roots, preflights every root before deleting any, and
+  records residual outcomes in a protected ledger. Its ignored commit return
+  prevents Windows Installer from pretending irreversible partial deletion was
+  rolled back. `goschedadmin`, exports, redirects, and unregistered or detached
+  profile storage remain outside automatic cleanup.
+
+- **2026-09-02 - Pre-authorize S039 review-branch publication only.** The
+  operator explicitly directed autopilot to push this verified branch and open
+  its pull request without the usual intermediate halt. This narrows the
+  process pause for S039 but does not authorize merge, tag, release, scope
+  expansion, or reduced verification.
 
 - **2026-09-01 - Expand only verified direct users at Windows pipe startup.**
   S038 intentionally supersedes S036's ACL exclusion because the presentation
