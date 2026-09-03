@@ -228,7 +228,10 @@ jobs:
           mkdir -p dist
           if [ "${{ matrix.goos }}" = "windows" ]; then
             # Windows ships ONLY as a formal .msi (no portable zip). The three exes
-            # were built into "$stage"; hand that folder to WiX as the stage dir.
+            # were built into "$stage"; add the installer-private cleanup helper
+            # as a windowless Binary-table payload, then hand the folder to WiX.
+            go build -ldflags "$BASE -H windowsgui" \
+              -o "$stage/gosched-cleanup.exe" ./cmd/gosched-cleanup
             pwsh build/windows/verify_wxs.ps1 -StageDir "$stage"
             VER_NUMERIC="${VERSION#v}"
             wix build build/windows/goschedule.wxs -arch x64 \

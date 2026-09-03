@@ -7,10 +7,11 @@
       "C:\Program Files\go-schedule\",
     * registers goschedd as an auto-start Windows service (started on install,
       stopped + removed on uninstall),
-    * adds a Start-Menu shortcut to the windowless GUI,
-    * upgrades in place (MajorUpgrade) and uninstalls cleanly. User data under
-      C:\ProgramData\goschedule is created by the daemon at runtime and is left
-      in place on uninstall.
+    * offers independent Start Menu and desktop shortcuts to the windowless GUI,
+    * offers independent fresh-install completion actions,
+    * preserves application data by default and supports an explicit wipe,
+    * upgrades in place (MajorUpgrade) and uninstalls cleanly. Application data
+      is preserved by default and removed only after an explicit wipe choice.
 
   Build (CI, on a Windows runner with WiX v6):
     wix build build/windows/goschedule.wxs -arch x64 ^
@@ -21,10 +22,10 @@
     * UpgradeCode MUST stay constant across all releases (it identifies the
       product line for upgrades) — do not regenerate it.
     * Version must be numeric (e.g. 1.2.3); strip any leading "v" before passing.
-    * StageDir is the folder holding the three built .exe files.
+    * StageDir is the folder holding the four built .exe files, including the
+      installer-private cleanup helper.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
       Name="go-schedule"
@@ -46,6 +47,12 @@
          The GUI executable embeds this same asset in the release workflow. -->
     <Icon Id="GoSchedule.ico" SourceFile="brand/platform/windows/go-schedule.ico" />
     <Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />
+    <Property Id="GOSCHEDULE_REMOVE_DATA" Value="0" Secure="yes" />
+    <Property Id="GoScheduleRemoveChoice" Value="preserve" />
+    <Property Id="LAUNCH_GOSCHEDULE" Value="1" />
+    <Launch
+        Condition='GOSCHEDULE_REMOVE_DATA = "0" OR GOSCHEDULE_REMOVE_DATA = "1"'
+        Message="GOSCHEDULE_REMOVE_DATA must be 0 (preserve data) or 1 (wipe data)." />
 
     <!-- Before installing files, terminate any running daemon (a leftover from a
          prior version or a non-service dev instance) so it can't hold the IPC
@@ -57,10 +64,12 @@
         Target="goschedd.exe"
         TerminateProcess="1"
         RebootPrompt="no" />
+    <util:CloseApplication
+        Id="CloseRunningGui"
+        Target="gosched-gui.exe"
+        TerminateProcess="1"
+        RebootPrompt="no" />
 
-    <!-- A simple, themed install wizard so the user gets a clear Welcome and a
-         "Completed successfully" finish page (instead of a silent progress bar). -->
-    <ui:WixUI Id="WixUI_Minimal" />
     <WixVariable Id="WixUILicenseRtf" Value="build/windows/license.rtf" />
 
     <!-- Install location: C:\Program Files\go-schedule\ -->
@@ -72,11 +81,37 @@
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="AppMenuFolder" Name="go-schedule" />
     </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
 
-    <Feature Id="Main" Title="go-schedule" Level="1">
+    <Feature
+        Id="Main"
+        Title="go-schedule"
+        Description="Core service, command-line tool, and desktop application"
+        Level="1"
+        AllowAbsent="no"
+        AllowAdvertise="no"
+        InstallDefault="local"
+        Display="expand">
       <ComponentGroupRef Id="AppComponents" />
-      <ComponentRef Id="AppShortcut" />
       <ComponentRef Id="AdminAccessProvisioning" />
+      <Feature
+          Id="StartMenuShortcut"
+          Title="Start Menu shortcut"
+          Description="Add a go-schedule shortcut to the Start Menu"
+          Level="1"
+          AllowAdvertise="no"
+          InstallDefault="local">
+        <ComponentRef Id="AppShortcut" />
+      </Feature>
+      <Feature
+          Id="DesktopShortcut"
+          Title="Desktop shortcut"
+          Description="Add a go-schedule shortcut to the desktop"
+          Level="2"
+          AllowAdvertise="no"
+          InstallDefault="local">
+        <ComponentRef Id="DesktopShortcutComponent" />
+      </Feature>
     </Feature>
 
     <!-- An omitted group Domain selects WiX's elevated machine-local group
@@ -178,6 +213,192 @@
       <RemoveFolder Id="RemoveAppMenuFolder" Directory="AppMenuFolder" On="uninstall" />
       <RegistryValue Root="HKLM" Key="Software\ShruggieTech\go-schedule" Name="installed" Type="integer" Value="1" KeyPath="yes" />
     </Component>
+
+    <!-- The shortcut features have stable identities so MSI can migrate their
+         selected states across major upgrades and expose them independently in
+         maintenance mode. -->
+    <Component Id="DesktopShortcutComponent" Directory="DesktopFolder" Guid="*">
+      <Shortcut
+          Id="DesktopShortcut"
+          Name="go-schedule"
+          Description="Open the go-schedule desktop app"
+          Target="[INSTALLFOLDER]gosched-gui.exe"
+          Icon="GoSchedule.ico"
+          WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue Root="HKLM" Key="Software\ShruggieTech\go-schedule" Name="desktop-shortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- The cleanup helper is installer-private. It runs after the MSI has
+         committed an explicit full uninstall, ignores its exit code so a
+         partial/refused wipe cannot roll back successful product removal, and
+         writes its durable result ledger independently. -->
+    <Binary Id="GoScheduleCleanup" SourceFile="$(StageDir)\gosched-cleanup.exe" />
+    <CustomAction
+        Id="WipeApplicationData"
+        BinaryRef="GoScheduleCleanup"
+        ExeCommand="wipe"
+        Execute="commit"
+        Impersonate="no"
+        Return="ignore" />
+
+    <CustomAction
+        Id="LaunchGui"
+        BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+        DllEntry="WixUnelevatedShellExec"
+        Execute="immediate"
+        Return="ignore" />
+    <CustomAction
+        Id="OpenDocs"
+        BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+        DllEntry="WixUnelevatedShellExec"
+        Execute="immediate"
+        Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom
+          Action="WipeApplicationData"
+          Before="InstallFinalize"
+          Condition='Installed AND REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE AND NOT REINSTALL AND GOSCHEDULE_REMOVE_DATA="1"' />
+    </InstallExecuteSequence>
+
+    <!-- Reset command-line wipe opt-in when a direct full-UI uninstall reaches
+         the package-owned confirmation flow. Quiet/basic UI keeps the secure
+         public property unchanged and therefore remains automation-friendly. -->
+    <SetProperty
+        Id="GOSCHEDULE_REMOVE_DATA"
+        Action="ResetDirectRemoveData"
+        Value="0"
+        Before="GoScheduleUninstallDlg"
+        Sequence="ui"
+        Condition='Installed AND REMOVE~="ALL" AND Preselected AND UILevel = 5 AND NOT RESUME AND NOT PATCH AND NOT UPGRADINGPRODUCTCODE' />
+
+    <!-- This is a package-owned variant of WixUI_FeatureTree. Owning the
+         publish graph avoids composing a second success sequence row while
+         retaining the stock WiX dialogs and theme. -->
+    <UI Id="GoScheduleFeatureTreeUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+
+      <DialogRef Id="BrowseDlg" />
+      <DialogRef Id="DiskCostDlg" />
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+
+      <Dialog Id="GoScheduleUninstallDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Remove go-schedule" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="330" Height="16" Transparent="yes" NoPrefix="yes" Text="Choose what happens to application data." />
+        <Control Id="AlwaysRemovedText" Type="Text" X="25" Y="55" Width="320" Height="24" Text="Always removed: installed executables, the Windows service, PATH registration, and selected shortcuts." />
+        <Control Id="PreservedDataText" Type="Text" X="25" Y="82" Width="320" Height="24" Text="Preserved by default: configuration, task history, logs, and user-managed certificates under ProgramData." />
+        <Control Id="WipedDataText" Type="Text" X="25" Y="109" Width="320" Height="24" Text="Wipe removes only trusted go-schedule-owned paths. Untrusted links or reparse points are refused and recorded." />
+        <Control Id="SecurityStateText" Type="Text" X="25" Y="136" Width="320" Height="24" Text="Refused or incomplete cleanup is recorded in a protected result ledger; successful cleanup clears it." />
+        <Control Id="RemoveChoice" Type="RadioButtonGroup" X="25" Y="169" Width="320" Height="44" Property="GoScheduleRemoveChoice">
+          <RadioButtonGroup Property="GoScheduleRemoveChoice">
+            <RadioButton Value="preserve" X="0" Y="0" Width="320" Height="17" Text="Preserve application data (recommended)" />
+            <RadioButton Value="wipe" X="0" Y="22" Width="320" Height="17" Text="Wipe trusted application data after uninstall" />
+          </RadioButtonGroup>
+        </Control>
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back" HideCondition="Preselected">
+          <Publish Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="1" />
+          <Publish Event="NewDialog" Value="MaintenanceTypeDlg" Order="2" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+          <Publish Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="1" Condition='GoScheduleRemoveChoice = "preserve"' />
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="2" Condition='GoScheduleRemoveChoice = "preserve" AND NOT Preselected' />
+          <Publish Event="EndDialog" Value="Return" Order="3" Condition='GoScheduleRemoveChoice = "preserve" AND Preselected' />
+          <Publish Event="NewDialog" Value="GoScheduleWipeConfirmDlg" Order="4" Condition='GoScheduleRemoveChoice = "wipe"' />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="1" />
+          <Publish Event="SpawnDialog" Value="CancelDlg" Order="2" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="GoScheduleWipeConfirmDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Confirm application-data wipe" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="330" Height="16" Transparent="yes" NoPrefix="yes" Text="This choice requires explicit confirmation." />
+        <Control Id="WarningText" Type="Text" X="25" Y="65" Width="320" Height="80" Text="After product removal commits, the installer will delete trusted go-schedule-owned configuration, task history, logs, and certificates. This cannot be undone. Refused or partial cleanup is recorded in the retained cleanup ledger." />
+        <Control Id="SafetyText" Type="Text" X="25" Y="155" Width="320" Height="42" Text="Back returns to the preserve-or-wipe choice. Cancel stops the uninstall before any wipe is requested." />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Back">
+          <Publish Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="1" />
+          <Publish Event="NewDialog" Value="GoScheduleUninstallDlg" Order="2" />
+        </Control>
+        <Control Id="ConfirmWipe" Type="PushButton" X="236" Y="243" Width="66" Height="17" Default="no" Text="&amp;Wipe">
+          <Publish Property="GOSCHEDULE_REMOVE_DATA" Value="1" Order="1" />
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="2" Condition="NOT Preselected" />
+          <Publish Event="EndDialog" Value="Return" Order="3" Condition="Preselected" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="1" />
+          <Publish Event="SpawnDialog" Value="CancelDlg" Order="2" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="GoScheduleExitDlg" Width="370" Height="270" Title="[ProductName] Setup">
+        <Control Id="Finish" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Cancel="yes" Text="Finish">
+          <Publish Property="WixUnelevatedShellExecTarget" Value="[#gosched_gui.exe]" Order="1" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND LAUNCH_GOSCHEDULE = "1"' />
+          <Publish Event="DoAction" Value="LaunchGui" Order="2" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND LAUNCH_GOSCHEDULE = "1"' />
+          <Publish Property="WixUnelevatedShellExecTarget" Value="https://shruggietech.github.io/go-schedule/" Order="3" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND OPEN_GOSCHEDULE_DOCS = "1"' />
+          <Publish Event="DoAction" Value="OpenDocs" Order="4" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND OPEN_GOSCHEDULE_DOCS = "1"' />
+          <Publish Event="EndDialog" Value="Return" Order="999" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Disabled="yes" Text="Cancel" />
+        <Control Id="Bitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="234" TabSkip="no" Text="WixUI_Bmp_Dialog" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Disabled="yes" Text="Back" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Description" Type="Text" X="135" Y="70" Width="220" Height="35" Transparent="yes" NoPrefix="yes" Text="Setup completed successfully." />
+        <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="45" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Bigger}Completed [ProductName] Setup" />
+        <Control Id="CleanupResultText" Type="Text" X="135" Y="105" Width="220" Height="40" Hidden="yes" Transparent="yes" NoPrefix="yes" Text="If cleanup was incomplete, details remain under %ProgramData%\ShruggieTech\go-schedule-uninstall. Complete cleanup leaves no stale report." ShowCondition='Installed AND REMOVE~="ALL" AND GOSCHEDULE_REMOVE_DATA = "1"' />
+        <Control Id="LaunchGuiCheckBox" Type="CheckBox" X="135" Y="150" Width="220" Height="20" Hidden="yes" Property="LAUNCH_GOSCHEDULE" CheckBoxValue="1" Text="Launch go-schedule" ShowCondition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5' />
+        <Control Id="OpenDocsCheckBox" Type="CheckBox" X="135" Y="175" Width="220" Height="20" Hidden="yes" Property="OPEN_GOSCHEDULE_DOCS" CheckBoxValue="1" Text="Open the documentation" ShowCondition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5' />
+      </Dialog>
+
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg" Condition="NOT Installed" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
+      <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" />
+      <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg" Condition='LicenseAccepted = "1"' />
+      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="1" Condition="Installed" />
+      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg" Order="2" Condition="NOT Installed" />
+      <Publish Dialog="CustomizeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="BrowseDlg" Control="OK" Event="SetTargetPath" Value="[_BrowseProperty]" Order="3" />
+      <Publish Dialog="BrowseDlg" Control="OK" Event="EndDialog" Value="Return" Order="4" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="CustomizeDlg" Order="1" Condition='NOT Installed OR WixUI_InstallMode = "Change"' />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="GoScheduleUninstallDlg" Order="2" Condition='Installed AND NOT PATCH AND WixUI_InstallMode = "Remove"' />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="3" Condition='Installed AND NOT PATCH AND WixUI_InstallMode &lt;&gt; "Change" AND WixUI_InstallMode &lt;&gt; "Remove"' />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="4" Condition="Installed AND PATCH" />
+      <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="ChangeButton" Event="NewDialog" Value="CustomizeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Property="GOSCHEDULE_REMOVE_DATA" Value="0" Order="1" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Property="GoScheduleRemoveChoice" Value="preserve" Order="2" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="GoScheduleUninstallDlg" Order="3" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+
+      <InstallUISequence>
+        <Show
+            Dialog="GoScheduleUninstallDlg"
+            Before="ProgressDlg"
+            Condition='Installed AND REMOVE~="ALL" AND Preselected AND UILevel = 5 AND NOT RESUME AND NOT PATCH AND NOT UPGRADINGPRODUCTCODE' />
+        <Show Dialog="GoScheduleExitDlg" OnExit="success" />
+      </InstallUISequence>
+      <AdminUISequence>
+        <Show Dialog="GoScheduleExitDlg" OnExit="success" />
+      </AdminUISequence>
+    </UI>
+    <UIRef Id="WixUI_Common" />
 
   </Package>
 </Wix>

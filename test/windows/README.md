@@ -18,8 +18,51 @@ icon, shortcut, PATH, and `Wix4Group` rows. PID 3 must equal
 `go-schedule: cross-platform task scheduler`; evidence records that value and
 the artifact SHA-256. It also queries `System.Subject` through the native Shell
 property handler that Explorer uses. The `GoScheduleAdminGroup` row must name
-`goschedadmin` with an empty domain. This proves compiled authoring and the
+`goschedadmin` with an empty domain. S039 inspection additionally proves the
+compiled shortcut feature/component relationships, both shortcut identities,
+the package-owned uninstall and completion dialogs, independent completion
+controls and Finish events, secure preserve-by-default removal property,
+invalid-value guard, embedded windowless cleanup action, exact removal
+condition, and daemon/GUI close rows. This proves compiled authoring and the
 Explorer property-system value, not installer lifecycle execution.
+
+## Hosted silent installer contract
+
+`Invoke-InstallerContractCI.ps1` is destructive and refuses to run outside an
+elevated GitHub-hosted disposable Windows runner. The `windows-msi-contract` CI
+job builds two test-version MSIs from the same reviewed source, inspects the
+candidate database, and invokes the script with hidden `msiexec` processes:
+
+```powershell
+pwsh -NoProfile -File test/windows/Invoke-InstallerContractCI.ps1 `
+  -BaselineMsiPath C:\verify\s039-baseline.msi `
+  -MsiPath C:\verify\s039-candidate.msi `
+  -EvidencePath C:\verify\silent-lifecycle.json `
+  -ArtifactOrigin 'CI build from commit <full-commit-id>' `
+  -Confirm:$false
+```
+
+The probe covers default, both, neither, and desktop-only shortcut states;
+maintenance transitions; same-authoring major-upgrade feature migration;
+invalid `GOSCHEDULE_REMOVE_DATA` rejection; repair and upgrade non-wipe
+controls; preserve and explicit-wipe removal; out-of-scope sentinels; retained
+`goschedadmin`; a locked-file partial cleanup; cleanup-result evidence; and the
+absence of GUI or documentation completion actions from every silent MSI log.
+
+`GOSCHEDULE_REMOVE_DATA=0` (or an absent property) preserves application data.
+Only exact `GOSCHEDULE_REMOVE_DATA=1` requests a committed wipe. The helper's
+retained failure ledger is
+`%ProgramData%\ShruggieTech\go-schedule-uninstall\b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34\cleanup-result.json`;
+the matching HKLM summary records state, remaining count, and report path.
+Complete cleanup removes stale result evidence. MSI success proves software
+removal, so the lifecycle probe separately verifies the cleanup result.
+
+The hosted runner is Windows Server and has no attended desktop session. Its
+evidence is explicitly labelled `hosted Windows Server silent installer
+contract`. It does not prove visible dialog defaults, confirmation and cancel
+interaction, Explorer launches, browser handling, interactive-user integrity,
+or native window behavior. Those release-candidate observations remain the
+clean Windows 11 gate in #94, and #97/#98 remain open until that gate passes.
 
 ## Run the fresh lifecycle
 
@@ -116,4 +159,7 @@ installer evidence. The script removes its tasks, service, and group in a
   the LocalSystem service context plus diagnostic failure controls.
 - The CI service-core probe continuously proves the binary-level LocalSystem
   boundary; it does not replace the candidate-MSI walkthrough.
+- The CI MSI-contract probe proves compiled database and silent native
+  lifecycle behavior on its disposable Windows Server runner. It does not
+  impersonate #94's attended clean Windows 11 desktop evidence.
 - `unavailable` cannot close an issue that requires runtime evidence.
