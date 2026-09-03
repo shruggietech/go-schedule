@@ -773,7 +773,7 @@ func TestWindowsInstallerGUIResourceContract(t *testing.T) {
 func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	inspector := string(readRepositoryFile(t, "test", "windows", "inspect-installer.ps1"))
 	for _, fragment := range []string{
-		"[ValidateSet('candidate', 'published')]",
+		"[ValidateSet('candidate', 'published', 'local-demo')]",
 		"[string]$ArtifactClass",
 		"[string]$ArtifactOrigin",
 		`"- Evidence class: **$ArtifactClass artifact**"`,

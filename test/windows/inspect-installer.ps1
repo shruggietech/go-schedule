@@ -16,7 +16,7 @@ param(
   [string]$EvidencePath,
 
   [Parameter(Mandatory)]
-  [ValidateSet('candidate', 'published')]
+  [ValidateSet('candidate', 'published', 'local-demo')]
   [string]$ArtifactClass,
 
   [Parameter(Mandatory)]

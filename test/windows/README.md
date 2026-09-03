@@ -3,6 +3,11 @@
 These tools separate compiled-MSI evidence from native lifecycle evidence. They
 are maintainer procedures and never count a missing prerequisite as a pass.
 
+Use `-ArtifactClass local-demo` for a pre-publication exploratory build. This
+keeps its report distinct from a workflow-staged `candidate` and a release-
+downloaded `published` artifact. Local-demo inspection proves compiled authoring
+only and cannot produce a candidate manifest or satisfy the attended gate.
+
 ## Inspect an MSI without installing it
 
 ```powershell
