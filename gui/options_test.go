@@ -106,6 +106,27 @@ func TestOptionsSelectorsOfferOnlyAlternatives(t *testing.T) {
 	}
 }
 
+func TestOptionsFontChangeReflowsStorageColumns(t *testing.T) {
+	prefs := testApp.Preferences()
+	old := loadAppearancePreferences(prefs)
+	t.Cleanup(func() {
+		saveAppearancePreferences(prefs, old)
+		applyBrandTheme(testApp.Settings(), old)
+	})
+	saveAppearancePreferences(prefs, defaultAppearancePreferences())
+
+	ui := NewUI(testApp, &fakeBackend{})
+	previousHeader := ui.options.storageHeader
+	ui.options.font.SetSelected("Monospace")
+
+	if ui.options.storageHeader == previousHeader {
+		t.Fatal("font change did not rebuild the measured storage header")
+	}
+	if got, want := ui.options.storageCategoryWidth, storageCategoryWidth(ui.storageLocations); got != want {
+		t.Fatalf("category width after font change = %v, want freshly measured %v", got, want)
+	}
+}
+
 func TestOptionsScrollSensitivityControl(t *testing.T) {
 	prefs := testApp.Preferences()
 	old := loadAppearancePreferences(prefs)

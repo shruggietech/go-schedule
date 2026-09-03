@@ -22,15 +22,16 @@ type storageRowView struct {
 }
 
 type optionsView struct {
-	root             fyne.CanvasObject
-	mode             *widget.Select
-	font             *widget.Select
-	sensitivity      *widget.Slider
-	sensitivityValue *widget.Label
-	reset            *cursorButton
-	storageContent   *fyne.Container
-	storageHeader    fyne.CanvasObject
-	storageRows      []*storageRowView
+	root                 fyne.CanvasObject
+	mode                 *widget.Select
+	font                 *widget.Select
+	sensitivity          *widget.Slider
+	sensitivityValue     *widget.Label
+	reset                *cursorButton
+	storageContent       *fyne.Container
+	storageHeader        fyne.CanvasObject
+	storageCategoryWidth float32
+	storageRows          []*storageRowView
 }
 
 func (a *App) buildOptionsTab() fyne.CanvasObject {
@@ -128,6 +129,7 @@ func scrollSensitivityLabel(value float64) string {
 func (v *optionsView) setStorageLocations(locations []storageLocation, clipboard fyne.Clipboard) {
 	v.storageRows = nil
 	categoryWidth := storageCategoryWidth(locations)
+	v.storageCategoryWidth = categoryWidth
 	v.storageHeader = newStorageHeader(categoryWidth)
 	objects := []fyne.CanvasObject{v.storageContent.Objects[0], v.storageHeader}
 	for _, location := range locations {
@@ -252,7 +254,11 @@ func maxFloat32(values ...float32) float32 {
 
 func (a *App) applyAppearance(value appearancePreferences) {
 	value = value.normalized()
+	previous := a.appearance.normalized()
 	a.appearance = value
 	saveAppearancePreferences(a.fyne.Preferences(), value)
 	applyBrandTheme(a.fyne.Settings(), value)
+	if previous.Font != value.Font && a.options != nil {
+		a.options.setStorageLocations(a.storageLocations, a.clipboard)
+	}
 }

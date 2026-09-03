@@ -52,8 +52,9 @@ It corrected the storage text widget to use Fyne's selectable Label contract,
 paired bright standalone Stop Red with dark text on filled danger controls so
 both indicator and text thresholds survive every state, kept scroll-only changes
 from reinstalling the theme, added a long-path small-window layout regression,
-and removed a false system-native font claim. No unresolved high-confidence
-code or evidence finding remains.
+reflows measured storage columns after font changes, and removed a false
+system-native font claim. No unresolved high-confidence code or evidence
+finding remains.
 
 ## Integrity
 
