@@ -607,7 +607,8 @@ func (v *validator) validateNativeWindow(prefix string, o *Observation, env Envi
 	if record.CapturedAt.Before(v.evidence.StartedAt) || record.CapturedAt.After(v.evidence.CompletedAt) {
 		v.add("%s native window capture timestamp is outside the evidence interval", prefix)
 	}
-	if strings.TrimSpace(record.ProcessPath) == "" || !strings.EqualFold(filepath.Base(record.ProcessPath), "gosched-gui.exe") ||
+	processBase := path.Base(strings.ReplaceAll(record.ProcessPath, `\`, "/"))
+	if strings.TrimSpace(record.ProcessPath) == "" || !strings.EqualFold(processBase, "gosched-gui.exe") ||
 		!record.Visible || record.Fyne.SchemaVersion != 1 || record.Fyne.ProcessID != record.ProcessID {
 		v.add("%s native window process/Fyne identity is invalid", prefix)
 	}

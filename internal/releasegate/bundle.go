@@ -32,6 +32,12 @@ func ExtractBundle(bundlePath string) (root string, cleanup func(), err error) {
 		return "", func() {}, fmt.Errorf("create evidence workspace: %w", err)
 	}
 	cleanup = func() { _ = os.RemoveAll(root) }
+	confined, err := os.OpenRoot(root)
+	if err != nil {
+		cleanup()
+		return "", func() {}, fmt.Errorf("open evidence workspace root: %w", err)
+	}
+	defer confined.Close()
 	succeeded := false
 	defer func() {
 		if !succeeded {
@@ -60,15 +66,20 @@ func ExtractBundle(bundlePath string) (root string, cleanup func(), err error) {
 			return "", cleanup, fmt.Errorf("evidence bundle exceeds %d uncompressed bytes", maxBundleBytes)
 		}
 
-		target := filepath.Join(root, filepath.FromSlash(entry.Name))
-		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
-			return "", cleanup, fmt.Errorf("create archive directory for %q: %w", entry.Name, err)
+		localized, err := filepath.Localize(entry.Name)
+		if err != nil {
+			return "", cleanup, fmt.Errorf("localize archive entry %q: %w", entry.Name, err)
+		}
+		if parent := filepath.Dir(localized); parent != "." {
+			if err := confined.MkdirAll(parent, 0o700); err != nil {
+				return "", cleanup, fmt.Errorf("create archive directory for %q: %w", entry.Name, err)
+			}
 		}
 		input, err := entry.Open()
 		if err != nil {
 			return "", cleanup, fmt.Errorf("open archive entry %q: %w", entry.Name, err)
 		}
-		output, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		output, err := confined.OpenFile(localized, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if err != nil {
 			input.Close()
 			return "", cleanup, fmt.Errorf("create extracted entry %q: %w", entry.Name, err)

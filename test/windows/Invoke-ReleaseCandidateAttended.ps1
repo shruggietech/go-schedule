@@ -814,10 +814,13 @@ namespace GoSchedule.ReleaseEvidence {
             'remove.reinstall-after-preserve' {
                 $metrics.prior_tasks_available = $false
                 $metrics.prior_preferences_available = $false
+                $metrics.prior_config_available = $false
+                $metrics.prior_logs_available = $false
             }
             'remove.reinstall-after-wipe' {
                 $metrics.prior_tasks_available = $true
                 $metrics.prior_preferences_available = $true
+                $metrics.prior_config_available = $true
                 $metrics.prior_logs_available = $true
             }
         }

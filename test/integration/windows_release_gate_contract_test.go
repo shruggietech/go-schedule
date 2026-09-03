@@ -87,9 +87,16 @@ func TestAttendedCollectorUsesCanonicalScenariosAndHiddenChildren(t *testing.T) 
 		"Fullscreen",
 		"FyneEvidencePath",
 		"Refusing to overwrite",
+		"evidence_class = 'attended-windows'",
+		"attachments/tasks",
 	} {
 		if !strings.Contains(script, required) {
 			t.Fatalf("attended collector missing %q", required)
+		}
+	}
+	for _, metric := range []string{"prior_config_available", "prior_logs_available"} {
+		if strings.Count(script, metric) != 2 {
+			t.Fatalf("attended collector must template %q for both reinstall outcomes", metric)
 		}
 	}
 }
