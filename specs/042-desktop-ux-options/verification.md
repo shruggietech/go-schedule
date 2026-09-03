@@ -85,6 +85,15 @@ No unresolved high-confidence correctness, security, data-loss, concurrency,
 or requirements finding remains. The expected native visual risk is retained
 explicitly below.
 
+## Pull-request CI correction
+
+The first macOS race job exposed a separator bug in the newly centralized
+cleanup-evidence path. `CleanupResultPath` had passed the nested directory as a
+single Windows-formatted string, which produced literal backslashes on macOS.
+The helper now joins each directory segment independently. The focused
+`go test -race ./internal/winuninstall -count=1` command passed, followed by a
+fresh successful run of all eight canonical gates.
+
 ## Integrity
 
 All 42 changed or added files decoded as strict UTF-8, none had a UTF-8 BOM, the
