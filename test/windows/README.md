@@ -280,6 +280,39 @@ Screenshots and observations must retain the candidate identity and native
 window metrics already required by `CaptureWindow`. Headless S042 tests do not
 substitute for these native observations.
 
+### S044 desktop interaction observations
+
+Repeat the S042 GUI observations against the exact S044 candidate at 100 percent
+scaling and at least one scaled-DPI setting, with these additional checks:
+
+- in Dark and Light modes, exercise ordinary, primary, danger, selected
+  navigation, selector, and dialog controls at rest, hover, focus, and press;
+  require every label and glyph to remain readable and the selected destination
+  to remain identifiable;
+- start with a clean preference profile and require System to be selected, then
+  apply Geist (brand), Inter, Ubuntu, and Monospace in order, reopen the app,
+  inspect existing and newly opened dialogs, restore defaults, and require crisp,
+  unclipped Info version and attribution text;
+- open each appearance selector and require the closed control to show its
+  current value while the menu contains every alternative exactly once and does
+  not repeat the current value;
+- inspect the storage header and every compact row at 1280 by 800 and the
+  supported 800 by 600 clamp; require wrapped long paths, a right-aligned Copy
+  action, no horizontal scrollbar, exact copying for available paths, and muted
+  category, details, path, and action for unavailable rows;
+- require the rail/content boundary to span the usable height, destination
+  labels to remain unclipped, and Exit to retain a semantic colored glyph at the
+  rail's bottom-right without becoming selected; and
+- use a conventional wheel at 1x, 2x, and 4x sensitivity on Options, Info, both
+  editor panes, and editor Help. Require immediate scaling and persistence.
+  Repeat with a precision touchpad when available and require fine deltas to
+  remain unmultiplied; otherwise record that hardware check as unavailable.
+
+Retain screenshots for both palettes and DPI settings plus the exact preference
+values used. Headless contrast math and scroll-delta tests establish the code
+contract but do not substitute for native font rasterization, physical wheel,
+touchpad, or display evidence.
+
 Finalize after all fragments are reviewed and recorded:
 
 ```powershell

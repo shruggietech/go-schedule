@@ -22,6 +22,19 @@ func TestCursorButton_PointerCursorAndTap(t *testing.T) {
 	}
 }
 
+func TestCursorButtonKeepsSemanticImportanceAcrossInteraction(t *testing.T) {
+	for _, importance := range []widget.Importance{widget.MediumImportance, widget.HighImportance, widget.DangerImportance} {
+		button := newCursorButton("Action", theme.ConfirmIcon(), importance, func() {})
+		button.MouseIn(nil)
+		button.FocusGained()
+		button.FocusLost()
+		button.MouseOut()
+		if button.Importance != importance || button.Text != "Action" || button.Icon != theme.ConfirmIcon() {
+			t.Fatalf("interaction changed semantic identity: importance=%v text=%q icon=%v", button.Importance, button.Text, button.Icon)
+		}
+	}
+}
+
 func TestTaskRowDoubleActivationUsesBoundIdentity(t *testing.T) {
 	var selected []string
 	var activated []string

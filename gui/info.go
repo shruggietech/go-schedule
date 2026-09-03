@@ -12,10 +12,18 @@ import (
 )
 
 func (a *App) buildInfoTab() fyne.CanvasObject {
-	return buildInfoContent(buildinfo.Version)
+	return buildInfoContentWithScroll(buildinfo.Version, func(content fyne.CanvasObject) fyne.CanvasObject {
+		return a.newVScroll(content)
+	})
 }
 
 func buildInfoContent(version string) fyne.CanvasObject {
+	return buildInfoContentWithScroll(version, func(content fyne.CanvasObject) fyne.CanvasObject {
+		return newSensitiveVScroll(content, func() float64 { return defaultScrollSensitivity })
+	})
+}
+
+func buildInfoContentWithScroll(version string, wrap func(fyne.CanvasObject) fyne.CanvasObject) fyne.CanvasObject {
 	mark := canvas.NewImageFromResource(appIcon)
 	mark.FillMode = canvas.ImageFillContain
 	mark.SetMinSize(fyne.NewSize(180, 180))
@@ -36,7 +44,7 @@ func buildInfoContent(version string) fyne.CanvasObject {
 		centeredInfoLink("Source repository", &url.URL{Scheme: "https", Host: "github.com", Path: "/shruggietech/go-schedule"}),
 		centeredInfoLink("Documentation", &url.URL{Scheme: "https", Host: "shruggietech.github.io", Path: "/go-schedule/"}),
 	)
-	return container.NewVScroll(container.NewPadded(content))
+	return wrap(container.NewPadded(content))
 }
 
 func centeredInfoLink(text string, destination *url.URL) fyne.CanvasObject {

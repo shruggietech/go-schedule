@@ -65,10 +65,26 @@ var fontMono []byte
 //go:embed assets/fonts/SpaceGrotesk-Bold.ttf
 var fontDisplayBold []byte
 
+//go:embed assets/fonts/Inter-Regular.ttf
+var fontInterRegular []byte
+
+//go:embed assets/fonts/Inter-Bold.ttf
+var fontInterBold []byte
+
+//go:embed assets/fonts/UbuntuSans-Regular.ttf
+var fontUbuntuRegular []byte
+
+//go:embed assets/fonts/UbuntuSans-Bold.ttf
+var fontUbuntuBold []byte
+
 var (
 	resBody        = fyne.NewStaticResource("Geist-Regular.ttf", fontBody)
 	resMono        = fyne.NewStaticResource("GeistMono-Regular.ttf", fontMono)
 	resDisplayBold = fyne.NewStaticResource("SpaceGrotesk-Bold.ttf", fontDisplayBold)
+	resInter       = fyne.NewStaticResource("Inter-Regular.ttf", fontInterRegular)
+	resInterBold   = fyne.NewStaticResource("Inter-Bold.ttf", fontInterBold)
+	resUbuntu      = fyne.NewStaticResource("UbuntuSans-Regular.ttf", fontUbuntuRegular)
+	resUbuntuBold  = fyne.NewStaticResource("UbuntuSans-Bold.ttf", fontUbuntuBold)
 )
 
 // brandTheme is the go-schedule Fyne theme configured from bounded appearance
@@ -95,7 +111,7 @@ func applyBrandTheme(settings fyne.Settings, choices ...appearancePreferences) {
 	if len(choices) > 0 {
 		appearance = choices[0].normalized()
 	}
-	if installed, ok := settings.Theme().(*brandTheme); ok && installed.appearance == appearance {
+	if installed, ok := settings.Theme().(*brandTheme); ok && installed.appearance.sameTheme(appearance) {
 		return
 	}
 	settings.SetTheme(newBrandThemeFor(appearance))
@@ -116,7 +132,7 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) c
 		return cNight
 	case theme.ColorNameForeground:
 		return cText
-	case theme.ColorNamePrimary, theme.ColorNameFocus, theme.ColorNameHyperlink:
+	case theme.ColorNamePrimary, theme.ColorNameHyperlink:
 		return cAnchor
 	case theme.ColorNameButton, theme.ColorNameInputBackground,
 		theme.ColorNameMenuBackground, theme.ColorNameOverlayBackground,
@@ -124,7 +140,13 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) c
 		return cPanel
 	case theme.ColorNameSelection:
 		return withAlpha(cAnchor, 0x40) // ~25% Anchor fill for selected rows/text
-	case theme.ColorNameHover, theme.ColorNamePressed, theme.ColorNameDisabledButton:
+	case theme.ColorNameHover:
+		return withAlpha(cText, 0x18)
+	case theme.ColorNamePressed:
+		return withAlpha(cText, 0x30)
+	case theme.ColorNameFocus:
+		return withAlpha(cAnchor, 0x90)
+	case theme.ColorNameDisabledButton:
 		return cRaised
 	case theme.ColorNameInputBorder, theme.ColorNameSeparator:
 		return cLine
@@ -142,13 +164,10 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) c
 		return cHold
 	case theme.ColorNameError:
 		return cStop
-	// Text drawn ON a filled accent. The accents are light, so ink is Night;
-	// the red is dark enough that white text reads better on it.
+	// Text drawn ON a filled accent. The accents are light, so ink is Night.
 	case theme.ColorNameForegroundOnPrimary, theme.ColorNameForegroundOnSuccess,
-		theme.ColorNameForegroundOnWarning:
+		theme.ColorNameForegroundOnWarning, theme.ColorNameForegroundOnError:
 		return cNight
-	case theme.ColorNameForegroundOnError:
-		return cText
 	default:
 		// Anything unmapped uses the default dark theme so new Fyne color roles
 		// still resolve sensibly.
@@ -162,7 +181,7 @@ func (t *brandTheme) lightColor(n fyne.ThemeColorName, variant fyne.ThemeVariant
 		return cPaper
 	case theme.ColorNameForeground:
 		return cInk
-	case theme.ColorNamePrimary, theme.ColorNameFocus, theme.ColorNameHyperlink:
+	case theme.ColorNamePrimary, theme.ColorNameHyperlink:
 		return cLightAnchor
 	case theme.ColorNameButton, theme.ColorNameInputBackground,
 		theme.ColorNameMenuBackground, theme.ColorNameOverlayBackground,
@@ -170,7 +189,13 @@ func (t *brandTheme) lightColor(n fyne.ThemeColorName, variant fyne.ThemeVariant
 		return cLightPanel
 	case theme.ColorNameSelection:
 		return withAlpha(cLightAnchor, 0x38)
-	case theme.ColorNameHover, theme.ColorNamePressed, theme.ColorNameDisabledButton:
+	case theme.ColorNameHover:
+		return withAlpha(cInk, 0x18)
+	case theme.ColorNamePressed:
+		return withAlpha(cInk, 0x30)
+	case theme.ColorNameFocus:
+		return withAlpha(cLightAnchor, 0xB0)
+	case theme.ColorNameDisabledButton:
 		return cLightRaised
 	case theme.ColorNameInputBorder, theme.ColorNameSeparator:
 		return cLightLine
@@ -205,6 +230,22 @@ func (t *brandTheme) Font(s fyne.TextStyle) fyne.Resource {
 		return t.Theme.Font(s)
 	case fontMonospace:
 		return resMono
+	case fontInter:
+		if s.Monospace {
+			return resMono
+		}
+		if s.Bold {
+			return resInterBold
+		}
+		return resInter
+	case fontUbuntu:
+		if s.Monospace {
+			return resMono
+		}
+		if s.Bold {
+			return resUbuntuBold
+		}
+		return resUbuntu
 	}
 	switch {
 	case s.Monospace:

@@ -31,7 +31,13 @@ func TestBrandThemeTextContrastAndFocusVisibility(t *testing.T) {
 					t.Errorf("mode=%s variant=%v %s contrast = %.2f, want >= 4.5", mode, variant, name, ratio)
 				}
 			}
-			if ratio := contrastRatio(th.Color(theme.ColorNameFocus, variant), background); ratio < 3 {
+			for _, surface := range []fyne.ThemeColorName{theme.ColorNameBackground, theme.ColorNameInputBackground} {
+				if ratio := contrastRatio(th.Color(theme.ColorNameError, variant), th.Color(surface, variant)); ratio < 3 {
+					t.Errorf("mode=%s variant=%v standalone error on %s contrast = %.2f, want >= 3", mode, variant, surface, ratio)
+				}
+			}
+			focus := blendThemeColor(background, th.Color(theme.ColorNameFocus, variant))
+			if ratio := contrastRatio(focus, background); ratio < 3 {
 				t.Errorf("mode=%s variant=%v focus contrast = %.2f, want >= 3", mode, variant, ratio)
 			}
 		}
@@ -67,7 +73,7 @@ func TestBrandThemeColors(t *testing.T) {
 		{theme.ColorNameBackground, cNight},
 		{theme.ColorNameForeground, cText},
 		{theme.ColorNamePrimary, cAnchor},
-		{theme.ColorNameFocus, cAnchor},
+		{theme.ColorNameFocus, withAlpha(cAnchor, 0x90)},
 		{theme.ColorNameHyperlink, cAnchor},
 		{theme.ColorNameSuccess, cInterval},
 		{theme.ColorNameWarning, cHold},
@@ -75,11 +81,11 @@ func TestBrandThemeColors(t *testing.T) {
 		{theme.ColorNameInputBackground, cPanel},
 		{theme.ColorNameInputBorder, cLine},
 		{theme.ColorNamePlaceHolder, cMuted},
-		// Contrast rule: ink on light accents is Night; text on red stays light.
+		// Contrast rule: ink on the light accents is Night.
 		{theme.ColorNameForegroundOnPrimary, cNight},
 		{theme.ColorNameForegroundOnSuccess, cNight},
 		{theme.ColorNameForegroundOnWarning, cNight},
-		{theme.ColorNameForegroundOnError, cText},
+		{theme.ColorNameForegroundOnError, cNight},
 	}
 	for _, tc := range cases {
 		got := nrgba(t, th.Color(tc.name, theme.VariantDark))
@@ -115,7 +121,7 @@ func TestBrandThemeAppearanceVariants(t *testing.T) {
 }
 
 func TestBrandThemeFonts(t *testing.T) {
-	th := newBrandTheme()
+	th := newBrandThemeFor(appearancePreferences{Mode: appearanceDark, Font: fontBrand})
 	cases := []struct {
 		style fyne.TextStyle
 		want  string
@@ -154,6 +160,99 @@ func TestBrandThemeFontChoices(t *testing.T) {
 	}
 	if got, want := monoTheme.Font(symbol).Name(), defaults.Font(symbol).Name(); got != want {
 		t.Fatalf("symbol font = %q, want delegated %q", got, want)
+	}
+}
+
+func TestBrandThemeCuratedFontResources(t *testing.T) {
+	regular := fyne.TextStyle{}
+	bold := fyne.TextStyle{Bold: true}
+	monospace := fyne.TextStyle{Monospace: true}
+	symbol := fyne.TextStyle{Symbol: true}
+	defaults := theme.DefaultTheme()
+
+	for _, tc := range []struct {
+		choice      fontChoice
+		wantRegular string
+		wantBold    string
+		wantMono    string
+	}{
+		{choice: fontBrand, wantRegular: "Geist-Regular.ttf", wantBold: "SpaceGrotesk-Bold.ttf", wantMono: "GeistMono-Regular.ttf"},
+		{choice: fontInter, wantRegular: "Inter-Regular.ttf", wantBold: "Inter-Bold.ttf", wantMono: "GeistMono-Regular.ttf"},
+		{choice: fontUbuntu, wantRegular: "UbuntuSans-Regular.ttf", wantBold: "UbuntuSans-Bold.ttf", wantMono: "GeistMono-Regular.ttf"},
+		{choice: fontMonospace, wantRegular: "GeistMono-Regular.ttf", wantBold: "GeistMono-Regular.ttf", wantMono: "GeistMono-Regular.ttf"},
+	} {
+		t.Run(string(tc.choice), func(t *testing.T) {
+			th := newBrandThemeFor(appearancePreferences{Mode: appearanceDark, Font: tc.choice})
+			if got := th.Font(regular).Name(); got != tc.wantRegular {
+				t.Errorf("regular = %q, want %q", got, tc.wantRegular)
+			}
+			if got := th.Font(bold).Name(); got != tc.wantBold {
+				t.Errorf("bold = %q, want %q", got, tc.wantBold)
+			}
+			if got := th.Font(monospace).Name(); got != tc.wantMono {
+				t.Errorf("monospace = %q, want %q", got, tc.wantMono)
+			}
+			if got, want := th.Font(symbol).Name(), defaults.Font(symbol).Name(); got != want {
+				t.Errorf("symbol = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestBrandThemeButtonStateCompositesRemainReadable(t *testing.T) {
+	for _, mode := range []appearanceMode{appearanceDark, appearanceLight} {
+		th := newBrandThemeFor(appearancePreferences{Mode: mode, Font: fontSystem})
+		variant, _ := mode.themeVariant(theme.VariantDark)
+		states := []fyne.ThemeColorName{theme.ColorNameHover, theme.ColorNamePressed, theme.ColorNameFocus}
+		for _, state := range states {
+			if overlay := nrgba(t, th.Color(state, variant)); overlay.A == 0xff {
+				t.Errorf("mode=%s state=%s overlay is opaque and would erase the importance background", mode, state)
+			}
+		}
+
+		pairs := []struct {
+			name string
+			fg   fyne.ThemeColorName
+			bg   fyne.ThemeColorName
+		}{
+			{name: "ordinary", fg: theme.ColorNameForeground, bg: theme.ColorNameButton},
+			{name: "primary", fg: theme.ColorNameForegroundOnPrimary, bg: theme.ColorNamePrimary},
+			{name: "danger", fg: theme.ColorNameForegroundOnError, bg: theme.ColorNameError},
+			{name: "success", fg: theme.ColorNameForegroundOnSuccess, bg: theme.ColorNameSuccess},
+			{name: "warning", fg: theme.ColorNameForegroundOnWarning, bg: theme.ColorNameWarning},
+		}
+		for _, pair := range pairs {
+			if ratio := contrastRatio(th.Color(pair.fg, variant), th.Color(pair.bg, variant)); ratio < 4.5 {
+				t.Errorf("mode=%s %s rest text contrast = %.2f, want >= 4.5", mode, pair.name, ratio)
+			}
+			for _, state := range states {
+				background := blendThemeColor(th.Color(pair.bg, variant), th.Color(state, variant))
+				if ratio := contrastRatio(th.Color(pair.fg, variant), background); ratio < 4.5 {
+					t.Errorf("mode=%s %s+%s text contrast = %.2f, want >= 4.5", mode, pair.name, state, ratio)
+				}
+			}
+		}
+		if ratio := contrastRatio(th.Color(theme.ColorNameDisabled, variant), th.Color(theme.ColorNameDisabledButton, variant)); ratio < 4.5 {
+			t.Errorf("mode=%s disabled text contrast = %.2f, want >= 4.5", mode, ratio)
+		}
+		focusOrdinary := blendThemeColor(th.Color(theme.ColorNameButton, variant), th.Color(theme.ColorNameFocus, variant))
+		if ratio := contrastRatio(focusOrdinary, th.Color(theme.ColorNameBackground, variant)); ratio < 3 {
+			t.Errorf("mode=%s ordinary focus surface contrast = %.2f, want >= 3", mode, ratio)
+		}
+	}
+}
+
+func blendThemeColor(under, over color.Color) color.Color {
+	dstR, dstG, dstB, dstA := under.RGBA()
+	srcR, srcG, srcB, srcA := over.RGBA()
+	blend := func(src, dst, alpha uint32) uint16 {
+		return uint16((src + dst - (dst * alpha / 0xffff)) & 0xffff)
+	}
+	return color.RGBA64{
+		R: blend(srcR, dstR, srcA),
+		G: blend(srcG, dstG, srcA),
+		B: blend(srcB, dstB, srcA),
+		A: blend(srcA, dstA, srcA),
 	}
 }
 

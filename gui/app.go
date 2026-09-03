@@ -107,7 +107,7 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 		retrySignal: make(chan struct{}, 1),
 	}
 	// Apply the validated per-user theme before constructing widgets. Dark and
-	// Brand remain the safe defaults, and the windowed entry point and headless
+	// System remain the safe defaults, and the windowed entry point and headless
 	// test driver exercise the same palette and font selection.
 	a.appearance = loadAppearancePreferences(fyneApp.Preferences())
 	applyBrandTheme(fyneApp.Settings(), a.appearance)
