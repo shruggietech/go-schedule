@@ -24,6 +24,12 @@ const (
 type windowsBackend struct {
 	programData string
 	resultPath  string
+	bounds      map[string]trustedBounds
+}
+
+type trustedBounds struct {
+	base     string
+	relative string
 }
 
 // Wipe derives the fixed Windows-owned roots and executes the bounded cleanup contract.
@@ -35,15 +41,19 @@ func Wipe() Result {
 	backend := &windowsBackend{
 		programData: filepath.Clean(programData),
 		resultPath:  filepath.Join(programData, resultFolder, "cleanup-result.json"),
+		bounds:      make(map[string]trustedBounds),
 	}
 	return Run(backend)
 }
 
 func (b *windowsBackend) Discover() (targets []Target, resultErr error) {
-	targets = []Target{{
-		Kind: TargetMachine, Path: filepath.Join(b.programData, "goschedule"),
-		base: b.programData, relative: "goschedule",
-	}}
+	targets = []Target{b.declareTarget(
+		TargetMachine,
+		"",
+		filepath.Join(b.programData, "goschedule"),
+		b.programData,
+		"goschedule",
+	)}
 	key, err := registry.OpenKey(registry.LOCAL_MACHINE, profileListKey, registry.ENUMERATE_SUB_KEYS|registry.WOW64_64KEY)
 	if err != nil {
 		return nil, fmt.Errorf("open registered profile list: %w", err)
@@ -86,19 +96,38 @@ func (b *windowsBackend) Discover() (targets []Target, resultErr error) {
 			continue
 		}
 		seen[identity] = true
-		targets = append(targets, Target{
-			Kind: TargetProfile, SID: sid, Path: candidate,
-			base: profilePath, relative: profileLeaf,
-		})
+		targets = append(targets, b.declareTarget(
+			TargetProfile,
+			sid,
+			candidate,
+			profilePath,
+			profileLeaf,
+		))
 	}
 	return targets, nil
+}
+
+func (b *windowsBackend) declareTarget(kind TargetKind, sid, path, base, relative string) Target {
+	if b.bounds == nil {
+		b.bounds = make(map[string]trustedBounds)
+	}
+	b.bounds[pathIdentity(path)] = trustedBounds{base: base, relative: relative}
+	return Target{Kind: kind, SID: sid, Path: path}
+}
+
+func pathIdentity(path string) string {
+	return strings.ToLower(filepath.Clean(path))
 }
 
 func (b *windowsBackend) Preflight(target Target) (bool, error) {
 	if err := validateLexicalPath(target.Path); err != nil {
 		return false, err
 	}
-	expected := filepath.Clean(filepath.Join(target.base, target.relative))
+	bounds, declared := b.bounds[pathIdentity(target.Path)]
+	if !declared {
+		return false, fmt.Errorf("candidate has no trusted owned-root declaration")
+	}
+	expected := filepath.Clean(filepath.Join(bounds.base, bounds.relative))
 	if !strings.EqualFold(filepath.Clean(target.Path), expected) {
 		return false, fmt.Errorf("candidate is outside its declared owned root")
 	}
@@ -118,7 +147,7 @@ func (b *windowsBackend) Preflight(target Target) (bool, error) {
 	} else if err != nil {
 		return false, fmt.Errorf("inspect owned root: %w", err)
 	}
-	canonicalBase, err := canonicalPath(target.base)
+	canonicalBase, err := canonicalPath(bounds.base)
 	if err != nil {
 		return false, fmt.Errorf("canonicalize trusted base: %w", err)
 	}
@@ -126,7 +155,7 @@ func (b *windowsBackend) Preflight(target Target) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("canonicalize owned root: %w", err)
 	}
-	canonicalExpected := filepath.Clean(filepath.Join(canonicalBase, target.relative))
+	canonicalExpected := filepath.Clean(filepath.Join(canonicalBase, bounds.relative))
 	if !strings.EqualFold(canonicalTarget, canonicalExpected) {
 		return false, fmt.Errorf("canonical owned root escaped its trusted base")
 	}

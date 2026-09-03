@@ -28,7 +28,7 @@
 
 The local Windows build staged `goschedd.exe`, `gosched-gui.exe`, `gosched.exe`, and the windowless `gosched-cleanup.exe`, then linked a WiX 6.0.2 MSI with UI and Util 6.0.2. Compiled inspection passed for package identity, shortcut feature/component mappings, dialogs and controls, ordered completion events, secure removal property, cleanup Binary and custom action, execute/UI sequence boundaries, and daemon/GUI close rows.
 
-- Local working-tree MSI SHA-256: `ff36c327701c9561439078bc576362cd7b09555ac534c089aaf10ad1e661d168`
+- Local working-tree MSI SHA-256: `f3dcd159907ee6cb56f5f84048f4d6e40cec32d6409f7e5918ef537e5cc2b235`
 - Artifact class: local candidate built from the final pre-commit working tree
 - Artifact origin: local S039 verification only, not a published release asset
 

@@ -27,7 +27,7 @@ func TestRemoveDoesNotFollowDescendantReparsePoint(t *testing.T) {
 		t.Fatalf("create directory symlink: %v", err)
 	}
 	backend := &windowsBackend{}
-	if err := backend.Remove(Target{Path: owned, base: base, relative: "owned"}); err != nil {
+	if err := backend.Remove(Target{Path: owned}); err != nil {
 		t.Fatal(err)
 	}
 	if data, err := os.ReadFile(sentinel); err != nil || string(data) != "keep" {
@@ -49,7 +49,8 @@ func TestPreflightRejectsReparseRoot(t *testing.T) {
 		t.Fatalf("create directory symlink: %v", err)
 	}
 	backend := &windowsBackend{}
-	if _, err := backend.Preflight(Target{Path: owned, base: base, relative: "owned"}); err == nil {
+	target := backend.declareTarget(TargetMachine, "", owned, base, "owned")
+	if _, err := backend.Preflight(target); err == nil {
 		t.Fatal("preflight accepted a reparse-point root")
 	}
 }
@@ -61,7 +62,19 @@ func TestPreflightRejectsCandidateOutsideDeclaredRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	backend := &windowsBackend{}
-	if _, err := backend.Preflight(Target{Path: outside, base: base, relative: "owned"}); err == nil {
+	target := backend.declareTarget(TargetMachine, "", outside, base, "owned")
+	if _, err := backend.Preflight(target); err == nil {
 		t.Fatal("preflight accepted a candidate outside its declared root")
+	}
+}
+
+func TestPreflightRejectsUndeclaredTarget(t *testing.T) {
+	owned := filepath.Join(t.TempDir(), "owned")
+	if err := os.Mkdir(owned, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	backend := &windowsBackend{}
+	if _, err := backend.Preflight(Target{Path: owned}); err == nil {
+		t.Fatal("preflight accepted a target without a trusted declaration")
 	}
 }

@@ -43,11 +43,9 @@ const (
 
 // Target is one internally derived application-owned root eligible for cleanup.
 type Target struct {
-	Kind     TargetKind `json:"kind"`
-	SID      string     `json:"sid,omitempty"`
-	Path     string     `json:"path"`
-	base     string
-	relative string
+	Kind TargetKind `json:"kind"`
+	SID  string     `json:"sid,omitempty"`
+	Path string     `json:"path"`
 }
 
 // Entry combines a declared cleanup target with its recorded outcome.
