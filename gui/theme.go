@@ -128,6 +128,8 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) c
 		return t.lightColor(n, variant)
 	}
 	switch n {
+	case colorNameAlternateRow:
+		return withAlpha(cText, 0x0C)
 	case theme.ColorNameBackground:
 		return cNight
 	case theme.ColorNameForeground:
@@ -177,6 +179,8 @@ func (t *brandTheme) Color(n fyne.ThemeColorName, requested fyne.ThemeVariant) c
 
 func (t *brandTheme) lightColor(n fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch n {
+	case colorNameAlternateRow:
+		return withAlpha(cInk, 0x0A)
 	case theme.ColorNameBackground, theme.ColorNameScrollBarBackground:
 		return cPaper
 	case theme.ColorNameForeground:

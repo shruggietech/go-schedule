@@ -310,7 +310,7 @@ func TestTaskListSingleDoubleRefreshAndStaleIdentity(t *testing.T) {
 		refresh()
 	}
 
-	row := ui.taskList.CreateItem().(*taskRow)
+	row := ui.taskList.CreateItem().(*structuredRow)
 	ui.taskList.UpdateItem(0, row)
 	test.Tap(row)
 	if ui.activeTaskDialog != nil || len(backend.requestedTaskDetails()) != 0 {
@@ -349,6 +349,43 @@ func TestTaskListSingleDoubleRefreshAndStaleIdentity(t *testing.T) {
 	test.DoubleTap(row)
 	if got := backend.requestedTaskDetails(); !reflect.DeepEqual(got, []string{"first", "first"}) {
 		t.Fatalf("stale row fetched details: %v", got)
+	}
+}
+
+func TestTaskTableHasFixedHeadersAndFullValueDisclosure(t *testing.T) {
+	backend := &fakeBackend{tasks: []domain.Task{{
+		ID: "long", Name: "A very long Unicode task 備份", Enabled: true,
+		State: domain.TaskActive, Timezone: "America/Argentina/Buenos_Aires",
+	}}}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if ui.taskTable == nil || ui.taskTable.header == nil || ui.taskTable.list != ui.taskList {
+		t.Fatal("Tasks did not expose the shared fixed-header table")
+	}
+	wantHeaders := []string{"Task", "Enabled", "Lifecycle", "Time zone", "Group"}
+	for index, want := range wantHeaders {
+		if got := ui.taskTable.header.labels[index].Text; got != want {
+			t.Errorf("header %d=%q, want %q", index, got, want)
+		}
+	}
+	row := ui.taskList.CreateItem().(*structuredRow)
+	ui.taskList.UpdateItem(0, row)
+	for index, label := range row.labels {
+		if label.Truncation != fyne.TextTruncateEllipsis {
+			t.Errorf("cell %d truncation=%v", index, label.Truncation)
+		}
+	}
+	ui.taskList.Select(0)
+	for _, want := range []string{"Task: A very long Unicode task 備份", "Enabled: Enabled", "Lifecycle: Active", "Time zone: America/Argentina/Buenos_Aires", "Group: Not assigned"} {
+		if !strings.Contains(ui.taskTable.disclosure.Text, want) {
+			t.Errorf("disclosure %q missing %q", ui.taskTable.disclosure.Text, want)
+		}
 	}
 }
 
