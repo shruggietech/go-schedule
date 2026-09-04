@@ -6,10 +6,11 @@
 
 ## Current result
 
-Implementation and unattended qualification are complete. The production gate
-now requires 43 scenarios, the collector emits all seven desktop templates, and
-the complete canonical repository aggregate passes. Local demo compilation and
-attended pre-push qualification follow.
+Implemented and accepted locally. The production gate requires 43 scenarios,
+the collector emits all seven desktop templates, the exact local demo passed
+compiled inspection, and the maintainer accepted it as a valid release target.
+All three accepted usability findings are tracked as Post-v1 issues. Push and
+pull-request publication remain intentionally unperformed.
 
 ## Spec Kit analysis
 
@@ -29,9 +30,10 @@ PASS after one task-path correction.
   established `test/integration/windows_release_gate_contract_test.go`.
 - Unmapped tasks: 0.
 
-The deliberate open Phase 8 tasks describe the physical attended work required
-before S047 can advance from In Progress to Implemented. They are not
-publication bookkeeping and cannot be marked complete from headless evidence.
+At analysis time, the four Phase 8 tasks described the physical attended work
+required before S047 could advance to Implemented. They were completed from the
+maintainer's exact-demo walkthrough plus automatically collected artifact and
+environment facts, not from headless inference.
 
 ## Red evidence
 
@@ -72,6 +74,10 @@ PASS.
 - `pwsh -NoProfile -File build/windows/verify_wxs.ps1`: PASS.
 - Foreground `scripts/verify.sh all`: PASS, all eight ordered gates:
   format, vet, lint (0 issues), race, GUI, coverage, docs, and automation.
+- Final post-acceptance `scripts/verify.sh all`: PASS. Its first execution
+  correctly rejected noncanonical Implemented delivery wording; the Delivery
+  field was changed to cite the review branch and committed evidence, then the
+  complete eight-gate aggregate passed without exclusions.
 - Coverage thresholds: engine 86.4%, schedule 89.2%, timezone 91.3%, store
   84.1%, catchup 88.9%, and logbus 91.1%.
 - Specification lifecycle: PASS for 47 lifecycle-consistent specifications.
@@ -122,5 +128,47 @@ four attended tasks intentionally open.
 
 ## Attended pre-push result
 
-Pending maintainer execution of
-`checklists/attended-demo.md` against the exact identity above.
+PASS for the local-demo purpose. The maintainer installed the linked S047 MSI,
+performed an ordinary workflow, completed uninstall with wipe, and explicitly
+called it a valid release target.
+
+Automatically collected environment:
+
+- primary display: 3440x1440, 3440x1392 working area, 120 Hz, 100 percent
+  scaling, 96 effective DPI;
+- secondary display: 2560x1440, 2560x1392 working area; and
+- Windows interactive intended-user context against the installed application.
+
+Observed passes:
+
+- desktop and Start Menu shortcuts;
+- default window size;
+- tab and button hover readability;
+- command-line editor size and usability;
+- all offered font selections;
+- Dark and Light appearance (Light was the maintainer's preference);
+- scrolling, dropdown behavior, and compact application-storage rows;
+- successful real task execution and completion;
+- effective group suppression of an individually active task; and
+- guided uninstall with wipe.
+
+No release-blocking defect was reported and no S047 product correction was
+authorized or required. Three explicitly issue-only findings were created:
+
+| Issue | Disposition |
+| --- | --- |
+| #118 | Post-v1: new tasks should remain inactive unless an unchecked creation-time activation option is selected. |
+| #119 | Post-v1: Schedule and Activity should have wider defaults and user-adjustable persisted column widths. |
+| #120 | Post-v1: Tasks should expose effective suppression by a disabled group or ancestor. |
+
+Process deviation: the initial pre-push checklist duplicated much of the formal
+43-scenario release ceremony and imposed excessive manual work. The maintainer
+rejected that burden. S047 now uses ordinary exploratory acceptance for the
+local demo, collects machine-readable facts automatically, and preserves the
+exhaustive matrix for the only artifact it can formally qualify: the later
+post-merge Release-workflow candidate. This changes no validator threshold or
+formal promotion requirement.
+
+Issues #96, #98, #101, #104, #105, #106, #109, #111, #112, and #113 remain open
+pending their individual formal candidate evidence. The local demo does not
+close them by association.

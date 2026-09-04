@@ -63,19 +63,17 @@ The demo is ready only when compiled inspection and all prior checks pass.
 
 ## 6. Perform the pre-push attended walkthrough
 
-Test only the exact linked MSI/hash and record the result in
-`checklists/attended-demo.md`:
+Give the maintainer the exact linked MSI/hash and ask for an ordinary usability
+walkthrough, not a second formal release ceremony. Collect display, DPI,
+artifact, and other machine-readable facts automatically. Record what the
+maintainer actually observes in `checklists/attended-demo.md`, including any
+visible failure, unavailable hardware, or accepted follow-up.
 
-- seamless install, shortcuts, Finish actions, startup, and no error spam;
-- Dark and Light at 100 percent and the available scaled QHD configuration;
-- System default/reset plus System, Geist, Inter, Ubuntu, and Monospace;
-- control states, rail boundary/Exit, compact storage/selector behavior;
-- conventional wheel at 1x/2x/4x and touchpad if available;
-- at least 100 Tasks, Schedule, and Activity rows at 1280x800 and 800x600;
-- guided preserve, cancel, and wipe uninstall journeys where safely practical.
-
-A failure is recorded before code changes. Any correction gets a failing test,
-a new commit, a rebuilt MSI/hash, and affected checks repeat.
+The maintainer decides whether the local demo is a valid release target. A
+reproducible in-scope blocker is recorded before code changes, gets a failing
+test, and requires a new MSI/hash plus a repeat of affected checks. Accepted
+post-v1 polish is filed as a GitHub issue and does not expand S047. The full
+43-scenario matrix is executed later against the formal post-merge candidate.
 
 ## 7. Stop before publication
 

@@ -4,9 +4,11 @@
 
 **Created**: 2026-09-03
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: Pending implementation and attended pre-push qualification
+**Delivery**: Review branch `codex/047-windows-release-qualification`; committed
+implementation, local-demo acceptance, and canonical verification completed;
+publication intentionally withheld
 
 **Input**: Complete the Windows release-readiness slice for issues #96, #98,
 #101, #104, #105, #106, #109, #111, #112, and #113 as far as possible under

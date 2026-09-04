@@ -122,10 +122,10 @@ repository or release publication has occurred.
 
 ## Phase 8: Attended Pre-Push Qualification (Operator Required)
 
-- [ ] T035 [US3] Have the maintainer verify the exact demo hash and complete appearance, interaction, navigation/Options, scroll, table, installer, and uninstall observations in `specs/047-windows-release-qualification/checklists/attended-demo.md`
-- [ ] T036 [US3] Record all attended pass/fail/unavailable results and environment details in `specs/047-windows-release-qualification/verification.md` before any correction
-- [ ] T037 [US3] Resolve every reproducible S047 failure test-first, rebuild to a new demo identity, and repeat affected observations, or record that no correction was required
-- [ ] T038 [US4] Reconcile local-demo issue dispositions without claiming formal exact-candidate closure, mark S047 Implemented when its pre-push gate is complete, rerun all eight gates, and create the final local commit
+- [x] T035 [US3] Have the maintainer walk through the exact linked demo while the assistant verifies artifact/environment identity and records the observed appearance, interaction, navigation/Options, scroll, table, installer, and uninstall results in `specs/047-windows-release-qualification/checklists/attended-demo.md`
+- [x] T036 [US3] Record all attended pass/fail/unavailable results and environment details in `specs/047-windows-release-qualification/verification.md` before any correction
+- [x] T037 [US3] Resolve every reproducible S047 failure test-first, rebuild to a new demo identity, and repeat affected observations, or record that no correction was required
+- [x] T038 [US4] Reconcile local-demo issue dispositions without claiming formal exact-candidate closure, mark S047 Implemented when its pre-push gate is complete, rerun all eight gates, and create the final local commit
 
 ---
 
