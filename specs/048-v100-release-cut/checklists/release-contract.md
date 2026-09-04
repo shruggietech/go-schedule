@@ -10,7 +10,7 @@
 
 - [x] CHK001 Does the contract preserve all current Unreleased entries beneath v1.0.0? [Completeness]
 - [x] CHK002 Does it require an empty future Unreleased section and correct comparison links? [Consistency]
-- [x] CHK003 Does it synchronize both README version lines before tagging? [Release preflight]
+- [x] CHK003 Does it validate the tag-specific health example and publication-aware badge before tagging? [Release preflight]
 - [x] CHK004 Does it constrain public notes to the established tag-specific highlights policy? [UX]
 - [x] CHK005 Does the preparation PR leave #122 and evidence-dependent issues open? [Lifecycle]
 

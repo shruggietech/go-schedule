@@ -16,7 +16,7 @@
 ## Requirement Completeness
 
 - [x] CHK005 Is the changelog boundary defined with retention and comparison-link requirements? [Completeness, FR-001..FR-003]
-- [x] CHK006 Are both static README version surfaces named? [Completeness, FR-004]
+- [x] CHK006 Are the tag-specific health example and publication-aware README badge contracts both named? [Completeness, FR-004]
 - [x] CHK007 Is the release-note shape measurable and tag-specific? [Completeness, FR-005]
 - [x] CHK008 Are current staging and promotion invariants preserved explicitly? [Completeness, FR-006]
 - [x] CHK009 Are clean/synchronized commit and absent-tag guards specified? [Security, FR-007..FR-008]

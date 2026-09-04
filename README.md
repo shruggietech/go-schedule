@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg"></a>
-<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/badge/release-v1.0.0-58A6FF"></a>
+<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-62D9B7"></a>
   <a href="https://shruggietech.github.io/go-schedule/"><img alt="Docs" src="https://img.shields.io/badge/docs-shruggietech.github.io-58A6FF"></a>
 </p>

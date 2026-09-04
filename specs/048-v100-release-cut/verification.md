@@ -74,8 +74,8 @@ Focused checks: PASS.
   new v1.0.0 heading with the prior Unreleased heading reproduces baseline
   SHA-256 `bf2b8f2fcedd2f099c28531ee29f0d6ddb3f55a04e0d2878cd7a349a8ab5af2d`.
 - Future Unreleased content: zero non-heading, nonblank lines.
-- README identity: exactly one `release-v1.0.0-58A6FF` badge and exactly one
-  `daemon ok (version 1.0.0)` example.
+- README identity: exactly one badge derived from GitHub's latest published
+  release and exactly one `daemon ok (version 1.0.0)` example.
 - Release notes: exactly five bullets, one Highlights heading, and one tagged
   v1.0.0 changelog link.
 - `test/scripts/automation-check_test.sh`: PASS for all positive and negative
@@ -103,9 +103,9 @@ Canonical `scripts/verify.sh all`: PASS on 2026-09-03.
 
 Final integrity audits: PASS.
 
-- All 16 changed or added files decode as strict UTF-8 and have no BOM.
+- All 19 changed or added files decode as strict UTF-8 and have no BOM.
 - Mojibake and unresolved-template-placeholder scans found zero matches.
-- All 23 task identifiers are unique, correctly formatted, and complete.
+- All 25 task identifiers are unique, correctly formatted, and complete.
 - The release-copy cardinality and exact changelog reconstruction checks pass.
 - `git diff --check` reports no whitespace errors.
 - `scripts/spec-lifecycle-check.sh .` reports all 48 specifications
@@ -113,3 +113,30 @@ Final integrity audits: PASS.
 - Spec Kit prerequisite discovery resolves S048 and all required design
   artifacts successfully.
 - No local v1.0.0 tag or GitHub v1.0.0 release was created.
+
+## Pull request review
+
+Round 1 on PR #123 identified one P1 finding at commit `fe70407`: the
+hard-coded v1.0.0 badge linked to `releases/latest` would advertise the planned
+release before qualification and promotion. The finding is valid.
+
+The fix replaces the hard-coded badge with Shields.io's latest-published GitHub
+release source, preserves the exact v1.0.0 health-example preflight, and adds an
+automation-policy assertion plus a negative static-badge fixture. This keeps
+the badge at v0.9.1 through draft staging and attended qualification, then lets
+it advance automatically only when v1.0.0 becomes public.
+
+Post-review verification: PASS.
+
+- The expanded automation fixture suite accepts the dynamic published-release
+  badge contract and rejects a reintroduced hard-coded v1.0.0 badge.
+- `scripts/automation-check.sh` accepts the amended Release workflow and retains
+  every existing staging, promotion, notes, lifecycle, and eight-gate guard.
+- A second complete `scripts/verify.sh all` run passes all eight canonical gates
+  with the same coverage results recorded above.
+- The 33-entry changelog reconstruction still matches the original 16,665
+  characters and SHA-256 exactly.
+- README cardinality is one published-release badge, zero hard-coded v1.0.0
+  badges, and one v1.0.0 health example.
+- The UTF-8/no-BOM, mojibake, placeholder, 25-task identity, release-note
+  cardinality, and whitespace audits all pass.

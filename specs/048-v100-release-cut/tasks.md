@@ -36,12 +36,12 @@ have one unambiguous boundary.
 before any tag exists.
 
 **Independent Test**: All 33 pre-cut entries remain exactly once beneath the
-dated v1.0.0 heading; future Unreleased is empty; comparison links and both
-README version lines identify v1.0.0.
+dated v1.0.0 heading; future Unreleased is empty; comparison links and health
+output identify v1.0.0; the README badge follows the latest published release.
 
 - [x] T009 [US1] Cut the current `CHANGELOG.md` Unreleased content beneath `## [1.0.0] - 2026-09-03` while preserving every entry
 - [x] T010 [US1] Update the Unreleased and v1.0.0 comparison links in `CHANGELOG.md`
-- [x] T011 [US1] Change the single release badge and health output version in `README.md` to v1.0.0
+- [x] T011 [US1] Bind the single README badge to the latest published GitHub release and change the health output version to v1.0.0
 - [x] T012 [US1] Audit changelog entry retention, section boundaries, comparison links, and README version cardinality against the recorded baseline
 
 ---
@@ -85,12 +85,19 @@ with the documented nine-payload, 47-observation, ten-issue promotion sequence.
 
 ---
 
+## Phase 7: Pull Request Review
+
+- [x] T024 [US1] Resolve PR #123's P1 finding by binding the badge to published GitHub release state and decoupling badge validation from the future tag
+- [x] T025 Add a negative regression fixture and rerun focused, canonical, lifecycle, and integrity checks after the review fix
+
+---
+
 ## Dependencies and Execution Order
 
 ```text
 baseline -> specification/design -> reviewed v1 boundary -> release highlights
          -> post-merge contract -> analysis -> focused verification
-         -> canonical verification -> committed preparation
+         -> canonical verification -> committed preparation -> review fix
 ```
 
 - The changelog baseline must be recorded before the boundary moves.

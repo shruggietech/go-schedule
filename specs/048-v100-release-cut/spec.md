@@ -38,8 +38,8 @@ release notes. The preparation PR must therefore come first.
 ### User Story 1 - Review the exact v1 release boundary (Priority: P1)
 
 As the maintainer, I can review one coherent pull request that identifies the
-complete v1.0.0 change set, public version strings, and release notes before any
-tag is created.
+complete v1.0.0 change set, tag-specific health example, publication-aware
+release badge, and release notes before any tag is created.
 
 **Why this priority**: The tag is difficult to correct after publication. The
 reviewed repository state must be the sole candidate source.
@@ -47,7 +47,8 @@ reviewed repository state must be the sole candidate source.
 **Independent Test**: Compare the prepared changelog with v0.9.1 and verify
 that every accumulated Unreleased entry moves intact beneath a dated v1.0.0
 heading, a new empty Unreleased section remains, comparison links are correct,
-and both static README version lines identify v1.0.0.
+the health example identifies v1.0.0, and the release badge follows the latest
+published GitHub release.
 
 **Acceptance Scenarios**:
 
@@ -55,10 +56,11 @@ and both static README version lines identify v1.0.0.
    boundary, **Then** all entries appear once beneath `1.0.0` and none remain in
    the new Unreleased section.
 2. **Given** the Release workflow's README preflight, **When** a future v1.0.0
-   tag evaluates the reviewed commit, **Then** the release badge and health
-   example both match the tag.
+   tag evaluates the reviewed commit, **Then** the health example matches the
+   tag and the release badge remains bound to GitHub's latest published release.
 3. **Given** no v1.0.0 tag or release exists, **When** the preparation PR is
-   reviewed, **Then** it describes publication as pending rather than shipped.
+   reviewed or merged, **Then** the visible release badge continues to identify
+   v0.9.1 and publication is described as pending rather than shipped.
 
 ---
 
@@ -144,8 +146,10 @@ candidate manifest, MSI, attended archive, issue dispositions, and promotion.
   section for future work.
 - **FR-003**: Changelog comparison links MUST compare Unreleased against v1.0.0
   and v1.0.0 against v0.9.1.
-- **FR-004**: `README.md` MUST contain exactly one v1.0.0 release badge and one
-  `daemon ok (version 1.0.0)` health example before tag staging.
+- **FR-004**: `README.md` MUST contain exactly one release badge whose image is
+  derived from GitHub's latest published release and one
+  `daemon ok (version 1.0.0)` health example before tag staging. The tag
+  preflight MUST validate both forms without requiring an unpublished badge.
 - **FR-005**: `.github/release-notes/v1.0.0.md` MUST contain one Highlights
   heading, four to six concise bullets, one tagged full-changelog link, and no
   generated or exhaustive change inventory.
@@ -185,7 +189,8 @@ candidate manifest, MSI, attended archive, issue dispositions, and promotion.
 ### Key Entities
 
 - **Release Boundary**: The reviewed merge commit, tag, date, changelog range,
-  README version lines, and curated notes that define v1.0.0.
+  tag-specific README health example, publication-aware badge contract, and
+  curated notes that define v1.0.0.
 - **Staged Candidate**: The draft-release Windows MSI and candidate manifest
   produced by one successful Release workflow attempt from the tagged commit.
 - **Formal Evidence Bundle**: The attended, hashed archive containing exactly 47
@@ -203,8 +208,9 @@ candidate manifest, MSI, attended archive, issue dispositions, and promotion.
   retained beneath v1.0.0 with no duplication or omission.
 - **SC-002**: Release notes contain four to six highlights, one full-changelog
   link, and zero generated commit or pull-request entries.
-- **SC-003**: README, changelog, release notes, tag contract, and expected asset
-  names identify v1.0.0 consistently.
+- **SC-003**: README health output, changelog, release notes, tag contract, and
+  expected asset names identify v1.0.0 consistently, while the README badge
+  continues to reflect only the latest published GitHub release.
 - **SC-004**: All focused checks, eight local canonical gates, hosted CI checks,
   and permitted Codex review comments complete without unresolved failures.
 - **SC-005**: The post-merge contract accounts for all 47 observations, all nine

@@ -151,6 +151,7 @@ jobs:
   readme-version:
     steps:
       - run: |
+          BADGE='<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>'
           BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
           test "$BADGE_LINE_COUNT" -eq 1
   release-state:
@@ -337,6 +338,14 @@ run_automation_cases() {
     "$sigpipe_preflight/.github/workflows/release.yml"
   run_expect_fail sigpipe-preflight 'SIGPIPE-safe README badge count' \
     sh "$CHECK" "$sigpipe_preflight"
+
+  static_release_badge="$tmp/static-release-badge"
+  cp -R "$good" "$static_release_badge"
+  sed 's#https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF#https://img.shields.io/badge/release-v1.0.0-58A6FF#' \
+    "$good/.github/workflows/release.yml" > \
+    "$static_release_badge/.github/workflows/release.yml"
+  run_expect_fail static-release-badge 'published-release badge source' \
+    sh "$CHECK" "$static_release_badge"
 
   missing_wayland="$tmp/missing-wayland"
   cp -R "$good" "$missing_wayland"

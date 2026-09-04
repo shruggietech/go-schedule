@@ -6,7 +6,8 @@ The S048 pull request is eligible for merge only when:
 
 - `CHANGELOG.md` has an empty Unreleased section and a dated v1.0.0 section
   containing all 33 pre-cut entries;
-- the README release badge and health example identify v1.0.0 exactly once;
+- the README has exactly one badge derived from GitHub's latest published
+  release and exactly one v1.0.0 health example;
 - `.github/release-notes/v1.0.0.md` satisfies the established highlights-only
   policy and links to the tagged changelog;
 - the Release/Promote workflow and S047 evidence contracts remain intact;

@@ -29,7 +29,7 @@ candidate/promotion ordering, and the evidence validator requires 47 scenarios.
 
 Verify mechanically:
 
-- one v1.0.0 README badge;
+- one README badge derived from GitHub's latest published release;
 - one `daemon ok (version 1.0.0)` example;
 - one empty Unreleased section;
 - one dated v1.0.0 section containing the 33 original top-level entries;

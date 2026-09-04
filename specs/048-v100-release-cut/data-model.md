@@ -10,7 +10,7 @@
 | `baseline_commit` | S047 merge commit `d4ad27540331eae943e43a3830d4f5c9a6c38afa` |
 | `unreleased_entry_count` | 33 before the cut |
 | `unreleased_sha256` | Normalized pre-cut section digest recorded in verification |
-| `readme_badge_count` | Exactly one and identifies v1.0.0 |
+| `readme_badge_count` | Exactly one and derives from the latest published GitHub release |
 | `readme_health_count` | Exactly one and identifies 1.0.0 |
 | `release_note_bullets` | Four through six; S048 uses five |
 | `release_note_links` | Exactly one tagged changelog link |

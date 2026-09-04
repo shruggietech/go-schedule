@@ -5,11 +5,11 @@
 **Decision**: Complete and merge the S048 release-preparation PR before any
 v1.0.0 tag is created.
 
-**Rationale**: The Release workflow reads static README version lines,
-tag-specific notes, and the changelog from the tagged commit. Tagging the
-pre-S048 commit would omit the very boundary being reviewed and fail README
-preflight. The constitution also reserves tag/release mutations for separate
-explicit authority.
+**Rationale**: The Release workflow reads the tag-specific README health
+example, stable publication-aware badge contract, notes, and changelog from the
+tagged commit. Tagging the pre-S048 commit would omit the very boundary being
+reviewed and fail README preflight. The constitution also reserves tag/release
+mutations for separate explicit authority.
 
 **Alternatives considered**:
 
@@ -17,6 +17,26 @@ explicit authority.
   would lack reviewed v1.0.0 notes and version strings.
 - Create and later move the tag. Rejected because mutable release identity is
   unsafe and prohibited by the promotion guard.
+
+## Decision 8: Bind the README badge to published release state
+
+**Decision**: Use Shields.io's GitHub release endpoint for the README badge and
+validate that stable URL in the tag preflight. Keep only the health example
+tag-specific.
+
+**Rationale**: A hard-coded v1.0.0 badge merged before qualification would make
+the `releases/latest` link visibly contradict its image and advertise an
+unpublished release. The GitHub release badge remains v0.9.1 through draft
+staging and qualification, then advances automatically when promotion makes
+v1.0.0 public.
+
+**Alternatives considered**:
+
+- Keep the badge on v0.9.1 and update it after promotion. Rejected because it
+  requires a second release-only source change and leaves the tagged README
+  stale.
+- Hard-code v1.0.0 before staging. Rejected because it presents planned work as
+  shipped and was identified as a P1 review finding on PR #123.
 
 ## Decision 2: v1.0.0 is the next release
 

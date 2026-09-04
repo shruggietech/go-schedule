@@ -71,10 +71,12 @@ comparison links for `v1.0.0...HEAD` and `v0.9.1...v1.0.0`.
 
 ### Public identity
 
-Change the single README release badge from v0.9.1 to v1.0.0 and the single
-health example from 0.9.1 to 1.0.0. The existing tagged workflow independently
-requires both values to match `GITHUB_REF_NAME`, so preparing them in review is
-mandatory before staging.
+Replace the hard-coded README release badge with Shields.io's GitHub release
+badge, whose source is the latest published release behind the existing
+`releases/latest` link. Change the single health example from 0.9.1 to 1.0.0.
+The tagged workflow validates the stable badge contract and requires the health
+example to match `GITHUB_REF_NAME`, so preparation can be reviewed without
+advertising an unpublished version.
 
 ### Curated release notes
 
@@ -133,7 +135,8 @@ component is justified.
 1. Record baseline identity, history cardinality/hash, tag/release absence,
    milestone state, and expected assets.
 2. Add the v1.0.0 release-note file and confirm the existing policy accepts it.
-3. Cut the changelog and synchronize README version strings.
+3. Cut the changelog, update the health example, and make the release badge
+   publication-aware.
 4. Write the post-merge publication contract, data model, and quickstart.
 5. Run Spec Kit analysis, focused release contracts, and all eight gates.
 6. Commit, push the authorized review branch, open the PR with `Refs #122`, and
