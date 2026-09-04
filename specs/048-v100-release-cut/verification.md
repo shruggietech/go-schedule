@@ -16,8 +16,10 @@
   characters. Its LF-normalized SHA-256 was
   `bf2b8f2fcedd2f099c28531ee29f0d6ddb3f55a04e0d2878cd7a349a8ab5af2d`.
 - Twelve commits were present in `v0.9.1..d4ad275`.
-- The existing workflows already stage drafts and require exact-candidate
-  attended evidence before promotion; no workflow modification was planned.
+- The existing workflows already staged drafts and required exact-candidate
+  attended evidence before promotion. The initial design planned no workflow
+  change; first-round review later required a narrow README metadata-preflight
+  correction without changing staging or promotion behavior.
 
 ## Expected v1.0.0 staged payloads
 
@@ -84,8 +86,10 @@ Focused checks: PASS.
   lifecycle, and eight-gate contracts intact.
 - Release-gate package and CLI tests: PASS.
 - Four exact workflow/collector/inspector integration contracts: PASS.
-- No release workflow, promotion workflow, validator, product source, package
-  format, supported platform, or dependency was changed.
+- The Release workflow's README metadata preflight now validates a
+  publication-aware badge instead of a tag-derived badge. The promotion
+  workflow, release assets, evidence validator, product source, package format,
+  supported platforms, and dependencies are unchanged.
 
 Canonical `scripts/verify.sh all`: PASS on 2026-09-03.
 
@@ -105,7 +109,7 @@ Final integrity audits: PASS.
 
 - All 19 changed or added files decode as strict UTF-8 and have no BOM.
 - Mojibake and unresolved-template-placeholder scans found zero matches.
-- All 25 task identifiers are unique, correctly formatted, and complete.
+- All 27 task identifiers are unique, correctly formatted, and complete.
 - The release-copy cardinality and exact changelog reconstruction checks pass.
 - `git diff --check` reports no whitespace errors.
 - `scripts/spec-lifecycle-check.sh .` reports all 48 specifications
@@ -138,5 +142,24 @@ Post-review verification: PASS.
   characters and SHA-256 exactly.
 - README cardinality is one published-release badge, zero hard-coded v1.0.0
   badges, and one v1.0.0 health example.
-- The UTF-8/no-BOM, mojibake, placeholder, 25-task identity, release-note
+- The UTF-8/no-BOM, mojibake, placeholder, 27-task identity, release-note
   cardinality, and whitespace audits all pass.
+
+Round 2 on PR #123 identified one P2 documentation finding at commit `9b2d43e`:
+the initial preparation-verification and research text still claimed the
+Release workflow was unchanged after the first-round fix amended its README
+metadata preflight. The finding is valid. The audit and research decision now
+name that narrow change explicitly and distinguish it from the unchanged
+staging, evidence, asset, checksum, and promotion contracts.
+
+Second-round documentation-fix verification: PASS.
+
+- The documentation gate passes current-product policy, all positive and
+  negative policy fixtures, 15 pages, links, front matter, fences, and theme.
+- The automation gate passes Actions, CodeQL, Dependabot, release staging and
+  promotion, release notes, brand, lifecycle, and all eight canonical-gate
+  contracts.
+- All 19 pull-request files decode as strict UTF-8 without BOM; mojibake and
+  unresolved-placeholder scans report zero matches.
+- All 27 task identifiers are unique and complete, and `git diff --check`
+  reports no whitespace errors.

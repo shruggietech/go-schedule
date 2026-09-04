@@ -89,6 +89,8 @@ with the documented nine-payload, 47-observation, ten-issue promotion sequence.
 
 - [x] T024 [US1] Resolve PR #123's P1 finding by binding the badge to published GitHub release state and decoupling badge validation from the future tag
 - [x] T025 Add a negative regression fixture and rerun focused, canonical, lifecycle, and integrity checks after the review fix
+- [x] T026 Correct PR #123's second-round audit finding by documenting the narrow Release metadata-preflight change accurately
+- [x] T027 Rerun documentation, automation, lifecycle, encoding, placeholder, task-identity, and whitespace checks after the second-round fix
 
 ---
 

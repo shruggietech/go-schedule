@@ -50,9 +50,9 @@ pre-checksum assets, 47 observations, ten remaining v1 issues, one release issue
 
 | Principle | Requirement | Design disposition |
 | --- | --- | --- |
-| I. Code Quality | Release artifacts and contracts are explicit and maintainable | PASS. S048 changes versioned prose only and reuses the existing workflow and gate rather than introducing another path. |
-| II. Testing Standards | Behavioral changes require tests and canonical gates | PASS. No runtime behavior changes; existing release-copy, workflow, evidence, race, and coverage checks all remain mandatory. |
-| III. UX Consistency | Public release copy and version identity agree | PASS. README, changelog, notes, tag, artifacts, and issue state have one v1.0.0 vocabulary. |
+| I. Code Quality | Release artifacts and contracts are explicit and maintainable | PASS. S048 reuses the existing workflow architecture and makes one bounded README metadata-preflight correction rather than introducing another path. |
+| II. Testing Standards | Behavioral changes require tests and canonical gates | PASS. The preflight correction has a negative regression fixture; existing release-copy, workflow, evidence, race, coverage, and canonical checks remain mandatory. |
+| III. UX Consistency | Public release copy and version identity agree | PASS. The badge reflects published state while the changelog, health example, notes, tag, artifacts, and issue state consistently describe the v1.0.0 boundary. |
 | IV. Performance | No unexplained runtime regression | PASS. No runtime or hot-path source changes; no benchmark change is warranted. |
 | V. Autonomous Execution | Use Spec Kit, PR-first integration, and explicit publication authority | PASS. S048 runs end to end through the green PR and leaves tag/release mutations behind the required post-merge authorization. |
 
@@ -127,8 +127,9 @@ specs/README.md
 ```
 
 **Structure Decision**: Reuse the established S034 release-cut surfaces and the
-S040/S047 gate. No new workflow, validator, script, dependency, or product
-component is justified.
+S040/S047 gate. Amend the existing Release metadata preflight and automation
+fixture for published-state badge correctness; no new workflow, validator,
+dependency, or product component is justified.
 
 ## Implementation Sequence
 
@@ -145,9 +146,10 @@ component is justified.
 
 ## Post-Design Constitution Recheck
 
-All five principles remain PASS. The final design changes no pinned workflow or
-runtime code and preserves every existing release security boundary. Release
-publication remains impossible from the preparation merge alone.
+All five principles remain PASS. The final design changes one release metadata
+preflight but no pinned action or runtime code, and it preserves every existing
+staging, evidence, asset, checksum, and promotion boundary. Release publication
+remains impossible from the preparation merge alone.
 
 ## Complexity Tracking
 

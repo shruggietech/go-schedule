@@ -46,14 +46,18 @@ v1.0.0 public.
 remaining ten issues are verification-only release criteria, and the merged
 S038-S047 work constitutes the intended Windows and desktop v1 baseline.
 
-## Decision 3: Keep the existing workflow unchanged
+## Decision 3: Preserve the existing release workflow architecture
 
 **Decision**: Reuse `.github/workflows/release.yml` and
-`.github/workflows/promote-release.yml` without modification.
+`.github/workflows/promote-release.yml` without adding another orchestration
+path. Permit one narrow Release preflight change so badge validation follows
+published release state; keep Promote Release unchanged.
 
 **Rationale**: S040 and S047 already provide draft-only staging, exact candidate
 identity, 47-scenario attended validation, complete-asset enforcement, checksum
-generation, and immutable promotion. A new orchestration path would duplicate
+generation, and immutable promotion. The review-driven badge correction changes
+only README metadata validation and does not alter staging, artifacts, evidence,
+checksums, or promotion. A new orchestration path would duplicate
 security-critical logic.
 
 ## Decision 4: Publish five concise highlights
