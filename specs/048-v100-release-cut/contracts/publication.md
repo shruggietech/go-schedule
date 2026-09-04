@@ -22,13 +22,18 @@ v1.0.0 tag staging. Immediately before mutation:
 1. fetch and prune origin;
 2. switch to `main` and fast-forward only;
 3. require an empty working tree;
-4. require `HEAD`, `refs/remotes/origin/main`, and the reviewed S048 merge commit
+4. require `HEAD`, `refs/remotes/origin/main`, and the reviewed S049 merge commit
    to be identical;
 5. require both local and remote `v1.0.0` tag absence; and
 6. require no GitHub release for v1.0.0.
 
 Create one annotated `v1.0.0` tag at that commit and push only that tag. Never
 move or recreate the tag to absorb later changes.
+
+S049 deliberately supersedes the S048 merge commit as the tag boundary because
+the required release-operations pull request advances `main`. S049 is limited
+to release tooling, tests, specifications, and operator documentation; it does
+not alter packaged runtime behavior.
 
 ## Draft staging contract
 
@@ -62,11 +67,16 @@ candidate byte change requires a fresh tag/version rather than relabeling.
 
 ## Issue reconciliation contract
 
-Post the relevant observation IDs, environment identities, attachment evidence,
-candidate hash, manifest/run link, and validator result to each of #98, #101,
-#104, #105, #106, #109, #111, #112, and #113. Close only issues whose complete
-criteria pass. Update #96's child index and checklist from actual issue state,
-then close it only when every coordinator criterion passes.
+After formal qualification, run `windows-release-gate render-dispositions`
+against the exact evidence archive, candidate manifest, MSI, repository, tag,
+and commit. Review the resulting `packet.json` and ten Markdown records before
+posting the relevant record to each of #98, #101, #104, #105, #106, #109, #111,
+#112, and #113. Close only issues whose complete criteria pass. Update #96's
+child index and checklist from actual issue state, then close it only when every
+coordinator criterion passes.
+
+The packet is offline review input, not closure authority. Generation never
+comments on, closes, labels, or otherwise mutates a GitHub issue.
 
 Issue #122 remains open until promotion and final audit. Post-v1 issues remain
 unchanged.
@@ -88,7 +98,7 @@ existing draft to public. It must never rebuild or substitute an artifact.
 
 After promotion, verify:
 
-- the release is public, latest, and tagged v1.0.0 at the reviewed commit;
+- the release is public, latest, and tagged v1.0.0 at the reviewed S049 commit;
 - all ten payload files exist, are non-empty, and every payload digest passes;
 - release notes contain the reviewed five highlights and tagged changelog link;
 - README, changelog, release URL, tag, manifest, and binaries identify v1.0.0;
@@ -96,4 +106,4 @@ After promotion, verify:
 - the v1.0.0 milestone has no open issues before it is closed; and
 - `main` remains clean and synchronized.
 
-Only then may v1.0.0 and S048 be reported complete.
+Only then may v1.0.0, S048, and S049 be reported complete.

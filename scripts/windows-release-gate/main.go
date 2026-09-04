@@ -27,11 +27,69 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runValidate(args[1:], stdout, stderr)
 	case "verify-bundle":
 		return runVerifyBundle(args[1:], stdout, stderr)
+	case "render-dispositions":
+		return runRenderDispositions(args[1:], stdout, stderr)
 	default:
 		fmt.Fprintf(stderr, "windows-release-gate: unknown command %q\n", args[0])
 		usage(stderr)
 		return 2
 	}
+}
+
+func runRenderDispositions(args []string, stdout, stderr io.Writer) int {
+	set, options := newFlagSet("render-dispositions", stderr)
+	bundlePath := set.String("bundle", "", "path to the formal evidence ZIP")
+	manifestPath := set.String("candidate-manifest", "", "path to the staged candidate manifest")
+	artifactPath := set.String("artifact", "", "path to the exact candidate MSI")
+	outputDir := set.String("output-dir", "", "absent directory for the disposition packet")
+	if err := set.Parse(args); err != nil {
+		return 2
+	}
+	if set.NArg() != 0 || *bundlePath == "" || *manifestPath == "" || *artifactPath == "" ||
+		*outputDir == "" || options.Repository == "" || options.Tag == "" || options.Commit == "" {
+		fmt.Fprintln(stderr, "windows-release-gate: render-dispositions requires --bundle, --candidate-manifest, --artifact, --repository, --tag, --commit, and --output-dir")
+		return 2
+	}
+	manifest, err := loadCandidate(*manifestPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "windows-release-gate: %v\n", err)
+		return 2
+	}
+	if _, err := os.Stat(*bundlePath); err != nil {
+		fmt.Fprintf(stderr, "windows-release-gate: evidence bundle: %v\n", err)
+		return 2
+	}
+	if _, err := os.Stat(*artifactPath); err != nil {
+		fmt.Fprintf(stderr, "windows-release-gate: candidate artifact: %v\n", err)
+		return 2
+	}
+	root, cleanup, err := releasegate.ExtractBundle(*bundlePath)
+	if err != nil {
+		fmt.Fprintf(stderr, "windows-release-gate: FAILED: %v\n", err)
+		return 1
+	}
+	defer cleanup()
+	evidence, err := loadEvidence(filepath.Join(root, "evidence.json"))
+	if err != nil {
+		fmt.Fprintf(stderr, "windows-release-gate: FAILED: %v\n", err)
+		return 1
+	}
+	failures := releasegate.Validate(evidence, root, *artifactPath, *options)
+	failures = append(failures, releasegate.ValidateBundleContents(root, evidence)...)
+	failures = append(failures, releasegate.ValidateCandidateManifest(evidence.Candidate, manifest)...)
+	if len(failures) != 0 {
+		for _, failure := range failures {
+			fmt.Fprintf(stderr, "windows-release-gate: %s\n", failure)
+		}
+		fmt.Fprintf(stderr, "windows-release-gate: FAILED with %d issue(s)\n", len(failures))
+		return 1
+	}
+	if err := releasegate.WriteDispositionPacket(*outputDir, evidence); err != nil {
+		fmt.Fprintf(stderr, "windows-release-gate: write disposition packet: %v\n", err)
+		return 2
+	}
+	fmt.Fprintf(stdout, "windows-release-gate: wrote 10 issue records to %s\n", *outputDir)
+	return 0
 }
 
 func runVerifyCandidate(args []string, stdout, stderr io.Writer) int {
@@ -193,4 +251,5 @@ func usage(writer io.Writer) {
 	fmt.Fprintln(writer, "  windows-release-gate verify-candidate --candidate-manifest JSON --artifact MSI [--repository OWNER/REPO --tag TAG --commit SHA]")
 	fmt.Fprintln(writer, "  windows-release-gate validate --evidence FILE --artifact MSI [--candidate-manifest JSON --repository OWNER/REPO --tag TAG --commit SHA]")
 	fmt.Fprintln(writer, "  windows-release-gate verify-bundle --bundle ZIP --artifact MSI [--candidate-manifest JSON --repository OWNER/REPO --tag TAG --commit SHA]")
+	fmt.Fprintln(writer, "  windows-release-gate render-dispositions --bundle ZIP --candidate-manifest JSON --artifact MSI --repository OWNER/REPO --tag TAG --commit SHA --output-dir DIR")
 }

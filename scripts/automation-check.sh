@@ -254,6 +254,8 @@ fi
 RELEASE="$ROOT/.github/workflows/release.yml"
 PROMOTE_RELEASE="$ROOT/.github/workflows/promote-release.yml"
 RELEASE_NOTES_DIR="$ROOT/.github/release-notes"
+PUBLICATION_CONTRACT="$ROOT/specs/048-v100-release-cut/contracts/publication.md"
+WINDOWS_RELEASE_GUIDE="$ROOT/test/windows/README.md"
 require_release_text() {
   text=$1
   description=$2
@@ -441,6 +443,36 @@ else
   fi
 fi
 
+require_operations_text() {
+  file=$1
+  text=$2
+  description=$3
+  if ! grep -Fq -- "$text" "$file"; then
+    report "$file: missing $description"
+  fi
+}
+
+if [ ! -f "$PUBLICATION_CONTRACT" ]; then
+  report "$PUBLICATION_CONTRACT: release publication contract not found"
+else
+  require_operations_text "$PUBLICATION_CONTRACT" \
+    'reviewed S049 merge commit' 'S049 tag-boundary identity'
+  require_operations_text "$PUBLICATION_CONTRACT" \
+    'windows-release-gate render-dispositions' \
+    'formal disposition generation step'
+fi
+
+if [ ! -f "$WINDOWS_RELEASE_GUIDE" ]; then
+  report "$WINDOWS_RELEASE_GUIDE: Windows release guide not found"
+else
+  require_operations_text "$WINDOWS_RELEASE_GUIDE" \
+    'windows-release-gate render-dispositions' \
+    'operator disposition command'
+  require_operations_text "$WINDOWS_RELEASE_GUIDE" \
+    'does not update or close' \
+    'non-authority boundary'
+fi
+
 BRAND_CHECK="$ROOT/scripts/brand-check"
 if [ ! -d "$BRAND_CHECK" ]; then
   report "$BRAND_CHECK: brand integrity command not found"
@@ -470,4 +502,4 @@ if [ -s "$FAILURES" ]; then
 fi
 
 printf '%s\n' \
-  'automation-check: OK - actions, CodeQL, Dependabot, release staging/promotion, release notes, brand, lifecycle, and 8 gates'
+  'automation-check: OK - actions, CodeQL, Dependabot, release operations, release notes, brand, lifecycle, and 8 gates'

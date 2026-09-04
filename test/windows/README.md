@@ -296,6 +296,30 @@ staging run, last-observed remote tag commit, exact allowlisted asset set,
 manifest, archive, and exact MSI; creates the final
 all-asset checksum file; and only then makes the release public.
 
+### Generate the issue disposition packet
+
+After the formal archive passes independent verification, generate the offline
+review packet from the same archive, manifest, MSI, and reviewed S049 commit:
+
+```powershell
+go run ./scripts/windows-release-gate render-dispositions `
+  --bundle C:\verify\go-schedule_v1.0.0_windows-attended-evidence.zip `
+  --candidate-manifest C:\verify\windows-candidate-manifest.json `
+  --artifact C:\verify\go-schedule_v1.0.0_windows_amd64.msi `
+  --repository shruggietech/go-schedule `
+  --tag v1.0.0 `
+  --commit 0123456789abcdef0123456789abcdef01234567 `
+  --output-dir C:\verify\v1.0.0-dispositions
+```
+
+The output directory must not already exist. A successful run creates
+`packet.json` plus `issue-096.md`, `issue-098.md`, `issue-101.md`, `issue-104.md`,
+`issue-105.md`, `issue-106.md`, `issue-109.md`, `issue-111.md`, `issue-112.md`,
+and `issue-113.md` in one atomic directory commit. Review every record and post
+only the matching record to its issue. The packet does not update or close
+GitHub issues and does not authorize promotion; actual issue state and all
+individual acceptance criteria remain authoritative.
+
 The checked-in `test/fixtures/windows-release-gate/passing` data is plain text
 and explicitly non-native. It proves validator behavior only. It cannot close
 #94 or #98 and cannot authorize promotion.
