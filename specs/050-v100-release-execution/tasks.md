@@ -37,20 +37,21 @@ may start until this phase passes.
 **Goal**: Produce one independently valid 47-observation formal archive from
 the exact staged MSI.
 
-**Disposition**: Waived by the explicit publication exception. Formal
-qualification remains incomplete.
+**Disposition**: Waived only as a pre-publication condition by the explicit
+exception. Formal qualification remains incomplete and actionable after
+publication.
 
 **Independent Test**: The production bundle validator accepts the finalized ZIP
 only with the separately downloaded manifest and MSI.
 
 - [x] T008 [US1] Initialize the formal attended workspace at `A:/_tmp/go-schedule-v1.0.0-s050/attended` from the exact candidate identity
 - [x] T009 [US1] Inventory generated observations, fragments, metrics, attachments, and environment requirements in `A:/_tmp/go-schedule-v1.0.0-s050/attended`
-- [x] T010 [US1] WAIVED by the explicit publication exception: do not claim unperformed access, failure, task, lifecycle, profile, or reinstall observations
-- [x] T011 [US1] WAIVED by the explicit publication exception: do not claim the eleven unperformed formal desktop observations
-- [x] T012 [US1] Resolve fragment review by preserving all placeholders as unavailable and refusing to import or relabel them as passing evidence
-- [x] T013 [US1] WAIVED by the explicit publication exception: do not finalize an incomplete workspace or create a misleading evidence archive
-- [x] T014 [US1] WAIVED because no formal archive exists; preserve the production validator without invoking it on fabricated input
-- [x] T015 [US1] Record the zero imported formal observations, absent archive, and explicit maintainer waiver in `specs/050-v100-release-execution/verification.md`
+- [ ] T010 [US1] Perform and record the installed access, service identity, PATH, failure/recovery, task-run, setup, upgrade, maintenance, rollback, preserve, wipe, multi-profile, and reinstall observations without claiming unperformed results
+- [ ] T011 [US1] Perform and record the eleven standard/scaled desktop appearance, interaction, navigation, scrolling, Tasks, Schedule, and Activity observations
+- [ ] T012 [US1] Review every generated fragment and required native attachment for genuine candidate identity, privacy, and pass status before import
+- [ ] T013 [US1] Finalize exactly once to `A:/_tmp/go-schedule-v1.0.0-s050/go-schedule_v1.0.0_windows-attended-evidence.zip`
+- [ ] T014 [US1] Independently run production `verify-bundle` against the finalized archive, MSI, manifest, repository, tag, and commit
+- [ ] T015 [US1] Record environment counts, 47/47 observation results, attachment inventory, archive bytes/hash, and independent validation in `specs/050-v100-release-execution/verification.md`
 
 **Checkpoint**: Formal candidate evidence remains incomplete; no archive or
 passing observation claim was created.
@@ -61,19 +62,20 @@ passing observation claim was created.
 
 **Goal**: Apply evidence only to issues whose complete acceptance criteria pass.
 
-**Disposition**: No evidence disposition was available, so no issue was closed.
+**Disposition**: No evidence disposition was available at publication, so no
+issue was closed. The work remains actionable after formal evidence exists.
 
 **Independent Test**: The draft has nine exact assets, the packet has ten
 records plus one index, and live issue/coordinator states match individual
 review decisions.
 
-- [x] T016 [US2] WAIVED because no formal archive exists; leave the release without an evidence asset and record the exact public inventory
-- [x] T017 [US2] WAIVED because rendering dispositions without a valid archive is correctly rejected by design
-- [x] T018 [US2] WAIVED because no disposition packet exists; do not invent packet files or hashes
-- [x] T019 [US2] Audit the live evidence-dependent leaf set and preserve every issue as open because the required formal records are absent
-- [x] T020 [US2] Apply zero leaf closures and record that conservative disposition in `specs/050-v100-release-execution/verification.md`
-- [x] T021 [US2] Preserve #96 as open because its evidence-dependent child criteria are unresolved
-- [x] T022 [US2] Record the absence of disposition files, zero closure comments, final issue states, and the publication-exception audit URL in `specs/050-v100-release-execution/verification.md`
+- [ ] T016 [US2] Upload the immutable formal archive without replacement and prove the public release gains only the expected evidence asset
+- [ ] T017 [US2] Render the disposition packet into absent directory `A:/_tmp/go-schedule-v1.0.0-s050/dispositions`
+- [ ] T018 [US2] Audit `packet.json` plus all ten Markdown records against the archive identity and S049 mapping
+- [ ] T019 [US2] Review #98, #101, #104, #105, #106, #109, #111, #112, and #113 against their full live acceptance criteria and matching disposition files
+- [ ] T020 [US2] Post the matching formal record and close each eligible leaf issue, leaving any incomplete issue and all dependents open
+- [ ] T021 [US2] Reconcile #96 child/prerequisite roles and checklist from actual issue state, then close it only if every coordinator criterion passes
+- [ ] T022 [US2] Record every disposition file hash, issue comment URL, final issue state, and any blocked criterion in `specs/050-v100-release-execution/verification.md`
 
 **Checkpoint**: Evidence-dependent readiness issues and #122 remain open with
 their unresolved criteria visible.
@@ -93,7 +95,7 @@ release pointer is correct, and issue/milestone state accurately remains open.
 - [x] T025 [US3] Generate `SHA256SUMS.txt` for the eight unchanged staged payloads, verify it locally, upload it, and publish the existing release without rebuilding assets
 - [x] T026 [US3] Download all nine public assets into `A:/_tmp/go-schedule-v1.0.0-s050/public-audit` and independently verify names, non-empty bytes, and all eight payload checksums
 - [x] T027 [US3] Audit public/latest release, tag/commit, manifest/packages, release notes, README, and changelog identity and record results in `specs/050-v100-release-execution/verification.md`
-- [x] T028 [US3] Add the exception-aware release audit to #122 and preserve #122 plus milestone `v1.0.0 - Release readiness` as open because their formal criteria did not pass
+- [ ] T028 [US3] After formal qualification and issue reconciliation, add the completion audit to #122 and close it plus milestone `v1.0.0 - Release readiness` only if every remaining criterion passes
 
 **Checkpoint**: v1.0.0 is public under exception and byte-audited; formal
 qualification remains incomplete and is accurately represented.
@@ -104,12 +106,12 @@ qualification remains incomplete and is accurately represented.
 
 **Purpose**: Deliver the post-release evidence record without changing candidate bytes.
 
-- [x] T029 Update `specs/050-v100-release-execution/spec.md` and `specs/README.md` to Implemented with exact public delivery evidence
+- [x] T029 Update `specs/050-v100-release-execution/spec.md` and `specs/README.md` to In Progress with exact public delivery evidence and the remaining formal work
 - [x] T030 Add the post-release audit note to the Unreleased section of `CHANGELOG.md` without modifying the historical v1.0.0 boundary
 - [x] T031 Run `/speckit-analyze`, resolve ordinary consistency findings, and record the intentional publication-exception nonconformance in `specs/050-v100-release-execution/verification.md`
 - [x] T032 Run focused release validators plus the foreground canonical `scripts/verify.sh all` suite and record all eight gates in `specs/050-v100-release-execution/verification.md`
 - [x] T033 Run strict UTF-8 without BOM, mojibake, placeholder, Markdown-link, task-format, spec-lifecycle, runtime-diff, and `git diff --check` audits
-- [x] T034 Mark all tasks complete and create the local S050 audit commit with the required conventional message and co-author trailer
+- [x] T034 Mark the completed audit tasks accurately, preserve remaining formal tasks as actionable, and create the local S050 audit checkpoint commit with the required conventional message and co-author trailer
 
 ## Dependencies and Execution Order
 

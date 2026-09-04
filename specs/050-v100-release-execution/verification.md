@@ -18,8 +18,9 @@ findings and no constitution conflict. The original plan remained deliberately
 fail-closed around formal attended evidence.
 
 After staging, the maintainer explicitly directed publication following an
-exact-candidate install. That decision is recorded as an execution waiver, not
-as retroactive satisfaction of the original formal-evidence requirements.
+exact-candidate install. That decision is recorded as a waiver of the pre-
+publication ordering, not as retroactive satisfaction or cancellation of the
+original formal-evidence requirements.
 
 Post-deviation analysis found no ambiguous task identity, unmapped requirement,
 or internal candidate-identity conflict. It found one intentional release-
@@ -196,3 +197,16 @@ release is public under exception rather than qualified.
 
 Post-fix documentation, automation, 50-spec lifecycle, and whitespace checks
 all passed before the correction commit was pushed.
+
+## Second Codex review
+
+The second and final authorized review of commit
+`3d90ec8aad2bbe38af6b8e2caa156195bbdd6f16` identified one valid P1 finding:
+S050 was marked Implemented even though FR-005 through FR-013, SC-002 through
+SC-005, #122, and the evidence-dependent issue work remained unresolved.
+
+S050 and its inventory entry now remain In Progress. T010 through T022 and T028
+are restored as actionable post-publication formal qualification, disposition,
+and final reconciliation work. Completed staging, publication, checksum, audit,
+and repository-verification tasks remain checked. No third Codex review round
+will be requested.

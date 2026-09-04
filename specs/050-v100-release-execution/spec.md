@@ -4,11 +4,11 @@
 
 **Created**: 2026-09-04
 
-**Status**: Implemented
+**Status**: In Progress
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: Public release [v1.0.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.0.0), staging run [33838072246](https://github.com/shruggietech/go-schedule/actions/runs/33838072246), exception audit [#122 comment](https://github.com/shruggietech/go-schedule/issues/122#issuecomment-5536182541), verified public checksums, and local canonical verification completed 2026-09-04
+**Delivery**: Public release [v1.0.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.0.0), staging run [33838072246](https://github.com/shruggietech/go-schedule/actions/runs/33838072246), exception audit [#122 comment](https://github.com/shruggietech/go-schedule/issues/122#issuecomment-5536182541), verified public checksums, and local canonical verification completed 2026-09-04; formal qualification and issue reconciliation remain actionable under #122
 
 **Input**: Complete issue
 [#122](https://github.com/shruggietech/go-schedule/issues/122) by qualifying
@@ -52,7 +52,9 @@ evidence. S050 therefore deviates from the planned promotion path as follows:
 
 This is an explicit release-governance exception, not a claim that FR-005
 through FR-013 or SC-002 through SC-005 passed as originally written. The audit
-branch records the decision and preserves the unresolved work visibly.
+branch records the decision and preserves the unresolved work visibly. S050
+therefore remains In Progress after publication until that work is completed or
+separately superseded by an approved specification.
 
 ## Scope
 
