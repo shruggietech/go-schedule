@@ -197,6 +197,8 @@ or remain-open disposition.
 - A synthetic passing fixture must never satisfy the production evidence class.
 - Screenshots can be supplied without matching metrics, or metrics without a
   screenshot; both forms are incomplete and block finalization.
+- A text or vector attachment can declare an image media type; the gate must
+  inspect bytes and require a supported raster format.
 - Dark and Light observations can accidentally come from one unchanged palette;
   required palette sets must identify both values explicitly.
 - A scaled-DPI observation can repeat the 96-DPI environment; the gate must
@@ -218,12 +220,12 @@ or remain-open disposition.
 
 - **FR-001**: The promotion evidence contract MUST require every pre-existing
   release scenario without weakening its validation.
-- **FR-002**: The contract MUST add fixed desktop observations for appearance at
-  standard DPI, appearance at scaled DPI, interaction states, navigation and
-  Options, scroll input, the Tasks table, and the Schedule/Activity tables.
+- **FR-002**: The contract MUST add fixed standard- and scaled-DPI desktop
+  observations for appearance, interaction states, navigation and Options, the
+  Tasks table, and the Schedule/Activity tables, plus standard-DPI scroll input.
 - **FR-003**: Every desktop observation MUST use an intended user at medium
   integrity against the installed service and MUST reference at least one
-  integrity-protected native screenshot.
+  integrity-protected native raster screenshot validated from file bytes.
 - **FR-004**: Appearance evidence MUST cover Dark and Light modes, System-font
   default/reset/persistence, sharp Info and ordinary body text, unclipped
   centered labels, resize/minimize/restore/reopen behavior, 100 percent scaling,
@@ -303,7 +305,7 @@ or remain-open disposition.
 
 ### Measurable Outcomes
 
-- **SC-001**: Removing any one of the seven new desktop observations from a
+- **SC-001**: Removing any one of the eleven new desktop observations from a
   complete bundle produces a non-zero validation result naming that identity.
 - **SC-002**: Mutation tests cover 100 percent of the new required metric groups,
   and each invalid group produces at least one actionable diagnostic.

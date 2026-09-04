@@ -3,16 +3,20 @@
 ## Canonical scenario extension
 
 The S040 evidence schema remains version 1 and retains all 36 existing scenario
-identities. S047 appends exactly these seven required identities:
+identities. S047 appends exactly these eleven required identities:
 
 ```text
 desktop.appearance-standard
 desktop.appearance-scaled
 desktop.interaction-states
+desktop.interaction-states-scaled
 desktop.navigation-options
+desktop.navigation-options-scaled
 desktop.scroll-input
 desktop.tasks-table
+desktop.tasks-table-scaled
 desktop.schedule-activity-tables
+desktop.schedule-activity-tables-scaled
 ```
 
 Omission, duplication, an unknown scenario, a non-passing status, an invalid
@@ -27,7 +31,8 @@ Every `desktop.` observation:
 - uses the intended user at medium integrity;
 - observes the installed LocalSystem service;
 - falls within the evidence interval;
-- references at least one hashed attachment whose media type begins `image/`;
+- references at least one hashed attachment whose bytes decode as a supported
+  raster image (declared media type and extension are not trusted);
 - identifies each exercised palette, DPI, size, state, font, input, header, or
   semantic value through an exact normalized set where the data model requires
   one; and
@@ -48,17 +53,18 @@ centered/unclipped labels, resize, minimize/restore, and reopen. Standard uses
 
 ### Interaction states
 
-The interaction observation supports #109 and consumers #104, #105, #112, and
-#113. It requires every shared control family and state, 4.5:1 normal-text and
-3:1 non-text minima, readable labels/glyphs, visible focus, persistent selected
-identity, and non-color cues.
+The standard and scaled interaction observations support #109 and consumers
+#104, #105, #112, and #113. Each requires every shared control family and
+state, 4.5:1 normal-text and 3:1 non-text minima, readable labels/glyphs,
+visible focus, persistent selected identity, and non-color cues.
 
 ### Navigation and Options
 
-The navigation/options observation supports #104, #105, and #106. It covers the
-complete destination order, both supported content sizes, rail spacing/boundary,
-bottom-right Exit behavior, compact storage rows, unavailable rows, exact Copy,
-selector alternatives, and absence of horizontal scrolling.
+The standard and scaled navigation/options observations support #104, #105,
+and #106. Each covers the complete destination order, both supported content
+sizes, rail spacing/boundary, bottom-right Exit behavior, compact storage rows,
+unavailable rows, exact Copy, selector alternatives, and absence of horizontal
+scrolling.
 
 ### Scroll input
 
@@ -69,15 +75,16 @@ nested delta isolation, and keyboard scrolling remain required.
 
 ### Tables
 
-The Tasks and Schedule/Activity observations support #112 and #113, consuming
-#109's shared state rules. Both require at least 100 populated rows per view,
-both palettes, both sizes, exact headers, frozen-header and disclosure behavior,
-no horizontal scrolling, odd/even/hover/focus/selection states, and live-refresh
-identity. View-specific operations and semantic sets follow `data-model.md`.
+The standard and scaled Tasks and Schedule/Activity observations support #112
+and #113, consuming #109's shared state rules. All require at least 100
+populated rows per view, both palettes, both sizes, exact headers, frozen-header
+and disclosure behavior, no horizontal scrolling,
+odd/even/hover/focus/selection states, and live-refresh identity. View-specific
+operations and semantic sets follow `data-model.md`.
 
 ## Collector contract
 
-`Initialize` creates 43 unavailable observations and scenario templates for all
+`Initialize` creates 47 unavailable observations and scenario templates for all
 `setup.`, `remove.`, and `desktop.` identities. A desktop template includes its
 complete metrics shape and a default screenshot path. `RecordObservation`
 retains the existing one-write import behavior. `Finalize` hashes attachments

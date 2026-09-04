@@ -19,7 +19,7 @@ independence.
 
 ## Phase 2: Foundational Contract and Red Tests
 
-- [x] T004 Add the seven S047 scenario identities and issue mapping to `specs/047-windows-release-qualification/contracts/desktop-release-evidence.md`
+- [x] T004 Add the S047 scenario identities and issue mapping to `specs/047-windows-release-qualification/contracts/desktop-release-evidence.md`
 - [x] T005 [P] Add failing required-scenario, missing-observation, class-boundary, image-attachment, environment, exact-set, DPI, contrast, input, row-count, and outcome mutation tests in `internal/releasegate/validate_test.go`
 - [x] T006 [P] Add failing S047 collector scenario/template/parser contract assertions in `test/integration/windows_release_gate_contract_test.go`
 - [x] T007 Confirm the red tests fail only because desktop scenarios and templates are not implemented, and record the red evidence in `specs/047-windows-release-qualification/verification.md`
@@ -34,18 +34,18 @@ new rules have a failing test before implementation.
 **Goal**: Promotion cannot accept a bundle missing or misrepresenting any S047
 desktop acceptance family.
 
-**Independent Test**: A complete 43-scenario synthetic fixture passes only the
+**Independent Test**: A complete 47-scenario synthetic fixture passes only the
 fixture entry point; each missing or corrupted desktop metric fails with the
 scenario and metric named.
 
-- [x] T008 [US1] Append all seven fixed `desktop.` identities without weakening the existing list in `internal/releasegate/validate.go`
+- [x] T008 [US1] Append all fixed `desktop.` identities without weakening the existing list in `internal/releasegate/validate.go`
 - [x] T009 [US1] Implement trimmed, duplicate-rejecting, order-independent exact-set metric validation in `internal/releasegate/validate.go`
 - [x] T010 [US1] Require routine installed-user context and native image evidence for every desktop observation in `internal/releasegate/validate.go`
 - [x] T011 [US1] Implement standard/scaled appearance metric validation for #101/#106 in `internal/releasegate/validate.go`
 - [x] T012 [US1] Implement interaction-state metric and contrast-floor validation for #109 and its consumers in `internal/releasegate/validate.go`
 - [x] T013 [US1] Implement navigation/Options and scroll-input validation for #104-#106/#111 in `internal/releasegate/validate.go`
 - [x] T014 [US1] Implement Tasks and Schedule/Activity table validation for #112/#113 in `internal/releasegate/validate.go`
-- [x] T015 [US1] Update the passing 43-scenario synthetic evidence in `internal/releasegate/validate_test.go` and `test/fixtures/windows-release-gate/passing/evidence.json`
+- [x] T015 [US1] Update the passing 47-scenario synthetic evidence in `internal/releasegate/validate_test.go` and `test/fixtures/windows-release-gate/passing/evidence.json`
 - [x] T016 [US1] Run focused validator and CLI tests, including race coverage, and record the green result in `specs/047-windows-release-qualification/verification.md`
 
 **Checkpoint**: The cross-platform gate machine-enforces every desktop evidence
@@ -58,13 +58,13 @@ family while rejecting its synthetic fixture through the production path.
 **Goal**: The attended collector creates one complete, reviewable template for
 every new observation and preserves its overwrite protections.
 
-**Independent Test**: Initialize against an inert MSI, inspect all 43 unique
-placeholders and 23 setup/remove/desktop templates, and prove malformed or
+**Independent Test**: Initialize against an inert MSI, inspect all 47 unique
+placeholders and 27 setup/remove/desktop templates, and prove malformed or
 incomplete imports remain fail-closed.
 
 - [x] T017 [US2] Generalize scenario-template creation without changing lifecycle fields in `test/windows/Invoke-ReleaseCandidateAttended.ps1`
 - [x] T018 [US2] Add complete desktop metric templates and screenshot paths in `test/windows/Invoke-ReleaseCandidateAttended.ps1`
-- [x] T019 [US2] Append the seven desktop observations and emit their templates during Initialize in `test/windows/Invoke-ReleaseCandidateAttended.ps1`
+- [x] T019 [US2] Append the eleven desktop observations and emit their templates during Initialize in `test/windows/Invoke-ReleaseCandidateAttended.ps1`
 - [x] T020 [US2] Pass the PowerShell parser and Windows integration contract tests and record results in `specs/047-windows-release-qualification/verification.md`
 
 **Checkpoint**: Operator workspaces cannot silently omit or overwrite the new
@@ -129,12 +129,23 @@ repository or release publication has occurred.
 
 ---
 
+## Phase 9: Pull-Request Review Corrections
+
+- [x] T039 Add failing tests proving every visual family requires distinct standard/scaled evidence and declared image metadata cannot disguise non-raster bytes
+- [x] T040 Add four scaled-DPI scenario identities and bind standard/scaled desktop observations to exactly 96 or greater than 96 effective DPI
+- [x] T041 Validate screenshot content from supported raster signatures independently of declared media type and filename extension
+- [x] T042 Expand the checked fixture and attended collector to all 47 observations and 27 generated lifecycle/desktop templates
+- [x] T043 Align the S047 contract, plan, data model, runbook, quickstart, changelog, and verification record with the corrected gate
+- [x] T044 Run the focused and canonical verification gates after review corrections
+
+---
+
 ## Dependencies and Execution Order
 
 ```text
 Phase 1 -> Phase 2 -> US1 gate -> US2 collector -> US4 traceability
         -> automated qualification -> committed source -> US3 demo
-        -> attended pre-push qualification -> final local done gate
+        -> attended pre-push qualification -> pull-request review corrections
 ```
 
 - US1 supplies the canonical scenario contract consumed by US2 and US4.
@@ -142,7 +153,7 @@ Phase 1 -> Phase 2 -> US1 gate -> US2 collector -> US4 traceability
   immutable and auditable.
 - Phase 8 requires physical Windows interaction and maintainer judgment. It is
   the only intended external-input boundary before publication.
-- Push, PR, review, merge, tag staging, formal 43-scenario qualification, issue
+- Merge, tag staging, formal 47-scenario qualification, issue
   closure, and release promotion are publication/release workflow, not unchecked
   implementation tasks.
 

@@ -9,10 +9,10 @@
 | `environment` | reference | Existing unique Windows environment identity |
 | `status` | enum | Only `pass` satisfies release readiness |
 | `metrics` | typed map | Scenario-specific complete evidence |
-| `attachment_paths` | string set | At least one hashed native image for `desktop.*` |
+| `attachment_paths` | string set | At least one hashed native raster image, validated from file bytes, for `desktop.*` |
 
-The seven S047 identities extend, but never replace, the 36 S040 identities.
-The final bundle therefore contains exactly 43 observations.
+The eleven S047 identities extend, but never replace, the 36 S040 identities.
+The final bundle therefore contains exactly 47 observations.
 
 ## DesktopQualificationMetrics
 
@@ -21,7 +21,8 @@ The final bundle therefore contains exactly 43 observations.
 - intended-user account at medium integrity;
 - installed service identity `LocalSystem`;
 - Windows 11 client environment;
-- one or more referenced image attachments;
+- one or more referenced attachments whose bytes identify a supported raster
+  image, independent of declared media type or filename extension;
 - explicit boolean results are true unless the field documents an allowed
   negative state such as `horizontal_scrollbar_present: false`;
 - exact-set fields contain trimmed, unique values with no omissions or extras.
@@ -42,7 +43,10 @@ The final bundle therefore contains exactly 43 observations.
 Same appearance fields, except `effective_dpi` is greater than 96 and equals
 the environment's native value.
 
-### `desktop.interaction-states`
+### `desktop.interaction-states` and `desktop.interaction-states-scaled`
+
+The first uses exactly 96 effective DPI; the scaled variant uses greater than
+96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -53,7 +57,10 @@ the environment's native value.
 | `minimum_non_text_contrast` | At least 3.0 |
 | `labels_readable`, `glyphs_readable`, `selection_identifiable`, `focus_visible`, `non_color_cues_present` | True |
 
-### `desktop.navigation-options`
+### `desktop.navigation-options` and `desktop.navigation-options-scaled`
+
+The first uses exactly 96 effective DPI; the scaled variant uses greater than
+96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -76,7 +83,10 @@ the environment's native value.
 | `touchpad_fine_deltas_preserved` | True when available |
 | `touchpad_unavailable_reason` | Non-empty when unavailable |
 
-### `desktop.tasks-table`
+### `desktop.tasks-table` and `desktop.tasks-table-scaled`
+
+The first uses exactly 96 effective DPI; the scaled variant uses greater than
+96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -89,7 +99,10 @@ the environment's native value.
 | `horizontal_scrollbar_present` | False |
 | `refresh_identity_stable`, `removed_selection_clears`, `toolbar_actions_work`, `double_click_edits` | True |
 
-### `desktop.schedule-activity-tables`
+### `desktop.schedule-activity-tables` and `desktop.schedule-activity-tables-scaled`
+
+The first uses exactly 96 effective DPI; the scaled variant uses greater than
+96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -126,13 +139,13 @@ candidate and its observations cannot be copied as formal pass results.
 | Issue | Formal evidence mapping |
 | --- | --- |
 | #101 | both appearance observations |
-| #104 | navigation/options plus interaction states |
-| #105 | navigation/options plus interaction states |
+| #104 | standard/scaled navigation/options plus interaction states |
+| #105 | standard/scaled navigation/options plus interaction states |
 | #106 | both appearance observations, navigation/options, scroll input |
-| #109 | interaction states plus both table observations |
+| #109 | standard/scaled interaction states plus all table observations |
 | #111 | scroll input |
-| #112 | Tasks table plus interaction states |
-| #113 | Schedule/Activity tables plus interaction states |
+| #112 | standard/scaled Tasks table plus interaction states |
+| #113 | standard/scaled Schedule/Activity tables plus interaction states |
 | #98 | existing setup/removal observations |
 | #96 | aggregate child and release-readiness reconciliation |
 
@@ -154,7 +167,7 @@ flowchart TB
     F -->|No| H[Authorize review-branch publication]
     H --> I[Review and merge]
     I --> J[Authorize tag and stage formal candidate]
-    J --> K[Collect all 43 exact-candidate observations]
+    J --> K[Collect all 47 exact-candidate observations]
     K --> L{Every issue criterion satisfied?}
     L -->|No| M[Keep affected issue and release draft open]
     M --> K

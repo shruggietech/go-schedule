@@ -731,7 +731,14 @@ namespace GoSchedule.ReleaseEvidence {
                 reinstall_result = ''
             }
         }
-        switch ($Id) {
+        $templateId = switch ($Id) {
+            'desktop.interaction-states-scaled' { 'desktop.interaction-states' }
+            'desktop.navigation-options-scaled' { 'desktop.navigation-options' }
+            'desktop.tasks-table-scaled' { 'desktop.tasks-table' }
+            'desktop.schedule-activity-tables-scaled' { 'desktop.schedule-activity-tables' }
+            default { $Id }
+        }
+        switch ($templateId) {
             'setup.shortcut-defaults' {
                 $metrics.start_menu_default = $false
                 $metrics.desktop_default = $false
@@ -1058,10 +1065,14 @@ namespace GoSchedule.ReleaseEvidence {
             'desktop.appearance-standard'
             'desktop.appearance-scaled'
             'desktop.interaction-states'
+            'desktop.interaction-states-scaled'
             'desktop.navigation-options'
+            'desktop.navigation-options-scaled'
             'desktop.scroll-input'
             'desktop.tasks-table'
+            'desktop.tasks-table-scaled'
             'desktop.schedule-activity-tables'
+            'desktop.schedule-activity-tables-scaled'
         )
         $observations = @(
             foreach ($scenarioId in $scenarioIds) {

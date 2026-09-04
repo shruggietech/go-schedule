@@ -255,18 +255,24 @@ observations.
 
 Use the exact installed release candidate. Every row is a required `pass`
 observation from the intended user at medium integrity with the installed
-LocalSystem service and at least one native screenshot. The collector generates
-the metric fields and expected set values, so do not collapse or rename them.
+LocalSystem service and at least one native raster screenshot whose bytes are
+validated independently of its declared media type or extension. The collector
+generates the metric fields and expected set values, so do not collapse or
+rename them.
 
 | Scenario | Issues | Native outcome |
 | --- | --- | --- |
 | `desktop.appearance-standard` | #101, #106 | At 96 DPI, exercise Dark and Light plus System, Geist, Inter, Ubuntu, and Monospace. System is the clean-profile and restored default; text remains sharp, centered, and unclipped after resize, minimize/restore, and reopen. |
 | `desktop.appearance-scaled` | #101, #106 | Repeat the complete appearance observation above 96 DPI, recording the environment's exact effective DPI. |
 | `desktop.interaction-states` | #109 | In both palettes, exercise navigation, selector, ordinary, primary, danger, dialog, and table-row controls at rest, hover, focus, pressed, selected, and disabled. Text contrast is at least 4.5:1, non-text contrast is at least 3:1, and state meaning is not color-only. |
+| `desktop.interaction-states-scaled` | #109 | Repeat the complete interaction-state observation above 96 DPI. |
 | `desktop.navigation-options` | #104, #105, #106 | At 1280x800 and 800x600, prove destination order, spacing, full-height boundary, separate bottom-right Exit, compact storage rows, exact Copy behavior, muted unavailable rows, current-option omission, and no horizontal scrollbar. |
+| `desktop.navigation-options-scaled` | #104, #105, #106 | Repeat the complete navigation and Options observation above 96 DPI. |
 | `desktop.scroll-input` | #111 | At 1x, 2x, and 4x, exercise Options, Info, command, schedule, and Help surfaces. Prove immediate persisted wheel scaling, no nested multiplication, preserved keyboard input, and either physical touchpad precision or a specific unavailability reason. |
 | `desktop.tasks-table` | #112 | With at least 100 rows in both palettes and sizes, prove fixed labeled headers, distinct Enabled/Lifecycle fields, stable whole-row states and refresh identity, complete-value disclosure, safe removal, working toolbar/double-click actions, and no horizontal scrollbar. |
+| `desktop.tasks-table-scaled` | #112 | Repeat the complete Tasks table observation above 96 DPI. |
 | `desktop.schedule-activity-tables` | #113 | With at least 100 rows per view in both palettes and sizes, prove fixed labeled headers, exact schedule-state and uppercase severity sets, matching text/glyph semantics, stable row identity, accurate detail/range/calendar/filter/clear/acknowledge behavior, and no horizontal scrollbar. |
+| `desktop.schedule-activity-tables-scaled` | #113 | Repeat the complete Schedule and Activity observation above 96 DPI. |
 
 Native evidence is required because headless layout, contrast, mapping, and
 scroll tests cannot prove Windows text rasterization, physical input, display

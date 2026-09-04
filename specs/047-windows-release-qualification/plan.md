@@ -6,7 +6,7 @@
 
 ## Summary
 
-Extend the existing cross-platform Windows release validator with seven fixed,
+Extend the existing cross-platform Windows release validator with eleven fixed,
 issue-traceable desktop observations and scenario-specific metric validation.
 Update the resumable PowerShell collector to generate matching templates, expand
 the synthetic fixture and mutation tests, and document one consolidated native
@@ -33,7 +33,7 @@ workflow-staged MSI after review, merge, and authorized tagging.
 
 **Constraints**: UTF-8 without BOM; no new dependency; no visible or interactive child process from automation; no destructive lifecycle automation on the non-disposable development host; no formal native claim from fixtures/headless evidence; no push, PR, tag, workflow dispatch, or release
 
-**Scale/Scope**: Preserve 36 existing scenarios and add 7 desktop scenarios (43 total); eight linked desktop issues plus #98 and coordinator #96; one local demo MSI and inspection report
+**Scale/Scope**: Preserve 36 existing scenarios and add 11 desktop scenarios (47 total); eight linked desktop issues plus #98 and coordinator #96; one local demo MSI and inspection report
 
 ## Constitution Check
 
@@ -61,18 +61,23 @@ Append these identities to the existing canonical sequence:
 1. `desktop.appearance-standard`
 2. `desktop.appearance-scaled`
 3. `desktop.interaction-states`
-4. `desktop.navigation-options`
-5. `desktop.scroll-input`
-6. `desktop.tasks-table`
-7. `desktop.schedule-activity-tables`
+4. `desktop.interaction-states-scaled`
+5. `desktop.navigation-options`
+6. `desktop.navigation-options-scaled`
+7. `desktop.scroll-input`
+8. `desktop.tasks-table`
+9. `desktop.tasks-table-scaled`
+10. `desktop.schedule-activity-tables`
+11. `desktop.schedule-activity-tables-scaled`
 
 Every `desktop.` observation requires one intended-user, medium-integrity
 Windows 11 environment with the installed LocalSystem service and at least one
-image attachment. Standard appearance requires effective DPI 96; scaled
-appearance requires effective DPI greater than 96. The two table observations
-require at least 100 rows per applicable view. Palette and window-size coverage
-use exact string sets to prevent a single screenshot from being described as
-both configurations.
+raster-image attachment validated from its bytes. Every visual family has a
+96-DPI observation and a distinct observation above 96 DPI; scroll input remains
+the standard-DPI physical-input scenario. The four table observations require
+at least 100 rows per applicable view. Palette and window-size coverage use
+exact string sets to prevent a single screenshot from being described as both
+configurations.
 
 ### Metric shape
 
@@ -156,7 +161,7 @@ evidence schema would duplicate promotion semantics and create a bypass risk.
 
 ## Implementation Sequence
 
-1. Pin all seven scenario identities and failing validator/fixture tests.
+1. Pin all eleven scenario identities and failing validator/fixture tests.
 2. Add metric-set parsing and the desktop scenario validators.
 3. Add failing collector contract assertions, then generate desktop templates
    and update the canonical fixture.

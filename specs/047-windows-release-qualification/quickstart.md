@@ -19,7 +19,7 @@ pwsh -NoProfile -Command "[void][scriptblock]::Create((Get-Content -Raw test/win
 pwsh -NoProfile -File build/windows/verify_wxs.ps1
 ```
 
-Expected: the passing fixture contains 43 scenarios; deleting or corrupting a
+Expected: the passing fixture contains 47 scenarios; deleting or corrupting a
 new desktop scenario fails with its identity/metric; production validation
 rejects the fixture class; the collector parses; installer authoring passes.
 
@@ -73,7 +73,7 @@ The maintainer decides whether the local demo is a valid release target. A
 reproducible in-scope blocker is recorded before code changes, gets a failing
 test, and requires a new MSI/hash plus a repeat of affected checks. Accepted
 post-v1 polish is filed as a GitHub issue and does not expand S047. The full
-43-scenario matrix is executed later against the formal post-merge candidate.
+47-scenario matrix is executed later against the formal post-merge candidate.
 
 ## 7. Stop before publication
 
@@ -90,6 +90,6 @@ At the S047 halt, report:
 
 After review and merge, an independently authorized tag stages the formal MSI.
 Initialize `Invoke-ReleaseCandidateAttended.ps1` from that exact draft asset,
-complete all 43 scenarios, finalize the archive, reconcile each issue, and only
+complete all 47 scenarios, finalize the archive, reconcile each issue, and only
 then authorize promotion. Local S047 demo results must be repeated rather than
 copied into the formal bundle.

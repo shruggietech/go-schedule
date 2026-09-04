@@ -1,12 +1,14 @@
 package releasegate
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -31,7 +33,7 @@ var requiredScenarios = []string{
 	"task.manual-success", "task.scheduled-success", "task.nonzero-exit", "task.start-failure",
 	"setup.shortcut-defaults", "setup.shortcut-matrix", "setup.completion-matrix", "setup.finish-launch-integrity", "setup.cancel", "setup.maintenance", "setup.upgrade", "setup.invalid-input", "setup.rollback",
 	"remove.preserve", "remove.wipe", "remove.cancel", "remove.multiple-profiles", "remove.locked-partial", "remove.reinstall-after-preserve", "remove.reinstall-after-wipe",
-	"desktop.appearance-standard", "desktop.appearance-scaled", "desktop.interaction-states", "desktop.navigation-options", "desktop.scroll-input", "desktop.tasks-table", "desktop.schedule-activity-tables",
+	"desktop.appearance-standard", "desktop.appearance-scaled", "desktop.interaction-states", "desktop.interaction-states-scaled", "desktop.navigation-options", "desktop.navigation-options-scaled", "desktop.scroll-input", "desktop.tasks-table", "desktop.tasks-table-scaled", "desktop.schedule-activity-tables", "desktop.schedule-activity-tables-scaled",
 }
 
 var validStatuses = map[string]bool{
@@ -343,13 +345,13 @@ func (v *validator) validateObservations() {
 		}
 		if strings.HasPrefix(observation.ID, "window.") {
 			v.requireAttachmentPurpose(prefix, observation, "native window measurement")
-			v.requireAttachmentMedia(prefix, observation, "image/")
+			v.requireRasterImage(prefix, observation)
 		}
 		if strings.HasPrefix(observation.ID, "error.") ||
 			strings.HasPrefix(observation.ID, "setup.") ||
 			strings.HasPrefix(observation.ID, "remove.") ||
 			strings.HasPrefix(observation.ID, "desktop.") {
-			v.requireAttachmentMedia(prefix, observation, "image/")
+			v.requireRasterImage(prefix, observation)
 		}
 		if strings.HasPrefix(observation.ID, "task.") {
 			v.requireAttachmentPurpose(prefix, observation, "task run evidence")
@@ -373,13 +375,59 @@ func (v *validator) requireAttachmentPurpose(prefix string, o *Observation, purp
 	v.add("%s requires an attachment with purpose %q", prefix, purpose)
 }
 
-func (v *validator) requireAttachmentMedia(prefix string, o *Observation, mediaPrefix string) {
+func (v *validator) requireRasterImage(prefix string, o *Observation) {
 	for _, name := range o.AttachmentPaths {
-		if attachment, ok := v.attachments[name]; ok && strings.HasPrefix(attachment.MediaType, mediaPrefix) {
+		if _, ok := v.attachments[name]; !ok {
+			continue
+		}
+		full := filepath.Join(v.root, filepath.FromSlash(name))
+		if rasterImageFile(full) {
 			return
 		}
 	}
-	v.add("%s requires an attachment with media_type prefix %q", prefix, mediaPrefix)
+	v.add("%s requires an attachment containing a supported raster image", prefix)
+}
+
+func rasterImageFile(name string) bool {
+	file, err := os.Open(name)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	header := make([]byte, 512)
+	n, err := io.ReadFull(file, header)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return false
+	}
+	header = header[:n]
+	switch http.DetectContentType(header) {
+	case "image/png", "image/jpeg", "image/gif", "image/bmp":
+		return true
+	}
+	if len(header) >= 12 && string(header[:4]) == "RIFF" && string(header[8:12]) == "WEBP" {
+		return true
+	}
+	return validPlainPPM(header)
+}
+
+func validPlainPPM(data []byte) bool {
+	reader := bytes.NewReader(data)
+	var magic string
+	var width, height, maximum int
+	if _, err := fmt.Fscan(reader, &magic, &width, &height, &maximum); err != nil ||
+		magic != "P3" || width <= 0 || height <= 0 || maximum <= 0 || maximum > 65535 ||
+		width > 10000 || height > 10000 {
+		return false
+	}
+	samples := width * height * 3
+	for i := 0; i < samples; i++ {
+		var sample int
+		if _, err := fmt.Fscan(reader, &sample); err != nil || sample < 0 || sample > maximum {
+			return false
+		}
+	}
+	return true
 }
 
 func (v *validator) validateRelationships(observations map[string]*Observation) {
@@ -432,17 +480,18 @@ func (v *validator) validateScenario(prefix string, o *Observation, env Environm
 
 func (v *validator) validateDesktop(prefix string, o *Observation, env Environment) {
 	v.requireRoutine(prefix, env)
+	v.validateDesktopDPI(prefix, o.ID, env)
 	switch o.ID {
 	case "desktop.appearance-standard", "desktop.appearance-scaled":
 		v.validateDesktopAppearance(prefix, o, env)
-	case "desktop.interaction-states":
+	case "desktop.interaction-states", "desktop.interaction-states-scaled":
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "control_families", "navigation", "selector", "ordinary", "primary", "danger", "dialog", "table-row")
 		v.requireExactSet(prefix, o.Metrics, "states", "rest", "hover", "focus", "pressed", "selected", "disabled")
 		v.requireNumber(prefix, o.Metrics, "minimum_text_contrast", 4.5, math.MaxFloat64)
 		v.requireNumber(prefix, o.Metrics, "minimum_non_text_contrast", 3, math.MaxFloat64)
 		v.requireTrue(prefix, o.Metrics, "labels_readable", "glyphs_readable", "selection_identifiable", "focus_visible", "non_color_cues_present")
-	case "desktop.navigation-options":
+	case "desktop.navigation-options", "desktop.navigation-options-scaled":
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
 		v.requireString(prefix, o.Metrics, "destination_order", "tasks,groups,chains,schedule,activity,options,info")
@@ -460,7 +509,7 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		} else {
 			v.requireNonEmpty(prefix, o.Metrics, "touchpad_unavailable_reason")
 		}
-	case "desktop.tasks-table":
+	case "desktop.tasks-table", "desktop.tasks-table-scaled":
 		v.requireInteger(prefix, o.Metrics, "row_count", 100, math.MaxInt32)
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
@@ -468,7 +517,7 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		v.requireExactSet(prefix, o.Metrics, "row_states", "odd", "even", "hover", "focus", "selected")
 		v.requireTrue(prefix, o.Metrics, "headers_frozen", "status_dimensions_distinct", "bracket_decoration_absent", "full_values_discoverable", "refresh_identity_stable", "removed_selection_clears", "toolbar_actions_work", "double_click_edits")
 		v.requireFalse(prefix, o.Metrics, "horizontal_scrollbar_present")
-	case "desktop.schedule-activity-tables":
+	case "desktop.schedule-activity-tables", "desktop.schedule-activity-tables-scaled":
 		v.requireInteger(prefix, o.Metrics, "schedule_row_count", 100, math.MaxInt32)
 		v.requireInteger(prefix, o.Metrics, "activity_row_count", 100, math.MaxInt32)
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
@@ -480,6 +529,16 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		v.requireExactSet(prefix, o.Metrics, "row_states", "odd", "even", "hover", "focus", "selected")
 		v.requireTrue(prefix, o.Metrics, "headers_frozen", "semantic_text_glyphs_match", "non_color_cues_present", "full_values_discoverable", "refresh_identity_stable", "removed_selection_clears", "detail_activation_accurate", "range_calendar_switching", "filter_clear_acknowledge")
 		v.requireFalse(prefix, o.Metrics, "horizontal_scrollbar_present")
+	}
+}
+
+func (v *validator) validateDesktopDPI(prefix, id string, env Environment) {
+	scaled := id == "desktop.appearance-scaled" || strings.HasSuffix(id, "-scaled")
+	if scaled && env.EffectiveDPI <= 96 {
+		v.add("%s must use an environment greater than 96 DPI", prefix)
+	}
+	if !scaled && env.EffectiveDPI != 96 {
+		v.add("%s must use an environment at exactly 96 DPI", prefix)
 	}
 }
 

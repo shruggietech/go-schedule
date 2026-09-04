@@ -20,14 +20,17 @@ so one bundle is also the most efficient attended workflow.
 - Close the issues from headless tests. Rejected because the issues explicitly
   require native rendering and physical-input evidence.
 
-## Decision 2: Seven outcome-oriented observations
+## Decision 2: Eleven outcome-oriented observations
 
-**Decision**: Use seven `desktop.` scenarios organized around appearance,
-interaction, navigation/Options, input, and the two table families.
+**Decision**: Use eleven `desktop.` scenarios organized around appearance,
+interaction, navigation/Options, input, and the two table families. Every
+visual family has separate 96-DPI and scaled-DPI observations; physical scroll
+input remains a standard-DPI scenario.
 
 **Rationale**: One scenario per checkbox would be unmanageable, while one
-generic `desktop.acceptance` boolean would be unauditable. Seven scenarios align
-with the implementation boundaries and allow an individual issue to point at a
+generic `desktop.acceptance` boolean would be unauditable. Eleven scenarios
+align with the implementation boundaries, prevent standard-DPI evidence from
+standing in for scaled rendering, and allow an individual issue to point at a
 small, coherent evidence set.
 
 **Alternatives considered**:
@@ -60,12 +63,14 @@ schema dependency.
 
 ## Decision 4: Require screenshots for every desktop observation
 
-**Decision**: Each `desktop.` observation references at least one image
-attachment; structured metrics remain mandatory alongside it.
+**Decision**: Each `desktop.` observation references at least one raster-image
+attachment validated from its content signature rather than trusted metadata
+or filename; structured metrics remain mandatory alongside it.
 
 **Rationale**: Metrics prove checklist completeness, but font sharpness,
 restrained color, clipping, row appearance, and state legibility require native
-visual review. Hashing attachments binds the review evidence to the bundle.
+visual review. Content inspection excludes mislabeled text/vector files, and
+hashing attachments binds the review evidence to the bundle.
 
 **Alternatives considered**:
 

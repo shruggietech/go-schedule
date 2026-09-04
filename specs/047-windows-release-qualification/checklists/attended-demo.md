@@ -4,7 +4,7 @@
 
 This is the concise pre-push usability record for the exact local demo. The
 assistant collected artifact and environment metadata and translated the
-maintainer's ordinary walkthrough into evidence. The exhaustive 43-scenario
+maintainer's ordinary walkthrough into evidence. The exhaustive 47-scenario
 checklist remains mandatory only for the formal post-merge release candidate.
 
 ## Identity collected by automation

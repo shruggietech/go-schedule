@@ -6,8 +6,8 @@
 
 ## Current result
 
-Implemented and accepted locally. The production gate requires 43 scenarios,
-the collector emits all seven desktop templates, the exact local demo passed
+Implemented and accepted locally. The production gate requires 47 scenarios,
+the collector emits all eleven desktop templates, the exact local demo passed
 compiled inspection, and the maintainer accepted it as a valid release target.
 All three accepted usability findings are tracked as Post-v1 issues. Push and
 pull-request publication remain intentionally unperformed.
@@ -47,6 +47,16 @@ Tests were added before validator or collector implementation.
 Both failures isolate the missing S047 behavior. No product/runtime test was
 weakened or skipped.
 
+Second-round review corrections also began with focused red tests:
+
+| Command | Expected failure |
+| --- | --- |
+| `go test ./internal/releasegate -run 'TestRequiredScenarioIDsIncludeDesktopQualification|TestValidateRejectsDeclaredImageWithNonRasterBytes' -count=1` | `RequiredScenarioIDs() count = 43, want 47`; mislabeled text produced no validation failure |
+
+The corrections add distinct scaled observations for interaction, navigation,
+Tasks, and Schedule/Activity and inspect raster signatures from attachment bytes
+instead of trusting declared media types or extensions.
+
 ## Evidence and issue boundaries
 
 - Formal candidate execution is impossible before review, merge, and separately
@@ -81,12 +91,18 @@ PASS.
 - Coverage thresholds: engine 86.4%, schedule 89.2%, timezone 91.3%, store
   84.1%, catchup 88.9%, and logbus 91.1%.
 - Specification lifecycle: PASS for 47 lifecycle-consistent specifications.
-- Task format: PASS for 38 unique S047 task identities.
+- Task format: PASS for 44 unique S047 task identities.
 - Strict UTF-8/no-BOM and mojibake audit: PASS for all 21 changed or added
   paths.
 - Unresolved template placeholder audit: PASS.
 - `git diff --check`: PASS (the existing Git line-ending advisory for the
   PowerShell collector is non-failing and does not indicate whitespace damage).
+
+After the second-round review corrections, the focused release-gate and CLI
+tests, collector integration contracts, PowerShell parser, WiX source check,
+and all eight canonical gates passed again. The task inventory now contains 44
+unique completed S047 implementation tasks; GitHub thread resolution and hosted
+CI remain publication operations outside the Implemented lifecycle contract.
 
 No validation threshold, existing scenario, test, or release-origin check was
 removed or weakened.
@@ -162,7 +178,7 @@ authorized or required. Three explicitly issue-only findings were created:
 | #120 | Post-v1: Tasks should expose effective suppression by a disabled group or ancestor. |
 
 Process deviation: the initial pre-push checklist duplicated much of the formal
-43-scenario release ceremony and imposed excessive manual work. The maintainer
+47-scenario release ceremony and imposed excessive manual work. The maintainer
 rejected that burden. S047 now uses ordinary exploratory acceptance for the
 local demo, collects machine-readable facts automatically, and preserves the
 exhaustive matrix for the only artifact it can formally qualify: the later
