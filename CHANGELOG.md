@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **v1.0.0 release operations can now generate deterministic issue disposition
+  packets (Refs #122).** One offline command reuses the production evidence,
+  archive, candidate-manifest, artifact, and identity validators before
+  atomically writing ten issue-specific Markdown records plus a machine-readable
+  index. Fixed observation mappings, escaped evidence text, immutable candidate
+  links, and overwrite refusal reduce reconciliation errors without changing
+  GitHub state or weakening individual issue acceptance.
+
 - **Windows release promotion now requires complete desktop qualification
   evidence (Refs #96, #98, #101, #104, #105, #106, #109, #111, #112,
   #113).** S047 expands the existing exact-candidate gate from 36 to 47 fixed
@@ -147,6 +155,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Shell `System.Subject` consumed by Explorer.
 
 ### Decisions
+
+- **2026-09-03 - Advance the final v1.0.0 tag boundary to reviewed S049.** The
+  required release-operations pull request necessarily advances `main` beyond
+  S048, so the old equality preflight could no longer succeed. S049 is limited
+  to release tooling, tests, specifications, and operator documentation; the
+  reviewed S049 merge commit therefore becomes the pinned tag target without
+  changing packaged runtime behavior. Tag creation and publication still
+  require separate maintainer authorization.
 
 - **2026-09-03 - Close desktop release work by scenario evidence, not slice
   association.** S042, S044, S045, and S046 supplied implementation and

@@ -134,6 +134,40 @@ func TestMSIInspectorCanWriteExactCandidateManifest(t *testing.T) {
 	}
 }
 
+func TestWindowsReleaseGateRendersOfflineFailClosedDispositionPacket(t *testing.T) {
+	t.Parallel()
+
+	command := releaseGateFile(t, "scripts", "windows-release-gate", "main.go")
+	for _, required := range []string{
+		`case "render-dispositions":`,
+		`releasegate.Validate(evidence, root, *artifactPath, *options)`,
+		`releasegate.ValidateBundleContents(root, evidence)`,
+		`releasegate.ValidateCandidateManifest(evidence.Candidate, manifest)`,
+		`releasegate.WriteDispositionPacket(*outputDir, evidence)`,
+	} {
+		if !strings.Contains(command, required) {
+			t.Fatalf("render-dispositions command missing %q", required)
+		}
+	}
+
+	renderer := releaseGateFile(t, "internal", "releasegate", "disposition.go")
+	for _, required := range []string{
+		`Issue: 96`, `Issue: 98`, `Issue: 101`, `Issue: 104`, `Issue: 105`,
+		`Issue: 106`, `Issue: 109`, `Issue: 111`, `Issue: 112`, `Issue: 113`,
+		`fmt.Sprintf("issue-%03d.md"`, "packet.json",
+		"os.MkdirTemp", "os.Rename", "os.Lstat",
+	} {
+		if !strings.Contains(renderer, required) {
+			t.Fatalf("disposition renderer missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{"net/http", "api.github.com", "gh issue", "gh release"} {
+		if strings.Contains(command, forbidden) || strings.Contains(renderer, forbidden) {
+			t.Fatalf("offline disposition path contains forbidden %q", forbidden)
+		}
+	}
+}
+
 func releaseGateFile(t *testing.T, parts ...string) string {
 	t.Helper()
 	_, current, _, ok := runtime.Caller(0)

@@ -46,7 +46,8 @@ make_fixture() {
   mkdir -p "$fixture/.github/workflows" \
     "$fixture/.github/release-notes" \
     "$fixture/scripts/brand-check" \
-    "$fixture/specs"
+    "$fixture/specs/048-v100-release-cut/contracts" \
+    "$fixture/test/windows"
   cat > "$fixture/go.mod" <<'EOF'
 module fixture
 
@@ -211,6 +212,14 @@ EOF
 
 Read the [full changelog](https://github.com/shruggietech/go-schedule/blob/v0.9.0/CHANGELOG.md#090---2026-08-30) for every change.
 EOF
+  cat > "$fixture/specs/048-v100-release-cut/contracts/publication.md" <<'EOF'
+Require HEAD, origin/main, and the reviewed S049 merge commit to match.
+Run windows-release-gate render-dispositions after formal qualification.
+EOF
+  cat > "$fixture/test/windows/README.md" <<'EOF'
+Run windows-release-gate render-dispositions against the exact candidate.
+The packet does not update or close GitHub issues.
+EOF
   cat > "$fixture/scripts/verify.sh" <<EOF
 #!/bin/sh
 if [ "\${1:-}" = list ]; then
@@ -230,6 +239,30 @@ run_automation_cases() {
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
   run_expect_pass approved sh "$CHECK" "$good"
+
+  stale_tag_boundary="$tmp/stale-tag-boundary"
+  cp -R "$good" "$stale_tag_boundary"
+  sed 's/reviewed S049 merge commit/reviewed S048 merge commit/' \
+    "$good/specs/048-v100-release-cut/contracts/publication.md" > \
+    "$stale_tag_boundary/specs/048-v100-release-cut/contracts/publication.md"
+  run_expect_fail stale-tag-boundary 'S049 tag-boundary identity' \
+    sh "$CHECK" "$stale_tag_boundary"
+
+  missing_packet_command="$tmp/missing-packet-command"
+  cp -R "$good" "$missing_packet_command"
+  sed 's/windows-release-gate render-dispositions/manual packet copying/' \
+    "$good/test/windows/README.md" > \
+    "$missing_packet_command/test/windows/README.md"
+  run_expect_fail missing-packet-command 'operator disposition command' \
+    sh "$CHECK" "$missing_packet_command"
+
+  missing_non_authority="$tmp/missing-non-authority"
+  cp -R "$good" "$missing_non_authority"
+  sed 's/does not update or close/is complete and may close/' \
+    "$good/test/windows/README.md" > \
+    "$missing_non_authority/test/windows/README.md"
+  run_expect_fail missing-non-authority 'non-authority boundary' \
+    sh "$CHECK" "$missing_non_authority"
 
   generated_notes="$tmp/generated-notes"
   cp -R "$good" "$generated_notes"
