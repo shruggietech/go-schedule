@@ -313,7 +313,7 @@ go run ./scripts/windows-release-gate render-dispositions `
 ```
 
 The output directory must not already exist. A successful run creates
-`packet.json` plus `issue-96.md`, `issue-98.md`, `issue-101.md`, `issue-104.md`,
+`packet.json` plus `issue-096.md`, `issue-098.md`, `issue-101.md`, `issue-104.md`,
 `issue-105.md`, `issue-106.md`, `issue-109.md`, `issue-111.md`, `issue-112.md`,
 and `issue-113.md` in one atomic directory commit. Review every record and post
 only the matching record to its issue. The packet does not update or close

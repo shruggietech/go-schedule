@@ -36,10 +36,20 @@ func TestIssueDispositionMappingsAreExactAndCopied(t *testing.T) {
 	if !reflect.DeepEqual(mappings[1].ObservationIDs, want98) {
 		t.Fatalf("#98 observations = %v, want %v", mappings[1].ObservationIDs, want98)
 	}
+	if !reflect.DeepEqual(mappings[0].ChildIssues, []int{97, 98, 94}) {
+		t.Fatalf("#96 child issues = %v", mappings[0].ChildIssues)
+	}
+	if !reflect.DeepEqual(mappings[0].PrerequisiteIssues, []int{89, 90}) {
+		t.Fatalf("#96 prerequisite issues = %v", mappings[0].PrerequisiteIssues)
+	}
 
 	mappings[0].ObservationIDs[0] = "mutated"
+	mappings[0].ChildIssues[0] = 999
 	if IssueDispositionMappings()[0].ObservationIDs[0] == "mutated" {
 		t.Fatal("IssueDispositionMappings returned mutable package state")
+	}
+	if IssueDispositionMappings()[0].ChildIssues[0] == 999 {
+		t.Fatal("IssueDispositionMappings returned mutable relationship state")
 	}
 }
 
@@ -111,6 +121,9 @@ func TestRenderDispositionPacketIsCompleteDeterministicAndSafe(t *testing.T) {
 		"access.intended-user",
 		"setup.shortcut-defaults",
 		"remove.reinstall-after-wipe",
+		"Coordinator child issues: #97, #98, #94",
+		"Completed implementation prerequisites: #89, #90",
+		"Independent closure boundary: #98",
 		"&#64;octocat",
 		"&lt;unsafe&gt;",
 		"summary \\|",

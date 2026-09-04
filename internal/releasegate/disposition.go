@@ -16,9 +16,10 @@ import (
 // IssueDispositionMapping binds one release-readiness issue to the formal
 // candidate observations that support its individual acceptance review.
 type IssueDispositionMapping struct {
-	Issue          int
-	ObservationIDs []string
-	RelatedIssues  []int
+	Issue              int
+	ObservationIDs     []string
+	ChildIssues        []int
+	PrerequisiteIssues []int
 }
 
 // DispositionFile is one deterministic file in a rendered issue packet.
@@ -47,7 +48,7 @@ type dispositionRename func(string, string) error
 func IssueDispositionMappings() []IssueDispositionMapping {
 	required := RequiredScenarioIDs()
 	mappings := []IssueDispositionMapping{
-		{Issue: 96, ObservationIDs: required[:36], RelatedIssues: []int{97, 98, 94, 89, 90}},
+		{Issue: 96, ObservationIDs: required[:36], ChildIssues: []int{97, 98, 94}, PrerequisiteIssues: []int{89, 90}},
 		{Issue: 98, ObservationIDs: required[20:36]},
 		{Issue: 101, ObservationIDs: []string{
 			"desktop.appearance-standard", "desktop.appearance-scaled",
@@ -83,9 +84,10 @@ func IssueDispositionMappings() []IssueDispositionMapping {
 	result := make([]IssueDispositionMapping, len(mappings))
 	for i, mapping := range mappings {
 		result[i] = IssueDispositionMapping{
-			Issue:          mapping.Issue,
-			ObservationIDs: append([]string(nil), mapping.ObservationIDs...),
-			RelatedIssues:  append([]int(nil), mapping.RelatedIssues...),
+			Issue:              mapping.Issue,
+			ObservationIDs:     append([]string(nil), mapping.ObservationIDs...),
+			ChildIssues:        append([]int(nil), mapping.ChildIssues...),
+			PrerequisiteIssues: append([]int(nil), mapping.PrerequisiteIssues...),
 		}
 	}
 	return result
@@ -230,15 +232,14 @@ func renderIssueDisposition(candidate Candidate, mapping IssueDispositionMapping
 	archiveURL := fmt.Sprintf("https://github.com/%s/releases/download/%s/%s", candidate.Repository, candidate.Tag, archiveName)
 	fmt.Fprintf(&builder, "\n- Workflow run: [%d attempt %d](%s)\n", candidate.RunID, candidate.RunAttempt, runURL)
 	fmt.Fprintf(&builder, "- Evidence archive: [`%s`](%s)\n", archiveName, archiveURL)
-	if len(mapping.RelatedIssues) != 0 {
-		builder.WriteString("- Coordinator references: ")
-		for i, issue := range mapping.RelatedIssues {
-			if i != 0 {
-				builder.WriteString(", ")
-			}
-			fmt.Fprintf(&builder, "#%d", issue)
-		}
-		builder.WriteString("\n")
+	if len(mapping.ChildIssues) != 0 {
+		writeIssueReferences(&builder, "Coordinator child issues", mapping.ChildIssues)
+	}
+	if len(mapping.PrerequisiteIssues) != 0 {
+		writeIssueReferences(&builder, "Completed implementation prerequisites", mapping.PrerequisiteIssues)
+	}
+	if mapping.Issue == 96 {
+		builder.WriteString("- Independent closure boundary: #98 must satisfy its own acceptance criteria and formal evidence before its state feeds the #96 coordinator checklist.\n")
 	}
 
 	environmentIDs := make(map[string]bool)
@@ -318,6 +319,17 @@ func renderIssueDisposition(candidate Candidate, mapping IssueDispositionMapping
 
 func writeCandidateRow(builder *strings.Builder, field, value string) {
 	fmt.Fprintf(builder, "| %s | `%s` |\n", field, markdownCell(value))
+}
+
+func writeIssueReferences(builder *strings.Builder, label string, issues []int) {
+	fmt.Fprintf(builder, "- %s: ", label)
+	for i, issue := range issues {
+		if i != 0 {
+			builder.WriteString(", ")
+		}
+		fmt.Fprintf(builder, "#%d", issue)
+	}
+	builder.WriteString("\n")
 }
 
 func markdownCell(value string) string {

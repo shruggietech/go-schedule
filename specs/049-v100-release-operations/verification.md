@@ -162,3 +162,16 @@ were accepted and corrected:
 Focused tests and race tests passed on Windows, Linux and macOS release-gate
 packages cross-compiled successfully, and the complete canonical eight-gate
 aggregate passed after these corrections.
+
+## Second Codex Review
+
+Both findings on commit `26a8dcc8f4d808c178442ee13eb47b51c6af40a7`
+were accepted and corrected:
+
+1. The #96 mapping and rendered record now distinguish coordinator children
+   #97, #98, and #94 from completed implementation prerequisites #89 and #90,
+   and explicitly preserve #98's independent closure boundary.
+2. The Windows operator guide now uses the renderer's exact zero-padded
+   `issue-096.md` and `issue-098.md` filenames.
+
+No further Codex review round will be requested, honoring the two-round limit.

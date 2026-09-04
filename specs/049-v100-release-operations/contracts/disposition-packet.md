@@ -84,6 +84,9 @@ The exact mappings are the table in `spec.md`. #96 contains the first 36
 pre-desktop values from `releasegate.RequiredScenarioIDs()` in canonical order;
 #98 contains the 16 setup/removal values from that same canonical list. Packet
 files are ordered by issue number, and observations retain canonical order.
+The #96 record identifies #97, #98, and #94 as coordinator children; #89 and
+#90 as completed implementation prerequisites; and #98 as an independent
+closure boundary whose own acceptance remains mandatory.
 
 ## Markdown contract
 
