@@ -46,7 +46,7 @@ evidence. S050 therefore deviates from the planned promotion path as follows:
   or milestone was closed;
 - the green draft was published directly after tag, manifest, MSI, installed
   version, service identity, ordinary-user health, and payload hashes passed;
-- `SHA256SUMS` was generated for the eight staged payloads and verified again
+- `SHA256SUMS.txt` was generated for the eight staged payloads and verified again
   from a fresh public download;
 - issue #122 remains open with the exact exception and unfinished criteria.
 

@@ -95,7 +95,7 @@ formal archive. Following the maintainer's direct publication instruction, S050
 published the existing green draft through the GitHub release operation instead
 of manufacturing evidence or weakening the tagged workflow.
 
-Before publication, `SHA256SUMS` was generated from and verified against all
+Before publication, `SHA256SUMS.txt` was generated from and verified against all
 eight unchanged staged payloads. Release notes were corrected to describe the
 evidence actually available and no longer claim formal candidate-bound evidence.
 No package was rebuilt, replaced, renamed, or resigned.
@@ -113,7 +113,7 @@ APIs resolve to that release, report draft `false` and prerelease `false`, and
 identify tag `v1.0.0`.
 
 A fresh download into
-`A:/_tmp/go-schedule-v1.0.0-s050/public-audit` produced these nine non-empty
+`A:/_tmp/go-schedule-v1.0.0-s050/public-audit-round1` produced these nine non-empty
 assets:
 
 | Asset | Bytes | SHA-256 |
@@ -126,9 +126,9 @@ assets:
 | `go-schedule-desktop_v1.0.0_darwin_arm64.tar.gz` | 22,925,485 | `47894f91c6ce9f842d715270dcbebe0a2a8d9d0d967ff6830e2b644d249e8322` |
 | `go-schedule-desktop_v1.0.0_linux_amd64.tar.gz` | 23,923,734 | `3c0a71ed1b866fd9e1505aeecebed157d40723c3c0da8936f415ac2509dfca64` |
 | `windows-candidate-manifest.json` | 449 | `334bf4f9ed0e2a98f3982faf1925ff7c379ca2f4cb1c8e0ab10a6308fb489d99` |
-| `SHA256SUMS` | 844 | `bbed47fba351c9c9b60de7ba69f7e2f744f580ee1133b4d70166b814e351251e` |
+| `SHA256SUMS.txt` | 844 | `bbed47fba351c9c9b60de7ba69f7e2f744f580ee1133b4d70166b814e351251e` |
 
-All eight payload entries in `SHA256SUMS` passed after the fresh public
+All eight payload entries in `SHA256SUMS.txt` passed after the fresh public
 download. The README uses the latest-public-release badge, the tagged changelog
 contains the v1.0.0 boundary, and the release notes link to that boundary.
 
@@ -175,3 +175,24 @@ Final integrity audit: PASS.
   Unreleased changelog; candidate runtime, packaging, and workflow paths have
   zero changes.
 - `git diff --check` reports no whitespace errors.
+
+## First Codex review
+
+The first external review of commit
+`9620e5ebf16d846a7095b5449dff27d9f48f0b22` identified two valid P1 findings:
+
+1. The checksum asset was named `SHA256SUMS`, while README and platform install
+   guides direct users to `SHA256SUMS.txt`.
+2. The Phase 5 checkpoint called the exception-published release qualified even
+   though the same task record correctly waived formal qualification.
+
+The public asset was renamed in place to `SHA256SUMS.txt` without changing its
+844 bytes or SHA-256
+`bbed47fba351c9c9b60de7ba69f7e2f744f580ee1133b4d70166b814e351251e`.
+A second fresh public download retrieved the canonical filename and all eight
+payload entries verified again. The S050 task goals, dispositions, and
+checkpoints now state that formal qualification remains incomplete and that the
+release is public under exception rather than qualified.
+
+Post-fix documentation, automation, 50-spec lifecycle, and whitespace checks
+all passed before the correction commit was pushed.

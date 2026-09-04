@@ -37,6 +37,9 @@ may start until this phase passes.
 **Goal**: Produce one independently valid 47-observation formal archive from
 the exact staged MSI.
 
+**Disposition**: Waived by the explicit publication exception. Formal
+qualification remains incomplete.
+
 **Independent Test**: The production bundle validator accepts the finalized ZIP
 only with the separately downloaded manifest and MSI.
 
@@ -49,13 +52,16 @@ only with the separately downloaded manifest and MSI.
 - [x] T014 [US1] WAIVED because no formal archive exists; preserve the production validator without invoking it on fabricated input
 - [x] T015 [US1] Record the zero imported formal observations, absent archive, and explicit maintainer waiver in `specs/050-v100-release-execution/verification.md`
 
-**Checkpoint**: Formal candidate evidence is complete, immutable, and independently valid.
+**Checkpoint**: Formal candidate evidence remains incomplete; no archive or
+passing observation claim was created.
 
 ---
 
 ## Phase 4: User Story 2 - Reconcile Readiness Issues Individually (Priority: P1)
 
 **Goal**: Apply evidence only to issues whose complete acceptance criteria pass.
+
+**Disposition**: No evidence disposition was available, so no issue was closed.
 
 **Independent Test**: The draft has nine exact assets, the packet has ten
 records plus one index, and live issue/coordinator states match individual
@@ -69,25 +75,28 @@ review decisions.
 - [x] T021 [US2] Preserve #96 as open because its evidence-dependent child criteria are unresolved
 - [x] T022 [US2] Record the absence of disposition files, zero closure comments, final issue states, and the publication-exception audit URL in `specs/050-v100-release-execution/verification.md`
 
-**Checkpoint**: Every v1 readiness issue is individually satisfied and #122 remains open.
+**Checkpoint**: Evidence-dependent readiness issues and #122 remain open with
+their unresolved criteria visible.
 
 ---
 
 ## Phase 5: User Story 3 - Publish and Audit v1.0.0 (Priority: P2)
 
-**Goal**: Publish the qualified draft and prove all public/project identities agree.
+**Goal**: Publish the existing draft under the explicit exception and audit the
+public/project identities that can be proven.
 
-**Independent Test**: The promotion workflow succeeds, all ten public assets
-verify independently, and issue/milestone/latest-release state is consistent.
+**Independent Test**: All nine public assets verify independently, the latest-
+release pointer is correct, and issue/milestone state accurately remains open.
 
 - [x] T023 [US3] Reverify remote tag immutability, the exact eight-asset staged state, absent formal evidence, and all readiness issue states before the exception publication
 - [x] T024 [US3] WAIVED by direct maintainer instruction: publish the existing draft without dispatching `Promote Release`, and record that exception
-- [x] T025 [US3] Generate `SHA256SUMS` for the eight unchanged staged payloads, verify it locally, upload it, and publish the existing release without rebuilding assets
+- [x] T025 [US3] Generate `SHA256SUMS.txt` for the eight unchanged staged payloads, verify it locally, upload it, and publish the existing release without rebuilding assets
 - [x] T026 [US3] Download all nine public assets into `A:/_tmp/go-schedule-v1.0.0-s050/public-audit` and independently verify names, non-empty bytes, and all eight payload checksums
 - [x] T027 [US3] Audit public/latest release, tag/commit, manifest/packages, release notes, README, and changelog identity and record results in `specs/050-v100-release-execution/verification.md`
 - [x] T028 [US3] Add the exception-aware release audit to #122 and preserve #122 plus milestone `v1.0.0 - Release readiness` as open because their formal criteria did not pass
 
-**Checkpoint**: v1.0.0 is public, qualified, internally consistent, and accurately represented.
+**Checkpoint**: v1.0.0 is public under exception and byte-audited; formal
+qualification remains incomplete and is accurately represented.
 
 ---
 
