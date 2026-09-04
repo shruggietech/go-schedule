@@ -141,3 +141,24 @@ without rejecting platform-managed links higher in the path. Direct-parent
 link rejection remains covered, and a POSIX regression now proves a real parent
 beneath a linked ancestor is accepted. Focused tests, focused race tests, and
 the complete canonical eight-gate aggregate passed again after the correction.
+
+## First Codex Review
+
+All three findings on commit `fa8f78d4674e32173ac9a86380a301665173f0c7`
+were accepted and corrected:
+
+1. Evidence-controlled attachment paths now use the same backtick, mention,
+   table, and HTML escaping as every other rendered Markdown value. A malicious
+   but archive-valid filename regression proves that raw Markdown cannot escape
+   its code span or trigger a GitHub mention.
+2. The final packet commit now uses native atomic no-replace operations:
+   `renameat2(RENAME_NOREPLACE)` on Linux, `renamex_np(RENAME_EXCL)` on macOS,
+   and `MoveFileW` without replacement flags on Windows. An injected
+   last-moment empty-directory race proves the competing destination is
+   preserved and the staging directory is removed.
+3. The packet contract now correctly states that #96 contains 36 pre-desktop
+   observations while the source evidence archive contains all 47.
+
+Focused tests and race tests passed on Windows, Linux and macOS release-gate
+packages cross-compiled successfully, and the complete canonical eight-gate
+aggregate passed after these corrections.

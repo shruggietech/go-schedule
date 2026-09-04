@@ -24,7 +24,9 @@ offline and performs no GitHub mutation.
 | 1 | Candidate or evidence failed production validation | Every independently discoverable validation failure on stderr |
 | 2 | Invocation, input loading, rendering, or destination failure | One contextual diagnostic on stderr |
 
-No failure may leave the requested destination or a sibling staging directory.
+No failure may leave a requested destination created by this operation or a
+sibling staging directory. A destination created concurrently by another
+process is preserved and causes the operation to fail.
 
 ## Fixed output inventory
 
@@ -73,7 +75,8 @@ shape:
 }
 ```
 
-The example observation list is abbreviated; production #96 contains all 47.
+The example observation list is abbreviated; production #96 contains all 36
+pre-desktop observations. The complete evidence archive contains all 47.
 
 ## Canonical mappings
 

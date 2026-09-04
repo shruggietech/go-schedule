@@ -40,6 +40,7 @@ type dispositionIssueFile struct {
 }
 
 type dispositionWriteFile func(string, []byte, fs.FileMode) error
+type dispositionRename func(string, string) error
 
 // IssueDispositionMappings returns a deep copy of the reviewed v1.0.0
 // observation-to-issue contract in deterministic issue order.
@@ -148,10 +149,10 @@ func RenderDispositionPacket(evidence Evidence) ([]DispositionFile, error) {
 // WriteDispositionPacket commits a complete packet to an absent directory. It
 // never merges with or replaces an existing path.
 func WriteDispositionPacket(outputDir string, evidence Evidence) error {
-	return writeDispositionPacket(outputDir, evidence, os.WriteFile)
+	return writeDispositionPacket(outputDir, evidence, os.WriteFile, renameDispositionNoReplace)
 }
 
-func writeDispositionPacket(outputDir string, evidence Evidence, writeFile dispositionWriteFile) (err error) {
+func writeDispositionPacket(outputDir string, evidence Evidence, writeFile dispositionWriteFile, renameFile dispositionRename) (err error) {
 	if strings.TrimSpace(outputDir) == "" {
 		return fmt.Errorf("output directory must not be blank")
 	}
@@ -199,7 +200,7 @@ func writeDispositionPacket(outputDir string, evidence Evidence, writeFile dispo
 			return fmt.Errorf("write packet file %q: %w", file.Name, err)
 		}
 	}
-	if err := os.Rename(staging, target); err != nil {
+	if err := renameFile(staging, target); err != nil {
 		return fmt.Errorf("commit disposition packet %q: %w", target, err)
 	}
 	committed = true
@@ -305,7 +306,7 @@ func renderIssueDisposition(candidate Candidate, mapping IssueDispositionMapping
 			builder.WriteString("\n- None declared for this observation.\n")
 		} else {
 			for _, attachment := range observation.AttachmentPaths {
-				fmt.Fprintf(&builder, "\n- `%s`", attachment)
+				fmt.Fprintf(&builder, "\n- `%s`", markdownCell(attachment))
 			}
 			builder.WriteString("\n")
 		}

@@ -48,7 +48,9 @@ func TestRenderDispositionPacketIsCompleteDeterministicAndSafe(t *testing.T) {
 
 	_, _, evidence := passingEvidence(t)
 	evidence.Environments[0].Snapshot = "snapshot | <unsafe> @octocat `tick`\r\nnext"
-	findObservation(&evidence, "access.intended-user").Summary = "summary | <unsafe> @octocat `tick`\nnext"
+	observation := findObservation(&evidence, "access.intended-user")
+	observation.Summary = "summary | <unsafe> @octocat `tick`\nnext"
+	observation.AttachmentPaths = append(observation.AttachmentPaths, "attachments/@octocat`proof`.png")
 
 	first, err := RenderDispositionPacket(evidence)
 	if err != nil {
@@ -112,6 +114,7 @@ func TestRenderDispositionPacketIsCompleteDeterministicAndSafe(t *testing.T) {
 		"&#64;octocat",
 		"&lt;unsafe&gt;",
 		"summary \\|",
+		"attachments/&#64;octocat&#96;proof&#96;.png",
 		"<br>",
 	} {
 		if !strings.Contains(issue96, required) {
@@ -181,12 +184,37 @@ func TestWriteDispositionPacketCleansUpWriteFailure(t *testing.T) {
 			return errors.New("injected write failure")
 		}
 		return os.WriteFile(name, data, mode)
-	})
+	}, renameDispositionNoReplace)
 	if err == nil || !strings.Contains(err.Error(), "injected write failure") {
 		t.Fatalf("write failure = %v", err)
 	}
 	if _, err := os.Lstat(target); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("target exists after failure: %v", err)
+	}
+	assertNoDispositionStaging(t, parent)
+}
+
+func TestWriteDispositionPacketDoesNotReplaceTargetCreatedBeforeCommit(t *testing.T) {
+	t.Parallel()
+
+	_, _, evidence := passingEvidence(t)
+	parent := t.TempDir()
+	target := filepath.Join(parent, "packet")
+	err := writeDispositionPacket(target, evidence, os.WriteFile, func(staging, destination string) error {
+		if err := os.Mkdir(destination, 0o700); err != nil {
+			return err
+		}
+		return renameDispositionNoReplace(staging, destination)
+	})
+	if err == nil {
+		t.Fatal("commit replaced a concurrently created empty target directory")
+	}
+	entries, readErr := os.ReadDir(target)
+	if readErr != nil {
+		t.Fatalf("concurrent target was removed: %v", readErr)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("concurrent target was replaced with %d packet entries", len(entries))
 	}
 	assertNoDispositionStaging(t, parent)
 }

@@ -155,7 +155,7 @@ func TestWindowsReleaseGateRendersOfflineFailClosedDispositionPacket(t *testing.
 		`Issue: 96`, `Issue: 98`, `Issue: 101`, `Issue: 104`, `Issue: 105`,
 		`Issue: 106`, `Issue: 109`, `Issue: 111`, `Issue: 112`, `Issue: 113`,
 		`fmt.Sprintf("issue-%03d.md"`, "packet.json",
-		"os.MkdirTemp", "os.Rename", "os.Lstat",
+		"os.MkdirTemp", "renameDispositionNoReplace", "os.Lstat",
 	} {
 		if !strings.Contains(renderer, required) {
 			t.Fatalf("disposition renderer missing %q", required)
