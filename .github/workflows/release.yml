@@ -13,23 +13,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Release preparation updates these static version lines through review.
-  # Verify them in the tagged checkout without trying to push directly to
-  # main. This preflight gates every draft-release staging job.
+  # The badge follows the latest published GitHub release, while release
+  # preparation updates the static health example through review. Verify both
+  # in the tagged checkout without trying to push directly to main. This
+  # preflight gates every draft-release staging job.
   readme-version:
-    name: Verify the static README version lines match this tag
+    name: Verify README release metadata for this tag
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - name: Verify the README version lines
+      - name: Verify the README release metadata
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME}"
-          MSG="${VERSION//-/--}"
           PLAIN="${VERSION#v}"
-          BADGE="<a href=\"https://github.com/shruggietech/go-schedule/releases/latest\"><img alt=\"Release\" src=\"https://img.shields.io/badge/release-${MSG}-58A6FF\"></a>"
+          BADGE='<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>'
           HEALTH="daemon ok (version ${PLAIN})"
           RELEASE_BADGE_COUNT=$(grep -Fc -- '<img alt="Release"' README.md || true)
           if [ "$RELEASE_BADGE_COUNT" -ne 1 ]; then
@@ -43,7 +43,7 @@ jobs:
           fi
           BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
           if [ "$BADGE_LINE_COUNT" -ne 1 ]; then
-            echo "::error file=README.md::Release badge does not match ${VERSION}. Update it in the release-preparation pull request."
+            echo "::error file=README.md::Release badge must follow the latest published GitHub release."
             exit 1
           fi
           grep -Fqx -- "$HEALTH" README.md || {

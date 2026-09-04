@@ -305,6 +305,9 @@ else
     'dynamic tag-specific release-note body path'
   require_release_text 'grep -Fxc -- "$BADGE"' \
     'SIGPIPE-safe README badge count'
+  require_release_text \
+    'https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF' \
+    'published-release badge source'
   require_release_text 'libwayland-dev' \
     'Linux desktop Wayland development headers'
   require_release_text 'wayland-protocols' \
