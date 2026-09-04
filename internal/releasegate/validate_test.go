@@ -24,6 +24,192 @@ func TestValidateAcceptsCompleteEvidence(t *testing.T) {
 	}
 }
 
+func TestRequiredScenarioIDsIncludeDesktopQualification(t *testing.T) {
+	t.Parallel()
+
+	want := []string{
+		"desktop.appearance-standard",
+		"desktop.appearance-scaled",
+		"desktop.interaction-states",
+		"desktop.interaction-states-scaled",
+		"desktop.navigation-options",
+		"desktop.navigation-options-scaled",
+		"desktop.scroll-input",
+		"desktop.tasks-table",
+		"desktop.tasks-table-scaled",
+		"desktop.schedule-activity-tables",
+		"desktop.schedule-activity-tables-scaled",
+	}
+	ids := RequiredScenarioIDs()
+	if len(ids) != 47 {
+		t.Fatalf("RequiredScenarioIDs() count = %d, want 47", len(ids))
+	}
+	for _, id := range want {
+		found := false
+		for _, actual := range ids {
+			if actual == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("RequiredScenarioIDs() missing %q", id)
+		}
+	}
+}
+
+func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
+	t.Parallel()
+
+	if len(RequiredScenarioIDs()) != 47 {
+		t.Skip("desktop qualification scenarios are not implemented yet")
+	}
+	tests := []struct {
+		name   string
+		mutate func(*Evidence)
+		want   string
+	}{
+		{"desktop needs routine user", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states").EnvironmentID = "admin"
+		}, "medium integrity"},
+		{"desktop needs image", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states").AttachmentPaths = []string{"attachments/fixture.txt"}
+		}, "supported raster image"},
+		{"appearance palettes", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-standard").Metrics["palettes"] = "dark"
+		}, "palettes"},
+		{"duplicate exact set", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-standard").Metrics["palettes"] = "dark,light,dark"
+		}, "duplicate"},
+		{"standard appearance dpi", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-standard").Metrics["effective_dpi"] = 120
+		}, "effective_dpi"},
+		{"scaled appearance dpi", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-scaled").Metrics["effective_dpi"] = 96
+		}, "greater than 96"},
+		{"standard visual scenario dpi", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states").EnvironmentID = "high"
+		}, "exactly 96 DPI"},
+		{"scaled visual scenario dpi", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states-scaled").EnvironmentID = "standard"
+		}, "greater than 96 DPI"},
+		{"appearance sharpness", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-standard").Metrics["body_text_sharp"] = false
+		}, "body_text_sharp"},
+		{"interaction states", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states").Metrics["states"] = "rest,hover,focus"
+		}, "states"},
+		{"text contrast", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states").Metrics["minimum_text_contrast"] = 4.49
+		}, "minimum_text_contrast"},
+		{"non-text contrast", func(e *Evidence) {
+			findObservation(e, "desktop.interaction-states").Metrics["minimum_non_text_contrast"] = 2.99
+		}, "minimum_non_text_contrast"},
+		{"navigation order", func(e *Evidence) {
+			findObservation(e, "desktop.navigation-options").Metrics["destination_order"] = "tasks,options,info"
+		}, "destination_order"},
+		{"navigation horizontal scrollbar", func(e *Evidence) {
+			findObservation(e, "desktop.navigation-options").Metrics["horizontal_scrollbar_present"] = true
+		}, "horizontal_scrollbar_present"},
+		{"scroll sensitivities", func(e *Evidence) {
+			findObservation(e, "desktop.scroll-input").Metrics["sensitivities"] = "1x,2x"
+		}, "sensitivities"},
+		{"touchpad unavailable reason", func(e *Evidence) {
+			findObservation(e, "desktop.scroll-input").Metrics["touchpad_unavailable_reason"] = ""
+		}, "touchpad_unavailable_reason"},
+		{"touchpad fine deltas", func(e *Evidence) {
+			metrics := findObservation(e, "desktop.scroll-input").Metrics
+			metrics["touchpad_available"] = true
+			metrics["touchpad_fine_deltas_preserved"] = false
+		}, "touchpad_fine_deltas_preserved"},
+		{"tasks population", func(e *Evidence) {
+			findObservation(e, "desktop.tasks-table").Metrics["row_count"] = 99
+		}, "row_count"},
+		{"tasks headers", func(e *Evidence) {
+			findObservation(e, "desktop.tasks-table").Metrics["headers"] = "task,enabled,lifecycle,time-zone"
+		}, "headers"},
+		{"schedule population", func(e *Evidence) {
+			findObservation(e, "desktop.schedule-activity-tables").Metrics["schedule_row_count"] = 99
+		}, "schedule_row_count"},
+		{"activity severity casing", func(e *Evidence) {
+			findObservation(e, "desktop.schedule-activity-tables").Metrics["severities"] = "info,warning,error"
+		}, "severities"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root, artifact, evidence := passingEvidence(t)
+			tt.mutate(&evidence)
+			if failures := Validate(evidence, root, artifact, ExpectedIdentity{}); !containsFailure(failures, tt.want) {
+				t.Fatalf("Validate() failures = %v, want substring %q", failures, tt.want)
+			}
+		})
+	}
+}
+
+func TestValidateRejectsDeclaredImageWithNonRasterBytes(t *testing.T) {
+	t.Parallel()
+
+	root, artifact, evidence := passingEvidence(t)
+	data := []byte("ordinary text deliberately mislabeled as image/png\n")
+	name := "attachments/fixture.svg"
+	if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for i := range evidence.Attachments {
+		if evidence.Attachments[i].Path == name {
+			evidence.Attachments[i].Bytes = int64(len(data))
+			evidence.Attachments[i].SHA256 = digest(data)
+			evidence.Attachments[i].MediaType = "image/png"
+		}
+	}
+
+	failures := Validate(evidence, root, artifact, ExpectedIdentity{})
+	if !containsFailure(failures, "supported raster image") {
+		t.Fatalf("Validate() failures = %v", failures)
+	}
+}
+
+func TestValidateRequiresStandardAndScaledDPIForEveryVisualFamily(t *testing.T) {
+	t.Parallel()
+
+	standardIDs := []string{
+		"desktop.appearance-standard",
+		"desktop.interaction-states",
+		"desktop.navigation-options",
+		"desktop.tasks-table",
+		"desktop.schedule-activity-tables",
+	}
+	for _, id := range standardIDs {
+		id := id
+		t.Run(id, func(t *testing.T) {
+			root, artifact, evidence := passingEvidence(t)
+			findObservation(&evidence, id).EnvironmentID = "high"
+			if failures := Validate(evidence, root, artifact, ExpectedIdentity{}); !containsFailure(failures, "exactly 96 DPI") {
+				t.Fatalf("Validate() failures = %v", failures)
+			}
+		})
+	}
+
+	scaledIDs := []string{
+		"desktop.appearance-scaled",
+		"desktop.interaction-states-scaled",
+		"desktop.navigation-options-scaled",
+		"desktop.tasks-table-scaled",
+		"desktop.schedule-activity-tables-scaled",
+	}
+	for _, id := range scaledIDs {
+		id := id
+		t.Run(id, func(t *testing.T) {
+			root, artifact, evidence := passingEvidence(t)
+			findObservation(&evidence, id).EnvironmentID = "standard"
+			if failures := Validate(evidence, root, artifact, ExpectedIdentity{}); !containsFailure(failures, "greater than 96 DPI") {
+				t.Fatalf("Validate() failures = %v", failures)
+			}
+		})
+	}
+}
+
 func TestValidateRejectsCriticalMutations(t *testing.T) {
 	t.Parallel()
 
@@ -68,7 +254,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 		{"attachment digest", func(e *Evidence) { e.Attachments[0].SHA256 = strings.Repeat("e", 64) }, "attachments[0] SHA-256"},
 		{"missing visual evidence", func(e *Evidence) {
 			findObservation(e, "error.timeout").AttachmentPaths = []string{"attachments/fixture.txt"}
-		}, "media_type prefix \"image/\""},
+		}, "supported raster image"},
 		{"missing native window evidence", func(e *Evidence) {
 			findObservation(e, "window.clean-standard").AttachmentPaths = []string{"attachments/fixture.svg"}
 		}, "native window measurement"},
@@ -343,7 +529,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		t.Fatal(err)
 	}
 	visualPath := filepath.Join(root, "attachments", "fixture.svg")
-	visualBytes := []byte("<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>\n")
+	visualBytes := []byte("P3\n1 1\n255\n36 90 114\n")
 	if err := os.WriteFile(visualPath, visualBytes, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -383,7 +569,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		Attachments: []Attachment{
 			{Path: "attachments/fixture.txt", Bytes: int64(len(attachmentBytes)), SHA256: digest(attachmentBytes), MediaType: "text/plain", Purpose: "automated fixture only"},
 			{Path: "attachments/fixture.json", Bytes: int64(len(nativeBytes)), SHA256: digest(nativeBytes), MediaType: "application/json", Purpose: "automated native-metric fixture only"},
-			{Path: "attachments/fixture.svg", Bytes: int64(len(visualBytes)), SHA256: digest(visualBytes), MediaType: "image/svg+xml", Purpose: "automated visual fixture only"},
+			{Path: "attachments/fixture.svg", Bytes: int64(len(visualBytes)), SHA256: digest(visualBytes), MediaType: "image/x-portable-pixmap", Purpose: "automated visual fixture only"},
 		},
 	}
 
@@ -391,6 +577,8 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		environmentID := "standard"
 		switch id {
 		case "window.clean-high-or-mixed":
+			environmentID = "high"
+		case "desktop.appearance-scaled", "desktop.interaction-states-scaled", "desktop.navigation-options-scaled", "desktop.tasks-table-scaled", "desktop.schedule-activity-tables-scaled":
 			environmentID = "high"
 		case "window.retained-profile":
 			environmentID = "retained"
@@ -414,7 +602,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		}
 		if strings.HasPrefix(id, "window.") {
 			observation.AttachmentPaths = []string{"attachments/fixture.json", "attachments/fixture.svg"}
-		} else if strings.HasPrefix(id, "error.") || strings.HasPrefix(id, "setup.") || strings.HasPrefix(id, "remove.") {
+		} else if strings.HasPrefix(id, "error.") || strings.HasPrefix(id, "setup.") || strings.HasPrefix(id, "remove.") || strings.HasPrefix(id, "desktop.") {
 			observation.AttachmentPaths = []string{"attachments/fixture.svg"}
 		}
 		evidence.Observations = append(evidence.Observations, observation)
@@ -529,6 +717,78 @@ func environment(id, role, integrity, display, profile string, dpi int) Environm
 func passingMetrics(id string) map[string]any {
 	m := map[string]any{"verified": true}
 	switch id {
+	case "desktop.appearance-standard", "desktop.appearance-scaled":
+		dpi := 96
+		if id == "desktop.appearance-scaled" {
+			dpi = 144
+		}
+		m = map[string]any{
+			"palettes": "dark,light", "effective_dpi": dpi,
+			"system_font_default": true, "system_font_restored": true,
+			"font_persistence_verified": true, "info_text_sharp": true,
+			"body_text_sharp": true, "labels_centered": true,
+			"labels_unclipped": true, "resize_verified": true,
+			"minimize_restore_verified": true, "reopen_verified": true,
+			"fonts_exercised": "system,geist,inter,ubuntu,monospace",
+		}
+	case "desktop.interaction-states", "desktop.interaction-states-scaled":
+		m = map[string]any{
+			"palettes":              "dark,light",
+			"control_families":      "navigation,selector,ordinary,primary,danger,dialog,table-row",
+			"states":                "rest,hover,focus,pressed,selected,disabled",
+			"minimum_text_contrast": 4.5, "minimum_non_text_contrast": 3.0,
+			"labels_readable": true, "glyphs_readable": true,
+			"selection_identifiable": true, "focus_visible": true,
+			"non_color_cues_present": true,
+		}
+	case "desktop.navigation-options", "desktop.navigation-options-scaled":
+		m = map[string]any{
+			"palettes": "dark,light", "content_sizes": "1280x800,800x600",
+			"destination_order":     "tasks,groups,chains,schedule,activity,options,info",
+			"rail_spacing_balanced": true, "labels_unclipped": true,
+			"boundary_full_height": true, "boundary_subtle": true,
+			"exit_bottom_right": true, "exit_never_selected": true,
+			"exit_semantic_glyph": true, "storage_rows_compact": true,
+			"unavailable_rows_muted": true, "copy_exact": true,
+			"selector_current_omitted": true, "horizontal_scrollbar_present": false,
+		}
+	case "desktop.scroll-input":
+		m = map[string]any{
+			"sensitivities":            "1x,2x,4x",
+			"surfaces":                 "options,info,editor-command,editor-schedule,editor-help",
+			"wheel_detents_responsive": true, "immediate_apply": true,
+			"persistence_verified": true, "nested_multiplier_absent": true,
+			"keyboard_scroll_preserved": true, "touchpad_available": false,
+			"touchpad_fine_deltas_preserved": false,
+			"touchpad_unavailable_reason":    "fixture has no physical input hardware",
+		}
+	case "desktop.tasks-table", "desktop.tasks-table-scaled":
+		m = map[string]any{
+			"row_count": 100, "palettes": "dark,light",
+			"content_sizes":  "1280x800,800x600",
+			"headers":        "task,enabled,lifecycle,time-zone,group",
+			"row_states":     "odd,even,hover,focus,selected",
+			"headers_frozen": true, "status_dimensions_distinct": true,
+			"bracket_decoration_absent": true, "full_values_discoverable": true,
+			"horizontal_scrollbar_present": false, "refresh_identity_stable": true,
+			"removed_selection_clears": true, "toolbar_actions_work": true,
+			"double_click_edits": true,
+		}
+	case "desktop.schedule-activity-tables", "desktop.schedule-activity-tables-scaled":
+		m = map[string]any{
+			"schedule_row_count": 100, "activity_row_count": 100,
+			"palettes": "dark,light", "content_sizes": "1280x800,800x600",
+			"schedule_headers": "when,task,event,outcome",
+			"activity_headers": "when,severity,source,summary",
+			"schedule_states":  "scheduled,success,failure,skipped,caught-up,queued,missing,unknown",
+			"severities":       "INFO,WARNING,ERROR",
+			"row_states":       "odd,even,hover,focus,selected",
+			"headers_frozen":   true, "semantic_text_glyphs_match": true,
+			"non_color_cues_present": true, "full_values_discoverable": true,
+			"horizontal_scrollbar_present": false, "refresh_identity_stable": true,
+			"removed_selection_clears": true, "detail_activation_accurate": true,
+			"range_calendar_switching": true, "filter_clear_acknowledge": true,
+		}
 	case "access.intended-user":
 		m = map[string]any{"health_ok": true, "gui_task_list_ok": true, "routine_elevation_required": false}
 	case "access.unrelated-user-denied":

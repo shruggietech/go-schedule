@@ -698,7 +698,7 @@ namespace GoSchedule.ReleaseEvidence {
         }
     }
 
-    function New-LifecycleTemplate {
+    function New-ScenarioTemplate {
         Param(
             [Parameter(Mandatory=$true)]
             [string]$Id,
@@ -720,7 +720,7 @@ namespace GoSchedule.ReleaseEvidence {
                 after_fingerprint = ''
                 owned_data_cleanup_invoked = $false
             }
-        } else {
+        } elseif ($Id.StartsWith('remove.')) {
             $metrics = [ordered]@{
                 owned_roots_count = 0
                 before_content_sha256 = ''
@@ -731,7 +731,14 @@ namespace GoSchedule.ReleaseEvidence {
                 reinstall_result = ''
             }
         }
-        switch ($Id) {
+        $templateId = switch ($Id) {
+            'desktop.interaction-states-scaled' { 'desktop.interaction-states' }
+            'desktop.navigation-options-scaled' { 'desktop.navigation-options' }
+            'desktop.tasks-table-scaled' { 'desktop.tasks-table' }
+            'desktop.schedule-activity-tables-scaled' { 'desktop.schedule-activity-tables' }
+            default { $Id }
+        }
+        switch ($templateId) {
             'setup.shortcut-defaults' {
                 $metrics.start_menu_default = $false
                 $metrics.desktop_default = $false
@@ -822,6 +829,128 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics.prior_preferences_available = $true
                 $metrics.prior_config_available = $true
                 $metrics.prior_logs_available = $true
+            }
+            'desktop.appearance-standard' {
+                $metrics = [ordered]@{
+                    palettes = 'dark,light'
+                    effective_dpi = 96
+                    system_font_default = $false
+                    system_font_restored = $false
+                    font_persistence_verified = $false
+                    info_text_sharp = $false
+                    body_text_sharp = $false
+                    labels_centered = $false
+                    labels_unclipped = $false
+                    resize_verified = $false
+                    minimize_restore_verified = $false
+                    reopen_verified = $false
+                    fonts_exercised = 'system,geist,inter,ubuntu,monospace'
+                }
+            }
+            'desktop.appearance-scaled' {
+                $metrics = [ordered]@{
+                    palettes = 'dark,light'
+                    effective_dpi = 0
+                    system_font_default = $false
+                    system_font_restored = $false
+                    font_persistence_verified = $false
+                    info_text_sharp = $false
+                    body_text_sharp = $false
+                    labels_centered = $false
+                    labels_unclipped = $false
+                    resize_verified = $false
+                    minimize_restore_verified = $false
+                    reopen_verified = $false
+                    fonts_exercised = 'system,geist,inter,ubuntu,monospace'
+                }
+            }
+            'desktop.interaction-states' {
+                $metrics = [ordered]@{
+                    palettes = 'dark,light'
+                    control_families = 'navigation,selector,ordinary,primary,danger,dialog,table-row'
+                    states = 'rest,hover,focus,pressed,selected,disabled'
+                    minimum_text_contrast = 0
+                    minimum_non_text_contrast = 0
+                    labels_readable = $false
+                    glyphs_readable = $false
+                    selection_identifiable = $false
+                    focus_visible = $false
+                    non_color_cues_present = $false
+                }
+            }
+            'desktop.navigation-options' {
+                $metrics = [ordered]@{
+                    palettes = 'dark,light'
+                    content_sizes = '1280x800,800x600'
+                    destination_order = 'tasks,groups,chains,schedule,activity,options,info'
+                    rail_spacing_balanced = $false
+                    labels_unclipped = $false
+                    boundary_full_height = $false
+                    boundary_subtle = $false
+                    exit_bottom_right = $false
+                    exit_never_selected = $false
+                    exit_semantic_glyph = $false
+                    storage_rows_compact = $false
+                    unavailable_rows_muted = $false
+                    copy_exact = $false
+                    selector_current_omitted = $false
+                    horizontal_scrollbar_present = $true
+                }
+            }
+            'desktop.scroll-input' {
+                $metrics = [ordered]@{
+                    sensitivities = '1x,2x,4x'
+                    surfaces = 'options,info,editor-command,editor-schedule,editor-help'
+                    wheel_detents_responsive = $false
+                    immediate_apply = $false
+                    persistence_verified = $false
+                    nested_multiplier_absent = $false
+                    keyboard_scroll_preserved = $false
+                    touchpad_available = $false
+                    touchpad_fine_deltas_preserved = $false
+                    touchpad_unavailable_reason = ''
+                }
+            }
+            'desktop.tasks-table' {
+                $metrics = [ordered]@{
+                    row_count = 0
+                    palettes = 'dark,light'
+                    content_sizes = '1280x800,800x600'
+                    headers = 'task,enabled,lifecycle,time-zone,group'
+                    row_states = 'odd,even,hover,focus,selected'
+                    headers_frozen = $false
+                    status_dimensions_distinct = $false
+                    bracket_decoration_absent = $false
+                    full_values_discoverable = $false
+                    horizontal_scrollbar_present = $true
+                    refresh_identity_stable = $false
+                    removed_selection_clears = $false
+                    toolbar_actions_work = $false
+                    double_click_edits = $false
+                }
+            }
+            'desktop.schedule-activity-tables' {
+                $metrics = [ordered]@{
+                    schedule_row_count = 0
+                    activity_row_count = 0
+                    palettes = 'dark,light'
+                    content_sizes = '1280x800,800x600'
+                    schedule_headers = 'when,task,event,outcome'
+                    activity_headers = 'when,severity,source,summary'
+                    schedule_states = 'scheduled,success,failure,skipped,caught-up,queued,missing,unknown'
+                    severities = 'INFO,WARNING,ERROR'
+                    row_states = 'odd,even,hover,focus,selected'
+                    headers_frozen = $false
+                    semantic_text_glyphs_match = $false
+                    non_color_cues_present = $false
+                    full_values_discoverable = $false
+                    horizontal_scrollbar_present = $true
+                    refresh_identity_stable = $false
+                    removed_selection_clears = $false
+                    detail_activation_accurate = $false
+                    range_calendar_switching = $false
+                    filter_clear_acknowledge = $false
+                }
             }
         }
         return [ordered]@{
@@ -933,6 +1062,17 @@ namespace GoSchedule.ReleaseEvidence {
             'remove.locked-partial',
             'remove.reinstall-after-preserve',
             'remove.reinstall-after-wipe'
+            'desktop.appearance-standard'
+            'desktop.appearance-scaled'
+            'desktop.interaction-states'
+            'desktop.interaction-states-scaled'
+            'desktop.navigation-options'
+            'desktop.navigation-options-scaled'
+            'desktop.scroll-input'
+            'desktop.tasks-table'
+            'desktop.tasks-table-scaled'
+            'desktop.schedule-activity-tables'
+            'desktop.schedule-activity-tables-scaled'
         )
         $observations = @(
             foreach ($scenarioId in $scenarioIds) {
@@ -984,12 +1124,13 @@ namespace GoSchedule.ReleaseEvidence {
                 -Path (Join-Path $workspaceStage 'evidence.json')
             foreach ($scenarioId in $scenarioIds) {
                 if ($scenarioId.StartsWith('setup.') -or
-                    $scenarioId.StartsWith('remove.')) {
+                    $scenarioId.StartsWith('remove.') -or
+                    $scenarioId.StartsWith('desktop.')) {
                     $templatePath = Join-Path $workspaceStage (
                         'fragments/' + $scenarioId + '.template.json'
                     )
                     Write-JsonNoBom -Value (
-                        New-LifecycleTemplate -Id $scenarioId -Timestamp $now
+                        New-ScenarioTemplate -Id $scenarioId -Timestamp $now
                     ) -Path $templatePath
                 }
             }

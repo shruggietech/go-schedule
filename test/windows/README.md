@@ -251,100 +251,33 @@ observations.
   partial cleanup, at least two genuine profiles, and reinstall after both
   removal modes.
 
-### S042 desktop UX observations
+### S047 desktop release-qualification matrix
 
-Use the exact installed candidate for these additional GUI observations. At
-both 100 percent scaling and at least one scaled-DPI setting:
+Use the exact installed release candidate. Every row is a required `pass`
+observation from the intended user at medium integrity with the installed
+LocalSystem service and at least one native raster screenshot whose bytes are
+validated independently of its declared media type or extension. The collector
+generates the metric fields and expected set values, so do not collapse or
+rename them.
 
-- compare the Info version and attribution lines with the adjacent title,
-  navigation text, and links in Dark and Light modes; require centered,
-  unclipped, sharp text after resize, minimize/restore, and reopen;
-- record the complete destination order and confirm the rail has balanced
-  horizontal spacing at 1280 by 800 and the supported 800 by 600 clamp;
-- confirm **Options** is immediately above **Info**, while **Exit** stays
-  visually separate at the rail's bottom-right and never becomes selected;
-- use pointer and keyboard navigation, and record visible focus, hover, and
-  selected states across the full intended targets;
-- apply all color modes and font choices, reopen the application to prove
-  persistence, restore defaults, and inspect current plus newly opened dialogs;
-- inspect every storage row, select and copy representative machine and
-  per-user paths, and compare the displayed lifecycle copy with the #98
-  preserve-or-wipe inventory; repeat with a daemon launched from a custom
-  configuration and confirm its effective paths are shown while locations
-  outside owned roots are marked preserved; and
-- single-click, keyboard-select, toolbar-edit, and double-click task rows before
-  and after a live refresh, confirming one correctly populated editor and no
-  stacked dialogs.
+| Scenario | Issues | Native outcome |
+| --- | --- | --- |
+| `desktop.appearance-standard` | #101, #106 | At 96 DPI, exercise Dark and Light plus System, Geist, Inter, Ubuntu, and Monospace. System is the clean-profile and restored default; text remains sharp, centered, and unclipped after resize, minimize/restore, and reopen. |
+| `desktop.appearance-scaled` | #101, #106 | Repeat the complete appearance observation above 96 DPI, recording the environment's exact effective DPI. |
+| `desktop.interaction-states` | #109 | In both palettes, exercise navigation, selector, ordinary, primary, danger, dialog, and table-row controls at rest, hover, focus, pressed, selected, and disabled. Text contrast is at least 4.5:1, non-text contrast is at least 3:1, and state meaning is not color-only. |
+| `desktop.interaction-states-scaled` | #109 | Repeat the complete interaction-state observation above 96 DPI. |
+| `desktop.navigation-options` | #104, #105, #106 | At 1280x800 and 800x600, prove destination order, spacing, full-height boundary, separate bottom-right Exit, compact storage rows, exact Copy behavior, muted unavailable rows, current-option omission, and no horizontal scrollbar. |
+| `desktop.navigation-options-scaled` | #104, #105, #106 | Repeat the complete navigation and Options observation above 96 DPI. |
+| `desktop.scroll-input` | #111 | At 1x, 2x, and 4x, exercise Options, Info, command, schedule, and Help surfaces. Prove immediate persisted wheel scaling, no nested multiplication, preserved keyboard input, and either physical touchpad precision or a specific unavailability reason. |
+| `desktop.tasks-table` | #112 | With at least 100 rows in both palettes and sizes, prove fixed labeled headers, distinct Enabled/Lifecycle fields, stable whole-row states and refresh identity, complete-value disclosure, safe removal, working toolbar/double-click actions, and no horizontal scrollbar. |
+| `desktop.tasks-table-scaled` | #112 | Repeat the complete Tasks table observation above 96 DPI. |
+| `desktop.schedule-activity-tables` | #113 | With at least 100 rows per view in both palettes and sizes, prove fixed labeled headers, exact schedule-state and uppercase severity sets, matching text/glyph semantics, stable row identity, accurate detail/range/calendar/filter/clear/acknowledge behavior, and no horizontal scrollbar. |
+| `desktop.schedule-activity-tables-scaled` | #113 | Repeat the complete Schedule and Activity observation above 96 DPI. |
 
-Screenshots and observations must retain the candidate identity and native
-window metrics already required by `CaptureWindow`. Headless S042 tests do not
-substitute for these native observations.
-
-### S044 desktop interaction observations
-
-Repeat the S042 GUI observations against the exact S044 candidate at 100 percent
-scaling and at least one scaled-DPI setting, with these additional checks:
-
-- in Dark and Light modes, exercise ordinary, primary, danger, selected
-  navigation, selector, and dialog controls at rest, hover, focus, and press;
-  require every label and glyph to remain readable and the selected destination
-  to remain identifiable;
-- start with a clean preference profile and require System to be selected, then
-  apply Geist (brand), Inter, Ubuntu, and Monospace in order, reopen the app,
-  inspect existing and newly opened dialogs, restore defaults, and require crisp,
-  unclipped Info version and attribution text;
-- open each appearance selector and require the closed control to show its
-  current value while the menu contains every alternative exactly once and does
-  not repeat the current value;
-- inspect the storage header and every compact row at 1280 by 800 and the
-  supported 800 by 600 clamp; require wrapped long paths, a right-aligned Copy
-  action, no horizontal scrollbar, exact copying for available paths, and muted
-  category, details, path, and action for unavailable rows;
-- require the rail/content boundary to span the usable height, destination
-  labels to remain unclipped, and Exit to retain a semantic colored glyph at the
-  rail's bottom-right without becoming selected; and
-- use a conventional wheel at 1x, 2x, and 4x sensitivity on Options, Info, both
-  editor panes, and editor Help. Require immediate scaling and persistence.
-  Repeat with a precision touchpad when available and require fine deltas to
-  remain unmultiplied; otherwise record that hardware check as unavailable.
-
-Retain screenshots for both palettes and DPI settings plus the exact preference
-values used. Headless contrast math and scroll-delta tests establish the code
-contract but do not substitute for native font rasterization, physical wheel,
-touchpad, or display evidence.
-
-### S045 structured data table observations
-
-Use the exact release-candidate MSI to populate at least 100 rows in each
-applicable view and capture both Dark and Light modes at 100 percent scaling
-and at least one scaled-DPI setting. Repeat at the default 1280 by 800 size and
-the supported 800 by 600 clamp:
-
-- confirm **Tasks** keeps Task, Enabled, Lifecycle, Time zone, and Group headers
-  fixed while rows scroll; require Enabled and Lifecycle to remain visibly
-  separate, with no unexplained bracketed status text;
-- confirm **Schedule** List keeps When, Task, Event, and Outcome headers fixed
-  and presents scheduled, success, failure, skipped, caught-up, queued, missing,
-  and unknown states with the documented text and glyphs;
-- confirm **Activity** keeps When, Severity, Source, and Summary headers fixed,
-  uses uppercase INFO, WARNING, and ERROR with matching glyph treatment, and
-  opens the exact selected event's full detail;
-- at both window sizes, require no horizontal scrollbar, overlapping text, or
-  loss of primary identity; select truncated Tasks and Schedule rows and verify
-  that the complete labeled values remain available;
-- exercise pointer hover, keyboard focus, and selection on odd and even rows in
-  every view, requiring readable restrained colors and an identifiable selected
-  row when states overlap; and
-- reorder, update, and remove selected records through live refresh. Require a
-  retained record to keep its identity and a removed record to clear safely,
-  then verify task toolbar and double-click actions, Schedule range and Calendar
-  switching, and Activity filtering, clearing, alert acknowledgement, and
-  detail activation.
-
-Retain populated screenshots for each palette, size, DPI setting, and semantic
-state family. Headless layout, mapping, contrast, and identity tests do not
-substitute for native text rasterization and interaction evidence. Issues #112
-and #113 remain open until this exact-candidate evidence is reviewed.
+Native evidence is required because headless layout, contrast, mapping, and
+scroll tests cannot prove Windows text rasterization, physical input, display
+scaling, or interaction-state readability. Keep each issue open until its own
+acceptance criteria and formal exact-candidate evidence have been reviewed.
 
 Finalize after all fragments are reviewed and recorded:
 
