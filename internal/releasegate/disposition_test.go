@@ -213,6 +213,28 @@ func TestWriteDispositionPacketRejectsLinkedParent(t *testing.T) {
 	}
 }
 
+func TestWriteDispositionPacketAllowsLinkedAncestorOfRealParent(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX ancestor-link regression; Windows reparse semantics are covered by direct-parent rejection")
+	}
+
+	_, _, evidence := passingEvidence(t)
+	root := t.TempDir()
+	realRoot := filepath.Join(root, "real")
+	realParent := filepath.Join(realRoot, "parent")
+	if err := os.MkdirAll(realParent, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	linkedRoot := filepath.Join(root, "linked")
+	if err := os.Symlink(realRoot, linkedRoot); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteDispositionPacket(filepath.Join(linkedRoot, "parent", "packet"), evidence); err != nil {
+		t.Fatalf("real parent beneath a linked ancestor should remain usable: %v", err)
+	}
+}
+
 func assertNoDispositionStaging(t *testing.T, parent string) {
 	t.Helper()
 	entries, err := os.ReadDir(parent)

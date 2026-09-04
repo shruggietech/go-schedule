@@ -74,9 +74,9 @@ Green phase: PASS on 2026-09-03.
   candidate/workflow/environment/observation/metric/attachment traceability,
   suppresses Markdown mentions, and produces identical bytes in two distinct
   output directories.
-- The writer renders before mutation, refuses existing targets and linked
-  parent paths, uses a private sibling staging directory, cleans injected write
-  failures, and commits the complete packet through one rename.
+- The writer renders before mutation, refuses existing targets and directly
+  linked parent directories, uses a private sibling staging directory, cleans
+  injected write failures, and commits the complete packet through one rename.
 - The CLI requires every identity and input option and reuses `Validate`,
   `ValidateBundleContents`, and `ValidateCandidateManifest` before writing.
 - Formal evidence-class, candidate-field mutation, output-conflict, help,
@@ -129,3 +129,15 @@ PASS on 2026-09-03.
   output in separate absent destinations.
 - The canonical documentation gate verified all links and authored surfaces.
 - `git diff --check` passed.
+
+## Hosted CI Corrections
+
+The first pull-request run exposed one macOS portability defect. The initial
+writer rejected a target when any ancestor was a symbolic link; on hosted
+macOS, `/var` is the normal system alias for `/private/var`, so every temporary
+test destination was rejected. The implementation now enforces the specified
+boundary at the immediate output parent, which must itself be a real directory,
+without rejecting platform-managed links higher in the path. Direct-parent
+link rejection remains covered, and a POSIX regression now proves a real parent
+beneath a linked ancestor is accepted. Focused tests, focused race tests, and
+the complete canonical eight-gate aggregate passed again after the correction.

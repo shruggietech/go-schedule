@@ -179,14 +179,6 @@ func writeDispositionPacket(outputDir string, evidence Evidence, writeFile dispo
 	if !parentInfo.IsDir() {
 		return fmt.Errorf("output parent %q is not a directory", parent)
 	}
-	hasLink, err := pathContainsSymlink(parent)
-	if err != nil {
-		return fmt.Errorf("inspect output parent path %q: %w", parent, err)
-	}
-	if hasLink {
-		return fmt.Errorf("output parent %q contains a symbolic link", parent)
-	}
-
 	staging, err := os.MkdirTemp(parent, ".go-schedule-dispositions-")
 	if err != nil {
 		return fmt.Errorf("create disposition staging directory: %w", err)
@@ -358,32 +350,4 @@ func validRepository(repository string) bool {
 		}
 	}
 	return true
-}
-
-func pathContainsSymlink(name string) (bool, error) {
-	absolute, err := filepath.Abs(name)
-	if err != nil {
-		return false, err
-	}
-	volume := filepath.VolumeName(absolute)
-	remainder := strings.TrimPrefix(absolute, volume)
-	current := volume
-	if strings.HasPrefix(remainder, string(filepath.Separator)) {
-		current += string(filepath.Separator)
-		remainder = strings.TrimLeft(remainder, string(filepath.Separator))
-	}
-	for _, component := range strings.Split(remainder, string(filepath.Separator)) {
-		if component == "" {
-			continue
-		}
-		current = filepath.Join(current, component)
-		info, err := os.Lstat(current)
-		if err != nil {
-			return false, err
-		}
-		if info.Mode()&os.ModeSymlink != 0 {
-			return true, nil
-		}
-	}
-	return false, nil
 }
