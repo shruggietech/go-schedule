@@ -19,6 +19,7 @@ type dispatchOrigin struct {
 	sourceTaskID    string
 	sourceRunID     string
 	sourceTriggerID string
+	sourceWatcherID string
 	deliveryID      string
 }
 
@@ -43,7 +44,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 			e.recordRun(domain.Run{
 				TaskID: task.ID, ScheduledFor: scheduledFor,
 				Outcome: domain.OutcomeSkipped, Trigger: origin.trigger,
-				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID,
+				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID,
 			}, origin.deliveryID)
 			return
 
@@ -69,7 +70,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 			e.recordRun(domain.Run{
 				TaskID: task.ID, ScheduledFor: scheduledFor,
 				Outcome: domain.OutcomeQueued, Trigger: origin.trigger,
-				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID,
+				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID,
 			}, "")
 			return
 		}

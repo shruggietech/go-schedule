@@ -19,6 +19,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/clock"
 	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/engine"
 	"github.com/shruggietech/go-schedule/internal/events"
 	"github.com/shruggietech/go-schedule/internal/executor"
@@ -107,6 +108,9 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
 	eng.SetOnRun(broker.PublishRun)
 	eng.SetOnAlert(broker.PublishAlert)
+	eng.SetOnWatcherHealth(func(watcher domain.FilesystemWatcher, health domain.WatcherHealth) {
+		broker.PublishWatcher(events.VerbUpdated, watcher.ID, watcher.Name, &health)
+	})
 	engErr := make(chan error, 1)
 	go func() { engErr <- eng.Start(ctx) }()
 	// Do not accept API mutations until the engine has frozen its startup-task

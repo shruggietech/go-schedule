@@ -206,6 +206,7 @@ func (s *Server) handleDeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.reload()
+	s.reloadWatchers()
 	s.publishTaskDeleted(id)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -363,7 +364,8 @@ func (s *Server) taskDetail(task domain.Task, sch *domain.Schedule, now time.Tim
 	}
 	hasCompletion, _ := s.store.TaskHasIncomingCompletion(task.ID)
 	hasTrigger, _ := s.store.TaskHasEnabledTrigger(task.ID)
-	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger), PolicySummary: policySummary, NextRuns: runs}
+	hasWatcher, _ := s.store.TaskHasEnabledWatcher(task.ID)
+	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger, hasWatcher), PolicySummary: policySummary, NextRuns: runs}
 }
 
 func (s *Server) reload() {

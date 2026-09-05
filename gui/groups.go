@@ -71,7 +71,7 @@ func newGroupTreeModelWithChains(groups []domain.Group, tasks []domain.Task, cha
 	return newGroupTreeModelWithSources(groups, tasks, chains, nil)
 }
 
-func newGroupTreeModelWithSources(groups []domain.Group, tasks []domain.Task, chains []domain.CompletionChain, triggers []server.TriggerResponse) *groupTreeModel {
+func newGroupTreeModelWithSources(groups []domain.Group, tasks []domain.Task, chains []domain.CompletionChain, triggers []server.TriggerResponse, watcherSources ...[]server.FilesystemWatcherResponse) *groupTreeModel {
 	m := &groupTreeModel{
 		children: map[string][]string{},
 		labels:   map[string]string{},
@@ -112,7 +112,7 @@ func newGroupTreeModelWithSources(groups []domain.Group, tasks []domain.Task, ch
 			parent = groupNodeID(t.GroupID)
 		}
 		m.children[parent] = append(m.children[parent], taskNodeID(t.ID))
-		effective := taskEffectiveStateWithSources(t, groups, chains, triggers)
+		effective := taskEffectiveStateWithSources(t, groups, chains, triggers, watcherSources...)
 		m.labels[taskNodeID(t.ID)] = taskRowMarker + task.DisplayName(t) + "   " + effective.Text
 	}
 	return m
@@ -176,7 +176,7 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 
 	refresh := func() {
 		snap := a.model.Snapshot()
-		model = newGroupTreeModelWithSources(snap.Groups, snap.Tasks, snap.Chains, snap.Triggers)
+		model = newGroupTreeModelWithSources(snap.Groups, snap.Tasks, snap.Chains, snap.Triggers, snap.Watchers)
 		tree.Refresh()
 	}
 	a.registerRefresher(refresh)

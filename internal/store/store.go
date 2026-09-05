@@ -336,6 +336,30 @@ ALTER TABLE external_triggers ADD COLUMN set_position INTEGER;
 CREATE UNIQUE INDEX idx_external_triggers_set_position ON external_triggers(set_id,set_position) WHERE set_id IS NOT NULL;
 `,
 	},
+	{
+		// v14: persist filesystem watcher intent and retain watcher identity on
+		// runs without tying append-only history to watcher lifecycle.
+		version: 14,
+		stmts: `
+CREATE TABLE filesystem_watchers (
+	id             TEXT PRIMARY KEY,
+	name           TEXT NOT NULL,
+	kind           TEXT NOT NULL CHECK(kind IN ('file','directory')),
+	path           TEXT NOT NULL,
+	pattern        TEXT NOT NULL DEFAULT '',
+	recursive      INTEGER NOT NULL DEFAULT 0,
+	debounce_ns    INTEGER NOT NULL,
+	stability_ns   INTEGER NOT NULL,
+	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	enabled        INTEGER NOT NULL DEFAULT 1,
+	created_at     TEXT NOT NULL,
+	updated_at     TEXT NOT NULL
+);
+CREATE INDEX idx_filesystem_watchers_target ON filesystem_watchers(target_task_id);
+CREATE INDEX idx_filesystem_watchers_enabled ON filesystem_watchers(enabled);
+ALTER TABLE runs ADD COLUMN source_watcher_id TEXT;
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

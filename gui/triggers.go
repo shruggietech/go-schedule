@@ -161,7 +161,10 @@ func (a *App) buildTriggersTab() fyne.CanvasObject {
 	rotateSet := newToolbarButton("Rotate set", theme.ViewRefreshIcon(), func() { withSelectedSet(a.confirmTriggerSetRotate) })
 	deleteSet := newToolbarButton("Delete set", theme.DeleteIcon(), func() { withSelectedSet(a.confirmTriggerSetDelete) })
 	setToolbar := container.NewHBox(newSet, copySet, retargetSet, toggleSet, rotateSet, deleteSet)
-	return container.NewBorder(container.NewVBox(toolbar, setToolbar), nil, nil, nil, table.root)
+	triggerContent := container.NewBorder(container.NewVBox(toolbar, setToolbar), nil, nil, nil, table.root)
+	split := container.NewVSplit(triggerContent, a.buildFilesystemWatcherPanel())
+	split.Offset = 0.55
+	return split
 }
 
 func (a *App) showTriggerEditor(existing *server.TriggerResponse) {
