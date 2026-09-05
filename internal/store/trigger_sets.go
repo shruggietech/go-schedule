@@ -205,27 +205,36 @@ func (s *Store) RotateTriggerSet(id string) (domain.TriggerSet, error) {
 	return set, nil
 }
 
-// DeleteTriggerSet atomically removes a set and every member.
-func (s *Store) DeleteTriggerSet(id string) error {
+// DeleteTriggerSet atomically removes a set and every member, returning the deleted redacted event source.
+func (s *Store) DeleteTriggerSet(id string) (domain.TriggerSet, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
-		return fmt.Errorf("store: begin delete trigger set: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: begin delete trigger set: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	var targetID string
-	var enabledCount int
-	if err := tx.QueryRow(`SELECT s.target_task_id,(SELECT COUNT(*) FROM external_triggers e WHERE e.set_id=s.id AND e.enabled<>0) FROM external_trigger_sets s WHERE s.id=?`, id).Scan(&targetID, &enabledCount); err != nil {
-		return triggerSetLookupError(err)
+	set, err := scanTriggerSet(tx.QueryRow(triggerSetSelect+` WHERE s.id=?`, id))
+	if err != nil {
+		return domain.TriggerSet{}, err
+	}
+	set.Members, err = listTriggerSetMembers(tx, id)
+	if err != nil {
+		return domain.TriggerSet{}, err
 	}
 	if _, err := tx.Exec(`DELETE FROM external_trigger_sets WHERE id=?`, id); err != nil {
-		return fmt.Errorf("store: delete trigger set: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: delete trigger set: %w", err)
 	}
-	if enabledCount > 0 {
-		if err := disableIfNotActivationReady(tx, targetID); err != nil {
-			return err
+	for _, member := range set.Members {
+		if member.Enabled {
+			if err := disableIfNotActivationReady(tx, set.TargetTaskID); err != nil {
+				return domain.TriggerSet{}, err
+			}
+			break
 		}
 	}
-	return commitTriggerSetTx(tx, "delete")
+	if err := commitTriggerSetTx(tx, "delete"); err != nil {
+		return domain.TriggerSet{}, err
+	}
+	return set, nil
 }
 
 const triggerSetSelect = `SELECT s.id,s.name,s.target_task_id,t.name,s.created_at,s.updated_at FROM external_trigger_sets s JOIN tasks t ON t.id=s.target_task_id`

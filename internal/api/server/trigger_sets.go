@@ -185,11 +185,12 @@ func (s *Server) handleRotateTriggerSet(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) handleDeleteTriggerSet(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if err := s.store.DeleteTriggerSet(id); err != nil {
+	set, err := s.store.DeleteTriggerSet(id)
+	if err != nil {
 		s.triggerSetStoreError(w, err)
 		return
 	}
-	s.publishTriggerSetDeleted(id)
+	s.publishTriggerSet(events.VerbDeleted, set)
 	w.WriteHeader(http.StatusNoContent)
 }
 

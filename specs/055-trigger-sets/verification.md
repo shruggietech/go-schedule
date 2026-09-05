@@ -18,6 +18,8 @@
 
 `scripts/verify.sh all` initially reached 79.3 percent store coverage after adding the persistence surface. Missing list and invalid-reference cases were added, raising the enforced combined store result to 80.4 percent. The corrected full run passed format, vet, lint, race, GUI, coverage, and documentation; its first automation attempt correctly rejected the In Progress slice because no completed task had yet been recorded. T001 was then recorded, and the complete gate passed all eight gates, including automation.
 
+After the first external review, the set-membership check moved into the individual update transaction, deleted-set events retained their redacted target and member summary, and bulk-copy dialogs gained visible success status. Focused regression suites passed, then `scripts/verify.sh all` passed all eight gates again with 80.3 percent store coverage.
+
 ## Security and scope evidence
 
 - Raw keys are held only in the existing recoverable trigger storage and returned only by create, explicit reveal, or rotate operations.

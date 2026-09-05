@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 func TestTriggerSetCreateRevealAndOrdinaryRedaction(t *testing.T) {
@@ -84,5 +86,33 @@ func TestTriggerSetMemberCannotBeRetargetedIndividually(t *testing.T) {
 	rec = doJSON(t, s, http.MethodPatch, "/v1/triggers/"+created.Members[0].TriggerID, TriggerUpdateRequest{TargetTaskID: &second.Task.ID})
 	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "Trigger Set retarget") {
 		t.Fatalf("member retarget status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestTriggerSetDeleteEventRetainsRedactedSummary(t *testing.T) {
+	s, broker := newBrokerServer(t)
+	stream, cancel := broker.Subscribe()
+	defer cancel()
+	task := newTaskFor(t, s, TaskCreateRequest{Command: "echo"})
+	rec := doJSON(t, s, http.MethodPost, "/v1/trigger-sets", TriggerSetCreateRequest{Name: "Agents", TargetTaskID: task.Task.ID, Count: 2})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	var created TriggerSetSecretResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &created); err != nil {
+		t.Fatal(err)
+	}
+	_ = nextEvent(t, stream, events.KindTriggerSet)
+	rec = doJSON(t, s, http.MethodDelete, "/v1/trigger-sets/"+created.TriggerSet.ID, nil)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("delete status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	event := nextEvent(t, stream, events.KindTriggerSet)
+	if event.TriggerSet == nil || event.TriggerSet.Verb != events.VerbDeleted || event.TriggerSet.TriggerSet == nil || event.TriggerSet.TriggerSet.TargetTaskID != task.Task.ID || len(event.TriggerSet.TriggerSet.Members) != 2 {
+		t.Fatalf("delete event=%+v", event.TriggerSet)
+	}
+	encoded, err := json.Marshal(event)
+	if err != nil || strings.Contains(string(encoded), "gst_") {
+		t.Fatalf("delete event leaked a key: %s err=%v", encoded, err)
 	}
 }

@@ -124,7 +124,7 @@ func TestTriggerSetBoundaryCountsRemainUniqueAcrossOneHundredTrials(t *testing.T
 				}
 				allKeys[member.Key] = true
 			}
-			if err := st.DeleteTriggerSet(set.ID); err != nil {
+			if _, err := st.DeleteTriggerSet(set.ID); err != nil {
 				t.Fatal(err)
 			}
 		}
@@ -146,7 +146,7 @@ func TestTriggerSetMaximumOperationsMeetNominalBudget(t *testing.T) {
 	assertUnderSecond(t, "disable", func() error { return st.SetTriggerSetEnabled(set.ID, false) })
 	assertUnderSecond(t, "enable", func() error { return st.SetTriggerSetEnabled(set.ID, true) })
 	assertUnderSecond(t, "rotate", func() error { _, err := st.RotateTriggerSet(set.ID); return err })
-	assertUnderSecond(t, "delete", func() error { return st.DeleteTriggerSet(set.ID) })
+	assertUnderSecond(t, "delete", func() error { _, err := st.DeleteTriggerSet(set.ID); return err })
 }
 
 func TestTriggerSetListsDuplicateNamesAndReportsInvalidReferences(t *testing.T) {
@@ -184,7 +184,7 @@ func TestTriggerSetListsDuplicateNamesAndReportsInvalidReferences(t *testing.T) 
 	if _, err := st.RotateTriggerSet("missing"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing rotate set error=%v", err)
 	}
-	if err := st.DeleteTriggerSet("missing"); !errors.Is(err, ErrNotFound) {
+	if _, err := st.DeleteTriggerSet("missing"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing delete set error=%v", err)
 	}
 }
@@ -249,7 +249,7 @@ func TestTriggerSetBroadLifecycleAndRollback(t *testing.T) {
 	if err != nil || rotated.Members[0].Key == before {
 		t.Fatalf("rotation=%+v err=%v", rotated, err)
 	}
-	if err := st.DeleteTriggerSet(set.ID); err != nil {
+	if _, err := st.DeleteTriggerSet(set.ID); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -271,7 +271,7 @@ func BenchmarkTriggerSetMaximumLifecycle(b *testing.B) {
 		if _, err := st.RotateTriggerSet(set.ID); err != nil {
 			b.Fatal(err)
 		}
-		if err := st.DeleteTriggerSet(set.ID); err != nil {
+		if _, err := st.DeleteTriggerSet(set.ID); err != nil {
 			b.Fatal(err)
 		}
 		_ = st.Close()

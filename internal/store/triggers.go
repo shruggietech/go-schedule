@@ -88,18 +88,18 @@ func (s *Store) UpdateExternalTrigger(t *domain.ExternalTrigger) error {
 	if t.Name == "" || t.TargetTaskID == "" {
 		return ErrInvalidTrigger
 	}
-	existing, err := s.GetExternalTrigger(t.ID)
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin update external trigger: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	existing, err := scanExternalTrigger(tx.QueryRow(externalTriggerSelect+` WHERE e.id=?`, t.ID))
 	if err != nil {
 		return err
 	}
 	if existing.SetID != "" && existing.TargetTaskID != t.TargetTaskID {
 		return ErrTriggerSetMemberTarget
 	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("store: begin update external trigger: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
 	var one int
 	if err := tx.QueryRow(`SELECT 1 FROM tasks WHERE id=?`, t.TargetTaskID).Scan(&one); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

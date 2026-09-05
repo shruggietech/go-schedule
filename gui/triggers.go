@@ -400,8 +400,13 @@ func (a *App) showTriggerSetSecrets(title string, result server.TriggerSetSecret
 	content.SetText(commands)
 	content.Disable()
 	content.SetMinRowsVisible(8)
-	copyButton := widget.NewButtonWithIcon("Copy all commands", theme.ContentCopyIcon(), func() { a.clipboard.SetContent(commands) })
-	dialog.ShowCustom(title, "Close", container.NewVBox(widget.NewLabel(fmt.Sprintf("%d ordered commands for %s. Store them securely.", len(result.Members), result.TriggerSet.Name)), content, copyButton), a.win)
+	copyStatus := widget.NewLabel("")
+	copyStatus.Importance = widget.SuccessImportance
+	copyButton := widget.NewButtonWithIcon("Copy all commands", theme.ContentCopyIcon(), func() {
+		a.clipboard.SetContent(commands)
+		copyStatus.SetText(fmt.Sprintf("Copied %d commands to the clipboard.", len(result.Members)))
+	})
+	dialog.ShowCustom(title, "Close", container.NewVBox(widget.NewLabel(fmt.Sprintf("%d ordered commands for %s. Store them securely.", len(result.Members), result.TriggerSet.Name)), content, copyButton, copyStatus), a.win)
 }
 
 func (a *App) runTriggerCreate(backend triggerBackend, request server.TriggerCreateRequest) {
