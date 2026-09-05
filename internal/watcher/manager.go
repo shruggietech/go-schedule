@@ -300,7 +300,7 @@ func (s *runtimeState) handleEvent(event fsnotify.Event) {
 			return
 		}
 	}
-	if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) {
+	if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) && !event.Has(fsnotify.Rename) {
 		return
 	}
 	info, err := os.Lstat(path)

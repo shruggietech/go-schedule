@@ -36,7 +36,7 @@
 
 ## Decision 4: Treat notifications as hints and settle through an injected-clock state machine
 
-**Decision**: Accept create and write hints, then debounce and compare two regular-file snapshots separated by the stability duration before dispatch. Rename into place is represented by the final path's create signal where supported.
+**Decision**: Accept create, write, and rename hints when the final path resolves to a regular file, then debounce and compare two regular-file snapshots separated by the stability duration before dispatch.
 
 **Rationale**: Upstream documents that a single logical write can emit many events and that low-level sequences differ by platform. The product requirement is a stable resulting file, not a particular kernel opcode. Separating quiet-time coalescing from stability verification avoids early task invocation and is deterministic under a fake clock. Sources: [fsnotify Event documentation](https://pkg.go.dev/github.com/fsnotify/fsnotify#Event) and [fsnotify source event contract](https://github.com/fsnotify/fsnotify/blob/main/fsnotify.go).
 

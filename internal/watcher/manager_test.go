@@ -103,6 +103,38 @@ func TestManagerCoalescesWriteStormAndRecordsNoPath(t *testing.T) {
 	}
 }
 
+func TestManagerAcceptsRenameHintWhenFinalPathIsRegular(t *testing.T) {
+	root := canonicalTempDir(t)
+	path := filepath.Join(root, "ready.txt")
+	if err := os.WriteFile(path, []byte("ready"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	clk := clock.NewFake(time.Now())
+	definition := domain.FilesystemWatcher{ID: "watcher-1", Name: "ready", Kind: domain.WatcherFile, Path: path, Debounce: 25 * time.Millisecond, Stability: 25 * time.Millisecond, TargetTaskID: "task-1", Enabled: true}
+	dispatcher := &dispatcherStub{ch: make(chan string, 1)}
+	fake := newFakeObserver()
+	manager := newManager(&watcherStoreStub{items: []domain.FilesystemWatcher{definition}}, dispatcher, clk, slog.Default(), func() (observer, error) { return fake, nil })
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- manager.Run(ctx) }()
+	<-manager.Ready()
+	fake.events <- fsnotify.Event{Name: path, Op: fsnotify.Rename}
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(25 * time.Millisecond)
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(25 * time.Millisecond)
+	select {
+	case id := <-dispatcher.ch:
+		if id != definition.ID {
+			t.Fatalf("dispatch id = %q", id)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("rename hint did not dispatch")
+	}
+	cancel()
+	<-done
+}
+
 func TestManagerReloadCancelsPriorGeneration(t *testing.T) {
 	root := canonicalTempDir(t)
 	path := filepath.Join(root, "ready.txt")
