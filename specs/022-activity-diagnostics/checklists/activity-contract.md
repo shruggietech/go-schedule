@@ -1,6 +1,8 @@
 # Activity Diagnostics Contract Checklist
 
-**Purpose**: Validate the quality, completeness, and consistency of the Activity diagnostics contract before implementation **Created**: 2026-08-28 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate the quality, completeness, and consistency of the Activity diagnostics contract before implementation
+**Created**: 2026-08-28
+**Feature**: [spec.md](../spec.md)
 
 ## Recent-View Semantics
 

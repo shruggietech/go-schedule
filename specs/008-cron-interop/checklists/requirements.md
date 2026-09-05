@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Cron interoperability and calendar-anomaly policy
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-07-23
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

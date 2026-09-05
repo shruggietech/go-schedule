@@ -30,7 +30,7 @@ Repository administrators own initial triage. You can expect an acknowledgement 
 | Version | Supported |
 | --- | --- |
 | 0.6.x | Yes |
-| 0.5.x and earlier | No N/A please upgrade |
+| 0.5.x and earlier | No, please upgrade |
 
 Fixes land on `main` and ship in the next release. There is no backport branch.
 

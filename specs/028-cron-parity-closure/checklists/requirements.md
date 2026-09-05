@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Cron Parity Closure
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-08-29 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-08-29
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

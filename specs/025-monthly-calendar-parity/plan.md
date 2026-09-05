@@ -8,7 +8,15 @@ Deliver day-of-month `L`, `nW`, and `LW` as one complete interoperability slice.
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0, SQL, Markdown **Primary Dependencies**: Existing `rrule-go`, SQLite, Cobra, and Fyne dependencies **Storage**: Additive SQLite schema version 6 on `schedules`; backward-compatible JSON API **Testing**: Go unit/integration tests, migration/restart coverage, and all eight canonical gates **Target Platform**: Windows and Linux CLI, daemon API, and desktop application **Project Type**: Local scheduler with shared recurrence, cron, API, CLI, and GUI boundaries **Performance Goals**: Constant-time parsing; bounded monthly walking; unchanged ordinary-schedule hot path **Constraints**: Five fields, one selector atom, no approximation, forward migration, UTF-8 without BOM **Scale/Scope**: Domain, persistence, recurrence, cron, shared interfaces, GUI preview, docs, and issue inventory
+**Language/Version**: Go 1.25.0, SQL, Markdown
+**Primary Dependencies**: Existing `rrule-go`, SQLite, Cobra, and Fyne dependencies
+**Storage**: Additive SQLite schema version 6 on `schedules`; backward-compatible JSON API
+**Testing**: Go unit/integration tests, migration/restart coverage, and all eight canonical gates
+**Target Platform**: Windows and Linux CLI, daemon API, and desktop application
+**Project Type**: Local scheduler with shared recurrence, cron, API, CLI, and GUI boundaries
+**Performance Goals**: Constant-time parsing; bounded monthly walking; unchanged ordinary-schedule hot path
+**Constraints**: Five fields, one selector atom, no approximation, forward migration, UTF-8 without BOM
+**Scale/Scope**: Domain, persistence, recurrence, cron, shared interfaces, GUI preview, docs, and issue inventory
 
 ## Constitution Check
 

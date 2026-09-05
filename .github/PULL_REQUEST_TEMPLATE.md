@@ -22,14 +22,10 @@ sh scripts/verify.sh all
 
 ```
 
-- [ ] `sh scripts/verify.sh all` passed locally, or any unavailable prerequisite
-      is disclosed above.
+- [ ] `sh scripts/verify.sh all` passed locally, or any unavailable prerequisite is disclosed above.
 
 ## Checklist
 
-- [ ] No safety-critical test surface was weakened or skipped: clock
-      injection, timezone and DST resolution, store migrations, restart and
-      catch-up recovery, goroutine termination, IPC access control.
-- [ ] No pinned artifact changed, or: it did, and `CHANGELOG.md` carries a
-      dated decision entry explaining why.
+- [ ] No safety-critical test surface was weakened or skipped: clock injection, timezone and DST resolution, store migrations, restart and catch-up recovery, goroutine termination, IPC access control.
+- [ ] No pinned artifact changed, or: it did, and `CHANGELOG.md` carries a dated decision entry explaining why.
 - [ ] Documentation updated where behavior changed.

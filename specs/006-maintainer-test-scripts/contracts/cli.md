@@ -13,8 +13,8 @@ A PowerShell parameter `-FooBar` corresponds to the POSIX long option `--foo-bar
 | Code | Meaning |
 |---|---|
 | `0` | Success. |
-| `1` | Runtime failure N/A a probe that was required failed, contention exhausted its retries, a write failed, a query errored. |
-| `2` | Usage error or unmet prerequisite N/A bad arguments, `sqlite3` absent or too old, unsupported platform for the installer. |
+| `1` | Runtime failure, a probe that was required failed, contention exhausted its retries, a write failed, a query errored. |
+| `2` | Usage error or unmet prerequisite, bad arguments, `sqlite3` absent or too old, unsupported platform for the installer. |
 
 `0` and `2` are reserved: `--fail-with` rejects both (FR-006), so an induced failure can never be confused with success or with a missing tool.
 
@@ -76,7 +76,7 @@ Exits `0` when the snapshot is recorded, even if individual probes degraded to `
 |---|---|---|
 | `summary` | both | How many records, spanning what period, from how many sessions and hosts? |
 | `recent` | both | What are the most recent records? |
-| `cadence` | heartbeat | What were the observed intervals N/A min, p50, p95, p99, max? |
+| `cadence` | heartbeat | What were the observed intervals, min, p50, p95, p99, max? |
 | `drift` | heartbeat | How far from expected did firings land, **broken down by expected-source**? |
 | `gaps` | heartbeat | Which expected firings were missed or badly delayed? |
 | `overlaps` | heartbeat | Which runs overlapped in time? |

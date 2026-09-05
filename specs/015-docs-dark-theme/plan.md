@@ -1,6 +1,7 @@
 # Implementation Plan: Documentation Dark-Theme Quality
 
-**Branch**: `codex/015-docs-dark-theme` | **Date**: 2026-08-27 | **Spec**: `specs/015-docs-dark-theme/spec.md`
+**Branch**: `codex/015-docs-dark-theme` | **Date**: 2026-08-27 |
+**Spec**: `specs/015-docs-dark-theme/spec.md`
 
 ## Summary
 

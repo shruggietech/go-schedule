@@ -12,8 +12,8 @@ One Markdown file in `docs/`. On the site it becomes a navigable, searchable pag
 |---------------|----------|-------------------------------|---------|
 | `title`       | yes      | every page                    | Human page title shown in nav and tab. |
 | `nav_order`   | yes*     | every top-level page + children | Integer ordering within its nav level. |
-| `parent`      | when nested | the three install guides    | `Installation` N/A places the page under the section. |
-| `has_children`| yes      | `install.md` only             | `true` N/A marks the Installation section parent. |
+| `parent`      | when nested | the three install guides    | `Installation`, places the page under the section. |
+| `has_children`| yes      | `install.md` only             | `true`, marks the Installation section parent. |
 
 \* The home page carries `nav_order: 1`; the section index and all leaf pages carry an explicit `nav_order`. The link-check requires `title` on every page and `nav_order` on every page.
 

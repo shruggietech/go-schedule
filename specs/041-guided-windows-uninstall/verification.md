@@ -8,9 +8,7 @@
 
 S041's first implementation passed local repository verification, but hosted installed-state evidence correctly rejected its one-property assumption. The corrected MSI suppresses Windows Installer's reduced-interface direct Remove entry, owns the current ProductCode's `/I` maintenance registration, and uses a package-owned maintenance page whose Remove control routes through the inventory and preserve-or-wipe dialogs.
 
-This result does not claim exact-candidate attended acceptance. GitHub issue
-#98 remains open until the Windows 11 journey and cancellation behavior are
-observed against the byte-identical staged candidate under #94.
+This result does not claim exact-candidate attended acceptance. GitHub issue #98 remains open until the Windows 11 journey and cancellation behavior are observed against the byte-identical staged candidate under #94.
 
 ## Red-to-green evidence
 

@@ -28,7 +28,7 @@ Installed to the install dir:
 | Name          | `goschedd` (matches `internal/service` svcName)        |
 | Display name  | `go-schedule`                                          |
 | Description   | `Cross-platform task scheduler daemon`                 |
-| Start type    | `auto` (starts on boot, no interactive login N/A FR-006) |
+| Start type    | `auto` (starts on boot, no interactive login, FR-006) |
 | Account       | LocalSystem (default)                                  |
 | On install    | start the service                                      |
 | On uninstall  | stop + remove the service                              |

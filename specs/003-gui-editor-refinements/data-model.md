@@ -6,7 +6,7 @@ GUI-only; no persistent data. The entities below are transient UI state.
 
 | State | Meaning |
 |-------|---------|
-| `panePreview` | right pane shows the live Preview (schedule summary + next runs + command code block) N/A the default |
+| `panePreview` | right pane shows the live Preview (schedule summary + next runs + command code block), the default |
 | `paneHelp` | right pane shows the Help guidance |
 
 Transitions: Help toggle flips `panePreview ⇄ paneHelp`. Toggling never rebuilds the form, so inputs and the computed preview persist (FR-005).

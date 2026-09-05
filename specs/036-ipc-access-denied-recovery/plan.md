@@ -1,6 +1,7 @@
 # Implementation Plan: IPC Access-Denied Recovery
 
-**Branch**: `codex/036-ipc-access-denied-recovery` | **Date**: 2026-08-31 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/036-ipc-access-denied-recovery` | **Date**: 2026-08-31 |
+**Spec**: [spec.md](spec.md)
 
 ## Summary
 

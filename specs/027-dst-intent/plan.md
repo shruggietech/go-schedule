@@ -8,7 +8,15 @@ Complete issue #8 with one task-level scheduling policy set. Preserve the existi
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0 and Markdown **Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions **Storage**: SQLite schema v7 with three additive task columns and one nullable schedule epoch **Testing**: Go unit/integration tests, real IANA transition matrices, migration/restart/catch-up coverage, GUI headless tests, benchmarks, and eight canonical gates **Target Platform**: Windows, Linux, and macOS-supported Go paths **Project Type**: Local daemon, CLI, API, and desktop application **Performance Goals**: Existing p99 dispatch target below 100 ms; representative policy-aware next-run benchmark within ten percent of baseline **Constraints**: Compatibility defaults, exact UTC instants, deterministic tests, one authoritative recurrence contract, UTF-8 without BOM **Scale/Scope**: Domain policy model, timezone resolver, recurrence/catch-up/engine, migration/CRUD, API/CLI/GUI, calendar, docs, and issue #8
+**Language/Version**: Go 1.25.0 and Markdown
+**Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions
+**Storage**: SQLite schema v7 with three additive task columns and one nullable schedule epoch
+**Testing**: Go unit/integration tests, real IANA transition matrices, migration/restart/catch-up coverage, GUI headless tests, benchmarks, and eight canonical gates
+**Target Platform**: Windows, Linux, and macOS-supported Go paths
+**Project Type**: Local daemon, CLI, API, and desktop application
+**Performance Goals**: Existing p99 dispatch target below 100 ms; representative policy-aware next-run benchmark within ten percent of baseline
+**Constraints**: Compatibility defaults, exact UTC instants, deterministic tests, one authoritative recurrence contract, UTF-8 without BOM
+**Scale/Scope**: Domain policy model, timezone resolver, recurrence/catch-up/engine, migration/CRUD, API/CLI/GUI, calendar, docs, and issue #8
 
 ## Constitution Check
 

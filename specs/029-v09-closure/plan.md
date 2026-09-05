@@ -8,7 +8,14 @@ Complete the locally actionable v0.9 maintenance work in one reviewable slice. E
 
 ## Technical Context
 
-**Language/Version**: POSIX shell, YAML, Markdown, GitHub repository APIs **Primary Dependencies**: Existing shell utilities, GitHub Actions, Dependabot, and Spec-Kit; no application dependency additions **Storage**: Repository files and hosted GitHub issue/security metadata **Testing**: Shell fixture tests, offline automation contract, hosted-state readback, and eight canonical gates **Target Platform**: Cross-platform repository checkout; hosted settings on `shruggietech/go-schedule` **Performance Goals**: Lifecycle and automation checks complete within the existing automation gate without network access **Constraints**: No app behavior or dependency-version changes, no branch protection, no Windows observation, UTF-8 without BOM **Scale/Scope**: 29 specifications, two dependency ecosystems, three requested security controls, and issue #33 triage
+**Language/Version**: POSIX shell, YAML, Markdown, GitHub repository APIs
+**Primary Dependencies**: Existing shell utilities, GitHub Actions, Dependabot, and Spec-Kit; no application dependency additions
+**Storage**: Repository files and hosted GitHub issue/security metadata
+**Testing**: Shell fixture tests, offline automation contract, hosted-state readback, and eight canonical gates
+**Target Platform**: Cross-platform repository checkout; hosted settings on `shruggietech/go-schedule`
+**Performance Goals**: Lifecycle and automation checks complete within the existing automation gate without network access
+**Constraints**: No app behavior or dependency-version changes, no branch protection, no Windows observation, UTF-8 without BOM
+**Scale/Scope**: 29 specifications, two dependency ecosystems, three requested security controls, and issue #33 triage
 
 ## Constitution Check
 

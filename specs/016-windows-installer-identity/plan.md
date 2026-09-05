@@ -98,9 +98,7 @@ Portable tests prove source relationships. `inspect-installer.ps1` proves the co
 
 ### Issue closure boundary
 
-The deterministic WXS change and candidate MSI inspection complete #24 and
-#25. Issue #16 explicitly requires a published MSI on a clean host, and #33
-requires native running-GUI observation; both stay open until that evidence exists. The PR will use `Closes #24`, `Closes #25`, `Refs #16`, and `Refs #33`.
+The deterministic WXS change and candidate MSI inspection complete #24 and #25. Issue #16 explicitly requires a published MSI on a clean host, and #33 requires native running-GUI observation; both stay open until that evidence exists. The PR will use `Closes #24`, `Closes #25`, `Refs #16`, and `Refs #33`.
 
 ## Complexity Tracking
 

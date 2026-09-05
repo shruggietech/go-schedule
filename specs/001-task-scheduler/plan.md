@@ -48,10 +48,10 @@ Derived from [constitution.md](../../.specify/memory/constitution.md) v1.0.0.
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. Code Quality | `gofmt`/`go vet`/`golangci-lint` clean; errors wrapped with `%w`; every goroutine has a documented owner + termination path; `-race` passes | ✅ PASS N/A engine uses one scheduler goroutine + a bounded worker pool, both with explicit `context.Context` cancellation and shutdown drain |
-| II. Testing (NON-NEGOTIABLE) | Injectable `Clock`; unit tests for scheduling/time/error paths; integration for persistence/recovery/concurrency; `-race`; ≥80% coverage on core packages | ✅ PASS N/A `Clock` interface is a first-class design element; time is never read via `time.Now()` directly in engine code |
-| III. UX Consistency | CLI verb-noun + `--json` + stdout/stderr split + exit codes; single config schema with fail-fast validation; RFC 3339 times; structured logging | ✅ PASS N/A Cobra command tree, shared API client, `slog` JSON logs, one documented config file |
-| IV. Performance | Documented dispatch-latency budget; benchmarks; bounded resources; no leaks | ✅ PASS N/A p99 < 100ms budget lives beside the dispatcher; benchmark + leak test included in plan |
+| I. Code Quality | `gofmt`/`go vet`/`golangci-lint` clean; errors wrapped with `%w`; every goroutine has a documented owner + termination path; `-race` passes | ✅ PASS, engine uses one scheduler goroutine + a bounded worker pool, both with explicit `context.Context` cancellation and shutdown drain |
+| II. Testing (NON-NEGOTIABLE) | Injectable `Clock`; unit tests for scheduling/time/error paths; integration for persistence/recovery/concurrency; `-race`; ≥80% coverage on core packages | ✅ PASS, `Clock` interface is a first-class design element; time is never read via `time.Now()` directly in engine code |
+| III. UX Consistency | CLI verb-noun + `--json` + stdout/stderr split + exit codes; single config schema with fail-fast validation; RFC 3339 times; structured logging | ✅ PASS, Cobra command tree, shared API client, `slog` JSON logs, one documented config file |
+| IV. Performance | Documented dispatch-latency budget; benchmarks; bounded resources; no leaks | ✅ PASS, p99 < 100ms budget lives beside the dispatcher; benchmark + leak test included in plan |
 
 **Dependency justifications** (constitution requires each new dependency be justified): SQLite reimplementation, a cross-platform service manager, an RFC-5545 recurrence engine, and a Material Design widget toolkit are all large, correctness-sensitive subsystems with no adequate stdlib equivalent; reimplementing any would add more risk than it removes. `cobra` and `go-winio` are near-standard, narrowly scoped, and license-clean. Structured logging uses stdlib `log/slog` (no dependency).
 

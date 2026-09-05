@@ -1,6 +1,8 @@
 # Monthly Calendar Fidelity Requirements Checklist
 
-**Purpose**: Validate that S025's monthly selector requirements are complete, precise, and safe against silent date movement **Created**: 2026-08-28 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that S025's monthly selector requirements are complete, precise, and safe against silent date movement
+**Created**: 2026-08-28
+**Feature**: [spec.md](../spec.md)
 
 ## Selector Contract Completeness
 

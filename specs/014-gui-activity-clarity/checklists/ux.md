@@ -1,6 +1,8 @@
 # UX Requirements Checklist: GUI Activity Clarity
 
-**Purpose**: Validate that the Activity naming, badge, and non-destructive clear requirements are complete and review-ready. **Created**: 2026-08-27 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that the Activity naming, badge, and non-destructive clear requirements are complete and review-ready.
+**Created**: 2026-08-27
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

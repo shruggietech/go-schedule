@@ -49,8 +49,8 @@ Times you supply are RFC 3339 (`2026-08-04T09:00:00Z`). Times printed back are R
 | Code | Meaning |
 | --- | --- |
 | `0` | Success. |
-| `1` | Runtime failure N/A the daemon was unreachable, the operation was refused, or the OS denied the request. |
-| `2` | Usage or validation failure N/A a missing required flag, a malformed timestamp, an invalid policy value. Server-side validation failures map here too, so bad input is reported the same way wherever it is caught. |
+| `1` | Runtime failure, the daemon was unreachable, the operation was refused, or the OS denied the request. |
+| `2` | Usage or validation failure, a missing required flag, a malformed timestamp, an invalid policy value. Server-side validation failures map here too, so bad input is reported the same way wherever it is caught. |
 
 Results go to stdout; diagnostics and errors go to stderr. That split is what makes `gosched task list --json | ...` safe in a pipeline.
 

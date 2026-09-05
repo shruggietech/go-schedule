@@ -47,9 +47,7 @@ After the tracked documentation changes, the documentation and automation gates 
 
 ## Local review and integrity
 
-The specification, issue traceability, evidence classes, build ordering, safety boundaries, and changed documentation were reviewed against the constitution,
-#94, #98, and the S040 through S042 verification history. No finding at or above
-the 80-percent confidence threshold remains.
+The specification, issue traceability, evidence classes, build ordering, safety boundaries, and changed documentation were reviewed against the constitution, #94, #98, and the S040 through S042 verification history. No finding at or above the 80-percent confidence threshold remains.
 
 All changed or added text files decode as strict UTF-8, none has a UTF-8 BOM, and no mojibake signature was found. The template and clarification scan found no unresolved placeholder.
 
@@ -132,8 +130,7 @@ No UI product code was added to S043. New bounded issues were created for:
 - #112 a labeled, frozen-header Tasks table; and
 - #113 tabulated, color-coded Schedule and Activity rows.
 
-Existing issues were updated instead of duplicated: #101 and #106 now carry the System-font A/B result and font-family/default work; #106 also owns compact storage rows and selector behavior; #104 owns the sidebar boundary; and #105 owns the Exit-glyph refinement. Confirmation evidence was added to #103, #97,
-#98, and #94.
+Existing issues were updated instead of duplicated: #101 and #106 now carry the System-font A/B result and font-family/default work; #106 also owns compact storage rows and selector behavior; #104 owns the sidebar boundary; and #105 owns the Exit-glyph refinement. Confirmation evidence was added to #103, #97, #98, and #94.
 
 Accessibility acceptance in #109, #112, and #113 uses measurable shared-state criteria: at least 4.5:1 contrast for normal text, 3:1 for large text and essential non-text indicators, visible hover and keyboard focus, and no color- only meaning. This prevents another one-control color patch from masking the systemic defect.
 

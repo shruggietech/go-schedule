@@ -1,6 +1,8 @@
 # Checklist: Documentation-site requirements quality
 
-**Purpose**: Unit-test the *requirements* for feature 010 (docs site + README consolidation) for completeness, clarity, consistency, and measurability before planning. Tests what the spec says, not whether the site works. **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
+**Purpose**: Unit-test the *requirements* for feature 010 (docs site + README consolidation) for completeness, clarity, consistency, and measurability before planning. Tests what the spec says, not whether the site works.
+**Created**: 2026-07-23
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

@@ -1,6 +1,7 @@
 # Verification Evidence: Windows Installer Identity and Verification
 
-**Date**: 2026-08-27 **Branch**: `codex/016-windows-installer-identity`
+**Date**: 2026-08-27
+**Branch**: `codex/016-windows-installer-identity`
 
 ## Baseline
 

@@ -132,9 +132,24 @@ The `id` attribute is stripped by some Markdown sanitizers, while `name` is more
 
 Paragraphs are encouraged. Do not reduce everything to bullet lists. Bullets are for genuinely enumerable items (options, steps, parameters, rules). Explanatory and narrative content is prose. This is a house preference, stated as such: when the content reads as a sentence or two of explanation, write it as a sentence or two, not as a fragment with a bullet in front of it.
 
-## GitHub source lines
+## GitHub source line policy
 
-Do not hard-wrap prose at 80 characters or any other width. GitHub performs visual wrapping, so every paragraph, heading, list item, and blockquote paragraph remains on one physical source line regardless of length. Use multiple physical lines only for distinct Markdown blocks or when syntax requires them, including fenced code, tables, front matter, separate list items, and deliberate semantic line breaks. If markdownlint MD013 objects, configure or disable that rule rather than reflowing the prose.
+Do not hard-wrap prose at 80 characters or any other source-width limit. Each paragraph, heading, list item, and blockquote paragraph occupies one physical source line, while GitHub controls visual wrapping.
+
+Incorrect. The author inserted continuation lines solely to limit source width:
+
+```markdown
+- Grants are keyed by tenant and remain available to the selected organization
+  until an administrator revokes them.
+```
+
+Correct. Keep the complete list item on one physical line:
+
+```markdown
+- Grants are keyed by tenant and remain available to the selected organization until an administrator revokes them.
+```
+
+Long URLs and inline-code literals stay on the same logical line as their surrounding prose. Configure or disable MD013 rather than reflowing content to satisfy it. Multiple physical lines remain appropriate only when Markdown syntax or literal content requires them, including fenced blocks, tables, front matter, separate list items, and deliberate semantic line breaks.
 
 ## Justified text
 

@@ -1,6 +1,7 @@
 # Tasks: Windows Installer Identity and Verification
 
-**Input**: Design documents from `specs/016-windows-installer-identity/` **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
+**Input**: Design documents from `specs/016-windows-installer-identity/`
+**Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 **Tests**: Required by the feature specification and constitution. Bug-fix regressions precede WXS implementation.
 
@@ -70,8 +71,7 @@
 - [X] T018 [US3] Implement reinstall, uninstall, unrelated-PATH preservation, and cleanup evidence in `test/windows/install-lifecycle.ps1`
 - [X] T019 [US3] Run the lifecycle tool on the current host and record its expected non-mutating refusal in `specs/016-windows-installer-identity/verification.md`
 
-**Checkpoint**: The procedure exists and refuses false evidence locally; issue
-#16 remains open until it runs against a published MSI on a clean host.
+**Checkpoint**: The procedure exists and refuses false evidence locally; issue #16 remains open until it runs against a published MSI on a clean host.
 
 ---
 

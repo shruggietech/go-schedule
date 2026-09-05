@@ -304,8 +304,8 @@ Legacy `boundary` rows recorded before 0.5.1 are still readable, but the `drift`
 | Code | Meaning |
 |---|---|
 | `0` | Success |
-| `1` | Runtime failure N/A a required probe failed, a write failed, contention exhausted its retries |
-| `2` | Usage error or unmet prerequisite N/A bad arguments, `sqlite3` absent or too old, unsupported platform |
+| `1` | Runtime failure, a required probe failed, a write failed, contention exhausted its retries |
+| `2` | Usage error or unmet prerequisite, bad arguments, `sqlite3` absent or too old, unsupported platform |
 
 The distinction between 1 and 2 is load-bearing: it is what makes a run row in `gosched runs` mean something. An unmet prerequisite is a usage-class failure, conflating it with a runtime failure sends you debugging the wrong thing.
 

@@ -8,9 +8,9 @@ This records what was read in the existing tree, the decisions taken under the B
 
 | Concern | Where it lives today | Bearing on this feature |
 | --- | --- | --- |
-| Phrase → RRULE | `internal/schedule/parse.go` N/A four regex-driven parse arms, each returning RRULE parts plus a `HumanSummary`, funnelled through `finish` | Two new arms follow the identical shape; helpers (`maybeTime`, `byTime`, `parseTimeOfDay`, `ordinalWord`) are reused verbatim |
-| Recurrence evaluation | `internal/schedule/recur.go` N/A `nextRecurring` builds an rrule-go rule at the task's anchor and normalizes day-or-coarser occurrences through `timezone.WallTime` | The missing-date policy resolves *before* that normalization; the DST step is untouched |
-| Cron equivalence | `internal/schedule/cronparity_test.go` N/A five cron patterns paired with phrases, asserting matching run times | Becomes the seed corpus for the converter's tests, extended rather than replaced |
+| Phrase → RRULE | `internal/schedule/parse.go`, four regex-driven parse arms, each returning RRULE parts plus a `HumanSummary`, funnelled through `finish` | Two new arms follow the identical shape; helpers (`maybeTime`, `byTime`, `parseTimeOfDay`, `ordinalWord`) are reused verbatim |
+| Recurrence evaluation | `internal/schedule/recur.go`, `nextRecurring` builds an rrule-go rule at the task's anchor and normalizes day-or-coarser occurrences through `timezone.WallTime` | The missing-date policy resolves *before* that normalization; the DST step is untouched |
+| Cron equivalence | `internal/schedule/cronparity_test.go`, five cron patterns paired with phrases, asserting matching run times | Becomes the seed corpus for the converter's tests, extended rather than replaced |
 | Schedule persistence | `internal/store/store.go` migrations v1–v4; v4 is the model for an additive column with a total default | Migration v5 copies that pattern exactly |
 | Policy plumbing | `domain.OverlapPolicy` / `domain.CatchupPolicy` → `TaskCreateRequest`/`TaskUpdateRequest` validation → `internal/cli/task.go` flags → `gui/editor_data.go` generic `policyChoice[T]` | A third policy is a strict repetition of an established path, including the generic GUI choice type |
 | CLI command shape | `internal/cli/cli.go` `newRoot()` registering `newTaskCmd()` etc.; `errUsage` for exit code 2; `--json` persistent flag | `newCronCmd()` slots in with no new conventions |

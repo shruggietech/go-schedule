@@ -1,6 +1,8 @@
 # Installer Lifecycle Requirements Checklist: Windows Setup Lifecycle Control
 
-**Purpose**: Review the completeness, clarity, consistency, and measurability of the installer UX and destructive-removal requirements **Created**: 2026-09-02 **Feature**: [spec.md](../spec.md)
+**Purpose**: Review the completeness, clarity, consistency, and measurability of the installer UX and destructive-removal requirements
+**Created**: 2026-09-02
+**Feature**: [spec.md](../spec.md)
 
 **Audience and depth**: Formal pull-request review checklist covering installer UX and destructive cleanup safety.
 

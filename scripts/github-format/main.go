@@ -15,9 +15,11 @@ import (
 )
 
 var (
-	listItemPattern = regexp.MustCompile(`^(?:[-+*]|[0-9]+[.)])\s+`)
+	listItemPattern = regexp.MustCompile(`^(?:(?:[-+*]\s+\[[ xX]\])|[-+*]|[0-9]+[.)])\s+`)
 	linkDefinition  = regexp.MustCompile(`^\[[^]]+\]:\s*`)
 	metadataLine    = regexp.MustCompile(`^\*\*[^*]+\*\*:\s*`)
+	alertMarker     = regexp.MustCompile(`^\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$`)
+	headingLine     = regexp.MustCompile(`^#{1,6}(?:\s|$)`)
 	emDash          = string(rune(0x2014))
 )
 
@@ -143,17 +145,29 @@ func replaceEmDashes(input string) string {
 			continue
 		}
 		if strings.HasPrefix(strings.TrimSpace(line), "|") {
-			lines[index] = strings.ReplaceAll(line, emDash, "N/A")
+			cells := strings.Split(line, "|")
+			for cellIndex, cell := range cells {
+				if strings.TrimSpace(cell) == emDash {
+					cells[cellIndex] = strings.Replace(cell, emDash, "N/A", 1)
+				} else {
+					cells[cellIndex] = replaceEmDashesInText(cell)
+				}
+			}
+			lines[index] = strings.Join(cells, "|")
 			continue
 		}
-		line = strings.ReplaceAll(line, "// "+emDash+" ", "// ")
-		line = strings.ReplaceAll(line, "# "+emDash+" ", "# ")
-		line = strings.ReplaceAll(line, " "+emDash+" ", ", ")
-		line = strings.ReplaceAll(line, emDash+" ", "")
-		line = strings.ReplaceAll(line, " "+emDash, ",")
-		lines[index] = strings.ReplaceAll(line, emDash, "-")
+		lines[index] = replaceEmDashesInText(line)
 	}
 	return strings.Join(lines, "\n")
+}
+
+func replaceEmDashesInText(line string) string {
+	line = strings.ReplaceAll(line, "// "+emDash+" ", "// ")
+	line = strings.ReplaceAll(line, "# "+emDash+" ", "# ")
+	line = strings.ReplaceAll(line, " "+emDash+" ", ", ")
+	line = strings.ReplaceAll(line, emDash+" ", "")
+	line = strings.ReplaceAll(line, " "+emDash, ",")
+	return strings.ReplaceAll(line, emDash, "-")
 }
 
 func formatMarkdown(input string) string {
@@ -168,7 +182,8 @@ func formatMarkdown(input string) string {
 		return input
 	}
 	out := make([]string, 0, len(lines))
-	inFence := false
+	var fenceCharacter byte
+	var fenceLength int
 	inFrontMatter := len(lines) > 0 && strings.TrimSpace(lines[0]) == "---"
 	inHTMLComment := false
 	for index := 0; index < len(lines); {
@@ -201,15 +216,35 @@ func formatMarkdown(input string) string {
 			inHTMLComment = !strings.Contains(line, "-->")
 			continue
 		}
-		if isFence(trimmed) {
-			inFence = !inFence
+		if fenceLength != 0 {
+			out = append(out, line)
+			index++
+			if closesFence(trimmed, fenceCharacter, fenceLength) {
+				fenceCharacter = 0
+				fenceLength = 0
+			}
+			continue
+		}
+		if character, length, ok := fenceDelimiter(trimmed); ok {
+			fenceCharacter = character
+			fenceLength = length
 			out = append(out, line)
 			index++
 			continue
 		}
-		if inFence || isLiteralMarkdownLine(line) {
+		if isLiteralMarkdownLine(line) {
 			out = append(out, line)
 			index++
+			continue
+		}
+		if metadataLine.MatchString(trimmed) {
+			joined := strings.TrimRight(line, " \t")
+			index++
+			for index < len(lines) && isMetadataContinuation(lines[index]) {
+				joined += " " + strings.TrimSpace(lines[index])
+				index++
+			}
+			out = append(out, joined)
 			continue
 		}
 		if content, ok := blockquoteProse(line); ok {
@@ -254,7 +289,25 @@ func formatMarkdown(input string) string {
 }
 
 func isFence(trimmed string) bool {
-	return strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~")
+	_, _, ok := fenceDelimiter(trimmed)
+	return ok
+}
+
+func fenceDelimiter(trimmed string) (byte, int, bool) {
+	if trimmed == "" || (trimmed[0] != '`' && trimmed[0] != '~') {
+		return 0, 0, false
+	}
+	character := trimmed[0]
+	length := 0
+	for length < len(trimmed) && trimmed[length] == character {
+		length++
+	}
+	return character, length, length >= 3
+}
+
+func closesFence(trimmed string, character byte, minimumLength int) bool {
+	foundCharacter, length, ok := fenceDelimiter(trimmed)
+	return ok && foundCharacter == character && length >= minimumLength && strings.TrimSpace(trimmed[length:]) == ""
 }
 
 func isProseContinuation(line string, contentIndent int) bool {
@@ -290,14 +343,19 @@ func blockquoteProse(line string) (string, bool) {
 		return "", false
 	}
 	content := strings.TrimSpace(strings.TrimPrefix(trimmed, ">"))
-	if content == "" || listItemPattern.MatchString(content) || markdownBlockStart(content) {
+	if content == "" || alertMarker.MatchString(content) || listItemPattern.MatchString(content) || markdownBlockStart(content) {
 		return "", false
 	}
 	return content, true
 }
 
+func isMetadataContinuation(line string) bool {
+	trimmed := strings.TrimSpace(line)
+	return trimmed != "" && !metadataLine.MatchString(trimmed) && !listItemPattern.MatchString(trimmed) && !markdownBlockStart(trimmed) && !isLiteralMarkdownLine(line)
+}
+
 func markdownBlockStart(trimmed string) bool {
-	return strings.HasPrefix(trimmed, ">") || isFence(trimmed) || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "<") || strings.HasPrefix(trimmed, "|") || strings.HasPrefix(trimmed, "![") || strings.HasPrefix(trimmed, ":::") || strings.HasPrefix(trimmed, "$$")
+	return strings.HasPrefix(trimmed, ">") || isFence(trimmed) || headingLine.MatchString(trimmed) || strings.HasPrefix(trimmed, "<") || strings.HasPrefix(trimmed, "|") || strings.HasPrefix(trimmed, "![") || strings.HasPrefix(trimmed, ":::") || strings.HasPrefix(trimmed, "$$")
 }
 
 func isPlainProse(line string) bool {
@@ -313,10 +371,10 @@ func isLiteralMarkdownLine(line string) bool {
 	if trimmed == "" || isFence(trimmed) || strings.HasPrefix(line, "    ") || strings.HasPrefix(line, "\t") || strings.HasSuffix(line, "\\") || strings.HasSuffix(line, "  ") {
 		return true
 	}
-	if strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "<") || strings.HasPrefix(trimmed, "|") || strings.HasPrefix(trimmed, "![") || strings.HasPrefix(trimmed, ":::") || strings.HasPrefix(trimmed, "$$") {
+	if headingLine.MatchString(trimmed) || strings.HasPrefix(trimmed, "<") || strings.HasPrefix(trimmed, "|") || strings.HasPrefix(trimmed, "![") || strings.HasPrefix(trimmed, ":::") || strings.HasPrefix(trimmed, "$$") {
 		return true
 	}
-	if trimmed == "---" || trimmed == "***" || trimmed == "___" || linkDefinition.MatchString(trimmed) || metadataLine.MatchString(trimmed) {
+	if trimmed == "---" || trimmed == "***" || trimmed == "___" || linkDefinition.MatchString(trimmed) {
 		return true
 	}
 	return false

@@ -48,5 +48,4 @@ After CI produces the immutable staged candidate, use the #94 clean Windows 11 r
 5. Exercise keyboard navigation, focus visibility, all appearance selections, storage-path selection/copy, task-row single and double activation, and both Exit and title-bar close.
 6. Record screenshots and the exact candidate identity in the #94 evidence bundle.
 
-This native step is mandatory before the DPI-dependent acceptance criteria in
-#101, #104, and #105 close. Headless screenshots do not substitute for it.
+This native step is mandatory before the DPI-dependent acceptance criteria in #101, #104, and #105 close. Headless screenshots do not substitute for it.

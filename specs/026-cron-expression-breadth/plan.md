@@ -8,7 +8,15 @@ Remove the human-phrase bottleneck from standard five-field cron input. Compile 
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0 and Markdown **Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions **Storage**: Existing schedules schema v6; no migration **Testing**: Go unit/integration tests, deterministic timezone matrices, restart/catch-up coverage, benchmarks, and eight canonical gates **Target Platform**: Windows, Linux, and macOS-supported Go paths **Project Type**: Local daemon, CLI, API, and desktop application **Performance Goals**: Existing p99 dispatch target below 100 ms; broad next-run benchmark within ten percent of baseline **Constraints**: Exact five-field semantics, bounded field sets, inert source text, no DOM/DOW OR approximation, UTF-8 without BOM **Scale/Scope**: Cron parser/compiler/description/export, shared schedule input/evaluation, CLI/API/GUI boundaries, docs, and issue inventory
+**Language/Version**: Go 1.25.0 and Markdown
+**Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions
+**Storage**: Existing schedules schema v6; no migration
+**Testing**: Go unit/integration tests, deterministic timezone matrices, restart/catch-up coverage, benchmarks, and eight canonical gates
+**Target Platform**: Windows, Linux, and macOS-supported Go paths
+**Project Type**: Local daemon, CLI, API, and desktop application
+**Performance Goals**: Existing p99 dispatch target below 100 ms; broad next-run benchmark within ten percent of baseline
+**Constraints**: Exact five-field semantics, bounded field sets, inert source text, no DOM/DOW OR approximation, UTF-8 without BOM
+**Scale/Scope**: Cron parser/compiler/description/export, shared schedule input/evaluation, CLI/API/GUI boundaries, docs, and issue inventory
 
 ## Constitution Check
 

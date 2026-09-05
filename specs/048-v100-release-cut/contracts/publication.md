@@ -46,9 +46,7 @@ Do not overwrite an unexplained existing archive. Requalification after a candid
 
 ## Issue reconciliation contract
 
-After formal qualification, run `windows-release-gate render-dispositions` against the exact evidence archive, candidate manifest, MSI, repository, tag, and commit. Review the resulting `packet.json` and ten Markdown records before posting the relevant record to each of #98, #101, #104, #105, #106, #109, #111,
-#112, and #113. Close only issues whose complete criteria pass. Update #96's
-child index and checklist from actual issue state, then close it only when every coordinator criterion passes.
+After formal qualification, run `windows-release-gate render-dispositions` against the exact evidence archive, candidate manifest, MSI, repository, tag, and commit. Review the resulting `packet.json` and ten Markdown records before posting the relevant record to each of #98, #101, #104, #105, #106, #109, #111, #112, and #113. Close only issues whose complete criteria pass. Update #96's child index and checklist from actual issue state, then close it only when every coordinator criterion passes.
 
 The packet is offline review input, not closure authority. Generation never comments on, closes, labels, or otherwise mutates a GitHub issue.
 

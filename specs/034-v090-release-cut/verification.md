@@ -7,8 +7,7 @@
 - Working branch: `codex/034-v090-release-cut`.
 - Latest tag and GitHub release: `v0.8.0`; neither a `v0.9.0` tag nor release existed.
 - Milestone #1, `v0.9.0 - Polish and hardening`, was open with one open issue.
-- Issue #79, `Cut v0.9.0 and verify release artifacts`, was open in milestone
-  #1 with the release-preparation labels defined by the repository taxonomy.
+- Issue #79, `Cut v0.9.0 and verify release artifacts`, was open in milestone #1 with the release-preparation labels defined by the repository taxonomy.
 - The pre-cut Unreleased range contained 434 lines and 61 top-level entries between `## [Unreleased]` and `## [0.8.0] - 2026-07-23`. Its normalized section SHA-256 was `e08ac07dcc70d865636faca72c0bfb80d0672a3464cdc37bb4ba649771679fca`.
 - The release workflow used `generate_release_notes: true` plus a long inline installation body. This conflicted with the requested highlights-only public release copy.
 

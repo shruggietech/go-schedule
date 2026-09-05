@@ -1,6 +1,8 @@
 # Verification: General Five-Field Cron Breadth
 
-**Date**: 2026-08-28 **Branch**: `codex/026-cron-expression-breadth` **Issue**: #22 (partial; remains open)
+**Date**: 2026-08-28
+**Branch**: `codex/026-cron-expression-breadth`
+**Issue**: #22 (partial; remains open)
 
 ## Scope Matrix
 

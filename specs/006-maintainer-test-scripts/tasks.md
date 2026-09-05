@@ -1,6 +1,7 @@
 # Tasks: Maintainer Test Scripts and Vendored Skills
 
-**Feature**: 006-maintainer-test-scripts | **Date**: 2026-07-23 **Input**: [plan.md](plan.md), [spec.md](spec.md), [data-model.md](data-model.md), [contracts/cli.md](contracts/cli.md), [research.md](research.md), [quickstart.md](quickstart.md)
+**Feature**: 006-maintainer-test-scripts | **Date**: 2026-07-23
+**Input**: [plan.md](plan.md), [spec.md](spec.md), [data-model.md](data-model.md), [contracts/cli.md](contracts/cli.md), [research.md](research.md), [quickstart.md](quickstart.md)
 
 Tests are **required**, not optional, constitution principle II is non-negotiable and explicitly covers integration tests for concurrent execution and recovery.
 

@@ -8,7 +8,15 @@ Add faithful import and export for one five-field cron day-of-week term in the f
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0, Markdown **Primary Dependencies**: Go standard library and existing `rrule-go` recurrence model **Storage**: Existing task records only; no schema or migration change **Testing**: Go unit/integration tests plus all eight canonical verification gates **Target Platform**: Windows and Linux local CLI, daemon API, and desktop application **Project Type**: Local scheduler with shared cron conversion library, CLI, API, and GUI **Performance Goals**: Constant-time parsing/export with no material scheduling-path overhead **Constraints**: Five fields only, one last-weekday atom, no approximation, UTF-8 without BOM **Scale/Scope**: Three production files in `internal/cron`, shared-boundary tests, documentation, and changelog
+**Language/Version**: Go 1.25.0, Markdown
+**Primary Dependencies**: Go standard library and existing `rrule-go` recurrence model
+**Storage**: Existing task records only; no schema or migration change
+**Testing**: Go unit/integration tests plus all eight canonical verification gates
+**Target Platform**: Windows and Linux local CLI, daemon API, and desktop application
+**Project Type**: Local scheduler with shared cron conversion library, CLI, API, and GUI
+**Performance Goals**: Constant-time parsing/export with no material scheduling-path overhead
+**Constraints**: Five fields only, one last-weekday atom, no approximation, UTF-8 without BOM
+**Scale/Scope**: Three production files in `internal/cron`, shared-boundary tests, documentation, and changelog
 
 ## Constitution Check
 

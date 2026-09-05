@@ -1,6 +1,8 @@
 # Windows Release Requirements Checklist: Windows Release Polish
 
-**Purpose**: Review the clarity and completeness of the Windows GUI and MSI requirements before implementation **Created**: 2026-08-31 **Feature**: [spec.md](../spec.md)
+**Purpose**: Review the clarity and completeness of the Windows GUI and MSI requirements before implementation
+**Created**: 2026-08-31
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

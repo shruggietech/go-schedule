@@ -1,6 +1,8 @@
 # Accessibility Requirements Checklist: Documentation Dark-Theme Quality
 
-**Purpose**: Validate the clarity, completeness, and measurability of the contrast, code-example, and sidebar-spacing requirements. **Created**: 2026-08-27 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate the clarity, completeness, and measurability of the contrast, code-example, and sidebar-spacing requirements.
+**Created**: 2026-08-27
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

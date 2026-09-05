@@ -1,6 +1,8 @@
 # UX Requirements Checklist: Persisted Adjustable Columns
 
-**Purpose**: Test accessibility, resilience, and consistency of the written requirements **Created**: 2026-09-05 **Feature**: [spec.md](../spec.md)
+**Purpose**: Test accessibility, resilience, and consistency of the written requirements
+**Created**: 2026-09-05
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

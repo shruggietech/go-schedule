@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Maintainer Test Scripts and Vendored Skills
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-07-23
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

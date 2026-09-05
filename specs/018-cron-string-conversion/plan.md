@@ -1,6 +1,7 @@
 # Implementation Plan: Pure Schedule String Conversion
 
-**Branch**: `codex/018-cron-string-conversion` | **Date**: 2026-08-28 | **Spec**: [spec.md](./spec.md)
+**Branch**: `codex/018-cron-string-conversion` | **Date**: 2026-08-28 |
+**Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `specs/018-cron-string-conversion/spec.md`
 
@@ -113,8 +114,7 @@ CHANGELOG.md                # Unreleased Added entry; no dated architecture deci
 
 - Document both directions, forced destination, quoting, JSON, exit behavior, and refusal examples in `docs/cli.md` and `docs/cron.md`.
 - Preserve the boundary-only task-authoring posture: conversion is allowed, but `task add/edit --schedule` remains human-only until #50.
-- Add an Unreleased changelog entry and close only #51. The future PR references
-  #50 rather than closing it.
+- Add an Unreleased changelog entry and close only #51. The future PR references #50 rather than closing it.
 
 ## Verification
 

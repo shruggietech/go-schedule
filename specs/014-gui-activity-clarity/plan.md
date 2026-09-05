@@ -1,11 +1,11 @@
 # Implementation Plan: GUI Activity Clarity
 
-**Branch**: `codex/014-gui-activity-clarity` | **Date**: 2026-08-27 | **Spec**: `specs/014-gui-activity-clarity/spec.md`
+**Branch**: `codex/014-gui-activity-clarity` | **Date**: 2026-08-27 |
+**Spec**: `specs/014-gui-activity-clarity/spec.md`
 
 ## Summary
 
-Rename the GUI's mixed log-and-alert destination to Activity, centralize its bounded badge label, and replace the destructive-looking "Dismiss All" control with a clear-content action plus persistent explanatory copy. Preserve the existing view cutoff and alert acknowledgement semantics. Close issues #26,
-#28, and #30 without expanding into the log-path API work in #31.
+Rename the GUI's mixed log-and-alert destination to Activity, centralize its bounded badge label, and replace the destructive-looking "Dismiss All" control with a clear-content action plus persistent explanatory copy. Preserve the existing view cutoff and alert acknowledgement semantics. Close issues #26, #28, and #30 without expanding into the log-path API work in #31.
 
 ## Technical Context
 

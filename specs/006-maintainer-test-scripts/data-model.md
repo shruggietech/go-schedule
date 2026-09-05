@@ -42,11 +42,11 @@ One row per completed heartbeat run. Written once, at the end of the run (FR-021
 | `finished_ms` | INTEGER NOT NULL | | Run end, immediately before the write. |
 | `duration_ms` | INTEGER NOT NULL | | `finished_ms - started_ms`. Stored rather than computed so the overlap query stays a plain join. |
 | `expected_ms` | INTEGER | yes | Expected firing moment. `NULL` when no source was available. |
-| `expected_source` | TEXT NOT NULL | | One of `env`, `anchor`, `none` (`boundary` is legacy, pre-0.5.1, and readable but never written). Never absent N/A a drift figure without its provenance is the thing FR-003 forbids. |
+| `expected_source` | TEXT NOT NULL | | One of `env`, `anchor`, `none` (`boundary` is legacy, pre-0.5.1, and readable but never written). Never absent, a drift figure without its provenance is the thing FR-003 forbids. |
 | `drift_ms` | INTEGER | yes | `started_ms - expected_ms`. `NULL` exactly when `expected_ms` is. Positive means late. |
 | `interval_seconds` | INTEGER | yes | The interval the caller declared; the basis of `boundary` snapping and of the reliability check. |
 | `exit_code` | INTEGER NOT NULL | | What the process returned to the scheduler. `0` on the normal path. |
-| `outcome` | TEXT NOT NULL | | `ok` or `failed`. Redundant with `exit_code` by design N/A FR-017 requires the two agree, and storing both makes disagreement detectable rather than assumed away. |
+| `outcome` | TEXT NOT NULL | | `ok` or `failed`. Redundant with `exit_code` by design, FR-017 requires the two agree, and storing both makes disagreement detectable rather than assumed away. |
 | `sched_env` | TEXT | yes | JSON object of any `GOSCHED_*` variables found. Empty today (research §R1); captured so a future release's context is recorded without a schema change. |
 
 **Indexes**: `started_ms`; `(session_id, sequence)`.
@@ -93,7 +93,7 @@ One row per invocation of the host-inspection script.
 | `os_platform` | TEXT NOT NULL | | `windows`, `linux`, `darwin`. |
 | `os_release` | TEXT | yes | |
 | `script_pid` | INTEGER NOT NULL | | |
-| `script_flavor` | TEXT NOT NULL | | `powershell` or `posix` N/A which twin wrote the row. Makes twin-parity differences findable in the data. |
+| `script_flavor` | TEXT NOT NULL | | `powershell` or `posix`, which twin wrote the row. Makes twin-parity differences findable in the data. |
 | `invocation_source` | TEXT NOT NULL | | Caller-supplied; defaults to `manual`. |
 | `addresses_probe` | TEXT | yes | `ok` / `unavailable` / `skipped`. `NULL` only on rows written before schema 3. |
 | `ports_probe` | TEXT | yes | Same vocabulary. This is what lets a reader tell an empty port list from an unanswerable one. |
@@ -123,7 +123,7 @@ One row per invocation of the host-inspection script.
 | `family` | TEXT | yes | |
 | `address` | TEXT | yes | Bound address; `NULL` where the probe does not report it. |
 | `port` | INTEGER NOT NULL | | |
-| `process_name` | TEXT | yes | Frequently `NULL` N/A most platforms require elevation to attribute a socket to a process. Absence here is normal, not a defect. |
+| `process_name` | TEXT | yes | Frequently `NULL`, most platforms require elevation to attribute a socket to a process. Absence here is normal, not a defect. |
 
 **Index**: `(snapshot_id, protocol, port)`.
 

@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Run engine benchmarks in CI and enforce the p99 dispatch-latency budget
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-07-23
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

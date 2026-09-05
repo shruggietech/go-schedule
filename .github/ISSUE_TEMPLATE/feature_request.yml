@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please lead with the **problem**, not the solution. A proposal is much easier to evaluate and much more likely to be built well when the underlying need is visible, because the need often admits a better answer than the one first imagined.
+        Please lead with the **problem**, not the solution. A proposal is much easier to evaluate, and much more likely to be built well, when the underlying need is visible, because the need often admits a better answer than the one first imagined.
 
         This project is spec-driven: every feature is specified through [Spec Kit](https://github.com/github/spec-kit) before any code is written. A request that traces to the master specification moves faster than one that opens a new scope.
 
@@ -14,7 +14,8 @@ body:
     id: problem
     attributes:
       label: The problem
-      description: What are you trying to do, and what stops you today? Describe the situation rather than the feature.
+      description: >
+        What are you trying to do, and what stops you today? Describe the situation rather than the feature.
     validations:
       required: true
 
@@ -30,7 +31,8 @@ body:
     id: alternatives
     attributes:
       label: Alternatives considered
-      description: Optional. Including "I currently work around it by ..." is useful because a workaround is evidence about how much the gap costs.
+      description: >
+        Optional. Including "I currently work around it by ..." is useful because a workaround is evidence about how much the gap costs.
     validations:
       required: false
 
@@ -38,7 +40,8 @@ body:
     id: traceability
     attributes:
       label: Does this trace to the master specification?
-      description: See `specs/001-task-scheduler/spec.md`; answer "not sure" freely because this is a routing question, not a test.
+      description: >
+        `specs/001-task-scheduler/spec.md`. Answer "not sure" freely; this is a routing question, not a test.
       options:
         - "Yes, it refines something already specified"
         - "No, it opens new scope"

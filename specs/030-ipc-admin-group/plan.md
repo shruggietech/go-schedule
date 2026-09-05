@@ -8,7 +8,14 @@ Turn the existing inert `admin_group` setting into the authorization boundary fo
 
 ## Technical Context
 
-**Language/Version**: Go 1.25, WiX Toolset 6.0.2 XML, POSIX shell, PowerShell, Markdown **Primary Dependencies**: Go standard library, `github.com/Microsoft/go-winio`, `golang.org/x/sys/windows`, `golang.org/x/sys/unix`, WiX Util extension **Storage**: Existing configuration file and data directory; no database schema change **Testing**: Platform-specific Go unit tests, daemon structured-log tests, Windows installer XML contracts, release workflow/build validation, and eight canonical verification gates **Target Platform**: Linux, macOS, and Windows service and foreground modes **Performance Goals**: Group lookup and permission setup occur once at daemon startup; no per-request authorization overhead or dispatch-latency impact **Constraints**: Fail closed for every non-empty unresolved group, preserve endpoint names and client protocol, keep daemon/CLI cgo-free, UTF-8 without BOM, no manual Windows VM requirement **Scale/Scope**: One daemon endpoint, one configured group, one Windows installer membership, three operator guides
+**Language/Version**: Go 1.25, WiX Toolset 6.0.2 XML, POSIX shell, PowerShell, Markdown
+**Primary Dependencies**: Go standard library, `github.com/Microsoft/go-winio`, `golang.org/x/sys/windows`, `golang.org/x/sys/unix`, WiX Util extension
+**Storage**: Existing configuration file and data directory; no database schema change
+**Testing**: Platform-specific Go unit tests, daemon structured-log tests, Windows installer XML contracts, release workflow/build validation, and eight canonical verification gates
+**Target Platform**: Linux, macOS, and Windows service and foreground modes
+**Performance Goals**: Group lookup and permission setup occur once at daemon startup; no per-request authorization overhead or dispatch-latency impact
+**Constraints**: Fail closed for every non-empty unresolved group, preserve endpoint names and client protocol, keep daemon/CLI cgo-free, UTF-8 without BOM, no manual Windows VM requirement
+**Scale/Scope**: One daemon endpoint, one configured group, one Windows installer membership, three operator guides
 
 ## Constitution Check
 

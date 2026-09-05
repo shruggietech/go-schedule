@@ -8,8 +8,7 @@
 
 **Alternatives considered**:
 
-- Create then call disable. Rejected because a short runnable interval violates
-  #118 and can execute startup or near-term schedules.
+- Create then call disable. Rejected because a short runnable interval violates #118 and can execute startup or near-term schedules.
 - Change all creation defaults to inactive. Rejected because #118 explicitly scopes the behavior to desktop creation and requires compatibility elsewhere.
 - Add a second desktop-only endpoint. Rejected because an additive request field expresses the same domain intent with less surface area.
 

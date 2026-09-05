@@ -8,7 +8,15 @@ Make Activity honest and useful during troubleshooting by carrying the daemon's 
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0, Markdown **Primary Dependencies**: Go standard library, existing Fyne v2 UI and slog/logbus stack **Storage**: Existing rotating JSONL log only; no schema, retention, or persistence changes **Testing**: Go unit and GUI tests plus all eight canonical verification gates **Target Platform**: Windows and Linux local desktop/daemon environments **Project Type**: Local daemon, IPC API, CLI, and desktop GUI **Performance Goals**: No additional request, filesystem access, or unbounded state **Constraints**: Exact path preservation, stable CLI output, UTF-8 without BOM, no file-opening behavior **Scale/Scope**: One additive response field, one view-model field, one Activity label, and one startup record
+**Language/Version**: Go 1.25.0, Markdown
+**Primary Dependencies**: Go standard library, existing Fyne v2 UI and slog/logbus stack
+**Storage**: Existing rotating JSONL log only; no schema, retention, or persistence changes
+**Testing**: Go unit and GUI tests plus all eight canonical verification gates
+**Target Platform**: Windows and Linux local desktop/daemon environments
+**Project Type**: Local daemon, IPC API, CLI, and desktop GUI
+**Performance Goals**: No additional request, filesystem access, or unbounded state
+**Constraints**: Exact path preservation, stable CLI output, UTF-8 without BOM, no file-opening behavior
+**Scale/Scope**: One additive response field, one view-model field, one Activity label, and one startup record
 
 ## Constitution Check
 

@@ -1,6 +1,7 @@
 # Implementation Plan: Maintainer Automation Baseline
 
-**Branch**: `011-maintainer-automation-baseline` (trunk-based on `main`) | **Date**: 2026-08-26 | **Spec**: [spec.md](spec.md)
+**Branch**: `011-maintainer-automation-baseline` (trunk-based on `main`) |
+**Date**: 2026-08-26 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/011-maintainer-automation-baseline/spec.md`
 
@@ -36,9 +37,7 @@ Close issues #21 and #41 as one maintainer-automation slice. Upgrade every Node 
 - **II. Testing Standards**: The automation contract receives fixture-based regression tests. The complete race, GUI, and coverage gates remain part of aggregate verification and are run before commit. No safety-critical test is relaxed or excluded.
 - **III. User Experience Consistency**: The maintainer-facing command has named gates, consistent stdout progress, actionable stderr failures, conventional exit codes, and explicit prerequisite errors.
 - **IV. Performance Requirements**: Scheduler hot paths and benchmarks are not modified. The aggregate driver is sequential by design so buffered foreground test output remains attributable and every required gate is watched.
-- **V. Autonomous Build-Phase Execution**: Scope traces to open issues #21 and
-  #41. The artifacts make implementation task-complete for autopilot, retain the
-  analyze gate, and require the single pre-push halt. No push, tag, or release is part of this plan.
+- **V. Autonomous Build-Phase Execution**: Scope traces to open issues #21 and #41. The artifacts make implementation task-complete for autopilot, retain the analyze gate, and require the single pre-push halt. No push, tag, or release is part of this plan.
 - **Pinned-artifact rule**: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, and `Makefile` change only with dated `CHANGELOG.md` decisions. This plan also updates the autopilot guidance that consumes their verification contract.
 
 No constitution violation or complexity exception is required.

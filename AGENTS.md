@@ -1,13 +1,5 @@
 # AI Agent Project Directives
 
-## GitHub publishing format
-
-- Never use the Unicode em dash character in repository-authored content, source comments, documentation, GitHub Issues, pull requests, review replies, release notes, or other GitHub text; use a comma, colon, parentheses, or an ordinary hyphen instead.
-- Never hard-wrap prose written for GitHub Markdown; every paragraph, heading, and list item must occupy one physical source line, regardless of its rendered length, because GitHub performs visual wrapping.
-- Preserve multiple physical lines only when Markdown syntax requires them, including fenced code blocks, tables, front matter, and other literal blocks.
-- Before publishing or pushing GitHub-facing text, run the repository formatting check and inspect the exact outbound body for em dashes and hard-wrapped prose.
-- Treat either formatting violation as a blocking error to correct before publication, not as optional editorial cleanup.
-
 ## Mermaid diagrams
 
 - Lay out Mermaid diagrams from top to bottom. For flowcharts, use `flowchart TB`; for nested subgraphs with an explicit direction, use `direction TB`.
@@ -15,6 +7,14 @@
 - Keep the primary reading order vertically stacked. When a diagram would become too wide, split it into multiple focused diagrams or vertically arranged subgraphs instead of changing it to a horizontal layout.
 - Treat top-to-bottom layout as a required project convention for every new or modified Mermaid diagram, not as an optional formatting preference.
 - Apply this convention only to project-authored diagrams. Do not reject, rewrite, or warn about a different valid direction contained in a user-owned file being processed by the product.
+
+## GitHub publishing format
+
+- Never use the Unicode em dash in repository content, code comments, documentation, issues, pull requests, reviews, release notes, or any other text published to GitHub. Use commas, parentheses, colons, semicolons, or standard hyphens instead.
+- Never hard-wrap Markdown prose to a source-width limit. Each paragraph, heading, and list item must occupy one physical source line, with GitHub responsible for visual wrapping.
+- Use multiple physical lines only where syntax or literal content requires them, including fenced blocks, tables, front matter, separate list items, and deliberate semantic line breaks.
+- Run `go run ./scripts/github-format` before publishing repository or GitHub content.
+- Treat an em dash or width-based prose wrap as a publication-blocking formatting defect.
 
 ## Implementation slices
 

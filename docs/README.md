@@ -29,7 +29,7 @@ An index of what is here and who each document is for. If you are installing, st
 
 | Document | What it covers |
 | --- | --- |
-| [Maintainer test scripts](test-scripts.md) | Proving that a real, installed daemon fires on time, survives restarts, catches up after downtime, and honors overlap policies N/A with recorded evidence rather than a hopeful glance at a log. |
+| [Maintainer test scripts](test-scripts.md) | Proving that a real, installed daemon fires on time, survives restarts, catches up after downtime, and honors overlap policies, with recorded evidence rather than a hopeful glance at a log. |
 
 These are written for maintainers but are equally useful to anyone who wants their install demonstrated rather than assumed. Their output makes an excellent attachment to a bug report.
 

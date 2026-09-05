@@ -1,6 +1,8 @@
 # Lifecycle Requirements Checklist: Scheduler Startup Trigger
 
-**Purpose**: Review once-per-start lifecycle correctness, event fidelity, and cross-surface consistency **Created**: 2026-08-30 **Feature**: [spec.md](../spec.md)
+**Purpose**: Review once-per-start lifecycle correctness, event fidelity, and cross-surface consistency
+**Created**: 2026-08-30
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

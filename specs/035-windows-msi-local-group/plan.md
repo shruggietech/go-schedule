@@ -1,6 +1,7 @@
 # Implementation Plan: Windows MSI Local-Group Recovery
 
-**Branch**: `codex/083-fix-msi-local-group` | **Date**: 2026-08-31 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/083-fix-msi-local-group` | **Date**: 2026-08-31 |
+**Spec**: [spec.md](spec.md)
 
 ## Summary
 

@@ -1,6 +1,7 @@
 # Implementation Plan: Cron interoperability and calendar-anomaly policy
 
-**Branch**: `008-cron-interop` (trunk-based, committed directly onto `main`) | **Date**: 2026-07-23 | **Spec**: [spec.md](./spec.md)
+**Branch**: `008-cron-interop` (trunk-based, committed directly onto `main`) |
+**Date**: 2026-07-23 | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `specs/008-cron-interop/spec.md`
 
@@ -43,7 +44,7 @@ Plus issue #9: hyperlink the ShruggieTech attribution to `https://shruggie.tech`
 | Principle | Assessment |
 | --- | --- |
 | **I. Code Quality** | New package carries doc comments stating intent; refusals are values, not panics; errors wrapped with `%w`. The cron field parser is decomposed per field rather than one large function, to stay under the linter's complexity gate. |
-| **II. Testing (NON-NEGOTIABLE)** | Safety-critical surfaces touched: **timezone/DST resolution** and **forward-only migrations**. Both gain tests rather than losing any: policy resolution is tested at real DST transitions, and migration v5 gets a v4→v5 test asserting no stored value changes. Clock stays injected N/A every new test passes explicit instants. The existing `cronparity_test.go` is extended, never weakened. |
+| **II. Testing (NON-NEGOTIABLE)** | Safety-critical surfaces touched: **timezone/DST resolution** and **forward-only migrations**. Both gain tests rather than losing any: policy resolution is tested at real DST transitions, and migration v5 gets a v4→v5 test asserting no stored value changes. Clock stays injected, every new test passes explicit instants. The existing `cronparity_test.go` is extended, never weakened. |
 | **III. UX Consistency** | New CLI follows verb-noun (`cron explain`), honors `--json`, writes results to stdout and refusals to stderr where they are diagnostics, and uses the established exit codes. The new flag's values use underscores to match `--overlap`/`--catchup` (contracts/cli.md). Times remain RFC 3339 in machine output. |
 | **IV. Performance** | Policy resolution is a bounded walk over at most a handful of candidate periods, not a search; the default path (`skip`) is unchanged code. `BenchmarkNextRun` is kept and re-run to confirm no regression beyond the 10% bar. |
 | **V. Autonomous execution** | This feature is spec'd through spec-kit, `/speckit-analyze` runs before implementation, and there is exactly one halt before the push. |

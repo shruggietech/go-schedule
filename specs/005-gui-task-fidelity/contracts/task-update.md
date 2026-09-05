@@ -47,7 +47,7 @@ not a foreign-key 500 (§FR-016, R6). An empty string skips the lookup, clearing
 
 | Invocation | Sent | Meaning |
 |---|---|---|
-| no `--group` | `nil` | unchanged N/A **existing behavior preserved** (§FR-015) |
+| no `--group` | `nil` | unchanged, **existing behavior preserved** (§FR-015) |
 | `--group ""` | `ptr("")` | ungroup |
 | `--group <id>` | `ptr("<id>")` | assign |
 

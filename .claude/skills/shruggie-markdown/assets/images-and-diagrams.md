@@ -52,7 +52,10 @@ GitHub renders a fenced `mermaid` block natively (since 2022), as do many editor
 
 ````markdown
 ```mermaid
-flowchart LR A[Intake] --> B{Triage} B -->|fix| C[Agent PR] B -->|hold| D[Backlog]
+flowchart TB
+  A[Intake] --> B{Triage}
+  B -->|fix| C[Agent PR]
+  B -->|hold| D[Backlog]
 ```
 ````
 

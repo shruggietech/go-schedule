@@ -1,6 +1,8 @@
 # Specification Quality Checklist: GUI task fidelity, schedule round-trip and group assignment
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-07-22 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-07-22
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

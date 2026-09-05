@@ -1,6 +1,7 @@
 # Implementation Plan: v1.0.0 Release Cut
 
-**Branch**: `codex/048-v100-release-cut` | **Date**: 2026-09-03 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/048-v100-release-cut` | **Date**: 2026-09-03 |
+**Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/048-v100-release-cut/spec.md`
 

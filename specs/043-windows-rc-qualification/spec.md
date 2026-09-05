@@ -23,8 +23,7 @@ The demo MSI is deliberately not represented as the formal release candidate. Th
 - Inspect the compiled MSI and record its source commit, ProductCode, size, and SHA-256.
 - Run canonical, installer-source, compiled-MSI, GUI, API, executor, and release- gate verification that does not require destructive elevation or human visual judgment.
 - Prepare a compact attended checklist covering the remaining #94, #98, and S042 native observations.
-- Record failures before making product corrections. For error-spam work, retain
-  #94's proof-before-commit ordering.
+- Record failures before making product corrections. For error-spam work, retain #94's proof-before-commit ordering.
 - Keep the branch local and withhold the pull request until the operator reports that demo testing is complete.
 
 ### Scope out

@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Windows Setup Lifecycle Control
 
-**Purpose**: Validate specification completeness and quality before planning **Created**: 2026-09-02 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before planning
+**Created**: 2026-09-02
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

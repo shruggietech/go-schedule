@@ -35,8 +35,7 @@
 
 ## Decision 4: Reconcile leaves before coordinators
 
-**Decision**: Review and update #98, #101, #104, #105, #106, #109, #111, #112, and #113 first. Then reconcile #96 from actual child/prerequisite states. Keep
-#122 open until promotion and public audit succeed.
+**Decision**: Review and update #98, #101, #104, #105, #106, #109, #111, #112, and #113 first. Then reconcile #96 from actual child/prerequisite states. Keep #122 open until promotion and public audit succeed.
 
 **Rationale**: This preserves issue-level acceptance criteria and prevents a coordinator checkbox from becoming evidence for its own children.
 

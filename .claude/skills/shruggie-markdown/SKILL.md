@@ -104,14 +104,14 @@ Every Markdown file the skill writes complies with `CONVENTIONS.md`:
 
 - UTF-8 with no BOM, LF line endings, no trailing whitespace (the front-matter backslash break exists precisely so the block needs none), a single trailing newline.
 - Zero em-dashes and zero en-dashes anywhere, including inside code comments and `alt` text. Use parentheses, commas, or standard hyphens.
-- Every GitHub Markdown paragraph, heading, list item, and blockquote paragraph occupies one physical source line with no width-based wrapping.
+- One physical source line per paragraph, heading, list item, or blockquote paragraph, with no width-based wrapping.
 - No AI rhetorical tropes, especially the "not just X, it's Y" contrast.
 - Every fenced code block declares a language.
 - For plans, sprint documents, and update logs, sequence sessions chronologically.
 
 ## Additional resources
 
-- `assets/authoring-reference.md`: long-form reference with worked examples for the single H1, front-matter block, heading spacing, horizontal-rule gotchas, anchors and TOCs, prose density, GitHub source lines, justified text, footnotes, and code fences.
+- `assets/authoring-reference.md`: long-form reference with worked examples for the single H1, front-matter block, heading spacing, horizontal-rule gotchas, anchors and TOCs, prose density, line length and wrap-safe continuations, justified text, footnotes, and code fences.
 - `assets/images-and-diagrams.md`: base64 data-URI image embedding, Mermaid, SVG (committed file and inline), the script invocations, and the no-ASCII rule.
 - `assets/renderer-compatibility.md`: the "what renders where" matrix across GitHub.com, VS Code preview, pandoc or WeasyPrint, and Claude chat artifacts, with the fallback advice for Depends and Partial cells.
 - `scripts/encode-image-datauri.sh`: Bash helper that encodes an image as a base64 data URI and prints (or appends) the Markdown reference-style definition.

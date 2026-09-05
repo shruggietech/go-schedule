@@ -38,15 +38,11 @@ Comma-separated exact sets are order-insensitive, whitespace-trimmed, and reject
 
 ### Appearance
 
-The standard and scaled observations jointly close the native evidence gap for
-#101 and the font portion of #106. Both require Dark/Light, all five configured
-font families, System default/reset, persistence, sharp body and Info text, centered/unclipped labels, resize, minimize/restore, and reopen. Standard uses 96 DPI; scaled uses an environment and metric greater than 96 DPI.
+The standard and scaled observations jointly close the native evidence gap for #101 and the font portion of #106. Both require Dark/Light, all five configured font families, System default/reset, persistence, sharp body and Info text, centered/unclipped labels, resize, minimize/restore, and reopen. Standard uses 96 DPI; scaled uses an environment and metric greater than 96 DPI.
 
 ### Interaction states
 
-The standard and scaled interaction observations support #109 and consumers
-#104, #105, #112, and #113. Each requires every shared control family and
-state, 4.5:1 normal-text and 3:1 non-text minima, readable labels/glyphs, visible focus, persistent selected identity, and non-color cues.
+The standard and scaled interaction observations support #109 and consumers #104, #105, #112, and #113. Each requires every shared control family and state, 4.5:1 normal-text and 3:1 non-text minima, readable labels/glyphs, visible focus, persistent selected identity, and non-color cues.
 
 ### Navigation and Options
 

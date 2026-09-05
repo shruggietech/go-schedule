@@ -29,6 +29,29 @@ func TestFormatMarkdownPreservesLiteralStructures(t *testing.T) {
 	}
 }
 
+func TestFormatMarkdownPreservesNestedFences(t *testing.T) {
+	input := "````markdown\n```mermaid\nflowchart TB\n  A --> B\n```\n````\n"
+	if got := formatMarkdown(input); got != input {
+		t.Fatalf("nested fences changed:\n%s", got)
+	}
+}
+
+func TestFormatMarkdownPreservesAlertMarkerAndUnwrapsBody(t *testing.T) {
+	input := "> [!CAUTION]\n> A warning that was\n> wrapped by an author.\n"
+	want := "> [!CAUTION]\n> A warning that was wrapped by an author.\n"
+	if got := formatMarkdown(input); got != want {
+		t.Fatalf("alert changed:\n%s", got)
+	}
+}
+
+func TestFormatMarkdownUnwrapsIssueReferenceContinuation(t *testing.T) {
+	input := "- A list item referencing\n  #123 without treating it as a heading.\n"
+	want := "- A list item referencing #123 without treating it as a heading.\n"
+	if got := formatMarkdown(input); got != want {
+		t.Fatalf("issue reference continuation changed:\n%s", got)
+	}
+}
+
 func TestFormatMarkdownPreservesSemanticMetadataLines(t *testing.T) {
 	input := "**Feature Branch**: `example`\n**Created**: 2026-09-05\n**Status**: Draft\n\n**Label:** First value.  \n**Other:** Second value.\n"
 	if got := formatMarkdown(input); got != input {
@@ -36,9 +59,17 @@ func TestFormatMarkdownPreservesSemanticMetadataLines(t *testing.T) {
 	}
 }
 
+func TestFormatMarkdownUnwrapsMetadataProse(t *testing.T) {
+	input := "**Storage**: Embedded database for tasks, groups,\nschedules, triggers, and history.\n"
+	want := "**Storage**: Embedded database for tasks, groups, schedules, triggers, and history.\n"
+	if got := formatMarkdown(input); got != want {
+		t.Fatalf("metadata prose changed:\n%s", got)
+	}
+}
+
 func TestReplaceEmDashesUsesPlainPunctuationAndTableFallback(t *testing.T) {
-	input := "A clause " + emDash + " another clause.\n" + emDash + " continued.\n| Value | " + emDash + " |\n"
-	want := "A clause, another clause.\ncontinued.\n| Value | N/A |\n"
+	input := "A clause " + emDash + " another clause.\n" + emDash + " continued.\n| Value | " + emDash + " |\n| Result | PASS " + emDash + " verified |\n"
+	want := "A clause, another clause.\ncontinued.\n| Value | N/A |\n| Result | PASS, verified |\n"
 	if got := replaceEmDashes(input); got != want {
 		t.Fatalf("replaceEmDashes() = %q, want %q", got, want)
 	}

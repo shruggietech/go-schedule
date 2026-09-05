@@ -36,9 +36,7 @@ Deliver one operator-safety path across task creation, eligibility presentation,
 - **II. Testing Standards**: PASS. Regression tests precede each behavior: migration rollback/data preservation, optional create semantics, exact run lookup, failure correlation, truncation, group-chain attribution, and headless GUI state/detail rendering. Canonical race and coverage gates remain mandatory.
 - **III. User Experience Consistency**: PASS. Task state terms are separated, failure messages become actionable, all timestamps remain RFC 3339, and diagnostics retain task/run correlation without new secret disclosure.
 - **IV. Performance Requirements**: PASS. No scheduler hot-path algorithm changes beyond assigning a known run ID to an alert. Group display traverses only the in-memory ancestor chain and exact-run retrieval is keyed by primary ID. No new benchmark is warranted.
-- **V. Autonomous Build-Phase Execution**: PASS. S051 is traceable to #102,
-  #118, and #120, uses a `codex/` review branch, executes the full Spec Kit
-  sequence, and will publish one PR under the user's explicit authorization.
+- **V. Autonomous Build-Phase Execution**: PASS. S051 is traceable to #102, #118, and #120, uses a `codex/` review branch, executes the full Spec Kit sequence, and will publish one PR under the user's explicit authorization.
 - **Engineering constraints**: PASS. Schema and wire changes are additive, existing callers retain behavior, inputs remain locally authorized by the IPC boundary, and no dependency or platform support changes.
 
 ## Phase 0 Research Decisions

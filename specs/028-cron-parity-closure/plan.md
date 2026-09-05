@@ -8,7 +8,15 @@ Close issue #22 with one substantial fidelity slice. Make crontab import preserv
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0 and Markdown **Primary Dependencies**: Existing Cobra, `rrule-go`, SQLite, and Fyne dependencies; no additions **Storage**: SQLite schema v8 with one additive task stdin column **Testing**: Go unit/integration tests, migration/restart/executor fixtures, CLI and GUI headless tests, recurrence benchmarks, and eight canonical gates **Target Platform**: Windows, Linux, and macOS-supported Go paths; imported cron execution follows Unix shell semantics **Project Type**: Local daemon, CLI, API, and desktop application **Performance Goals**: Existing p99 dispatch target below 100 ms; representative next-run benchmarks within ten percent of baseline **Constraints**: No silent approximation, one authoritative recurrence evaluator, deterministic import layout, additive migration, UTF-8 without BOM **Scale/Scope**: Cron parser/compiler/export, schedule missing-date seconds, crontab scanner, task model/store/API/executor, CLI import/reporting, lifecycle surfaces, docs, and issue #22
+**Language/Version**: Go 1.25.0 and Markdown
+**Primary Dependencies**: Existing Cobra, `rrule-go`, SQLite, and Fyne dependencies; no additions
+**Storage**: SQLite schema v8 with one additive task stdin column
+**Testing**: Go unit/integration tests, migration/restart/executor fixtures, CLI and GUI headless tests, recurrence benchmarks, and eight canonical gates
+**Target Platform**: Windows, Linux, and macOS-supported Go paths; imported cron execution follows Unix shell semantics
+**Project Type**: Local daemon, CLI, API, and desktop application
+**Performance Goals**: Existing p99 dispatch target below 100 ms; representative next-run benchmarks within ten percent of baseline
+**Constraints**: No silent approximation, one authoritative recurrence evaluator, deterministic import layout, additive migration, UTF-8 without BOM
+**Scale/Scope**: Cron parser/compiler/export, schedule missing-date seconds, crontab scanner, task model/store/API/executor, CLI import/reporting, lifecycle surfaces, docs, and issue #22
 
 ## Constitution Check
 

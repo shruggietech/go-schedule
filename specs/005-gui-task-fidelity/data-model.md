@@ -1,6 +1,7 @@
 # Phase 1 Data Model: GUI task fidelity
 
-**Feature**: [spec.md](spec.md) · **Research**: [research.md](research.md) · **Date**: 2026-07-22
+**Feature**: [spec.md](spec.md) · **Research**: [research.md](research.md) ·
+**Date**: 2026-07-22
 
 Only one persisted entity changes. Everything else on this page is stated to pin what must *not* change.
 

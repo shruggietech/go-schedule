@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Maintainer Automation Baseline
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-08-26 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-08-26
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -30,6 +32,4 @@
 ## Notes
 
 - Validation passed on the first review iteration.
-- GitHub issues #40 and #42 were intentionally excluded after scope analysis:
-  #40 conflicts with the constitution's no-pull-request rule, while #42 is an
-  independent historical-governance workstream.
+- GitHub issues #40 and #42 were intentionally excluded after scope analysis: #40 conflicts with the constitution's no-pull-request rule, while #42 is an independent historical-governance workstream.

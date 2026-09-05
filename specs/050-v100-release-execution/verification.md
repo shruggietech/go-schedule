@@ -89,9 +89,7 @@ All eight payload entries in `SHA256SUMS.txt` passed after the fresh public down
 
 ## GitHub planning state
 
-At publication audit time, milestone #2 had 20 closed and 11 open issues. The open set was #96, #98, #101, #104, #105, #106, #109, #111, #112, #113, and
-#122. This is intentional: publication occurred by explicit exception, while
-formal-evidence closure criteria remain unresolved and visible.
+At publication audit time, milestone #2 had 20 closed and 11 open issues. The open set was #96, #98, #101, #104, #105, #106, #109, #111, #112, #113, and #122. This is intentional: publication occurred by explicit exception, while formal-evidence closure criteria remain unresolved and visible.
 
 ## Repository verification
 

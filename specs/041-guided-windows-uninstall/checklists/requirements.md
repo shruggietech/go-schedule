@@ -1,6 +1,8 @@
 # Specification Quality Checklist: Guided Windows Uninstall Entry
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-09-02 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-09-02
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

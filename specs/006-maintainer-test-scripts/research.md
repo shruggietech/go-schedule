@@ -111,7 +111,7 @@ Probed on this machine:
 | `sqlite3` 3.47.2 | present |
 | `pwsh` 7.6.3 | present |
 | `bash` 5.3.15 | present |
-| `go` 1.25.0, `go.mod` go 1.25.0 | present N/A the golangci-lint toolchain trap does **not** apply |
+| `go` 1.25.0, `go.mod` go 1.25.0 | present, the golangci-lint toolchain trap does **not** apply |
 | `shellcheck` | **absent**; `winget` available to install it |
 | C compiler (`gcc`/`cc`/`clang`/mingw) | **absent** |
 

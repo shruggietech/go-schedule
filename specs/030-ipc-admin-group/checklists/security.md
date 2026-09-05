@@ -1,6 +1,10 @@
 # Security Requirements Checklist: Dedicated IPC Administrative Group
 
-**Purpose**: Validate that S030's security-boundary requirements are complete, clear, consistent, and reviewable before implementation planning **Created**: 2026-08-30 **Feature**: [spec.md](../spec.md) **Audience**: Pull-request reviewer **Depth**: Standard security gate
+**Purpose**: Validate that S030's security-boundary requirements are complete, clear, consistent, and reviewable before implementation planning
+**Created**: 2026-08-30
+**Feature**: [spec.md](../spec.md)
+**Audience**: Pull-request reviewer
+**Depth**: Standard security gate
 
 ## Requirement Completeness
 

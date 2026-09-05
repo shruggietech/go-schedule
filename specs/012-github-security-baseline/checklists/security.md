@@ -1,6 +1,8 @@
 # Security Requirements Checklist: GitHub Security Baseline
 
-**Purpose**: Test the completeness, clarity, consistency, and measurability of the security baseline requirements before implementation **Created**: 2026-08-26 **Feature**: [spec.md](../spec.md)
+**Purpose**: Test the completeness, clarity, consistency, and measurability of the security baseline requirements before implementation
+**Created**: 2026-08-26
+**Feature**: [spec.md](../spec.md)
 
 **Note**: This checklist evaluates the written requirements, not the eventual GitHub settings or workflow implementation.
 

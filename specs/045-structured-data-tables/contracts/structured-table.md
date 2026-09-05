@@ -38,13 +38,13 @@ When | Task | Event | Outcome
 
 | Source state | Event | Outcome label | Glyph | Semantic role |
 | --- | --- | --- | --- | --- |
-| Future | SCHEDULED | N/A Not available | ▷ | Informational |
+| Future | SCHEDULED |, Not available | ▷ | Informational |
 | Past success | COMPLETED | SUCCESS | ✓ | Success |
 | Past failure | COMPLETED | FAILURE | ✗ | Error |
 | Past skipped | COMPLETED | SKIPPED | ↷ | Disabled/secondary |
 | Past caught up | COMPLETED | CAUGHT UP | ↻ | Informational |
 | Past queued | COMPLETED | QUEUED | ⋯ | Warning |
-| Past missing | COMPLETED | N/A Not available | • | Neutral |
+| Past missing | COMPLETED |, Not available | • | Neutral |
 | Unknown | COMPLETED | normalized source value | ? | Neutral |
 
 - Existing ascending chronological order, live refresh, range selection, and Calendar switching remain unchanged.

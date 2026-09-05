@@ -8,8 +8,7 @@
 - Latest local tag and public GitHub release: `v0.9.1`.
 - Neither a local/remote `v1.0.0` tag nor a GitHub v1.0.0 release existed.
 - No pull request was open when S049 began.
-- Milestone #2, `v1.0.0 - Release readiness`, had eleven open issues:
-  #96, #98, #101, #104, #105, #106, #109, #111, #112, #113, and #122.
+- Milestone #2, `v1.0.0 - Release readiness`, had eleven open issues: #96, #98, #101, #104, #105, #106, #109, #111, #112, #113, and #122.
 - S047 pull request #121 and S048 pull request #123 were merged.
 - Existing production validation required 47 observations and the Release and Promote Release workflows already preserved draft staging and exact-candidate promotion.
 
@@ -36,10 +35,7 @@ PASS after two corrections.
 
 Corrections:
 
-1. The first mapping draft gave #98 only seven Removal observations and treated
-   #96 as coordinator for all desktop issues. S047's authoritative model gives
-   #98 all 16 Setup/Removal observations and #96 aggregate lifecycle
-   reconciliation. S049 now maps #96 to the 36 pre-desktop observations and its actual child/prerequisite references #97, #98, #94, #89, and #90.
+1. The first mapping draft gave #98 only seven Removal observations and treated #96 as coordinator for all desktop issues. S047's authoritative model gives #98 all 16 Setup/Removal observations and #96 aggregate lifecycle reconciliation. S049 now maps #96 to the 36 pre-desktop observations and its actual child/prerequisite references #97, #98, #94, #89, and #90.
 2. The generated task graph initially placed `/speckit-analyze` after implementation. It was moved before the In Progress transition and red-test phase, restoring the constitution's blocking-gate order.
 
 ## Red-to-Green Evidence
@@ -115,9 +111,7 @@ Focused tests and race tests passed on Windows, Linux and macOS release-gate pac
 
 Both findings on commit `26a8dcc8f4d808c178442ee13eb47b51c6af40a7` were accepted and corrected:
 
-1. The #96 mapping and rendered record now distinguish coordinator children
-   #97, #98, and #94 from completed implementation prerequisites #89 and #90,
-   and explicitly preserve #98's independent closure boundary.
+1. The #96 mapping and rendered record now distinguish coordinator children #97, #98, and #94 from completed implementation prerequisites #89 and #90, and explicitly preserve #98's independent closure boundary.
 2. The Windows operator guide now uses the renderer's exact zero-padded `issue-096.md` and `issue-098.md` filenames.
 
 No further Codex review round will be requested, honoring the two-round limit.

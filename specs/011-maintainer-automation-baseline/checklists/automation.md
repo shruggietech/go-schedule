@@ -1,6 +1,8 @@
 # Automation Requirements Checklist: Maintainer Automation Baseline
 
-**Purpose**: Test whether the automation and verification requirements are complete, precise, consistent, and ready for implementation **Created**: 2026-08-26 **Feature**: [spec.md](../spec.md)
+**Purpose**: Test whether the automation and verification requirements are complete, precise, consistent, and ready for implementation
+**Created**: 2026-08-26
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 
@@ -38,9 +40,7 @@
 
 ## Dependencies, Boundaries, and Traceability
 
-- [x] CHK020 Are issues #21 and #41 explicitly traceable while #23, #38, #39,
-  #40, and #42 are clearly excluded? [Traceability, Spec §Traceability, Scope
-  out]
+- [x] CHK020 Are issues #21 and #41 explicitly traceable while #23, #38, #39, #40, and #42 are clearly excluded? [Traceability, Spec §Traceability, Scope out]
 - [x] CHK021 Are the existing workflow contracts and supported shell assumptions documented rather than left implicit? [Assumption, Spec §Assumptions]
 - [x] CHK022 Is every pinned-artifact change tied to the dated decision rule? [Dependency, Spec §FR-012]
 - [x] CHK023 Is product behavior explicitly protected from this maintenance-only slice? [Boundary, Spec §Scope out, SC-007]

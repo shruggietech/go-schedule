@@ -1,6 +1,8 @@
 # Attended Demo Checklist: Windows Demo Qualification
 
-**Purpose**: Condense the pre-PR native checks that require the operator's Windows desktop **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
+**Purpose**: Condense the pre-PR native checks that require the operator's Windows desktop
+**Created**: 2026-09-03
+**Feature**: [spec.md](../spec.md)
 
 ## Candidate binding
 
@@ -23,8 +25,7 @@
 - [x] DEMO011 **FAIL** Ordinary Brand-font body text, including the affected Info treatment, remained fuzzy. Switching to System corrected it. Tracked by #101 and #106.
 - [x] DEMO012 **PARTIAL FAIL** Storage information was present, but the cards are excessively wide, unavailable state is applied only to Copy, and compact tabular presentation is required. Tracked by #106.
 - [x] DEMO013 **PASS** Double-click opened the correct task editor. Recorded on closed issue #103.
-- [x] DEMO014 **PARTIAL PASS** Exit performed the expected shutdown. Title-bar close was not separately reported; the Exit glyph refinement is tracked by
-  #105.
+- [x] DEMO014 **PARTIAL PASS** Exit performed the expected shutdown. Title-bar close was not separately reported; the Exit glyph refinement is tracked by #105.
 
 ## Task execution
 
@@ -44,6 +45,5 @@ The operator intentionally ended attended testing without running these task cas
 
 ## Result
 
-- [x] DEMO023 **PASS** No product correction was committed. Every out-of-scope finding was filed or attached to GitHub issues #101, #104, #105, #106, #109,
-  #110, #111, #112, and #113.
+- [x] DEMO023 **PASS** No product correction was committed. Every out-of-scope finding was filed or attached to GitHub issues #101, #104, #105, #106, #109, #110, #111, #112, and #113.
 - [x] DEMO024 **PASS** The operator explicitly ended the walkthrough and authorized work through the final-review boundary.

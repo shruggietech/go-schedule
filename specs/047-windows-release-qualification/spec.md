@@ -8,9 +8,7 @@
 
 **Delivery**: Review branch `codex/047-windows-release-qualification`; committed implementation, local-demo acceptance, and canonical verification completed; publication intentionally withheld
 
-**Input**: Complete the Windows release-readiness slice for issues #96, #98,
-#101, #104, #105, #106, #109, #111, #112, and #113 as far as possible under
-autopilot, then halt before the review branch is pushed.
+**Input**: Complete the Windows release-readiness slice for issues #96, #98, #101, #104, #105, #106, #109, #111, #112, and #113 as far as possible under autopilot, then halt before the review branch is pushed.
 
 ## Scope and Evidence Boundary
 
@@ -141,9 +139,7 @@ As the project maintainer, I can determine exactly which open v1 issues are comp
 - **FR-012**: The collector MUST remain resumable and MUST reject overwriting an existing workspace, observation, attachment, or final archive.
 - **FR-013**: Finalization MUST reject missing, duplicate, skipped, partial, timed-out, unavailable, failed, malformed, or attachment-free mandatory evidence with actionable diagnostics.
 - **FR-014**: The synthetic fixture MUST exercise every new semantic rule and MUST remain barred from the attended production path.
-- **FR-015**: The Windows runbook MUST map each new desktop observation to issues
-  #101, #104, #105, #106, #109, #111, #112, and #113, and retain #98/#96
-  lifecycle traceability.
+- **FR-015**: The Windows runbook MUST map each new desktop observation to issues #101, #104, #105, #106, #109, #111, #112, and #113, and retain #98/#96 lifecycle traceability.
 - **FR-016**: S047 MUST produce one committed-source local demo MSI whose filename and embedded version unmistakably say `s047-demo`, while its numeric ProductVersion remains suitable for MSI compilation and inspection.
 - **FR-017**: The demo handoff MUST record the full source commit, ProductCode, ProductVersion, embedded version, byte size, SHA-256, build timestamp, artifact class, and compiled inspection result.
 - **FR-018**: The local demo MUST pass all eight canonical repository gates, focused release-gate tests, PowerShell parser checks, installer-source checks, and compiled-MSI inspection before it is reported ready.

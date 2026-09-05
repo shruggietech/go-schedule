@@ -20,8 +20,7 @@
 
 **Alternatives considered**:
 
-- One observation for each open issue. Rejected because #101/#106 and
-  #104/#105/#109 overlap heavily and would duplicate screenshots.
+- One observation for each open issue. Rejected because #101/#106 and #104/#105/#109 overlap heavily and would duplicate screenshots.
 - One observation per palette, DPI, size, and control permutation. Rejected because it would create dozens of fragments without improving issue-level meaning.
 
 ## Decision 3: Flat typed metrics with exact normalized sets

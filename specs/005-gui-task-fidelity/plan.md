@@ -42,11 +42,11 @@ Constitution v1.1.0.
 
 | Principle | Gate | Initial | Post-design |
 |---|---|---|---|
-| I. Code Quality | `gofmt`/`go vet`/`golangci-lint` clean; doc comments on exported items; wrapped errors; documented goroutine lifecycles | PASS N/A the new `Expression` field carries a doc comment stating its contract; no new goroutines | PASS |
-| II. Testing (NON-NEGOTIABLE) | tests alongside; regression test failing before each fix; injected clock; `-race`; ≥80% coverage on core packages | PASS N/A every FR maps to a named test in [quickstart.md](quickstart.md); migration-survival test is mandatory | PASS |
-| III. UX Consistency | consistent CLI verb-noun and flags; actionable errors naming the field; explicit timezone handling | PASS N/A `--group ""` extends an existing flag rather than adding one; unknown group returns a field-named validation error (R6); lookup-failure message names the safe action (R7) | PASS |
-| IV. Performance | measured dispatch budget; no regression >10%; no leaks | PASS N/A nothing added to the dispatch path | PASS |
-| V. Autonomous Build-Phase Execution | spec'd through spec-kit; `analyze` not skipped; one halt before push | PASS N/A full sequence run; decisions recorded here and in research.md | PASS |
+| I. Code Quality | `gofmt`/`go vet`/`golangci-lint` clean; doc comments on exported items; wrapped errors; documented goroutine lifecycles | PASS, the new `Expression` field carries a doc comment stating its contract; no new goroutines | PASS |
+| II. Testing (NON-NEGOTIABLE) | tests alongside; regression test failing before each fix; injected clock; `-race`; ≥80% coverage on core packages | PASS, every FR maps to a named test in [quickstart.md](quickstart.md); migration-survival test is mandatory | PASS |
+| III. UX Consistency | consistent CLI verb-noun and flags; actionable errors naming the field; explicit timezone handling | PASS, `--group ""` extends an existing flag rather than adding one; unknown group returns a field-named validation error (R6); lookup-failure message names the safe action (R7) | PASS |
+| IV. Performance | measured dispatch budget; no regression >10%; no leaks | PASS, nothing added to the dispatch path | PASS |
+| V. Autonomous Build-Phase Execution | spec'd through spec-kit; `analyze` not skipped; one halt before push | PASS, full sequence run; decisions recorded here and in research.md | PASS |
 
 ### Safety-critical surfaces touched
 

@@ -24,7 +24,7 @@ import (
 // walking periods and computing the target date directly.
 
 // Describe renders a schedule's human summary with its missing-date policy named
-// only when the rule can actually miss a period, so ordinary schedules read
+// but only when the rule can actually miss a period, so ordinary schedules read
 // exactly as they always have.
 //
 // It is deliberately a render-time function rather than something baked into the

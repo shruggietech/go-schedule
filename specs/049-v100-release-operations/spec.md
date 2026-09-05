@@ -37,8 +37,7 @@ As a release steward, I can transform one completely valid formal Windows candid
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid 47-observation formal archive, matching manifest, and matching MSI, **when** the steward generates the disposition packet, **then** exactly ten issue records are produced for #96, #98, #101, #104,
-   #105, #106, #109, #111, #112, and #113.
+1. **Given** a valid 47-observation formal archive, matching manifest, and matching MSI, **when** the steward generates the disposition packet, **then** exactly ten issue records are produced for #96, #98, #101, #104, #105, #106, #109, #111, #112, and #113.
 2. **Given** a generated child-issue record, **when** a reviewer reads it, **then** the record names the candidate tag, commit, workflow run, MSI hash, validator result, mapped observation results, environments, and supporting attachment paths needed to judge that issue independently.
 3. **Given** the same validated inputs twice, **when** packets are generated in separate empty destinations, **then** corresponding files are byte-for-byte identical.
 
@@ -150,8 +149,7 @@ As a maintainer, I can follow one chronological runbook from the reviewed merge 
 ### In Scope
 
 - Deterministic, local, fail-closed generation of issue-specific formal evidence records from the existing v1.0.0 candidate inputs.
-- Exact observation-to-issue mappings for the nine child issues and coordinator
-  #96.
+- Exact observation-to-issue mappings for the nine child issues and coordinator #96.
 - Tests covering report completeness, determinism, safety, candidate binding, and command behavior.
 - A chronological S049 operations runbook that reuses S048's release contract.
 - Focused documentation for the new operation and its post-merge use.

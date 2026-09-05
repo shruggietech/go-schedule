@@ -1,6 +1,8 @@
 # Specification Quality Checklist: GUI Editor Refinements
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-06-20 **Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-06-20
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

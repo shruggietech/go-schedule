@@ -1,6 +1,8 @@
 # Release Operations Requirements Checklist: v1.0.0
 
-**Purpose**: Test whether S049's evidence-disposition and release-boundary requirements are complete, clear, consistent, measurable, and reviewable **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
+**Purpose**: Test whether S049's evidence-disposition and release-boundary requirements are complete, clear, consistent, measurable, and reviewable
+**Created**: 2026-09-03
+**Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

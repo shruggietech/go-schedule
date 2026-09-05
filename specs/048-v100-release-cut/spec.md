@@ -95,9 +95,7 @@ As the release operator, I have one exact, chronological contract for staging th
 - **FR-009**: Staging MUST produce exactly the nine pre-checksum assets required by the current promotion workflow, including the Windows MSI, candidate manifest, and attended evidence archive.
 - **FR-010**: Formal qualification MUST use all 47 S047 scenarios and MUST bind the evidence archive to the exact v1.0.0 MSI, manifest, tag commit, Release run ID, and run attempt.
 - **FR-011**: Formal Windows evidence MUST remain attended and MUST NOT copy pass results from S043 or S047 local-demo evidence.
-- **FR-012**: S048 MUST map #96, #98, #101, #104, #105, #106, #109, #111,
-  #112, and #113 to their exact formal observations and reconcile each issue
-  independently.
+- **FR-012**: S048 MUST map #96, #98, #101, #104, #105, #106, #109, #111, #112, and #113 to their exact formal observations and reconcile each issue independently.
 - **FR-013**: Issue #122 and milestone `v1.0.0 - Release readiness` MUST remain open through the preparation PR and until the published release and all issue dispositions are audited.
 - **FR-014**: The preparation PR MUST use `Refs #122`; merging preparation alone MUST NOT close the release issue or claim v1.0.0 is published.
 - **FR-015**: Creating the tag, uploading evidence, dispatching promotion, closing issues, and closing the milestone MUST require post-merge authority and successful upstream gates.

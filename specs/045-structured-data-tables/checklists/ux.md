@@ -1,6 +1,10 @@
 # UX Requirements Quality Checklist: Structured Desktop Data Tables
 
-**Purpose**: Validate that the structured-table requirements are complete, clear, consistent, measurable, and review-ready **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md) **Audience**: Pull-request reviewers **Depth**: Standard release-readiness requirements review
+**Purpose**: Validate that the structured-table requirements are complete, clear, consistent, measurable, and review-ready
+**Created**: 2026-09-03
+**Feature**: [spec.md](../spec.md)
+**Audience**: Pull-request reviewers
+**Depth**: Standard release-readiness requirements review
 
 ## Requirement Completeness
 

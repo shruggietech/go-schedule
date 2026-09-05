@@ -1,6 +1,7 @@
 # Verification Evidence: GUI Navigation and Information
 
-**Date**: 2026-08-28 **Branch**: `codex/017-gui-info-navigation`
+**Date**: 2026-08-28
+**Branch**: `codex/017-gui-info-navigation`
 
 ## Test-first evidence
 

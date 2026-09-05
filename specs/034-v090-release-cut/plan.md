@@ -1,6 +1,7 @@
 # Implementation Plan: v0.9.0 Release Cut
 
-**Branch**: `codex/034-v090-release-cut` | **Date**: 2026-08-30 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/034-v090-release-cut` | **Date**: 2026-08-30 |
+**Spec**: [spec.md](spec.md)
 
 ## Summary
 
