@@ -159,6 +159,66 @@ func (c *Client) FireTrigger(ctx context.Context, key string) error {
 	return c.do(ctx, http.MethodPost, "/v1/triggers/fire", map[string]string{"key": key}, nil)
 }
 
+// CreateTriggerSet atomically creates a set and returns its ordered secrets.
+func (c *Client) CreateTriggerSet(ctx context.Context, req server.TriggerSetCreateRequest) (server.TriggerSetSecretResponse, error) {
+	var out server.TriggerSetSecretResponse
+	err := c.do(ctx, http.MethodPost, "/v1/trigger-sets", req, &out)
+	return out, err
+}
+
+// ListTriggerSets returns every Trigger Set without raw keys.
+func (c *Client) ListTriggerSets(ctx context.Context) ([]server.TriggerSetResponse, error) {
+	var out struct {
+		TriggerSets []server.TriggerSetResponse `json:"trigger_sets"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/trigger-sets", nil, &out)
+	return out.TriggerSets, err
+}
+
+// GetTriggerSet returns one Trigger Set without raw keys.
+func (c *Client) GetTriggerSet(ctx context.Context, id string) (server.TriggerSetResponse, error) {
+	var out server.TriggerSetResponse
+	err := c.do(ctx, http.MethodGet, "/v1/trigger-sets/"+url.PathEscape(id), nil, &out)
+	return out, err
+}
+
+// RevealTriggerSet returns the current ordered member secrets explicitly.
+func (c *Client) RevealTriggerSet(ctx context.Context, id string) (server.TriggerSetSecretResponse, error) {
+	var out server.TriggerSetSecretResponse
+	err := c.do(ctx, http.MethodPost, "/v1/trigger-sets/"+url.PathEscape(id)+"/reveal", nil, &out)
+	return out, err
+}
+
+// RetargetTriggerSet atomically changes every member target.
+func (c *Client) RetargetTriggerSet(ctx context.Context, id, taskID string) (server.TriggerSetResponse, error) {
+	var out server.TriggerSetResponse
+	err := c.do(ctx, http.MethodPatch, "/v1/trigger-sets/"+url.PathEscape(id), server.TriggerSetRetargetRequest{TargetTaskID: taskID}, &out)
+	return out, err
+}
+
+// SetTriggerSetEnabled atomically changes every member's enabled state.
+func (c *Client) SetTriggerSetEnabled(ctx context.Context, id string, enabled bool) (server.TriggerSetResponse, error) {
+	action := "disable"
+	if enabled {
+		action = "enable"
+	}
+	var out server.TriggerSetResponse
+	err := c.do(ctx, http.MethodPost, "/v1/trigger-sets/"+url.PathEscape(id)+"/"+action, nil, &out)
+	return out, err
+}
+
+// RotateTriggerSet atomically replaces every member key and returns replacements.
+func (c *Client) RotateTriggerSet(ctx context.Context, id string) (server.TriggerSetSecretResponse, error) {
+	var out server.TriggerSetSecretResponse
+	err := c.do(ctx, http.MethodPost, "/v1/trigger-sets/"+url.PathEscape(id)+"/rotate", nil, &out)
+	return out, err
+}
+
+// DeleteTriggerSet atomically removes a set and every member.
+func (c *Client) DeleteTriggerSet(ctx context.Context, id string) error {
+	return c.do(ctx, http.MethodDelete, "/v1/trigger-sets/"+url.PathEscape(id), nil, nil)
+}
+
 // Preview returns the RRULE, summary, and next runs for a schedule expression.
 func (c *Client) Preview(ctx context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
 	var out server.PreviewResponse

@@ -24,14 +24,15 @@ type API interface {
 
 // State is a snapshot of what the GUI displays.
 type State struct {
-	Tasks      []domain.Task
-	Chains     []domain.CompletionChain
-	Groups     []domain.Group
-	Alerts     []domain.Alert
-	Logs       []domain.LogRecord
-	LogPath    string
-	RecentRuns []domain.Run
-	Triggers   []server.TriggerResponse
+	Tasks       []domain.Task
+	Chains      []domain.CompletionChain
+	Groups      []domain.Group
+	Alerts      []domain.Alert
+	Logs        []domain.LogRecord
+	LogPath     string
+	RecentRuns  []domain.Run
+	Triggers    []server.TriggerResponse
+	TriggerSets []server.TriggerSetResponse
 }
 
 const (
@@ -90,6 +91,15 @@ func (m *Model) Refresh(ctx context.Context) error {
 			return err
 		}
 	}
+	var triggerSets []server.TriggerSetResponse
+	if api, ok := m.api.(interface {
+		ListTriggerSets(context.Context) ([]server.TriggerSetResponse, error)
+	}); ok {
+		triggerSets, err = api.ListTriggerSets(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	m.mu.Lock()
 	m.st.Tasks = tasks
 	m.st.Groups = groups
@@ -98,6 +108,7 @@ func (m *Model) Refresh(ctx context.Context) error {
 	m.st.Logs = logs.Logs
 	m.st.LogPath = logs.LogPath
 	m.st.Triggers = triggers
+	m.st.TriggerSets = triggerSets
 	m.mu.Unlock()
 	m.notify()
 	return nil

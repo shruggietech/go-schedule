@@ -318,6 +318,24 @@ CREATE INDEX idx_external_triggers_target ON external_triggers(target_task_id);
 ALTER TABLE runs ADD COLUMN source_trigger_id TEXT;
 `,
 	},
+	{
+		// v13: organize existing external triggers into optional Trigger Sets.
+		// Nullable membership preserves every standalone v12 trigger unchanged.
+		version: 13,
+		stmts: `
+CREATE TABLE external_trigger_sets (
+	id             TEXT PRIMARY KEY,
+	name           TEXT NOT NULL,
+	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	created_at     TEXT NOT NULL,
+	updated_at     TEXT NOT NULL
+);
+CREATE INDEX idx_external_trigger_sets_target ON external_trigger_sets(target_task_id);
+ALTER TABLE external_triggers ADD COLUMN set_id TEXT REFERENCES external_trigger_sets(id) ON DELETE CASCADE;
+ALTER TABLE external_triggers ADD COLUMN set_position INTEGER;
+CREATE UNIQUE INDEX idx_external_triggers_set_position ON external_triggers(set_id,set_position) WHERE set_id IS NOT NULL;
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

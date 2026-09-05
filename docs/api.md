@@ -13,7 +13,7 @@ The CLI and desktop app use the same versioned JSON API hosted by `goschedd`. Er
 
 ## External triggers
 
-An ordinary trigger representation contains `id`, `name`, `target_task_id`, `target_task_name`, `enabled`, `readiness`, `reason`, `created_at`, and `updated_at`. It never contains the raw key.
+An ordinary trigger representation contains `id`, `name`, optional `set_id`, optional `set_name`, optional `set_position`, `target_task_id`, `target_task_name`, `enabled`, `readiness`, `reason`, `created_at`, and `updated_at`. It never contains the raw key. A set member cannot be retargeted individually; use the set endpoint so every member retains the shared target invariant.
 
 | Method | Path | Result |
 | --- | --- | --- |
@@ -29,6 +29,22 @@ An ordinary trigger representation contains `id`, `name`, `target_task_id`, `tar
 | `POST` | `/v1/triggers/fire` | Accept `{"key":"gst_..."}` and submit one run request; `202` |
 
 Fire failures use stable codes: `trigger_unknown`, `trigger_disabled`, `trigger_target_missing`, `trigger_command_incomplete`, `trigger_task_inactive`, `trigger_task_disabled`, `trigger_group_blocked`, or `trigger_dispatch_unavailable`. Error responses never echo the submitted key.
+
+### Trigger Sets
+
+Ordinary Trigger Set representations include stable set identity, name, target, member and enabled counts, ordered redacted members, and timestamps. Create, reveal, and rotate responses additionally contain ordered member keys and complete commands.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/v1/trigger-sets` | List redacted Trigger Sets and members |
+| `POST` | `/v1/trigger-sets` | Atomically create 1 through 99 members and return ordered secrets |
+| `GET` | `/v1/trigger-sets/{id}` | Show one redacted Trigger Set |
+| `PATCH` | `/v1/trigger-sets/{id}` | Atomically retarget every member |
+| `DELETE` | `/v1/trigger-sets/{id}` | Atomically delete the set and every member; `204` |
+| `POST` | `/v1/trigger-sets/{id}/enable` | Atomically enable every member |
+| `POST` | `/v1/trigger-sets/{id}/disable` | Atomically disable every member |
+| `POST` | `/v1/trigger-sets/{id}/rotate` | Atomically rotate every key and return ordered replacement secrets |
+| `POST` | `/v1/trigger-sets/{id}/reveal` | Explicitly return current ordered secrets |
 
 ## Runtime storage information
 
@@ -65,3 +81,5 @@ Completion-triggered entries from `GET /v1/runs` have `trigger` set to `completi
 `GET /v1/events` emits `kind: "chain"` with a `created`, `updated`, or `deleted` verb. Create and update include the current chain; delete carries its stable ID.
 
 Trigger lifecycle events use `kind: "trigger"` and contain only a redacted trigger or its stable deletion ID.
+
+Trigger Set lifecycle events use `kind: "trigger_set"` and contain set identity, name, member count, and verb without member keys. One set-level mutation publishes one event after its transaction commits.

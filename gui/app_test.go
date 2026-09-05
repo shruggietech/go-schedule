@@ -25,6 +25,7 @@ type fakeBackend struct {
 	groups      []domain.Group
 	chains      []domain.CompletionChain
 	triggers    []server.TriggerResponse
+	triggerSets []server.TriggerSetResponse
 	alerts      []domain.Alert
 	logs        []domain.LogRecord
 	logPath     string
@@ -96,6 +97,9 @@ func (f *fakeBackend) ListChains(context.Context) ([]domain.CompletionChain, err
 }
 func (f *fakeBackend) ListTriggers(context.Context) ([]server.TriggerResponse, error) {
 	return f.triggers, nil
+}
+func (f *fakeBackend) ListTriggerSets(context.Context) ([]server.TriggerSetResponse, error) {
+	return f.triggerSets, nil
 }
 func (f *fakeBackend) ListGroups(context.Context) ([]domain.Group, error) { return f.groups, nil }
 func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
@@ -198,6 +202,22 @@ func (f *fakeBackend) RotateTrigger(context.Context, string) (server.TriggerSecr
 func (f *fakeBackend) RevealTrigger(context.Context, string) (server.TriggerSecretResponse, error) {
 	return server.TriggerSecretResponse{}, nil
 }
+func (f *fakeBackend) CreateTriggerSet(context.Context, server.TriggerSetCreateRequest) (server.TriggerSetSecretResponse, error) {
+	return server.TriggerSetSecretResponse{}, nil
+}
+func (f *fakeBackend) RevealTriggerSet(context.Context, string) (server.TriggerSetSecretResponse, error) {
+	return server.TriggerSetSecretResponse{}, nil
+}
+func (f *fakeBackend) RetargetTriggerSet(context.Context, string, string) (server.TriggerSetResponse, error) {
+	return server.TriggerSetResponse{}, nil
+}
+func (f *fakeBackend) SetTriggerSetEnabled(context.Context, string, bool) (server.TriggerSetResponse, error) {
+	return server.TriggerSetResponse{}, nil
+}
+func (f *fakeBackend) RotateTriggerSet(context.Context, string) (server.TriggerSetSecretResponse, error) {
+	return server.TriggerSetSecretResponse{}, nil
+}
+func (f *fakeBackend) DeleteTriggerSet(context.Context, string) error { return nil }
 func (f *fakeBackend) Preview(_ context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
 	f.mu.Lock()
 	f.previews++

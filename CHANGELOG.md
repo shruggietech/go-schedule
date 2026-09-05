@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Trigger Sets provide atomic bulk key administration (Closes #134; Refs #17).** Operators can create 1 through 99 ordered trigger keys for one task, copy exact command sets, isolate individual member lifecycle changes, and apply transactional retarget, state, rotation, reveal, and deletion actions through the local API, CLI, and desktop Triggers view.
+
 - **Local external triggers now provide a complete headless and desktop lifecycle (Closes #132, #133; Refs #17).** A generated opaque key can submit one task run through the existing local API and overlap-aware scheduler, while CLI and desktop controls cover creation, inspection, editing, enablement, rotation, deletion, explicit key copying, and command copying. Trigger readiness follows current task and group eligibility, and run history retains the stable trigger ID without storing or disclosing the key.
 
 - **Task authoring now supports safe drafts and trigger-ready readiness (Closes #129, #130, #131).** Tasks may omit name, command, or schedule without fake persisted values; `unnamed`, not-runnable, manual-only, ready, disabled, group-blocked, and terminal states remain distinct. Enable and Run now enforce the shared readiness contract, completion-source removal disables affected tasks atomically, the sidebar separates definitions from operational views, and Enter submits the New Group dialog through the same duplicate-safe path as Create.
@@ -23,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **The v1.0.0 publication now has a durable exception audit (Refs #122).** S050 records the immutable tag and staging run, exact Windows candidate, maintainer install approval, installed service and health checks, public asset inventory, and independently verified checksums. It also records that direct publication occurred before the planned formal archive, leaving the related evidence-dependent issues and milestone open instead of manufacturing completion evidence.
 
 ### Decisions
+
+- **2026-09-05: model Trigger Sets as atomic administration over ordinary triggers.** S055 adds one set row plus optional permanent membership positions to the S054 trigger model. Broad mutations use one SQLite transaction and one redacted lifecycle event, while firing, task readiness, overlap, and run provenance remain ordinary trigger behavior. Stable sparse positions prevent unaffected caller identities from changing after member deletion.
 
 - **2026-09-05: route external triggers through existing local IPC and scheduler ownership.** S054 adds no second listener, public network surface, or resident helper. Recoverable keys remain inside user-scoped SQLite because the desktop supports explicit reveal after restart; only create, rotate, and reveal responses disclose them, while all ordinary responses, events, logs, errors, and history remain redacted.
 

@@ -29,6 +29,9 @@ type TriggerResponse struct {
 	Name           string    `json:"name"`
 	TargetTaskID   string    `json:"target_task_id"`
 	TargetTaskName string    `json:"target_task_name,omitempty"`
+	SetID          string    `json:"set_id,omitempty"`
+	SetName        string    `json:"set_name,omitempty"`
+	SetPosition    int       `json:"set_position,omitempty"`
 	Enabled        bool      `json:"enabled"`
 	Readiness      string    `json:"readiness"`
 	Reason         string    `json:"reason,omitempty"`
@@ -43,7 +46,7 @@ type TriggerSecretResponse struct {
 }
 
 func (s *Server) triggerResponse(t domain.ExternalTrigger) TriggerResponse {
-	response := TriggerResponse{ID: t.ID, Name: t.Name, TargetTaskID: t.TargetTaskID, TargetTaskName: t.TargetTaskName, Enabled: t.Enabled, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt}
+	response := TriggerResponse{ID: t.ID, Name: t.Name, TargetTaskID: t.TargetTaskID, TargetTaskName: t.TargetTaskName, SetID: t.SetID, SetName: t.SetName, SetPosition: t.SetPosition, Enabled: t.Enabled, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt}
 	if !t.Enabled {
 		response.Readiness, response.Reason = "disabled", "Trigger is disabled."
 		return response
@@ -147,6 +150,10 @@ func (s *Server) handleUpdateTrigger(w http.ResponseWriter, r *http.Request) {
 		t.TargetTaskID = *req.TargetTaskID
 	}
 	if err := s.store.UpdateExternalTrigger(&t); err != nil {
+		if errors.Is(err, store.ErrTriggerSetMemberTarget) {
+			writeError(w, http.StatusConflict, "trigger_set_target", "target_task_id", "set member targets must be changed with the Trigger Set retarget action")
+			return
+		}
 		s.triggerStoreError(w, err)
 		return
 	}

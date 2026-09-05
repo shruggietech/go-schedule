@@ -14,7 +14,7 @@ import (
 
 func newTriggerCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "trigger", Short: "Invoke tasks from local external processes"}
-	cmd.AddCommand(triggerCreate(), triggerList(), triggerShow(), triggerUpdate(), triggerSetEnabled(true), triggerSetEnabled(false), triggerRotate(), triggerRemove(), triggerFire())
+	cmd.AddCommand(triggerCreate(), triggerList(), triggerShow(), triggerUpdate(), triggerSetEnabled(true), triggerSetEnabled(false), triggerRotate(), triggerRemove(), triggerFire(), newTriggerSetCmd())
 	return cmd
 }
 
@@ -56,9 +56,13 @@ func triggerList() *cobra.Command {
 			return printJSON(items)
 		}
 		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-		fmt.Fprintln(tw, "ID\tNAME\tTARGET\tENABLED\tREADINESS")
+		fmt.Fprintln(tw, "ID\tNAME\tSET\tPOSITION\tTARGET\tENABLED\tREADINESS")
 		for _, item := range items {
-			fmt.Fprintf(tw, "%s\t%s\t%s (%s)\t%t\t%s\n", item.ID, item.Name, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Readiness)
+			setName, position := "Standalone", "-"
+			if item.SetID != "" {
+				setName, position = item.SetName, fmt.Sprintf("%d", item.SetPosition)
+			}
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s (%s)\t%t\t%s\n", item.ID, item.Name, setName, position, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Readiness)
 		}
 		return tw.Flush()
 	}}
@@ -87,7 +91,11 @@ func triggerShow() *cobra.Command {
 		if jsonOut {
 			return printJSON(item)
 		}
-		fmt.Fprintf(os.Stdout, "%s\nname: %s\ntarget: %s (%s)\nenabled: %t\nreadiness: %s\n", item.ID, item.Name, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Readiness)
+		setName, position := "Standalone", "-"
+		if item.SetID != "" {
+			setName, position = item.SetName, fmt.Sprintf("%d", item.SetPosition)
+		}
+		fmt.Fprintf(os.Stdout, "%s\nname: %s\nset: %s\nposition: %s\ntarget: %s (%s)\nenabled: %t\nreadiness: %s\n", item.ID, item.Name, setName, position, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Readiness)
 		return nil
 	}}
 	cmd.Flags().BoolVar(&reveal, "reveal-key", false, "include the sensitive trigger key")

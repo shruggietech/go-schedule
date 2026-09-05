@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -12,10 +14,13 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 var triggerColumns = []structuredColumn{
 	{Header: "Trigger", Minimum: 130, Weight: 2},
+	{Header: "Set", Minimum: 110, Weight: 1},
+	{Header: "Position", Minimum: 75, Weight: 1},
 	{Header: "Target", Minimum: 150, Weight: 2},
 	{Header: "Enabled", Minimum: 75, Weight: 1},
 	{Header: "Readiness", Minimum: 110, Weight: 1},
@@ -29,6 +34,13 @@ type triggerBackend interface {
 	SetTriggerEnabled(context.Context, string, bool) (server.TriggerResponse, error)
 	RotateTrigger(context.Context, string) (server.TriggerSecretResponse, error)
 	RevealTrigger(context.Context, string) (server.TriggerSecretResponse, error)
+	CreateTriggerSet(context.Context, server.TriggerSetCreateRequest) (server.TriggerSetSecretResponse, error)
+	ListTriggerSets(context.Context) ([]server.TriggerSetResponse, error)
+	RevealTriggerSet(context.Context, string) (server.TriggerSetSecretResponse, error)
+	RetargetTriggerSet(context.Context, string, string) (server.TriggerSetResponse, error)
+	SetTriggerSetEnabled(context.Context, string, bool) (server.TriggerSetResponse, error)
+	RotateTriggerSet(context.Context, string) (server.TriggerSetSecretResponse, error)
+	DeleteTriggerSet(context.Context, string) error
 }
 
 func triggerRows(items []server.TriggerResponse) []structuredRowModel {
@@ -38,7 +50,11 @@ func triggerRows(items []server.TriggerResponse) []structuredRowModel {
 		if item.Enabled {
 			enabled = "Yes"
 		}
-		cells := []structuredCell{{Text: item.Name}, {Text: item.TargetTaskName, FullText: item.TargetTaskName + " (" + item.TargetTaskID + ")"}, {Text: enabled}, {Text: normalizedWords(item.Readiness, "Unknown", false), FullText: item.Reason}, {Text: item.ID}}
+		setName, position := "Standalone", "-"
+		if item.SetID != "" {
+			setName, position = item.SetName, strconv.Itoa(item.SetPosition)
+		}
+		cells := []structuredCell{{Text: item.Name}, {Text: setName}, {Text: position}, {Text: item.TargetTaskName, FullText: item.TargetTaskName + " (" + item.TargetTaskID + ")"}, {Text: enabled}, {Text: normalizedWords(item.Readiness, "Unknown", false), FullText: item.Reason}, {Text: item.ID}}
 		rows = append(rows, structuredRowModel{Identity: item.ID, Cells: cells, Summary: structuredRowSummary(triggerColumns, cells)})
 	}
 	return rows
@@ -61,6 +77,24 @@ func (a *App) buildTriggersTab() fyne.CanvasObject {
 			return
 		}
 		dialog.ShowInformation("No selection", "Select a trigger first.", a.win)
+	}
+	withSelectedSet := func(fn func(server.TriggerSetResponse)) {
+		item, ok := current()
+		if !ok {
+			dialog.ShowInformation("No selection", "Select a Trigger Set member first.", a.win)
+			return
+		}
+		if item.SetID == "" {
+			dialog.ShowInformation("Standalone trigger", "The selected trigger is not a Trigger Set member.", a.win)
+			return
+		}
+		for _, set := range a.model.Snapshot().TriggerSets {
+			if set.ID == item.SetID {
+				fn(set)
+				return
+			}
+		}
+		dialog.ShowInformation("Trigger Set unavailable", "Refresh the view and select the member again.", a.win)
 	}
 	table := newStructuredList(triggerColumns, "Select a trigger to see its complete values.", func(id string) { selectedID = id }, func(id string) {
 		selectedID = id
@@ -116,7 +150,18 @@ func (a *App) buildTriggersTab() fyne.CanvasObject {
 		})
 	})
 	toolbar := container.NewHBox(newButton, editButton, revealKey, copyCommand, toggle, rotate, remove)
-	return container.NewBorder(toolbar, nil, nil, nil, table.root)
+	newSet := newToolbarButton("New set", theme.ContentAddIcon(), a.showTriggerSetCreator)
+	copySet := newToolbarButton("Copy set", theme.ContentCopyIcon(), func() { withSelectedSet(func(set server.TriggerSetResponse) { a.copyTriggerSet(set) }) })
+	retargetSet := newToolbarButton("Retarget set", theme.DocumentCreateIcon(), func() { withSelectedSet(a.showTriggerSetRetarget) })
+	toggleSet := newToolbarButton("Enable or disable set", theme.MediaReplayIcon(), func() {
+		withSelectedSet(func(set server.TriggerSetResponse) {
+			a.confirmTriggerSetEnabled(set, set.EnabledCount != set.MemberCount)
+		})
+	})
+	rotateSet := newToolbarButton("Rotate set", theme.ViewRefreshIcon(), func() { withSelectedSet(a.confirmTriggerSetRotate) })
+	deleteSet := newToolbarButton("Delete set", theme.DeleteIcon(), func() { withSelectedSet(a.confirmTriggerSetDelete) })
+	setToolbar := container.NewHBox(newSet, copySet, retargetSet, toggleSet, rotateSet, deleteSet)
+	return container.NewBorder(container.NewVBox(toolbar, setToolbar), nil, nil, nil, table.root)
 }
 
 func (a *App) showTriggerEditor(existing *server.TriggerResponse) {
@@ -165,8 +210,12 @@ func (a *App) showTriggerEditor(existing *server.TriggerResponse) {
 			return
 		}
 		targetID := ids[target.Selected]
+		request := server.TriggerUpdateRequest{Name: &name.Text}
+		if targetID != existing.TargetTaskID {
+			request.TargetTaskID = &targetID
+		}
 		a.run(func(ctx context.Context) error {
-			_, err := backend.UpdateTrigger(ctx, existing.ID, server.TriggerUpdateRequest{Name: &name.Text, TargetTaskID: &targetID})
+			_, err := backend.UpdateTrigger(ctx, existing.ID, request)
 			if err != nil {
 				return err
 			}
@@ -178,6 +227,181 @@ func (a *App) showTriggerEditor(existing *server.TriggerResponse) {
 	}, a.win)
 	form.Resize(fyne.NewSize(560, form.MinSize().Height))
 	form.Show()
+}
+
+func (a *App) showTriggerSetCreator() {
+	backend, ok := a.backend.(triggerBackend)
+	if !ok {
+		dialog.ShowError(fmt.Errorf("trigger set administration is unavailable"), a.win)
+		return
+	}
+	tasks, labels, ids := sortedTriggerTasks(a.model.Snapshot().Tasks)
+	if len(tasks) == 0 {
+		dialog.ShowInformation("Task required", "Create a task before adding a Trigger Set.", a.win)
+		return
+	}
+	name := widget.NewEntry()
+	target := widget.NewSelect(labels, nil)
+	target.SetSelected(labels[0])
+	count := widget.NewEntry()
+	count.SetText("3")
+	enabled := widget.NewCheck("Allow every member to invoke its task", nil)
+	enabled.SetChecked(true)
+	form := dialog.NewForm("New Trigger Set", "Create", "Cancel", []*widget.FormItem{widget.NewFormItem("Name", name), widget.NewFormItem("Target task", target), widget.NewFormItem("Member count (1-99)", count), widget.NewFormItem("Enabled", enabled)}, func(ok bool) {
+		if !ok {
+			return
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(count.Text))
+		if strings.TrimSpace(name.Text) == "" || ids[target.Selected] == "" || err != nil || n < 1 || n > 99 {
+			dialog.ShowError(fmt.Errorf("name, target task, and a member count from 1 through 99 are required"), a.win)
+			return
+		}
+		go func() {
+			ctx, cancel := a.bgCtx()
+			defer cancel()
+			result, err := backend.CreateTriggerSet(ctx, server.TriggerSetCreateRequest{Name: name.Text, TargetTaskID: ids[target.Selected], Count: n, Enabled: &enabled.Checked})
+			if err != nil {
+				fyne.Do(func() { a.showError(err) })
+				return
+			}
+			fyne.Do(func() { a.showTriggerSetSecrets("Trigger Set created", result) })
+			a.refreshAll()
+		}()
+	}, a.win)
+	form.Resize(fyne.NewSize(600, form.MinSize().Height))
+	form.Show()
+}
+
+func sortedTriggerTasks(tasks []domain.Task) ([]domain.Task, []string, map[string]string) {
+	sort.Slice(tasks, func(i, j int) bool { return tasks[i].Name < tasks[j].Name })
+	labels := make([]string, 0, len(tasks))
+	ids := make(map[string]string, len(tasks))
+	for _, task := range tasks {
+		label := task.Name + " (" + task.ID + ")"
+		labels = append(labels, label)
+		ids[label] = task.ID
+	}
+	return tasks, labels, ids
+}
+
+func (a *App) copyTriggerSet(set server.TriggerSetResponse) {
+	backend, ok := a.backend.(triggerBackend)
+	if !ok {
+		return
+	}
+	go func() {
+		ctx, cancel := a.bgCtx()
+		defer cancel()
+		result, err := backend.RevealTriggerSet(ctx, set.ID)
+		if err != nil {
+			fyne.Do(func() { a.showError(err) })
+			return
+		}
+		fyne.Do(func() {
+			a.clipboard.SetContent(triggerSetCommands(result))
+			dialog.ShowInformation("Copied", fmt.Sprintf("Copied %d commands from %s.", len(result.Members), set.Name), a.win)
+		})
+	}()
+}
+
+func triggerSetCommands(result server.TriggerSetSecretResponse) string {
+	var builder strings.Builder
+	for _, member := range result.Members {
+		builder.WriteString(member.Command)
+		builder.WriteByte('\n')
+	}
+	return builder.String()
+}
+
+func (a *App) showTriggerSetRetarget(set server.TriggerSetResponse) {
+	backend, ok := a.backend.(triggerBackend)
+	if !ok {
+		return
+	}
+	_, labels, ids := sortedTriggerTasks(a.model.Snapshot().Tasks)
+	if len(labels) == 0 {
+		return
+	}
+	target := widget.NewSelect(labels, nil)
+	target.SetSelected(labels[0])
+	form := dialog.NewForm("Retarget "+set.Name, "Retarget", "Cancel", []*widget.FormItem{widget.NewFormItem("New target for "+strconv.Itoa(set.MemberCount)+" members", target)}, func(ok bool) {
+		if !ok {
+			return
+		}
+		a.run(func(ctx context.Context) error {
+			_, err := backend.RetargetTriggerSet(ctx, set.ID, ids[target.Selected])
+			return err
+		})
+	}, a.win)
+	form.Resize(fyne.NewSize(600, form.MinSize().Height))
+	form.Show()
+}
+
+func (a *App) confirmTriggerSetEnabled(set server.TriggerSetResponse, enabled bool) {
+	verb := "disable"
+	if enabled {
+		verb = "enable"
+	}
+	titleVerb := strings.ToUpper(verb[:1]) + verb[1:]
+	dialog.ShowConfirm(titleVerb+" Trigger Set", fmt.Sprintf("%s all %d members of %s?", titleVerb, set.MemberCount, set.Name), func(ok bool) {
+		if !ok {
+			return
+		}
+		backend, supported := a.backend.(triggerBackend)
+		if !supported {
+			return
+		}
+		a.run(func(ctx context.Context) error {
+			_, err := backend.SetTriggerSetEnabled(ctx, set.ID, enabled)
+			return err
+		})
+	}, a.win)
+}
+
+func (a *App) confirmTriggerSetRotate(set server.TriggerSetResponse) {
+	dialog.ShowConfirm("Rotate Trigger Set keys", fmt.Sprintf("Replace the keys for all %d members of %s? Every old key will stop working immediately.", set.MemberCount, set.Name), func(ok bool) {
+		if !ok {
+			return
+		}
+		backend, supported := a.backend.(triggerBackend)
+		if !supported {
+			return
+		}
+		go func() {
+			ctx, cancel := a.bgCtx()
+			defer cancel()
+			result, err := backend.RotateTriggerSet(ctx, set.ID)
+			if err != nil {
+				fyne.Do(func() { a.showError(err) })
+				return
+			}
+			fyne.Do(func() { a.showTriggerSetSecrets("Trigger Set keys rotated", result) })
+			a.refreshAll()
+		}()
+	}, a.win)
+}
+
+func (a *App) confirmTriggerSetDelete(set server.TriggerSetResponse) {
+	dialog.ShowConfirm("Delete Trigger Set", fmt.Sprintf("Delete %s and all %d members? Every key will stop working immediately.", set.Name, set.MemberCount), func(ok bool) {
+		if !ok {
+			return
+		}
+		backend, supported := a.backend.(triggerBackend)
+		if !supported {
+			return
+		}
+		a.run(func(ctx context.Context) error { return backend.DeleteTriggerSet(ctx, set.ID) })
+	}, a.win)
+}
+
+func (a *App) showTriggerSetSecrets(title string, result server.TriggerSetSecretResponse) {
+	commands := triggerSetCommands(result)
+	content := widget.NewMultiLineEntry()
+	content.SetText(commands)
+	content.Disable()
+	content.SetMinRowsVisible(8)
+	copyButton := widget.NewButtonWithIcon("Copy all commands", theme.ContentCopyIcon(), func() { a.clipboard.SetContent(commands) })
+	dialog.ShowCustom(title, "Close", container.NewVBox(widget.NewLabel(fmt.Sprintf("%d ordered commands for %s. Store them securely.", len(result.Members), result.TriggerSet.Name)), content, copyButton), a.win)
 }
 
 func (a *App) runTriggerCreate(backend triggerBackend, request server.TriggerCreateRequest) {

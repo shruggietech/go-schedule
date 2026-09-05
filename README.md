@@ -145,6 +145,8 @@ gosched trigger fire <key>
 
 Trigger requests use the task's current enabled state, group eligibility, worker limit, and overlap policy. Treat each key as a secret. Ordinary lists, history, logs, events, and errors omit it.
 
+Trigger Sets create and administer 1 through 99 independently usable keys for one task. `gosched trigger set create --name "Build agents" --task <task-id> --count 10` prints the ordered invocation commands once, and `gosched trigger set reveal <set-id>` retrieves them explicitly when needed. Set-level retarget, enable, disable, rotate, and remove operations are atomic; individual members can still be renamed, enabled, disabled, rotated, revealed, fired, or deleted without changing siblings.
+
 Then open the desktop app, if you installed it:
 
 ```sh

@@ -14,13 +14,14 @@ import (
 type Kind string
 
 const (
-	KindRun     Kind = "run"
-	KindAlert   Kind = "alert"
-	KindLog     Kind = "log"
-	KindTask    Kind = "task"
-	KindGroup   Kind = "group"
-	KindChain   Kind = "chain"
-	KindTrigger Kind = "trigger"
+	KindRun        Kind = "run"
+	KindAlert      Kind = "alert"
+	KindLog        Kind = "log"
+	KindTask       Kind = "task"
+	KindGroup      Kind = "group"
+	KindChain      Kind = "chain"
+	KindTrigger    Kind = "trigger"
+	KindTriggerSet Kind = "trigger_set"
 )
 
 // Verb describes a change to an entity in a task/group event.
@@ -60,16 +61,24 @@ type TriggerEvent struct {
 	Trigger *domain.ExternalTrigger `json:"trigger,omitempty"`
 }
 
+// TriggerSetEvent describes a broad Trigger Set change without carrying keys.
+type TriggerSetEvent struct {
+	Verb       Verb               `json:"verb"`
+	ID         string             `json:"id"`
+	TriggerSet *domain.TriggerSet `json:"trigger_set,omitempty"`
+}
+
 // Event is a single notification delivered to subscribers.
 type Event struct {
-	Kind    Kind              `json:"kind"`
-	Run     *domain.Run       `json:"run,omitempty"`
-	Alert   *domain.Alert     `json:"alert,omitempty"`
-	Log     *domain.LogRecord `json:"log,omitempty"`
-	Task    *TaskEvent        `json:"task,omitempty"`
-	Group   *GroupEvent       `json:"group,omitempty"`
-	Chain   *ChainEvent       `json:"chain,omitempty"`
-	Trigger *TriggerEvent     `json:"trigger,omitempty"`
+	Kind       Kind              `json:"kind"`
+	Run        *domain.Run       `json:"run,omitempty"`
+	Alert      *domain.Alert     `json:"alert,omitempty"`
+	Log        *domain.LogRecord `json:"log,omitempty"`
+	Task       *TaskEvent        `json:"task,omitempty"`
+	Group      *GroupEvent       `json:"group,omitempty"`
+	Chain      *ChainEvent       `json:"chain,omitempty"`
+	Trigger    *TriggerEvent     `json:"trigger,omitempty"`
+	TriggerSet *TriggerSetEvent  `json:"trigger_set,omitempty"`
 }
 
 // Broker fans out events to all current subscribers.
@@ -148,6 +157,19 @@ func (b *Broker) PublishTrigger(verb Verb, id string, trigger *domain.ExternalTr
 		trigger = &copy
 	}
 	b.Publish(Event{Kind: KindTrigger, Trigger: &TriggerEvent{Verb: verb, ID: id, Trigger: trigger}})
+}
+
+// PublishTriggerSet is a convenience for redacted Trigger Set events.
+func (b *Broker) PublishTriggerSet(verb Verb, id string, set *domain.TriggerSet) {
+	if set != nil {
+		copy := *set
+		copy.Members = append([]domain.ExternalTrigger(nil), set.Members...)
+		for index := range copy.Members {
+			copy.Members[index].Key = ""
+		}
+		set = &copy
+	}
+	b.Publish(Event{Kind: KindTriggerSet, TriggerSet: &TriggerSetEvent{Verb: verb, ID: id, TriggerSet: set}})
 }
 
 // SubscriberCount reports the number of active subscribers (for tests/metrics).
