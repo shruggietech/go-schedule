@@ -15,6 +15,10 @@ import (
 // ErrInvalidTrigger reports a trigger with a missing name or target.
 var ErrInvalidTrigger = errors.New("store: invalid external trigger")
 
+// ErrTriggerSetMemberTarget reports an individual target change that would
+// violate a Trigger Set's shared-target invariant.
+var ErrTriggerSetMemberTarget = errors.New("store: set member target changes require set retarget")
+
 // GenerateTriggerKey returns an opaque shell-safe 256-bit credential.
 func GenerateTriggerKey() (string, error) {
 	raw := make([]byte, 32)
@@ -84,15 +88,18 @@ func (s *Store) UpdateExternalTrigger(t *domain.ExternalTrigger) error {
 	if t.Name == "" || t.TargetTaskID == "" {
 		return ErrInvalidTrigger
 	}
-	existing, err := s.GetExternalTrigger(t.ID)
-	if err != nil {
-		return err
-	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return fmt.Errorf("store: begin update external trigger: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	existing, err := scanExternalTrigger(tx.QueryRow(externalTriggerSelect+` WHERE e.id=?`, t.ID))
+	if err != nil {
+		return err
+	}
+	if existing.SetID != "" && existing.TargetTaskID != t.TargetTaskID {
+		return ErrTriggerSetMemberTarget
+	}
 	var one int
 	if err := tx.QueryRow(`SELECT 1 FROM tasks WHERE id=?`, t.TargetTaskID).Scan(&one); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -156,9 +163,9 @@ func (s *Store) DeleteExternalTrigger(id string) error {
 		return fmt.Errorf("store: begin delete external trigger: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	var targetID string
+	var targetID, setID string
 	var enabled int
-	if err := tx.QueryRow(`SELECT target_task_id,enabled FROM external_triggers WHERE id=?`, id).Scan(&targetID, &enabled); err != nil {
+	if err := tx.QueryRow(`SELECT target_task_id,enabled,COALESCE(set_id,'') FROM external_triggers WHERE id=?`, id).Scan(&targetID, &enabled, &setID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -173,16 +180,27 @@ func (s *Store) DeleteExternalTrigger(id string) error {
 			return err
 		}
 	}
+	if setID != "" {
+		var remaining int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM external_triggers WHERE set_id=?`, setID).Scan(&remaining); err != nil {
+			return fmt.Errorf("store: count remaining set members: %w", err)
+		}
+		if remaining == 0 {
+			if _, err := tx.Exec(`DELETE FROM external_trigger_sets WHERE id=?`, setID); err != nil {
+				return fmt.Errorf("store: delete empty trigger set: %w", err)
+			}
+		}
+	}
 	return tx.Commit()
 }
 
-const externalTriggerSelect = `SELECT e.id,e.name,e.key,e.target_task_id,t.name,e.enabled,e.created_at,e.updated_at FROM external_triggers e JOIN tasks t ON t.id=e.target_task_id`
+const externalTriggerSelect = `SELECT e.id,e.name,e.key,e.target_task_id,t.name,COALESCE(e.set_id,''),COALESCE(s.name,''),COALESCE(e.set_position,0),e.enabled,e.created_at,e.updated_at FROM external_triggers e JOIN tasks t ON t.id=e.target_task_id LEFT JOIN external_trigger_sets s ON s.id=e.set_id`
 
 func scanExternalTrigger(sc scanner) (domain.ExternalTrigger, error) {
 	var t domain.ExternalTrigger
 	var enabled int
 	var created, updated string
-	if err := sc.Scan(&t.ID, &t.Name, &t.Key, &t.TargetTaskID, &t.TargetTaskName, &enabled, &created, &updated); err != nil {
+	if err := sc.Scan(&t.ID, &t.Name, &t.Key, &t.TargetTaskID, &t.TargetTaskName, &t.SetID, &t.SetName, &t.SetPosition, &enabled, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return t, ErrNotFound
 		}

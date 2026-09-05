@@ -178,11 +178,13 @@ Task choices show both name and stable ID, so duplicate names stay distinguishab
 
 ## External triggers
 
-The **Triggers** view appears after **Chains** in the Definitions section. Its table identifies each trigger, target task, enabled state, current readiness, and stable ID.
+The **Triggers** view appears after **Chains** in the Definitions section. Its table identifies each trigger, optional Trigger Set and permanent position, target task, enabled state, current readiness, and stable ID. Standalone members display `Standalone` and `-` in the set columns.
 
 **New** creates a named trigger for one task and defaults to enabled. **Edit** changes its name, target, or enabled state. **Reveal key** displays the current sensitive value in a copy-enabled dialog, and **Copy command** places the complete invocation on the clipboard. **Rotate key** and **Delete** require confirmation because either action immediately invalidates an existing invocation key.
 
 Trigger readiness reflects the current target command, lifecycle, enabled state, and ancestor groups. A trigger can make a command-ready task eligible for automatic activation, but creating or enabling the trigger never silently activates the task.
+
+The second toolbar administers Trigger Sets. **New set** creates 1 through 99 keys for one target and displays the ordered commands. Select any set member before using **Copy set**, **Retarget set**, **Enable or disable set**, **Rotate set**, or **Delete set**. Broad and destructive confirmations identify the set and affected member count. Raw keys appear only in the explicit create, copy, reveal, and rotate flows.
 
 ### Overlap
 

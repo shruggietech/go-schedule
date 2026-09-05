@@ -78,3 +78,9 @@ func (s *Server) publishTriggerDeleted(id string) {
 		s.broker.PublishTrigger(events.VerbDeleted, id, nil)
 	}
 }
+
+func (s *Server) publishTriggerSet(verb events.Verb, set domain.TriggerSet) {
+	if s.broker != nil {
+		s.broker.PublishTriggerSet(verb, set.ID, &set)
+	}
+}

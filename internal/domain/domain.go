@@ -307,9 +307,23 @@ type ExternalTrigger struct {
 	Key            string    `json:"-"`
 	TargetTaskID   string    `json:"target_task_id"`
 	TargetTaskName string    `json:"target_task_name,omitempty"`
+	SetID          string    `json:"set_id,omitempty"`
+	SetName        string    `json:"set_name,omitempty"`
+	SetPosition    int       `json:"set_position,omitempty"`
 	Enabled        bool      `json:"enabled"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// TriggerSet owns an ordered collection of external triggers sharing one task.
+type TriggerSet struct {
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	TargetTaskID   string            `json:"target_task_id"`
+	TargetTaskName string            `json:"target_task_name,omitempty"`
+	Members        []ExternalTrigger `json:"members,omitempty"`
+	CreatedAt      time.Time         `json:"created_at"`
+	UpdatedAt      time.Time         `json:"updated_at"`
 }
 
 // CompletionChain connects a source task's terminal outcome to a target task.

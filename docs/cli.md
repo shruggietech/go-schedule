@@ -355,6 +355,22 @@ gosched trigger rm <trigger-id>
 
 Create defaults to enabled; pass `--disabled` to create a dormant trigger. Create, rotate, and explicit `show --reveal-key` are the only commands that display a raw key. Rotation invalidates the old key immediately. Firing respects the target task's current lifecycle, enabled state, ancestor groups, worker limit, and overlap policy.
 
+Trigger Sets create and administer 1 through 99 ordinary trigger members that share one target:
+
+```text
+gosched trigger set create --name "Build agents" --task <task-id> --count 10
+gosched trigger set list
+gosched trigger set show <set-id>
+gosched trigger set reveal <set-id>
+gosched trigger set retarget <set-id> --task <task-id>
+gosched trigger set disable <set-id>
+gosched trigger set enable <set-id>
+gosched trigger set rotate <set-id>
+gosched trigger set rm <set-id>
+```
+
+Create, reveal, and rotate print exactly one complete `gosched trigger fire <key>` command per member in permanent position order with one final newline. Pass `--json` for structured identities, positions, keys, and commands. Ordinary list and show output remains redacted. Set-level mutations are atomic, while individual member operations continue to affect only the selected member.
+
 ## `chain`
 
 Completion chains run a target task after a source task reaches a terminal result. They supplement both tasks' normal schedules.
