@@ -96,3 +96,9 @@ the direct run insert, with an exact retrieval regression test. Group deletion
 events now reconcile the complete cached descendant subtree and clear affected
 task memberships to match SQLite cascades, with view-model and rendered-table
 regression tests. The post-review canonical rerun covers both corrections.
+
+The authorized second and final Codex review found that synthesized setup and
+launch diagnostics could bypass the output cap. Both paths now write through
+the same bounded buffer as child-process output and disclose discarded bytes.
+Platform-independent regression tests cover process-start and `run_as` setup
+failures. No third review round was requested.

@@ -111,6 +111,36 @@ func TestExecutor_OutputCap(t *testing.T) {
 	}
 }
 
+func TestExecutor_OutputCapAppliesToSynthesizedDiagnostics(t *testing.T) {
+	tests := []struct {
+		name string
+		task domain.Task
+	}{
+		{
+			name: "process start failure",
+			task: domain.Task{Command: "go-schedule-command-that-does-not-exist"},
+		},
+		{
+			name: "run as setup failure",
+			task: domain.Task{Command: "unused", RunAs: "go-schedule-user-that-does-not-exist"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			run := New(12).Run(context.Background(), tt.task, time.Now(), domain.TriggerManual)
+			if len(run.Output) > 12 {
+				t.Fatalf("synthesized output length=%d, cap=12: %q", len(run.Output), run.Output)
+			}
+			if !run.OutputTruncated {
+				t.Fatalf("synthesized output did not disclose truncation: %+v", run)
+			}
+			if run.Outcome != domain.OutcomeFailure {
+				t.Fatalf("outcome=%q, want failure", run.Outcome)
+			}
+		})
+	}
+}
+
 func TestCapBufferReportsOnlyDiscardedBytesAsTruncated(t *testing.T) {
 	exact := &capBuffer{cap: 4}
 	if n, err := exact.Write([]byte("four")); err != nil || n != 4 {

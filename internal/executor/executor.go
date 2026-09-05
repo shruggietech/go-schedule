@@ -48,17 +48,17 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 		cmd.Stdin = strings.NewReader(task.Stdin)
 	}
 	platform.HideConsole(cmd) // no console window for the child process
+	buf := &capBuffer{cap: e.capBytes}
 
 	_, explicitHome := task.Env["HOME"]
 	if err := applyRunAs(cmd, task.RunAs, explicitHome); err != nil {
 		end := time.Now().UTC()
 		run.EndedAt = &end
 		run.Outcome = domain.OutcomeFailure
-		run.Output = "run_as: " + err.Error()
+		captureDiagnostic(buf, &run, "run_as: "+err.Error())
 		return run
 	}
 
-	buf := &capBuffer{cap: e.capBytes}
 	cmd.Stdout = buf
 	cmd.Stderr = buf
 
@@ -74,7 +74,7 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 			code := ee.ExitCode()
 			run.ExitCode = &code
 		} else if run.Output == "" {
-			run.Output = fmt.Sprintf("process start failed for %q: %v", task.Command, err)
+			captureDiagnostic(buf, &run, fmt.Sprintf("process start failed for %q: %v", task.Command, err))
 		}
 		return run
 	}
@@ -82,6 +82,12 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	run.Outcome = domain.OutcomeSuccess
 	run.ExitCode = &zero
 	return run
+}
+
+func captureDiagnostic(buf *capBuffer, run *domain.Run, message string) {
+	_, _ = buf.Write([]byte(message))
+	run.Output = buf.String()
+	run.OutputTruncated = buf.Truncated()
 }
 
 func envSlice(env map[string]string) []string {
