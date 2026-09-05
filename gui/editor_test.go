@@ -433,6 +433,38 @@ func TestEditor_OneOffSubmissionOmitsRecurringSyntax(t *testing.T) {
 	}
 }
 
+func TestEditor_ManualSubmissionOmitsStaleRecurringSchedule(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.commandLine.SetText("cmd")
+	e.schedule.SetText("every day at 09:00")
+	e.mode.SetSelected(modeManual)
+
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, req := fb.lastCreateCall(); req.Schedule != "" || req.ScheduleSyntax != "" || req.At != nil {
+		t.Fatalf("manual create = %+v, want no automatic schedule", req)
+	}
+}
+
+func TestEditor_ManualModeRejectsStaleRecurringPreview(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.schedule.SetText("every day at 09:00")
+	staleGeneration := e.previewGeneration.Load()
+	e.schedule.SetText("every weekday at 10:00")
+	e.schedPreview.SetText("Current recurring preview")
+	e.fetchSchedulePreview(server.PreviewRequest{Schedule: "every day at 09:00"}, staleGeneration)
+	if got := e.schedPreview.Text; got != "Current recurring preview" {
+		t.Fatalf("recurring preview = %q, want stale generation ignored", got)
+	}
+
+	e.mode.SetSelected(modeManual)
+	want := e.schedPreview.Text
+	e.fetchSchedulePreview(server.PreviewRequest{Schedule: "every weekday at 10:00"}, e.previewGeneration.Load())
+	if got := e.schedPreview.Text; got != want {
+		t.Fatalf("manual preview = %q, want stale recurring response ignored and %q retained", got, want)
+	}
+}
+
 func TestEditor_HelpDocumentsDualSyntax(t *testing.T) {
 	for _, want := range []string{
 		"plain-language phrase",

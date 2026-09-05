@@ -3,6 +3,7 @@ package gui
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -82,6 +83,9 @@ type taskEditor struct {
 	baseline    editorSnapshot // field values at open, for dirty detection
 	ready       bool           // true once build() has wired the layout; gates OnChanged callbacks
 	previewSync bool           // tests set this to fetch the schedule preview synchronously
+	// previewGeneration invalidates asynchronous schedule previews whenever any
+	// preview input changes, including a switch away from Recurring mode.
+	previewGeneration atomic.Uint64
 
 	commandParsed     bool
 	commandParsedText string
@@ -514,6 +518,7 @@ func splitAnchorClause(expr string) (phrase, anchor string) {
 // ones fetch the human summary and next runs from the backend asynchronously.
 func (e *taskEditor) updatePreview() {
 	e.updateCmdPreview()
+	generation := e.previewGeneration.Add(1)
 	if e.mode.Selected != modeRecurring {
 		if e.mode.Selected == modeManual {
 			e.schedPreview.SetText("No automatic schedule. A configured command can still be run manually.")
@@ -535,27 +540,31 @@ func (e *taskEditor) updatePreview() {
 		e.schedPreview.SetText("⚠ " + cleanScheduleErr(err))
 		return
 	}
-	if e.previewSync {
-		e.fetchSchedulePreview(input)
-		return
-	}
-	go e.fetchSchedulePreview(input)
-}
-
-// fetchSchedulePreview asks the backend for the human summary and next runs and
-// renders them. Off the UI thread it marshals the update back via fyne.Do; when
-// run synchronously (tests) it writes directly.
-func (e *taskEditor) fetchSchedulePreview(input scheduleinput.Input) {
-	ctx, cancel := e.app.bgCtx()
-	defer cancel()
-	resp, err := e.app.backend.Preview(ctx, server.PreviewRequest{
+	req := server.PreviewRequest{
 		Schedule: input.Expression, ScheduleSyntax: string(input.Syntax), Timezone: e.tzName(),
 		MissingDatePolicy: string(missingDateValue(e.missingDate.Selected)),
 		TimeBasis:         string(timeBasisValue(e.timeBasis.Selected)),
 		DSTGapPolicy:      string(dstGapValue(e.dstGap.Selected)),
 		DSTOverlapPolicy:  string(dstOverlapValue(e.dstOverlap.Selected)),
-	})
+	}
+	if e.previewSync {
+		e.fetchSchedulePreview(req, generation)
+		return
+	}
+	go e.fetchSchedulePreview(req, generation)
+}
+
+// fetchSchedulePreview asks the backend for the human summary and next runs and
+// renders them. Off the UI thread it marshals the update back via fyne.Do; when
+// run synchronously (tests) it writes directly.
+func (e *taskEditor) fetchSchedulePreview(req server.PreviewRequest, generation uint64) {
+	ctx, cancel := e.app.bgCtx()
+	defer cancel()
+	resp, err := e.app.backend.Preview(ctx, req)
 	set := func() {
+		if e.previewGeneration.Load() != generation || e.mode.Selected != modeRecurring {
+			return
+		}
 		if err != nil {
 			e.schedPreview.SetText("⚠ " + cleanScheduleErr(err))
 			return
@@ -711,7 +720,7 @@ func (e *taskEditor) buildForm() taskForm {
 		if t, err := e.oneOffInstant(); err == nil {
 			f.at = t.Format(time.RFC3339)
 		}
-	} else if strings.TrimSpace(e.effectiveSchedule()) != "" {
+	} else if e.mode.Selected == modeRecurring && strings.TrimSpace(e.effectiveSchedule()) != "" {
 		if input, err := e.recurringInput(); err == nil {
 			f.schedule = input.Expression
 			f.scheduleSyntax = string(input.Syntax)

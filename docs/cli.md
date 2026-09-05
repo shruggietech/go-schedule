@@ -76,11 +76,11 @@ Create and manage tasks. A task is a command, a schedule, and the policies that 
 
 The name, command, and timing are optional at creation so unfinished work can be saved safely. An omitted name displays as `unnamed`; a task without a command is not runnable, while a task with a command but no schedule is manual-only and remains available through `task run-now`.
 
-Create a task. Exactly one of `--schedule` (recurring) or `--at` (one-off) is required, along with `--command`.
+Create a complete task or save an incomplete draft. `--schedule` and `--at` are mutually exclusive when either is supplied.
 
 | Flag | Meaning |
 | --- | --- |
-| `--command` | Program or script to run. **Required.** |
+| `--command` | Program or script to run. Omit it to save a non-runnable draft. |
 | `--arg` | An argument to the command. Repeatable; each use adds one argument, so values containing spaces stay intact. |
 | `--cwd` | Working directory for the run. |
 | `--env` | An environment variable as `KEY=VALUE`. Repeatable. |

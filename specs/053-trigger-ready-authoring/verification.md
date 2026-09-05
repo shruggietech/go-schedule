@@ -37,3 +37,7 @@
 - First-round Codex findings were accepted and corrected: activation readiness now includes command and active-lifecycle prerequisites while retaining its source inventory, Groups uses the same ancestor-aware effective state as Tasks, human-readable CLI list output includes readiness, and Help returns to Preview in recurring, one-off, and manual-only modes.
 - `go test ./internal/task ./internal/store ./internal/api/server ./internal/engine ./internal/cli ./gui/...`: PASS after the first-round fixes; the uncached GUI package completed in 94.080 seconds.
 - Canonical lint and GitHub format gates: PASS after the first-round fixes.
+- Second-round Codex findings were accepted and corrected: Manual only never serializes a retained recurring schedule, preview generations prevent stale asynchronous responses from replacing current mode or input state, and the CLI and GUI references consistently document optional draft fields.
+- `go test ./gui`: PASS after the second-round fixes; the uncached GUI package completed in 106.710 seconds.
+- Focused manual-mode submission and stale-preview regression tests: PASS.
+- Documentation validation: PASS after the second-round fixes, including 15 pages with links, front matter, fences, theme, and product policy clean.
