@@ -167,7 +167,7 @@ func nextRecurring(sch domain.Schedule, tzName string, policy domain.SchedulePol
 	// normalization below as any other day-or-coarser occurrence.
 	// The policy comparison comes first so the default path does no extra work
 	// at all: it is a string comparison against a constant, and everything below
-	// it — including inspecting the rule for a date intent — is skipped entirely
+	// it, including inspecting the rule for a date intent, is skipped entirely
 	// for the schedules that make up the overwhelming majority of the hot path.
 	if policy.MissingDate != domain.MissingDateSkip {
 		if intent, ok := dateIntent(opt); ok {

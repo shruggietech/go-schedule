@@ -45,7 +45,7 @@ func newToolbarButtonPlain(label string, tapped func()) *cursorButton {
 }
 
 // collapsible is a disclosure section whose header arrow points right (▶) when
-// collapsed and down (▼) when expanded — the standard convention. Fyne's
+// collapsed and down (▼) when expanded, the standard convention. Fyne's
 // widget.Accordion hardcodes the opposite icons, so this small widget is used
 // instead (FR-009). Its header is a cursorButton, so it also satisfies the
 // app-wide pointer-cursor rule (FR-013).

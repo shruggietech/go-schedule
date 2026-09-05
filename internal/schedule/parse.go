@@ -182,7 +182,7 @@ var ordinalNum = map[string]int{
 }
 
 // IsSubDailyInterval reports whether input is a fixed-interval schedule with a
-// sub-daily unit (seconds/minutes/hours) — i.e. one that accepts an optional
+// sub-daily unit (seconds/minutes/hours), i.e. one that accepts an optional
 // "starting at"/"from" anchor. It is used by the GUI to decide whether to offer
 // the anchor input.
 func IsSubDailyInterval(input string) bool {

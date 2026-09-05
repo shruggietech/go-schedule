@@ -3,7 +3,7 @@
 # The site is served branch-based from this folder: GitHub Pages runs its
 # bundled Jekyll (Jekyll 3.9.x via the github-pages gem) over docs/ on `main`.
 # The docs/*.md files are BOTH the reviewable repository source and the served
-# content — nothing here is built output. To publish: repository Settings ->
+# content, nothing here is built output. To publish: repository Settings ->
 # Pages -> "Deploy from a branch" -> main / docs.
 #
 # The theme is applied via remote_theme (bypassing the Pages theme allowlist)
@@ -14,7 +14,7 @@
 
 title: go-schedule
 description: >-
-  Documentation for go-schedule — a cross-platform task scheduler with a system
+  Documentation for go-schedule, a cross-platform task scheduler with a system
   daemon (goschedd), a CLI (gosched), and a desktop GUI.
 
 url: https://shruggietech.github.io

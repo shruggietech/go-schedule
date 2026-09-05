@@ -1,7 +1,7 @@
 // Package autostart lets the GUI (or any client) ensure the daemon is running:
 // if it cannot be reached, it launches goschedd as a detached, windowless
 // background process and waits until it becomes reachable. This gives the GUI a
-// zero-configuration experience — opening it just works, without first
+// zero-configuration experience, opening it just works, without first
 // installing a service. A previously running daemon (e.g. the installed service)
 // is detected via the health check and reused; the single-instance lock in the
 // daemon prevents a second one from starting.
@@ -57,7 +57,7 @@ func SpawnDaemon() error {
 }
 
 // EnsureRunning makes the daemon reachable. If ping succeeds it returns
-// immediately (a daemon — possibly the installed service — is already running).
+// immediately (a daemon, possibly the installed service, is already running).
 // Otherwise it calls spawn and polls ping until the daemon is ready or ctx is
 // done.
 func EnsureRunning(ctx context.Context, ping func(context.Context) error, spawn func() error) error {

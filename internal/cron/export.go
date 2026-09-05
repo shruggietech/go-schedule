@@ -66,7 +66,7 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	if policy != "" && policy != domain.MissingDateSkip {
 		if datebearing(opt) {
 			return "", Unsupported{Reason: fmt.Sprintf(
-				"the task's missing-date policy (%s) has no cron equivalent — cron would silently skip the periods this task runs in",
+				"the task's missing-date policy (%s) has no cron equivalent, cron would silently skip the periods this task runs in",
 				policy)}, false
 		}
 	}
@@ -122,7 +122,7 @@ func ExportSchedule(sch domain.Schedule, policy domain.MissingDatePolicy) (expr 
 	case rrule.DAILY:
 		if interval != 1 {
 			return "", Unsupported{Reason: fmt.Sprintf(
-				"an every-%d-days rule has no cron equivalent — cron repeats by calendar position, not by elapsed days", interval)}, false
+				"an every-%d-days rule has no cron equivalent, cron repeats by calendar position, not by elapsed days", interval)}, false
 		}
 		return renderTimeCron(second, fmt.Sprint(minute), fmt.Sprint(hour), "*", "*", "*"), Unsupported{}, true
 

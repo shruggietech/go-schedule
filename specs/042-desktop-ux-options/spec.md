@@ -14,13 +14,7 @@
 
 ## Context
 
-The current desktop interface is dark-only, exposes no preference or storage
-view, uses a narrow leading tab rail that cannot anchor a command at its bottom,
-requires a separate Edit-button action after task selection, and renders two
-centered Info-page body lines more softly than adjacent text on Windows. These
-reports share the same interface shell, typography, and headless verification
-surface. Delivering them together avoids repeatedly restructuring navigation
-and appearance state.
+The current desktop interface is dark-only, exposes no preference or storage view, uses a narrow leading tab rail that cannot anchor a command at its bottom, requires a separate Edit-button action after task selection, and renders two centered Info-page body lines more softly than adjacent text on Windows. These reports share the same interface shell, typography, and headless verification surface. Delivering them together avoids repeatedly restructuring navigation and appearance state.
 
 ## Clarifications
 
@@ -36,19 +30,11 @@ and appearance state.
 
 ### User Story 1 - Choose and retain a readable appearance (Priority: P1)
 
-As a desktop user, I can choose dark, light, or system-following appearance and
-a supported interface font, immediately see that choice across the application,
-restore the defaults, and have valid choices return on the next launch.
+As a desktop user, I can choose dark, light, or system-following appearance and a supported interface font, immediately see that choice across the application, restore the defaults, and have valid choices return on the next launch.
 
-**Why this priority**: Appearance is the foundation for the new Options view and
-the Info-page text correction. Theme and font state affect every other view and
-dialog, so their lifecycle must be settled before the navigation shell is
-considered complete.
+**Why this priority**: Appearance is the foundation for the new Options view and the Info-page text correction. Theme and font state affect every other view and dialog, so their lifecycle must be settled before the navigation shell is considered complete.
 
-**Independent Test**: Start with empty, valid, and malformed preference values;
-change each appearance choice, rebuild the interface from the same preferences,
-and verify the selected values, complete-interface update, safe fallback, and
-default restoration without using a physical display.
+**Independent Test**: Start with empty, valid, and malformed preference values; change each appearance choice, rebuild the interface from the same preferences, and verify the selected values, complete-interface update, safe fallback, and default restoration without using a physical display.
 
 **Acceptance Scenarios**:
 
@@ -63,19 +49,11 @@ default restoration without using a physical display.
 
 ### User Story 2 - Understand local application storage (Priority: P1)
 
-As a user diagnosing or preparing to uninstall the application, I can inspect
-and copy the resolved locations of application-owned machine data, database,
-logs, runtime state, desktop preferences, installed files, documentation, and
-maintenance evidence, together with ownership, existence, and uninstall
-retention information.
+As a user diagnosing or preparing to uninstall the application, I can inspect and copy the resolved locations of application-owned machine data, database, logs, runtime state, desktop preferences, installed files, documentation, and maintenance evidence, together with ownership, existence, and uninstall retention information.
 
-**Why this priority**: Users currently have no in-application explanation of
-where machine-wide and per-user state lives. This information is necessary to
-make preserve-or-wipe behavior understandable and supportable.
+**Why this priority**: Users currently have no in-application explanation of where machine-wide and per-user state lives. This information is necessary to make preserve-or-wipe behavior understandable and supportable.
 
-**Independent Test**: Supply controlled platform, configuration, executable,
-and filesystem inputs; verify every category, resolved value, scope, existence,
-and lifecycle label, then copy each available value through the view.
+**Independent Test**: Supply controlled platform, configuration, executable, and filesystem inputs; verify every category, resolved value, scope, existence, and lifecycle label, then copy each available value through the view.
 
 **Acceptance Scenarios**:
 
@@ -89,18 +67,11 @@ and lifecycle label, then copy each available value through the view.
 
 ### User Story 3 - Navigate comfortably and exit predictably (Priority: P2)
 
-As a desktop user, I can use a spacious leading navigation rail with Options
-immediately above Info and a visually separate Exit command anchored at the
-bottom-right of that rail.
+As a desktop user, I can use a spacious leading navigation rail with Options immediately above Info and a visually separate Exit command anchored at the bottom-right of that rail.
 
-**Why this priority**: Options and Exit cannot be placed correctly in the
-existing fixed tab stack. One shared navigation-shell correction should provide
-adequate width, selection state, keyboard access, and stable bottom placement.
+**Why this priority**: Options and Exit cannot be placed correctly in the existing fixed tab stack. One shared navigation-shell correction should provide adequate width, selection state, keyboard access, and stable bottom placement.
 
-**Independent Test**: Construct the complete shell at the default and minimum
-supported content sizes, select every view, activate Exit by pointer and
-keyboard paths, and verify geometry, focus order, selection semantics, and
-one-shot shutdown.
+**Independent Test**: Construct the complete shell at the default and minimum supported content sizes, select every view, activate Exit by pointer and keyboard paths, and verify geometry, focus order, selection semantics, and one-shot shutdown.
 
 **Acceptance Scenarios**:
 
@@ -114,17 +85,11 @@ one-shot shutdown.
 
 ### User Story 4 - Edit the intended task directly (Priority: P2)
 
-As a task author, I can double-click a task row to open exactly one fully
-populated Edit dialog for that task while single-click, keyboard, and toolbar
-editing continue to behave as before.
+As a task author, I can double-click a task row to open exactly one fully populated Edit dialog for that task while single-click, keyboard, and toolbar editing continue to behave as before.
 
-**Why this priority**: This is a small, independently valuable desktop
-interaction, but it must preserve identity through live list refreshes and share
-the existing guarded editor lifecycle rather than opening duplicate dialogs.
+**Why this priority**: This is a small, independently valuable desktop interaction, but it must preserve identity through live list refreshes and share the existing guarded editor lifecycle rather than opening duplicate dialogs.
 
-**Independent Test**: Drive row selection and double activation with controlled
-task refreshes and detail-fetch outcomes, and assert editor identity, single
-dialog ownership, fallback behavior, and unchanged selection behavior.
+**Independent Test**: Drive row selection and double activation with controlled task refreshes and detail-fetch outcomes, and assert editor identity, single dialog ownership, fallback behavior, and unchanged selection behavior.
 
 **Acceptance Scenarios**:
 
@@ -139,18 +104,12 @@ dialog ownership, fallback behavior, and unchanged selection behavior.
 
 - Saved appearance strings may be empty, malformed, or from a future version.
 - The operating-system theme preference may change while the application is open.
-- A path may be unavailable, relative, nonexistent, permission-restricted, or
-  point outside the application-owned default roots.
-- The running executable may be a development binary rather than an installed
-  package, so installed documentation might not be discoverable.
-- The cleanup-evidence path is Windows-specific and normally absent after a
-  successful cleanup.
-- A live refresh may remove or reorder a task between pointer-down and double
-  activation.
-- Shutdown may be requested from the title bar and Exit control in quick
-  succession.
-- Long translated or badge-bearing navigation labels must not collapse the rail
-  or starve the content area.
+- A path may be unavailable, relative, nonexistent, permission-restricted, or point outside the application-owned default roots.
+- The running executable may be a development binary rather than an installed package, so installed documentation might not be discoverable.
+- The cleanup-evidence path is Windows-specific and normally absent after a successful cleanup.
+- A live refresh may remove or reorder a task between pointer-down and double activation.
+- Shutdown may be requested from the title bar and Exit control in quick succession.
+- Long translated or badge-bearing navigation labels must not collapse the rail or starve the content area.
 
 ## Requirements *(mandatory)*
 
@@ -202,23 +161,12 @@ dialog ownership, fallback behavior, and unchanged selection behavior.
 
 ## Assumptions
 
-- Existing per-user preferences are stored by the application framework under
-  the established application identifier and are an appropriate persistence
-  mechanism for non-sensitive appearance choices.
-- Dark and Brand remain defaults to preserve the current visual identity for
-  users who make no choice.
-- System font means the framework's platform-appropriate default family;
-  Monospace means the existing bundled monospace face.
-- The platform-default machine data directory represents the owned umbrella for
-  task data, default runtime state, database, and logs. The connected daemon
-  reports its effective paths through a read-only local endpoint; configured
-  paths outside the owned root remain visible but are not claimed as wipe-owned.
-- Installed-file and documentation locations are derived from the running
-  executable and may be labeled unavailable in development or non-installed
-  contexts.
-- This slice adds one read-only daemon runtime-information response. It changes
-  no scheduler behavior, configuration mutation, installer deletion boundary,
-  privilege boundary, or release-promotion rule.
+- Existing per-user preferences are stored by the application framework under the established application identifier and are an appropriate persistence mechanism for non-sensitive appearance choices.
+- Dark and Brand remain defaults to preserve the current visual identity for users who make no choice.
+- System font means the framework's platform-appropriate default family; Monospace means the existing bundled monospace face.
+- The platform-default machine data directory represents the owned umbrella for task data, default runtime state, database, and logs. The connected daemon reports its effective paths through a read-only local endpoint; configured paths outside the owned root remain visible but are not claimed as wipe-owned.
+- Installed-file and documentation locations are derived from the running executable and may be labeled unavailable in development or non-installed contexts.
+- This slice adds one read-only daemon runtime-information response. It changes no scheduler behavior, configuration mutation, installer deletion boundary, privilege boundary, or release-promotion rule.
 
 ## Scope Boundaries
 
@@ -227,15 +175,13 @@ dialog ownership, fallback behavior, and unchanged selection behavior.
 - GitHub issues #101, #103, #104, #105, and #106.
 - One coherent navigation and appearance architecture for the desktop GUI.
 - Per-user appearance persistence and read-only path presentation.
-- Automated cross-platform and headless verification plus exact-candidate
-  attended validation instructions.
+- Automated cross-platform and headless verification plus exact-candidate attended validation instructions.
 
 ### Out of scope
 
 - Closing #94, #98, or coordinator #96.
 - Automating or substituting for the attended Windows 11 release-candidate gate.
-- Arbitrary user-supplied fonts, downloaded fonts, font-file browsing, or a full
-  theme editor.
+- Arbitrary user-supplied fonts, downloaded fonts, font-file browsing, or a full theme editor.
 - Editing daemon configuration or changing storage locations from Options.
 - Opening, deleting, migrating, or repairing displayed paths.
 - Changing task execution diagnostics tracked by #102.

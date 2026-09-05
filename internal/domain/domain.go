@@ -48,11 +48,11 @@ const (
 	// before the policy existed: the period simply produces no run.
 	MissingDateSkip MissingDatePolicy = "skip"
 	// MissingDateLastValid falls back to the last date in the period that does
-	// exist — Feb 29 → Feb 28, the 31st → the 30th, the 5th Friday → the last
+	// exist, Feb 29 → Feb 28, the 31st → the 30th, the 5th Friday → the last
 	// Friday.
 	MissingDateLastValid MissingDatePolicy = "last_valid"
-	// MissingDateNextValid rolls forward into the following period — Feb 29 →
-	// Mar 1 — without displacing that period's own occurrence.
+	// MissingDateNextValid rolls forward into the following period, Feb 29 →
+	// Mar 1, without displacing that period's own occurrence.
 	MissingDateNextValid MissingDatePolicy = "next_valid"
 )
 

@@ -20,8 +20,7 @@ Native monthly ordinal-weekday schedules export as:
 <minute> <hour> * * <numeric-weekday>#<ordinal>
 ```
 
-Weekdays use Sunday 0 through Saturday 6. Numeric 7 and names are accepted on
-input but never emitted.
+Weekdays use Sunday 0 through Saturday 6. Numeric 7 and names are accepted on input but never emitted.
 
 ## Human representation
 
@@ -55,5 +54,4 @@ The implementation does not approximate:
 
 ## Compatibility
 
-CLI text/JSON streams, crontab job classification, existing cron expressions,
-and existing named refusals remain unchanged outside this accepted subset.
+CLI text/JSON streams, crontab job classification, existing cron expressions, and existing named refusals remain unchanged outside this accepted subset.

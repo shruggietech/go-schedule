@@ -15,8 +15,8 @@ import (
 //
 // Querying a name that cannot exist separates them: a least-privilege query
 // reaches OpenService and gets ERROR_SERVICE_DOES_NOT_EXIST, which maps to the
-// not-installed result with no error. An access failure here — or on any
-// machine where this test runs unelevated — means the wide mask is back.
+// not-installed result with no error. An access failure here, or on any
+// machine where this test runs unelevated, means the wide mask is back.
 func TestPlatformStatusMissingServiceIsNotAnAccessError(t *testing.T) {
 	t.Parallel()
 

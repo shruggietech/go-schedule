@@ -32,7 +32,7 @@ var catchupChoices = []policyChoice[domain.CatchupPolicy]{
 }
 
 // missingDateChoices covers what a schedule does in a period with no matching
-// date — February for a rule on the 29th, a 30-day month for a rule on the 31st.
+// date, February for a rule on the 29th, a 30-day month for a rule on the 31st.
 // The labels name the outcome rather than the stored value, because "last_valid"
 // tells an operator nothing about what their task will do.
 var missingDateChoices = []policyChoice[domain.MissingDatePolicy]{
@@ -176,7 +176,7 @@ const groupNoneLabel = "(none)"
 // because two groups at different levels may share a name and a bare list would
 // make them indistinguishable.
 //
-// This is the single source for group choices — the task editor and the Groups
+// This is the single source for group choices, the task editor and the Groups
 // tab's move action both use it, so the two paths to the same operation cannot
 // drift apart.
 func groupChoiceLabels(groups []domain.Group) []string {

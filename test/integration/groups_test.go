@@ -13,7 +13,7 @@ import (
 
 // TestGroups_NestingAndCascade covers US3: a 3-level group hierarchy, and that
 // disabling an ancestor group stops its tasks from being scheduled (and
-// re-enabling restores them) — without mutating the task's own enabled flag.
+// re-enabling restores them), without mutating the task's own enabled flag.
 func TestGroups_NestingAndCascade(t *testing.T) {
 	st, err := store.Open(":memory:")
 	if err != nil {

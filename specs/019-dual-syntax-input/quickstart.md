@@ -6,8 +6,7 @@
 
 - Build or run the daemon and CLI from this branch.
 - Use a temporary data directory or disposable test server.
-- Choose a timezone with DST for parity checks, such as
-  `America/New_York`.
+- Choose a timezone with DST for parity checks, such as `America/New_York`.
 
 ## 1. Preview cron and human equivalents
 
@@ -48,8 +47,7 @@ RRULE and anchor remain populated exactly as for a human-authored task.
 
 ## 3. Replace syntax and preserve unrelated policy
 
-Create a task with a non-default missing-date policy, replace its schedule from
-human to cron and back, then edit only the command.
+Create a task with a non-default missing-date policy, replace its schedule from human to cron and back, then edit only the command.
 
 Expected:
 
@@ -67,8 +65,7 @@ Preview each with automatic or explicit cron selection:
 0 9 1 * 1
 ```
 
-Expected: status 400, field `schedule`, named cron/fidelity reason, no fallback,
-and no task mutation.
+Expected: status 400, field `schedule`, named cron/fidelity reason, no fallback, and no task mutation.
 
 Also submit an invalid `schedule_syntax` and verify the error names that field.
 

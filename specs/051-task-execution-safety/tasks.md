@@ -2,8 +2,7 @@
 
 **Input**: Design documents from `specs/051-task-execution-safety/`
 
-**Tests**: Regression, persistence, interface, engine, executor, headless GUI,
-race, coverage, documentation, and automation tests are mandatory.
+**Tests**: Regression, persistence, interface, engine, executor, headless GUI, race, coverage, documentation, and automation tests are mandatory.
 
 ## Phase 1: Setup
 
@@ -16,11 +15,9 @@ race, coverage, documentation, and automation tests are mandatory.
 
 ## Phase 2: Foundational Diagnostic Identity and Compatibility
 
-**Purpose**: Add the durable, backward-compatible contracts required before
-failed-run detail or safe desktop creation can be implemented.
+**Purpose**: Add the durable, backward-compatible contracts required before failed-run detail or safe desktop creation can be implemented.
 
-**Critical**: User-story implementation starts only after the additive model,
-migration, and exact lookup contracts are proven.
+**Critical**: User-story implementation starts only after the additive model, migration, and exact lookup contracts are proven.
 
 - [x] T003 [P] Write failing domain JSON compatibility tests for optional alert run identity and run truncation in `internal/domain/domain_test.go`
 - [x] T004 [P] Write failing v9-to-v10 preservation and transactional rollback tests in `internal/store/migration_v10_test.go`
@@ -29,19 +26,15 @@ migration, and exact lookup contracts are proven.
 - [x] T007 Persist and scan the new fields and implement exact `GetRun` lookup in `internal/store/crud.go`
 - [x] T008 Run focused domain and store tests and record the foundational checkpoint in `specs/051-task-execution-safety/verification.md`
 
-**Checkpoint**: Existing data upgrades safely, old JSON remains compatible, and
-one exact run can be retrieved without recency inference.
+**Checkpoint**: Existing data upgrades safely, old JSON remains compatible, and one exact run can be retrieved without recency inference.
 
 ---
 
 ## Phase 3: User Story 1 - Diagnose an Exact Failed Run (Priority: P1)
 
-**Goal**: Make every new failed-run Activity entry resolve to bounded,
-selectable diagnostics for the exact persisted task run.
+**Goal**: Make every new failed-run Activity entry resolve to bounded, selectable diagnostics for the exact persisted task run.
 
-**Independent Test**: Produce nonzero-exit, launch-failure, empty-output,
-multiline-output, and truncated-output runs, then open each matching alert and
-verify exact identity, status, trigger, and privacy-safe output.
+**Independent Test**: Produce nonzero-exit, launch-failure, empty-output, multiline-output, and truncated-output runs, then open each matching alert and verify exact identity, status, trigger, and privacy-safe output.
 
 ### Tests for User Story 1
 
@@ -62,19 +55,15 @@ verify exact identity, status, trigger, and privacy-safe output.
 - [x] T020 [US1] Preserve task/run identity in Activity rows and render selectable combined-output diagnostics with honest fallback states in `gui/logs.go`
 - [x] T021 [US1] Run focused executor, engine, API, client, and GUI tests and record the US1 checkpoint in `specs/051-task-execution-safety/verification.md`
 
-**Checkpoint**: Failed-run detail is exact, bounded, actionable, selectable,
-backward compatible, and adds no secret-bearing task inputs.
+**Checkpoint**: Failed-run detail is exact, bounded, actionable, selectable, backward compatible, and adds no secret-bearing task inputs.
 
 ---
 
 ## Phase 4: User Story 2 - Create a Task Without Accidental Execution (Priority: P2)
 
-**Goal**: Default desktop-created tasks to inactive while preserving atomic
-opt-in activation and existing non-desktop behavior.
+**Goal**: Default desktop-created tasks to inactive while preserving atomic opt-in activation and existing non-desktop behavior.
 
-**Independent Test**: Exercise omitted, false, and true create requests plus
-fresh, validation-recovery, and edit desktop flows; no inactive request may be
-observed as scheduler eligible.
+**Independent Test**: Exercise omitted, false, and true create requests plus fresh, validation-recovery, and edit desktop flows; no inactive request may be observed as scheduler eligible.
 
 ### Tests for User Story 2
 
@@ -87,19 +76,15 @@ observed as scheduler eligible.
 - [x] T025 [US2] Add the creation-only activation checkbox to editor construction, snapshots, form data, and submission in `gui/editor.go`
 - [x] T026 [US2] Run focused server and headless editor tests and record the US2 checkpoint in `specs/051-task-execution-safety/verification.md`
 
-**Checkpoint**: Fresh desktop tasks remain inactive unless explicitly activated,
-while legacy callers and existing task edits retain their prior contract.
+**Checkpoint**: Fresh desktop tasks remain inactive unless explicitly activated, while legacy callers and existing task edits retain their prior contract.
 
 ---
 
 ## Phase 5: User Story 3 - Understand Effective Task Eligibility (Priority: P2)
 
-**Goal**: Separate configured, lifecycle, and effective task state and identify
-the nearest disabled group responsible for suppression.
+**Goal**: Separate configured, lifecycle, and effective task state and identify the nearest disabled group responsible for suppression.
 
-**Independent Test**: Render and live-refresh ungrouped, own-disabled,
-lifecycle-inactive, direct-blocked, ancestor-blocked, missing-chain, and cyclic
-tasks while preserving stable identity and full-value disclosure.
+**Independent Test**: Render and live-refresh ungrouped, own-disabled, lifecycle-inactive, direct-blocked, ancestor-blocked, missing-chain, and cyclic tasks while preserving stable identity and full-value disclosure.
 
 ### Tests for User Story 3
 
@@ -112,8 +97,7 @@ tasks while preserving stable identity and full-value disclosure.
 - [x] T030 [US3] Derive and display the labeled Effective task column with full-value disclosure in `gui/tasks.go`
 - [x] T031 [US3] Run focused group-policy, view-model event, and headless Tasks-table tests and record the US3 checkpoint in `specs/051-task-execution-safety/verification.md`
 
-**Checkpoint**: Every task row gives one unambiguous, accessible explanation of
-configured and effective eligibility without duplicating scheduling policy.
+**Checkpoint**: Every task row gives one unambiguous, accessible explanation of configured and effective eligibility without duplicating scheduling policy.
 
 ---
 
@@ -134,15 +118,13 @@ configured and effective eligibility without duplicating scheduling policy.
 - Setup precedes every design and implementation action.
 - Foundational model/migration/lookup work blocks User Story 1.
 - User Story 1 is the P1 diagnostic defect and lands before the P2 GUI stories.
-- User Stories 2 and 3 share GUI files and therefore execute sequentially even
-  though their product outcomes remain independently testable.
+- User Stories 2 and 3 share GUI files and therefore execute sequentially even though their product outcomes remain independently testable.
 - Cross-cutting verification depends on all three user-story checkpoints.
 
 ## Parallel Opportunities
 
 - Foundational domain and migration tests can be authored independently.
-- Executor, engine, server, client, and pure GUI diagnostic tests can be authored
-  independently before their implementation convergence.
+- Executor, engine, server, client, and pure GUI diagnostic tests can be authored independently before their implementation convergence.
 - Server create-contract and editor tests can be authored independently.
 - Group-policy tests can be authored independently from GUI row tests.
 
@@ -156,6 +138,4 @@ configured and effective eligibility without duplicating scheduling policy.
 
 ## Format Validation
 
-All 36 tasks use the required checkbox and sequential ID format. User-story
-tasks carry `[US1]`, `[US2]`, or `[US3]`; `[P]` appears only where file and
-dependency boundaries permit independent work.
+All 36 tasks use the required checkbox and sequential ID format. User-story tasks carry `[US1]`, `[US2]`, or `[US3]`; `[P]` appears only where file and dependency boundaries permit independent work.

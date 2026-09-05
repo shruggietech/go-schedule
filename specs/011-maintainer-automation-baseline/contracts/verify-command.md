@@ -14,8 +14,7 @@ Make convenience wrapper:
 make verify
 ```
 
-The Make wrapper MUST delegate to the canonical direct invocation and MUST NOT
-restate child commands.
+The Make wrapper MUST delegate to the canonical direct invocation and MUST NOT restate child commands.
 
 ## Modes
 
@@ -55,16 +54,12 @@ sh scripts/verify.sh automation
 - Before a gate starts, stdout identifies its stable gate name.
 - Child stdout/stderr remains visible in the foreground.
 - A successful named mode exits zero.
-- A failed or unavailable gate exits non-zero and the most recent heading names
-  the failing gate.
+- A failed or unavailable gate exits non-zero and the most recent heading names the failing gate.
 - Aggregate mode stops at the first non-zero child result.
-- No verification mode runs a formatter, modifies tracked source, commits,
-  pushes, tags, or starts release automation.
+- No verification mode runs a formatter, modifies tracked source, commits, pushes, tags, or starts release automation.
 
 ## Environment
 
-- The caller may set `GOTOOLCHAIN`; otherwise lint mode derives an appropriate
-  toolchain selector from the `go` directive in `go.mod`.
+- The caller may set `GOTOOLCHAIN`; otherwise lint mode derives an appropriate toolchain selector from the `go` directive in `go.mod`.
 - A POSIX shell, Go, Git, and a C toolchain for race mode are prerequisites.
-- Windows uses Git Bash or an equivalent environment already supported by the
-  coverage and documentation scripts.
+- Windows uses Git Bash or an equivalent environment already supported by the coverage and documentation scripts.

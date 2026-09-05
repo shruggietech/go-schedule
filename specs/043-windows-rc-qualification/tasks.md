@@ -40,16 +40,10 @@
 
 ## Phase 5: Post-demo disposition
 
-- [x] T023 [US3] Record operator observations against the handed-off demo hash,
-  including explicit incomplete/failed checks and the post-wipe audit.
-- [x] T024 [US3] Disposition confirmed non-blocking UI findings to #101, #104,
-  #105, #106, #109, #110, #111, #112, and #113 without expanding S043 product
-  scope; no product correction or rebuild was required.
-- [x] T025 [US3] After demo completion, prepare the branch for the authorized
-  pull-request CI and review boundary.
-- [x] T026 [US3] **Deferred by scope:** after review/merge and separate tag
-  authorization, the release ritual must run the formal exact-candidate matrix
-  before closing #94/#98/#96. S043 does not claim or waive that future gate.
+- [x] T023 [US3] Record operator observations against the handed-off demo hash, including explicit incomplete/failed checks and the post-wipe audit.
+- [x] T024 [US3] Disposition confirmed non-blocking UI findings to #101, #104, #105, #106, #109, #110, #111, #112, and #113 without expanding S043 product scope; no product correction or rebuild was required.
+- [x] T025 [US3] After demo completion, prepare the branch for the authorized pull-request CI and review boundary.
+- [x] T026 [US3] **Deferred by scope:** after review/merge and separate tag authorization, the release ritual must run the formal exact-candidate matrix before closing #94/#98/#96. S043 does not claim or waive that future gate.
 
 ## Dependencies & execution order
 
@@ -61,6 +55,4 @@
 
 ## Parallel opportunities
 
-No concurrent agent work is used. Read-only focused checks may be batched, but
-the canonical gate and candidate build run in the foreground, and artifact
-identity steps remain sequential.
+No concurrent agent work is used. Read-only focused checks may be batched, but the canonical gate and candidate build run in the foreground, and artifact identity steps remain sequential.

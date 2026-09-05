@@ -32,6 +32,4 @@
 ## Notes
 
 - Validation passed on the first iteration.
-- The tag-staging action is an authorized S049 post-merge prerequisite. S050
-  records and verifies it while keeping the review branch outside candidate
-  identity.
+- The tag-staging action is an authorized S049 post-merge prerequisite. S050 records and verifies it while keeping the review branch outside candidate identity.

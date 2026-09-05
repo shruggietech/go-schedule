@@ -4,8 +4,7 @@
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-**Tests**: Required. Behavioral and policy tests are recorded red before their
-implementation changes.
+**Tests**: Required. Behavioral and policy tests are recorded red before their implementation changes.
 
 ## Phase 1: Setup and Baseline
 
@@ -16,8 +15,7 @@ implementation changes.
 
 ## Phase 2: User Story 1 - Truthful Scheduling Semantics (Priority: P1)
 
-**Goal**: Lossy calendar wildcard steps are named refusals, while supported
-human and cron inputs retain their existing behavior.
+**Goal**: Lossy calendar wildcard steps are named refusals, while supported human and cron inputs retain their existing behavior.
 
 ### Tests
 
@@ -34,8 +32,7 @@ human and cron inputs retain their existing behavior.
 
 ## Phase 3: User Story 2 - Consistent Current Product Surfaces (Priority: P1)
 
-**Goal**: README, guides, CLI help, and authoritative contracts present one
-human-first dual-syntax posture and equivalent examples.
+**Goal**: README, guides, CLI help, and authoritative contracts present one human-first dual-syntax posture and equivalent examples.
 
 - [X] T008 [US2] Add or update focused CLI help assertions for both authoring paths
 - [X] T009 [US2] Align `README.md`, `docs/README.md`, `docs/cli.md`, `docs/cron.md`, and `docs/gui-fields.md`
@@ -47,8 +44,7 @@ human-first dual-syntax posture and equivalent examples.
 
 ## Phase 4: User Story 3 - Durable Documentation Policy (Priority: P2)
 
-**Goal**: History remains intact, current copy cannot regress silently, and
-issue closure semantics are explicit.
+**Goal**: History remains intact, current copy cannot regress silently, and issue closure semantics are explicit.
 
 ### Tests
 

@@ -67,6 +67,5 @@
 
 ## Notes
 
-- Standard-depth reviewer checklist covering interaction, appearance,
-  accessibility, lifecycle safety, and evidence boundaries.
+- Standard-depth reviewer checklist covering interaction, appearance, accessibility, lifecycle safety, and evidence boundaries.
 - Validation passed 38 of 38 requirement-quality checks.

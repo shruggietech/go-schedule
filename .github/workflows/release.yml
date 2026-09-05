@@ -199,7 +199,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          # Pin WiX and its extensions to the SAME version — a floating extension
+          # Pin WiX and its extensions to the SAME version, a floating extension
           # version (e.g. 7.x) is incompatible with a 6.x toolset (WIX6101).
           dotnet tool install --global wix --version 6.0.2
           wix --version

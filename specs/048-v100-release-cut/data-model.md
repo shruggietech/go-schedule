@@ -43,8 +43,7 @@ The draft contains exactly these nine payloads before promotion adds checksums:
 8. `windows-candidate-manifest.json`
 9. `go-schedule_v1.0.0_windows-attended-evidence.zip`
 
-Promotion adds `SHA256SUMS.txt`, with exactly one digest for each of the nine
-payloads.
+Promotion adds `SHA256SUMS.txt`, with exactly one digest for each of the nine payloads.
 
 ## FormalEvidenceBundle
 
@@ -72,8 +71,7 @@ payloads.
 | #113 | standard/scaled Schedule/Activity tables plus interaction states |
 | #96 | all child and coordinator completion criteria after individual reconciliation |
 
-State is `open`, `evidence-passing`, or `closed`. A shared passing observation
-does not bypass issue-specific criteria.
+State is `open`, `evidence-passing`, or `closed`. A shared passing observation does not bypass issue-specific criteria.
 
 ## ReleaseState
 

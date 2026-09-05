@@ -12,15 +12,9 @@
 
 ## Context
 
-S019 made supported human and cron schedules first-class inputs through the
-central task boundary, API, CLI, and import paths. The desktop editor was kept
-explicitly human-only to prevent accidental behavior expansion. S020 adopts
-that delivered boundary in the existing Schedule field so a user who starts
-with cron can remain a cron user while creating or editing a task.
+S019 made supported human and cron schedules first-class inputs through the central task boundary, API, CLI, and import paths. The desktop editor was kept explicitly human-only to prevent accidental behavior expansion. S020 adopts that delivered boundary in the existing Schedule field so a user who starts with cron can remain a cron user while creating or editing a task.
 
-This is the remaining functional slice of issue #50. The broad dual-syntax
-documentation rewrite remains issue #52 and additional cron dialect breadth
-remains issue #22.
+This is the remaining functional slice of issue #50. The broad dual-syntax documentation rewrite remains issue #52 and additional cron dialect breadth remains issue #22.
 
 ## Clarifications
 
@@ -34,16 +28,11 @@ remains issue #22.
 
 ### User Story 1 - Create a Cron Task in the Desktop Editor (Priority: P1)
 
-An operator can enter a supported cron expression in the existing Schedule
-field, see the same explanation and upcoming runs produced by the central
-preview boundary, and save the recurring task without converting it manually.
+An operator can enter a supported cron expression in the existing Schedule field, see the same explanation and upcoming runs produced by the central preview boundary, and save the recurring task without converting it manually.
 
-**Why this priority**: Creation is the first point where the GUI currently
-rejects an otherwise valid first-class schedule input.
+**Why this priority**: Creation is the first point where the GUI currently rejects an otherwise valid first-class schedule input.
 
-**Independent Test**: Enter `0 9 * * 1-5` for a new recurring task, confirm the
-preview identifies the weekday schedule, save it, and inspect the create request
-to prove it carries the original expression and cron source identity.
+**Independent Test**: Enter `0 9 * * 1-5` for a new recurring task, confirm the preview identifies the weekday schedule, save it, and inspect the create request to prove it carries the original expression and cron source identity.
 
 **Acceptance Scenarios**:
 
@@ -56,17 +45,11 @@ to prove it carries the original expression and cron source identity.
 
 ### User Story 2 - Edit a Task in Its Original Syntax (Priority: P2)
 
-An operator opening a recurring task sees the retained human or cron expression
-that created it and can save it unchanged or replace it with either supported
-syntax.
+An operator opening a recurring task sees the retained human or cron expression that created it and can save it unchanged or replace it with either supported syntax.
 
-**Why this priority**: Round-trip editing is the capability that lets imported
-and API-created cron users remain cron users in the desktop application.
+**Why this priority**: Round-trip editing is the capability that lets imported and API-created cron users remain cron users in the desktop application.
 
-**Independent Test**: Open a task whose schedule response contains expression
-`0 9 * * 1-5` and source syntax `cron`, prove the field and preview retain that
-expression, save it, then replace it with a human phrase and prove the update
-request changes source identity accordingly.
+**Independent Test**: Open a task whose schedule response contains expression `0 9 * * 1-5` and source syntax `cron`, prove the field and preview retain that expression, save it, then replace it with a human phrase and prove the update request changes source identity accordingly.
 
 **Acceptance Scenarios**:
 
@@ -80,17 +63,11 @@ request changes source identity accordingly.
 
 ### User Story 3 - Understand the Field's Dual-Syntax Contract (Priority: P3)
 
-An operator can discover from the editor and GUI field guide that the Schedule
-field accepts approachable human phrases and the supported five-field cron
-subset, while unsupported cron remains an explicit refusal.
+An operator can discover from the editor and GUI field guide that the Schedule field accepts approachable human phrases and the supported five-field cron subset, while unsupported cron remains an explicit refusal.
 
-**Why this priority**: A capability hidden behind a previously human-only field
-is incomplete, but the full cross-product documentation rewrite belongs to
-issue #52.
+**Why this priority**: A capability hidden behind a previously human-only field is incomplete, but the full cross-product documentation rewrite belongs to issue #52.
 
-**Independent Test**: Inspect the editor help and GUI field guide and verify
-they show copy/pasteable human and cron examples, name the five-field boundary,
-and direct broader fidelity questions to the cron guide.
+**Independent Test**: Inspect the editor help and GUI field guide and verify they show copy/pasteable human and cron examples, name the five-field boundary, and direct broader fidelity questions to the cron guide.
 
 **Acceptance Scenarios**:
 
@@ -99,21 +76,14 @@ and direct broader fidelity questions to the cron guide.
 
 ### Edge Cases
 
-- Leading and trailing whitespace is normalized consistently with S019 while
-  the meaningful source expression is preserved.
-- A cron-shaped value that is invalid or outside the faithful dialect is never
-  retried as a human phrase.
+- Leading and trailing whitespace is normalized consistently with S019 while the meaningful source expression is preserved.
+- A cron-shaped value that is invalid or outside the faithful dialect is never retried as a human phrase.
 - Five-word human phrases such as `3rd wednesday monthly at 14:00` remain human.
-- Switching between human and cron text in one editing session updates preview
-  and save identity from the current text, not from stale prefill metadata.
-- An empty recurring field disables Save for new tasks; on an existing degraded
-  legacy task it continues to mean "keep the current schedule".
-- One-off task mode sends no recurring expression or syntax identity and keeps
-  its existing date/time validation.
-- Preview transport failures remain visible without changing the locally
-  determined validity of a supported expression.
-- Timezone, DST, month-boundary, and missing-date behavior use the central
-  preview and execution model and gain no GUI-specific evaluator.
+- Switching between human and cron text in one editing session updates preview and save identity from the current text, not from stale prefill metadata.
+- An empty recurring field disables Save for new tasks; on an existing degraded legacy task it continues to mean "keep the current schedule".
+- One-off task mode sends no recurring expression or syntax identity and keeps its existing date/time validation.
+- Preview transport failures remain visible without changing the locally determined validity of a supported expression.
+- Timezone, DST, month-boundary, and missing-date behavior use the central preview and execution model and gain no GUI-specific evaluator.
 
 ## Requirements *(mandatory)*
 
@@ -155,26 +125,17 @@ and direct broader fidelity questions to the cron guide.
 
 ## Assumptions
 
-- S019's central schedule-input boundary and API source identity are the source
-  of truth for selection, validation, and retained identity.
-- The current single Schedule field is preferable to a syntax toggle because
-  input classification is deterministic and duplicate state could disagree.
-- Preview remains a daemon request after local validation; no GUI-only run-time
-  calculation is introduced.
-- Existing editor help structure and inline preview area can carry the added
-  guidance and named refusals without a layout redesign.
-- Issue #52 owns the complete README, CLI, API, and cron-dialect documentation
-  rewrite; S020 changes GUI-local help and field documentation necessary to
-  make the new behavior discoverable, plus the single `docs/cron.md` sentence
-  that would otherwise falsely claim the GUI still rejects cron.
+- S019's central schedule-input boundary and API source identity are the source of truth for selection, validation, and retained identity.
+- The current single Schedule field is preferable to a syntax toggle because input classification is deterministic and duplicate state could disagree.
+- Preview remains a daemon request after local validation; no GUI-only run-time calculation is introduced.
+- Existing editor help structure and inline preview area can carry the added guidance and named refusals without a layout redesign.
+- Issue #52 owns the complete README, CLI, API, and cron-dialect documentation rewrite; S020 changes GUI-local help and field documentation necessary to make the new behavior discoverable, plus the single `docs/cron.md` sentence that would otherwise falsely claim the GUI still rejects cron.
 
 ## Out of Scope
 
 - New cron syntax, parser extensions, DOM/DOW policy changes, or issue #22.
-- A syntax selector, cron builder, separate cron field, or visual editor
-  redesign.
-- API, database, recurrence-engine, IPC, authorization, service, packaging, or
-  execution changes.
+- A syntax selector, cron builder, separate cron field, or visual editor redesign.
+- API, database, recurrence-engine, IPC, authorization, service, packaging, or execution changes.
 - The product-wide documentation rewrite and closure of issues #50/#52.
 
 ## Traceability

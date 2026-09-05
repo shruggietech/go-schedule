@@ -50,5 +50,4 @@
 ## Notes
 
 - All 25 requirements-quality checks passed during specification review.
-- This checklist evaluates the written requirements. Implementation evidence is
-  recorded separately in `verification.md`.
+- This checklist evaluates the written requirements. Implementation evidence is recorded separately in `verification.md`.

@@ -12,5 +12,4 @@ This feature adds no application or hosted-settings data.
 | merge | Maintainer performs final review and chooses whether to merge |
 | housekeeping | Merged branch is removed and local `main` is synchronized |
 
-No branch-protection state, approval count, required-context set, or
-conversation-resolution state is introduced.
+No branch-protection state, approval count, required-context set, or conversation-resolution state is introduced.

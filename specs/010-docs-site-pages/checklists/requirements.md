@@ -32,8 +32,4 @@
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- The spec is deliberately technology-agnostic in its normative body (FRs, SCs,
-  scenarios). Concrete technology choices (Jekyll served from `/docs`,
-  just-the-docs theme, POSIX-sh check) are captured as the operator-agreed
-  approach for the planning phase, not baked into the requirements — a reviewer
-  swapping the generator would not invalidate a single FR.
+- The spec is deliberately technology-agnostic in its normative body (FRs, SCs, scenarios). Concrete technology choices (Jekyll served from `/docs`, just-the-docs theme, POSIX-sh check) are captured as the operator-agreed approach for the planning phase, not baked into the requirements, a reviewer swapping the generator would not invalidate a single FR.

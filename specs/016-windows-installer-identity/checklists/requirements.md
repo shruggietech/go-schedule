@@ -31,5 +31,4 @@
 
 ## Notes
 
-- Validation passed on the first iteration. Clean-environment and published-
-  artifact evidence are explicitly separated from local definition checks.
+- Validation passed on the first iteration. Clean-environment and published- artifact evidence are explicitly separated from local definition checks.

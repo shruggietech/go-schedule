@@ -12,16 +12,7 @@
 
 ## Context
 
-S018 through S020 delivered local string conversion, one shared human-or-cron
-task-input boundary, source retention, and GUI adoption. Current documentation
-was changed only where each implementation slice required it, leaving the
-product introduction, command overview, API contracts, dialect guide, master
-specification, and historical boundary-only decision inconsistent with shipped
-behavior. S021 is the documentation completion slice for issues #52 and #50.
-Phase 0 research also found that wildcard steps in calendar fields are silently
-reduced to an unrelated daily schedule. S021 includes the narrow named-refusal
-fix required to document and close the parent contract honestly. Cron fidelity
-breadth remains issue #22.
+S018 through S020 delivered local string conversion, one shared human-or-cron task-input boundary, source retention, and GUI adoption. Current documentation was changed only where each implementation slice required it, leaving the product introduction, command overview, API contracts, dialect guide, master specification, and historical boundary-only decision inconsistent with shipped behavior. S021 is the documentation completion slice for issues #52 and #50. Phase 0 research also found that wildcard steps in calendar fields are silently reduced to an unrelated daily schedule. S021 includes the narrow named-refusal fix required to document and close the parent contract honestly. Cron fidelity breadth remains issue #22.
 
 ## Clarifications
 
@@ -36,16 +27,11 @@ breadth remains issue #22.
 
 ### User Story 1 - Choose Either Authoring Syntax Confidently (Priority: P1)
 
-An operator arriving through the README, CLI help, GUI guidance, or API
-contract understands that human phrases are the approachable default and
-supported cron expressions are equally valid recurring task input.
+An operator arriving through the README, CLI help, GUI guidance, or API contract understands that human phrases are the approachable default and supported cron expressions are equally valid recurring task input.
 
-**Why this priority**: The current anti-cron headline and scattered legacy copy
-contradict a shipped product capability at the first point of discovery.
+**Why this priority**: The current anti-cron headline and scattered legacy copy contradict a shipped product capability at the first point of discovery.
 
-**Independent Test**: Follow the primary task-creation documentation from each
-surface and confirm it presents copy/pasteable, equivalent human and cron
-examples with consistent acceptance, preview, retention, and error language.
+**Independent Test**: Follow the primary task-creation documentation from each surface and confirm it presents copy/pasteable, equivalent human and cron examples with consistent acceptance, preview, retention, and error language.
 
 **Acceptance Scenarios**:
 
@@ -58,17 +44,11 @@ examples with consistent acceptance, preview, retention, and error language.
 
 ### User Story 2 - Understand Cron Fidelity Before Migrating (Priority: P2)
 
-A cron user can determine what a schedule expression means, which five-field
-features are faithfully accepted, which constructs are refused, and when to use
-conversion, explanation, import, or export.
+A cron user can determine what a schedule expression means, which five-field features are faithfully accepted, which constructs are refused, and when to use conversion, explanation, import, or export.
 
-**Why this priority**: Cron-like text can carry different semantics across
-dialects. Clear fidelity boundaries prevent silent scheduling mistakes.
+**Why this priority**: Cron-like text can carry different semantics across dialects. Clear fidelity boundaries prevent silent scheduling mistakes.
 
-**Independent Test**: Use the cron guide alone to identify field count and
-order, names/macros/extensions, timezone handling, day-of-month/day-of-week
-semantics, field-local steps, refusal behavior, and the difference between an
-expression and a full crontab line/file.
+**Independent Test**: Use the cron guide alone to identify field count and order, names/macros/extensions, timezone handling, day-of-month/day-of-week semantics, field-local steps, refusal behavior, and the difference between an expression and a full crontab line/file.
 
 **Acceptance Scenarios**:
 
@@ -81,16 +61,11 @@ expression and a full crontab line/file.
 
 ### User Story 3 - Leave One Coherent Policy of Record (Priority: P3)
 
-A maintainer can distinguish current requirements from completed historical
-decisions and can prove that no active policy still mandates cron rejection.
+A maintainer can distinguish current requirements from completed historical decisions and can prove that no active policy still mandates cron rejection.
 
-**Why this priority**: Contradictory specifications and policy tests invite a
-future regression even after user-facing prose is fixed.
+**Why this priority**: Contradictory specifications and policy tests invite a future regression even after user-facing prose is fixed.
 
-**Independent Test**: Search current documentation, help, contracts, source
-comments, specifications, and policy tests for boundary-only language; confirm
-current artifacts use the dual-syntax contract and historical S008 material is
-clearly superseded without falsifying its chronology.
+**Independent Test**: Search current documentation, help, contracts, source comments, specifications, and policy tests for boundary-only language; confirm current artifacts use the dual-syntax contract and historical S008 material is clearly superseded without falsifying its chronology.
 
 **Acceptance Scenarios**:
 
@@ -101,23 +76,14 @@ clearly superseded without falsifying its chronology.
 
 ### Edge Cases
 
-- Historical changelog entries and completed task text can accurately describe
-  an earlier boundary-only release; they are not current product guidance and
-  must not be globally rewritten.
-- `internal/schedule.Parse` remains a human-language parser and its comments may
-  accurately say so; multi-syntax callers use the separate central boundary.
-- "Cron expression" means schedule fields only. A full crontab line may also
-  contain a command, environment, shell, user, or other file-level context.
-- Supported descriptors or extensions must not be described more broadly than
-  the parser accepts.
-- DOM/DOW behavior must not imply intersection or claim faithful conversion
-  where traditional cron uses OR and the product refuses the combination.
-- Examples must avoid shell quoting that works on only one supported platform,
-  or clearly label platform-specific forms.
-- Links and anchors must resolve in both repository Markdown and the published
-  documentation site.
-- Non-ASCII arrows or punctuation used in examples must remain valid UTF-8
-  without BOM or mojibake.
+- Historical changelog entries and completed task text can accurately describe an earlier boundary-only release; they are not current product guidance and must not be globally rewritten.
+- `internal/schedule.Parse` remains a human-language parser and its comments may accurately say so; multi-syntax callers use the separate central boundary.
+- "Cron expression" means schedule fields only. A full crontab line may also contain a command, environment, shell, user, or other file-level context.
+- Supported descriptors or extensions must not be described more broadly than the parser accepts.
+- DOM/DOW behavior must not imply intersection or claim faithful conversion where traditional cron uses OR and the product refuses the combination.
+- Examples must avoid shell quoting that works on only one supported platform, or clearly label platform-specific forms.
+- Links and anchors must resolve in both repository Markdown and the published documentation site.
+- Non-ASCII arrows or punctuation used in examples must remain valid UTF-8 without BOM or mojibake.
 
 ## Requirements *(mandatory)*
 
@@ -160,30 +126,22 @@ clearly superseded without falsifying its chronology.
 
 ## Assumptions
 
-- S018-S020 behavior and their central input/API contracts are complete and are
-  the source of truth; this slice documents them rather than changing them.
+- S018-S020 behavior and their central input/API contracts are complete and are the source of truth; this slice documents them rather than changing them.
 - The cron fidelity table remains the canonical feature-by-feature contract.
-- Human-readable schedules remain the teaching default, but not the only valid
-  authoring form.
-- Historical changelog entries and completed Spec-Kit task descriptions remain
-  chronological evidence, not active policy.
+- Human-readable schedules remain the teaching default, but not the only valid authoring form.
+- Historical changelog entries and completed Spec-Kit task descriptions remain chronological evidence, not active policy.
 - Issue #22 remains the sole tracker for increasing cron dialect breadth.
 
 ## Out of Scope
 
-- Any new cron construct, detector/fallback behavior, or timing semantics; the
-  single FR-019 parser change only prevents an existing silent approximation.
-- API, schema, engine, daemon, GUI interaction, security, packaging, release,
-  or command-execution changes.
-- Rewriting historical changelog entries or completed specifications as though
-  dual-syntax behavior existed before S019-S021.
+- Any new cron construct, detector/fallback behavior, or timing semantics; the single FR-019 parser change only prevents an existing silent approximation.
+- API, schema, engine, daemon, GUI interaction, security, packaging, release, or command-execution changes.
+- Rewriting historical changelog entries or completed specifications as though dual-syntax behavior existed before S019-S021.
 - Closing or implementing any portion of issue #22.
 
 ## Traceability
 
 - Completes GitHub issue #52 and the remaining documentation outcome in #50.
-- Documents string conversion from #51/S018, central authoring from S019, and
-  GUI adoption from S020.
-- Explicitly supersedes the boundary-only authoring policy from #12/S008 while
-  preserving it as delivery history.
+- Documents string conversion from #51/S018, central authoring from S019, and GUI adoption from S020.
+- Explicitly supersedes the boundary-only authoring policy from #12/S008 while preserving it as delivery history.
 - Pull request uses `Closes #52` and `Closes #50`; #22 remains open.

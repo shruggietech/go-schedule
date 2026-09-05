@@ -46,7 +46,7 @@ func TestTaskDetail_ServesStoredCronExpressionAndIdentity(t *testing.T) {
 }
 
 // TestTaskDetail_NoExpressionForOneOff verifies one-off schedules are served
-// without a phrase — their date and time come from RunAt, and a fabricated
+// without a phrase, their date and time come from RunAt, and a fabricated
 // phrase would be meaningless.
 func TestTaskDetail_NoExpressionForOneOff(t *testing.T) {
 	s := newTestServer(t)

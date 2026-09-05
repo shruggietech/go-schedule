@@ -17,9 +17,7 @@
 
 ## Existing last-weekday schedule
 
-No domain entity changes. The existing monthly recurrence contains one numbered
-weekday with `N() == -1`, plus hour, minute, timezone, and existing missing-date
-policy.
+No domain entity changes. The existing monthly recurrence contains one numbered weekday with `N() == -1`, plus hour, minute, timezone, and existing missing-date policy.
 
 ### Export invariants
 
@@ -38,5 +36,4 @@ existing monthly RRULE -> fidelity checks -> canonical numeric weekdayL
 -> parsed field and phrase -> equivalent existing monthly RRULE
 ```
 
-Malformed or refused input terminates before persistence. There is no schema,
-migration, or stored-state transition.
+Malformed or refused input terminates before persistence. There is no schema, migration, or stored-state transition.

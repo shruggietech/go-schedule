@@ -163,7 +163,7 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	e.schedule.SetPlaceHolder(`e.g. "every 15 minutes" or "0 9 * * 1-5"`)
 
 	e.startAt = widget.NewEntry()
-	e.startAt.SetPlaceHolder("e.g. 09:00 — aligns the first cycle")
+	e.startAt.SetPlaceHolder("e.g. 09:00, aligns the first cycle")
 
 	e.oneOffDate = widget.NewEntry()
 	e.oneOffDate.SetPlaceHolder("2026-08-04")
@@ -213,7 +213,7 @@ func (e *taskEditor) build() *fyne.Container {
 
 	// rebuildWhen swaps a freshly-built form into whenHolder on every change; a
 	// fresh widget.Form (rather than mutating Items in place) guarantees every row
-	// — including conditionally-shown ones like Start at — gets a renderer.
+	// including conditionally-shown ones like Start at, gets a renderer.
 	e.whenHolder = container.NewStack()
 	e.ready = true
 	e.rebuildWhen()
@@ -448,8 +448,8 @@ func (e *taskEditor) prefill() {
 }
 
 // prefillSchedule populates Mode and the timing fields from the task's stored
-// schedule (FR-006/FR-007). A task whose schedule could not be read — or whose
-// recurrence has no expressible phrase — falls back to Recurring with the timing
+// schedule (FR-006/FR-007). A task whose schedule could not be read, or whose
+// recurrence has no expressible phrase, falls back to Recurring with the timing
 // fields blank, which on save means "keep the existing schedule".
 func (e *taskEditor) prefillSchedule() {
 	sch := e.detail.Schedule
@@ -831,7 +831,7 @@ func nonEmptyValidator(field string) func(string) error {
 // (FR-004). It replaces the old per-field Examples popup.
 const editorHelpMarkdown = `## Task editor help
 
-**Name** — a label to identify the task. _e.g._ ` + "`nightly-backup`" + `
+**Name**, a label to identify the task. _e.g._ ` + "`nightly-backup`" + `
 
 **Command line**: type the program and its arguments together, for example
 ` + "`python -m http.server --bind \"127.0.0.1\"`" + ` or
@@ -855,12 +855,12 @@ shell behavior, name it explicitly, such as ` + "`cmd /c \"echo hi > output.txt\
 ` + "`sh -c 'echo hi > output.txt'`" + `. That shell then owns its platform-specific quoting,
 expansion and security behavior.
 
-**Timezone** — ` + "`Local`" + ` or an IANA name (` + "`UTC`" + `, ` + "`America/New_York`" + `).
+**Timezone**, ` + "`Local`" + ` or an IANA name (` + "`UTC`" + `, ` + "`America/New_York`" + `).
 Schedules are interpreted here; storage is UTC with DST handled.
 
-**Mode** — _Recurring_ fires repeatedly on a Schedule; _One-off_ fires once at a date+time.
+**Mode**, _Recurring_ fires repeatedly on a Schedule; _One-off_ fires once at a date+time.
 
-**Schedule** _(Recurring)_ — a plain-language phrase (the approachable default):
+**Schedule** _(Recurring)_, a plain-language phrase (the approachable default):
 - Intervals: ` + "`every 15 minutes`" + `, ` + "`every 30s`" + `, ` + "`every 2 hours`" + `, ` + "`every 3 days`" + `, ` + "`every week`" + `
 - Daily with a time: ` + "`every day at 09:00`" + `
 - Weekday/weekend sets: ` + "`weekdays at 9:00 AM`" + `, ` + "`weekends at 18:00`" + `
@@ -877,22 +877,22 @@ Cron-shaped input is validated as cron without falling back to a human phrase. S
 [cron fidelity guide](https://shruggietech.github.io/go-schedule/cron/#fidelity)
 (` + "`docs/cron.md#fidelity`" + ` in the repository) for the supported boundary.
 
-**Start at** _(sub-daily intervals)_ — aligns the first cycle. ` + "`every 15 minutes`" + ` with
+**Start at** _(sub-daily intervals)_, aligns the first cycle. ` + "`every 15 minutes`" + ` with
 Start at ` + "`09:00`" + ` runs at :00/:15/:30/:45. You can also type it inline:
 ` + "`every 15 minutes starting at 09:00`" + `.
 
-**One-off date / time** — pick a future date and time (in the task's timezone); use the calendar
+**One-off date / time**, pick a future date and time (in the task's timezone); use the calendar
 button to choose the date.
 
-**Overlap** — what to do if a run is still going when the next is due: _Queue one run_ (default),
+**Overlap**, what to do if a run is still going when the next is due: _Queue one run_ (default),
 _Skip this run_, or _Allow concurrent runs_.
 
-**Catch-up** — after downtime: _Run once to catch up_ (default) or _Skip missed runs_.
+**Catch-up**, after downtime: _Run once to catch up_ (default) or _Skip missed runs_.
 
-**Time basis** — _Local wall clock_ (default), _Fixed elapsed time_, or _UTC clock_.
+**Time basis**, _Local wall clock_ (default), _Fixed elapsed time_, or _UTC clock_.
 Elapsed time is available only for fixed-duration interval schedules.
 
-**Spring gap / Fall overlap** — for wall-clock schedules, choose whether a nonexistent time
+**Spring gap / Fall overlap**, for wall-clock schedules, choose whether a nonexistent time
 advances or skips and whether a repeated time uses the first, both, or last occurrence.`
 
 func helpView(app *App) fyne.CanvasObject {

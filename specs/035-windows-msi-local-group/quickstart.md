@@ -48,5 +48,4 @@ pwsh -NoLogo -NoProfile -NonInteractive `
   -PriorArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/v0.9.0/go-schedule_v0.9.0_windows_amd64.msi'
 ```
 
-Both evidence files must be proven. Then run `sh scripts/verify.sh all` in the
-foreground through all eight gates.
+Both evidence files must be proven. Then run `sh scripts/verify.sh all` in the foreground through all eight gates.

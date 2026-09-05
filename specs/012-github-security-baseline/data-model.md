@@ -1,7 +1,6 @@
 # Data Model: GitHub Security Baseline
 
-This feature adds no application persistence. Its entities are repository and
-hosted-security contracts.
+This feature adds no application persistence. Its entities are repository and hosted-security contracts.
 
 ## Reporting Route
 
@@ -29,8 +28,7 @@ hosted-security contracts.
 
 `unverified -> enabled | unavailable | failed`
 
-An `unavailable` result is not green. A request accepted without a successful
-read-back remains `unverified`.
+An `unavailable` result is not green. A request accepted without a successful read-back remains `unverified`.
 
 ## Security Analysis Contract
 

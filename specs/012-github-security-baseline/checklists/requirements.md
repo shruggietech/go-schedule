@@ -31,7 +31,5 @@
 
 ## Notes
 
-- All 16 specification-quality checks pass after the 2026-08-26 clarification
-  scan.
-- Hosted activation remains post-halt work; the specification distinguishes
-  local implementation evidence from remote activation evidence.
+- All 16 specification-quality checks pass after the 2026-08-26 clarification scan.
+- Hosted activation remains post-halt work; the specification distinguishes local implementation evidence from remote activation evidence.

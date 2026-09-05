@@ -20,7 +20,7 @@
 
   Notes:
     * UpgradeCode MUST stay constant across all releases (it identifies the
-      product line for upgrades) — do not regenerate it.
+      product line for upgrades), do not regenerate it.
     * Version must be numeric (e.g. 1.2.3); strip any leading "v" before passing.
     * StageDir is the folder holding the four built .exe files, including the
       installer-private cleanup helper.
@@ -198,7 +198,7 @@
 
            The <Environment> element lives on THIS component (KeyPath
            gosched.exe) on purpose: MSI reference-counts by component, so
-           binding the PATH entry to the CLI gives correct lifetime for free —
+           binding the PATH entry to the CLI gives correct lifetime for free,
            written on install, replaced in place on a major upgrade, removed
            when the CLI is removed. A custom action editing PATH by hand would
            have to implement all three itself, and that is the classic source

@@ -9,9 +9,7 @@ git tag --list v1.0.0
 gh release view v1.0.0
 ```
 
-Before merge, the feature path resolves to `specs/048-v100-release-cut`, the
-tree is clean after committed work, and both tag/release lookups confirm
-v1.0.0 does not exist.
+Before merge, the feature path resolves to `specs/048-v100-release-cut`, the tree is clean after committed work, and both tag/release lookups confirm v1.0.0 does not exist.
 
 ## 2. Run focused preparation checks
 
@@ -22,8 +20,7 @@ go test ./test/integration -run 'Test(ReleaseWorkflowStagesEveryUploadAsDraft|Pr
 & 'C:\Program Files\Git\bin\bash.exe' scripts/automation-check.sh
 ```
 
-Confirm the release-note policy accepts v1.0.0, the workflows retain staged
-candidate/promotion ordering, and the evidence validator requires 47 scenarios.
+Confirm the release-note policy accepts v1.0.0, the workflows retain staged candidate/promotion ordering, and the evidence validator requires 47 scenarios.
 
 ## 3. Audit release copy
 
@@ -42,15 +39,11 @@ Verify mechanically:
 & 'C:\Program Files\Git\bin\bash.exe' scripts/verify.sh all
 ```
 
-All eight ordered gates must pass: format, vet, lint, race, GUI, coverage, docs,
-and automation.
+All eight ordered gates must pass: format, vet, lint, race, GUI, coverage, docs, and automation.
 
 ## 5. Publish the preparation PR
 
-Push `codex/048-v100-release-cut`, open a PR targeting `main` with `Refs #122`,
-wait for hosted CI and Codex review, address every comment, and request at most
-one explicit second Codex round. Stop for the maintainer's merge ritual when all
-checks and threads are green.
+Push `codex/048-v100-release-cut`, open a PR targeting `main` with `Refs #122`, wait for hosted CI and Codex review, address every comment, and request at most one explicit second Codex round. Stop for the maintainer's merge ritual when all checks and threads are green.
 
 ## 6. Post-merge release ritual (separate authorization required)
 

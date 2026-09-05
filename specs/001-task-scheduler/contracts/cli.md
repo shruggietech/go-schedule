@@ -6,7 +6,7 @@ Verb-noun command tree (cobra). Global rules (constitution UX-consistency princi
 - Global `--json` flag: machine-readable output for every command.
 - Exit codes: `0` success; `1` runtime error; `2` usage/validation error.
 - Times accepted/printed in **RFC 3339**; durations in Go duration syntax (`30s`, `15m`, `24h`).
-- All commands operate via `internal/api/client` against the daemon — never the store directly.
+- All commands operate via `internal/api/client` against the daemon, never the store directly.
 
 ## Task commands
 
@@ -20,16 +20,8 @@ Verb-noun command tree (cobra). Global rules (constitution UX-consistency princi
 | `gosched task rm <id>` | Delete task | `--force` |
 | `gosched task run-now <id>` | Trigger a manual run immediately | |
 
-- `--schedule <spec>` accepts human-readable forms (e.g. `"weekdays at 09:00"`) or
-  go-schedule's supported cron subset (e.g. `"0 9 * * 1-5"`) or startup event (`"@reboot"` /
-  `"at scheduler startup"`). Startup has no upcoming clock times and fires once per daemon start. Detection is automatic;
-  cron-shaped invalid or unfaithful input is not retried as human text. The CLI echoes the
-  resulting plain-language summary. `--at` creates a one-off (FR-004a); a past `--at` is rejected
-  with exit 2.
-- `--group` on `task edit` carries three distinct intents. Omitting the flag leaves membership
-  unchanged; `--group <id>` assigns the task to that group; `--group ""` removes it from its group
-  entirely. An unknown group id is a validation failure (exit 2) naming the `group_id` field, not
-  an internal error.
+- `--schedule <spec>` accepts human-readable forms (e.g. `"weekdays at 09:00"`) or go-schedule's supported cron subset (e.g. `"0 9 * * 1-5"`) or startup event (`"@reboot"` / `"at scheduler startup"`). Startup has no upcoming clock times and fires once per daemon start. Detection is automatic; cron-shaped invalid or unfaithful input is not retried as human text. The CLI echoes the resulting plain-language summary. `--at` creates a one-off (FR-004a); a past `--at` is rejected with exit 2.
+- `--group` on `task edit` carries three distinct intents. Omitting the flag leaves membership unchanged; `--group <id>` assigns the task to that group; `--group ""` removes it from its group entirely. An unknown group id is a validation failure (exit 2) naming the `group_id` field, not an internal error.
 
 ## Group commands
 
@@ -61,11 +53,9 @@ Verb-noun command tree (cobra). Global rules (constitution UX-consistency princi
 | `gosched service install\|uninstall\|start\|stop\|status` | Manage the system-wide service (FR-009); install needs admin |
 | `gosched gui` | Launch the desktop GUI client (`gosched-gui`) detached, **without a visible console window** |
 
-- `gosched gui` starts the windowless GUI binary and returns; the GUI connects to the running
-  daemon over the local IPC API. No CMD window remains open (explicit requirement).
+- `gosched gui` starts the windowless GUI binary and returns; the GUI connects to the running daemon over the local IPC API. No CMD window remains open (explicit requirement).
 
 ## Error contract
 
-- Validation failures (bad timezone, past one-off, malformed schedule, cycle in group parent)
-  return exit `2` with an actionable stderr message naming the offending field.
+- Validation failures (bad timezone, past one-off, malformed schedule, cycle in group parent) return exit `2` with an actionable stderr message naming the offending field.
 - Daemon-unreachable returns exit `1` with guidance to check `gosched service status`.

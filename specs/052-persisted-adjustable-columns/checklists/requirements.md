@@ -31,6 +31,4 @@
 
 ## Notes
 
-- Validated in one pass on 2026-09-05. The phrase "normalized proportions" is
-  a behavioral data contract needed to make cross-DPI restoration testable, not
-  a framework or storage implementation prescription.
+- Validated in one pass on 2026-09-05. The phrase "normalized proportions" is a behavioral data contract needed to make cross-DPI restoration testable, not a framework or storage implementation prescription.

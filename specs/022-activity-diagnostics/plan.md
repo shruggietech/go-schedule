@@ -4,11 +4,7 @@
 
 ## Summary
 
-Make Activity honest and useful during troubleshooting by carrying the daemon's
-resolved log path with its bounded recent-record response, presenting that
-metadata without normalizing or probing it, and replacing the ambiguous daemon
-listening message with one testable startup-completion event. Preserve existing
-CLI output by explicitly unwrapping the richer response at the CLI boundary.
+Make Activity honest and useful during troubleshooting by carrying the daemon's resolved log path with its bounded recent-record response, presenting that metadata without normalizing or probing it, and replacing the ambiguous daemon listening message with one testable startup-completion event. Preserve existing CLI output by explicitly unwrapping the richer response at the CLI boundary.
 
 ## Technical Context
 
@@ -34,41 +30,27 @@ CLI output by explicitly unwrapping the richer response at the CLI boundary.
 
 ### Post-design re-check
 
-All gates remain satisfied. No dependency, migration, benchmark-sensitive path,
-network surface, or governance mechanism is added.
+All gates remain satisfied. No dependency, migration, benchmark-sensitive path, network surface, or governance mechanism is added.
 
 ## Architecture and Decision Log
 
 ### Extend the existing recent-activity response
 
-`GET /v1/logs` gains an explicit `log_path` string alongside `logs`. The server
-receives the already resolved `Config.LogPath()` value and returns it even when
-the ring is nil or empty. An empty string is retained in the JSON shape and
-means metadata is unavailable, which is also compatible with older daemons.
+`GET /v1/logs` gains an explicit `log_path` string alongside `logs`. The server receives the already resolved `Config.LogPath()` value and returns it even when the ring is nil or empty. An empty string is retained in the JSON shape and means metadata is unavailable, which is also compatible with older daemons.
 
-This avoids an extra health request and keeps record and path metadata from the
-same daemon response. Changing the small internal server constructor directly
-is preferable to introducing an options abstraction for six call sites.
+This avoids an extra health request and keeps record and path metadata from the same daemon response. Changing the small internal server constructor directly is preferable to introducing an options abstraction for six call sites.
 
 ### Preserve CLI compatibility at its boundary
 
-The API client returns the complete typed logs response, consistent with other
-client methods. The CLI deliberately formats and serializes only its `Logs`
-member, preserving both the current table and bare-array JSON output.
+The API client returns the complete typed logs response, consistent with other client methods. The CLI deliberately formats and serializes only its `Logs` member, preserving both the current table and bare-array JSON output.
 
 ### Keep Activity presentation semantic and passive
 
-The view-model stores records and path atomically. Activity uses a refreshed,
-word-wrapped diagnostics label that says the view is limited, points operators
-to older daemon records, and renders either the exact path or an explicit
-unavailable state. It does not duplicate the numeric ring limit or offer file
-actions.
+The view-model stores records and path atomically. Activity uses a refreshed, word-wrapped diagnostics label that says the view is limited, points operators to older daemon records, and renders either the exact path or an explicit unavailable state. It does not duplicate the numeric ring limit or offer file actions.
 
 ### Treat startup as a discrete event
 
-A small helper emits exactly one `daemon startup complete` record at the current
-pre-serve location with structured `endpoint`, `db`, and `log_path` fields. No
-uptime or lifecycle state is introduced.
+A small helper emits exactly one `daemon startup complete` record at the current pre-serve location with structured `endpoint`, `db`, and `log_path` fields. No uptime or lifecycle state is introduced.
 
 ## Project Structure
 
@@ -98,8 +80,7 @@ specs/004-rebrand-gui-overhaul/contracts/api-logs.md
 CHANGELOG.md
 ```
 
-**Structure Decision**: Extend the existing local API, client, view-model, GUI,
-and daemon seams. No new package or dependency is warranted.
+**Structure Decision**: Extend the existing local API, client, view-model, GUI, and daemon seams. No new package or dependency is warranted.
 
 ## Implementation Phases
 

@@ -6,16 +6,11 @@ description: "Task list for Cross-Platform Task Scheduler implementation"
 
 **Input**: Design documents from `specs/001-task-scheduler/`
 
-**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
-[data-model.md](data-model.md), [contracts/](contracts/)
+**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/)
 
-**Tests**: Tests are **REQUIRED** for this feature. The project
-[constitution](../../.specify/memory/constitution.md) v1.0.0 makes testing non-negotiable
-(injected `Clock`, `-race`, ≥80% coverage on core packages, benchmarks). Test tasks are therefore
-included in every phase and, where they verify behavior, are written before implementation.
+**Tests**: Tests are **REQUIRED** for this feature. The project [constitution](../../.specify/memory/constitution.md) v1.0.0 makes testing non-negotiable (injected `Clock`, `-race`, ≥80% coverage on core packages, benchmarks). Test tasks are therefore included in every phase and, where they verify behavior, are written before implementation.
 
-**Organization**: Tasks are grouped by user story (from spec.md priorities) for independent
-implementation and testing.
+**Organization**: Tasks are grouped by user story (from spec.md priorities) for independent implementation and testing.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -64,12 +59,9 @@ implementation and testing.
 
 ## Phase 3: User Story 1 - Schedule a task without cron syntax (Priority: P1) 🎯 MVP
 
-**Goal**: Create time-based and one-off tasks in human-readable terms; the daemon runs them
-reliably, survives reboot via the system service, and records run history — no cron syntax.
+**Goal**: Create time-based and one-off tasks in human-readable terms; the daemon runs them reliably, survives reboot via the system service, and records run history, no cron syntax.
 
-**Independent Test**: Create a task with a human-readable recurrence and a one-off via the CLI;
-verify both execute at expected times under the fake clock and in a live run; restart the service
-and confirm resumption.
+**Independent Test**: Create a task with a human-readable recurrence and a one-off via the CLI; verify both execute at expected times under the fake clock and in a live run; restart the service and confirm resumption.
 
 ### Tests for User Story 1
 
@@ -77,7 +69,7 @@ and confirm resumption.
 - [x] T021 [P] [US1] Unit-test RRULE next-run for interval and ordinal-weekday ("3rd Wednesday monthly") in `internal/schedule/recur_test.go`
 - [x] T022 [P] [US1] Unit-test one-off scheduling + past-time rejection + post-run `completed` state in `internal/schedule/oneoff_test.go`
 - [x] T023 [P] [US1] Unit-test timezone + DST resolution (next-valid spring-forward, first-occurrence fall-back) in `internal/timezone/dst_test.go`
-- [x] T024 [P] [US1] Unit-test all three overlap policies — `queue_one` (queue once, warn, drop extras), `skip`, `allow_concurrent` — in `internal/engine/overlap_test.go`
+- [x] T024 [P] [US1] Unit-test all three overlap policies, `queue_one` (queue once, warn, drop extras), `skip`, `allow_concurrent`, in `internal/engine/overlap_test.go`
 - [x] T025 [P] [US1] Contract-test `POST /v1/tasks`, `POST /v1/schedules:preview`, `POST /v1/tasks/{id}:run-now` in `internal/api/server/tasks_test.go`
 - [x] T026 [US1] Integration-test: create recurring + one-off task → fake clock advances → correct runs recorded; restart daemon → schedule resumes, in `test/integration/scheduling_test.go`
 - [x] T074 [P] [US1] **Cron-parity equivalence suite** (SC-002): map representative cron patterns to human-readable configs and assert matching run times in `internal/schedule/cronparity_test.go`
@@ -88,7 +80,7 @@ and confirm resumption.
 - [x] T028 [US1] Implement schedule model: RRULE mapping (rrule-go), one-off, next-run computation in task tz → UTC in `internal/schedule/recur.go`
 - [x] T029 [US1] Implement human-readable parse + summarize + preview in `internal/schedule/parse.go`
 - [x] T030 [US1] Implement scheduling engine: timer-driven loop + dispatcher + bounded worker pool with `context` cancellation/drain in `internal/engine/engine.go`
-- [x] T031 [US1] Implement all three configurable overlap policies — `queue_one` (default: queue one pending + warning log + Alert creation hook), `skip`, and `allow_concurrent` — in `internal/engine/overlap.go`
+- [x] T031 [US1] Implement all three configurable overlap policies, `queue_one` (default: queue one pending + warning log + Alert creation hook), `skip`, and `allow_concurrent`, in `internal/engine/overlap.go`
 - [x] T032 [US1] Implement executor: spawn command **windowless** (CREATE_NO_WINDOW/HideWindow), capture stdout/stderr (bounded), write Run record, in `internal/executor/executor.go`
 - [x] T033 [US1] Wire one-off completion → task `state=completed` (no re-arm) in `internal/engine/engine.go`
 - [x] T034 [US1] Implement API task endpoints (`/v1/tasks` CRUD, `:run-now`, `:enable`/`:disable`, `schedules:preview`) in `internal/api/server/tasks.go`
@@ -100,20 +92,15 @@ and confirm resumption.
 - [x] T077 [US1] Implement per-task `run_as` impersonation behind build tags (`internal/executor/runas_windows.go`, `runas_unix.go`); default to the service account; validate the account at task-create time (G4)
 - [x] T078 [P] [US1] Unit/integration-test `run_as` (impersonation applied, invalid account rejected, default fallback) in `internal/executor/runas_test.go` (G4)
 
-**Checkpoint**: MVP — recurring + one-off tasks schedule, run windowless, persist history, and
-resume after a service restart, all via the CLI. Independently demoable.
+**Checkpoint**: MVP, recurring + one-off tasks schedule, run windowless, persist history, and resume after a service restart, all via the CLI. Independently demoable.
 
 ---
 
 ## Phase 4: User Story 2 - Visual calendar management with alerts (Priority: P2)
 
-**Goal**: A Go-native Material Design desktop GUI with calendar/timeline views, a guided task
-editor showing a live plain-language schedule summary, and prominent alerts — launched without any
-visible console window.
+**Goal**: A Go-native Material Design desktop GUI with calendar/timeline views, a guided task editor showing a live plain-language schedule summary, and prominent alerts, launched without any visible console window.
 
-**Independent Test**: With the daemon running, launch `gosched gui`; view tasks on the calendar,
-create one via the form editor (appears in `gosched task list`), and confirm overlap/failure
-alerts surface — with no CMD window present.
+**Independent Test**: With the daemon running, launch `gosched gui`; view tasks on the calendar, create one via the form editor (appears in `gosched task list`), and confirm overlap/failure alerts surface, with no CMD window present.
 
 ### Tests for User Story 2
 
@@ -140,8 +127,7 @@ alerts surface — with no CMD window present.
 
 **Goal**: Organize tasks into groups and sub-groups (≥3 levels); enable/disable cascades.
 
-**Independent Test**: Build a 3-level group hierarchy, assign tasks, disable a parent, and confirm
-all contained tasks stop — in both CLI and GUI.
+**Independent Test**: Build a 3-level group hierarchy, assign tasks, disable a parent, and confirm all contained tasks stop, in both CLI and GUI.
 
 ### Tests for User Story 3
 
@@ -162,11 +148,9 @@ all contained tasks stop — in both CLI and GUI.
 
 ## Phase 6: User Story 4 - Event-triggered tasks (Priority: P3)
 
-**Goal**: Run a task on another task's completion with at-least-once delivery and dedup-window
-exactly-once effect.
+**Goal**: Run a task on another task's completion with at-least-once delivery and dedup-window exactly-once effect.
 
-**Independent Test**: Configure B to trigger on A's success; run A → B runs once; deliver a
-duplicate completion within the window → B does not run again; verify delivery survives a restart.
+**Independent Test**: Configure B to trigger on A's success; run A → B runs once; deliver a duplicate completion within the window → B does not run again; verify delivery survives a restart.
 
 ### Tests for User Story 4
 
@@ -187,11 +171,9 @@ duplicate completion within the window → B does not run again; verify delivery
 
 ## Phase 7: User Story 5 - Downtime catch-up (Priority: P3)
 
-**Goal**: After downtime that missed ≥1 run, perform exactly one catch-up per task, then resume;
-per-task configurable (`one`/`none`).
+**Goal**: After downtime that missed ≥1 run, perform exactly one catch-up per task, then resume; per-task configurable (`one`/`none`).
 
-**Independent Test**: Stop the service across ≥1 scheduled time, restart, and confirm exactly one
-`caught_up` run then normal scheduling; with `--catchup none`, zero catch-up runs.
+**Independent Test**: Stop the service across ≥1 scheduled time, restart, and confirm exactly one `caught_up` run then normal scheduling; with `--catchup none`, zero catch-up runs.
 
 ### Tests for User Story 5
 
@@ -214,7 +196,7 @@ per-task configurable (`one`/`none`).
 - [x] T069 [P] Add dispatch-latency benchmark (`BenchmarkDispatch`) asserting p99 < 100ms in `internal/engine/engine_bench_test.go`
 - [x] T070 Harden local IPC access control (socket/pipe permissions, admin group) per research §2 in `internal/ipc/` and `internal/service/`
 - [x] T071 Verify coverage ≥80% on core packages (`engine`, `schedule`, `timezone`, `store`, `trigger`, `catchup`) and close gaps
-- [x] T072 Verify cross-platform build incl. Windows windowless GUI (-H windowsgui) and no-console task spawn — daemon+CLI cross-compiled (6 targets); GUI built per-OS in CI/release (linux/macOS/windows windowless)
+- [x] T072 Verify cross-platform build incl. Windows windowless GUI (-H windowsgui) and no-console task spawn, daemon+CLI cross-compiled (6 targets); GUI built per-OS in CI/release (linux/macOS/windows windowless)
 - [~] T073 (SC-001..SC-007, SC-009, SC-010 verified via CLI live tests; SC-008 GUI deferred with US2) Execute [quickstart.md](quickstart.md) end-to-end and confirm every Success Criterion (SC-001..SC-010)
 
 ---
@@ -225,8 +207,7 @@ per-task configurable (`one`/`none`).
 
 - **Setup (P1)**: no dependencies.
 - **Foundational (P2)**: depends on Setup; **blocks all user stories**.
-- **User Stories (P3–P7)**: each depends on Foundational. US1 is the MVP. US2/US3 build on US1's
-  task/API surface; US4/US5 extend the engine. Stories are independently testable.
+- **User Stories (P3–P7)**: each depends on Foundational. US1 is the MVP. US2/US3 build on US1's task/API surface; US4/US5 extend the engine. Stories are independently testable.
 - **Polish (P8)**: depends on the targeted stories being complete.
 
 ### User Story Dependencies
@@ -279,8 +260,7 @@ Task: "Implement timezone/DST resolver in internal/timezone/timezone.go"        
 
 ### Incremental Delivery
 
-Foundation → US1 (MVP, CLI) → US2 (GUI + alerts) → US3 (groups) → US4 (triggers) → US5 (catch-up).
-Each story is tested independently and adds value without breaking prior stories.
+Foundation → US1 (MVP, CLI) → US2 (GUI + alerts) → US3 (groups) → US4 (triggers) → US5 (catch-up). Each story is tested independently and adds value without breaking prior stories.
 
 ---
 
@@ -289,7 +269,5 @@ Each story is tested independently and adds value without breaking prior stories
 - [P] = different files, no incomplete dependencies. [US#] maps tasks to stories for traceability.
 - Tests are required (constitution v1.0.0): `go test -race`, ≥80% core coverage, dispatch benchmark.
 - The windowless-GUI / no-console-spawn requirement is exercised by T032, T044, T048, and T072.
-- Remediation tasks from `/speckit-analyze`: T074 (cron-parity suite, SC-002), T075/T076 (runs &
-  alerts query API + CLI), T077/T078 (`run_as` impersonation + test); T024/T031 widened to cover
-  all three overlap policies.
+- Remediation tasks from `/speckit-analyze`: T074 (cron-parity suite, SC-002), T075/T076 (runs & alerts query API + CLI), T077/T078 (`run_as` impersonation + test); T024/T031 widened to cover all three overlap policies.
 - Commit after each task or logical group; stop at any checkpoint to validate a story.

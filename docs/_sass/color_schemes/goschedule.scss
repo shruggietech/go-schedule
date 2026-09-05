@@ -2,7 +2,7 @@
 //
 // Dark-first, close to monochrome: neutral Night/Panel/Line rails carry
 // structure, Anchor Blue carries links and focus, Interval Mint marks success.
-// This file only sets SCSS variables — just-the-docs generates the CSS from them
+// This file only sets SCSS variables, just-the-docs generates the CSS from them
 // later in its import chain, so overriding the full dark variable set here gives
 // the whole site the brand palette. Selected via `color_scheme: goschedule` in
 // _config.yml.

@@ -1,7 +1,6 @@
 # Quickstart / Validation Guide
 
-Runnable checks proving each user story. Run from repo root unless noted. `go test` runs headless
-(no display/cgo needed for the daemon/CLI/view-model and Fyne test-driver GUI tests).
+Runnable checks proving each user story. Run from repo root unless noted. `go test` runs headless (no display/cgo needed for the daemon/CLI/view-model and Fyne test-driver GUI tests).
 
 ## Prerequisites
 
@@ -9,7 +8,7 @@ Runnable checks proving each user story. Run from repo root unless noted. `go te
 - For the GUI build only: C toolchain + OpenGL (WinLibs MinGW on this machine; see memory).
 - For the MSI: WiX Toolset v5 (CI-provided; local optional).
 
-## US1 — Rename to go-schedule
+## US1, Rename to go-schedule
 
 ```bash
 go build ./...              # builds under the new module path github.com/shruggietech/go-schedule
@@ -20,37 +19,27 @@ go test ./...              # all existing tests pass post-rename
   ```bash
   grep -rn "go-scheduler" --exclude-dir=.git .   # only CHANGELOG history + specs/001..003 allowed
   ```
-- Launch the GUI; window title reads **go-schedule**. CLI `gosched --help` branding reads
-  go-schedule. (SC-001)
+- Launch the GUI; window title reads **go-schedule**. CLI `gosched --help` branding reads go-schedule. (SC-001)
 
-## US2 — Windows MSI (manual, on a clean Windows VM)
+## US2, Windows MSI (manual, on a clean Windows VM)
 
-CI proof (automated): `build/windows/verify_wxs.ps1` runs in the release workflow and `wix build`
-produces `go-schedule_<ver>_windows_amd64.msi`. The behaviors below need a real machine.
+CI proof (automated): `build/windows/verify_wxs.ps1` runs in the release workflow and `wix build` produces `go-schedule_<ver>_windows_amd64.msi`. The behaviors below need a real machine.
 
 1. Build/download `go-schedule_<ver>_windows_amd64.msi`.
 2. Double-click → UAC prompt → complete wizard. Confirm:
    - Files in `C:\Program Files\go-schedule\` (not Downloads). (FR-005)
-   - Service present & running: `sc query goschedd` → `RUNNING`; `sc qc goschedd` → `START_TYPE: 2
-     AUTO_START`. (FR-006)
+   - Service present & running: `sc query goschedd` → `RUNNING`; `sc qc goschedd` → `START_TYPE: 2 AUTO_START`. (FR-006)
    - Start-Menu **go-schedule** entry launches the GUI, no console window. (FR-007)
 3. Reboot without logging in elsewhere; a scheduled task still fires. (SC-003)
-4. Apps & features → Uninstall → binaries/service/shortcut gone (`sc query goschedd` →
-   `1060 service does not exist`); `C:\ProgramData\goschedule\` retained. (FR-009/SC-004)
+4. Apps & features → Uninstall → binaries/service/shortcut gone (`sc query goschedd` → `1060 service does not exist`); `C:\ProgramData\goschedule\` retained. (FR-009/SC-004)
 
-### FR-008 — elevation behavior (negative test)
-- Run the `.msi` and **decline** the UAC prompt. Expected: the install cancels cleanly with a
-  clear message; nothing is left in `C:\Program Files\go-schedule\` and `sc query goschedd`
-  reports the service does not exist (no partial install). The `perMachine` scope in the wxs is
-  what forces the elevation prompt.
+### FR-008, elevation behavior (negative test)
+- Run the `.msi` and **decline** the UAC prompt. Expected: the install cancels cleanly with a clear message; nothing is left in `C:\Program Files\go-schedule\` and `sc query goschedd` reports the service does not exist (no partial install). The `perMachine` scope in the wxs is what forces the elevation prompt.
 
-### FR-010 — GUI reuses the running service
-- With the service installed and `RUNNING`, launch **go-schedule** from the Start Menu, then check
-  processes: there is exactly **one** `goschedd.exe` (the service). The GUI's health-check finds
-  the running daemon and does **not** spawn a second one; the single-instance lock in
-  `C:\ProgramData\goschedule\goschedd.lock` would block a second anyway. (FR-010)
+### FR-010, GUI reuses the running service
+- With the service installed and `RUNNING`, launch **go-schedule** from the Start Menu, then check processes: there is exactly **one** `goschedd.exe` (the service). The GUI's health-check finds the running daemon and does **not** spawn a second one; the single-instance lock in `C:\ProgramData\goschedule\goschedd.lock` would block a second anyway. (FR-010)
 
-## US3 — Logs view
+## US3, Logs view
 
 ```bash
 go test ./internal/logbus/...     # ring, rotator, handler severity mapping
@@ -68,10 +57,9 @@ Manual end-to-end:
    tail -n 5 "<DataDir>/logs/goschedule.log"   # JSONL records persist (FR-016)
    ```
 6. With Logs open, trigger another failure → it appears live, no manual refresh. (FR-018)
-- Retention: drive sustained logging; total log bytes stay ≤ `LogMaxSizeBytes × LogMaxFiles`.
-  (SC-006)
+- Retention: drive sustained logging; total log bytes stay ≤ `LogMaxSizeBytes × LogMaxFiles`. (SC-006)
 
-## US4 — Triggers removed
+## US4, Triggers removed
 
 ```bash
 go build ./...                    # compiles with internal/trigger deleted
@@ -81,10 +69,9 @@ go test ./internal/store/...      # migration v3 regression: DB-with-triggers st
 
 - GUI has no Triggers tab. `gosched --help` lists no trigger command; `gosched trigger ...` → unknown.
 - `curl --unix-socket <ipc> http://x/v1/triggers` → `404 not_found`.
-- Start the daemon against a pre-v3 DB that had triggers → starts cleanly; a warning LogRecord
-  notes removed trigger rows. (FR-020/SC-007)
+- Start the daemon against a pre-v3 DB that had triggers → starts cleanly; a warning LogRecord notes removed trigger rows. (FR-020/SC-007)
 
-## US5 — Real-time updates
+## US5, Real-time updates
 
 ```bash
 go test ./gui/viewmodel/...       # ApplyEvent folds task/group/log events (upsert/remove)
@@ -97,7 +84,7 @@ Manual two-client check:
 4. Confirm **no Refresh button** exists in any view (Tasks, Schedule, Groups, Logs). (FR-023)
 5. Kill & restart the daemon → GUI reconnects and re-syncs automatically. (FR-024)
 
-## US6 — Calendar view
+## US6, Calendar view
 
 ```bash
 go test ./gui/...                 # calendar widget: occurrence placement; toggle preserves window

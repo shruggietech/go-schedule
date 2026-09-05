@@ -6,35 +6,21 @@
 
 ## Summary
 
-A focused set of Fyne GUI polish changes building on 002: open the main window at the screen work
-area; widen the task editor and move Preview into a right-hand pane; add an in-modal **Help** view
-in that pane; drop the Schedule **Examples** button; show the command preview as a monospace code
-block without the "Will run:" prefix; replace the Advanced Settings accordion with a custom
-collapsible whose arrow points ▶ (collapsed) / ▼ (expanded); right-align the footer buttons; confirm
-on Cancel when the form is dirty; and give every clickable control an app-wide pointer cursor.
+A focused set of Fyne GUI polish changes building on 002: open the main window at the screen work area; widen the task editor and move Preview into a right-hand pane; add an in-modal **Help** view in that pane; drop the Schedule **Examples** button; show the command preview as a monospace code block without the "Will run:" prefix; replace the Advanced Settings accordion with a custom collapsible whose arrow points ▶ (collapsed) / ▼ (expanded); right-align the footer buttons; confirm on Cancel when the form is dirty; and give every clickable control an app-wide pointer cursor.
 
-Two items need more than a trivial edit because of Fyne API gaps: **maximize** (no Fyne API → a
-platform work-area helper) and the **disclosure arrow** (Fyne's `Accordion` hardcodes the icons →
-a small custom collapsible). Everything else is layout/wiring in `gui/`.
+Two items need more than a trivial edit because of Fyne API gaps: **maximize** (no Fyne API → a platform work-area helper) and the **disclosure arrow** (Fyne's `Accordion` hardcodes the icons → a small custom collapsible). Everything else is layout/wiring in `gui/`.
 
 ## Technical Context
 
 **Language/Version**: Go (project toolchain); GUI via Fyne v2.7.4.
 
-**Primary Dependencies**: Fyne v2 (`widget`, `container`, `layout`, `dialog`, `theme`,
-`driver/desktop`, `canvas`); `fyne.io/x/fyne` (already added in 002, unaffected). The Windows
-work-area query uses the standard library `syscall` against `user32.dll` — **no new module
-dependency**.
+**Primary Dependencies**: Fyne v2 (`widget`, `container`, `layout`, `dialog`, `theme`, `driver/desktop`, `canvas`); `fyne.io/x/fyne` (already added in 002, unaffected). The Windows work-area query uses the standard library `syscall` against `user32.dll`, **no new module dependency**.
 
 **Storage**: none (GUI-only; no daemon/CLI/API/schema changes).
 
-**Testing**: `go test ./gui/...` headless (Fyne test driver), plus the CI `-race` set for any
-non-GUI helper. New unit tests for dirty-detection, pane toggle (Preview↔Help), the custom
-collapsible state/icon, the cursor-aware buttons, and the work-area→Fyne-units conversion (pure
-function).
+**Testing**: `go test ./gui/...` headless (Fyne test driver), plus the CI `-race` set for any non-GUI helper. New unit tests for dirty-detection, pane toggle (Preview↔Help), the custom collapsible state/icon, the cursor-aware buttons, and the work-area→Fyne-units conversion (pure function).
 
-**Target Platform**: Linux, macOS, Windows desktop (`gosched-gui`). Maximize is implemented for
-Windows (primary target) with a generous fallback elsewhere.
+**Target Platform**: Linux, macOS, Windows desktop (`gosched-gui`). Maximize is implemented for Windows (primary target) with a generous fallback elsewhere.
 
 **Project Type**: Desktop app (thin GUI client).
 
@@ -42,22 +28,16 @@ Windows (primary target) with a generous fallback elsewhere.
 
 **Constraints**: Keep all 002 behavior intact (FR-014). Avoid new dependencies (constitution).
 
-**Scale/Scope**: ~1 dialog rebuild (`editor.go`), one window-sizing helper (+ platform files),
-one custom collapsible widget, and cursor-aware button constructors swapped into ~14 call sites.
+**Scale/Scope**: ~1 dialog rebuild (`editor.go`), one window-sizing helper (+ platform files), one custom collapsible widget, and cursor-aware button constructors swapped into ~14 call sites.
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-- **I. Code Quality** — PASS. New helpers (work-area query, collapsible, cursor buttons) are small,
-  single-purpose, documented. The platform helper isolates `syscall` behind a build-tagged file
-  with a clean fallback; no `panic`, errors handled.
-- **II. Testing Standards** — PASS (planned). Headless GUI tests cover dirty-detection, pane
-  toggling, collapsible icon/state, button cursor, and footer alignment; the work-area→units
-  conversion is a pure unit-tested function. No wall-clock dependence.
-- **III. UX Consistency** — PASS, directly advanced: consistent pointer affordance app-wide,
-  standard disclosure-arrow direction, right-aligned actions, and safe-cancel confirmation.
-- **IV. Performance** — PASS. No engine/hot-path change; no new allocations on any dispatch path.
+- **I. Code Quality**, PASS. New helpers (work-area query, collapsible, cursor buttons) are small, single-purpose, documented. The platform helper isolates `syscall` behind a build-tagged file with a clean fallback; no `panic`, errors handled.
+- **II. Testing Standards**, PASS (planned). Headless GUI tests cover dirty-detection, pane toggling, collapsible icon/state, button cursor, and footer alignment; the work-area→units conversion is a pure unit-tested function. No wall-clock dependence.
+- **III. UX Consistency**, PASS, directly advanced: consistent pointer affordance app-wide, standard disclosure-arrow direction, right-aligned actions, and safe-cancel confirmation.
+- **IV. Performance**, PASS. No engine/hot-path change; no new allocations on any dispatch path.
 
 No violations → Complexity Tracking empty.
 
@@ -96,11 +76,8 @@ gui/
 └── alerts.go              # cursor buttons
 ```
 
-**Structure Decision**: Single Go module; all work in `gui/`. No daemon/CLI/API/store changes.
-The two non-trivial items get dedicated, isolated pieces: a build-tagged window-size helper and a
-custom collapsible widget in `widgets.go`. Cursor coverage is achieved by swapping button
-constructors at their ~14 call sites.
+**Structure Decision**: Single Go module; all work in `gui/`. No daemon/CLI/API/store changes. The two non-trivial items get dedicated, isolated pieces: a build-tagged window-size helper and a custom collapsible widget in `widgets.go`. Cursor coverage is achieved by swapping button constructors at their ~14 call sites.
 
 ## Complexity Tracking
 
-> No constitution violations — section intentionally empty.
+> No constitution violations, section intentionally empty.

@@ -1,14 +1,12 @@
 # Checklist: Documentation-site requirements quality
 
-**Purpose**: Unit-test the *requirements* for feature 010 (docs site + README
-consolidation) for completeness, clarity, consistency, and measurability before
-planning. Tests what the spec says, not whether the site works.
+**Purpose**: Unit-test the *requirements* for feature 010 (docs site + README consolidation) for completeness, clarity, consistency, and measurability before planning. Tests what the spec says, not whether the site works.
 **Created**: 2026-07-23
 **Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 
-- [x] CHK001 - Are requirements defined for every capability the site must expose — search, spanning navigation, and next/previous movement? [Completeness, Spec §FR-002]
+- [x] CHK001 - Are requirements defined for every capability the site must expose, search, spanning navigation, and next/previous movement? [Completeness, Spec §FR-002]
 - [x] CHK002 - Is the requirement that the site build from the docs folder (source == served content, no committed build output) stated unambiguously? [Completeness, Spec §FR-001]
 - [x] CHK003 - Are front-matter requirements specified for *every* documentation page, not just a representative subset? [Completeness, Spec §FR-004]
 - [x] CHK004 - Are requirements defined for the automated docs-check's three failure conditions (broken on-disk link, stale pointer, missing front matter)? [Completeness, Spec §FR-007]
@@ -26,7 +24,7 @@ planning. Tests what the spec says, not whether the site works.
 
 ## Requirement Consistency
 
-- [x] CHK013 - Do the "no committed build artifacts" requirement (§FR-001) and the "served from docs folder" requirement agree — i.e., no requirement implies checking in generated HTML? [Consistency, Spec §FR-001]
+- [x] CHK013 - Do the "no committed build artifacts" requirement (§FR-001) and the "served from docs folder" requirement agree, i.e., no requirement implies checking in generated HTML? [Consistency, Spec §FR-001]
 - [x] CHK014 - Are the within-docs-links-resolve requirement (§FR-006) and the escape-links-are-absolute requirement (§FR-005) mutually consistent and jointly exhaustive of link cases? [Consistency, Spec §FR-005/FR-006]
 - [x] CHK015 - Is the home-page requirement (§FR-003) consistent with the "docs index renders in-repo too" requirement (no duplicate index file)? [Consistency, Spec §FR-003]
 
@@ -52,6 +50,4 @@ planning. Tests what the spec says, not whether the site works.
 
 ## Notes
 
-- All items test the **requirements**, not the eventual site. Items that fail
-  here are spec gaps to close before or during `/speckit-plan`, not
-  implementation bugs.
+- All items test the **requirements**, not the eventual site. Items that fail here are spec gaps to close before or during `/speckit-plan`, not implementation bugs.

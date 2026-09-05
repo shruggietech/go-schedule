@@ -1,4 +1,4 @@
-# Specification Quality Checklist: GUI task fidelity — schedule round-trip and group assignment
+# Specification Quality Checklist: GUI task fidelity, schedule round-trip and group assignment
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-07-22
@@ -33,33 +33,15 @@
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
 
-### Validation record — iteration 1 (2026-07-22)
+### Validation record, iteration 1 (2026-07-22)
 
 All items pass. Notes on the two that needed deliberate handling:
 
-- **No implementation details**: the source material for this feature is a code
-  investigation, so the first draft risked naming storage columns, request
-  fields, and widget types. The spec states the *capabilities* instead —
-  "retain the human-readable phrase the schedule was created from" (FR-001),
-  "express three distinct intents when updating a task" (FR-014) — leaving the
-  mechanism to `plan.md`. The Key Entities section names Task, Schedule, and
-  Group, which are domain concepts the master specification already defines, not
-  implementation artifacts.
-- **Success criteria technology-agnostic**: SC-001 through SC-008 are stated as
-  operator-observable outcomes (what displays, what stays identical, what the
-  operator can accomplish without leaving the GUI). SC-007 in particular is
-  phrased as "zero upcoming run times change", not as a statement about schema
-  migration.
+- **No implementation details**: the source material for this feature is a code investigation, so the first draft risked naming storage columns, request fields, and widget types. The spec states the *capabilities* instead, "retain the human-readable phrase the schedule was created from" (FR-001), "express three distinct intents when updating a task" (FR-014), leaving the mechanism to `plan.md`. The Key Entities section names Task, Schedule, and Group, which are domain concepts the master specification already defines, not implementation artifacts.
+- **Success criteria technology-agnostic**: SC-001 through SC-008 are stated as operator-observable outcomes (what displays, what stays identical, what the operator can accomplish without leaving the GUI). SC-007 in particular is phrased as "zero upcoming run times change", not as a statement about schema migration.
 
-Four user stories, prioritized P1/P2/P2/P3, each independently testable. Story 1
-alone is a shippable fix for the more severe of the two reported defects.
+Four user stories, prioritized P1/P2/P2/P3, each independently testable. Story 1 alone is a shippable fix for the more severe of the two reported defects.
 
-### Re-validation — after `/speckit-clarify` (2026-07-22)
+### Re-validation, after `/speckit-clarify` (2026-07-22)
 
-16/16 → 16/16 items passing. No state changes; no regressions. The four
-clarifications were additive and each landed as a testable requirement
-(FR-011a, FR-011b, FR-019 amendment, FR-019a) plus matching edge cases and one
-new acceptance scenario on Story 1, so "requirements are testable and
-unambiguous" and "edge cases are identified" hold more strongly than before.
-No implementation detail entered the spec: FR-011a says the phrase must not
-influence execution without naming what stores or reads it.
+16/16 → 16/16 items passing. No state changes; no regressions. The four clarifications were additive and each landed as a testable requirement (FR-011a, FR-011b, FR-019 amendment, FR-019a) plus matching edge cases and one new acceptance scenario on Story 1, so "requirements are testable and unambiguous" and "edge cases are identified" hold more strongly than before. No implementation detail entered the spec: FR-011a says the phrase must not influence execution without naming what stores or reads it.

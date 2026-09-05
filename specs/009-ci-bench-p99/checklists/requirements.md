@@ -31,12 +31,6 @@
 
 ## Notes
 
-- The spec deliberately references "the documented budget" and "next to the
-  engine code" rather than naming files or constants, keeping it implementation-
-  agnostic while remaining testable. The concrete placement (a named constant in
-  the engine package, a CI job, a changelog decision) is a planning concern.
-- The absolute-budget-over-relative-delta choice is stated as a recorded decision
-  (FR-009, SC-006, Assumptions) because it is the one materially notable call in
-  this feature; it is justified against the constitution rather than left implicit.
-- All items pass on the first iteration; no [NEEDS CLARIFICATION] markers were
-  needed — the feature scope is fully determined by issue #14 and the constitution.
+- The spec deliberately references "the documented budget" and "next to the engine code" rather than naming files or constants, keeping it implementation- agnostic while remaining testable. The concrete placement (a named constant in the engine package, a CI job, a changelog decision) is a planning concern.
+- The absolute-budget-over-relative-delta choice is stated as a recorded decision (FR-009, SC-006, Assumptions) because it is the one materially notable call in this feature; it is justified against the constitution rather than left implicit.
+- All items pass on the first iteration; no [NEEDS CLARIFICATION] markers were needed, the feature scope is fully determined by issue #14 and the constitution.

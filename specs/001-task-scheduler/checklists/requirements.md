@@ -32,9 +32,5 @@
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- Validation result: all items pass on first iteration. The feature description supplied
-  decisive answers for the areas that would otherwise need clarification (catch-up policy,
-  per-task timezone + DST + UTC backend, event-delivery semantics, overlap policy, and GUI
-  design direction), so no [NEEDS CLARIFICATION] markers were required.
-- Note on FR-025 (Material Design appearance): this is a stated product/UX direction from the
-  stakeholder, captured as a user-experience requirement rather than an implementation mandate.
+- Validation result: all items pass on first iteration. The feature description supplied decisive answers for the areas that would otherwise need clarification (catch-up policy, per-task timezone + DST + UTC backend, event-delivery semantics, overlap policy, and GUI design direction), so no [NEEDS CLARIFICATION] markers were required.
+- Note on FR-025 (Material Design appearance): this is a stated product/UX direction from the stakeholder, captured as a user-experience requirement rather than an implementation mandate.

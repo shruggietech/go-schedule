@@ -31,5 +31,4 @@
 
 ## Notes
 
-All 16 specification-quality checks pass. Implementation mechanisms remain a
-planning decision.
+All 16 specification-quality checks pass. Implementation mechanisms remain a planning decision.

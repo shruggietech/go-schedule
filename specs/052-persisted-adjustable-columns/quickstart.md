@@ -8,10 +8,7 @@ go test -race ./gui -run "Test(ColumnProfile|ProfileWidths)"
 sh scripts/verify.sh all
 ```
 
-Expected: focused GUI tests prove the [column-layout contract](contracts/column-layout-contract.md),
-the pure profile/allocation race run is clean, and all eight canonical gates
-pass. The repository intentionally excludes the full Fyne widget package from
-its race gate because of documented upstream font-cache behavior.
+Expected: focused GUI tests prove the [column-layout contract](contracts/column-layout-contract.md), the pure profile/allocation race run is clean, and all eight canonical gates pass. The repository intentionally excludes the full Fyne widget package from its race gate because of documented upstream font-cache behavior.
 
 ## Headless interaction scenarios
 
@@ -24,6 +21,4 @@ its race gate because of documented upstream font-cache behavior.
 
 ## Native visual check
 
-Inspect both views at default and narrow sizes, in light and dark modes and each
-font. Separators and focus remain visible without excessive contrast, **When**
-has a practical default share, rows align, and no horizontal scrollbar appears.
+Inspect both views at default and narrow sizes, in light and dark modes and each font. Separators and focus remain visible without excessive contrast, **When** has a practical default share, rows align, and no horizontal scrollbar appears.

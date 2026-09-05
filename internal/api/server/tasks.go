@@ -368,7 +368,7 @@ func orDefault(v, def string) string {
 }
 
 // validMissingDate reports whether p is one of the three known policies. An
-// empty value never reaches here — callers default it first — so an unknown
+// empty value never reaches here, callers default it first, so an unknown
 // value is genuinely the caller's mistake.
 func validMissingDate(p domain.MissingDatePolicy) bool {
 	switch p {

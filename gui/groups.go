@@ -46,7 +46,7 @@ type groupTreeModel struct {
 }
 
 // newGroupTreeModel arranges groups into their hierarchy and files every task
-// under its group — or under Ungrouped when it has none, or names one that no
+// under its group, or under Ungrouped when it has none, or names one that no
 // longer resolves (FR-019a). Every task appears exactly once.
 func newGroupTreeModel(groups []domain.Group, tasks []domain.Task) *groupTreeModel {
 	m := &groupTreeModel{

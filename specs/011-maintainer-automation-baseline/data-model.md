@@ -1,7 +1,6 @@
 # Data Model: Maintainer Automation Baseline
 
-This feature persists no runtime or user data. The model below describes the
-repository automation records whose consistency is enforced in versioned files.
+This feature persists no runtime or user data. The model below describes the repository automation records whose consistency is enforced in versioned files.
 
 ## ActionReference
 
@@ -16,8 +15,7 @@ An external action invocation in a workflow.
 | declared_runtime | Runtime from the selected action metadata | Must not be Node 20 |
 | used_contract | Inputs, outputs, permissions, artifacts | Must remain compatible after upgrade |
 
-**Uniqueness**: Each workflow location contains one action reference. The same
-approved action may appear at multiple locations.
+**Uniqueness**: Each workflow location contains one action reference. The same approved action may appear at multiple locations.
 
 ## VerificationGate
 
@@ -34,18 +32,15 @@ A non-mutating check in the local/CI verification contract.
 | failure | Diagnostic behavior | Non-zero and identifies the gate |
 | mutating | Whether repository files may change | False for every verification gate |
 
-The required gate identities are `format`, `vet`, `lint`, `race`, `gui`,
-`coverage`, `docs`, and `automation`.
+The required gate identities are `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`.
 
 ## VerificationContract
 
 The ordered set of VerificationGate records that defines a local green result.
 
 - **Manifest**: All eight required names, with no duplicates or omissions.
-- **Aggregate transition**: `not_started -> running(gate) -> passed` or
-  `not_started -> running(gate) -> failed(gate)`.
-- **Failure rule**: The first failing or unavailable gate terminates aggregate
-  execution with a non-zero result.
+- **Aggregate transition**: `not_started -> running(gate) -> passed` or `not_started -> running(gate) -> failed(gate)`.
+- **Failure rule**: The first failing or unavailable gate terminates aggregate execution with a non-zero result.
 - **Cleanliness rule**: A passing run over a clean checkout leaves it clean.
 
 ## AutomationPolicy
@@ -63,8 +58,7 @@ The independent offline policy used to catch drift.
 
 - AutomationPolicy admits many ActionReference records.
 - VerificationContract contains eight VerificationGate records.
-- AutomationPolicy compares its independent `required_gates` with the
-  VerificationContract manifest.
+- AutomationPolicy compares its independent `required_gates` with the VerificationContract manifest.
 
 ## PinnedArtifactDecision
 

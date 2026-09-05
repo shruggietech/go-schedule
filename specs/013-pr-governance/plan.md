@@ -1,15 +1,10 @@
 # Implementation Plan: Lightweight Pull-Request Workflow
 
-**Branch**: `codex/013-pr-governance` | **Date**: 2026-08-26 | **Spec**:
-`specs/013-pr-governance/spec.md`
+**Branch**: `codex/013-pr-governance` | **Date**: 2026-08-26 | **Spec**: `specs/013-pr-governance/spec.md`
 
 ## Summary
 
-Replace stale direct-to-`main` guidance with a small branch-to-PR workflow whose
-purpose is third-party AI review. Amend the constitution to v3.0.0 and
-synchronize the README, contributor guide, autopilot protocol, agent context,
-and pull request template. Do not add branch protection, repository settings, policy
-scripts, required approvals, or new CI behavior.
+Replace stale direct-to-`main` guidance with a small branch-to-PR workflow whose purpose is third-party AI review. Amend the constitution to v3.0.0 and synchronize the README, contributor guide, autopilot protocol, agent context, and pull request template. Do not add branch protection, repository settings, policy scripts, required approvals, or new CI behavior.
 
 ## Technical Context
 
@@ -17,11 +12,9 @@ scripts, required approvals, or new CI behavior.
 
 **Dependencies**: Existing GitHub pull requests and CI only
 
-**Testing**: `sh scripts/verify.sh all`, documentation link check, diff and
-encoding audits
+**Testing**: `sh scripts/verify.sh all`, documentation link check, diff and encoding audits
 
-**Constraints**: No product, dependency, CI workflow, settings, CodeQL, release,
-tag, or merge-method changes
+**Constraints**: No product, dependency, CI workflow, settings, CodeQL, release, tag, or merge-method changes
 
 ## Constitution Check
 
@@ -46,9 +39,4 @@ tag, or merge-method changes
 
 ## Explicit deviation from the earlier draft
 
-The first Feature 013 draft proposed branch protection, eight hard-coded check
-contexts, conversation resolution, administrator enforcement, and an offline
-policy checker. The operator rejected that as disproportionate red tape for a
-one-developer application with no users. Those artifacts are removed. The
-remaining design keeps only the stated value: a PR where AI reviewers can
-comment before the maintainer merges.
+The first Feature 013 draft proposed branch protection, eight hard-coded check contexts, conversation resolution, administrator enforcement, and an offline policy checker. The operator rejected that as disproportionate red tape for a one-developer application with no users. Those artifacts are removed. The remaining design keeps only the stated value: a PR where AI reviewers can comment before the maintainer merges.

@@ -3,23 +3,16 @@
 ## Baseline (2026-09-03)
 
 - Repository: `shruggietech/go-schedule`.
-- Starting commit: `d4ad27540331eae943e43a3830d4f5c9a6c38afa`, the merged
-  S047 pull request #121, on clean synchronized `main`.
+- Starting commit: `d4ad27540331eae943e43a3830d4f5c9a6c38afa`, the merged S047 pull request #121, on clean synchronized `main`.
 - Working branch: `codex/048-v100-release-cut`.
 - Latest local tag and public GitHub release: `v0.9.1`.
 - Neither a local v1.0.0 tag nor a GitHub v1.0.0 release existed.
 - No pull request was open when S048 began.
-- Milestone #2, `v1.0.0 - Release readiness`, was open with ten open
-  verification-dependent issues.
+- Milestone #2, `v1.0.0 - Release readiness`, was open with ten open verification-dependent issues.
 - Release coordinator issue #122 was created for S048 under milestone #2.
-- The pre-cut Unreleased section contained 33 top-level entries and 16,665
-  characters. Its LF-normalized SHA-256 was
-  `bf2b8f2fcedd2f099c28531ee29f0d6ddb3f55a04e0d2878cd7a349a8ab5af2d`.
+- The pre-cut Unreleased section contained 33 top-level entries and 16,665 characters. Its LF-normalized SHA-256 was `bf2b8f2fcedd2f099c28531ee29f0d6ddb3f55a04e0d2878cd7a349a8ab5af2d`.
 - Twelve commits were present in `v0.9.1..d4ad275`.
-- The existing workflows already staged drafts and required exact-candidate
-  attended evidence before promotion. The initial design planned no workflow
-  change; first-round review later required a narrow README metadata-preflight
-  correction without changing staging or promotion behavior.
+- The existing workflows already staged drafts and required exact-candidate attended evidence before promotion. The initial design planned no workflow change; first-round review later required a narrow README metadata-preflight correction without changing staging or promotion behavior.
 
 ## Expected v1.0.0 staged payloads
 
@@ -33,26 +26,19 @@
 8. `windows-candidate-manifest.json`
 9. `go-schedule_v1.0.0_windows-attended-evidence.zip`
 
-`SHA256SUMS.txt` is generated during promotion and must contain exactly nine
-passing payload entries.
+`SHA256SUMS.txt` is generated during promotion and must contain exactly nine passing payload entries.
 
 ## Authorization and lifecycle boundary
 
-- The current user authorization covers Spec Kit, local implementation,
-  verification, commit, push, one official S048 PR, in-scope review-fix pushes,
-  hosted CI, and at most one explicit second Codex review round.
-- It does not explicitly authorize the separate v1.0.0 tag or release mutation
-  required by constitution Principle V and the project autopilot contract.
-- Therefore S048 implementation completes at the reviewed preparation PR. The
-  tag-triggered draft, formal evidence, issue closure, promotion, and milestone
-  closure remain chronological post-merge release work under issue #122.
+- The current user authorization covers Spec Kit, local implementation, verification, commit, push, one official S048 PR, in-scope review-fix pushes, hosted CI, and at most one explicit second Codex review round.
+- It does not explicitly authorize the separate v1.0.0 tag or release mutation required by constitution Principle V and the project autopilot contract.
+- Therefore S048 implementation completes at the reviewed preparation PR. The tag-triggered draft, formal evidence, issue closure, promotion, and milestone closure remain chronological post-merge release work under issue #122.
 
 ## Spec Kit analysis
 
 PASS after one asset-cardinality wording correction.
 
-- Functional requirements: 18/18 mapped to implementation or verification
-  tasks (100 percent).
+- Functional requirements: 18/18 mapped to implementation or verification tasks (100 percent).
 - Success criteria: 6/6 objectively testable and mapped (100 percent).
 - Tasks: 23 unique, chronological identities with no duplicates.
 - User stories: 3/3 independently testable.
@@ -62,34 +48,22 @@ PASS after one asset-cardinality wording correction.
 - Constitution conflicts: 0.
 - Critical findings: 0.
 - High findings: 0.
-- One medium finding was corrected before implementation: the draft initially
-  described eight build outputs plus the manifest, while the workflow actually
-  stages seven build packages plus the manifest before attended evidence becomes
-  the ninth pre-checksum payload.
+- One medium finding was corrected before implementation: the draft initially described eight build outputs plus the manifest, while the workflow actually stages seven build packages plus the manifest before attended evidence becomes the ninth pre-checksum payload.
 - Unmapped requirements or tasks: 0.
 
 ## Preparation verification
 
 Focused checks: PASS.
 
-- Changelog retention: 33/33 original top-level entries retained. Replacing the
-  new v1.0.0 heading with the prior Unreleased heading reproduces baseline
-  SHA-256 `bf2b8f2fcedd2f099c28531ee29f0d6ddb3f55a04e0d2878cd7a349a8ab5af2d`.
+- Changelog retention: 33/33 original top-level entries retained. Replacing the new v1.0.0 heading with the prior Unreleased heading reproduces baseline SHA-256 `bf2b8f2fcedd2f099c28531ee29f0d6ddb3f55a04e0d2878cd7a349a8ab5af2d`.
 - Future Unreleased content: zero non-heading, nonblank lines.
-- README identity: exactly one badge derived from GitHub's latest published
-  release and exactly one `daemon ok (version 1.0.0)` example.
-- Release notes: exactly five bullets, one Highlights heading, and one tagged
-  v1.0.0 changelog link.
-- `test/scripts/automation-check_test.sh`: PASS for all positive and negative
-  release-policy fixtures.
-- `scripts/automation-check.sh`: PASS with staging/promotion, release notes,
-  lifecycle, and eight-gate contracts intact.
+- README identity: exactly one badge derived from GitHub's latest published release and exactly one `daemon ok (version 1.0.0)` example.
+- Release notes: exactly five bullets, one Highlights heading, and one tagged v1.0.0 changelog link.
+- `test/scripts/automation-check_test.sh`: PASS for all positive and negative release-policy fixtures.
+- `scripts/automation-check.sh`: PASS with staging/promotion, release notes, lifecycle, and eight-gate contracts intact.
 - Release-gate package and CLI tests: PASS.
 - Four exact workflow/collector/inspector integration contracts: PASS.
-- The Release workflow's README metadata preflight now validates a
-  publication-aware badge instead of a tag-derived badge. The promotion
-  workflow, release assets, evidence validator, product source, package format,
-  supported platforms, and dependencies are unchanged.
+- The Release workflow's README metadata preflight now validates a publication-aware badge instead of a tag-derived badge. The promotion workflow, release assets, evidence validator, product source, package format, supported platforms, and dependencies are unchanged.
 
 Canonical `scripts/verify.sh all`: PASS on 2026-09-03.
 
@@ -98,12 +72,9 @@ Canonical `scripts/verify.sh all`: PASS on 2026-09-03.
 - Lint: PASS with zero issues.
 - Race: PASS for all selected packages, including integration tests.
 - GUI: PASS.
-- Coverage: PASS (`engine` 86.4%, `schedule` 89.2%, `timezone` 91.3%,
-  `store` 84.1%, `catchup` 88.9%, and `logbus` 91.1%).
-- Documentation: PASS for 15 pages, links, front matter, fences, theme, and
-  current product policy, including positive and negative policy fixtures.
-- Automation: PASS for Actions, CodeQL, Dependabot, release staging and
-  promotion, release notes, brand, lifecycle, and the eight-gate contract.
+- Coverage: PASS (`engine` 86.4%, `schedule` 89.2%, `timezone` 91.3%, `store` 84.1%, `catchup` 88.9%, and `logbus` 91.1%).
+- Documentation: PASS for 15 pages, links, front matter, fences, theme, and current product policy, including positive and negative policy fixtures.
+- Automation: PASS for Actions, CodeQL, Dependabot, release staging and promotion, release notes, brand, lifecycle, and the eight-gate contract.
 
 Final integrity audits: PASS.
 
@@ -112,54 +83,30 @@ Final integrity audits: PASS.
 - All 27 task identifiers are unique, correctly formatted, and complete.
 - The release-copy cardinality and exact changelog reconstruction checks pass.
 - `git diff --check` reports no whitespace errors.
-- `scripts/spec-lifecycle-check.sh .` reports all 48 specifications
-  lifecycle-consistent.
-- Spec Kit prerequisite discovery resolves S048 and all required design
-  artifacts successfully.
+- `scripts/spec-lifecycle-check.sh .` reports all 48 specifications lifecycle-consistent.
+- Spec Kit prerequisite discovery resolves S048 and all required design artifacts successfully.
 - No local v1.0.0 tag or GitHub v1.0.0 release was created.
 
 ## Pull request review
 
-Round 1 on PR #123 identified one P1 finding at commit `fe70407`: the
-hard-coded v1.0.0 badge linked to `releases/latest` would advertise the planned
-release before qualification and promotion. The finding is valid.
+Round 1 on PR #123 identified one P1 finding at commit `fe70407`: the hard-coded v1.0.0 badge linked to `releases/latest` would advertise the planned release before qualification and promotion. The finding is valid.
 
-The fix replaces the hard-coded badge with Shields.io's latest-published GitHub
-release source, preserves the exact v1.0.0 health-example preflight, and adds an
-automation-policy assertion plus a negative static-badge fixture. This keeps
-the badge at v0.9.1 through draft staging and attended qualification, then lets
-it advance automatically only when v1.0.0 becomes public.
+The fix replaces the hard-coded badge with Shields.io's latest-published GitHub release source, preserves the exact v1.0.0 health-example preflight, and adds an automation-policy assertion plus a negative static-badge fixture. This keeps the badge at v0.9.1 through draft staging and attended qualification, then lets it advance automatically only when v1.0.0 becomes public.
 
 Post-review verification: PASS.
 
-- The expanded automation fixture suite accepts the dynamic published-release
-  badge contract and rejects a reintroduced hard-coded v1.0.0 badge.
-- `scripts/automation-check.sh` accepts the amended Release workflow and retains
-  every existing staging, promotion, notes, lifecycle, and eight-gate guard.
-- A second complete `scripts/verify.sh all` run passes all eight canonical gates
-  with the same coverage results recorded above.
-- The 33-entry changelog reconstruction still matches the original 16,665
-  characters and SHA-256 exactly.
-- README cardinality is one published-release badge, zero hard-coded v1.0.0
-  badges, and one v1.0.0 health example.
-- The UTF-8/no-BOM, mojibake, placeholder, 27-task identity, release-note
-  cardinality, and whitespace audits all pass.
+- The expanded automation fixture suite accepts the dynamic published-release badge contract and rejects a reintroduced hard-coded v1.0.0 badge.
+- `scripts/automation-check.sh` accepts the amended Release workflow and retains every existing staging, promotion, notes, lifecycle, and eight-gate guard.
+- A second complete `scripts/verify.sh all` run passes all eight canonical gates with the same coverage results recorded above.
+- The 33-entry changelog reconstruction still matches the original 16,665 characters and SHA-256 exactly.
+- README cardinality is one published-release badge, zero hard-coded v1.0.0 badges, and one v1.0.0 health example.
+- The UTF-8/no-BOM, mojibake, placeholder, 27-task identity, release-note cardinality, and whitespace audits all pass.
 
-Round 2 on PR #123 identified one P2 documentation finding at commit `9b2d43e`:
-the initial preparation-verification and research text still claimed the
-Release workflow was unchanged after the first-round fix amended its README
-metadata preflight. The finding is valid. The audit and research decision now
-name that narrow change explicitly and distinguish it from the unchanged
-staging, evidence, asset, checksum, and promotion contracts.
+Round 2 on PR #123 identified one P2 documentation finding at commit `9b2d43e`: the initial preparation-verification and research text still claimed the Release workflow was unchanged after the first-round fix amended its README metadata preflight. The finding is valid. The audit and research decision now name that narrow change explicitly and distinguish it from the unchanged staging, evidence, asset, checksum, and promotion contracts.
 
 Second-round documentation-fix verification: PASS.
 
-- The documentation gate passes current-product policy, all positive and
-  negative policy fixtures, 15 pages, links, front matter, fences, and theme.
-- The automation gate passes Actions, CodeQL, Dependabot, release staging and
-  promotion, release notes, brand, lifecycle, and all eight canonical-gate
-  contracts.
-- All 19 pull-request files decode as strict UTF-8 without BOM; mojibake and
-  unresolved-placeholder scans report zero matches.
-- All 27 task identifiers are unique and complete, and `git diff --check`
-  reports no whitespace errors.
+- The documentation gate passes current-product policy, all positive and negative policy fixtures, 15 pages, links, front matter, fences, and theme.
+- The automation gate passes Actions, CodeQL, Dependabot, release staging and promotion, release notes, brand, lifecycle, and all eight canonical-gate contracts.
+- All 19 pull-request files decode as strict UTF-8 without BOM; mojibake and unresolved-placeholder scans report zero matches.
+- All 27 task identifiers are unique and complete, and `git diff --check` reports no whitespace errors.

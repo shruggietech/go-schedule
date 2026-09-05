@@ -8,9 +8,7 @@
 | `candidate` | CandidateIdentity | Copied from validated formal evidence |
 | `issues` | ordered IssueFile list | Exactly ten entries in ascending issue order |
 
-The packet is created only after complete production validation. It contains no
-generation timestamp, local path, credential, or operator name so identical
-inputs remain byte-for-byte deterministic.
+The packet is created only after complete production validation. It contains no generation timestamp, local path, credential, or operator name so identical inputs remain byte-for-byte deterministic.
 
 ## CandidateIdentity
 
@@ -24,8 +22,7 @@ inputs remain byte-for-byte deterministic.
 | filename / bytes / SHA-256 | Exact MSI file identity |
 | product version / ProductCode | Exact compiled installer identity |
 
-The evidence, independent manifest, physical MSI, and command-line expectations
-must all agree before this entity can be rendered.
+The evidence, independent manifest, physical MSI, and command-line expectations must all agree before this entity can be rendered.
 
 ## IssueFile
 
@@ -80,8 +77,7 @@ inputs selected
   -> destination atomically committed
 ```
 
-Any failure before the final transition leaves the destination absent. A
-destination that already exists is a terminal conflict, not a resumable state.
+Any failure before the final transition leaves the destination absent. A destination that already exists is a terminal conflict, not a resumable state.
 
 ## Release State Transitions
 

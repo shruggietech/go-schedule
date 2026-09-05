@@ -58,18 +58,11 @@ Wall-clock recurrence evaluation uses floating calendar values so the recurrence
 
 ### Migrate and expose independently of schedule replacement
 
-Schema v7 adds `time_basis`, `dst_gap_policy`, and `dst_overlap_policy` with
-compatibility defaults, plus a nullable absolute elapsed epoch on Schedule.
-Like missing-date policy, the policy values live on Task and survive schedule
-replacement or unrelated edits. Create, update, preview, CLI flags, and GUI
-Advanced Settings validate the same enum values and elapsed compatibility.
+Schema v7 adds `time_basis`, `dst_gap_policy`, and `dst_overlap_policy` with compatibility defaults, plus a nullable absolute elapsed epoch on Schedule. Like missing-date policy, the policy values live on Task and survive schedule replacement or unrelated edits. Create, update, preview, CLI flags, and GUI Advanced Settings validate the same enum values and elapsed compatibility.
 
 ### Bound fall-overlap lookup to the transition
 
-An ambiguous wall interval is located from the nearby IANA offset transition.
-The evaluator jumps directly to the first recurrence intent that could still
-produce a second-fold instant, then compares it with the normal forward
-candidate. Dense rules therefore do not enumerate a 52-hour window.
+An ambiguous wall interval is located from the nearby IANA offset transition. The evaluator jumps directly to the first recurrence intent that could still produce a second-fold instant, then compares it with the normal forward candidate. Dense rules therefore do not enumerate a 52-hour window.
 
 ## Project Structure
 

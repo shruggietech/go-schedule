@@ -25,7 +25,7 @@ func TestNextRun_Interval(t *testing.T) {
 
 func TestNextRun_IntervalAnchored(t *testing.T) {
 	// "every 15 minutes starting at 09:00" must align to :00/:15/:30/:45 regardless of
-	// the evaluation moment — next run after 09:07 is 09:15, not 09:22.
+	// the evaluation moment, next run after 09:07 is 09:15, not 09:22.
 	sch, err := Parse("every 15 minutes starting at 09:00", "UTC", now)
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +57,7 @@ func TestNextRun_IntervalUnanchoredUnchanged(t *testing.T) {
 }
 
 func TestNextRun_OrdinalWeekday(t *testing.T) {
-	// "3rd Wednesday of every month at 14:00" — in June 2026 that is June 17.
+	// "3rd Wednesday of every month at 14:00", in June 2026 that is June 17.
 	sch, err := Parse("3rd wednesday monthly at 14:00", "America/New_York", time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +74,7 @@ func TestNextRun_OrdinalWeekday(t *testing.T) {
 }
 
 func TestNextRun_Weekdays(t *testing.T) {
-	// "weekdays at 09:00" — 2026-06-19 is a Friday; next weekday run after Sat is Monday 22nd.
+	// "weekdays at 09:00", 2026-06-19 is a Friday; next weekday run after Sat is Monday 22nd.
 	sch, err := Parse("weekdays at 09:00", "UTC", now)
 	if err != nil {
 		t.Fatal(err)

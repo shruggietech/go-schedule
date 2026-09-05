@@ -56,7 +56,7 @@ func TestMissingDate_MonthDay31(t *testing.T) {
 	const phrase = "on the 31st of every month at 09:00"
 
 	t.Run("skip", func(t *testing.T) {
-		// Jan, Mar, May, Jul, Aug — February, April and June have no 31st.
+		// Jan, Mar, May, Jul, Aug, February, April and June have no 31st.
 		eqDates(t, runsFrom(t, phrase, "UTC", domain.MissingDateSkip, anchor, 5), []string{
 			"2026-01-31 09:00", "2026-03-31 09:00", "2026-05-31 09:00",
 			"2026-07-31 09:00", "2026-08-31 09:00",
@@ -191,7 +191,7 @@ func TestMissingDate_DSTStillApplies(t *testing.T) {
 	eqDates(t, runs, []string{
 		"2026-01-31 14:00", // EST, UTC-5
 		"2026-02-28 14:00", // EST
-		"2026-03-31 13:00", // EDT, UTC-4 — the offset moved, the local reading did not
+		"2026-03-31 13:00", // EDT, UTC-4, the offset moved, the local reading did not
 	})
 
 	// A run landing exactly on the transition date itself still resolves through
@@ -223,7 +223,7 @@ func TestDescribe_NamesThePolicy(t *testing.T) {
 		}
 	}
 
-	// A rule that cannot miss a period reads exactly as it always has — the
+	// A rule that cannot miss a period reads exactly as it always has, the
 	// clause must not appear where it would be noise.
 	plain, err := Parse("weekdays at 09:00", "UTC", anchor)
 	if err != nil {

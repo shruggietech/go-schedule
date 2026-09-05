@@ -2,16 +2,13 @@
 
 **Input**: Design documents from `specs/017-gui-info-navigation/`
 
-**Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`,
-`contracts/`, `quickstart.md`
+**Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
-**Tests**: Required by the feature specification and constitution. Behavioral
-regressions precede GUI implementation.
+**Tests**: Required by the feature specification and constitution. Behavioral regressions precede GUI implementation.
 
 ## Phase 1: Setup and baseline
 
-**Purpose**: Capture the current navigation and local identity sources before
-changing the GUI.
+**Purpose**: Capture the current navigation and local identity sources before changing the GUI.
 
 - [X] T001 Record the four-item navigation baseline, existing Activity badge ownership, application mark, and build-version source in `specs/017-gui-info-navigation/verification.md`
 - [X] T002 Run the current focused GUI tests and record the green pre-change baseline in `specs/017-gui-info-navigation/verification.md`
@@ -20,11 +17,9 @@ changing the GUI.
 
 ## Phase 2: User Story 1 - Follow a coherent workflow through the sidebar (Priority: P1)
 
-**Goal**: Group Tasks and Groups before Schedule while retaining Activity and
-its dynamic badge.
+**Goal**: Group Tasks and Groups before Schedule while retaining Activity and its dynamic badge.
 
-**Independent Test**: A headless assertion proves the first four items are
-Tasks, Groups, Schedule, Activity and badge updates do not alter positions.
+**Independent Test**: A headless assertion proves the first four items are Tasks, Groups, Schedule, Activity and badge updates do not alter positions.
 
 ### Tests for User Story 1
 
@@ -37,18 +32,15 @@ Tasks, Groups, Schedule, Activity and badge updates do not alter positions.
 - [X] T006 [US1] Reorder the existing management views to Tasks, Groups, Schedule in `gui/app.go`
 - [X] T007 [US1] Run the focused navigation tests and confirm User Story 1 is green
 
-**Checkpoint**: Existing management and Activity views are coherently ordered
-without any Info implementation dependency.
+**Checkpoint**: Existing management and Activity views are coherently ordered without any Info implementation dependency.
 
 ---
 
 ## Phase 3: User Story 2 - Identify the installed application (Priority: P1)
 
-**Goal**: Add a final local Info view containing the official mark, exact
-version, attribution, and canonical links.
+**Goal**: Add a final local Info view containing the official mark, exact version, attribution, and canonical links.
 
-**Independent Test**: Headless tests build Info without daemon data, inspect its
-mark and version, and match all descriptive link labels to exact destinations.
+**Independent Test**: Headless tests build Info without daemon data, inspect its mark and version, and match all descriptive link labels to exact destinations.
 
 ### Tests for User Story 2
 
@@ -62,8 +54,7 @@ mark and version, and match all descriptive link labels to exact destinations.
 - [X] T012 [US2] Append Info after the retained Activity tab item in `gui/app.go`
 - [X] T013 [US2] Run the focused Info, navigation, and Activity badge tests and confirm both stories are green
 
-**Checkpoint**: The final five-item sidebar and complete local Info contract are
-independently protected.
+**Checkpoint**: The final five-item sidebar and complete local Info contract are independently protected.
 
 ---
 
@@ -86,8 +77,7 @@ independently protected.
 
 - Phase 1 has no dependencies.
 - User Story 1 depends only on the recorded baseline.
-- User Story 2 can begin its separate `info_test.go` work after Phase 1, but the
-  complete tab assertion and integration follow User Story 1.
+- User Story 2 can begin its separate `info_test.go` work after Phase 1, but the complete tab assertion and integration follow User Story 1.
 - Phase 4 depends on both user stories.
 
 ### User story dependencies
@@ -97,10 +87,8 @@ independently protected.
 
 ### Parallel opportunities
 
-- T008 affects a new test file and may be prepared independently of US1's
-  `app.go` work after baseline capture.
-- Documentation and code are kept sequential where they share traceability or
-  implementation files.
+- T008 affects a new test file and may be prepared independently of US1's `app.go` work after baseline capture.
+- Documentation and code are kept sequential where they share traceability or implementation files.
 
 ## Parallel example: User Story 2
 
@@ -120,7 +108,6 @@ Then T009-T012: integrate and prove the final five-item collection
 
 ### Incremental delivery
 
-1. Navigation grouping completes issue #29's behavior while preserving current
-   Activity terminology.
+1. Navigation grouping completes issue #29's behavior while preserving current Activity terminology.
 2. Local Info content and its final tab complete issue #32.
 3. Full verification proves the combined slice without backend expansion.

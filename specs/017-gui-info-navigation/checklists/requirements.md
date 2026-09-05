@@ -31,6 +31,4 @@
 
 ## Notes
 
-- Validation passed on the first iteration. The authoritative Activity label,
-  offline behavior, canonical destinations, accessibility expectations, and
-  explicit exclusions are all resolved in the specification.
+- Validation passed on the first iteration. The authoritative Activity label, offline behavior, canonical destinations, accessibility expectations, and explicit exclusions are all resolved in the specification.

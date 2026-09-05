@@ -32,5 +32,4 @@
 ## Notes
 
 - Validation iteration 1 passed all 16 items.
-- S049 deliberately generates local review material without mutating GitHub or
-  claiming that evidence alone satisfies issue-specific acceptance criteria.
+- S049 deliberately generates local review material without mutating GitHub or claiming that evidence alone satisfies issue-specific acceptance criteria.

@@ -11,8 +11,7 @@
 | `metrics` | typed map | Scenario-specific complete evidence |
 | `attachment_paths` | string set | At least one hashed native raster image, validated from file bytes, for `desktop.*` |
 
-The eleven S047 identities extend, but never replace, the 36 S040 identities.
-The final bundle therefore contains exactly 47 observations.
+The eleven S047 identities extend, but never replace, the 36 S040 identities. The final bundle therefore contains exactly 47 observations.
 
 ## DesktopQualificationMetrics
 
@@ -21,10 +20,8 @@ The final bundle therefore contains exactly 47 observations.
 - intended-user account at medium integrity;
 - installed service identity `LocalSystem`;
 - Windows 11 client environment;
-- one or more referenced attachments whose bytes identify a supported raster
-  image, independent of declared media type or filename extension;
-- explicit boolean results are true unless the field documents an allowed
-  negative state such as `horizontal_scrollbar_present: false`;
+- one or more referenced attachments whose bytes identify a supported raster image, independent of declared media type or filename extension;
+- explicit boolean results are true unless the field documents an allowed negative state such as `horizontal_scrollbar_present: false`;
 - exact-set fields contain trimmed, unique values with no omissions or extras.
 
 ### `desktop.appearance-standard`
@@ -40,13 +37,11 @@ The final bundle therefore contains exactly 47 observations.
 
 ### `desktop.appearance-scaled`
 
-Same appearance fields, except `effective_dpi` is greater than 96 and equals
-the environment's native value.
+Same appearance fields, except `effective_dpi` is greater than 96 and equals the environment's native value.
 
 ### `desktop.interaction-states` and `desktop.interaction-states-scaled`
 
-The first uses exactly 96 effective DPI; the scaled variant uses greater than
-96 effective DPI. Both use the same metrics:
+The first uses exactly 96 effective DPI; the scaled variant uses greater than 96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -59,8 +54,7 @@ The first uses exactly 96 effective DPI; the scaled variant uses greater than
 
 ### `desktop.navigation-options` and `desktop.navigation-options-scaled`
 
-The first uses exactly 96 effective DPI; the scaled variant uses greater than
-96 effective DPI. Both use the same metrics:
+The first uses exactly 96 effective DPI; the scaled variant uses greater than 96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -85,8 +79,7 @@ The first uses exactly 96 effective DPI; the scaled variant uses greater than
 
 ### `desktop.tasks-table` and `desktop.tasks-table-scaled`
 
-The first uses exactly 96 effective DPI; the scaled variant uses greater than
-96 effective DPI. Both use the same metrics:
+The first uses exactly 96 effective DPI; the scaled variant uses greater than 96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -101,8 +94,7 @@ The first uses exactly 96 effective DPI; the scaled variant uses greater than
 
 ### `desktop.schedule-activity-tables` and `desktop.schedule-activity-tables-scaled`
 
-The first uses exactly 96 effective DPI; the scaled variant uses greater than
-96 effective DPI. Both use the same metrics:
+The first uses exactly 96 effective DPI; the scaled variant uses greater than 96 effective DPI. Both use the same metrics:
 
 | Metric | Rule |
 | --- | --- |
@@ -131,8 +123,7 @@ The first uses exactly 96 effective DPI; the scaled variant uses greater than
 | `bytes`, `sha256`, `built_at` | Exact artifact identity |
 | `inspection` | Passing compiled-MSI report |
 
-Any byte change creates a new LocalDemo. It never transitions into the formal
-candidate and its observations cannot be copied as formal pass results.
+Any byte change creates a new LocalDemo. It never transitions into the formal candidate and its observations cannot be copied as formal pass results.
 
 ## IssueDisposition
 
@@ -149,9 +140,7 @@ candidate and its observations cannot be copied as formal pass results.
 | #98 | existing setup/removal observations |
 | #96 | aggregate child and release-readiness reconciliation |
 
-State is `open`, `eligible-to-close`, or `closed`. Only reviewed formal
-candidate evidence can move an issue requiring that evidence to
-`eligible-to-close`; S047 does not rewrite historical GitHub state.
+State is `open`, `eligible-to-close`, or `closed`. Only reviewed formal candidate evidence can move an issue requiring that evidence to `eligible-to-close`; S047 does not rewrite historical GitHub state.
 
 ## Qualification Flow
 

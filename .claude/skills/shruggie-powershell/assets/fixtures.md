@@ -1,19 +1,12 @@
 # PowerShell Fixtures
 
-Copy-paste-exact fixtures for ShruggieTech PowerShell scripts. Paste each one
-verbatim; adjust only where a note says you may. These are reproduced from the
-authoritative reference in `powershell-conventions.md` so that the shapes never
-drift. All three sit inside the four-space-indented body of their section.
+Copy-paste-exact fixtures for ShruggieTech PowerShell scripts. Paste each one verbatim; adjust only where a note says you may. These are reproduced from the authoritative reference in `powershell-conventions.md` so that the shapes never drift. All three sit inside the four-space-indented body of their section.
 
 ## Version Guard (Assert-PSVersion)
 
-Include this only when the script uses version-sensitive operators or cmdlets
-that misbehave on older engines (for example `Invoke-WebRequest
--SkipHttpErrorCheck`, which exists only on 7+). A script that uses nothing
-version-sensitive does not need it. Do not use `#Requires -Version`.
+Include this only when the script uses version-sensitive operators or cmdlets that misbehave on older engines (for example `Invoke-WebRequest -SkipHttpErrorCheck`, which exists only on 7+). A script that uses nothing version-sensitive does not need it. Do not use `#Requires -Version`.
 
-Declare it in `## Declare Functions` and call it as the first operation in
-`## Execute Operations`. It exits with the environment-precondition code (2).
+Declare it in `## Declare Functions` and call it as the first operation in `## Execute Operations`. It exits with the environment-precondition code (2).
 
 ```powershell
     function Assert-PSVersion {
@@ -32,10 +25,7 @@ Declare it in `## Declare Functions` and call it as the first operation in
 
 ## Logging Helper (Write-Log)
 
-For scripts that report operator-facing progress. The helper colorizes by level,
-timestamps every line, and tags the emitting sub-process. Adjust levels and
-colors only with reason. Declare the suppression state in `## Declare Variables
-and Arrays` and the helper in `## Declare Functions`.
+For scripts that report operator-facing progress. The helper colorizes by level, timestamps every line, and tags the emitting sub-process. Adjust levels and colors only with reason. Declare the suppression state in `## Declare Variables and Arrays` and the helper in `## Declare Functions`.
 
 ```powershell
 #_______________________________________________________________________________
@@ -77,8 +67,7 @@ and Arrays` and the helper in `## Declare Functions`.
     }
 ```
 
-Wire the suppression flags to the helper state in `## Execute Operations`,
-before any logging:
+Wire the suppression flags to the helper state in `## Execute Operations`, before any logging:
 
 ```powershell
     if ($Quiet)  { $script:LogQuiet  = $true }
@@ -87,11 +76,7 @@ before any logging:
 
 ## Destructive Gate (ShouldProcess)
 
-When the top-level `[CmdletBinding(...)]` sets `SupportsShouldProcess=$true`,
-every destructive operation MUST be wrapped in a `$PSCmdlet.ShouldProcess(...)`
-check. The declaration alone does nothing; an unguarded change runs anyway under
-`-WhatIf`, which is worse than not supporting it. The first argument is the
-target the action affects; the second is a short description of the action.
+When the top-level `[CmdletBinding(...)]` sets `SupportsShouldProcess=$true`, every destructive operation MUST be wrapped in a `$PSCmdlet.ShouldProcess(...)` check. The declaration alone does nothing; an unguarded change runs anyway under `-WhatIf`, which is worse than not supporting it. The first argument is the target the action affects; the second is a short description of the action.
 
 ```powershell
     foreach ($file in $targets) {
@@ -101,5 +86,4 @@ target the action affects; the second is a short description of the action.
     }
 ```
 
-Do not declare `-WhatIf` or `-Confirm` in the `Param(...)` block; they are
-supplied automatically once `SupportsShouldProcess=$true` is set.
+Do not declare `-WhatIf` or `-Confirm` in the `Param(...)` block; they are supplied automatically once `SupportsShouldProcess=$true` is set.

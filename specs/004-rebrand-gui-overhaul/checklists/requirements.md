@@ -31,9 +31,6 @@
 
 ## Notes
 
-- Three scope decisions (Logs = full daemon stream, MSI-only Windows install, full Triggers
-  removal) were resolved up front via clarification and recorded in the Clarifications section.
-- One remaining product decision is flagged as an assumption rather than a blocker: whether
-  "Dismiss All" should also purge the on-disk log file. Confirm during `/speckit-plan`.
-- The spec deliberately keeps implementation specifics (WiX/MSI tooling, SSE, Fyne) out of the
-  requirements; they belong in the plan.
+- Three scope decisions (Logs = full daemon stream, MSI-only Windows install, full Triggers removal) were resolved up front via clarification and recorded in the Clarifications section.
+- One remaining product decision is flagged as an assumption rather than a blocker: whether "Dismiss All" should also purge the on-disk log file. Confirm during `/speckit-plan`.
+- The spec deliberately keeps implementation specifics (WiX/MSI tooling, SSE, Fyne) out of the requirements; they belong in the plan.

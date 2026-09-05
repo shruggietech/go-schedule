@@ -2,9 +2,7 @@
 
 **Input**: Design documents from `specs/050-v100-release-execution/`
 
-**Tests**: Formal candidate identity, native evidence, release integrity, and
-repository verification are mandatory because S050 publishes the first stable
-release and mutates public project state.
+**Tests**: Formal candidate identity, native evidence, release integrity, and repository verification are mandatory because S050 publishes the first stable release and mutates public project state.
 
 ## Phase 1: Setup
 
@@ -20,8 +18,7 @@ release and mutates public project state.
 
 **Purpose**: Accept one exact staged candidate before native qualification.
 
-**Critical**: No installation, evidence collection, issue mutation, or promotion
-may start until this phase passes.
+**Critical**: No installation, evidence collection, issue mutation, or promotion may start until this phase passes.
 
 - [x] T004 Require Release run `33838072246` to complete successfully with tag-push event and exact head commit, and record its jobs in `specs/050-v100-release-execution/verification.md`
 - [x] T005 Require one draft v1.0.0 release with exactly seven packages plus `windows-candidate-manifest.json`, recording release ID and inventory in `specs/050-v100-release-execution/verification.md`
@@ -34,15 +31,11 @@ may start until this phase passes.
 
 ## Phase 3: User Story 1 - Qualify One Immutable Candidate (Priority: P1)
 
-**Goal**: Produce one independently valid 47-observation formal archive from
-the exact staged MSI.
+**Goal**: Produce one independently valid 47-observation formal archive from the exact staged MSI.
 
-**Disposition**: Waived only as a pre-publication condition by the explicit
-exception. Formal qualification remains incomplete and actionable after
-publication.
+**Disposition**: Waived only as a pre-publication condition by the explicit exception. Formal qualification remains incomplete and actionable after publication.
 
-**Independent Test**: The production bundle validator accepts the finalized ZIP
-only with the separately downloaded manifest and MSI.
+**Independent Test**: The production bundle validator accepts the finalized ZIP only with the separately downloaded manifest and MSI.
 
 - [x] T008 [US1] Initialize the formal attended workspace at `A:/_tmp/go-schedule-v1.0.0-s050/attended` from the exact candidate identity
 - [x] T009 [US1] Inventory generated observations, fragments, metrics, attachments, and environment requirements in `A:/_tmp/go-schedule-v1.0.0-s050/attended`
@@ -53,8 +46,7 @@ only with the separately downloaded manifest and MSI.
 - [ ] T014 [US1] Independently run production `verify-bundle` against the finalized archive, MSI, manifest, repository, tag, and commit
 - [ ] T015 [US1] Record environment counts, 47/47 observation results, attachment inventory, archive bytes/hash, and independent validation in `specs/050-v100-release-execution/verification.md`
 
-**Checkpoint**: Formal candidate evidence remains incomplete; no archive or
-passing observation claim was created.
+**Checkpoint**: Formal candidate evidence remains incomplete; no archive or passing observation claim was created.
 
 ---
 
@@ -62,12 +54,9 @@ passing observation claim was created.
 
 **Goal**: Apply evidence only to issues whose complete acceptance criteria pass.
 
-**Disposition**: No evidence disposition was available at publication, so no
-issue was closed. The work remains actionable after formal evidence exists.
+**Disposition**: No evidence disposition was available at publication, so no issue was closed. The work remains actionable after formal evidence exists.
 
-**Independent Test**: The draft has nine exact assets, the packet has ten
-records plus one index, and live issue/coordinator states match individual
-review decisions.
+**Independent Test**: The draft has nine exact assets, the packet has ten records plus one index, and live issue/coordinator states match individual review decisions.
 
 - [ ] T016 [US2] Upload the immutable formal archive without replacement and prove the public release gains only the expected evidence asset
 - [ ] T017 [US2] Render the disposition packet into absent directory `A:/_tmp/go-schedule-v1.0.0-s050/dispositions`
@@ -77,18 +66,15 @@ review decisions.
 - [ ] T021 [US2] Reconcile #96 child/prerequisite roles and checklist from actual issue state, then close it only if every coordinator criterion passes
 - [ ] T022 [US2] Record every disposition file hash, issue comment URL, final issue state, and any blocked criterion in `specs/050-v100-release-execution/verification.md`
 
-**Checkpoint**: Evidence-dependent readiness issues and #122 remain open with
-their unresolved criteria visible.
+**Checkpoint**: Evidence-dependent readiness issues and #122 remain open with their unresolved criteria visible.
 
 ---
 
 ## Phase 5: User Story 3 - Publish and Audit v1.0.0 (Priority: P2)
 
-**Goal**: Publish the existing draft under the explicit exception and audit the
-public/project identities that can be proven.
+**Goal**: Publish the existing draft under the explicit exception and audit the public/project identities that can be proven.
 
-**Independent Test**: All nine public assets verify independently, the latest-
-release pointer is correct, and issue/milestone state accurately remains open.
+**Independent Test**: All nine public assets verify independently, the latest- release pointer is correct, and issue/milestone state accurately remains open.
 
 - [x] T023 [US3] Reverify remote tag immutability, the exact eight-asset staged state, absent formal evidence, and all readiness issue states before the exception publication
 - [x] T024 [US3] WAIVED by direct maintainer instruction: publish the existing draft without dispatching `Promote Release`, and record that exception
@@ -97,8 +83,7 @@ release pointer is correct, and issue/milestone state accurately remains open.
 - [x] T027 [US3] Audit public/latest release, tag/commit, manifest/packages, release notes, README, and changelog identity and record results in `specs/050-v100-release-execution/verification.md`
 - [ ] T028 [US3] After formal qualification and issue reconciliation, add the completion audit to #122 and close it plus milestone `v1.0.0 - Release readiness` only if every remaining criterion passes
 
-**Checkpoint**: v1.0.0 is public under exception and byte-audited; formal
-qualification remains incomplete and is accurately represented.
+**Checkpoint**: v1.0.0 is public under exception and byte-audited; formal qualification remains incomplete and is accurately represented.
 
 ---
 
@@ -125,15 +110,10 @@ qualification remains incomplete and is accurately represented.
 ## Parallel Opportunities
 
 - The three platform GUI staging jobs run in parallel inside the Release workflow.
-- After download, asset hashing and manifest inspection may run in parallel, but
-  candidate validation must finish before installation.
-- Issue acceptance reviews may be prepared in parallel after packet generation,
-  but leaf mutations and coordinator reconciliation remain ordered.
+- After download, asset hashing and manifest inspection may run in parallel, but candidate validation must finish before installation.
+- Issue acceptance reviews may be prepared in parallel after packet generation, but leaf mutations and coordinator reconciliation remain ordered.
 - Public asset metadata and checksum audits may run in parallel after promotion.
 
 ## Implementation Strategy
 
-The minimum viable increment is a valid formal evidence archive (User Story 1),
-but it has no publication value by itself. The complete slice is necessarily
-sequential: candidate, evidence, dispositions, promotion, public audit, then the
-reviewed repository record.
+The minimum viable increment is a valid formal evidence archive (User Story 1), but it has no publication value by itself. The complete slice is necessarily sequential: candidate, evidence, dispositions, promotion, public audit, then the reviewed repository record.

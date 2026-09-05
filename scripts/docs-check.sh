@@ -1,5 +1,5 @@
 #!/bin/sh
-# docs-check.sh — documentation integrity gate for the go-schedule docs site.
+# docs-check.sh, documentation integrity gate for the go-schedule docs site.
 #
 # For every docs/*.md page it asserts:
 #   1. a YAML front-matter block (--- … ---) with `title:` and `nav_order:`;
@@ -61,7 +61,7 @@ check_theme_contract() {
     "endorsement uses the desktop navigation gutter"
 }
 
-# check_fences <file> — require one of the documented fence categories.
+# check_fences <file>, require one of the documented fence categories.
 check_fences() {
   awk '
     /^(   |  | |)```/ {
@@ -91,7 +91,7 @@ check_fences() {
   done
 }
 
-# normalize <path> — collapse . and .. segments; print the cleaned path.
+# normalize <path>, collapse . and .. segments; print the cleaned path.
 normalize() {
   oldIFS=$IFS
   IFS=/
@@ -109,7 +109,7 @@ normalize() {
   printf '%s' "${out#/}"
 }
 
-# links_in <file> — print each Markdown link target on its own line.
+# links_in <file>, print each Markdown link target on its own line.
 links_in() {
   grep -oE '\]\([^)]+\)' "$1" 2>/dev/null | sed 's/^](//; s/)$//' || true
 }
@@ -180,4 +180,4 @@ if [ -s "$FAILURES" ]; then
     "$(wc -l < "$FAILURES" | tr -d ' ')" "$page_count" >&2
   exit 1
 fi
-printf 'docs-check: OK — %s pages, links, front matter, fences, theme, and product policy clean\n' "$page_count"
+printf 'docs-check: OK, %s pages, links, front matter, fences, theme, and product policy clean\n' "$page_count"

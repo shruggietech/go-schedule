@@ -1,7 +1,6 @@
 # Specification Quality Checklist: Pure Schedule String Conversion
 
-**Purpose**: Validate specification completeness and quality before proceeding
-to planning
+**Purpose**: Validate specification completeness and quality before proceeding to planning
 
 **Created**: 2026-08-28
 
@@ -35,5 +34,4 @@ to planning
 ## Notes
 
 - First-pass validation completed 2026-08-28: 16/16 items pass.
-- The issue's apparent structured-error versus no-standard-output tension is
-  resolved by placing structured failure diagnostics on standard error.
+- The issue's apparent structured-error versus no-standard-output tension is resolved by placing structured failure diagnostics on standard error.

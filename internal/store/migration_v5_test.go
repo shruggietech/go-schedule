@@ -19,8 +19,8 @@ type v4Task struct {
 	enabled                                 int
 }
 
-// openAtV4 creates a database carrying only migrations v1..v4 — the shape a
-// v0.6.0 installation has on disk — without going through Open, which would
+// openAtV4 creates a database carrying only migrations v1..v4, the shape a
+// v0.6.0 installation has on disk, without going through Open, which would
 // apply the migration under test.
 func openAtV4(t *testing.T, path string) {
 	t.Helper()
@@ -109,7 +109,7 @@ func seedV4Tasks(t *testing.T, path string) {
 
 // TestMigration_V5DefaultsToSkipAndPreservesTasks is the FR-020 / FR-026 / SC-006
 // gate: a pre-v5 database upgrades with the new column present and defaulted to
-// "skip" — the behavior those tasks already had — and every pre-existing task row
+// "skip", the behavior those tasks already had, and every pre-existing task row
 // otherwise byte-identical. If this fails, installed users' run times have moved
 // and the change must not ship.
 func TestMigration_V5DefaultsToSkipAndPreservesTasks(t *testing.T) {
@@ -144,7 +144,7 @@ func TestMigration_V5DefaultsToSkipAndPreservesTasks(t *testing.T) {
 		}
 	}
 
-	// (b) The value the store hands back is the default, not an empty string —
+	// (b) The value the store hands back is the default, not an empty string,
 	// an empty string would compare unequal to every known policy.
 	task, err := st.GetTask("t-1")
 	if err != nil {
@@ -180,7 +180,7 @@ func TestMigration_V5DefaultsToSkipAndPreservesTasks(t *testing.T) {
 		}
 	}
 
-	// (d) The schedule's timing columns are untouched — this migration must not
+	// (d) The schedule's timing columns are untouched, this migration must not
 	// have reached the schedules table at all.
 	scheds := readSchedulesRaw(t, path)
 	s, ok := scheds["s-1"]
@@ -197,7 +197,7 @@ func TestMigration_V5DefaultsToSkipAndPreservesTasks(t *testing.T) {
 
 // TestMigration_V5IdempotentReopen verifies re-opening an already-upgraded
 // database does not re-apply v5 (ALTER TABLE ADD COLUMN is not idempotent on its
-// own — the version gate is what makes it safe).
+// own, the version gate is what makes it safe).
 func TestMigration_V5IdempotentReopen(t *testing.T) {
 	path := t.TempDir() + "/reopen5.db"
 	openAtV4(t, path)

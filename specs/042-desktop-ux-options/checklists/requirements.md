@@ -32,5 +32,4 @@
 ## Notes
 
 - Validation iteration 1 passed 16 of 16 items.
-- Native visual proof is explicitly assigned to the existing exact-candidate
-  gate rather than being mislabeled as headless acceptance.
+- Native visual proof is explicitly assigned to the existing exact-candidate gate rather than being mislabeled as headless acceptance.

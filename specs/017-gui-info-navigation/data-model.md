@@ -1,7 +1,6 @@
 # Data Model: GUI Navigation and Information
 
-No persistent or daemon-owned data changes. This feature models immutable GUI
-presentation values only.
+No persistent or daemon-owned data changes. This feature models immutable GUI presentation values only.
 
 ## Navigation Item
 
@@ -30,9 +29,6 @@ presentation values only.
 
 ## State and Relationships
 
-- Info has no loading, persistence, refresh, or error state because all content
-  is compiled into the process.
-- Activity owns the only dynamic navigation label. Updating its badge changes
-  the existing item text but not its identity, position, or neighboring Info item.
-- External destination availability is outside application state; the standard
-  desktop hyperlink control delegates opening to the operating system.
+- Info has no loading, persistence, refresh, or error state because all content is compiled into the process.
+- Activity owns the only dynamic navigation label. Updating its badge changes the existing item text but not its identity, position, or neighboring Info item.
+- External destination availability is outside application state; the standard desktop hyperlink control delegates opening to the operating system.

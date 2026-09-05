@@ -1,7 +1,6 @@
 # API Contract: Logs endpoint, event stream changes, Triggers removal
 
-Local HTTP/JSON API served over IPC (Unix socket / named pipe). Error envelope unchanged
-(`{"error":{code,field,message}}`).
+Local HTTP/JSON API served over IPC (Unix socket / named pipe). Error envelope unchanged (`{"error":{code,field,message}}`).
 
 ## NEW: `GET /v1/logs`
 
@@ -35,11 +34,7 @@ Returns the most recent log records from the daemon's in-memory ring, newest fir
 }
 ```
 
-**Notes**: the ring is bounded; older history lives only in the on-disk log file
-([log-file.md](log-file.md)). `log_path` is always present and contains the exact
-configured path used by the daemon, including when `logs` is empty; an empty
-string means the metadata is unavailable. Clients display it without
-normalizing or probing it. `severity=error` MUST return only error records (US3 acceptance #2).
+**Notes**: the ring is bounded; older history lives only in the on-disk log file ([log-file.md](log-file.md)). `log_path` is always present and contains the exact configured path used by the daemon, including when `logs` is empty; an empty string means the metadata is unavailable. Clients display it without normalizing or probing it. `severity=error` MUST return only error records (US3 acceptance #2).
 
 ## CHANGED: `GET /v1/events` (SSE stream)
 
@@ -55,29 +50,20 @@ Existing SSE stream gains new event kinds. Each SSE `data:` line is a JSON `even
 { "kind": "group", "group": { "verb": "created|updated|deleted", "group": { /* domain.Group */ }, "id": "grp_..." } }
 ```
 
-**Guarantees**: delivery is best-effort/non-blocking (a slow client drops events, as today).
-Clients MUST treat events as idempotent hints and dedupe by id; on reconnect the client does a
-full reload before resuming (FR-024). For `deleted`, `task`/`group` object MAY be null and only
-`id` is guaranteed.
+**Guarantees**: delivery is best-effort/non-blocking (a slow client drops events, as today). Clients MUST treat events as idempotent hints and dedupe by id; on reconnect the client does a full reload before resuming (FR-024). For `deleted`, `task`/`group` object MAY be null and only `id` is guaranteed.
 
-**Publishing sites** (server-side): `log` from the logbus handler; `task`/`group` from the
-corresponding API mutation handlers after a successful store write (create/update/delete/
-enable/disable); `run`/`alert` unchanged.
+**Publishing sites** (server-side): `log` from the logbus handler; `task`/`group` from the corresponding API mutation handlers after a successful store write (create/update/delete/ enable/disable); `run`/`alert` unchanged.
 
 ## REMOVED routes (Triggers)
 
-The following are deleted and now return the standard `404 not_found` envelope via the fallback
-handler:
+The following are deleted and now return the standard `404 not_found` envelope via the fallback handler:
 
 - `GET /v1/triggers`
 - `POST /v1/triggers`
 - `DELETE /v1/triggers/{id}`
 
-The API client loses `CreateTrigger`/`ListTriggers`/`DeleteTrigger`; the GUI `Backend` interface
-drops the same three methods.
+The API client loses `CreateTrigger`/`ListTriggers`/`DeleteTrigger`; the GUI `Backend` interface drops the same three methods.
 
 ## UNCHANGED (reference)
 
-`/v1/alerts` and `/v1/alerts/{id}/ack` remain (alerts still power part of the Activity view).
-`/v1/calendar` remains and is the data source for the new calendar view. `/v1/tasks`,
-`/v1/groups`, `/v1/runs`, `/v1/schedules/preview`, `/v1/health` unchanged.
+`/v1/alerts` and `/v1/alerts/{id}/ack` remain (alerts still power part of the Activity view). `/v1/calendar` remains and is the data source for the new calendar view. `/v1/tasks`, `/v1/groups`, `/v1/runs`, `/v1/schedules/preview`, `/v1/health` unchanged.

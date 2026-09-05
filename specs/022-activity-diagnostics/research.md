@@ -2,12 +2,9 @@
 
 ## Decision 1: Carry `log_path` in `GET /v1/logs`
 
-**Decision**: Add an explicit `log_path` field to the existing logs response and
-return the full typed response from the API client.
+**Decision**: Add an explicit `log_path` field to the existing logs response and return the full typed response from the API client.
 
-**Rationale**: Activity already refreshes this endpoint. Returning records and
-their full-log location together costs no additional request and follows the
-client's existing typed-response conventions.
+**Rationale**: Activity already refreshes this endpoint. Returning records and their full-log location together costs no additional request and follows the client's existing typed-response conventions.
 
 **Alternatives considered**:
 
@@ -17,35 +14,27 @@ client's existing typed-response conventions.
 
 ## Decision 2: Keep `log_path` present when empty
 
-**Decision**: Do not omit the field. Empty means unavailable, including when an
-older daemon response decodes without the new metadata.
+**Decision**: Do not omit the field. Empty means unavailable, including when an older daemon response decodes without the new metadata.
 
-**Rationale**: A stable response shape is simpler to document and test. The GUI
-can render a truthful unavailable state without inferring a default.
+**Rationale**: A stable response shape is simpler to document and test. The GUI can render a truthful unavailable state without inferring a default.
 
 ## Decision 3: Preserve CLI output explicitly
 
 **Decision**: The CLI consumes only `response.Logs` for both human and JSON output.
 
-**Rationale**: Serializing the richer response would silently change JSON from a
-bare array to an object. The API may grow while the CLI's existing public shape remains stable.
+**Rationale**: Serializing the richer response would silently change JSON from a bare array to an object. The API may grow while the CLI's existing public shape remains stable.
 
 ## Decision 4: Use passive, semantic Activity guidance
 
-**Decision**: Add a word-wrapped label below the existing toolbar and retain the
-separate Clear View explanation. Use `limited set` rather than the numeric ring size.
+**Decision**: Add a word-wrapped label below the existing toolbar and retain the separate Clear View explanation. Use `limited set` rather than the numeric ring size.
 
-**Rationale**: The wording remains accurate if the internal bound changes, while
-the exact configured path gives operators the actionable next location. A label
-does not imply file interaction.
+**Rationale**: The wording remains accurate if the internal bound changes, while the exact configured path gives operators the actionable next location. A label does not imply file interaction.
 
 ## Decision 5: Extract a startup logging helper
 
-**Decision**: Emit `daemon startup complete` through a small helper with
-`endpoint`, `db`, and `log_path` attributes at the existing pre-serve site.
+**Decision**: Emit `daemon startup complete` through a small helper with `endpoint`, `db`, and `log_path` attributes at the existing pre-serve site.
 
-**Rationale**: A helper makes the single structured record directly testable.
-The message is a discrete event, and preserving `db` avoids unnecessary field churn.
+**Rationale**: A helper makes the single structured record directly testable. The message is a discrete event, and preserving `db` avoids unnecessary field churn.
 
 ## File and test inventory
 

@@ -26,11 +26,11 @@ vendor/
 *.sock
 *.log
 
-# Agent folders — may contain credentials/auth tokens (flagged by spec-kit init).
+# Agent folders, may contain credentials/auth tokens (flagged by spec-kit init).
 # Exclude everything, then narrowly admit the skills subtree: a fresh clone
 # otherwise has no /speckit-* commands and no house standards, which
 # docs/build-autopilot.md names as a setup failure. This is an allowlist on
-# purpose — a denylist would admit every agent file nobody thought of, and the
+# purpose, a denylist would admit every agent file nobody thought of, and the
 # excluded material is credential-bearing by assumption.
 .claude/*
 !.claude/skills/

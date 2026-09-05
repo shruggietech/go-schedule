@@ -87,7 +87,7 @@ func cronExplain() *cobra.Command {
 		Short: "Translate one cron expression into plain language",
 		Long: "Print the plain-language phrase a cron expression maps to, plus any next\n" +
 			"run times. Non-clock events such as @reboot have none. Nothing is changed.\n\n" +
-			"An expression that cannot be represented is reported by name — that is an\n" +
+			"An expression that cannot be represented is reported by name, that is an\n" +
 			"answer, not a failure, so the exit code stays 0.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, a []string) error {
@@ -314,7 +314,7 @@ func importZone(line cron.Line, override string) string {
 
 // printLineRuns shows when a line would actually fire, which is the half of the
 // report that catches a misreading: a phrase can look right and still mean
-// something else. An unreachable daemon costs the run times, not the report —
+// something else. An unreachable daemon costs the run times, not the report,
 // the conversion itself is local, and a preview that refused to print because
 // the daemon was down would be useless exactly when it is most wanted.
 func printLineRuns(w io.Writer, expression, zone string, opts importOptions) {
@@ -495,10 +495,10 @@ func exportLines(details []server.TaskResponse) []exportLine {
 }
 
 func printExport(w io.Writer, details []server.TaskResponse) {
-	fmt.Fprintf(w, "# gosched cron export — %d task(s)\n", len(details))
+	fmt.Fprintf(w, "# gosched cron export, %d task(s)\n", len(details))
 	for _, e := range exportLines(details) {
 		if e.Declined != "" {
-			fmt.Fprintf(w, "# declined: %q — %s\n", e.Name, e.Declined)
+			fmt.Fprintf(w, "# declined: %q, %s\n", e.Name, e.Declined)
 			continue
 		}
 		fmt.Fprintln(w, e.Line)

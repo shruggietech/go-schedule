@@ -35,17 +35,10 @@ go test ./internal/engine -run '^$' -bench . -benchmem -count=3
 
 ## Test-First Evidence
 
-- Parser fixtures initially exposed the standing calendar-step refusals and the
-  phrase-only compilation bottleneck. Direct compilation tests then drove the
-  constrained daily RRULE shape and retained-source contract.
-- Next-run matrices drove calendar-set resolution, DST wall-time normalization,
-  strict anchor handling, and missing-date collision suppression.
-- The twenty-expression occurrence matrix found a two-year search bound that
-  exhausted a leap-day-only schedule. The final resolver covers the maximum
-  Gregorian leap-day gap, including a non-leap century.
-- API, CLI, storage, catch-up, and desktop tests were added before their shared
-  paths were accepted as complete. Existing paths required no parallel feature
-  implementation once the shared compiler contract was in place.
+- Parser fixtures initially exposed the standing calendar-step refusals and the phrase-only compilation bottleneck. Direct compilation tests then drove the constrained daily RRULE shape and retained-source contract.
+- Next-run matrices drove calendar-set resolution, DST wall-time normalization, strict anchor handling, and missing-date collision suppression.
+- The twenty-expression occurrence matrix found a two-year search bound that exhausted a leap-day-only schedule. The final resolver covers the maximum Gregorian leap-day gap, including a non-leap century.
+- API, CLI, storage, catch-up, and desktop tests were added before their shared paths were accepted as complete. Existing paths required no parallel feature implementation once the shared compiler contract was in place.
 
 ## Focused Verification
 
@@ -71,9 +64,7 @@ Post-change benchmark samples on the same Windows host:
 | Cron compile, broad | 37.16-37.68 us/op | 52,659 B/op, 114 allocs/op |
 | Cron compile, sparse | 34.19-35.66 us/op | 49,391 B/op, 93 allocs/op |
 
-The existing dispatch and next-run controls improved from baseline; neither
-regressed. Composite evaluation remains below the 100ms p99 dispatch budget by
-more than three orders of magnitude.
+The existing dispatch and next-run controls improved from baseline; neither regressed. Composite evaluation remains below the 100ms p99 dispatch budget by more than three orders of magnitude.
 
 ## Canonical Gates
 
@@ -88,10 +79,7 @@ more than three orders of magnitude.
 | docs | PASS | 11 pages, links, front matter, fences, theme, and product policy clean |
 | automation | PASS | approved actions, CodeQL contract, and eight-gate manifest |
 
-The canonical Windows run passed format, vet, and lint, then reached the known
-host limitation at race because `gcc` is absent. Race passed through the
-repository's established WSL Ubuntu-24.04 split; the remaining gates passed in
-Git Bash. This is an environment split, not a skipped gate.
+The canonical Windows run passed format, vet, and lint, then reached the known host limitation at race because `gcc` is absent. Race passed through the repository's established WSL Ubuntu-24.04 split; the remaining gates passed in Git Bash. This is an environment split, not a skipped gate.
 
 ## Final Audits
 
@@ -103,11 +91,7 @@ Git Bash. This is an environment split, not a skipped gate.
 
 ## Review Remediation
 
-Codex review on PR #61 identified two presentation gaps, both corrected before
-merge:
+Codex review on PR #61 identified two presentation gaps, both corrected before merge:
 
-- composite date sets now include an effective `skip`, `last_valid`, or
-  `next_valid` clause in preview and task summaries when a selected date can be
-  absent;
-- uneven wildcard minute steps render their exact field-local minute set rather
-  than implying a constant elapsed interval across hour boundaries.
+- composite date sets now include an effective `skip`, `last_valid`, or `next_valid` clause in preview and task summaries when a selected date can be absent;
+- uneven wildcard minute steps render their exact field-local minute set rather than implying a constant elapsed interval across hour boundaries.

@@ -8,19 +8,13 @@
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: Review branch `codex/052-persisted-adjustable-columns`; focused,
-race, full GUI, light/dark appearance, and canonical eight-gate verification
-passed 2026-09-05 for issue #119
+**Delivery**: Review branch `codex/052-persisted-adjustable-columns`; focused, race, full GUI, light/dark appearance, and canonical eight-gate verification passed 2026-09-05 for issue #119
 
 **Input**: GitHub issue [#119](https://github.com/shruggietech/go-schedule/issues/119), Add persisted adjustable columns to Schedule and Activity.
 
 ## Problem Statement
 
-The fixed Schedule and Activity table allocations can hide most of a timestamp,
-especially in the **When** column. Operators need to adapt each table to their
-work without losing those choices when the application, display scale, font, or
-window size changes. The interaction must remain usable without requiring a
-horizontal scrollbar or sacrificing full-value disclosure and keyboard access.
+The fixed Schedule and Activity table allocations can hide most of a timestamp, especially in the **When** column. Operators need to adapt each table to their work without losing those choices when the application, display scale, font, or window size changes. The interaction must remain usable without requiring a horizontal scrollbar or sacrificing full-value disclosure and keyboard access.
 
 ## Scope
 
@@ -29,12 +23,10 @@ horizontal scrollbar or sacrificing full-value disclosure and keyboard access.
 - Independently adjustable columns in the Schedule list and Activity table.
 - Pointer and keyboard resizing through discoverable header controls.
 - Per-user, per-view persistence using normalized proportions.
-- Safe fallback and clamping for missing, malformed, obsolete, or impossible
-  stored values.
+- Safe fallback and clamping for missing, malformed, obsolete, or impossible stored values.
 - A per-view action that restores default proportions.
 - A more useful default allocation for each **When** column.
-- Preservation of frozen headers, stable row identity, full-value disclosure,
-  alternating rows, themes, fonts, and responsive narrow-window behavior.
+- Preservation of frozen headers, stable row identity, full-value disclosure, alternating rows, themes, fonts, and responsive narrow-window behavior.
 - Deterministic headless tests plus canonical repository verification.
 
 ### Out of scope
@@ -57,15 +49,11 @@ horizontal scrollbar or sacrificing full-value disclosure and keyboard access.
 
 ### User Story 1 - Make Important Values Readable (Priority: P1)
 
-An operator widens a Schedule or Activity column from the frozen header and the
-adjacent column contracts, keeping the table within the available view.
+An operator widens a Schedule or Activity column from the frozen header and the adjacent column contracts, keeping the table within the available view.
 
-**Why this priority**: The feature exists to let operators see the fields that
-matter without changing the window or accepting permanent truncation.
+**Why this priority**: The feature exists to let operators see the fields that matter without changing the window or accepting permanent truncation.
 
-**Independent Test**: Resize every boundary by pointer and keyboard in each
-view, then verify alignment, minimum usability, and full-value disclosure at
-the supported default and narrow window sizes.
+**Independent Test**: Resize every boundary by pointer and keyboard in each view, then verify alignment, minimum usability, and full-value disclosure at the supported default and narrow window sizes.
 
 **Acceptance Scenarios**:
 
@@ -78,16 +66,11 @@ the supported default and narrow window sizes.
 
 ### User Story 2 - Keep Each View's Layout (Priority: P1)
 
-An operator's Schedule and Activity layouts persist independently across an
-application restart and adapt to a different window size, display scale, or
-font.
+An operator's Schedule and Activity layouts persist independently across an application restart and adapt to a different window size, display scale, or font.
 
-**Why this priority**: Adjustment would become repeated busywork if it were not
-durable, while raw physical widths would become invalid across environments.
+**Why this priority**: Adjustment would become repeated busywork if it were not durable, while raw physical widths would become invalid across environments.
 
-**Independent Test**: Save distinct layouts for both views, recreate the UI,
-and verify each layout restores as proportions under changed available widths
-and preferences.
+**Independent Test**: Save distinct layouts for both views, recreate the UI, and verify each layout restores as proportions under changed available widths and preferences.
 
 **Acceptance Scenarios**:
 
@@ -99,14 +82,11 @@ and preferences.
 
 ### User Story 3 - Restore Practical Defaults (Priority: P2)
 
-An operator can restore one table to practical default proportions without
-changing the other table.
+An operator can restore one table to practical default proportions without changing the other table.
 
-**Why this priority**: A reversible customization prevents users from becoming
-stuck with an accidental or no-longer-useful layout.
+**Why this priority**: A reversible customization prevents users from becoming stuck with an accidental or no-longer-useful layout.
 
-**Independent Test**: Customize both views, reset one, and verify only that
-view returns to defaults now and after restart.
+**Independent Test**: Customize both views, reset one, and verify only that view returns to defaults now and after restart.
 
 **Acceptance Scenarios**:
 
@@ -118,8 +98,7 @@ view returns to defaults now and after restart.
 
 - A drag ends outside the table or at a negative coordinate.
 - Available width is zero or smaller than the sum of protected minimums.
-- A stored value is empty, truncated, wrong-version, wrong-column-count,
-  nonnumeric, non-finite, non-positive, or extremely disproportionate.
+- A stored value is empty, truncated, wrong-version, wrong-column-count, nonnumeric, non-finite, non-positive, or extremely disproportionate.
 - A future release adds, removes, or renames columns.
 - The view is rebuilt after a theme or font change while preferences remain.
 - Repeated keyboard adjustment reaches a minimum and must stop deterministically.
@@ -148,12 +127,9 @@ view returns to defaults now and after restart.
 
 ### Key Entities
 
-- **Column layout profile**: One view's schema version, ordered column identity,
-  normalized positive proportions, and defaults.
-- **Column boundary control**: The accessible interaction between two adjacent
-  columns that transfers width within constraints.
-- **View layout preference**: The current user's persisted Schedule or Activity
-  profile, isolated by a stable preference identity.
+- **Column layout profile**: One view's schema version, ordered column identity, normalized positive proportions, and defaults.
+- **Column boundary control**: The accessible interaction between two adjacent columns that transfers width within constraints.
+- **View layout preference**: The current user's persisted Schedule or Activity profile, isolated by a stable preference identity.
 
 ## Success Criteria *(mandatory)*
 
@@ -169,12 +145,8 @@ view returns to defaults now and after restart.
 
 ## Assumptions
 
-- The existing per-user desktop preference store is available before the views
-  are constructed and is the proper owner for presentation-only state.
+- The existing per-user desktop preference store is available before the views are constructed and is the proper owner for presentation-only state.
 - Normalized proportions express user intent more robustly than device pixels.
-- A boundary resize changes only its two neighbors, matching common table
-  behavior and keeping unrelated columns stable.
-- A small header action labeled **Reset columns** is sufficiently discoverable
-  and does not require a new Options-page section.
-- Tasks table adjustment remains separately deferrable because issue #119 names
-  only Schedule and Activity.
+- A boundary resize changes only its two neighbors, matching common table behavior and keeping unrelated columns stable.
+- A small header action labeled **Reset columns** is sufficiently discoverable and does not require a new Options-page section.
+- Tasks table adjustment remains separately deferrable because issue #119 names only Schedule and Activity.

@@ -32,5 +32,4 @@
 ## Notes
 
 - Validation passed on the first review iteration.
-- The six GitHub issues are linked explicitly and their combined acceptance
-  surface is preserved without bringing #110, #112, or #113 into S044.
+- The six GitHub issues are linked explicitly and their combined acceptance surface is preserved without bringing #110, #112, or #113 into S044.

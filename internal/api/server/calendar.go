@@ -8,7 +8,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/schedule"
 )
 
-// Occurrence is a single calendar entry — either a past run or a computed future
+// Occurrence is a single calendar entry, either a past run or a computed future
 // scheduled run.
 type Occurrence struct {
 	TaskID   string            `json:"task_id"`

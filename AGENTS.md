@@ -8,6 +8,14 @@
 - Treat top-to-bottom layout as a required project convention for every new or modified Mermaid diagram, not as an optional formatting preference.
 - Apply this convention only to project-authored diagrams. Do not reject, rewrite, or warn about a different valid direction contained in a user-owned file being processed by the product.
 
+## GitHub publishing format
+
+- Never use the Unicode em dash in repository content, code comments, documentation, issues, pull requests, reviews, release notes, or any other text published to GitHub. Use commas, parentheses, colons, semicolons, or standard hyphens instead.
+- Never hard-wrap Markdown prose to a source-width limit. Each paragraph, heading, and list item must occupy one physical source line, with GitHub responsible for visual wrapping.
+- Use multiple physical lines only where syntax or literal content requires them, including fenced blocks, tables, front matter, separate list items, and deliberate semantic line breaks.
+- Run `go run ./scripts/github-format` before publishing repository or GitHub content.
+- Treat an em dash or width-based prose wrap as a publication-blocking formatting defect.
+
 ## Implementation slices
 
 - Bundle as many compatible GitHub Issues into one implementation slice as can be completed, validated, and reviewed coherently.

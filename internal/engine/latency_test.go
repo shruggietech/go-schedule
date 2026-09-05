@@ -11,8 +11,8 @@ import (
 	"github.com/shruggietech/go-schedule/internal/store"
 )
 
-// timingRunner records the dispatch latency of each run — the interval from the
-// run's scheduled time to the moment its execution starts — and does no other
+// timingRunner records the dispatch latency of each run, the interval from the
+// run's scheduled time to the moment its execution starts, and does no other
 // work, so the measurement reflects scheduling overhead alone (queue, goroutine
 // hand-off, and semaphore acquisition), not command execution. It mirrors the
 // no-op runner used by BenchmarkDispatch but timestamps the start.
@@ -32,10 +32,10 @@ func (r timingRunner) Run(_ context.Context, task domain.Task, sf time.Time, tri
 
 // TestDispatchLatencyP99 enforces the constitution's Performance budget
 // (Principle IV): the p99 of dispatch latency must stay under
-// DispatchLatencyBudget. It dispatches a fixed number of runs serially — waiting
+// DispatchLatencyBudget. It dispatches a fixed number of runs serially, waiting
 // for each to complete before dispatching the next, so every sample measures
 // pure dispatch overhead under nominal load rather than self-induced queue
-// contention — collects the per-dispatch latencies, and asserts the p99 against
+// contention, collects the per-dispatch latencies, and asserts the p99 against
 // the budget. The assertion carries several orders of magnitude of headroom (the
 // real overhead is microseconds against a 100ms ceiling), so it is stable on
 // loaded CI hardware and does not depend on real sleeps for correctness.

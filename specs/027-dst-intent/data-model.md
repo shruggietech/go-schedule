@@ -10,10 +10,7 @@
 
 The fields belong to Task, remain independent of Schedule replacement, and are returned in the task JSON object. Empty in-memory values normalize to defaults before evaluation or persistence.
 
-An elapsed recurring Schedule also carries nullable `elapsed_epoch`, the UTC
-instant from which fixed durations are counted. It is bound once in the
-authoring timezone and then persists independently of the task's presentation
-timezone. Wall-clock and UTC schedules leave it empty.
+An elapsed recurring Schedule also carries nullable `elapsed_epoch`, the UTC instant from which fixed durations are counted. It is bound once in the authoring timezone and then persists independently of the task's presentation timezone. Wall-clock and UTC schedules leave it empty.
 
 ## SchedulePolicy value
 
@@ -29,10 +26,7 @@ The evaluator receives a value containing missing-date policy, time basis, DST g
 
 ## Schema transition
 
-Migration v7 adds the three non-null task columns with defaults and nullable
-`schedules.elapsed_epoch`. All pre-v7 rows therefore read as `wall_clock`,
-`next_valid`, and `first`, with no elapsed epoch. No reverse migration is
-provided.
+Migration v7 adds the three non-null task columns with defaults and nullable `schedules.elapsed_epoch`. All pre-v7 rows therefore read as `wall_clock`, `next_valid`, and `first`, with no elapsed epoch. No reverse migration is provided.
 
 ## Occurrence transition
 

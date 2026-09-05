@@ -9,7 +9,7 @@ import (
 // migration on a safety-critical surface (see CLAUDE.md non-negotiables), so it
 // is pinned by an explicit upgrade test rather than only by the store's normal
 // round-trip coverage: an already-installed database must survive the upgrade
-// with every stored schedule — and therefore every task's timing — untouched.
+// with every stored schedule, and therefore every task's timing, untouched.
 
 // v3Schedule is a schedule row as it exists in a pre-v4 database, read back
 // through raw SQL so the assertion does not depend on the current Go struct.
@@ -18,8 +18,8 @@ type v3Schedule struct {
 	rrule, anchor, runAt   sql.NullString
 }
 
-// openAtV3 creates a database carrying only migrations v1..v3 — the shape a
-// v0.3.0 installation has on disk — without going through Open (which would
+// openAtV3 creates a database carrying only migrations v1..v3, the shape a
+// v0.3.0 installation has on disk, without going through Open (which would
 // apply every migration including the one under test).
 func openAtV3(t *testing.T, path string) {
 	t.Helper()
@@ -163,7 +163,7 @@ func TestMigration_V4PreservesExistingSchedules(t *testing.T) {
 
 // TestMigration_V4IdempotentReopen verifies re-opening an already-upgraded
 // database does not re-apply v4 (ALTER TABLE ADD COLUMN is not idempotent on
-// its own — the version gate is what makes it safe).
+// its own, the version gate is what makes it safe).
 func TestMigration_V4IdempotentReopen(t *testing.T) {
 	path := t.TempDir() + "/reopen.db"
 	openAtV3(t, path)
