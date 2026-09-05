@@ -76,7 +76,7 @@ func (a *App) buildTriggersTab() fyne.CanvasObject {
 	a.registerRefresher(refresh)
 	newButton := newToolbarButton("New", theme.ContentAddIcon(), func() { a.showTriggerEditor(nil) })
 	editButton := newToolbarButton("Edit", theme.DocumentCreateIcon(), func() { withSelection(a.showTriggerEditor) })
-	copyKey := newToolbarButton("Copy key", theme.ContentCopyIcon(), func() { withSelection(func(item *server.TriggerResponse) { a.revealAndCopyTrigger(item.ID, false) }) })
+	revealKey := newToolbarButton("Reveal key", theme.VisibilityIcon(), func() { withSelection(func(item *server.TriggerResponse) { a.revealAndCopyTrigger(item.ID, false) }) })
 	copyCommand := newToolbarButton("Copy command", theme.ContentCopyIcon(), func() { withSelection(func(item *server.TriggerResponse) { a.revealAndCopyTrigger(item.ID, true) }) })
 	toggle := newToolbarButton("Enable or disable", theme.MediaReplayIcon(), func() {
 		withSelection(func(item *server.TriggerResponse) {
@@ -115,7 +115,7 @@ func (a *App) buildTriggersTab() fyne.CanvasObject {
 			}, a.win)
 		})
 	})
-	toolbar := container.NewHBox(newButton, editButton, copyKey, copyCommand, toggle, rotate, remove)
+	toolbar := container.NewHBox(newButton, editButton, revealKey, copyCommand, toggle, rotate, remove)
 	return container.NewBorder(toolbar, nil, nil, nil, table.root)
 }
 
@@ -208,13 +208,13 @@ func (a *App) revealAndCopyTrigger(id string, command bool) {
 			fyne.Do(func() { a.showError(err) })
 			return
 		}
-		value := result.Key
-		if command {
-			value = result.Command
-		}
 		fyne.Do(func() {
-			a.clipboard.SetContent(value)
-			dialog.ShowInformation("Copied", "The trigger value was copied to the clipboard.", a.win)
+			if !command {
+				a.showTriggerSecret("Trigger key", result)
+				return
+			}
+			a.clipboard.SetContent(result.Command)
+			dialog.ShowInformation("Copied", "The trigger command was copied to the clipboard.", a.win)
 		})
 	}()
 }
@@ -244,7 +244,15 @@ func (a *App) showTriggerSecret(title string, result server.TriggerSecretRespons
 	command := widget.NewEntry()
 	command.SetText(result.Command)
 	command.Disable()
-	copyKey := widget.NewButtonWithIcon("Copy key", theme.ContentCopyIcon(), func() { a.clipboard.SetContent(result.Key) })
-	copyCommand := widget.NewButtonWithIcon("Copy command", theme.ContentCopyIcon(), func() { a.clipboard.SetContent(result.Command) })
-	dialog.ShowCustom(title, "Close", container.NewVBox(widget.NewLabel("Store this key securely. Ordinary trigger views do not display it."), widget.NewLabel("Key"), key, copyKey, widget.NewLabel("Command"), command, copyCommand), a.win)
+	copyStatus := widget.NewLabel("")
+	copyStatus.Importance = widget.SuccessImportance
+	copyKey := widget.NewButtonWithIcon("Copy key", theme.ContentCopyIcon(), func() {
+		a.clipboard.SetContent(result.Key)
+		copyStatus.SetText("Key copied to the clipboard.")
+	})
+	copyCommand := widget.NewButtonWithIcon("Copy command", theme.ContentCopyIcon(), func() {
+		a.clipboard.SetContent(result.Command)
+		copyStatus.SetText("Command copied to the clipboard.")
+	})
+	dialog.ShowCustom(title, "Close", container.NewVBox(widget.NewLabel("Store this key securely. Ordinary trigger views do not display it."), widget.NewLabel("Key"), key, copyKey, widget.NewLabel("Command"), command, copyCommand, copyStatus), a.win)
 }

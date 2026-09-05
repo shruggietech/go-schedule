@@ -30,3 +30,8 @@
 - Accepted calls use existing local IPC and the existing scheduler dispatch path with no new listener or service.
 - Runs record `external_trigger` and `source_trigger_id`, and that provenance remains after trigger deletion.
 - Issues #132 and #133 are fully represented by the headless lifecycle, desktop view, documentation, tests, and verification in S054. Trigger sets in #134 and filesystem watchers in #135 remain outside this slice.
+
+## Review Verification
+
+- First-round Codex findings were accepted and corrected: JSON fire failures now preserve stable API error codes, JSON deletion emits a machine-readable result, existing keys have a visible Reveal key flow, and secret-dialog copy actions provide visible confirmation.
+- The complete canonical eight-gate suite passed after the first-round fixes; the uncached GUI gate completed in 112.850 seconds.

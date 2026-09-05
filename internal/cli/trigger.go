@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 )
 
@@ -171,6 +173,9 @@ func triggerRemove() *cobra.Command {
 		if err := newClient().DeleteTrigger(ctx, args[0]); err != nil {
 			return err
 		}
+		if jsonOut {
+			return printJSON(map[string]string{"id": args[0], "status": "deleted"})
+		}
 		fmt.Fprintf(os.Stdout, "deleted trigger %s\n", args[0])
 		return nil
 	}}
@@ -181,6 +186,13 @@ func triggerFire() *cobra.Command {
 		ctx, cancel := reqCtx()
 		defer cancel()
 		if err := newClient().FireTrigger(ctx, args[0]); err != nil {
+			var status *client.StatusError
+			if jsonOut && errors.As(err, &status) {
+				if printErr := printJSONTo(os.Stderr, server.APIError{Error: server.ErrorBody{Code: status.Code, Field: status.Field, Message: status.Message}}); printErr != nil {
+					return printErr
+				}
+				return reported(err)
+			}
 			return err
 		}
 		if jsonOut {

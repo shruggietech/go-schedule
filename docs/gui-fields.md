@@ -180,7 +180,7 @@ Task choices show both name and stable ID, so duplicate names stay distinguishab
 
 The **Triggers** view appears after **Chains** in the Definitions section. Its table identifies each trigger, target task, enabled state, current readiness, and stable ID.
 
-**New** creates a named trigger for one task and defaults to enabled. **Edit** changes its name, target, or enabled state. **Copy key** and **Copy command** explicitly retrieve the sensitive value and place it on the clipboard. **Rotate key** and **Delete** require confirmation because either action immediately invalidates an existing invocation key.
+**New** creates a named trigger for one task and defaults to enabled. **Edit** changes its name, target, or enabled state. **Reveal key** displays the current sensitive value in a copy-enabled dialog, and **Copy command** places the complete invocation on the clipboard. **Rotate key** and **Delete** require confirmation because either action immediately invalidates an existing invocation key.
 
 Trigger readiness reflects the current target command, lifecycle, enabled state, and ancestor groups. A trigger can make a command-ready task eligible for automatic activation, but creating or enabling the trigger never silently activates the task.
 
