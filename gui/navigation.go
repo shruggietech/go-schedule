@@ -20,6 +20,7 @@ const (
 	navigationTasks    navigationID = "tasks"
 	navigationGroups   navigationID = "groups"
 	navigationChains   navigationID = "chains"
+	navigationTriggers navigationID = "triggers"
 	navigationSchedule navigationID = "schedule"
 	navigationActivity navigationID = "activity"
 	navigationOptions  navigationID = "options"
@@ -68,7 +69,7 @@ func newNavigationShell(specs []navigationDestinationSpec, onExit func()) *navig
 		section := spec.Section
 		if section == "" {
 			switch spec.ID {
-			case navigationTasks, navigationGroups, navigationChains:
+			case navigationTasks, navigationGroups, navigationChains, navigationTriggers:
 				section = navigationDefinitions
 			default:
 				section = navigationOperations

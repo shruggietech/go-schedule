@@ -309,6 +309,7 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		run.Trigger = origin.trigger
 		run.SourceTaskID = origin.sourceTaskID
 		run.SourceRunID = origin.sourceRunID
+		run.SourceTriggerID = origin.sourceTriggerID
 		e.recordRun(run, origin.deliveryID)
 		e.finish(task)
 	}()
@@ -322,7 +323,7 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 		return
 	}
 	e.log.Info("engine: recorded run", "task", run.TaskID, "run", run.ID, "trigger", run.Trigger,
-		"source_task", run.SourceTaskID, "source_run", run.SourceRunID, "delivery", incomingDeliveryID)
+		"source_task", run.SourceTaskID, "source_run", run.SourceRunID, "source_trigger", run.SourceTriggerID, "delivery", incomingDeliveryID)
 	if run.Outcome == domain.OutcomeFailure {
 		e.raiseRunAlert(run.TaskID, run.ID, domain.SeverityError, domain.AlertRunFailed, "task run failed")
 	}

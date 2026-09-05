@@ -14,12 +14,13 @@ import (
 type Kind string
 
 const (
-	KindRun   Kind = "run"
-	KindAlert Kind = "alert"
-	KindLog   Kind = "log"
-	KindTask  Kind = "task"
-	KindGroup Kind = "group"
-	KindChain Kind = "chain"
+	KindRun     Kind = "run"
+	KindAlert   Kind = "alert"
+	KindLog     Kind = "log"
+	KindTask    Kind = "task"
+	KindGroup   Kind = "group"
+	KindChain   Kind = "chain"
+	KindTrigger Kind = "trigger"
 )
 
 // Verb describes a change to an entity in a task/group event.
@@ -52,15 +53,23 @@ type ChainEvent struct {
 	Chain *domain.CompletionChain `json:"chain,omitempty"`
 }
 
+// TriggerEvent describes an external-trigger change without carrying its key.
+type TriggerEvent struct {
+	Verb    Verb                    `json:"verb"`
+	ID      string                  `json:"id"`
+	Trigger *domain.ExternalTrigger `json:"trigger,omitempty"`
+}
+
 // Event is a single notification delivered to subscribers.
 type Event struct {
-	Kind  Kind              `json:"kind"`
-	Run   *domain.Run       `json:"run,omitempty"`
-	Alert *domain.Alert     `json:"alert,omitempty"`
-	Log   *domain.LogRecord `json:"log,omitempty"`
-	Task  *TaskEvent        `json:"task,omitempty"`
-	Group *GroupEvent       `json:"group,omitempty"`
-	Chain *ChainEvent       `json:"chain,omitempty"`
+	Kind    Kind              `json:"kind"`
+	Run     *domain.Run       `json:"run,omitempty"`
+	Alert   *domain.Alert     `json:"alert,omitempty"`
+	Log     *domain.LogRecord `json:"log,omitempty"`
+	Task    *TaskEvent        `json:"task,omitempty"`
+	Group   *GroupEvent       `json:"group,omitempty"`
+	Chain   *ChainEvent       `json:"chain,omitempty"`
+	Trigger *TriggerEvent     `json:"trigger,omitempty"`
 }
 
 // Broker fans out events to all current subscribers.
@@ -129,6 +138,16 @@ func (b *Broker) PublishGroup(verb Verb, id string, g *domain.Group) {
 // PublishChain is a convenience for completion-chain change events.
 func (b *Broker) PublishChain(verb Verb, id string, chain *domain.CompletionChain) {
 	b.Publish(Event{Kind: KindChain, Chain: &ChainEvent{Verb: verb, ID: id, Chain: chain}})
+}
+
+// PublishTrigger is a convenience for redacted external-trigger events.
+func (b *Broker) PublishTrigger(verb Verb, id string, trigger *domain.ExternalTrigger) {
+	if trigger != nil {
+		copy := *trigger
+		copy.Key = ""
+		trigger = &copy
+	}
+	b.Publish(Event{Kind: KindTrigger, Trigger: &TriggerEvent{Verb: verb, ID: id, Trigger: trigger}})
 }
 
 // SubscriberCount reports the number of active subscribers (for tests/metrics).

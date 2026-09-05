@@ -66,3 +66,15 @@ func (s *Server) publishChainDeleted(id string) {
 		s.broker.PublishChain(events.VerbDeleted, id, nil)
 	}
 }
+
+func (s *Server) publishTrigger(verb events.Verb, trigger domain.ExternalTrigger) {
+	if s.broker != nil {
+		s.broker.PublishTrigger(verb, trigger.ID, &trigger)
+	}
+}
+
+func (s *Server) publishTriggerDeleted(id string) {
+	if s.broker != nil {
+		s.broker.PublishTrigger(events.VerbDeleted, id, nil)
+	}
+}

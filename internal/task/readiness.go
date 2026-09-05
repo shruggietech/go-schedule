@@ -11,6 +11,7 @@ type AutomaticSource string
 const (
 	SourceSchedule   AutomaticSource = "schedule"
 	SourceCompletion AutomaticSource = "completion"
+	SourceTrigger    AutomaticSource = "trigger"
 )
 
 type ReadinessStatus string
@@ -38,13 +39,16 @@ func DisplayName(t domain.Task) string {
 	return t.Name
 }
 
-func EvaluateReadiness(t domain.Task, hasCompletionSource bool) Readiness {
+func EvaluateReadiness(t domain.Task, hasCompletionSource bool, hasTriggerSource ...bool) Readiness {
 	r := Readiness{CommandReady: strings.TrimSpace(t.Command) != ""}
 	if t.ScheduleID != "" {
 		r.AutomaticSources = append(r.AutomaticSources, SourceSchedule)
 	}
 	if hasCompletionSource {
 		r.AutomaticSources = append(r.AutomaticSources, SourceCompletion)
+	}
+	if len(hasTriggerSource) > 0 && hasTriggerSource[0] {
+		r.AutomaticSources = append(r.AutomaticSources, SourceTrigger)
 	}
 	r.ActivationReady = r.CommandReady && t.State == domain.TaskActive && len(r.AutomaticSources) > 0
 	switch {

@@ -28,6 +28,10 @@ func taskRowModel(task domain.Task, groups []domain.Group) structuredRowModel {
 }
 
 func taskRowModelWithChains(task domain.Task, groups []domain.Group, chains []domain.CompletionChain) structuredRowModel {
+	return taskRowModelWithSources(task, groups, chains, nil)
+}
+
+func taskRowModelWithSources(task domain.Task, groups []domain.Group, chains []domain.CompletionChain, triggers []server.TriggerResponse) structuredRowModel {
 	name := tasklogic.DisplayName(task)
 	enabled := "Disabled"
 	enabledImportance := widget.LowImportance
@@ -35,7 +39,7 @@ func taskRowModelWithChains(task domain.Task, groups []domain.Group, chains []do
 		enabled = "Enabled"
 		enabledImportance = widget.SuccessImportance
 	}
-	effective := taskEffectiveStateWithChains(task, groups, chains)
+	effective := taskEffectiveStateWithSources(task, groups, chains, triggers)
 	lifecycle := normalizedWords(string(task.State), "Unknown", false)
 	lifecycleImportance := widget.MediumImportance
 	switch task.State {
@@ -69,7 +73,7 @@ func taskRowModelWithChains(task domain.Task, groups []domain.Group, chains []do
 	}
 }
 
-func taskEffectiveStateWithChains(task domain.Task, groups []domain.Group, chains []domain.CompletionChain) structuredCell {
+func taskEffectiveStateWithSources(task domain.Task, groups []domain.Group, chains []domain.CompletionChain, triggers []server.TriggerResponse) structuredCell {
 	if task.State != domain.TaskActive {
 		state := normalizedWords(string(task.State), "Unknown", false)
 		return structuredCell{Text: "Lifecycle: " + state, Importance: widget.LowImportance}
@@ -81,7 +85,14 @@ func taskEffectiveStateWithChains(task domain.Task, groups []domain.Group, chain
 			break
 		}
 	}
-	readiness := tasklogic.EvaluateReadiness(task, hasCompletion)
+	hasTrigger := false
+	for _, trigger := range triggers {
+		if trigger.Enabled && trigger.TargetTaskID == task.ID {
+			hasTrigger = true
+			break
+		}
+	}
+	readiness := tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger)
 	if !readiness.CommandReady {
 		return structuredCell{Text: "Not runnable", Importance: widget.WarningImportance}
 	}
@@ -139,7 +150,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 		tasks = snapshot.Tasks
 		rows := make([]structuredRowModel, len(tasks))
 		for index, task := range tasks {
-			rows[index] = taskRowModelWithChains(task, snapshot.Groups, snapshot.Chains)
+			rows[index] = taskRowModelWithSources(task, snapshot.Groups, snapshot.Chains, snapshot.Triggers)
 		}
 		table.setRows(rows)
 	}

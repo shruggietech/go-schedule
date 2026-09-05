@@ -176,6 +176,14 @@ The **Chains** view is separate from the task editor because a chain is a relati
 
 Task choices show both name and stable ID, so duplicate names stay distinguishable. The list uses current task names and updates live after create, edit, or delete. A chain adds another way to start the target; its timed or startup schedule remains unchanged. Disabled or inactive targets are resolved without execution rather than accumulating hidden work.
 
+## External triggers
+
+The **Triggers** view appears after **Chains** in the Definitions section. Its table identifies each trigger, target task, enabled state, current readiness, and stable ID.
+
+**New** creates a named trigger for one task and defaults to enabled. **Edit** changes its name, target, or enabled state. **Reveal key** displays the current sensitive value in a copy-enabled dialog, and **Copy command** places the complete invocation on the clipboard. **Rotate key** and **Delete** require confirmation because either action immediately invalidates an existing invocation key.
+
+Trigger readiness reflects the current target command, lifecycle, enabled state, and ancestor groups. A trigger can make a command-ready task eligible for automatic activation, but creating or enabling the trigger never silently activates the task.
+
 ### Overlap
 
 What to do when a task is still running at the moment its next run would start:

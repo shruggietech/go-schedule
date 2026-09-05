@@ -31,6 +31,7 @@ type State struct {
 	Logs       []domain.LogRecord
 	LogPath    string
 	RecentRuns []domain.Run
+	Triggers   []server.TriggerResponse
 }
 
 const (
@@ -80,6 +81,15 @@ func (m *Model) Refresh(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var triggers []server.TriggerResponse
+	if api, ok := m.api.(interface {
+		ListTriggers(context.Context) ([]server.TriggerResponse, error)
+	}); ok {
+		triggers, err = api.ListTriggers(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	m.mu.Lock()
 	m.st.Tasks = tasks
 	m.st.Groups = groups
@@ -87,6 +97,7 @@ func (m *Model) Refresh(ctx context.Context) error {
 	m.st.Alerts = alerts
 	m.st.Logs = logs.Logs
 	m.st.LogPath = logs.LogPath
+	m.st.Triggers = triggers
 	m.mu.Unlock()
 	m.notify()
 	return nil

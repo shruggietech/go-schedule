@@ -15,10 +15,11 @@ type pendingRun struct {
 // stable execution interface unchanged. Completion deliveries need the extra
 // correlation and durable claim identity all the way through overlap handling.
 type dispatchOrigin struct {
-	trigger      domain.RunTrigger
-	sourceTaskID string
-	sourceRunID  string
-	deliveryID   string
+	trigger         domain.RunTrigger
+	sourceTaskID    string
+	sourceRunID     string
+	sourceTriggerID string
+	deliveryID      string
 }
 
 // dispatch applies the task's overlap policy and either runs the task now,
@@ -42,7 +43,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 			e.recordRun(domain.Run{
 				TaskID: task.ID, ScheduledFor: scheduledFor,
 				Outcome: domain.OutcomeSkipped, Trigger: origin.trigger,
-				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID,
+				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID,
 			}, origin.deliveryID)
 			return
 
@@ -68,7 +69,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 			e.recordRun(domain.Run{
 				TaskID: task.ID, ScheduledFor: scheduledFor,
 				Outcome: domain.OutcomeQueued, Trigger: origin.trigger,
-				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID,
+				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID,
 			}, "")
 			return
 		}

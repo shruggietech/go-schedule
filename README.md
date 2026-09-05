@@ -136,6 +136,15 @@ gosched chain list
 
 Chains can match `success`, `failure`, or `any` terminal result. The target uses its existing enabled state, group eligibility, worker limit, and overlap policy. Completion runs identify their source task and source run in history. Pending work survives daemon restart; an interrupted delivery may run again if the daemon stops after launching the command but before recording its result, so commands used in durable chains should be safe to retry.
 
+Local external triggers let another process request one normal scheduler run using one opaque key:
+
+```sh
+gosched trigger create --name "Build hook" --task <task-id>
+gosched trigger fire <key>
+```
+
+Trigger requests use the task's current enabled state, group eligibility, worker limit, and overlap policy. Treat each key as a secret. Ordinary lists, history, logs, events, and errors omit it.
+
 Then open the desktop app, if you installed it:
 
 ```sh

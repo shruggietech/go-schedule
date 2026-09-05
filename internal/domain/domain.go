@@ -154,6 +154,7 @@ const (
 	TriggerCatchup    RunTrigger = "catchup"
 	TriggerManual     RunTrigger = "manual"
 	TriggerCompletion RunTrigger = "completion"
+	TriggerExternal   RunTrigger = "external_trigger"
 )
 
 // CompletionOutcome selects which terminal source outcomes activate a chain.
@@ -295,6 +296,20 @@ type Run struct {
 	Trigger         RunTrigger `json:"trigger"`
 	SourceTaskID    string     `json:"source_task_id,omitempty"`
 	SourceRunID     string     `json:"source_run_id,omitempty"`
+	SourceTriggerID string     `json:"source_trigger_id,omitempty"`
+}
+
+// ExternalTrigger maps one opaque local key to one task invocation.
+// Key is deliberately excluded from ordinary JSON serialization.
+type ExternalTrigger struct {
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Key            string    `json:"-"`
+	TargetTaskID   string    `json:"target_task_id"`
+	TargetTaskName string    `json:"target_task_name,omitempty"`
+	Enabled        bool      `json:"enabled"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // CompletionChain connects a source task's terminal outcome to a target task.

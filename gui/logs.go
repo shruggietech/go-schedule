@@ -209,6 +209,9 @@ func activityDetailText(e logEntry, diagnostic activityDiagnostic) string {
 	}
 	run := diagnostic.run
 	fmt.Fprintf(&b, "Trigger: %s\n", run.Trigger)
+	if run.SourceTriggerID != "" {
+		fmt.Fprintf(&b, "Source trigger: %s\n", run.SourceTriggerID)
+	}
 	fmt.Fprintf(&b, "Outcome: %s\n", run.Outcome)
 	if run.ExitCode == nil {
 		b.WriteString("Exit status: No process exit status (launch or setup failed)\n")

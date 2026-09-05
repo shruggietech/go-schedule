@@ -300,6 +300,24 @@ CREATE INDEX idx_tasks_group ON tasks(group_id);
 CREATE INDEX idx_tasks_state ON tasks(state);
 `,
 	},
+	{
+		// v12: add local external triggers and stable run provenance. The key is
+		// protected by the same user-scoped storage boundary as the local API token.
+		version: 12,
+		stmts: `
+CREATE TABLE external_triggers (
+	id             TEXT PRIMARY KEY,
+	name           TEXT NOT NULL,
+	key            TEXT NOT NULL UNIQUE,
+	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	enabled        INTEGER NOT NULL DEFAULT 1,
+	created_at     TEXT NOT NULL,
+	updated_at     TEXT NOT NULL
+);
+CREATE INDEX idx_external_triggers_target ON external_triggers(target_task_id);
+ALTER TABLE runs ADD COLUMN source_trigger_id TEXT;
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.
