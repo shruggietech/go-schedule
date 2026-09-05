@@ -438,6 +438,37 @@ func TestTaskTableRefreshesEffectiveStateAfterGroupEvent(t *testing.T) {
 	}
 }
 
+func TestTaskTableBecomesRunnableAfterCascadedGroupDelete(t *testing.T) {
+	backend := &fakeBackend{
+		tasks: []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "child"}},
+		groups: []domain.Group{
+			{ID: "parent", Name: "Parent", Enabled: true},
+			{ID: "child", Name: "Blocked child", ParentID: "parent", Enabled: false},
+		},
+	}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if got := ui.taskTable.rows[0].Cells[2].Text; got != "Blocked by Parent / Blocked child" {
+		t.Fatalf("initial effective state=%q", got)
+	}
+
+	ui.model.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
+		Verb: events.VerbDeleted, ID: "parent",
+	}})
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if got := ui.taskTable.rows[0].Cells[2].Text; got != "Runnable" {
+		t.Fatalf("post-delete effective state=%q, want Runnable", got)
+	}
+}
+
 func TestTaskListRefreshReconcilesVisibleSelectionByStableID(t *testing.T) {
 	backend := &fakeBackend{tasks: []domain.Task{
 		{ID: "first", Name: "First", Timezone: "UTC"},

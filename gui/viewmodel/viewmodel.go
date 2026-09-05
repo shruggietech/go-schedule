@@ -124,7 +124,13 @@ func (m *Model) ApplyEvent(e events.Event) {
 		}
 	case events.KindGroup:
 		if e.Group != nil {
-			m.st.Groups = applyGroupEvent(m.st.Groups, e.Group)
+			if e.Group.Verb == events.VerbDeleted {
+				removed := deletedGroupSubtreeIDs(m.st.Groups, e.Group.ID)
+				m.st.Groups = removeGroupsByID(m.st.Groups, removed)
+				m.st.Tasks = clearDeletedGroupMemberships(m.st.Tasks, removed)
+			} else {
+				m.st.Groups = applyGroupEvent(m.st.Groups, e.Group)
+			}
 		}
 	case events.KindChain:
 		if e.Chain != nil {
@@ -225,13 +231,7 @@ func applyTaskEventToChains(chains []domain.CompletionChain, ev *events.TaskEven
 // applyGroupEvent folds a group change into the slice (upsert/remove).
 func applyGroupEvent(groups []domain.Group, ev *events.GroupEvent) []domain.Group {
 	if ev.Verb == events.VerbDeleted {
-		out := groups[:0]
-		for _, g := range groups {
-			if g.ID != ev.ID {
-				out = append(out, g)
-			}
-		}
-		return out
+		return removeGroupsByID(groups, deletedGroupSubtreeIDs(groups, ev.ID))
 	}
 	if ev.Group == nil {
 		return groups
@@ -243,6 +243,43 @@ func applyGroupEvent(groups []domain.Group, ev *events.GroupEvent) []domain.Grou
 		}
 	}
 	return append([]domain.Group{*ev.Group}, groups...)
+}
+
+func deletedGroupSubtreeIDs(groups []domain.Group, rootID string) map[string]bool {
+	if rootID == "" {
+		return map[string]bool{}
+	}
+	removed := map[string]bool{rootID: true}
+	for changed := true; changed; {
+		changed = false
+		for _, group := range groups {
+			if !removed[group.ID] && removed[group.ParentID] {
+				removed[group.ID] = true
+				changed = true
+			}
+		}
+	}
+	return removed
+}
+
+func removeGroupsByID(groups []domain.Group, removed map[string]bool) []domain.Group {
+	out := make([]domain.Group, 0, len(groups))
+	for _, group := range groups {
+		if !removed[group.ID] {
+			out = append(out, group)
+		}
+	}
+	return out
+}
+
+func clearDeletedGroupMemberships(tasks []domain.Task, removed map[string]bool) []domain.Task {
+	out := append([]domain.Task(nil), tasks...)
+	for index := range out {
+		if removed[out[index].GroupID] {
+			out[index].GroupID = ""
+		}
+	}
+	return out
 }
 
 // applyChainEvent folds a completion-chain change into the slice.

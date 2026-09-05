@@ -87,3 +87,12 @@ Core-package coverage remained above the required 80 percent floor:
   claims, duplicate task identifiers, UTF-8 BOM, or detected mojibake.
 - `git diff --check` passed and the changes remain bounded to S051 artifacts,
   compatibility contracts, persistence, execution diagnosis, and desktop views.
+
+## First-round review corrections
+
+The first external Codex review identified two valid integration gaps. The
+transactional run-and-delivery insert now persists the same truncation flag as
+the direct run insert, with an exact retrieval regression test. Group deletion
+events now reconcile the complete cached descendant subtree and clear affected
+task memberships to match SQLite cascades, with view-model and rendered-table
+regression tests. The post-review canonical rerun covers both corrections.

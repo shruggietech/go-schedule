@@ -164,6 +164,41 @@ func TestApplyEvent_GroupUpsertAndRemove(t *testing.T) {
 	}
 }
 
+func TestApplyEvent_GroupDeleteReconcilesCascadedSubtreeAndTaskMembership(t *testing.T) {
+	m := New(&fakeAPI{})
+	m.st.Groups = []domain.Group{
+		{ID: "parent", Enabled: true},
+		{ID: "child", ParentID: "parent", Enabled: false},
+		{ID: "unrelated", Enabled: true},
+	}
+	m.st.Tasks = []domain.Task{
+		{ID: "affected", GroupID: "child"},
+		{ID: "unaffected", GroupID: "unrelated"},
+	}
+	m.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
+		Verb: events.VerbDeleted, ID: "parent",
+	}})
+	snapshot := m.Snapshot()
+	if len(snapshot.Groups) != 1 || snapshot.Groups[0].ID != "unrelated" {
+		t.Fatalf("groups after cascade=%+v, want only unrelated", snapshot.Groups)
+	}
+	if snapshot.Tasks[0].GroupID != "" {
+		t.Fatalf("affected task group=%q, want cleared", snapshot.Tasks[0].GroupID)
+	}
+	if snapshot.Tasks[1].GroupID != "unrelated" {
+		t.Fatalf("unaffected task group=%q, want unrelated", snapshot.Tasks[1].GroupID)
+	}
+}
+
+func TestApplyEvent_EmptyGroupDeleteDoesNotRemoveRoots(t *testing.T) {
+	m := New(&fakeAPI{})
+	m.st.Groups = []domain.Group{{ID: "root", Enabled: true}}
+	m.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{Verb: events.VerbDeleted}})
+	if got := m.Snapshot().Groups; len(got) != 1 || got[0].ID != "root" {
+		t.Fatalf("groups after malformed delete=%+v, want root retained", got)
+	}
+}
+
 func TestApplyEvent_ChainUpsertAndRemove(t *testing.T) {
 	m := New(&fakeAPI{})
 	m.ApplyEvent(events.Event{Kind: events.KindChain, Chain: &events.ChainEvent{
