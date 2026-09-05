@@ -449,22 +449,26 @@ func TestEditor_HelpDocumentsDualSyntax(t *testing.T) {
 // --- 003: Help toggle ----------------------------------------------------
 
 func TestEditor_HelpToggle(t *testing.T) {
-	e, _ := newTestEditor(t, nil)
-	e.schedule.SetText("every 15 minutes")
-
-	if !e.previewContent.Visible() || e.helpContent.Visible() {
-		t.Fatal("right pane should start on Preview")
-	}
-	e.toggleHelp()
-	if e.previewContent.Visible() || !e.helpContent.Visible() {
-		t.Fatal("toggle should show Help, hide Preview")
-	}
-	e.toggleHelp()
-	if !e.previewContent.Visible() || e.helpContent.Visible() {
-		t.Fatal("toggle back should restore Preview")
-	}
-	if e.schedule.Text != "every 15 minutes" {
-		t.Fatalf("input lost across Help toggle: %q", e.schedule.Text)
+	for _, mode := range []string{modeRecurring, modeOneOff, modeManual} {
+		t.Run(mode, func(t *testing.T) {
+			e, _ := newTestEditor(t, nil)
+			e.mode.SetSelected(mode)
+			e.schedule.SetText("every 15 minutes")
+			if !e.previewContent.Visible() || e.helpContent.Visible() {
+				t.Fatal("right pane should start on Preview")
+			}
+			e.toggleHelp()
+			if e.previewContent.Visible() || !e.helpContent.Visible() {
+				t.Fatal("toggle should show Help, hide Preview")
+			}
+			e.toggleHelp()
+			if !e.previewContent.Visible() || e.helpContent.Visible() {
+				t.Fatal("toggle back should restore Preview")
+			}
+			if e.schedule.Text != "every 15 minutes" {
+				t.Fatalf("input lost across Help toggle: %q", e.schedule.Text)
+			}
+		})
 	}
 }
 

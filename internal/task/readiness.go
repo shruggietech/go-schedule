@@ -46,7 +46,7 @@ func EvaluateReadiness(t domain.Task, hasCompletionSource bool) Readiness {
 	if hasCompletionSource {
 		r.AutomaticSources = append(r.AutomaticSources, SourceCompletion)
 	}
-	r.ActivationReady = len(r.AutomaticSources) > 0
+	r.ActivationReady = r.CommandReady && t.State == domain.TaskActive && len(r.AutomaticSources) > 0
 	switch {
 	case t.State == domain.TaskCompleted || t.State == domain.TaskDisabled:
 		r.Status = StatusTerminal

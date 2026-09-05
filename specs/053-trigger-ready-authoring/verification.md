@@ -31,3 +31,9 @@
 - FR-025 through FR-027 are covered by the shared trimmed, blank-retaining, duplicate-safe group submission controller used by Enter and Create.
 - FR-028 and FR-029 are covered by focused tests, canonical verification, documentation, and issue-linked lifecycle records.
 - SC-001 through SC-009 are satisfied by the functional, preservation, interaction, migration, race, coverage, documentation, and automation evidence above.
+
+## Review Verification
+
+- First-round Codex findings were accepted and corrected: activation readiness now includes command and active-lifecycle prerequisites while retaining its source inventory, Groups uses the same ancestor-aware effective state as Tasks, human-readable CLI list output includes readiness, and Help returns to Preview in recurring, one-off, and manual-only modes.
+- `go test ./internal/task ./internal/store ./internal/api/server ./internal/engine ./internal/cli ./gui/...`: PASS after the first-round fixes; the uncached GUI package completed in 94.080 seconds.
+- Canonical lint and GitHub format gates: PASS after the first-round fixes.

@@ -128,6 +128,15 @@ func TestGroupTree_TaskRowsAreDistinguishable(t *testing.T) {
 	}
 }
 
+func TestGroupTreeTaskLabelReflectsDisabledAncestor(t *testing.T) {
+	groups := []domain.Group{{ID: "parent", Name: "Parent", Enabled: false}, {ID: "child", Name: "Child", ParentID: "parent", Enabled: true}}
+	tasks := []domain.Task{{ID: "task", Name: "Ready", GroupID: "child", Command: "echo", ScheduleID: "schedule", Enabled: true, State: domain.TaskActive}}
+	tree := newGroupTreeModelWithChains(groups, tasks, nil)
+	if label := tree.label(taskNodeID("task")); !strings.Contains(label, "Blocked by Parent") {
+		t.Fatalf("task label = %q", label)
+	}
+}
+
 // TestGroupsTab_MoveToGroupIssuesUpdate covers FR-020, including the clear case.
 func TestGroupsTab_MoveToGroupIssuesUpdate(t *testing.T) {
 	fb := &fakeBackend{groups: nestedGroups(), tasks: treeTasks()}

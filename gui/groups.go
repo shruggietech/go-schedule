@@ -108,15 +108,8 @@ func newGroupTreeModelWithChains(groups []domain.Group, tasks []domain.Task, cha
 			parent = groupNodeID(t.GroupID)
 		}
 		m.children[parent] = append(m.children[parent], taskNodeID(t.ID))
-		hasCompletion := false
-		for _, chain := range chains {
-			if chain.TargetTaskID == t.ID {
-				hasCompletion = true
-				break
-			}
-		}
-		readiness := task.EvaluateReadiness(t, hasCompletion)
-		m.labels[taskNodeID(t.ID)] = taskRowMarker + task.DisplayName(t) + "   " + normalizedWords(string(readiness.Status), "Unknown", false)
+		effective := taskEffectiveStateWithChains(t, groups, chains)
+		m.labels[taskNodeID(t.ID)] = taskRowMarker + task.DisplayName(t) + "   " + effective.Text
 	}
 	return m
 }

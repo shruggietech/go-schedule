@@ -196,7 +196,8 @@ func taskList() *cobra.Command {
 		RunE: func(_ *cobra.Command, _ []string) error {
 			ctx, cancel := reqCtx()
 			defer cancel()
-			tasks, err := newClient().ListTasks(ctx, group, state)
+			client := newClient()
+			tasks, err := client.ListTasks(ctx, group, state)
 			if err != nil {
 				return err
 			}
@@ -204,9 +205,13 @@ func taskList() *cobra.Command {
 				return printJSON(tasks)
 			}
 			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(tw, "ID\tNAME\tSTATE\tENABLED\tTZ")
+			fmt.Fprintln(tw, "ID\tNAME\tSTATE\tENABLED\tREADINESS\tTZ")
 			for _, t := range tasks {
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%t\t%s\n", t.ID, tasklogic.DisplayName(t), t.State, t.Enabled, t.Timezone)
+				detail, err := client.GetTask(ctx, t.ID)
+				if err != nil {
+					return err
+				}
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%t\t%s\t%s\n", t.ID, tasklogic.DisplayName(t), t.State, t.Enabled, detail.Readiness.Status, t.Timezone)
 			}
 			return tw.Flush()
 		},

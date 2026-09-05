@@ -290,7 +290,7 @@ func (e *taskEditor) toggleHelp() {
 		e.helpToggle.SetText("Preview")
 		e.previewContent.Hide()
 		e.helpContent.Show()
-	} else if e.mode.Selected == modeRecurring {
+	} else {
 		e.rightTitle.SetText("Preview")
 		e.helpToggle.SetText("Help")
 		e.helpContent.Hide()
