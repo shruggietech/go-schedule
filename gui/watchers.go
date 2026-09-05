@@ -164,11 +164,8 @@ func (a *App) showFilesystemWatcherEditor(existing *server.FilesystemWatcherResp
 				_, err := backend.CreateFilesystemWatcher(ctx, request)
 				return err
 			}
-			update := server.FilesystemWatcherUpdateRequest{Name: &request.Name, Kind: &request.Kind, Path: &request.Path, Pattern: &request.Pattern, Recursive: &request.Recursive, Debounce: &request.Debounce, Stability: &request.Stability, TargetTaskID: &request.TargetTaskID}
+			update := server.FilesystemWatcherUpdateRequest{Name: &request.Name, Kind: &request.Kind, Path: &request.Path, Pattern: &request.Pattern, Recursive: &request.Recursive, Debounce: &request.Debounce, Stability: &request.Stability, TargetTaskID: &request.TargetTaskID, Enabled: request.Enabled}
 			_, err := backend.UpdateFilesystemWatcher(ctx, existing.ID, update)
-			if err == nil && existing.Enabled != enabled.Checked {
-				_, err = backend.SetFilesystemWatcherEnabled(ctx, existing.ID, enabled.Checked)
-			}
 			return err
 		})
 	}, a.win)

@@ -39,9 +39,17 @@ func TestFilesystemWatcherLifecycleAndDurationContract(t *testing.T) {
 		t.Fatalf("list status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 	name := "renamed"
-	recorder = doJSON(t, server, http.MethodPatch, "/v1/filesystem-watchers/"+created.ID, FilesystemWatcherUpdateRequest{Name: &name})
+	disabled := false
+	recorder = doJSON(t, server, http.MethodPatch, "/v1/filesystem-watchers/"+created.ID, FilesystemWatcherUpdateRequest{Name: &name, Enabled: &disabled})
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("update status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	var updated FilesystemWatcherResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &updated); err != nil {
+		t.Fatal(err)
+	}
+	if updated.Enabled {
+		t.Fatal("atomic update did not disable watcher")
 	}
 	recorder = doJSON(t, server, http.MethodPost, "/v1/filesystem-watchers/"+created.ID+"/disable", nil)
 	if recorder.Code != http.StatusOK {

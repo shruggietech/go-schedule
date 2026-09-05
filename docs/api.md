@@ -39,7 +39,7 @@ A filesystem watcher representation contains `id`, `name`, `kind`, `path`, optio
 | `GET` | `/v1/filesystem-watchers` | List definitions joined with current runtime health |
 | `POST` | `/v1/filesystem-watchers` | Create a definition and reload observation; `201` |
 | `GET` | `/v1/filesystem-watchers/{id}` | Show one definition and current health |
-| `PATCH` | `/v1/filesystem-watchers/{id}` | Update selection, timing, target, or name and reload observation |
+| `PATCH` | `/v1/filesystem-watchers/{id}` | Atomically update selection, timing, target, enabled state, or name and reload observation |
 | `DELETE` | `/v1/filesystem-watchers/{id}` | Delete, cancel pending candidates, and reload observation; `204` |
 | `POST` | `/v1/filesystem-watchers/{id}/enable` | Enable and reload observation |
 | `POST` | `/v1/filesystem-watchers/{id}/disable` | Disable, cancel pending candidates, and reload observation |

@@ -33,6 +33,7 @@ type FilesystemWatcherUpdateRequest struct {
 	Debounce     *string             `json:"debounce,omitempty"`
 	Stability    *string             `json:"stability,omitempty"`
 	TargetTaskID *string             `json:"target_task_id,omitempty"`
+	Enabled      *bool               `json:"enabled,omitempty"`
 }
 
 type FilesystemWatcherResponse struct {
@@ -176,6 +177,9 @@ func (s *Server) handleUpdateFilesystemWatcher(w http.ResponseWriter, r *http.Re
 	}
 	if req.TargetTaskID != nil {
 		watcher.TargetTaskID = *req.TargetTaskID
+	}
+	if req.Enabled != nil {
+		watcher.Enabled = *req.Enabled
 	}
 	if req.Debounce != nil {
 		watcher.Debounce, err = parseWatcherDuration(*req.Debounce)

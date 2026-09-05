@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -294,8 +295,8 @@ func (s *runtimeState) handleEvent(event fsnotify.Event) {
 		s.addCreatedDirectory(path)
 	}
 	if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
-		if s.isObservedRoot(path) {
-			s.degradeAll("configured observation root was removed or replaced")
+		s.forgetObserved(path)
+		if s.degradeAffectedRoots(path, "configured observation root was removed or replaced") {
 			return
 		}
 	}
@@ -448,6 +449,32 @@ func (s *runtimeState) degradeAll(reason string) {
 	s.scheduleRecovery()
 }
 
+func (s *runtimeState) degradeAffectedRoots(path, reason string) bool {
+	affected := false
+	for id, definition := range s.configs {
+		root := observationRoot(definition)
+		if !samePath(root, path) && !within(root, path) {
+			continue
+		}
+		affected = true
+		s.manager.setHealth(definition, domain.WatcherDegraded, reason)
+		delete(s.configs, id)
+		s.discardPending(id)
+	}
+	if affected {
+		s.scheduleRecovery()
+	}
+	return affected
+}
+
+func (s *runtimeState) forgetObserved(path string) {
+	for observed := range s.observed {
+		if samePath(observed, path) || within(observed, path) {
+			delete(s.observed, observed)
+		}
+	}
+}
+
 func (s *runtimeState) scheduleRecovery() {
 	s.needsRecovery = true
 	s.recoveryDue = s.manager.clock.Now().Add(recoveryInterval)
@@ -460,17 +487,11 @@ func (s *runtimeState) closeObserver() {
 	}
 }
 
-func (s *runtimeState) isObservedRoot(path string) bool {
-	for _, definition := range s.configs {
-		root := definition.Path
-		if definition.Kind == domain.WatcherFile {
-			root = filepath.Dir(root)
-		}
-		if samePath(path, root) {
-			return true
-		}
+func observationRoot(definition domain.FilesystemWatcher) string {
+	if definition.Kind == domain.WatcherFile {
+		return filepath.Dir(definition.Path)
 	}
-	return false
+	return definition.Path
 }
 
 func (m *Manager) setHealth(definition domain.FilesystemWatcher, state domain.WatcherHealthState, reason string) {
@@ -555,8 +576,31 @@ func registrationReason(err error) string {
 	case errors.Is(err, errNotDirectory):
 		return "configured observation root is not a directory"
 	default:
+		if detail := platformErrorDetail(err); detail != "" {
+			return boundedReason("configured observation root could not be watched: " + detail)
+		}
 		return "configured observation root could not be watched"
 	}
+}
+
+func platformErrorDetail(err error) string {
+	var pathError *fs.PathError
+	if errors.As(err, &pathError) {
+		return platformErrorDetail(pathError.Err)
+	}
+	var linkError *os.LinkError
+	if errors.As(err, &linkError) {
+		return platformErrorDetail(linkError.Err)
+	}
+	var syscallError *os.SyscallError
+	if errors.As(err, &syscallError) {
+		return platformErrorDetail(syscallError.Err)
+	}
+	var errno syscall.Errno
+	if errors.As(err, &errno) {
+		return strings.TrimSpace(errno.Error())
+	}
+	return ""
 }
 
 func boundedReason(reason string) string {

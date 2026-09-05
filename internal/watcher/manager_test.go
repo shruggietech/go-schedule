@@ -5,8 +5,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -319,6 +321,92 @@ func TestSymlinkCandidateDoesNotDispatch(t *testing.T) {
 	}
 	cancel()
 	<-done
+}
+
+func TestRemovedRootPreservesUnrelatedLongStabilityCandidate(t *testing.T) {
+	healthyRoot := canonicalTempDir(t)
+	removedRoot := canonicalTempDir(t)
+	healthyPath := filepath.Join(healthyRoot, "ready.txt")
+	if err := os.WriteFile(healthyPath, []byte("ready"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	clk := clock.NewFake(time.Now())
+	definitions := []domain.FilesystemWatcher{{ID: "healthy", Name: "healthy", Kind: domain.WatcherDirectory, Path: healthyRoot, Pattern: "*", Debounce: 25 * time.Millisecond, Stability: 3 * time.Second, TargetTaskID: "task-1", Enabled: true}, {ID: "removed", Name: "removed", Kind: domain.WatcherDirectory, Path: removedRoot, Pattern: "*", Debounce: 25 * time.Millisecond, Stability: 25 * time.Millisecond, TargetTaskID: "task-1", Enabled: true}}
+	dispatcher := &dispatcherStub{ch: make(chan string, 1)}
+	fake := newFakeObserver()
+	manager := newManager(&watcherStoreStub{items: definitions}, dispatcher, clk, slog.Default(), func() (observer, error) { return fake, nil })
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- manager.Run(ctx) }()
+	<-manager.Ready()
+	fake.events <- fsnotify.Event{Name: healthyPath, Op: fsnotify.Write}
+	waitFor(t, func() bool { return len(fake.events) == 0 })
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(25 * time.Millisecond)
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	fake.events <- fsnotify.Event{Name: removedRoot, Op: fsnotify.Remove}
+	waitFor(t, func() bool { return manager.Health("removed").State == domain.WatcherDegraded })
+	if health := manager.Health("healthy"); health.State != domain.WatcherActive {
+		t.Fatalf("healthy watcher state = %s", health.State)
+	}
+	clk.Advance(3 * time.Second)
+	select {
+	case id := <-dispatcher.ch:
+		if id != "healthy" {
+			t.Fatalf("dispatch id = %q", id)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("healthy candidate was lost when unrelated root disappeared")
+	}
+	cancel()
+	<-done
+}
+
+func TestRemovedRecursiveDirectoryIsRegisteredAfterRecreation(t *testing.T) {
+	root := canonicalTempDir(t)
+	nested := filepath.Join(root, "nested")
+	if err := os.Mkdir(nested, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	fake := newFakeObserver()
+	definition := domain.FilesystemWatcher{ID: "watcher-1", Name: "recursive", Kind: domain.WatcherDirectory, Path: root, Pattern: "*", Recursive: true, TargetTaskID: "task-1", Enabled: true}
+	manager := newManager(&watcherStoreStub{items: []domain.FilesystemWatcher{definition}}, &dispatcherStub{ch: make(chan string, 1)}, clock.NewFake(time.Now()), slog.Default(), func() (observer, error) { return fake, nil })
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- manager.Run(ctx) }()
+	<-manager.Ready()
+	if err := os.Remove(nested); err != nil {
+		t.Fatal(err)
+	}
+	fake.events <- fsnotify.Event{Name: nested, Op: fsnotify.Remove}
+	waitFor(t, func() bool { return len(fake.events) == 0 })
+	if err := os.Mkdir(nested, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	fake.events <- fsnotify.Event{Name: nested, Op: fsnotify.Create}
+	waitFor(t, func() bool {
+		fake.mu.Lock()
+		defer fake.mu.Unlock()
+		count := 0
+		for _, added := range fake.added {
+			if samePath(added, nested) {
+				count++
+			}
+		}
+		return count == 2
+	})
+	cancel()
+	<-done
+}
+
+func TestRegistrationReasonRetainsPlatformDetailWithoutPath(t *testing.T) {
+	reason := registrationReason(&os.PathError{Op: "watch", Path: filepath.Join("secret", "root"), Err: syscall.ENOSPC})
+	if !strings.Contains(reason, syscall.ENOSPC.Error()) {
+		t.Fatalf("reason %q omits platform detail", reason)
+	}
+	if strings.Contains(reason, "secret") {
+		t.Fatalf("reason %q exposes configured path", reason)
+	}
 }
 
 func waitFor(t *testing.T, condition func() bool) {
