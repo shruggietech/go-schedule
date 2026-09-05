@@ -14,8 +14,7 @@
 - `built_at`: RFC 3339 timestamp
 - `origin`: local build command and host boundary
 
-Invariant: Any byte change creates a new DemoCandidate identity. DemoCandidate
-never transitions into FormalCandidate.
+Invariant: Any byte change creates a new DemoCandidate identity. DemoCandidate never transitions into FormalCandidate.
 
 ## QualificationCheck
 
@@ -26,15 +25,13 @@ never transitions into FormalCandidate.
 - `evidence`: concise result or attachment path
 - `boundary`: what the check cannot prove
 
-Invariant: Only an observed success may be `pass`; absent prerequisites use
-`unavailable`, never `pass` or `skipped`.
+Invariant: Only an observed success may be `pass`; absent prerequisites use `unavailable`, never `pass` or `skipped`.
 
 ## AttendedDemoObservation
 
 - `id`: stable checklist identifier
 - `candidate_sha256`: exact demo binding
-- `environment`: Windows edition/build, display geometry/scaling, and account
-  integrity role without personal identifiers
+- `environment`: Windows edition/build, display geometry/scaling, and account integrity role without personal identifiers
 - `expected`: observable result
 - `actual`: operator description
 - `status`: `pass`, `fail`, `unavailable`, `partial`, or `not-run`
@@ -44,9 +41,7 @@ Invariant: A failed observation is recorded before related product code changes.
 
 ## FormalCandidate
 
-- Release-workflow repository, tag, commit, run ID, run attempt, artifact name,
-  ProductCode, byte size, and SHA-256
+- Release-workflow repository, tag, commit, run ID, run attempt, artifact name, ProductCode, byte size, and SHA-256
 - Evidence class `attended-windows-release-candidate`
 
-Invariant: FormalCandidate is created only by authorized tag staging after review.
-DemoCandidate evidence cannot be relabeled or copied into it as a pass.
+Invariant: FormalCandidate is created only by authorized tag staging after review. DemoCandidate evidence cannot be relabeled or copied into it as a pass.

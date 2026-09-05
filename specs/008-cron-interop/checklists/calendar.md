@@ -1,20 +1,14 @@
 # Calendar Correctness Checklist: missing-date policy and by-date grammar
 
-**Purpose**: Validate that the requirements governing schedules addressing a
-date that does not exist in every period are complete, unambiguous, and pinned
-to real dates — and that they guarantee no existing schedule changes behavior.
-**Created**: 2026-07-23
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that the requirements governing schedules addressing a date that does not exist in every period are complete, unambiguous, and pinned to real dates, and that they guarantee no existing schedule changes behavior. **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
 
-**Note**: This is a requirements-quality checklist. Every item asks whether the
-specification says enough, clearly enough, to be implemented and verified — not
-whether the code works.
+**Note**: This is a requirements-quality checklist. Every item asks whether the specification says enough, clearly enough, to be implemented and verified, not whether the code works.
 
 ## Requirement Completeness
 
 - [x] CHK031 Are all three policy settings defined by what they produce, rather
       than by name alone? [Completeness, Spec §FR-019]
-- [x] CHK032 Is the set of rule shapes the policy applies to enumerated —
+- [x] CHK032 Is the set of rule shapes the policy applies to enumerated,
       by-date monthly, yearly by-date, ordinal weekday? [Completeness,
       Spec §FR-021]
 - [x] CHK033 Is "last valid" defined separately for a by-date rule and for an
@@ -84,8 +78,7 @@ whether the code works.
       Spec §US2 scenario 5]
 - [x] CHK053 Are requirements defined for a policy-resolved date that lands on a
       daylight-saving transition? [Coverage, Edge Cases]
-- [x] CHK054 Are requirements defined for a database created before this feature
-      — both its stored values and its computed run times? [Recovery, Spec
+- [x] CHK054 Are requirements defined for a database created before this feature , both its stored values and its computed run times? [Recovery, Spec
       §US2 scenario 7]
 - [x] CHK055 Are requirements defined for setting a policy on a schedule that
       can never be affected by it? [Coverage, Spec §FR-024]
@@ -110,7 +103,5 @@ whether the code works.
 ## Notes
 
 - Check items off as completed: `[x]`
-- An unchecked item is a spec defect to fix before `/speckit-plan`, not a code
-  defect.
-- Numbering continues from `fidelity.md` (CHK001–CHK030) so the two checklists
-  can be cited without collision.
+- An unchecked item is a spec defect to fix before `/speckit-plan`, not a code defect.
+- Numbering continues from `fidelity.md` (CHK001–CHK030) so the two checklists can be cited without collision.

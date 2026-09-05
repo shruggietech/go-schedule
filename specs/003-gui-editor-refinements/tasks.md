@@ -6,18 +6,13 @@ description: "Task list for GUI Editor Refinements"
 
 **Input**: Design documents from `specs/003-gui-editor-refinements/`
 
-**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
-[data-model.md](data-model.md), [contracts/editor-ui.md](contracts/editor-ui.md),
-[quickstart.md](quickstart.md)
+**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/editor-ui.md](contracts/editor-ui.md), [quickstart.md](quickstart.md)
 
 **Task Reconciliation**: Commit `a21c22e` delivered this complete checklist. The 2026-08-30 lifecycle audit corrected markers that had never been advanced from their generated state; it did not re-perform the historical manual GUI checkpoint.
 
-**Tests**: INCLUDED — constitution Principle II (testing NON-NEGOTIABLE). Headless Fyne tests +
-pure-function unit tests.
+**Tests**: INCLUDED, constitution Principle II (testing NON-NEGOTIABLE). Headless Fyne tests + pure-function unit tests.
 
-**Organization**: By user story. Most editor stories share `gui/editor.go` and are **sequential**;
-the window helper (US5) and per-tab cursor swaps (US6) are independent files and can run in
-parallel with the editor work.
+**Organization**: By user story. Most editor stories share `gui/editor.go` and are **sequential**; the window helper (US5) and per-tab cursor swaps (US6) are independent files and can run in parallel with the editor work.
 
 ## Path Conventions
 
@@ -39,8 +34,7 @@ Single Go module; all work under `gui/`.
 
 ## Phase 2: Foundational (Two-pane editor shell)
 
-**Purpose**: Restructure `gui/editor.go` from a single-column form into a wider two-pane modal
-(left form, right pane holder) without changing 002 behavior. Blocks US1–US4.
+**Purpose**: Restructure `gui/editor.go` from a single-column form into a wider two-pane modal (left form, right pane holder) without changing 002 behavior. Blocks US1–US4.
 
 **⚠️ CRITICAL**: Blocks US1, US2, US3, US4.
 
@@ -51,12 +45,11 @@ Single Go module; all work under `gui/`.
 
 ---
 
-## Phase 3: User Story 1 — Roomier two-pane editor (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1, Roomier two-pane editor (Priority: P1) 🎯 MVP
 
 **Goal**: ~2× width, fields left, Preview right.
 
-**Independent Test**: Open editor; confirm width and that schedule summary, next runs, and command
-preview render in the right pane.
+**Independent Test**: Open editor; confirm width and that schedule summary, next runs, and command preview render in the right pane.
 
 - [x] T006 [US1] Confirm the right pane shows the Preview content by default and renders schedule summary + next runs + command preview together; adjust spacing/wrapping in `gui/editor.go`.
 - [x] T007 [US1] Add tests in `gui/editor_test.go`: the right pane contains the preview widgets (not the form), and the When form no longer has a "Preview" item.
@@ -65,12 +58,11 @@ preview render in the right pane.
 
 ---
 
-## Phase 4: User Story 2 — In-modal Help (Priority: P1)
+## Phase 4: User Story 2, In-modal Help (Priority: P1)
 
 **Goal**: Help toggle swaps the right pane to per-field guidance; Examples button removed.
 
-**Independent Test**: Click Help → guidance with examples; toggle back → Preview intact; no Examples
-button by Schedule.
+**Independent Test**: Click Help → guidance with examples; toggle back → Preview intact; no Examples button by Schedule.
 
 - [x] T008 [US2] Build a Help view in `gui/editor.go` (scrollable `widget.RichText`) with a section + example per field (Name, Command, Arguments, Timezone, Mode, Schedule incl. `starting at` anchor, One-off time, Overlap, Catch-up).
 - [x] T009 [US2] Add a Help toggle (cursor button) that swaps the right-pane holder between Preview and Help without rebuilding the form (preserves input + computed preview, FR-005).
@@ -81,7 +73,7 @@ button by Schedule.
 
 ---
 
-## Phase 5: User Story 3 — Code-block command preview (Priority: P2)
+## Phase 5: User Story 3, Code-block command preview (Priority: P2)
 
 **Goal**: Monospace code block, no "Will run:" prefix.
 
@@ -94,12 +86,11 @@ button by Schedule.
 
 ---
 
-## Phase 6: User Story 4 — Disclosure arrow, right footer, cancel-confirm (Priority: P2)
+## Phase 6: User Story 4, Disclosure arrow, right footer, cancel-confirm (Priority: P2)
 
 **Goal**: ▶/▼ Advanced Settings, right-aligned Save/Cancel, dirty-guarded Cancel.
 
-**Independent Test**: Arrow direction toggles; buttons right-aligned; dirty Cancel prompts, clean
-Cancel closes immediately.
+**Independent Test**: Arrow direction toggles; buttons right-aligned; dirty Cancel prompts, clean Cancel closes immediately.
 
 - [x] T014 [US4] Replace the `widget.Accordion` Advanced Settings with the custom `collapsible` (T002) holding overlap + catch-up, collapsed by default, in `gui/editor.go` (FR-009).
 - [x] T015 [US4] Right-align the footer: replace the non-expanding label spacer with `layout.NewSpacer()` (or a Border trailing slot) so Cancel/Save sit right (FR-010).
@@ -111,7 +102,7 @@ Cancel closes immediately.
 
 ---
 
-## Phase 7: User Story 5 — Maximized window on launch (Priority: P3)
+## Phase 7: User Story 5, Maximized window on launch (Priority: P3)
 
 **Goal**: Main window opens at the screen work area.
 
@@ -126,7 +117,7 @@ Cancel closes immediately.
 
 ---
 
-## Phase 8: User Story 6 — App-wide pointer cursor (Priority: P3)
+## Phase 8: User Story 6, App-wide pointer cursor (Priority: P3)
 
 **Goal**: Every clickable button shows the pointer cursor.
 
@@ -158,8 +149,7 @@ Cancel closes immediately.
 - **Setup (Phase 1)**: no deps; T001–T003 parallel.
 - **Foundational (Phase 2)**: depends on Setup; **blocks** US1–US4.
 - **US1–US4**: share `gui/editor.go` → sequential, in order US1 → US2 → US3 → US4.
-- **US5 (window)** and **US6 (cursor swaps)**: independent of `gui/editor.go`; can run in parallel
-  with the editor stories (US6 depends on T001's constructors).
+- **US5 (window)** and **US6 (cursor swaps)**: independent of `gui/editor.go`; can run in parallel with the editor stories (US6 depends on T001's constructors).
 - **Polish (Phase 9)**: after all targeted stories.
 
 ### Within Each Story
@@ -207,6 +197,5 @@ Task: "Cursor buttons in gui/alerts.go"     # T027
 
 - `[P]` = different files, no incomplete-task dependency. Editor-file tasks are NOT `[P]`.
 - No daemon/CLI/API/store changes; keep all 002 behavior intact (FR-014).
-- No new module dependency — the window helper uses stdlib `syscall`.
-- Run `go test ./gui/...` (CI excludes `/gui` from `-race` due to Fyne font-cache races); the
-  pure `windowSizeFor` test also runs under the `-race` set if placed in a non-GUI-driver path.
+- No new module dependency, the window helper uses stdlib `syscall`.
+- Run `go test ./gui/...` (CI excludes `/gui` from `-race` due to Fyne font-cache races); the pure `windowSizeFor` test also runs under the `-race` set if placed in a non-GUI-driver path.

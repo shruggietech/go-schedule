@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Desktop Interaction and Appearance Polish
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -32,5 +30,4 @@
 ## Notes
 
 - Validation passed on the first review iteration.
-- The six GitHub issues are linked explicitly and their combined acceptance
-  surface is preserved without bringing #110, #112, or #113 into S044.
+- The six GitHub issues are linked explicitly and their combined acceptance surface is preserved without bringing #110, #112, or #113 into S044.

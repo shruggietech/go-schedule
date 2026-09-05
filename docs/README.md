@@ -10,9 +10,7 @@ permalink: /
 **Applies to:** go-schedule 0.7.0 and later\
 **Project home:** [README.md](https://github.com/shruggietech/go-schedule/blob/main/README.md)
 
-An index of what is here and who each document is for. If you are installing,
-start with the guide for your platform; if you are contributing, start with
-[CONTRIBUTING.md](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) in the repository root.
+An index of what is here and who each document is for. If you are installing, start with the guide for your platform; if you are contributing, start with [CONTRIBUTING.md](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) in the repository root.
 
 ## Using go-schedule
 
@@ -31,11 +29,9 @@ start with the guide for your platform; if you are contributing, start with
 
 | Document | What it covers |
 | --- | --- |
-| [Maintainer test scripts](test-scripts.md) | Proving that a real, installed daemon fires on time, survives restarts, catches up after downtime, and honors overlap policies — with recorded evidence rather than a hopeful glance at a log. |
+| [Maintainer test scripts](test-scripts.md) | Proving that a real, installed daemon fires on time, survives restarts, catches up after downtime, and honors overlap policies N/A with recorded evidence rather than a hopeful glance at a log. |
 
-These are written for maintainers but are equally useful to anyone who wants
-their install demonstrated rather than assumed. Their output makes an excellent
-attachment to a bug report.
+These are written for maintainers but are equally useful to anyone who wants their install demonstrated rather than assumed. Their output makes an excellent attachment to a bug report.
 
 ## Developing go-schedule
 
@@ -51,10 +47,6 @@ attachment to a bug report.
 
 ## Reporting problems
 
-Open an [issue](https://github.com/shruggietech/go-schedule/issues/new/choose).
-The forms ask for version, component, install method, OS, and whether you were
-elevated — each of those has, at some point on this project, been the fact that
-decided the diagnosis.
+Open an [issue](https://github.com/shruggietech/go-schedule/issues/new/choose). The forms ask for version, component, install method, OS, and whether you were elevated, each of those has, at some point on this project, been the fact that decided the diagnosis.
 
-For security issues, please use the private route described in
-[SECURITY.md](https://github.com/shruggietech/go-schedule/blob/main/SECURITY.md) rather than a public issue.
+For security issues, please use the private route described in [SECURITY.md](https://github.com/shruggietech/go-schedule/blob/main/SECURITY.md) rather than a public issue.

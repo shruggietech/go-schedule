@@ -1,7 +1,6 @@
 # Data Model: Desktop Interaction and Appearance Polish
 
-S044 adds no daemon database entity or migration. It extends bounded per-user
-GUI preferences and in-memory presentation state.
+S044 adds no daemon database entity or migration. It extends bounded per-user GUI preferences and in-memory presentation state.
 
 ## Desktop preferences
 
@@ -11,10 +10,7 @@ GUI preferences and in-memory presentation state.
 | Font | `system`, `brand`, `inter`, `ubuntu`, `monospace` | `system` | `system` | Per-user application preferences |
 | Scroll sensitivity | `1.0` through `4.0`, step `0.5` | `2.0` | `2.0` | Per-user application preferences |
 
-Each field normalizes independently. Applying any value constructs one complete
-preference snapshot, persists it, and refreshes affected application-owned
-views. Restore defaults writes Dark, System, and 2x together from one user
-action; the preference store does not promise a multi-key transaction.
+Each field normalizes independently. Applying any value constructs one complete preference snapshot, persists it, and refreshes affected application-owned views. Restore defaults writes Dark, System, and 2x together from one user action; the preference store does not promise a multi-key transaction.
 
 ## Font family
 
@@ -38,8 +34,7 @@ action; the preference store does not promise a multi-key transaction.
 | Overlay | Translucent state color blended over the base surface |
 | Non-color cue | Persistent fill, focus shape, label/glyph, or disabled behavior |
 
-Every normal-text foreground/composite-background pair must reach 4.5:1. Every
-essential focus/boundary indicator against its adjacent surface must reach 3:1.
+Every normal-text foreground/composite-background pair must reach 4.5:1. Every essential focus/boundary indicator against its adjacent surface must reach 3:1.
 
 ## Storage row view
 
@@ -52,8 +47,7 @@ essential focus/boundary indicator against its adjacent surface must reach 3:1.
 | Copy | Far-right action, enabled only for an available path |
 | Muted | Whole-row unavailable presentation using disabled semantics |
 
-Storage data and ownership do not change. The row is a projection of the
-existing location; it performs no path creation, traversal, or deletion.
+Storage data and ownership do not change. The row is a projection of the existing location; it performs no path creation, traversal, or deletion.
 
 ## Choice selector state
 
@@ -82,12 +76,8 @@ Default + alternatives excluding Default
 | Discrete threshold | Absolute vertical delta of 25 logical pixels |
 | Effective delta | Incoming value unchanged below threshold, otherwise multiplied by sensitivity |
 
-The copied event is delegated once to the stock scroller. Keyboard, drag,
-scrollbar, and programmatic offset changes never transition through the custom
-delta function.
+The copied event is delegated once to the stock scroller. Keyboard, drag, scrollbar, and programmatic offset changes never transition through the custom delta function.
 
 ## Navigation shell extension
 
-The S042 destination model is unchanged. One full-height separator becomes the
-boundary between rail and content. Exit retains no destination ID or selected
-state and changes only from medium to danger importance.
+The S042 destination model is unchanged. One full-height separator becomes the boundary between rail and content. Exit retains no destination ID or selected state and changes only from medium to danger importance.

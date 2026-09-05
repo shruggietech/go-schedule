@@ -6,22 +6,15 @@ description: "Task list for GUI Task Editor UX Overhaul"
 
 **Input**: Design documents from `specs/002-gui-task-editor-ux/`
 
-**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
-[data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md)
+**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md)
 
-**Tests**: INCLUDED — the project constitution makes testing NON-NEGOTIABLE (Principle II), so
-each behavioral change ships with tests (parser tests under injected clock; GUI logic tests under
-the Fyne headless driver + fake backend).
+**Tests**: INCLUDED, the project constitution makes testing NON-NEGOTIABLE (Principle II), so each behavioral change ships with tests (parser tests under injected clock; GUI logic tests under the Fyne headless driver + fake backend).
 
-**Organization**: Tasks are grouped by user story. NOTE: most GUI stories modify the single file
-`gui/editor.go`, so they are largely **sequential** (not `[P]`) with respect to each other; `[P]`
-is used only where files genuinely differ (e.g. `internal/schedule/parse.go`, `gui/widgets.go`,
-`docs/`).
+**Organization**: Tasks are grouped by user story. NOTE: most GUI stories modify the single file `gui/editor.go`, so they are largely **sequential** (not `[P]`) with respect to each other; `[P]` is used only where files genuinely differ (e.g. `internal/schedule/parse.go`, `gui/widgets.go`, `docs/`).
 
 ## Path Conventions
 
-Single Go module at repo root. GUI in `gui/`, schedule parser in `internal/schedule/`, docs in
-`docs/`.
+Single Go module at repo root. GUI in `gui/`, schedule parser in `internal/schedule/`, docs in `docs/`.
 
 ---
 
@@ -39,8 +32,7 @@ Single Go module at repo root. GUI in `gui/`, schedule parser in `internal/sched
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Restructure the dialog onto a layout that can host sections, a collapsible advanced
-panel, hidden fields, and a gate-able Save button. Without this, no GUI story can be implemented.
+**Purpose**: Restructure the dialog onto a layout that can host sections, a collapsible advanced panel, hidden fields, and a gate-able Save button. Without this, no GUI story can be implemented.
 
 **⚠️ CRITICAL**: Blocks US1, US2, US3, US5, US6.
 
@@ -53,13 +45,11 @@ panel, hidden fields, and a gate-able Save button. Without this, no GUI story ca
 
 ---
 
-## Phase 3: User Story 1 — Only the relevant time field is shown (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1, Only the relevant time field is shown (Priority: P1) 🎯 MVP
 
-**Goal**: Mode toggles which time input is visible; the other is hidden and never looks active;
-values persist across toggles.
+**Goal**: Mode toggles which time input is visible; the other is hidden and never looks active; values persist across toggles.
 
-**Independent Test**: Open editor, toggle Mode Recurring↔One-off, confirm only the relevant field
-shows and prior text survives the round-trip.
+**Independent Test**: Open editor, toggle Mode Recurring↔One-off, confirm only the relevant field shows and prior text survives the round-trip.
 
 - [x] T008 [US1] Wrap Schedule+Preview and the One-off time input in their own containers held as variables in `gui/editor.go`; in `mode.OnChanged`, `Show()`/`Hide()` the relevant container and `Refresh()` the content (per [contracts/editor-ui.md](contracts/editor-ui.md) state machine).
 - [x] T009 [US1] Ensure both time entries are constructed once and never cleared on toggle so values persist (FR-002).
@@ -69,13 +59,11 @@ shows and prior text survives the round-trip.
 
 ---
 
-## Phase 4: User Story 2 — Guided required-field validation before save (Priority: P1)
+## Phase 4: User Story 2, Guided required-field validation before save (Priority: P1)
 
-**Goal**: Name, Command, and the active time field are marked required; Save is blocked with inline
-feedback until all relevant fields are valid.
+**Goal**: Name, Command, and the active time field are marked required; Save is blocked with inline feedback until all relevant fields are valid.
 
-**Independent Test**: Attempt Save with empty Name/Command → blocked + flagged; fill all required →
-Save enabled.
+**Independent Test**: Attempt Save with empty Name/Command → blocked + flagged; fill all required → Save enabled.
 
 - [x] T011 [US2] Attach `Validator`s to Name, Command, and Timezone (via `timezone.Resolve`) in `gui/editor.go`; mark required fields with a visible "*".
 - [x] T012 [US2] Extend `revalidate()` to compute the mode-dependent required set (Schedule non-empty+parseable for Recurring; valid future timestamp for One-off) and enable/disable Save accordingly (FR-003/004/005/006).
@@ -86,15 +74,13 @@ Save enabled.
 
 ---
 
-## Phase 5: User Story 3 — Combined schedule and command preview (Priority: P1)
+## Phase 5: User Story 3, Combined schedule and command preview (Priority: P1)
 
-**Goal**: Preview shows both the schedule summary + next runs AND the resolved command line;
-guidance text when empty; warning when invalid.
+**Goal**: Preview shows both the schedule summary + next runs AND the resolved command line; guidance text when empty; warning when invalid.
 
-**Independent Test**: Enter command + multi-line args + valid schedule → both blocks render; clear
-schedule → guidance, not blank.
+**Independent Test**: Enter command + multi-line args + valid schedule → both blocks render; clear schedule → guidance, not blank.
 
-- [x] T015 [US3] Add a command-line preview builder (Command + split args, cosmetic quoting of tokens with spaces) — implement as a small pure function in `gui/editor.go` (or `gui/editor_data.go`) reusing `splitArgs` (per [data-model.md](data-model.md) §5).
+- [x] T015 [US3] Add a command-line preview builder (Command + split args, cosmetic quoting of tokens with spaces), implement as a small pure function in `gui/editor.go` (or `gui/editor_data.go`) reusing `splitArgs` (per [data-model.md](data-model.md) §5).
 - [x] T016 [P] [US3] Unit-test the command-line builder in `gui/editor_data_test.go` (no-args, spaced args quoted, blank lines dropped).
 - [x] T017 [US3] Update the Preview area in `gui/editor.go` to render a "Will run:" command-line block (updates on Command/Args change) plus the existing async schedule block; seed empty-state guidance text and an "⚠ <reason>" invalid state (FR-007/008/009).
 - [x] T018 [US3] Add tests in `gui/editor_test.go`: command-line block reflects edits to Command/Args; empty schedule shows guidance not blank.
@@ -103,13 +89,11 @@ schedule → guidance, not blank.
 
 ---
 
-## Phase 6: User Story 4 — Anchor/start time for fixed-interval schedules (Priority: P2)
+## Phase 6: User Story 4, Anchor/start time for fixed-interval schedules (Priority: P2)
 
-**Goal**: Sub-daily interval schedules accept an optional anchor (`starting at`/`from`), aligning
-runs to a chosen phase; GUI offers a "Start at" field only for interval schedules.
+**Goal**: Sub-daily interval schedules accept an optional anchor (`starting at`/`from`), aligning runs to a chosen phase; GUI offers a "Start at" field only for interval schedules.
 
-**Independent Test**: `every 15 minutes starting at 09:00` previews runs on :00/:15/:30/:45; CLI
-parity; non-interval schedules don't offer the field.
+**Independent Test**: `every 15 minutes starting at 09:00` previews runs on :00/:15/:30/:45; CLI parity; non-interval schedules don't offer the field.
 
 ### Tests first (constitution: regression must fail before fix)
 
@@ -127,13 +111,11 @@ parity; non-interval schedules don't offer the field.
 
 ---
 
-## Phase 7: User Story 5 — Easier inputs: timezone dropdown, time picker, schedule help (Priority: P2)
+## Phase 7: User Story 5, Easier inputs: timezone dropdown, time picker, schedule help (Priority: P2)
 
-**Goal**: Searchable timezone combo; one-off time set without raw RFC 3339 + parsed-local echo;
-discoverable schedule examples.
+**Goal**: Searchable timezone combo; one-off time set without raw RFC 3339 + parsed-local echo; discoverable schedule examples.
 
-**Independent Test**: Timezone offers suggestions yet accepts typed IANA; one-off set via inputs
-with live echo; examples reachable.
+**Independent Test**: Timezone offers suggestions yet accepts typed IANA; one-off set via inputs with live echo; examples reachable.
 
 - [x] T025 [US5] Replace the Timezone `Entry` with `widget.NewSelectEntry(commonZones)` in `gui/editor.go`, default `Local`, validated via `timezone.Resolve` (FR-014).
 - [x] T026 [US5] Replace the raw RFC 3339 One-off `Entry` with date + time inputs that assemble a future RFC 3339 instant, plus a live label echoing the parsed local time and a clear past/invalid message (FR-015); keep `submitTask` parsing compatible.
@@ -144,13 +126,11 @@ with live echo; examples reachable.
 
 ---
 
-## Phase 8: User Story 6 — Cleaner, less error-prone layout (Priority: P3)
+## Phase 8: User Story 6, Cleaner, less error-prone layout (Priority: P3)
 
-**Goal**: Visual sections; collapsed Advanced Settings with human-readable overlap/catch-up;
-persistent Arguments caption; pointer cursor on buttons.
+**Goal**: Visual sections; collapsed Advanced Settings with human-readable overlap/catch-up; persistent Arguments caption; pointer cursor on buttons.
 
-**Independent Test**: Sections visible; Advanced collapsed by default with friendly labels that
-persist correct wire values; Arguments caption persists; buttons show hand cursor.
+**Independent Test**: Sections visible; Advanced collapsed by default with friendly labels that persist correct wire values; Arguments caption persists; buttons show hand cursor.
 
 - [x] T029 [US6] Put Overlap and Catch-up inside a `widget.Accordion` "Advanced Settings" item (`Open=false`) in `gui/editor.go`, using the display labels from `gui/editor_data.go`; translate label→wire on submit and wire→label on edit-open (FR-018/019).
 - [x] T030 [US6] Add the persistent muted "One argument per line" caption under the Arguments entry (FR-020).
@@ -176,16 +156,13 @@ persist correct wire values; Arguments caption persists; buttons show hand curso
 
 - **Setup (Phase 1)**: no dependencies.
 - **Foundational (Phase 2)**: depends on Setup; **blocks** US1, US2, US3, US5, US6.
-- **US4 (Phase 6)**: the parser half (T019–T022) depends only on Setup (independent of the GUI
-  rebuild); the GUI half (T023–T024) depends on Foundational.
+- **US4 (Phase 6)**: the parser half (T019–T022) depends only on Setup (independent of the GUI rebuild); the GUI half (T023–T024) depends on Foundational.
 - **Polish (Phase 9)**: after all targeted stories.
 
 ### User Story Dependencies
 
-- US1, US2, US3, US5, US6 all share `gui/editor.go` → implement **sequentially** (recommended
-  order P1s → P2s → P3): US1 → US2 → US3 → US5 → US6.
-- US4 parser work is **independent** of the GUI file and can proceed in parallel with the GUI
-  stories; its GUI field (T023) should land after US3's preview wiring to share the phrase path.
+- US1, US2, US3, US5, US6 all share `gui/editor.go` → implement **sequentially** (recommended order P1s → P2s → P3): US1 → US2 → US3 → US5 → US6.
+- US4 parser work is **independent** of the GUI file and can proceed in parallel with the GUI stories; its GUI field (T023) should land after US3's preview wiring to share the phrase path.
 
 ### Within Each Story
 
@@ -204,7 +181,7 @@ persist correct wire values; Arguments caption persists; buttons show hand curso
 ## Parallel Example: Setup
 
 ```bash
-# Independent files — safe to do together:
+# Independent files, safe to do together:
 Task: "Create gui/editor_test.go harness"          # T001
 Task: "Add label maps + timezone list (gui/editor_data.go)"  # T002
 Task: "Add mapping round-trip tests (gui/editor_data_test.go)"  # T003
@@ -225,8 +202,7 @@ Task: "Anchored-alignment tests in internal/schedule/recur_test.go"        # T02
 
 1. Phase 1 Setup → Phase 2 Foundational (dialog rebuild + custom button).
 2. US1 (mode visibility) → US2 (validation gating) → US3 (combined preview).
-3. **STOP and VALIDATE**: quickstart Scenarios A–C. This alone resolves the worst usability
-   issues and is shippable.
+3. **STOP and VALIDATE**: quickstart Scenarios A–C. This alone resolves the worst usability issues and is shippable.
 
 ### Incremental Delivery
 
@@ -239,10 +215,7 @@ Task: "Anchored-alignment tests in internal/schedule/recur_test.go"        # T02
 
 ## Notes
 
-- `[P]` = different files, no incomplete-task dependency. Most GUI tasks are NOT `[P]` because they
-  edit `gui/editor.go`.
-- The anchor feature requires **no** engine/store/API change — verify this stays true (the phrase
-  carries the anchor); if a test pushes you toward changing `recur.go` or request structs, stop and
-  re-read [contracts/schedule-grammar.md](contracts/schedule-grammar.md).
-- Keep wire/store values unchanged — friendly labels are presentation-only (FR-022).
+- `[P]` = different files, no incomplete-task dependency. Most GUI tasks are NOT `[P]` because they edit `gui/editor.go`.
+- The anchor feature requires **no** engine/store/API change, verify this stays true (the phrase carries the anchor); if a test pushes you toward changing `recur.go` or request structs, stop and re-read [contracts/schedule-grammar.md](contracts/schedule-grammar.md).
+- Keep wire/store values unchanged, friendly labels are presentation-only (FR-022).
 - Run `go test -race` throughout; no wall-clock sleeps in tests (inject `now`).

@@ -8,15 +8,7 @@ Complete issue #8 with one task-level scheduling policy set. Preserve the existi
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0 and Markdown
-**Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions
-**Storage**: SQLite schema v7 with three additive task columns and one nullable schedule epoch
-**Testing**: Go unit/integration tests, real IANA transition matrices, migration/restart/catch-up coverage, GUI headless tests, benchmarks, and eight canonical gates
-**Target Platform**: Windows, Linux, and macOS-supported Go paths
-**Project Type**: Local daemon, CLI, API, and desktop application
-**Performance Goals**: Existing p99 dispatch target below 100 ms; representative policy-aware next-run benchmark within ten percent of baseline
-**Constraints**: Compatibility defaults, exact UTC instants, deterministic tests, one authoritative recurrence contract, UTF-8 without BOM
-**Scale/Scope**: Domain policy model, timezone resolver, recurrence/catch-up/engine, migration/CRUD, API/CLI/GUI, calendar, docs, and issue #8
+**Language/Version**: Go 1.25.0 and Markdown **Primary Dependencies**: Existing `rrule-go`, Cobra, SQLite, and Fyne dependencies; no additions **Storage**: SQLite schema v7 with three additive task columns and one nullable schedule epoch **Testing**: Go unit/integration tests, real IANA transition matrices, migration/restart/catch-up coverage, GUI headless tests, benchmarks, and eight canonical gates **Target Platform**: Windows, Linux, and macOS-supported Go paths **Project Type**: Local daemon, CLI, API, and desktop application **Performance Goals**: Existing p99 dispatch target below 100 ms; representative policy-aware next-run benchmark within ten percent of baseline **Constraints**: Compatibility defaults, exact UTC instants, deterministic tests, one authoritative recurrence contract, UTF-8 without BOM **Scale/Scope**: Domain policy model, timezone resolver, recurrence/catch-up/engine, migration/CRUD, API/CLI/GUI, calendar, docs, and issue #8
 
 ## Constitution Check
 
@@ -58,18 +50,11 @@ Wall-clock recurrence evaluation uses floating calendar values so the recurrence
 
 ### Migrate and expose independently of schedule replacement
 
-Schema v7 adds `time_basis`, `dst_gap_policy`, and `dst_overlap_policy` with
-compatibility defaults, plus a nullable absolute elapsed epoch on Schedule.
-Like missing-date policy, the policy values live on Task and survive schedule
-replacement or unrelated edits. Create, update, preview, CLI flags, and GUI
-Advanced Settings validate the same enum values and elapsed compatibility.
+Schema v7 adds `time_basis`, `dst_gap_policy`, and `dst_overlap_policy` with compatibility defaults, plus a nullable absolute elapsed epoch on Schedule. Like missing-date policy, the policy values live on Task and survive schedule replacement or unrelated edits. Create, update, preview, CLI flags, and GUI Advanced Settings validate the same enum values and elapsed compatibility.
 
 ### Bound fall-overlap lookup to the transition
 
-An ambiguous wall interval is located from the nearby IANA offset transition.
-The evaluator jumps directly to the first recurrence intent that could still
-produce a second-fold instant, then compares it with the normal forward
-candidate. Dense rules therefore do not enumerate a 52-hour window.
+An ambiguous wall interval is located from the nearby IANA offset transition. The evaluator jumps directly to the first recurrence intent that could still produce a second-fold instant, then compares it with the normal forward candidate. Dense rules therefore do not enumerate a 52-hour window.
 
 ## Project Structure
 

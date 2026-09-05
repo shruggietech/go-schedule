@@ -3,7 +3,7 @@
 #
 # This is the single implementation of the gate: CI runs it, and it is one of
 # the CI-parity commands in CLAUDE.md that must be green before a push. Keeping
-# one implementation is deliberate — when the local check and the CI check were
+# one implementation is deliberate, when the local check and the CI check were
 # two different measurements, a push went out that CI then rejected.
 #
 # Written in POSIX sh + awk rather than python so it runs unchanged in Git Bash
@@ -24,7 +24,7 @@ COVERPKG="./internal/engine,./internal/schedule,./internal/timezone,./internal/s
 # instrumented for all six target packages, so a cached result replays a
 # coverage profile enumerating the file set as it was when that result was
 # cached. A package whose own sources did not change is served from cache and
-# drags stale blocks — including blocks for files that have since been deleted —
+# drags stale blocks, including blocks for files that have since been deleted,
 # into the merged profile, inflating the denominator and failing the gate for
 # code that no longer exists.
 test_output=$(mktemp)

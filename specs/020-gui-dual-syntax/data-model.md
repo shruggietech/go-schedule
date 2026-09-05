@@ -21,9 +21,7 @@ The private `taskForm` gains `scheduleSyntax string` beside `schedule`.
 
 ## Task detail prefill
 
-`domain.Task.Schedule.Expression` is the sole Schedule field prefill. The
-response's `SourceSyntax` is descriptive metadata, not mutable editor state.
-The current text is reclassified after every edit.
+`domain.Task.Schedule.Expression` is the sole Schedule field prefill. The response's `SourceSyntax` is descriptive metadata, not mutable editor state. The current text is reclassified after every edit.
 
 ## State transitions
 

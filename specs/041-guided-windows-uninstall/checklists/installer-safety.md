@@ -1,11 +1,8 @@
 # Installer Safety Requirements Checklist: Guided Windows Uninstall Entry
 
-**Purpose**: Review the completeness, clarity, and safety of S041's Windows application-management and removal-entry requirements
-**Created**: 2026-09-02
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Review the completeness, clarity, and safety of S041's Windows application-management and removal-entry requirements **Created**: 2026-09-02 **Feature**: [spec.md](../spec.md)
 
-**Depth**: Release-blocking requirements review
-**Audience**: Pull-request reviewer and release validator
+**Depth**: Release-blocking requirements review **Audience**: Pull-request reviewer and release validator
 
 ## Requirement Completeness
 

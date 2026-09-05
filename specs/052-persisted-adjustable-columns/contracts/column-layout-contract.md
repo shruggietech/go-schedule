@@ -2,8 +2,7 @@
 
 ## Boundary discovery
 
-- Every adjacent pair in Schedule list and Activity has a visible separator and
-  horizontal-resize pointer.
+- Every adjacent pair in Schedule list and Activity has a visible separator and horizontal-resize pointer.
 - Keyboard focus reaches each separator in header order.
 - Its accessible label is `Resize <left> and <right> columns`.
 

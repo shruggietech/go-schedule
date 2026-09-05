@@ -6,11 +6,10 @@ GUI-only; no persistent data. The entities below are transient UI state.
 
 | State | Meaning |
 |-------|---------|
-| `panePreview` | right pane shows the live Preview (schedule summary + next runs + command code block) — the default |
+| `panePreview` | right pane shows the live Preview (schedule summary + next runs + command code block) N/A the default |
 | `paneHelp` | right pane shows the Help guidance |
 
-Transitions: Help toggle flips `panePreview ⇄ paneHelp`. Toggling never rebuilds the form, so
-inputs and the computed preview persist (FR-005).
+Transitions: Help toggle flips `panePreview ⇄ paneHelp`. Toggling never rebuilds the form, so inputs and the computed preview persist (FR-005).
 
 ## 2. Form baseline & dirtiness (drives Cancel confirm)
 
@@ -21,9 +20,7 @@ Baseline captured when the editor opens:
 | New | empty fields; defaults Timezone=`Local`, Overlap/Catch-up = their default labels |
 | Edit | the task's prefilled values |
 
-`isDirty()` = any of {name, command, args, timezone, schedule, startAt, oneOffDate, oneOffTime,
-overlap label, catch-up label} differs from its baseline value. Unchanged defaults are **not**
-dirty. Used by `confirmCancel` (FR-011/FR-012).
+`isDirty()` = any of {name, command, args, timezone, schedule, startAt, oneOffDate, oneOffTime, overlap label, catch-up label} differs from its baseline value. Unchanged defaults are **not** dirty. Used by `confirmCancel` (FR-011/FR-012).
 
 ## 3. Window sizing
 
@@ -43,6 +40,4 @@ dirty. Used by `confirmCancel` (FR-011/FR-012).
 
 ## 5. Cursor-aware buttons (presentation only)
 
-All app toolbar/dialog buttons are constructed as `cursorButton` (implements `desktop.Cursorable`
-→ `PointerCursor`). No behavioral change vs `widget.Button`; only the hover cursor differs
-(FR-013). Disabled buttons need not show the pointer.
+All app toolbar/dialog buttons are constructed as `cursorButton` (implements `desktop.Cursorable` → `PointerCursor`). No behavioral change vs `widget.Button`; only the hover cursor differs (FR-013). Disabled buttons need not show the pointer.

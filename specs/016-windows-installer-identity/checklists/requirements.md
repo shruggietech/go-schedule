@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Windows Installer Identity and Verification
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-08-27
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-08-27 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -31,5 +29,4 @@
 
 ## Notes
 
-- Validation passed on the first iteration. Clean-environment and published-
-  artifact evidence are explicitly separated from local definition checks.
+- Validation passed on the first iteration. Clean-environment and published- artifact evidence are explicitly separated from local definition checks.

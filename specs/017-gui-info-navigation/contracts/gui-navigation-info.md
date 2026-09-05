@@ -22,19 +22,14 @@ Info MUST contain:
 2. the exact running build version, visibly prefixed as a version;
 3. text identifying ShruggieTech as builder and maintainer;
 4. a `ShruggieTech` hyperlink to `https://shruggie.tech`;
-5. a `Source repository` hyperlink to
-   `https://github.com/shruggietech/go-schedule`;
-6. a `Documentation` hyperlink to
-   `https://shruggietech.github.io/go-schedule/`.
+5. a `Source repository` hyperlink to `https://github.com/shruggietech/go-schedule`;
+6. a `Documentation` hyperlink to `https://shruggietech.github.io/go-schedule/`.
 
-All content is local. Merely constructing or selecting Info MUST NOT call the
-daemon, access storage, or contact a network resource.
+All content is local. Merely constructing or selecting Info MUST NOT call the daemon, access storage, or contact a network resource.
 
 ## Presentation Boundary
 
-- Visible text conveys product identity and link purpose without depending on
-  color or imagery alone.
+- Visible text conveys product identity and link purpose without depending on color or imagery alone.
 - The mark uses aspect-preserving containment.
 - Vertically constrained content remains reachable through the view's layout.
-- Activating a hyperlink follows the standard desktop toolkit and operating
-  system behavior; custom navigation, retry, or network handling is out of scope.
+- Activating a hyperlink follows the standard desktop toolkit and operating system behavior; custom navigation, retry, or network handling is out of scope.

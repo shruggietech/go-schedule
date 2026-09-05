@@ -26,7 +26,7 @@ const (
 )
 
 // Field is one parsed crontab field: the set of values it matches, and whether
-// it was a bare "*" (which means "every", not "all values enumerated" — the
+// it was a bare "*" (which means "every", not "all values enumerated", the
 // distinction matters when deciding whether a phrase exists).
 type Field struct {
 	Values   []int
@@ -365,7 +365,7 @@ func parseField(p string, min, max, idx int, quartz bool) (Field, error) {
 		return f, nil
 	}
 
-	// "*/n" — the only step form that also stays a wildcard in meaning.
+	// "*/n", the only step form that also stays a wildcard in meaning.
 	if step, ok := strings.CutPrefix(p, "*/"); ok {
 		n, err := strconv.Atoi(step)
 		if err != nil || n < 1 {
@@ -512,7 +512,7 @@ func (f Field) Single() (int, bool) {
 }
 
 // EveryValue reports whether the field matches every value in its range with no
-// step — a bare "*", or a step of 1.
+// step, a bare "*", or a step of 1.
 func (f Field) EveryValue() bool {
 	return f.Wildcard && (f.Step == 0 || f.Step == 1)
 }

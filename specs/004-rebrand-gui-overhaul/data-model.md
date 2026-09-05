@@ -1,12 +1,10 @@
 # Data Model: Rebrand + GUI & Installer Overhaul
 
-Covers new/changed entities, events, and the store migration. Times are UTC (RFC 3339), per the
-existing convention.
+Covers new/changed entities, events, and the store migration. Times are UTC (RFC 3339), per the existing convention.
 
 ## New entity: LogRecord
 
-A unified log entry surfaced in the Logs view and persisted to the on-disk log file. Produced by
-the daemon's `slog` handler; not stored in SQLite (see research §3).
+A unified log entry surfaced in the Logs view and persisted to the on-disk log file. Produced by the daemon's `slog` handler; not stored in SQLite (see research §3).
 
 | Field        | Type                | Notes                                                        |
 |--------------|---------------------|-------------------------------------------------------------|
@@ -21,22 +19,15 @@ the daemon's `slog` handler; not stored in SQLite (see research §3).
 
 **Severity mapping**: slog `Debug`,`Info` → `info`; `Warn` → `warning`; `Error` → `error`.
 
-**Validation/handling**: records are append-only and immutable; the GUI never edits them. The ring
-holds the most recent N (default 1000); the file holds the rotation window (default 5 × 10 MiB).
+**Validation/handling**: records are append-only and immutable; the GUI never edits them. The ring holds the most recent N (default 1000); the file holds the rotation window (default 5 × 10 MiB).
 
-**JSONL line shape** (on disk): one JSON object per line with the fields above (`attrs` inlined as
-top-level keys is acceptable as long as the reserved keys above are not shadowed). See
-[contracts/log-file.md](contracts/log-file.md).
+**JSONL line shape** (on disk): one JSON object per line with the fields above (`attrs` inlined as top-level keys is acceptable as long as the reserved keys above are not shadowed). See [contracts/log-file.md](contracts/log-file.md).
 
 ## Changed entity: Alert (unchanged shape, unified presentation)
 
-`domain.Alert` keeps its existing fields (`id`, `task_id`, `severity`, `kind`, `message`,
-`created_at`, `acknowledged`) and table. In the GUI it is presented in the same Logs list as
-`LogRecord`, tagged `source = "alert"`, severity reused directly. "Dismiss All" acknowledges the
-shown alerts and clears the in-memory log view; it does not delete the alerts table rows or the
-log file.
+`domain.Alert` keeps its existing fields (`id`, `task_id`, `severity`, `kind`, `message`, `created_at`, `acknowledged`) and table. In the GUI it is presented in the same Logs list as `LogRecord`, tagged `source = "alert"`, severity reused directly. "Dismiss All" acknowledges the shown alerts and clears the in-memory log view; it does not delete the alerts table rows or the log file.
 
-## Events (broker) — additions
+## Events (broker), additions
 
 `events.Event` gains kinds and payloads (broker stays non-blocking / drop-on-full):
 
@@ -59,10 +50,8 @@ Deleted from `domain` and the store:
 
 De-emphasized (kept for history compatibility, no longer produced/dispatched):
 
-- `ScheduleKind` value `event` (`ScheduleEvent`) and `Schedule.TriggerID` — columns remain in the
-  `schedules` table but are unused; new schedules are never of kind `event`.
-- `RunTrigger` value `event` (`TriggerEvent`) — retained as a historical enum value in
-  `runs.trigger`; no new `event` runs are produced.
+- `ScheduleKind` value `event` (`ScheduleEvent`) and `Schedule.TriggerID`, columns remain in the `schedules` table but are unused; new schedules are never of kind `event`.
+- `RunTrigger` value `event` (`TriggerEvent`), retained as a historical enum value in `runs.trigger`; no new `event` runs are produced.
 
 ## Store migration v3
 
@@ -78,11 +67,9 @@ DROP TABLE IF EXISTS triggers;
 - On a DB that contains triggers → tables dropped; daemon starts clean (FR-020).
 - On a DB that never had triggers → `DROP ... IF EXISTS` is a no-op (FR-020).
 - The migration framework records version 3; no data loss outside trigger tables.
-- Optional: before dropping, count rows in `triggers`; if > 0, the daemon logs a one-time
-  `warning` LogRecord noting how many trigger definitions were removed (troubleshooting aid).
+- Optional: before dropping, count rows in `triggers`; if > 0, the daemon logs a one-time `warning` LogRecord noting how many trigger definitions were removed (troubleshooting aid).
 
-**Idempotency / safety**: runs inside the existing transactional migration loop; failure rolls
-back and aborts startup with a wrapped error naming migration 3.
+**Idempotency / safety**: runs inside the existing transactional migration loop; failure rolls back and aborts startup with a wrapped error naming migration 3.
 
 ## Configuration additions (`config.Config`)
 
@@ -93,8 +80,7 @@ back and aborts startup with a wrapped error naming migration 3.
 | `LogMaxFiles`         | int    | `5`                | Rotated files retained (bounds disk, FR-017)   |
 | `LogRingSize`         | int    | `1000`             | Recent records served by `GET /v1/logs`        |
 
-Validation: positive integers (fail-fast, naming the field), consistent with existing `Validate()`
-style. `DataDir`/`DBPath` rename handling (`goschedule` dir, `goschedule.db`) per research §1.
+Validation: positive integers (fail-fast, naming the field), consistent with existing `Validate()` style. `DataDir`/`DBPath` rename handling (`goschedule` dir, `goschedule.db`) per research §1.
 
 ## Entity relationships (after this feature)
 
@@ -103,5 +89,5 @@ Group 1──* Task *──1 Schedule        (Schedule.kind ∈ {one_off, recurr
 Task  1──* Run                       (Run.trigger ∈ {schedule, catchup, manual}; event retired)
 Task  0..1──* Alert                  (existing; shown in Logs view)
 (LogRecord)                          (not persisted in SQLite; file + ring + stream)
-— Trigger, DedupLedger: REMOVED —
+Trigger, DedupLedger: REMOVED,
 ```

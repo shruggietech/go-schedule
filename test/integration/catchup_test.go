@@ -60,7 +60,7 @@ func TestCatchup_OneRunThenResume(t *testing.T) {
 
 	anchor := time.Date(2026, 6, 19, 8, 0, 0, 0, time.UTC)
 	lastRun := time.Date(2026, 6, 19, 9, 0, 0, 0, time.UTC)
-	// Daemon "restarts" at 12:30 — runs at 10:00, 11:00, 12:00 were missed.
+	// Daemon "restarts" at 12:30, runs at 10:00, 11:00, 12:00 were missed.
 	startNow := time.Date(2026, 6, 19, 12, 30, 0, 0, time.UTC)
 
 	task := seedTaskWithRun(t, st, domain.CatchupOne, anchor, lastRun)

@@ -47,12 +47,6 @@ The cross-artifact analysis found no constitution conflict or uncovered function
 
 ## Third-Party Review Remediation
 
-The Codex review on PR #65 identified three valid permissiveness gaps. The
-lifecycle checker now rejects `Pending implementation` and arbitrary nonempty
-delivery text. The Dependabot checker now requires exactly the two approved
-ecosystems and rejects both `major` update types and
-`applies-to: security-updates` in routine groups. Each finding received a
-focused failing fixture before the checker was tightened.
+The Codex review on PR #65 identified three valid permissiveness gaps. The lifecycle checker now rejects `Pending implementation` and arbitrary nonempty delivery text. The Dependabot checker now requires exactly the two approved ecosystems and rejects both `major` update types and `applies-to: security-updates` in routine groups. Each finding received a focused failing fixture before the checker was tightened.
 
-Post-remediation ShellCheck and all eight canonical verification gates passed
-in the foreground with the same coverage results recorded above.
+Post-remediation ShellCheck and all eight canonical verification gates passed in the foreground with the same coverage results recorded above.

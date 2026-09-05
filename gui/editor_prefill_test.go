@@ -48,7 +48,7 @@ func oneOffDetail(t *testing.T, tz string, at time.Time) *server.TaskResponse {
 
 // TestEditor_PrefillsOneOffModeAndInstant covers FR-006/FR-007.
 func TestEditor_PrefillsOneOffModeAndInstant(t *testing.T) {
-	// 14:30 UTC is 09:30 in New York on this date — a zone that actually
+	// 14:30 UTC is 09:30 in New York on this date, a zone that actually
 	// differs, so a naive UTC render would be visibly wrong.
 	at := time.Date(2026, 8, 4, 14, 30, 0, 0, time.UTC)
 	e, _ := newTestEditorDetail(t, oneOffDetail(t, "America/New_York", at))

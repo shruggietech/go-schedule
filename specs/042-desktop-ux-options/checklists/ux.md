@@ -1,8 +1,6 @@
 # UX Requirements Checklist: Desktop UX and Options
 
-**Purpose**: Review the completeness, clarity, consistency, and measurability of S042's desktop interaction and visual requirements
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Review the completeness, clarity, consistency, and measurability of S042's desktop interaction and visual requirements **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 **Note**: This checklist evaluates the requirements themselves for author and pull-request review. It does not substitute for implementation testing.
 
@@ -67,6 +65,5 @@
 
 ## Notes
 
-- Standard-depth reviewer checklist covering interaction, appearance,
-  accessibility, lifecycle safety, and evidence boundaries.
+- Standard-depth reviewer checklist covering interaction, appearance, accessibility, lifecycle safety, and evidence boundaries.
 - Validation passed 38 of 38 requirement-quality checks.

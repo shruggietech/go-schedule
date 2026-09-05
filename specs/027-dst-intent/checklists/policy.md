@@ -1,7 +1,6 @@
 # Requirements Checklist: DST Policy Contract
 
-**Purpose**: Unit-test the policy requirements for completeness, clarity, consistency, and measurable coverage
-**Created**: 2026-08-29
+**Purpose**: Unit-test the policy requirements for completeness, clarity, consistency, and measurable coverage **Created**: 2026-08-29
 
 ## Requirement Completeness
 

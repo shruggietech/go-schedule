@@ -28,10 +28,10 @@ var (
 	cText   = color.NRGBA{R: 0xF3, G: 0xF7, B: 0xF8, A: 0xFF} // primary text
 	cMuted  = color.NRGBA{R: 0x9B, G: 0xAE, B: 0xB6, A: 0xFF} // secondary text / placeholder
 
-	cInterval = color.NRGBA{R: 0x62, G: 0xD9, B: 0xB7, A: 0xFF} // Interval Mint — success/recurrence
-	cAnchor   = color.NRGBA{R: 0x58, G: 0xA6, B: 0xFF, A: 0xFF} // Anchor Blue — primary/focus/links
-	cHold     = color.NRGBA{R: 0xF2, G: 0xB8, B: 0x4B, A: 0xFF} // Hold Amber — warning (rare)
-	cStop     = color.NRGBA{R: 0xE0, G: 0x5F, B: 0x5F, A: 0xFF} // Stop Red — error only
+	cInterval = color.NRGBA{R: 0x62, G: 0xD9, B: 0xB7, A: 0xFF} // Interval Mint, success/recurrence
+	cAnchor   = color.NRGBA{R: 0x58, G: 0xA6, B: 0xFF, A: 0xFF} // Anchor Blue, primary/focus/links
+	cHold     = color.NRGBA{R: 0xF2, G: 0xB8, B: 0x4B, A: 0xFF} // Hold Amber, warning (rare)
+	cStop     = color.NRGBA{R: 0xE0, G: 0x5F, B: 0x5F, A: 0xFF} // Stop Red, error only
 
 	// Light surfaces retain the same semantic accents while supplying sufficient
 	// contrast for body text, selection, inputs, and focus.
@@ -51,7 +51,7 @@ const (
 )
 
 // Brand fonts. Three faces cover the interface: Geist for body/UI, Geist Mono
-// for commands/schedules/labels (the highest-value face — the brand sets all
+// for commands/schedules/labels (the highest-value face, the brand sets all
 // cron fields, timestamps, and daemon output in mono), and Space Grotesk Bold
 // for emphasis/headings. fyne.TextStyle carries no "medium" weight and the UI
 // uses no italics, so those variants are intentionally not embedded.

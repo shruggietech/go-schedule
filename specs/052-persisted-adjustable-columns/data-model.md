@@ -18,11 +18,8 @@
 | Delta | Logical horizontal movement | Finite and clamped by adjacent minimums |
 | Available width | Current table content width | Non-negative after gaps |
 
-Transition: resolve widths, transfer the clamped delta between neighbors,
-normalize, refresh consumers, and persist when the interaction completes.
+Transition: resolve widths, transfer the clamped delta between neighbors, normalize, refresh consumers, and persist when the interaction completes.
 
 ## Stored preference
 
-One atomic current-user JSON value per view. It is accepted only when version,
-identities, length, and every numeric value validate. Rejection returns the
-complete default rather than a partially recovered mixture.
+One atomic current-user JSON value per view. It is accepted only when version, identities, length, and every numeric value validate. Rejection returns the complete default rather than a partially recovered mixture.

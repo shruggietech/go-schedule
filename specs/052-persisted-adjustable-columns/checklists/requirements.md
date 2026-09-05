@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Persisted Adjustable Columns
 
-**Purpose**: Validate specification completeness and quality before planning
-**Created**: 2026-09-05
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before planning **Created**: 2026-09-05 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -31,6 +29,4 @@
 
 ## Notes
 
-- Validated in one pass on 2026-09-05. The phrase "normalized proportions" is
-  a behavioral data contract needed to make cross-DPI restoration testable, not
-  a framework or storage implementation prescription.
+- Validated in one pass on 2026-09-05. The phrase "normalized proportions" is a behavioral data contract needed to make cross-DPI restoration testable, not a framework or storage implementation prescription.

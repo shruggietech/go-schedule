@@ -16,7 +16,7 @@ import (
 // SERVICE_QUERY_CONFIG|SERVICE_QUERY_STATUS|SERVICE_START|SERVICE_STOP. The
 // installed service's ACL grants Interactive Users the query rights but
 // deliberately withholds start and stop, and OpenService evaluates the whole
-// requested mask at once — so a read-only status query failed with "Access is
+// requested mask at once, so a read-only status query failed with "Access is
 // denied" for any non-elevated user, reporting that the ACL forbade something
 // the ACL in fact permitted.
 //

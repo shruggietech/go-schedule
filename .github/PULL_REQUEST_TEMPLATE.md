@@ -1,13 +1,8 @@
 # Pull request
 
-Every change to `main` uses this pull-request workflow, whether it comes from a
-maintainer, an automation agent, or an outside contributor.
+Every change to `main` uses this pull-request workflow, whether it comes from a maintainer, an automation agent, or an outside contributor.
 
-If you are about to propose something substantial, please open an issue first.
-Every feature on this project is specified through
-[Spec Kit](https://github.com/github/spec-kit) before it is built, and a large
-change that arrives without a spec is likely to need reworking rather than
-merging.
+If you are about to propose something substantial, please open an issue first. Every feature on this project is specified through [Spec Kit](https://github.com/github/spec-kit) before it is built, and a large change that arrives without a spec is likely to need reworking rather than merging.
 
 ## What this changes
 
@@ -17,9 +12,7 @@ Closes #
 
 ## Verification
 
-Run the canonical CI-parity aggregate in the **foreground**, watch it finish,
-and paste its result. The gates are documented in
-[CONTRIBUTING.md](../CONTRIBUTING.md).
+Run the canonical CI-parity aggregate in the **foreground**, watch it finish, and paste its result. The gates are documented in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ```sh
 sh scripts/verify.sh all

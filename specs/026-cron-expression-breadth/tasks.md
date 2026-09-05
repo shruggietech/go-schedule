@@ -1,7 +1,6 @@
 # Tasks: General Five-Field Cron Breadth
 
-**Input**: Design documents from `specs/026-cron-expression-breadth/`
-**Tests**: Required by the specification and constitution; behavioral tasks follow test-first order.
+**Input**: Design documents from `specs/026-cron-expression-breadth/` **Tests**: Required by the specification and constitution; behavioral tasks follow test-first order.
 
 ## Phase 1: Setup
 

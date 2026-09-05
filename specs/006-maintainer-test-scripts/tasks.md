@@ -1,15 +1,10 @@
 # Tasks: Maintainer Test Scripts and Vendored Skills
 
-**Feature**: 006-maintainer-test-scripts | **Date**: 2026-07-23
-**Input**: [plan.md](plan.md), [spec.md](spec.md), [data-model.md](data-model.md),
-[contracts/cli.md](contracts/cli.md), [research.md](research.md), [quickstart.md](quickstart.md)
+**Feature**: 006-maintainer-test-scripts | **Date**: 2026-07-23 **Input**: [plan.md](plan.md), [spec.md](spec.md), [data-model.md](data-model.md), [contracts/cli.md](contracts/cli.md), [research.md](research.md), [quickstart.md](quickstart.md)
 
-Tests are **required**, not optional — constitution principle II is non-negotiable and
-explicitly covers integration tests for concurrent execution and recovery.
+Tests are **required**, not optional, constitution principle II is non-negotiable and explicitly covers integration tests for concurrent execution and recovery.
 
-**Parallelism note**: `[P]` marks tasks touching different files with no incomplete
-dependency. The dominant constraint here is that the PowerShell and POSIX twins of any given
-script are always parallelizable with each other, but both depend on their own `lib/`.
+**Parallelism note**: `[P]` marks tasks touching different files with no incomplete dependency. The dominant constraint here is that the PowerShell and POSIX twins of any given script are always parallelizable with each other, but both depend on their own `lib/`.
 
 **Task Reconciliation**: Commit `78b33b8` and release `v0.5.0` delivered this checklist; follow-up commits `2403ce9`, `6bb34e0`, `e7e7b7e`, and `6b0ae53` corrected observed portability defects. The 2026-08-30 lifecycle audit corrected markers that remained in their generated state.
 
@@ -20,19 +15,16 @@ script are always parallelizable with each other, but both depend on their own `
 - [x] T001 Create the `test/scripts/` and `test/scripts/lib/` directory structure per plan.md
 - [x] T003 [P] Write `test/scripts/README.md` as a short pointer to `docs/test-scripts.md`, not a duplicate of it
 
-> **T002 was merged into T041.** Both touched `.gitignore`, which is a pinned artifact; two
-> edits in two phases meant two chances for only one of them to reach the changelog decision
-> entry that a pinned change requires. One task, one edit, one record.
+> **T002 was merged into T041.** Both touched `.gitignore`, which is a pinned artifact; two edits in two phases meant two chances for only one of them to reach the changelog decision entry that a pinned change requires. One task, one edit, one record.
 
 ---
 
 ## Phase 2: Foundational (blocks every user story)
 
-This is the shared library. FR-021d requires exactly one implementation per twin, so every
-later task consumes these rather than re-deriving them.
+This is the shared library. FR-021d requires exactly one implementation per twin, so every later task consumes these rather than re-deriving them.
 
 - [x] T004 Create `test/scripts/lib/sqlite-manifest.json` with the pinned upstream version, per-platform URLs, SHA-256 fields, cross-checked SHA3-256, and the pin date (research §R4)
-- [x] T005 Populate the manifest checksums from bytes actually fetched and hashed. If the fetch cannot be performed, leave them empty and make the installer refuse to run — never write a plausible-looking hash (research §R4)
+- [x] T005 Populate the manifest checksums from bytes actually fetched and hashed. If the fetch cannot be performed, leave them empty and make the installer refuse to run, never write a plausible-looking hash (research §R4)
 - [x] T006 Implement `Resolve-Sqlite` in `test/scripts/lib/Sqlite.ps1`: strict precedence (explicit → `.bin/` → PATH), version gate at 3.33.0, and treat an unusable or too-old candidate as not-found so the search continues (FR-016, FR-016a)
 - [x] T007 [P] Implement the same resolution in `test/scripts/lib/sqlite.sh` with identical precedence and version gating (FR-015, FR-016a)
 - [x] T008 Implement `Install-Sqlite` in `test/scripts/lib/Sqlite.ps1`: platform/arch detection, download to temp, SHA-256 verify **before** unpack, delete on mismatch, unpack to `.bin/`, post-install version check (FR-018, FR-018a, FR-018b)
@@ -50,18 +42,16 @@ later task consumes these rather than re-deriving them.
 
 ---
 
-## Phase 3: User Story 1 — Prove the scheduler fires on time (P1) 🎯 MVP
+## Phase 3: User Story 1, Prove the scheduler fires on time (P1) 🎯 MVP
 
-**Goal**: a maintainer can register a recurring task and get a quantified on-time-firing
-verdict with drift and missed-firing figures.
+**Goal**: a maintainer can register a recurring task and get a quantified on-time-firing verdict with drift and missed-firing figures.
 
-**Independent test**: register one task against the heartbeat script, let it run several
-intervals, run the `cadence`, `drift`, and `gaps` queries.
+**Independent test**: register one task against the heartbeat script, let it run several intervals, run the `cadence`, `drift`, and `gaps` queries.
 
 - [x] T018 [US1] Write the failing integration test for single-shot recording in `test/integration/testscripts_test.go`: one invocation writes exactly one beat, exit 0, with `t.Skip` and a stated reason when `sqlite3`/`pwsh`/`bash` is absent (research §R7)
 - [x] T019 [US1] Implement `test/scripts/Test-Heartbeat.ps1` single-shot path: capture start in memory, do the work, write one beat at run end (FR-001, FR-021c)
 - [x] T020 [P] [US1] Implement the same single-shot path in `test/scripts/Test-Heartbeat.sh` (FR-015)
-- [x] T021 [US1] Implement the three-tier expected-moment precedence in both heartbeat twins — `GOSCHED_SCHEDULED_TIME` → interval boundary snap → none — recording `expected_source` on every beat and never emitting drift without it (FR-003, FR-003a, research §R1)
+- [x] T021 [US1] Implement the three-tier expected-moment precedence in both heartbeat twins, `GOSCHED_SCHEDULED_TIME` → interval boundary snap → none, recording `expected_source` on every beat and never emitting drift without it (FR-003, FR-003a, research §R1)
 - [x] T022 [US1] Implement `-SleepSeconds` / `--sleep-seconds` and `-FailWith` / `--fail-with` in both heartbeat twins, with `--fail-with` rejecting the reserved codes 0 and 2, and the beat still written on induced failure (FR-005, FR-006)
 - [x] T023 [US1] Implement bounded `-Loop` / `--loop` in both heartbeat twins: first-bound-wins, a default duration bound when neither is given, and the duration checked between beats (FR-004, FR-004a)
 - [x] T024 [US1] Write the failing integration test for the bounded loop and the exit-code contract in `test/integration/testscripts_test.go`: `--fail-with` exits as asked *and* records; `--max-beats` bounds the loop; a bogus `--sqlite-exe` exits **2**, not 1
@@ -69,19 +59,18 @@ intervals, run the `cadence`, `drift`, and `gaps` queries.
 - [x] T026 [P] [US1] Implement the same reader skeleton in `test/scripts/Test-ReadTestDB.sh` (FR-015)
 - [x] T027 [US1] Implement the `cadence`, `drift`, and `gaps` queries in both reader twins, including the per-source drift breakdown, the excluded-row disclosure, the quarter-interval unreliability flag, and the inferred-vs-supplied interval disclosure (FR-013, FR-013a, FR-013b)
 
-**Checkpoint**: US1 is independently shippable — quickstart scenarios 1, 2, and 8 pass.
+**Checkpoint**: US1 is independently shippable, quickstart scenarios 1, 2, and 8 pass.
 
 ---
 
-## Phase 4: User Story 2 — Restarts, downtime, and overlap (P2)
+## Phase 4: User Story 2, Restarts, downtime, and overlap (P2)
 
 **Goal**: the harder guarantees become answerable from recorded history.
 
-**Independent test**: stop the daemon across a firing, restart, confirm one make-up beat and
-a visible session boundary.
+**Independent test**: stop the daemon across a firing, restart, confirm one make-up beat and a visible session boundary.
 
 - [x] T028 [US2] Write the failing integration test for concurrent writers in `test/integration/testscripts_test.go`: two simultaneous invocations both land their beats, neither fails on contention (FR-021, SC-007)
-- [x] T029 [US2] Implement the `overlaps` query in both reader twins as an intersection of `[started_ms, finished_ms]` ranges — decidable only because both endpoints are stored (FR-013, data-model)
+- [x] T029 [US2] Implement the `overlaps` query in both reader twins as an intersection of `[started_ms, finished_ms]` ranges, decidable only because both endpoints are stored (FR-013, data-model)
 - [x] T030 [P] [US2] Implement the `restarts` query in both reader twins: session and pid boundaries, confirming recording continued across them (FR-013)
 - [x] T031 [P] [US2] Implement the `failures` query in both reader twins over non-zero `exit_code` (FR-013)
 - [x] T032 [US2] Add a CHECK-backed assertion that `outcome` and `exit_code` never disagree, and an integration test covering it (FR-017)
@@ -90,18 +79,16 @@ a visible session boundary.
 
 ---
 
-## Phase 5: User Story 3 — Host snapshot as a realistic workload (P2)
+## Phase 5: User Story 3, Host snapshot as a realistic workload (P2)
 
-**Goal**: a scheduled task that exercises subprocess spawning, platform tooling, and
-multi-row writes — where cross-platform bugs actually surface.
+**Goal**: a scheduled task that exercises subprocess spawning, platform tooling, and multi-row writes, where cross-platform bugs actually surface.
 
-**Independent test**: invoke once per platform; a complete snapshot lands with addresses and
-ports attached.
+**Independent test**: invoke once per platform; a complete snapshot lands with addresses and ports attached.
 
 - [x] T033 [US3] Write the failing integration test for snapshot recording in `test/integration/testscripts_test.go`: one snapshot with non-null required columns, plus child rows where the platform permits
 - [x] T034 [US3] Implement `test/scripts/Test-GetSystemInfo.ps1` core snapshot: timestamps, tz offset, hostname, username, process count, uptime, platform, `script_flavor`, `invocation_source` (FR-007, FR-010)
 - [x] T035 [P] [US3] Implement the same core snapshot in `test/scripts/Test-GetSystemInfo.sh` (FR-015)
-- [x] T036 [US3] Implement `$IsWindows` branching in `Test-GetSystemInfo.ps1` so the PowerShell twin never assumes Windows-only cmdlets and falls through to POSIX commands elsewhere — the highest-risk code in the feature (research §R6)
+- [x] T036 [US3] Implement `$IsWindows` branching in `Test-GetSystemInfo.ps1` so the PowerShell twin never assumes Windows-only cmdlets and falls through to POSIX commands elsewhere, the highest-risk code in the feature (research §R6)
 - [x] T037 [US3] Implement the address probe in both system-info twins with the fixed documented fallback order, writing `snapshot_address` rows (FR-008, FR-018d)
 - [x] T038 [US3] Implement the listening-port probe in both system-info twins with the fixed fallback order and `-SkipPorts` / `--skip-ports`, writing `snapshot_port` rows (FR-008, FR-018d)
 - [x] T039 [US3] Implement graceful probe degradation in both system-info twins: record `NULL`, warn on stderr, never abort the snapshot, and never conflate `NULL` with a legitimate zero (FR-009)
@@ -111,20 +98,19 @@ ports attached.
 
 ---
 
-## Phase 6: User Story 4 — House standards on a fresh clone (P3)
+## Phase 6: User Story 4, House standards on a fresh clone (P3)
 
-**Goal**: a fresh clone arrives with spec-kit commands and house standards, and without
-credentials.
+**Goal**: a fresh clone arrives with spec-kit commands and house standards, and without credentials.
 
 **Independent test**: clone to a clean directory; skills present, no credential file.
 
-- [x] T041 [US4] Change `.gitignore` in one edit: `.claude/*` plus `!.claude/skills/` (exclude-then-narrowly-admit, not a denylist), and `test/scripts/.bin/` so a locally installed `sqlite3` is never tracked (FR-026, FR-026a, FR-027). **PINNED ARTIFACT — requires the dated CHANGELOG decision in T056**
+- [x] T041 [US4] Change `.gitignore` in one edit: `.claude/*` plus `!.claude/skills/` (exclude-then-narrowly-admit, not a denylist), and `test/scripts/.bin/` so a locally installed `sqlite3` is never tracked (FR-026, FR-026a, FR-027). **PINNED ARTIFACT, requires the dated CHANGELOG decision in T056**
 - [x] T042 [P] [US4] Vendor `shruggie-powershell` into `.claude/skills/` with a provenance note recording source and date (FR-028, research §R9)
 - [x] T043 [P] [US4] Vendor `shruggie-markdown` into `.claude/skills/` with a provenance note (FR-028)
 - [x] T044 [P] [US4] Vendor `shruggie-speckit` into `.claude/skills/` with a provenance note (FR-028)
 - [x] T045 [P] [US4] Vendor `gh-fix-ci` into `.claude/skills/` with a provenance note (FR-028)
 - [x] T046 [US4] Author the new project-native `.claude/skills/go-schedule-verify/SKILL.md`: the six CI-parity commands, the foreground-only rule, `-coverpkg` cross-package coverage semantics, and both local-environment traps (FR-028)
-- [x] T047 [US4] Run the repository-hygiene check: `git status --porcelain .claude` must show skills only, no settings or credential file swept in by the negation; **then clone the repository to a temporary directory and confirm `.claude/skills/` arrives populated with no post-clone step** — SC-006 says "fresh clone", and inspecting the working tree is not the same claim (FR-026b, SC-006)
+- [x] T047 [US4] Run the repository-hygiene check: `git status --porcelain .claude` must show skills only, no settings or credential file swept in by the negation; **then clone the repository to a temporary directory and confirm `.claude/skills/` arrives populated with no post-clone step**, SC-006 says "fresh clone", and inspecting the working tree is not the same claim (FR-026b, SC-006)
 
 **Checkpoint**: quickstart scenario 9 passes.
 
@@ -133,12 +119,12 @@ credentials.
 ## Phase 7: Polish & Cross-Cutting
 
 - [x] T048 Write `docs/test-scripts.md` to the vendored Markdown house style: prerequisites, quickstart, per-script reference for both twins, schemas, query catalog, exit-code table, troubleshooting (FR-023)
-- [x] T049 Add the worked end-to-end recipes to `docs/test-scripts.md` — on-time firing, restart survival, downtime catch-up, each overlap policy, failure reporting (FR-024)
+- [x] T049 Add the worked end-to-end recipes to `docs/test-scripts.md`, on-time firing, restart survival, downtime catch-up, each overlap policy, failure reporting (FR-024)
 - [x] T050 Add the POSIX-shell conventions section to `docs/test-scripts.md`, mirroring the PowerShell contract point for point, since no separate shell standard exists (FR-025)
 - [x] T051 Document in `docs/test-scripts.md`: the no-retention policy with approximate growth rates (FR-022a), the duration-bound overrun (FR-004a), and the `run_as` different-user directory consequence (research §R2)
 - [x] T052 [P] Add a one-line pointer to `docs/test-scripts.md` from `README.md`
 - [x] T053 [P] Add `-Help` / `--help` usage output to all six scripts (FR-022)
-- [x] T054 Run `gofmt`, `go vet`, `golangci-lint`, the test suite, and `scripts/coverage-gate.sh` in the foreground, watched to completion. Report the `-race` result honestly — this machine has no C compiler, so it cannot run locally and is deferred to CI (research §R8)
+- [x] T054 Run `gofmt`, `go vet`, `golangci-lint`, the test suite, and `scripts/coverage-gate.sh` in the foreground, watched to completion. Report the `-race` result honestly, this machine has no C compiler, so it cannot run locally and is deferred to CI (research §R8)
 - [x] T055 Run `shellcheck` against all `.sh` files and the ShruggieTech compliance checker against all `.ps1` files; report honestly if a linter is unavailable rather than reporting a pass
 - [x] T056 Update `CHANGELOG.md`: Added entries, plus the **dated Decisions entry for the `.gitignore` pinned-artifact change** (FR-029) and for the drift-derivation approach
 - [x] T057 Write the **twin-parity test** in `test/integration/testscripts_test.go`: run both twins of each script against one database and assert the recorded rows are equivalent field-for-field apart from `script_flavor`, and that every documented option exists on both sides. Research §R6 names twin divergence the likeliest defect in this feature and nothing else asserts against it (SC-004, FR-015)
@@ -161,7 +147,7 @@ Setup (T001–T003)
 
 - **US4 shares no code with US1–US3.** It could be done first, last, or by a different person.
 - **US3 is independent of US1 and US2** beyond the shared `lib/`.
-- **US2 genuinely depends on US1** — it queries the beats US1 records.
+- **US2 genuinely depends on US1**, it queries the beats US1 records.
 
 ## Parallel Opportunities
 
@@ -173,42 +159,22 @@ Setup (T001–T003)
 
 ## Implementation Strategy
 
-**MVP = Phase 1 + Phase 2 + Phase 3 (US1).** That alone delivers the feature's core promise:
-a maintainer can prove the scheduler fires on time and quantify the drift. Everything after
-it is additive.
+**MVP = Phase 1 + Phase 2 + Phase 3 (US1).** That alone delivers the feature's core promise: a maintainer can prove the scheduler fires on time and quantify the drift. Everything after it is additive.
 
-Then US3 (different execution profile, catches cross-platform bugs), then US2 (the harder
-guarantees), then US4 (no runtime behavior, no risk), then Polish.
+Then US3 (different execution profile, catches cross-platform bugs), then US2 (the harder guarantees), then US4 (no runtime behavior, no risk), then Polish.
 
-**Task count**: 58 — Setup 2, Foundational 14, US1 10, US2 5, US3 8, US4 7, Polish 12.
-(T002 merged into T041; T057–T059 added by the analyze gate.)
+**Task count**: 58, Setup 2, Foundational 14, US1 10, US2 5, US3 8, US4 7, Polish 12. (T002 merged into T041; T057–T059 added by the analyze gate.)
 
 ## Analyze Gate Record (2026-07-23)
 
-The gate passed with **zero CRITICAL findings**, so no early halt. Eight findings were
-raised; the five that mattered are resolved above rather than deferred:
+The gate passed with **zero CRITICAL findings**, so no early halt. Eight findings were raised; the five that mattered are resolved above rather than deferred:
 
-- **F1 (HIGH) — silent deviation from an approved artifact.** The POSIX twins had been
-  renamed to kebab-case (`test-heartbeat.sh`) on POSIX-idiom grounds. But the operator's
-  request and the approved plan both name them `Test-Heartbeat.sh`, and quietly improving an
-  approved decision is not the agent's call to make. Reverted across plan, tasks, and
-  contracts. The paired naming also makes the twins visually adjacent in a directory listing,
-  which suits a design whose central risk is the two halves drifting apart.
-- **C1 (HIGH) — twin parity had no test.** Research §R6 identifies twin divergence as the
-  likeliest defect in the feature, and no task asserted against it: the tests exercised one
-  twin and assumed the other. Added T057.
-- **C2 (HIGH) — SC-001 and SC-003 had no owner.** Both are claims about what a maintainer
-  can do in a given time, and neither is provable from unit tests. Added T058 to actually
-  walk the quickstart and record the timings.
-- **C3 (MEDIUM) — "fresh clone" was being checked by looking at the working tree**, which is
-  a different claim. T047 now performs the clone.
-- **I1 (MEDIUM) — two tasks edited `.gitignore`** in different phases. One pinned artifact,
-  one edit, one changelog record. Merged into T041.
+- **F1 (HIGH), silent deviation from an approved artifact.** The POSIX twins had been renamed to kebab-case (`test-heartbeat.sh`) on POSIX-idiom grounds. But the operator's request and the approved plan both name them `Test-Heartbeat.sh`, and quietly improving an approved decision is not the agent's call to make. Reverted across plan, tasks, and contracts. The paired naming also makes the twins visually adjacent in a directory listing, which suits a design whose central risk is the two halves drifting apart.
+- **C1 (HIGH), twin parity had no test.** Research §R6 identifies twin divergence as the likeliest defect in the feature, and no task asserted against it: the tests exercised one twin and assumed the other. Added T057.
+- **C2 (HIGH), SC-001 and SC-003 had no owner.** Both are claims about what a maintainer can do in a given time, and neither is provable from unit tests. Added T058 to actually walk the quickstart and record the timings.
+- **C3 (MEDIUM), "fresh clone" was being checked by looking at the working tree**, which is a different claim. T047 now performs the clone.
+- **I1 (MEDIUM), two tasks edited `.gitignore`** in different phases. One pinned artifact, one edit, one changelog record. Merged into T041.
 
-T059 was added on top of the findings: the verification report's honesty obligations are
-themselves easy to lose between running the gates and writing the halt breakdown, and a
-skipped gate reported as green would silently invalidate every other claim in that report.
+T059 was added on top of the findings: the verification report's honesty obligations are themselves easy to lose between running the gates and writing the halt breakdown, and a skipped gate reported as green would silently invalidate every other claim in that report.
 
-I2 (test-after-implementation within US1) and L1 (`--help` scheduled in Polish) were assessed
-and accepted — constitution principle II permits tests written *alongside* the code, and
-neither blocks anything.
+I2 (test-after-implementation within US1) and L1 (`--help` scheduled in Polish) were assessed and accepted, constitution principle II permits tests written *alongside* the code, and neither blocks anything.

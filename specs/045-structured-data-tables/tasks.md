@@ -190,8 +190,4 @@ After both are red, implement the Task mapping and structured view in gui/tasks.
 
 - #112 and #113 remain separately traceable; neither closes until its native Windows acceptance evidence is complete.
 - #102 and #110 are explicit non-goals.
-- The implementation uses no new module dependency, persistence migration,
-  sorting control, or horizontal scroll path. First-round review required one
-  bounded deviation: Calendar now returns the existing stored run ID on past
-  occurrences because equal-time run rows cannot have stable identities without
-  a source discriminator.
+- The implementation uses no new module dependency, persistence migration, sorting control, or horizontal scroll path. First-round review required one bounded deviation: Calendar now returns the existing stored run ID on past occurrences because equal-time run rows cannot have stable identities without a source discriminator.

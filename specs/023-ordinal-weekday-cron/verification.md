@@ -8,24 +8,15 @@
 
 ## Test-first evidence
 
-- RED: `go test ./internal/cron -count=1` failed on the new supported import,
-  35-case export matrix, policy, and round-trip expectations while production
-  still returned the prior `#` and ordinal-weekday refusals.
-- RED: `go test ./internal/scheduleinput ./internal/cli ./internal/api/server
-  -count=1` failed at the shared input, crontab import, conversion, preview, and
-  create boundaries while `#` remained refused.
+- RED: `go test ./internal/cron -count=1` failed on the new supported import, 35-case export matrix, policy, and round-trip expectations while production still returned the prior `#` and ordinal-weekday refusals.
+- RED: `go test ./internal/scheduleinput ./internal/cli ./internal/api/server -count=1` failed at the shared input, crontab import, conversion, preview, and create boundaries while `#` remained refused.
 
 ## Focused verification
 
-- PASS: `go test ./internal/cron ./internal/scheduleinput ./internal/cli
-  ./internal/api/server -count=1`
-- PASS: all 35 weekday/ordinal exports, Sunday aliases, malformed/refused
-  shapes, effective policy matrix, task non-mutation, and January-through-May
-  fifth-Friday round trip across the March DST transition.
+- PASS: `go test ./internal/cron ./internal/scheduleinput ./internal/cli ./internal/api/server -count=1`
+- PASS: all 35 weekday/ordinal exports, Sunday aliases, malformed/refused shapes, effective policy matrix, task non-mutation, and January-through-May fifth-Friday round trip across the March DST transition.
 - PASS: `sh scripts/docs-check.sh` (11 pages plus current-surface policy fixtures).
-- PASS: final Spec-Kit analysis found 100% task coverage for all 17 functional
-  requirements and 6 success criteria, zero unmapped tasks, zero ambiguity or
-  duplication findings, and zero constitutional conflicts.
+- PASS: final Spec-Kit analysis found 100% task coverage for all 17 functional requirements and 6 success criteria, zero unmapped tasks, zero ambiguity or duplication findings, and zero constitutional conflicts.
 
 ## Canonical verification
 

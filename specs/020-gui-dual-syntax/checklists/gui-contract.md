@@ -1,11 +1,6 @@
 # Requirements Quality Checklist: GUI Dual-Syntax Contract
 
-**Purpose**: Validate that S020's GUI input, preview, editing, error, compatibility,
-and discoverability requirements are complete enough for implementation and PR review
-**Created**: 2026-08-28
-**Feature**: [spec.md](../spec.md)
-**Audience**: Author and third-party PR reviewers
-**Depth**: Standard correctness and UX gate
+**Purpose**: Validate that S020's GUI input, preview, editing, error, compatibility, and discoverability requirements are complete enough for implementation and PR review **Created**: 2026-08-28 **Feature**: [spec.md](../spec.md) **Audience**: Author and third-party PR reviewers **Depth**: Standard correctness and UX gate
 
 ## Requirement Completeness
 
@@ -57,5 +52,4 @@ and discoverability requirements are complete enough for implementation and PR r
 
 ## Notes
 
-- Validated against the clarified specification on 2026-08-28: 30/30 items
-  pass. No unresolved requirement-quality gap remains for the selected scope.
+- Validated against the clarified specification on 2026-08-28: 30/30 items pass. No unresolved requirement-quality gap remains for the selected scope.

@@ -63,7 +63,7 @@ func NearestDisabledGroup(groupID string, byID map[string]domain.Group) (domain.
 }
 
 // WouldCycle reports whether making newParent the parent of groupID would create
-// a cycle — i.e. newParent is groupID itself or a descendant of groupID.
+// a cycle, i.e. newParent is groupID itself or a descendant of groupID.
 func WouldCycle(groupID, newParent string, byID map[string]domain.Group) bool {
 	if newParent == "" {
 		return false

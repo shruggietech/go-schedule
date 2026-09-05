@@ -1,8 +1,6 @@
 # Cron Fidelity Requirements Checklist
 
-**Purpose**: Validate that S023's ordinal-weekday requirements are complete, precise, and safe against silent timing changes
-**Created**: 2026-08-28
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that S023's ordinal-weekday requirements are complete, precise, and safe against silent timing changes **Created**: 2026-08-28 **Feature**: [spec.md](../spec.md)
 
 ## Syntax Boundary Completeness
 

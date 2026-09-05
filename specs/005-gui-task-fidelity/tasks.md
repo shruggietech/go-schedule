@@ -3,43 +3,34 @@
 description: "Task list for 005-gui-task-fidelity"
 ---
 
-# Tasks: GUI task fidelity — schedule round-trip and group assignment
+# Tasks: GUI task fidelity, schedule round-trip and group assignment
 
 **Input**: Design documents from `/specs/005-gui-task-fidelity/`
 
-**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md),
-[data-model.md](data-model.md), [contracts/task-update.md](contracts/task-update.md)
+**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/task-update.md](contracts/task-update.md)
 
-**Tests**: REQUIRED, not optional. Constitution principle II is non-negotiable
-and FR-023/FR-024 mandate a regression test per fixed defect plus a
-migration-survival test. Every test task is written and observed **failing**
-before its implementation task.
+**Tests**: REQUIRED, not optional. Constitution principle II is non-negotiable and FR-023/FR-024 mandate a regression test per fixed defect plus a migration-survival test. Every test task is written and observed **failing** before its implementation task.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: US1 (schedule fidelity), US2 (assign to group), US3 (ungroup),
-  US4 (hierarchy membership), or FOUND (shared prerequisite)
+- **[Story]**: US1 (schedule fidelity), US2 (assign to group), US3 (ungroup), US4 (hierarchy membership), or FOUND (shared prerequisite)
 
 ## Path Conventions
 
-Single Go module at repository root. Production code in `internal/**` and
-`gui/**`; tests live beside the code they cover (`*_test.go`), per existing
-project convention.
+Single Go module at repository root. Production code in `internal/**` and `gui/**`; tests live beside the code they cover (`*_test.go`), per existing project convention.
 
 ---
 
 ## Phase 1: Setup
 
-No setup tasks. The module, toolchain, linter, and CI parity commands already
-exist and are unchanged by this feature (see plan.md → Pinned artifacts).
+No setup tasks. The module, toolchain, linter, and CI parity commands already exist and are unchanged by this feature (see plan.md → Pinned artifacts).
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Persist and recover the schedule phrase, and make the group
-tri-state expressible. Every user story depends on some part of this.
+**Purpose**: Persist and recover the schedule phrase, and make the group tri-state expressible. Every user story depends on some part of this.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
@@ -68,16 +59,10 @@ tri-state expressible. Every user story depends on some part of this.
 ### Phrase capture and recovery
 
 - [x] T005 [FOUND] Set `sch.Expression = strings.TrimSpace(input)` in `finish()`
-      in `internal/schedule/parse.go` — one place covers all four parse branches.
+      in `internal/schedule/parse.go`, one place covers all four parse branches.
       Extend `parse_test.go` to assert the phrase is captured. `NewOneOff` in
       `recur.go` is deliberately left alone (data-model.md).
-- ~~T006 / T007 — build `schedule.Render`, an RRULE→phrase inverse, so schedules
-  stored before the `expression` column existed could still be shown.~~
-  **Removed 2026-07-22.** Built on a wrong premise: there is no installed base.
-  The software has no working deployments and the only databases are the
-  maintainers' own, none functional. `render.go` and `render_test.go` are
-  deleted; the phrase-retention assertion moved into `parse_test.go`. See
-  research.md R1 (superseded note).
+- ~~T006 / T007, build `schedule.Render`, an RRULE→phrase inverse, so schedules stored before the `expression` column existed could still be shown.~~ **Removed 2026-07-22.** Built on a wrong premise: there is no installed base. The software has no working deployments and the only databases are the maintainers' own, none functional. `render.go` and `render_test.go` are deleted; the phrase-retention assertion moved into `parse_test.go`. See research.md R1 (superseded note).
 
 ### Contract: tri-state group membership
 
@@ -90,7 +75,7 @@ tri-state expressible. Every user story depends on some part of this.
       `internal/api/server/update.go`, replace the `!= ""` test with the
       nil/empty/non-empty tri-state, and validate a non-empty ID via
       `store.GetGroup` returning `CodeValidation` on miss. **Single atomic task**
-      — this is a compile-breaking type change, so update every in-repo call site
+     , this is a compile-breaking type change, so update every in-repo call site
       in the same commit: `internal/cli/task.go`, `gui/editor.go`, and any
       server test constructing the struct. Makes T008 pass.
 - [x] T010 [FOUND] Write a CLI test asserting `--group ""` ungroups while an
@@ -98,26 +83,19 @@ tri-state expressible. Every user story depends on some part of this.
       `internal/cli/task.go` with `cmd.Flags().Changed("group")` (FR-015,
       contracts/task-update.md).
 
-**Checkpoint**: the phrase persists and is recoverable, and all three group
-intents are expressible end to end. User stories can begin.
+**Checkpoint**: the phrase persists and is recoverable, and all three group intents are expressible end to end. User stories can begin.
 
 ---
 
-## Phase 3: User Story 1 — See a task's real schedule when editing (P1) 🎯 MVP
+## Phase 3: User Story 1, See a task's real schedule when editing (P1) 🎯 MVP
 
-**Goal**: The Edit dialog reflects the task's actual mode and timing, and an
-untouched save changes nothing.
+**Goal**: The Edit dialog reflects the task's actual mode and timing, and an untouched save changes nothing.
 
-**Independent Test**: Create one recurring and one one-off task, reopen each,
-confirm the dialog matches what was created, save untouched, confirm next-run
-times are identical. No group work involved.
+**Independent Test**: Create one recurring and one one-off task, reopen each, confirm the dialog matches what was created, save untouched, confirm next-run times are identical. No group work involved.
 
 ### Tests for User Story 1 ⚠️ write first, observe failing
 
-> **Expected red state**: T013–T017 are written against the
-> `*server.TaskResponse` editor signature that T021 introduces, so their first
-> failure is a **compile** error, not an assertion failure. That is the correct
-> red state here — do not "fix" it by reordering T021 ahead of the tests.
+> **Expected red state**: T013–T017 are written against the `*server.TaskResponse` editor signature that T021 introduces, so their first failure is a **compile** error, not an assertion failure. That is the correct red state here, do not "fix" it by reordering T021 ahead of the tests.
 
 - [x] T011 [P] [US1] `internal/api/server/expression_test.go`: the phrase a
       schedule was created from is served on task detail and survives a round
@@ -127,7 +105,7 @@ times are identical. No group work involved.
 - [x] T012 [P] [US1] `internal/api/server/update_test.go`: changing only the
       timezone and resubmitting the phrase re-anchors the recurrence in the new
       zone (FR-011). Note this requirement is satisfied *as a consequence of*
-      T022 — once the editor prefills the phrase, a normal save resubmits it and
+      T022, once the editor prefills the phrase, a normal save resubmits it and
       the server re-parses in the new zone. The test pins that behavior so it
       cannot silently regress.
 - [x] T013 [P] [US1] `gui/editor_test.go` (headless): prefill from a **one-off**
@@ -143,23 +121,17 @@ times are identical. No group work involved.
 - [x] T016 [P] [US1] `gui/editor_test.go`: switching Mode on an existing task
       with the new mode's timing fields empty leaves Save disabled; not switching
       Mode still allows a blank schedule to mean "keep existing" (FR-011b, R11).
-- ~~T017 — with an empty `Expression`, show the schedule's `HumanSummary` in the
-  preview (FR-010).~~ **Removed 2026-07-22** with FR-010: `Parse` is the only
-  producer of recurring schedules and always retains the phrase, so an empty
-  `Expression` on a recurring schedule is unreachable. The separate
-  "schedule could not be read" path (FR-009) still exists and is still tested.
+- ~~T017, with an empty `Expression`, show the schedule's `HumanSummary` in the preview (FR-010).~~ **Removed 2026-07-22** with FR-010: `Parse` is the only producer of recurring schedules and always retains the phrase, so an empty `Expression` on a recurring schedule is unreachable. The separate "schedule could not be read" path (FR-009) still exists and is still tested.
 - [x] T017a [P] [US1] `internal/api/server/update_test.go`: create a task, then
       submit an update carrying **no** schedule and no `at` (the untouched-save
       shape), and assert the schedule ID and the computed next-run times are
-      byte-identical before and after. This is SC-002 — the feature's central
-      promise — and it must be verified automatically, not only in the manual
+      byte-identical before and after. This is SC-002, the feature's central
+      promise, and it must be verified automatically, not only in the manual
       walkthrough. *(analyze finding E3)*
 
 ### Implementation for User Story 1
 
-- ~~T018 — have `taskDetail` fill `Expression` via `Render` when empty.~~
-  **Removed 2026-07-22** with the renderer. `taskDetail` is unchanged from
-  `main`; the phrase reaches clients straight from storage.
+- ~~T018, have `taskDetail` fill `Expression` via `Render` when empty.~~ **Removed 2026-07-22** with the renderer. `taskDetail` is unchanged from `main`; the phrase reaches clients straight from storage.
 - [x] T019 [US1] Add `GetTask(ctx, id) (server.TaskResponse, error)` to the
       `Backend` interface in `gui/app.go` and to the fake in `gui/app_test.go`.
       **Do this before any other GUI task** or every `gui/` test fails to
@@ -180,29 +152,23 @@ times are identical. No group work involved.
 - [x] T023 [US1] Scope the blank-keeps-existing allowance in `valid()` in
       `gui/editor.go` to "mode unchanged from the stored mode" rather than
       `existing == nil` (FR-011b, R11). Makes T016 pass.
-- ~~T023a — seed the preview with `HumanSummary` when `Expression` is empty.~~
-  **Removed 2026-07-22** with T017 and FR-010. (This task was itself added to
-  close analyze finding E1; removing the requirement removes the gap.)
+- ~~T023a, seed the preview with `HumanSummary` when `Expression` is empty.~~ **Removed 2026-07-22** with T017 and FR-010. (This task was itself added to close analyze finding E1; removing the requirement removes the gap.)
 
-**Checkpoint**: US1 fully functional and independently testable. This alone is a
-shippable fix for issue #4.
+**Checkpoint**: US1 fully functional and independently testable. This alone is a shippable fix for issue #4.
 
 ---
 
-## Phase 4: User Story 2 — Assign a task to a group (P2)
+## Phase 4: User Story 2, Assign a task to a group (P2)
 
-**Goal**: A group can be chosen when creating or editing a task, and membership
-is visible in the task list.
+**Goal**: A group can be chosen when creating or editing a task, and membership is visible in the task list.
 
-**Independent Test**: Create a group, assign a task to it from the editor,
-confirm the task list shows it, disable the group and confirm the cascade
-suppresses the task.
+**Independent Test**: Create a group, assign a task to it from the editor, confirm the task list shows it, disable the group and confirm the cascade suppresses the task.
 
 ### Tests for User Story 2 ⚠️ write first, observe failing
 
 - [x] T024 [P] [US2] `gui/editor_data_test.go`: the group choice helper emits
       `(none)` plus one entry per group, each showing its hierarchy path, and
-      maps a chosen label back to the right group ID — including same-named
+      maps a chosen label back to the right group ID, including same-named
       groups at different levels (FR-012, FR-013, R8).
 - [x] T025 [P] [US2] `gui/editor_test.go`: the editor prefills the group choice
       from the task's `GroupID`, an unresolvable ID prefills as `(none)` without
@@ -232,13 +198,11 @@ suppresses the task.
 
 ---
 
-## Phase 5: User Story 3 — Take a task back out of a group (P2)
+## Phase 5: User Story 3, Take a task back out of a group (P2)
 
-**Goal**: A task can be returned to ungrouped from the GUI and is still visible
-afterwards.
+**Goal**: A task can be returned to ungrouped from the GUI and is still visible afterwards.
 
-**Independent Test**: Assign a task to a group, remove it from all groups,
-confirm it is listed as ungrouped and still runs.
+**Independent Test**: Assign a task to a group, remove it from all groups, confirm it is listed as ungrouped and still runs.
 
 ### Tests for User Story 3 ⚠️ write first, observe failing
 
@@ -253,22 +217,17 @@ confirm it is listed as ungrouped and still runs.
       when it did not, so a no-op edit does not emit a pointless write. Makes
       T030 pass.
 
-**Note**: the server and CLI halves of this story are T009 and T010 in the
-foundational phase — the capability had to exist at the shared boundary before
-any client could use it.
+**Note**: the server and CLI halves of this story are T009 and T010 in the foundational phase, the capability had to exist at the shared boundary before any client could use it.
 
 **Checkpoint**: assignment and its reverse both work from the GUI and the CLI.
 
 ---
 
-## Phase 6: User Story 4 — See group membership in the hierarchy (P3)
+## Phase 6: User Story 4, See group membership in the hierarchy (P3)
 
-**Goal**: The Groups tab shows member tasks, an always-present ungrouped area,
-and a move action.
+**Goal**: The Groups tab shows member tasks, an always-present ungrouped area, and a move action.
 
-**Independent Test**: With tasks across two groups and one ungrouped, confirm
-every task appears exactly once under the right parent, then move one and
-confirm it relocates live.
+**Independent Test**: With tasks across two groups and one ungrouped, confirm every task appears exactly once under the right parent, then move one and confirm it relocates live.
 
 ### Tests for User Story 4 ⚠️ write first, observe failing
 
@@ -305,15 +264,12 @@ confirm it relocates live.
 - [x] T040a [P] [US4] `gui/groups_test.go`: applying a `KindTask` event that
       changes a task's `GroupID` moves the task under the new group in the tree
       with no manual refresh, and applying a `KindTask` delete removes it from
-      the tree (FR-022, SC-006). *(analyze finding E2 — FR-022 was asserted by
+      the tree (FR-022, SC-006). *(analyze finding E2, FR-022 was asserted by
       inspection with no test. The Groups tab now reads `Tasks`, a dependency it
       did not previously have, so the assumption needs pinning rather than
       trusting.)*
 
-**Note**: no new refresh *path* is needed — the existing `KindTask` fold in
-`gui/viewmodel/viewmodel.go` plus `onModelChange` fanning out to every
-registered refresher already delivers this. T040a exists to prove that, not to
-build it.
+**Note**: no new refresh *path* is needed, the existing `KindTask` fold in `gui/viewmodel/viewmodel.go` plus `onModelChange` fanning out to every registered refresher already delivers this. T040a exists to prove that, not to build it.
 
 **Checkpoint**: all four stories independently functional.
 
@@ -327,13 +283,13 @@ build it.
       `specs/001-task-scheduler/contracts/cli.md`.
 - [x] T043 [P] Add a roadmap line under **Polish & cross-cutting** in `TODO.md`
       so the feature traces to the roadmap as the autopilot protocol requires.
-- [x] T044 `CHANGELOG.md` — Unreleased **Fixed** entries for issues #3 and #4,
+- [x] T044 `CHANGELOG.md`, Unreleased **Fixed** entries for issues #3 and #4,
       plus dated **Decisions** entries for migration v4, the read-time renderer
       (R2), and the tri-state `group_id` contract change (R5).
 - [x] T045 Confirm core-package coverage stays at or above 80% and no exported
       addition lacks a doc comment (principles I and II).
 - [x] T046 Run the full CI-parity suite from [quickstart.md](quickstart.md) in
-      the **foreground**, watched to completion — never backgrounded.
+      the **foreground**, watched to completion, never backgrounded.
       *Status*: `gofmt` clean, `go vet` clean, `golangci-lint@v2.1.6` reports
       **0 issues**, full test suite passes. The one command not run is the
       `-race` suite: `-race` requires cgo and this machine has no C compiler
@@ -355,24 +311,16 @@ build it.
 
 ### Phase dependencies
 
-- **Phase 2 (Foundational)** blocks everything. Within it:
-  T001 → T002 → T003 → T004 (domain field before storage before persistence);
-  T005 needs T001; T006 → T007; T008 → T009 → T010.
-  T005–T007 are independent of T008–T010 and may proceed in parallel.
-- **US1 (Phase 3)** needs T001–T007. **US2 (Phase 4)** needs T009.
-  **US3 (Phase 5)** needs T009 and T028. **US4 (Phase 6)** needs T027.
+- **Phase 2 (Foundational)** blocks everything. Within it: T001 → T002 → T003 → T004 (domain field before storage before persistence); T005 needs T001; T006 → T007; T008 → T009 → T010. T005–T007 are independent of T008–T010 and may proceed in parallel.
+- **US1 (Phase 3)** needs T001–T007. **US2 (Phase 4)** needs T009. **US3 (Phase 5)** needs T009 and T028. **US4 (Phase 6)** needs T027.
 - **Phase 7** needs every story intended for this release.
 
 ### Hard sequencing constraints
 
-1. **T009 is atomic.** The `*string` change breaks compilation across the
-   server, CLI, GUI, and tests; splitting it leaves the tree unbuildable.
-2. **T019 precedes every other GUI task.** Without `GetTask` on the interface and
-   the fake, the whole `gui/` package fails to compile.
-3. **T027 precedes T028 and T039.** Both consume the single choice-list source;
-   building either list independently reintroduces the drift CHK045 flagged.
-4. **Every test task precedes its implementation task and must be observed
-   failing first** (principle II, FR-023).
+1. **T009 is atomic.** The `*string` change breaks compilation across the server, CLI, GUI, and tests; splitting it leaves the tree unbuildable.
+2. **T019 precedes every other GUI task.** Without `GetTask` on the interface and the fake, the whole `gui/` package fails to compile.
+3. **T027 precedes T028 and T039.** Both consume the single choice-list source; building either list independently reintroduces the drift CHK045 flagged.
+4. **Every test task precedes its implementation task and must be observed failing first** (principle II, FR-023).
 
 ### Parallel opportunities
 
@@ -388,11 +336,9 @@ build it.
 **MVP first**: Phase 2 → Phase 3 → validate US1 independently. That closes issue
 #4, the more severe defect, and is shippable on its own.
 
-**Then incrementally**: US2 → US3 → US4, each validated independently, together
-closing issue #3.
+**Then incrementally**: US2 → US3 → US4, each validated independently, together closing issue #3.
 
-Single-operator execution, so the parallel-team strategy in the template does not
-apply; the `[P]` markers indicate only that tasks touch disjoint files.
+Single-operator execution, so the parallel-team strategy in the template does not apply; the `[P]` markers indicate only that tasks touch disjoint files.
 
 ---
 

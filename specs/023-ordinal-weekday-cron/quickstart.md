@@ -21,20 +21,14 @@ Sunday input may use `0`, `7`, or `SUN`; export always uses `0`.
 
 ## Import a crontab job
 
-A line such as `0 9 * * 5#3 report-command` previews as a job with the third
-Friday phrase. Creation retains `0 9 * * 5#3` as the schedule expression and
-marks its syntax as cron.
+A line such as `0 9 * * 5#3 report-command` previews as a job with the third Friday phrase. Creation retains `0 9 * * 5#3` as the schedule expression and marks its syntax as cron.
 
 ## Intentional boundaries
 
 - Ordinal must be 1 through 5.
 - Exactly one weekday and one ordinal are supported.
 - Day-of-month and month must remain unrestricted.
-- Lists, ranges, steps, multiple terms, `L`, `W`, six fields, and `@reboot`
-  remain refused.
-- Fifth-weekday export requires skip behavior because some months have no fifth
-  occurrence.
+- Lists, ranges, steps, multiple terms, `L`, `W`, six fields, and `@reboot` remain refused.
+- Fifth-weekday export requires skip behavior because some months have no fifth occurrence.
 
-This is a documented go-schedule five-field extension. It does not claim that
-every POSIX, Vixie-derived, Quartz, or hosted cron implementation accepts the
-same expression.
+This is a documented go-schedule five-field extension. It does not claim that every POSIX, Vixie-derived, Quartz, or hosted cron implementation accepts the same expression.

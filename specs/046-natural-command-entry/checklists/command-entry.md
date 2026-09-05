@@ -1,8 +1,6 @@
 # Command Entry Requirements Checklist: Natural Command Entry
 
-**Purpose**: Review the S046 requirements for command-entry clarity, lossless compatibility, and direct-execution safety before implementation
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Review the S046 requirements for command-entry clarity, lossless compatibility, and direct-execution safety before implementation **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 **Note**: This checklist tests whether the requirements are complete and reviewable. It does not test the implementation.
 

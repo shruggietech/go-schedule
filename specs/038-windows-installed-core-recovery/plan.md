@@ -54,11 +54,7 @@ Resolve the configured group, enumerate member records, validate every SID with 
 
 Extend `Invoke-InstallerLifecycle.ps1` with an execution-probe scenario that requires an elevated installed lifecycle context only for setup, but calls the installed CLI and daemon for all product operations. It creates deterministic tasks using absolute inbox Windows PowerShell, direct .NET marker-file I/O, and explicit noninteractive arguments. It captures manual and scheduled run JSON, marker hashes/content, service account, and correlated logs. The existing fake integration runner remains useful for scheduler timing but is not accepted as Windows execution proof.
 
-Add a narrower disposable Windows CI probe that builds the daemon and CLI,
-creates the authorization alias, registers the daemon as LocalSystem, and
-executes the same success and failure controls. This automates the service
-boundary without claiming ordinary-token IPC, candidate-MSI, or release-gate
-coverage.
+Add a narrower disposable Windows CI probe that builds the daemon and CLI, creates the authorization alias, registers the daemon as LocalSystem, and executes the same success and failure controls. This automates the service boundary without claiming ordinary-token IPC, candidate-MSI, or release-gate coverage.
 
 ### Distinguish process-start failure without leaking inputs
 

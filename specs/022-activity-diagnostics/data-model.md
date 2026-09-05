@@ -7,8 +7,7 @@
 | `logs` | array of log records | yes | Bounded recent records, newest first. |
 | `log_path` | string | yes | Exact configured daemon log path; empty means unavailable. |
 
-The path is metadata about the complete rotating log and is independent of
-whether `logs` contains records.
+The path is metadata about the complete rotating log and is independent of whether `logs` contains records.
 
 ## GUI state
 
@@ -17,8 +16,7 @@ whether `logs` contains records.
 | `Logs` | log-record slice | Current bounded records. |
 | `LogPath` | string | Last exact path learned from a successful refresh. |
 
-A successful refresh replaces both values under one lock. Live log events may
-change `Logs` but retain `LogPath`.
+A successful refresh replaces both values under one lock. Live log events may change `Logs` but retain `LogPath`.
 
 ## Activity diagnostics text
 

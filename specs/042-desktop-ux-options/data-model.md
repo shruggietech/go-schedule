@@ -1,7 +1,6 @@
 # Data Model: Desktop UX and Options
 
-S042 adds no daemon database entity or migration. It introduces bounded
-per-user appearance preferences and in-memory desktop interaction state.
+S042 adds no daemon database entity or migration. It introduces bounded per-user appearance preferences and in-memory desktop interaction state.
 
 ## Appearance preferences
 
@@ -10,10 +9,7 @@ per-user appearance preferences and in-memory desktop interaction state.
 | Mode | `dark`, `light`, `system` | `dark` | Fyne per-user preferences |
 | Font | `brand`, `system`, `monospace` | `brand` | Fyne per-user preferences |
 
-Unknown, empty, or malformed identifiers normalize independently to their
-defaults. Applying a preference creates a new immutable theme value and replaces
-the application setting. Reset persists and applies both defaults through one
-initiating UI action; persistence does not claim a multi-key transaction.
+Unknown, empty, or malformed identifiers normalize independently to their defaults. Applying a preference creates a new immutable theme value and replaces the application setting. Reset persists and applies both defaults through one initiating UI action; persistence does not claim a multi-key transaction.
 
 ## Storage location
 
@@ -27,9 +23,7 @@ initiating UI action; persistence does not claim a multi-key transaction.
 | Software-only removal | Plain-language retention behavior |
 | Explicit data wipe | Plain-language removal or retention behavior |
 
-Resolution is a pure ordered transformation over daemon-reported runtime paths,
-the platform-owned root, executable, application-storage, and stat inputs. It
-never creates, deletes, opens, or recursively searches a path.
+Resolution is a pure ordered transformation over daemon-reported runtime paths, the platform-owned root, executable, application-storage, and stat inputs. It never creates, deletes, opens, or recursively searches a path.
 
 ## Navigation destination
 
@@ -41,9 +35,7 @@ never creates, deletes, opens, or recursively searches a path.
 | Selected | Exactly one ordinary destination is selected |
 | Button | Focusable activation control |
 
-Required destination order is Tasks, Groups, Chains, Schedule, Activity,
-Options, Info. Exit is a navigation command, never a destination, and therefore
-has no selected state or content.
+Required destination order is Tasks, Groups, Chains, Schedule, Activity, Options, Info. Exit is a navigation command, never a destination, and therefore has no selected state or content.
 
 ## Task-row identity
 

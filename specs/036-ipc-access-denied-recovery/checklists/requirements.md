@@ -1,8 +1,6 @@
 # Specification Quality Checklist: IPC Access-Denied Recovery
 
-**Purpose**: Validate specification completeness and quality before planning
-**Created**: 2026-08-31
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before planning **Created**: 2026-08-31 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

@@ -2,20 +2,14 @@
 
 > **Historical boundary notice (2026-08-28):** This S008 artifact records the original import/export-only cron boundary. S019 introduced shared CLI/API human-or-cron task input, S020 extended it to the GUI, and S021 defines the current product documentation and fidelity policy. The original text below is intentionally preserved as chronological evidence.
 
-**Purpose**: Validate that the requirements governing cron conversion are
-complete, unambiguous, and leave no room for a silent approximation — in either
-direction, and between what a preview promises and what an import produces.
-**Created**: 2026-07-23
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that the requirements governing cron conversion are complete, unambiguous, and leave no room for a silent approximation, in either direction, and between what a preview promises and what an import produces. **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
 
-**Note**: This is a requirements-quality checklist. Every item asks whether the
-specification says enough, clearly enough, to be implemented and verified — not
-whether the code works.
+**Note**: This is a requirements-quality checklist. Every item asks whether the specification says enough, clearly enough, to be implemented and verified, not whether the code works.
 
 ## Requirement Completeness
 
 - [x] CHK001 Is the accepted cron dialect named precisely enough to bound the
-      work — field count, field order, and which named shorthands are in?
+      work, field count, field order, and which named shorthands are in?
       [Completeness, Spec §FR-001]
 - [x] CHK002 Is the set of explicitly declined inputs enumerated rather than
       described as "non-standard extensions"? [Completeness, Spec §FR-002]
@@ -23,9 +17,9 @@ whether the code works.
       task payload, field by field (command, arguments, working directory)?
       [Completeness, Spec §FR-006]
 - [x] CHK004 Are requirements defined for crontab content that is neither a
-      schedule line nor a comment — variable assignments, `MAILTO`, blank lines?
+      schedule line nor a comment, variable assignments, `MAILTO`, blank lines?
       [Completeness, Spec §FR-007, Edge Cases]
-- [x] CHK005 Is the composition of the import summary specified — which totals
+- [x] CHK005 Is the composition of the import summary specified, which totals
       it reports and which fidelity statements it must make? [Completeness,
       Spec §FR-009, §FR-010]
 - [x] CHK006 Are requirements defined for the naming of imported tasks, given
@@ -36,7 +30,7 @@ whether the code works.
 ## Requirement Clarity
 
 - [x] CHK008 Is "never approximate" stated as a testable rule rather than an
-      aspiration — i.e. is there a defined observable outcome (a named refusal)
+      aspiration, i.e. is there a defined observable outcome (a named refusal)
       for every input the system will not convert? [Clarity, Spec §FR-002]
 - [x] CHK009 Is the single conversion route (cron → phrase → schedule) stated as
       a requirement, so that a second route would be a spec violation rather
@@ -68,7 +62,7 @@ whether the code works.
 
 ## Acceptance Criteria Quality
 
-- [x] CHK017 Is the round-trip success criterion measurable — does it name the
+- [x] CHK017 Is the round-trip success criterion measurable, does it name the
       comparison window and the boundaries it must cross? [Measurability,
       Spec §FR-013, §SC-003]
 - [x] CHK018 Can "no line is silently dropped or silently altered" be verified
@@ -80,7 +74,7 @@ whether the code works.
 ## Scenario Coverage
 
 - [x] CHK020 Are requirements defined for a crontab that is entirely
-      unsupported — does the run succeed with zero creations, or fail?
+      unsupported, does the run succeed with zero creations, or fail?
       [Coverage, Exception Flow]
 - [x] CHK021 Are requirements defined for a partially supported crontab in a
       real (non-preview) import, including whether supported lines are still
@@ -92,7 +86,7 @@ whether the code works.
 - [x] CHK024 Are requirements defined for an export of an empty task set?
       [Coverage, Gap]
 - [x] CHK025 Are recovery requirements defined for an import that fails partway
-      through — is a partial import acceptable, and is it visible? [Recovery,
+      through, is a partial import acceptable, and is it visible? [Recovery,
       Gap]
 
 ## Dependencies & Assumptions
@@ -117,5 +111,4 @@ whether the code works.
 ## Notes
 
 - Check items off as completed: `[x]`
-- An unchecked item is a spec defect to fix before `/speckit-plan`, not a code
-  defect.
+- An unchecked item is a spec defect to fix before `/speckit-plan`, not a code defect.

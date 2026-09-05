@@ -4,8 +4,7 @@
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-**Tests**: Required by the specification and constitution. Behavioral tests are
-recorded red before production changes.
+**Tests**: Required by the specification and constitution. Behavioral tests are recorded red before production changes.
 
 ## Phase 1: Setup and Baseline
 
@@ -16,8 +15,7 @@ recorded red before production changes.
 
 ## Phase 2: User Story 1 - Create and Preview Cron (Priority: P1)
 
-**Goal**: A supported cron expression validates, previews, and creates through
-the existing Schedule field with cron identity.
+**Goal**: A supported cron expression validates, previews, and creates through the existing Schedule field with cron identity.
 
 ### Tests
 
@@ -34,8 +32,7 @@ the existing Schedule field with cron identity.
 
 ## Phase 3: User Story 2 - Edit in Original or Switched Syntax (Priority: P2)
 
-**Goal**: Retained cron prefill remains exact, while save and preview follow the
-current text after either syntax switch.
+**Goal**: Retained cron prefill remains exact, while save and preview follow the current text after either syntax switch.
 
 ### Tests
 
@@ -52,8 +49,7 @@ current text after either syntax switch.
 
 ## Phase 4: User Story 3 - Explain the Dual-Syntax Field (Priority: P3)
 
-**Goal**: GUI-local help tells the truth without absorbing issue #52's broad
-documentation work.
+**Goal**: GUI-local help tells the truth without absorbing issue #52's broad documentation work.
 
 - [X] T013 [US3] Add or update focused help/content assertions for human-first examples, five-field cron, and the fidelity guide
 - [X] T014 [US3] Update the field hint and in-editor help in `gui/editor.go`

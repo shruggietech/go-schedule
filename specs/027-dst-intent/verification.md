@@ -17,8 +17,7 @@
 ## Focused verification
 
 - `go test ./...`: PASS.
-- Quickstart focused suites across timezone, schedule, catch-up, engine, store,
-  API, CLI, and GUI: PASS.
+- Quickstart focused suites across timezone, schedule, catch-up, engine, store, API, CLI, and GUI: PASS.
 - Policy-aware benchmark medians: wall-clock 39,951 ns/op, elapsed 30,401 ns/op, UTC 1,485 ns/op.
 - Existing representative median: 40,379 ns/op before and 39,291 ns/op after (2.7 percent faster). The isolated 120,736 ns sample was a system-noise outlier; all policy medians remain far below the 100 ms p99 dispatch budget.
 - Explicit deviation: existing missing-date-only `NextRun` and `UpcomingRuns` wrappers remain for source compatibility, while engine, catch-up, task detail, preview, and calendar use the complete SchedulePolicy entry points. This avoids mechanical test churn without creating a second evaluator.
@@ -45,14 +44,7 @@
 
 ## Third-party review remediation (2026-08-29)
 
-- Dense `both`/`last` fall-overlap evaluation now jumps to the actual repeated
-  interval instead of scanning 52 hours; an every-second allocation bound
-  guards the hot path.
-- Elapsed schedules persist one absolute UTC epoch. API coverage proves a
-  timezone-only update leaves the phase and next run unchanged.
-- Desktop Save validation now applies recurrence-policy compatibility locally,
-  including elapsed monthly/yearly refusal.
-- Post-remediation canonical gates: format PASS; vet PASS; lint PASS (0
-  issues); GUI PASS; coverage PASS (engine 88.1%, schedule 89.1%, timezone
-  91.3%, store 86.9%, catch-up 88.9%, logbus 91.1%); docs PASS; automation
-  PASS; WSL race and integration PASS.
+- Dense `both`/`last` fall-overlap evaluation now jumps to the actual repeated interval instead of scanning 52 hours; an every-second allocation bound guards the hot path.
+- Elapsed schedules persist one absolute UTC epoch. API coverage proves a timezone-only update leaves the phase and next run unchanged.
+- Desktop Save validation now applies recurrence-policy compatibility locally, including elapsed monthly/yearly refusal.
+- Post-remediation canonical gates: format PASS; vet PASS; lint PASS (0 issues); GUI PASS; coverage PASS (engine 88.1%, schedule 89.1%, timezone 91.3%, store 86.9%, catch-up 88.9%, logbus 91.1%); docs PASS; automation PASS; WSL race and integration PASS.

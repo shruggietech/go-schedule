@@ -2,8 +2,7 @@
 
 **Date**: 2026-08-28
 
-This feature persists no data. Its model consists of immutable values for one
-local conversion.
+This feature persists no data. Its model consists of immutable values for one local conversion.
 
 ## Syntax
 
@@ -18,10 +17,8 @@ Validation rules:
 
 - A requested destination must be empty (automatic), `cron`, or `human`.
 - Input and output syntax always differ.
-- Automatic input identity is derived once and never changed after a parse
-  failure.
-- Five-field auto-detection also requires the first field to have a cron minute
-  shape, preserving current five-field human phrases.
+- Automatic input identity is derived once and never changed after a parse failure.
+- Five-field auto-detection also requires the first field to have a cron minute shape, preserving current five-field human phrases.
 
 ## Conversion
 
@@ -37,8 +34,7 @@ Invariants:
 
 - Exactly one of `output` and `refusal_reason` is non-empty.
 - A refusal never carries an approximated expression.
-- The value contains no daemon response, task identifier, timestamp, preview,
-  or persisted state.
+- The value contains no daemon response, task identifier, timestamp, preview, or persisted state.
 
 ## State Transition
 
@@ -55,9 +51,6 @@ There is no retry into the other syntax and no storage lifecycle.
 
 ## Existing Domain Relationship
 
-- Cron-to-human uses the current parsed cron specification and named
-  `Unsupported` outcome.
-- Human-to-cron uses a transient recurring `domain.Schedule` and its existing
-  missing-date fidelity rules.
-- Normal task export additionally owns enabled/state policy. The extracted
-  schedule renderer does not weaken those task-level checks.
+- Cron-to-human uses the current parsed cron specification and named `Unsupported` outcome.
+- Human-to-cron uses a transient recurring `domain.Schedule` and its existing missing-date fidelity rules.
+- Normal task export additionally owns enabled/state policy. The extracted schedule renderer does not weaken those task-level checks.

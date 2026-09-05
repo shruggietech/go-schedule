@@ -1,7 +1,6 @@
 # Tasks: v0.9 Closure and Maintenance Automation
 
-**Input**: Design documents from `specs/029-v09-closure/`
-**Tests**: Required by constitution Principle II and the S029 lifecycle/automation contract.
+**Input**: Design documents from `specs/029-v09-closure/` **Tests**: Required by constitution Principle II and the S029 lifecycle/automation contract.
 
 ## Phase 1: Setup and Evidence
 

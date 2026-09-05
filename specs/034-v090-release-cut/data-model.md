@@ -1,7 +1,6 @@
 # Data Model: v0.9.0 Release Cut
 
-S034 adds no application database entity. Its durable records are repository and
-GitHub release objects.
+S034 adds no application database entity. Its durable records are repository and GitHub release objects.
 
 ## Release Boundary
 
@@ -11,8 +10,7 @@ GitHub release objects.
 - **Reviewed commit**: the S034 pull-request merge commit
 - **State**: prepared, reviewed, tagged, publishing, verified, or failed
 
-Transitions are monotonic except that a failed publication may be retried for
-the same immutable tag after the cause is corrected without changing content.
+Transitions are monotonic except that a failed publication may be retried for the same immutable tag after the cause is corrected without changing content.
 
 ## Release Notes
 
@@ -20,8 +18,7 @@ the same immutable tag after the cause is corrected without changing content.
 - **Title**: Highlights
 - **Highlights**: four to six user-meaningful bullets
 - **Detailed record**: one link to the v0.9.0 changelog at the same tag
-- **Excluded content**: generated change inventories, installation guidance,
-  and copied detailed changelog entries
+- **Excluded content**: generated change inventories, installation guidance, and copied detailed changelog entries
 
 ## Artifact Set
 

@@ -6,9 +6,7 @@
 | --- | --- | --- |
 | Enabled | optional boolean | Omitted preserves the existing active default; explicit false creates the task disabled; explicit true creates it enabled |
 
-The intent exists only at the create boundary. The persisted `Task.Enabled`
-boolean remains authoritative after creation, and edit requests do not inherit
-or synthesize this creation-only intent.
+The intent exists only at the create boundary. The persisted `Task.Enabled` boolean remains authoritative after creation, and edit requests do not inherit or synthesize this creation-only intent.
 
 ## EffectiveTaskState
 
@@ -26,12 +24,10 @@ or synthesize this creation-only intent.
 1. A configured-disabled task reports `Task disabled`.
 2. A non-active lifecycle reports its normalized lifecycle reason.
 3. A disabled direct/ancestor group reports the nearest disabled group.
-4. A group chain rejected for a non-named reason (such as a cycle) reports
-   `Group chain unavailable`.
+4. A group chain rejected for a non-named reason (such as a cycle) reports `Group chain unavailable`.
 5. Otherwise the task reports `Runnable`.
 
-No effective-state value is persisted. It is recomputed from each live task and
-group snapshot.
+No effective-state value is persisted. It is recomputed from each live task and group snapshot.
 
 ## Run
 
@@ -41,8 +37,7 @@ Existing fields remain unchanged. S051 adds:
 | --- | --- | --- | --- |
 | OutputTruncated | boolean | false | True only when one or more process-output bytes were discarded after reaching the configured capture cap |
 
-The `Output` string never exceeds the configured cap. `OutputTruncated` is
-metadata and does not consume or replace captured bytes.
+The `Output` string never exceeds the configured cap. `OutputTruncated` is metadata and does not consume or replace captured bytes.
 
 ## Alert
 
@@ -52,8 +47,7 @@ Existing fields remain unchanged. S051 adds:
 | --- | --- | --- | --- |
 | RunID | optional string | empty | Populated for newly created `run_failed` alerts with the exact persisted run ID; empty for other and legacy alerts |
 
-`RunID` deliberately remains a durable identifier if its run is later removed.
-An absent referenced run produces an unavailable diagnostic, never a substitute.
+`RunID` deliberately remains a durable identifier if its run is later removed. An absent referenced run produces an unavailable diagnostic, never a substitute.
 
 ## FailedRunDiagnostic
 
@@ -68,8 +62,7 @@ An absent referenced run produces an unavailable diagnostic, never a substitute.
 | Combined output | Exact run | `(empty)` or unavailable reason |
 | Truncation | Exact run | `Yes` or `No` |
 
-The diagnostic never includes task arguments, standard input, environment
-values, or any reconstruction of the command line.
+The diagnostic never includes task arguments, standard input, environment values, or any reconstruction of the command line.
 
 ## Migration v10
 
@@ -78,9 +71,7 @@ runs.output_truncated INTEGER NOT NULL DEFAULT 0
 alerts.run_id TEXT
 ```
 
-The migration is additive and transactional. Existing runs become not
-truncated; existing alerts remain uncorrelated. Failure rolls back both schema
-changes and leaves the recorded schema version at 9.
+The migration is additive and transactional. Existing runs become not truncated; existing alerts remain uncorrelated. Failure rolls back both schema changes and leaves the recorded schema version at 9.
 
 ## State Transitions
 

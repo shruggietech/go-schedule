@@ -6,8 +6,7 @@
 sh scripts/automation-check.sh [repository-root]
 ```
 
-`repository-root` defaults to the current repository. Tests supply a temporary
-fixture root so negative cases never edit the real workflows or driver.
+`repository-root` defaults to the current repository. Tests supply a temporary fixture root so negative cases never edit the real workflows or driver.
 
 ## Approved action majors
 
@@ -18,9 +17,7 @@ actions/upload-artifact@v7
 softprops/action-gh-release@v3
 ```
 
-Every workflow `uses:` reference MUST match one of these entries. A new action
-family or major is rejected until its runtime and used contract are audited and
-the policy is deliberately updated.
+Every workflow `uses:` reference MUST match one of these entries. A new action family or major is rejected until its runtime and used contract are audited and the policy is deliberately updated.
 
 ## Required verification manifest
 
@@ -35,9 +32,7 @@ docs
 automation
 ```
 
-The policy compares this independent list with `sh scripts/verify.sh list`.
-Missing, extra, duplicated, or reordered gates fail. Ordering is contractual so
-aggregate diagnostics and the autopilot breakdown remain stable.
+The policy compares this independent list with `sh scripts/verify.sh list`. Missing, extra, duplicated, or reordered gates fail. Ordering is contractual so aggregate diagnostics and the autopilot breakdown remain stable.
 
 ## Failure diagnostics
 

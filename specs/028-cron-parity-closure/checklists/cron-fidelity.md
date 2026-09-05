@@ -1,8 +1,6 @@
 # Cron Fidelity Checklist: Cron Parity Closure
 
-**Purpose**: Validate that the requirements define faithful behavior and explicit boundaries before implementation
-**Created**: 2026-08-29
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that the requirements define faithful behavior and explicit boundaries before implementation **Created**: 2026-08-29 **Feature**: [spec.md](../spec.md)
 
 ## Import Context
 

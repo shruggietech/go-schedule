@@ -370,7 +370,7 @@ func TestRoundTrip_CrossesDSTAndMonthBoundary(t *testing.T) {
 		"*/15 * * * *",
 		"0 9 * * *",
 		"0 9 * * 1-5",
-		"30 2 * * *", // 02:30 — inside the hour that does not exist on 2026-03-08
+		"30 2 * * *", // 02:30, inside the hour that does not exist on 2026-03-08
 		"0 9 1 * *",  // crosses the month boundary
 		"0 0 4 3 *",
 	} {

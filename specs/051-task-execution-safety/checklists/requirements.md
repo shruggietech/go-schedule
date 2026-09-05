@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Task Execution Safety and Diagnostics
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-05
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-09-05 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

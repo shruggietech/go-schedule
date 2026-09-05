@@ -4,23 +4,11 @@
 
 ## Summary
 
-Add faithful import and export for one five-field cron day-of-week term in the
-form `weekdayL`. Reuse the existing ordinal-weekday representation with `-1`
-meaning the last occurrence, translate through the established last-weekday
-phrase and RRULE model, and preserve existing task, CLI, API, and crontab
-boundaries without adding a recurrence type.
+Add faithful import and export for one five-field cron day-of-week term in the form `weekdayL`. Reuse the existing ordinal-weekday representation with `-1` meaning the last occurrence, translate through the established last-weekday phrase and RRULE model, and preserve existing task, CLI, API, and crontab boundaries without adding a recurrence type.
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.0, Markdown
-**Primary Dependencies**: Go standard library and existing `rrule-go` recurrence model
-**Storage**: Existing task records only; no schema or migration change
-**Testing**: Go unit/integration tests plus all eight canonical verification gates
-**Target Platform**: Windows and Linux local CLI, daemon API, and desktop application
-**Project Type**: Local scheduler with shared cron conversion library, CLI, API, and GUI
-**Performance Goals**: Constant-time parsing/export with no material scheduling-path overhead
-**Constraints**: Five fields only, one last-weekday atom, no approximation, UTF-8 without BOM
-**Scale/Scope**: Three production files in `internal/cron`, shared-boundary tests, documentation, and changelog
+**Language/Version**: Go 1.25.0, Markdown **Primary Dependencies**: Go standard library and existing `rrule-go` recurrence model **Storage**: Existing task records only; no schema or migration change **Testing**: Go unit/integration tests plus all eight canonical verification gates **Target Platform**: Windows and Linux local CLI, daemon API, and desktop application **Project Type**: Local scheduler with shared cron conversion library, CLI, API, and GUI **Performance Goals**: Constant-time parsing/export with no material scheduling-path overhead **Constraints**: Five fields only, one last-weekday atom, no approximation, UTF-8 without BOM **Scale/Scope**: Three production files in `internal/cron`, shared-boundary tests, documentation, and changelog
 
 ## Constitution Check
 
@@ -34,45 +22,29 @@ boundaries without adding a recurrence type.
 
 ### Post-design re-check
 
-All gates remain satisfied. No dependency, persistence model, public API schema,
-daemon lifecycle, scheduler dispatch, or governance mechanism is added.
+All gates remain satisfied. No dependency, persistence model, public API schema, daemon lifecycle, scheduler dispatch, or governance mechanism is added.
 
 ## Architecture and Decision Log
 
 ### Reuse the existing ordinal representation
 
-`cron.Field.Ordinal` uses `-1` for a last-weekday term, matching the existing
-RRULE representation. Zero remains ordinary semantics and 1 through 5 remain
-numbered occurrences. This is a deliberate extension of the S023 field contract
-rather than a new cron AST or domain entity.
+`cron.Field.Ordinal` uses `-1` for a last-weekday term, matching the existing RRULE representation. Zero remains ordinary semantics and 1 through 5 remain numbered occurrences. This is a deliberate extension of the S023 field contract rather than a new cron AST or domain entity.
 
 ### Parse one deliberately narrow extension
 
-Only a day-of-week atom ending in `L` reaches the dedicated parser. Numeric and
-named weekdays are accepted, Sunday normalizes to zero, and bare `L`, lists,
-ranges, steps, multiple terms, mixed `L`/`#`, restricted dates, and restricted
-months remain errors or named refusals. Day-of-month `L` remains declined.
+Only a day-of-week atom ending in `L` reaches the dedicated parser. Numeric and named weekdays are accepted, Sunday normalizes to zero, and bare `L`, lists, ranges, steps, multiple terms, mixed `L`/`#`, restricted dates, and restricted months remain errors or named refusals. Day-of-month `L` remains declined.
 
 ### Use the existing last-weekday grammar
 
-Supported input renders as `last <weekday> of the month at HH:MM`. The shared
-schedule parser already compiles this phrase to `FREQ=MONTHLY;BYDAY=-1XX`, so
-CLI, crontab import, task creation, updates, and preview need no production
-changes.
+Supported input renders as `last <weekday> of the month at HH:MM`. The shared schedule parser already compiles this phrase to `FREQ=MONTHLY;BYDAY=-1XX`, so CLI, crontab import, task creation, updates, and preview need no production changes.
 
 ### Export only lossless native rules
 
-A monthly RRULE exports as `weekdayL` only when it has exactly one `-1`
-numbered weekday and no competing selector, bound, multi-time, or sub-minute
-shape. Missing-date policy is intentionally inert because every month has a
-last occurrence of every weekday. Existing selector guards remain unchanged.
+A monthly RRULE exports as `weekdayL` only when it has exactly one `-1` numbered weekday and no competing selector, bound, multi-time, or sub-minute shape. Missing-date policy is intentionally inert because every month has a last occurrence of every weekday. Existing selector guards remain unchanged.
 
 ### Document a project subset, not universal portability
 
-Cronie documents the chosen five-field layout and Sunday numbering but not
-`L`. Quartz documents suffix-`L` semantics under a different field layout and
-weekday numbering. Go-schedule therefore documents `weekdayL` as its explicit
-five-field extension rather than claiming compatibility with either dialect.
+Cronie documents the chosen five-field layout and Sunday numbering but not `L`. Quartz documents suffix-`L` semantics under a different field layout and weekday numbering. Go-schedule therefore documents `weekdayL` as its explicit five-field extension rather than claiming compatibility with either dialect.
 
 ## Project Structure
 
@@ -99,9 +71,7 @@ docs/cli.md
 CHANGELOG.md
 ```
 
-**Structure Decision**: Extend the existing cron parser, phrase renderer, and
-exporter, then prove propagation through existing shared boundaries. No new
-package or dependency is warranted.
+**Structure Decision**: Extend the existing cron parser, phrase renderer, and exporter, then prove propagation through existing shared boundaries. No new package or dependency is warranted.
 
 ## Implementation Phases
 

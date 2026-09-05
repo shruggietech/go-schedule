@@ -173,12 +173,10 @@
 
 1. Make foundational pure-state and headless contracts fail against S041.
 2. Implement the minimum shared state needed for all stories and turn it green.
-3. Deliver appearance, storage, navigation, and task editing in priority order,
-   preserving a red-to-green checkpoint for each.
+3. Deliver appearance, storage, navigation, and task editing in priority order, preserving a red-to-green checkpoint for each.
 4. Run focused, full GUI, race, and canonical verification.
 5. Review the complete diff against every functional requirement and evidence boundary.
-6. Publish once authorized local verification is complete, then close automatic
-   review, CI, and one manually triggered second review round.
+6. Publish once authorized local verification is complete, then close automatic review, CI, and one manually triggered second review round.
 7. Leave merge, tag, release, and exact-candidate issue closure to their existing authority gates.
 
 ## Notes

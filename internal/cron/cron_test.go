@@ -12,7 +12,7 @@ import (
 
 // TestExplain_Supported is the conversion table. Each case pairs a cron
 // expression with the phrase a user would have typed, and then asserts the
-// phrase actually parses — so a phrase this package invents but the grammar
+// phrase actually parses, so a phrase this package invents but the grammar
 // cannot read fails here rather than at import time.
 func TestExplain_Supported(t *testing.T) {
 	cases := []struct {
@@ -62,7 +62,7 @@ func TestExplain_Supported(t *testing.T) {
 			if phrase != c.phrase {
 				t.Fatalf("phrase = %q, want %q", phrase, c.phrase)
 			}
-			// The phrase must be readable by the grammar — this is the
+			// The phrase must be readable by the grammar, this is the
 			// single-route guarantee (FR-003a).
 			if _, err := schedule.Parse(phrase, "UTC", time.Now().UTC()); err != nil {
 				t.Fatalf("phrase %q does not parse: %v", phrase, err)

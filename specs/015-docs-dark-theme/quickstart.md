@@ -2,15 +2,13 @@
 
 ## Red regression step
 
-After adding the theme and fence assertions but before changing SCSS or
-Markdown, run:
+After adding the theme and fence assertions but before changing SCSS or Markdown, run:
 
 ```sh
 sh scripts/docs-check.sh
 ```
 
-Expected: failure identifying the missing safe token fallback and
-selection/highlight contract, plus the untagged fence in `docs/gui-fields.md`.
+Expected: failure identifying the missing safe token fallback and selection/highlight contract, plus the untagged fence in `docs/gui-fields.md`.
 
 ## Focused green step
 
@@ -20,8 +18,7 @@ After implementing the theme, fence, and spacing changes, rerun:
 sh scripts/docs-check.sh
 ```
 
-Expected: all 11 published pages pass front matter, links, fence vocabulary,
-and dark-theme contract checks.
+Expected: all 11 published pages pass front matter, links, fence vocabulary, and dark-theme contract checks.
 
 ## Full verification
 

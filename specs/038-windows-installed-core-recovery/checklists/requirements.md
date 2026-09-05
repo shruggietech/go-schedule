@@ -1,8 +1,6 @@
 # Requirements Quality Checklist: Windows Installed Core Recovery
 
-**Purpose**: Validate that S038 requirements are complete, unambiguous, secure, and independently verifiable before planning
-**Created**: 2026-09-01
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that S038 requirements are complete, unambiguous, secure, and independently verifiable before planning **Created**: 2026-09-01 **Feature**: [spec.md](../spec.md)
 
 ## Scope and Traceability
 

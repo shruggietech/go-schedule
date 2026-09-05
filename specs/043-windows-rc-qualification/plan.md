@@ -6,24 +6,17 @@
 
 ## Summary
 
-Create an evidence-first pre-PR qualification package for the merged Windows
-release-readiness work. The implementation adds no speculative product behavior.
-It defines a reproducible local demo build, executes existing automated gates,
-records the compiled artifact identity, and presents only the remaining attended
-steps to the operator. Formal #94 qualification remains bound to a later exact
-Release-workflow artifact.
+Create an evidence-first pre-PR qualification package for the merged Windows release-readiness work. The implementation adds no speculative product behavior. It defines a reproducible local demo build, executes existing automated gates, records the compiled artifact identity, and presents only the remaining attended steps to the operator. Formal #94 qualification remains bound to a later exact Release-workflow artifact.
 
 ## Technical Context
 
 **Language/Version**: Go 1.25; PowerShell 7; WiX Toolset 6.0.2
 
-**Primary Dependencies**: Fyne 2.8.1, modernc SQLite, Windows Installer, existing
-release-gate and installer inspection tools
+**Primary Dependencies**: Fyne 2.8.1, modernc SQLite, Windows Installer, existing release-gate and installer inspection tools
 
 **Storage**: Local `dist/` artifact and Markdown verification record; no new runtime storage
 
-**Testing**: `scripts/verify.sh all`, focused Go/race tests, PowerShell parser and
-WiX source checks, compiled-MSI inspection
+**Testing**: `scripts/verify.sh all`, focused Go/race tests, PowerShell parser and WiX source checks, compiled-MSI inspection
 
 **Target Platform**: Windows 11 x64 for attended testing; repository gates remain cross-platform
 
@@ -31,11 +24,9 @@ WiX source checks, compiled-MSI inspection
 
 **Performance Goals**: No runtime performance change; retain existing benchmark and dispatch-latency gates
 
-**Constraints**: No destructive automated install on a non-disposable host; no
-network publication before attended demo completion; strict fail-closed evidence
+**Constraints**: No destructive automated install on a non-disposable host; no network publication before attended demo completion; strict fail-closed evidence
 
-**Scale/Scope**: One demo MSI, one condensed operator checklist, seven linked
-release-readiness issues, existing verification infrastructure
+**Scale/Scope**: One demo MSI, one condensed operator checklist, seven linked release-readiness issues, existing verification infrastructure
 
 ## Constitution Check
 
@@ -49,16 +40,11 @@ release-readiness issues, existing verification infrastructure
 
 ### Post-design gate
 
-PASS. The design adds no dependency, persistence format, privilege expansion, or
-release bypass. The two-tier demo/formal-candidate model prevents exploratory
-evidence from weakening #94.
+PASS. The design adds no dependency, persistence format, privilege expansion, or release bypass. The two-tier demo/formal-candidate model prevents exploratory evidence from weakening #94.
 
 ## Research decisions
 
-See [research.md](research.md). The key decision is to build a distinctly named
-local demo from the eventual S043 commit, not to create a provisional GitHub tag
-or draft release. A tag would violate both the user's no-publication instruction
-and the formal release authorization boundary.
+See [research.md](research.md). The key decision is to build a distinctly named local demo from the eventual S043 commit, not to create a provisional GitHub tag or draft release. A tag would violate both the user's no-publication instruction and the formal release authorization boundary.
 
 ## Project Structure
 
@@ -91,10 +77,7 @@ dist/
 └── s043-demo-installer-inspection.md
 ```
 
-**Structure Decision**: Retain the existing single Go repository and Windows/
-release tooling. Compiled execution exposed that the inspector could only label
-a local demo as a formal candidate, so S043 adds one bounded `local-demo`
-provenance value without relaxing candidate-manifest or published-origin checks.
+**Structure Decision**: Retain the existing single Go repository and Windows/ release tooling. Compiled execution exposed that the inspector could only label a local demo as a formal candidate, so S043 adds one bounded `local-demo` provenance value without relaxing candidate-manifest or published-origin checks.
 
 ## Implementation phases
 

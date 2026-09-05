@@ -73,7 +73,7 @@ func scheduleEventPresentation(kind string) (string, widget.Importance) {
 
 func scheduleOutcomePresentation(kind string, outcome domain.RunOutcome) (string, widget.Importance) {
 	if kind != "past" {
-		return "— NOT AVAILABLE", widget.LowImportance
+		return "NOT AVAILABLE", widget.LowImportance
 	}
 	switch outcome {
 	case domain.OutcomeSuccess:

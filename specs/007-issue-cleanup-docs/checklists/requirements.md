@@ -1,8 +1,6 @@
 # Requirements Checklist: Issue cleanup, README refresh, and documentation completion
 
-**Purpose**: Verify each functional requirement is satisfied and that nothing
-adjacent regressed — particularly the privilege restrictions that are *correct*
-and must survive a fix aimed at loosening a neighbouring one.
+**Purpose**: Verify each functional requirement is satisfied and that nothing adjacent regressed, particularly the privilege restrictions that are *correct* and must survive a fix aimed at loosening a neighbouring one.
 
 **Created**: 2026-07-23
 
@@ -14,7 +12,7 @@ and must survive a fix aimed at loosening a neighbouring one.
       `gosched.exe`, not on the daemon or a standalone component (FR-001).
 - [ ] CHK002 The element carries `System="yes"`, `Permanent="no"`,
       `Part="last"`, `Action="set"`, `Name="PATH"` (FR-001, FR-002).
-- [ ] CHK003 `verify_wxs.ps1` fails when the element is absent — verified by
+- [ ] CHK003 `verify_wxs.ps1` fails when the element is absent, verified by
       temporarily removing it, not by reading the assertion (FR-003).
 - [ ] CHK004 No custom action edits `PATH`; the entry's lifetime is entirely
       component reference-counting (FR-002).
@@ -27,7 +25,7 @@ and must survive a fix aimed at loosening a neighbouring one.
       (FR-005, FR-006).
 - [ ] CHK007 `start`, `stop`, `restart`, `install`, `uninstall` still route
       through the existing library path and still require elevation (FR-006).
-- [ ] CHK008 Status wording — running, stopped, not-installed — is byte-for-byte
+- [ ] CHK008 Status wording, running, stopped, not-installed, is byte-for-byte
       what it was, on every platform (FR-007).
 - [ ] CHK009 The non-Windows path still calls `svc.Status()` on the same line
       of `Control`; it is not reimplemented (FR-008).
@@ -60,7 +58,7 @@ and must survive a fix aimed at loosening a neighbouring one.
       standing alone (FR-015).
 - [ ] CHK021 `docs/README.md` separates user-facing guides from maintainer
       material (FR-016).
-- [ ] CHK022 `TODO.md` lists no removed feature — specifically, no event
+- [ ] CHK022 `TODO.md` lists no removed feature, specifically, no event
       triggers (FR-017).
 - [ ] CHK023 `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` exist and
       the first carries the six CI-parity commands and both local traps
@@ -81,8 +79,5 @@ and must survive a fix aimed at loosening a neighbouring one.
 
 ## Notes
 
-- CHK003 is a real removal-and-rerun, not a read. An assertion that cannot fail
-  is worse than no assertion, because it reports confidence it has not earned.
-- CHK007 is the one most likely to be skipped and the most costly to get wrong:
-  the fix loosens one privilege check, and the neighbouring checks that must
-  stay tight are not exercised by any automatic test.
+- CHK003 is a real removal-and-rerun, not a read. An assertion that cannot fail is worse than no assertion, because it reports confidence it has not earned.
+- CHK007 is the one most likely to be skipped and the most costly to get wrong: the fix loosens one privilege check, and the neighbouring checks that must stay tight are not exercised by any automatic test.

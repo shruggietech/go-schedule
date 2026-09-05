@@ -47,8 +47,7 @@ The existing storage shape is unchanged.
 | `expression` | Inert editable source, human phrase or cron expression |
 | `run_at` | One-off timing; no recurring source syntax |
 
-`source_syntax` is response metadata, not a database column. Server response
-construction derives it only when kind is recurring and expression is non-empty.
+`source_syntax` is response metadata, not a database column. Server response construction derives it only when kind is recurring and expression is non-empty.
 
 ## API Request Additions
 
@@ -63,8 +62,7 @@ State rules:
 
 ## API Response Additions
 
-- Recurring schedule with retained expression: `source_syntax` is `human` or
-  `cron`.
+- Recurring schedule with retained expression: `source_syntax` is `human` or `cron`.
 - One-off schedule: omitted/empty.
 - Legacy recurring schedule with empty expression: omitted/empty.
 - Preview: `source_syntax` is always non-empty on success.
@@ -86,8 +84,7 @@ Declined/invalid lines never enter the schedule-input state transition.
 ## Compatibility
 
 - No schema version changes.
-- Existing human expressions infer `human` and keep prior bytes after trimming
-  rules already applied by `schedule.Parse`.
+- Existing human expressions infer `human` and keep prior bytes after trimming rules already applied by `schedule.Parse`.
 - Existing expressionless schedules remain readable.
 - Unknown additive JSON response fields are safe for existing clients.
 - Existing request senders that omit the hint continue in automatic mode.

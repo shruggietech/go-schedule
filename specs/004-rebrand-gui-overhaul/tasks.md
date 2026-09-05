@@ -9,11 +9,9 @@ description: "Task list for Rebrand to go-schedule + GUI & Installer Overhaul"
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-**Tests**: INCLUDED — the project constitution (II. Testing Standards, NON-NEGOTIABLE) requires
-tests alongside every behavioral change, run under `go test -race`.
+**Tests**: INCLUDED, the project constitution (II. Testing Standards, NON-NEGOTIABLE) requires tests alongside every behavioral change, run under `go test -race`.
 
-**Organization**: Tasks are grouped by user story. Priority order: US1 (rename) and US2 (MSI) are
-P1; US3 (logs), US4 (remove triggers), US5 (real-time) are P2; US6 (calendar) is P3.
+**Organization**: Tasks are grouped by user story. Priority order: US1 (rename) and US2 (MSI) are P1; US3 (logs), US4 (remove triggers), US5 (real-time) are P2; US6 (calendar) is P3.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -22,9 +20,7 @@ P1; US3 (logs), US4 (remove triggers), US5 (real-time) are P2; US6 (calendar) is
 
 ## Path note (multi-file hotspots)
 
-`internal/api/server/server.go`, `gui/app.go`, `gui/viewmodel/viewmodel.go`, and
-`gui/schedule.go` are each edited by **multiple** stories. Those edits are sequenced (not `[P]`)
-across stories. Run stories in priority order to avoid same-file conflicts.
+`internal/api/server/server.go`, `gui/app.go`, `gui/viewmodel/viewmodel.go`, and `gui/schedule.go` are each edited by **multiple** stories. Those edits are sequenced (not `[P]`) across stories. Run stories in priority order to avoid same-file conflicts.
 
 ---
 
@@ -41,27 +37,19 @@ across stories. Run stories in priority order to avoid same-file conflicts.
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: None of the stories share a blocking code prerequisite beyond the rename itself, and
-the rename is delivered as US1 (the MVP). All later phases assume the **new** module path
-`github.com/shruggietech/go-schedule` and the renamed data dir/DB from US1.
+**Purpose**: None of the stories share a blocking code prerequisite beyond the rename itself, and the rename is delivered as US1 (the MVP). All later phases assume the **new** module path `github.com/shruggietech/go-schedule` and the renamed data dir/DB from US1.
 
-**⚠️ CRITICAL**: Complete Phase 3 (US1) before starting US3–US6 edits, because they reference the
-new import path and the renamed config paths.
+**⚠️ CRITICAL**: Complete Phase 3 (US1) before starting US3–US6 edits, because they reference the new import path and the renamed config paths.
 
-**Checkpoint**: After US1 lands, the remaining stories can proceed (US4 is fully independent; US3
-and US5 share broker/view-model surfaces and should be done in order).
+**Checkpoint**: After US1 lands, the remaining stories can proceed (US4 is fully independent; US3 and US5 share broker/view-model surfaces and should be done in order).
 
 ---
 
 ## Phase 3: User Story 1 - Consistent project name "go-schedule" (Priority: P1) 🎯 MVP
 
-**Goal**: Rename the live project from go-scheduler to go-schedule (module path, build/release
-config, user-facing strings) and rename on-disk identity (data dir, DB, log dir) with a
-best-effort startup move from the old paths. History preserved.
+**Goal**: Rename the live project from go-scheduler to go-schedule (module path, build/release config, user-facing strings) and rename on-disk identity (data dir, DB, log dir) with a best-effort startup move from the old paths. History preserved.
 
-**Independent Test**: `go build ./... && go test ./...` pass under the new module path; a repo-wide
-search for `go-scheduler` returns only history (`CHANGELOG.md`, `specs/001..003`); GUI title and
-CLI branding read "go-schedule".
+**Independent Test**: `go build ./... && go test ./...` pass under the new module path; a repo-wide search for `go-scheduler` returns only history (`CHANGELOG.md`, `specs/001..003`); GUI title and CLI branding read "go-schedule".
 
 ### Tests for User Story 1
 
@@ -87,17 +75,14 @@ CLI branding read "go-schedule".
 
 ## Phase 4: User Story 2 - Formal Windows installation via MSI (Priority: P1)
 
-**Goal**: A WiX-built `.msi` that installs to Program Files, registers `goschedd` as an auto-start
-service, adds a Start-Menu shortcut, upgrades/uninstalls cleanly; the portable zip is removed.
+**Goal**: A WiX-built `.msi` that installs to Program Files, registers `goschedd` as an auto-start service, adds a Start-Menu shortcut, upgrades/uninstalls cleanly; the portable zip is removed.
 
-**Independent Test**: On a clean Windows VM, the `.msi` installs the service (running, auto-start),
-creates a Start-Menu entry that opens the GUI with no console, tasks fire after reboot with no
-login, and uninstall removes binaries/service/shortcut (ProgramData data retained).
+**Independent Test**: On a clean Windows VM, the `.msi` installs the service (running, auto-start), creates a Start-Menu entry that opens the GUI with no console, tasks fire after reboot with no login, and uninstall removes binaries/service/shortcut (ProgramData data retained).
 
 ### Tests for User Story 2
 
 - [X] T015 [P] [US2] Add a WiX authoring sanity check (component file names match the three built binaries; service Name == `goschedd`) as a CI script `build/windows/verify_wxs.ps1` invoked in the release workflow
-- [X] T016 [US2] Document the manual install/reboot/uninstall validation checklist in `specs/004-rebrand-gui-overhaul/quickstart.md` US2 section (already drafted — confirm steps match the final wxs)
+- [X] T016 [US2] Document the manual install/reboot/uninstall validation checklist in `specs/004-rebrand-gui-overhaul/quickstart.md` US2 section (already drafted, confirm steps match the final wxs)
 
 ### Implementation for User Story 2
 
@@ -117,13 +102,9 @@ login, and uninstall removes binaries/service/shortcut (ProgramData data retaine
 
 ## Phase 5: User Story 3 - Unified Logs view (Priority: P2)
 
-**Goal**: Replace Alerts with a Logs view fed by a new daemon log pipeline (rotating JSONL file +
-bounded ring + `KindLog` broker events), with severity filters, click-through detail, Dismiss All,
-and live updates. Existing alerts merge into the same view.
+**Goal**: Replace Alerts with a Logs view fed by a new daemon log pipeline (rotating JSONL file + bounded ring + `KindLog` broker events), with severity filters, click-through detail, Dismiss All, and live updates. Existing alerts merge into the same view.
 
-**Independent Test**: Seed a failing task → an `error` record + alert appear in Logs; filter
-Errors shows only errors; clicking shows full cause; Dismiss All clears the view while the JSONL
-file retains records; new records appear live.
+**Independent Test**: Seed a failing task → an `error` record + alert appear in Logs; filter Errors shows only errors; clicking shows full cause; Dismiss All clears the view while the JSONL file retains records; new records appear live.
 
 ### Tests for User Story 3
 
@@ -157,12 +138,9 @@ file retains records; new records appear live.
 
 ## Phase 6: User Story 4 - Remove the Triggers feature (Priority: P2)
 
-**Goal**: Delete Triggers across GUI, CLI, API, client, engine, store, and domain; add store
-migration v3 dropping `triggers`/`dedup_ledger`. Independent of other stories.
+**Goal**: Delete Triggers across GUI, CLI, API, client, engine, store, and domain; add store migration v3 dropping `triggers`/`dedup_ledger`. Independent of other stories.
 
-**Independent Test**: Build succeeds with `internal/trigger` deleted; no Triggers tab; no CLI
-trigger command; `/v1/triggers` → 404; a daemon started against a pre-v3 DB with triggers starts
-clean (migration v3); a DB without triggers is a no-op.
+**Independent Test**: Build succeeds with `internal/trigger` deleted; no Triggers tab; no CLI trigger command; `/v1/triggers` → 404; a daemon started against a pre-v3 DB with triggers starts clean (migration v3); a DB without triggers is a no-op.
 
 ### Tests for User Story 4
 
@@ -189,12 +167,9 @@ clean (migration v3); a DB without triggers is a no-op.
 
 ## Phase 7: User Story 5 - Real-time GUI updates (Priority: P2)
 
-**Goal**: Add task/group change events to the broker, publish them from API mutation handlers, fold
-them into the view-model, re-sync on reconnect, and remove all manual Refresh controls.
+**Goal**: Add task/group change events to the broker, publish them from API mutation handlers, fold them into the view-model, re-sync on reconnect, and remove all manual Refresh controls.
 
-**Independent Test**: With the GUI open, a CLI mutation appears in the relevant view within ~2s
-with no Refresh pressed; no Refresh button exists anywhere; killing/restarting the daemon
-re-syncs the GUI automatically.
+**Independent Test**: With the GUI open, a CLI mutation appears in the relevant view within ~2s with no Refresh pressed; no Refresh button exists anywhere; killing/restarting the daemon re-syncs the GUI automatically.
 
 ### Tests for User Story 5
 
@@ -205,7 +180,7 @@ re-syncs the GUI automatically.
 ### Implementation for User Story 5
 
 - [X] T060 [US5] Add `KindTask` and `KindGroup` event kinds with `{verb, entity|id}` payloads and `PublishTask`/`PublishGroup` helpers in `internal/events/broker.go`
-- [X] T061 [US5] Publish task events after successful writes in the task handlers (`internal/api/server/tasks.go`, `update.go`) — create/update/delete/enable/disable
+- [X] T061 [US5] Publish task events after successful writes in the task handlers (`internal/api/server/tasks.go`, `update.go`), create/update/delete/enable/disable
 - [X] T062 [US5] Publish group events after successful writes in `internal/api/server/groups.go`
 - [X] T063 [US5] Fold `KindTask`/`KindGroup` into `State` (upsert/remove tasks & groups) in `gui/viewmodel/viewmodel.go`
 - [X] T064 [US5] On stream reconnect, perform a full `Refresh()` before resuming event application in `gui/app.go` `streamEvents` (FR-024)
@@ -220,11 +195,9 @@ re-syncs the GUI automatically.
 
 ## Phase 8: User Story 6 - Calendar view under Schedule (Priority: P3)
 
-**Goal**: Add a toggleable month-grid calendar under Schedule over the existing `GET /v1/calendar`
-data; toggling preserves the selected window; the calendar updates live.
+**Goal**: Add a toggleable month-grid calendar under Schedule over the existing `GET /v1/calendar` data; toggling preserves the selected window; the calendar updates live.
 
-**Independent Test**: Toggle Schedule to Calendar → occurrences on correct dates; toggle back to
-List → same occurrences/window; completing a run/adding a task updates the calendar live.
+**Independent Test**: Toggle Schedule to Calendar → occurrences on correct dates; toggle back to List → same occurrences/window; completing a run/adding a task updates the calendar live.
 
 ### Tests for User Story 6
 
@@ -248,11 +221,7 @@ List → same occurrences/window; completing a run/adding a task updates the cal
 - [X] T076 [P] Add a consolidated `CHANGELOG.md` entry for this release (rename, MSI, Logs, triggers removed, real-time, calendar)
 - [X] T077 Run the full gate: `gofmt -l . && go vet ./... && go test -race ./...`; confirm core scheduling package coverage ≥ 80%
 - [X] T077a Run engine benchmarks `go test -bench ./internal/engine/...` and confirm dispatch latency is within 10% of the pre-change baseline captured in T002 (constitution IV)
-- [~] T078 Execute `specs/004-rebrand-gui-overhaul/quickstart.md` validations and record results.
-  Automatable validations PASS (build, full test suite, SC-001 rename grep, migration v3, logbus,
-  real-time publish, calendar). REMAINING (manual, needs a clean Windows VM + WiX): MSI
-  install/reboot/uninstall, UAC-decline, and service-reuse checks (US2 §FR-008/FR-010). The CI
-  release job builds the `.msi` and runs the wxs sanity check.
+- [~] T078 Execute `specs/004-rebrand-gui-overhaul/quickstart.md` validations and record results. Automatable validations PASS (build, full test suite, SC-001 rename grep, migration v3, logbus, real-time publish, calendar). REMAINING (manual, needs a clean Windows VM + WiX): MSI install/reboot/uninstall, UAC-decline, and service-reuse checks (US2 §FR-008/FR-010). The CI release job builds the `.msi` and runs the wxs sanity check.
 
 ---
 
@@ -261,15 +230,12 @@ List → same occurrences/window; completing a run/adding a task updates the cal
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: no dependencies.
-- **Foundational (Phase 2)**: trivial here; the effective prerequisite for US3–US6 is that **US1
-  (rename) has landed** (new import path + renamed config paths).
+- **Foundational (Phase 2)**: trivial here; the effective prerequisite for US3–US6 is that **US1 (rename) has landed** (new import path + renamed config paths).
 - **US1 (Phase 3, P1)**: start after Setup. **Blocks** the others by virtue of the module rename.
-- **US2 (Phase 4, P1)**: after US1 (it references the renamed product/binaries). Otherwise
-  self-contained (packaging + docs).
+- **US2 (Phase 4, P1)**: after US1 (it references the renamed product/binaries). Otherwise self-contained (packaging + docs).
 - **US3 (Phase 5, P2)**: after US1. Adds broker `KindLog`, logbus, `/v1/logs`, Logs view.
 - **US4 (Phase 6, P2)**: after US1. Fully independent of US2/US3/US5/US6.
-- **US5 (Phase 7, P2)**: after US1; best after US3 (shares `broker.go`, `viewmodel.go`,
-  `app.go`, `schedule.go`) and after US4 (so removed Triggers tab isn't re-touched).
+- **US5 (Phase 7, P2)**: after US1; best after US3 (shares `broker.go`, `viewmodel.go`, `app.go`, `schedule.go`) and after US4 (so removed Triggers tab isn't re-touched).
 - **US6 (Phase 8, P3)**: after US1; shares `schedule.go` with US5, so do it after US5.
 - **Polish (Phase 9)**: after all desired stories.
 
@@ -304,8 +270,7 @@ List → same occurrences/window; completing a run/adding a task updates the cal
 
 ### MVP scope
 
-US1 (rename) + US2 (MSI) are the P1 MVP: a correctly-named product that installs as a formal
-Windows system service. Ship/validate before P2 work.
+US1 (rename) + US2 (MSI) are the P1 MVP: a correctly-named product that installs as a formal Windows system service. Ship/validate before P2 work.
 
 ### Incremental delivery
 

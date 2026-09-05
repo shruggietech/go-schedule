@@ -12,7 +12,7 @@ import (
 )
 
 // This file resolves recurrences whose target date does not exist in every
-// period — the 31st in a 30-day month, 29 February in a common year, the fifth
+// period, the 31st in a 30-day month, 29 February in a common year, the fifth
 // Friday in a month with only four.
 //
 // rrule-go already implements one of the three policies: it omits such periods
@@ -20,17 +20,17 @@ import (
 // untouched, so the default behavior is not a reimplementation of the old
 // behavior but literally the old code. The other two policies need the *intent*
 // (which day of the month, or which ordinal weekday, the operator asked for),
-// which a generated occurrence no longer carries — so they are resolved here by
+// which a generated occurrence no longer carries, so they are resolved here by
 // walking periods and computing the target date directly.
 
 // Describe renders a schedule's human summary with its missing-date policy named
-// — but only when the rule can actually miss a period, so ordinary schedules read
+// only when the rule can actually miss a period, so ordinary schedules read
 // exactly as they always have.
 //
 // It is deliberately a render-time function rather than something baked into the
 // stored summary: the policy lives on the task and can change without the phrase
 // changing, so a stored sentence naming the policy would go stale the moment an
-// operator switched it. That staleness is the exact defect this discharges —
+// operator switched it. That staleness is the exact defect this discharges,
 // "The 5th Friday of every month" for a rule that fires four times a year
 // (FR-023, SC-005).
 func Describe(sch domain.Schedule, policy domain.MissingDatePolicy) string {
@@ -134,7 +134,7 @@ type targetDate struct {
 //   - ordinals 1–4, since every month contains at least four of each weekday.
 //
 // Only the 29th–31st and a fifth weekday can be absent. Excluding the rest is
-// what makes the policy inert rather than merely harmless (FR-024) — and it is
+// what makes the policy inert rather than merely harmless (FR-024), and it is
 // also what keeps "The 3rd Wednesday of every month" from being annotated with a
 // policy that could never apply to it.
 func dateIntent(opt *rrule.ROption) (targetDate, bool) {
@@ -526,7 +526,7 @@ func advance(period time.Time, in targetDate) time.Time {
 
 // occurrenceIn computes the occurrence for one period, applying the policy when
 // the target date does not exist. It reports false only for the skip policy,
-// which the caller does not use — kept explicit so the three-way decision is
+// which the caller does not use, kept explicit so the three-way decision is
 // readable in one place.
 func occurrenceIn(in targetDate, period time.Time, h, mi, s int, policy domain.MissingDatePolicy) (time.Time, bool) {
 	switch in.kind {
@@ -552,7 +552,7 @@ func occurrenceIn(in targetDate, period time.Time, h, mi, s int, policy domain.M
 		case ok:
 			return time.Date(period.Year(), period.Month(), day, h, mi, s, 0, time.UTC), true
 		case policy == domain.MissingDateLastValid:
-			// The last occurrence of that weekday in this month — what "the
+			// The last occurrence of that weekday in this month, what "the
 			// fifth Friday, or the last one when there is none" means.
 			return time.Date(period.Year(), period.Month(), lastWeekday(period, in.weekday), h, mi, s, 0, time.UTC), true
 		case policy == domain.MissingDateNextValid:

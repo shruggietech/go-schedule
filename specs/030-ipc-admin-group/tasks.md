@@ -1,7 +1,6 @@
 # Tasks: Dedicated IPC Administrative Group
 
-**Input**: Design documents from `specs/030-ipc-admin-group/`
-**Tests**: Required by constitution Principle II and the safety-critical local IPC access-control contract.
+**Input**: Design documents from `specs/030-ipc-admin-group/` **Tests**: Required by constitution Principle II and the safety-critical local IPC access-control contract.
 
 ## Phase 1: Setup and Baseline
 

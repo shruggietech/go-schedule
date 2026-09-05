@@ -25,6 +25,7 @@ run_gate() {
         printf 'format: unformatted Go files found\n' >&2
         return 1
       fi
+      "$GO" run ./scripts/github-format
       ;;
     vet)
       CGO_ENABLED=0 "$GO" vet ./...

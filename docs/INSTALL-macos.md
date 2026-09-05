@@ -8,12 +8,9 @@ nav_order: 3
 
 **Audience:** macOS users, both desktop and headless\
 **Applies to:** go-schedule 0.6.0 and later\
-**See also:** [`gosched` command reference](cli.md) ·
-[Linux](INSTALL-linux.md) · [Windows](INSTALL-windows.md)
+**See also:** [`gosched` command reference](cli.md) · [Linux](INSTALL-linux.md) · [Windows](INSTALL-windows.md)
 
-macOS has two downloads, and which one you want depends on whether you want a
-desktop app or a background scheduler on a machine you mostly reach over SSH.
-The difference that matters is not the GUI — it is **what starts on boot**.
+macOS has two downloads, and which one you want depends on whether you want a desktop app or a background scheduler on a machine you mostly reach over SSH. The difference that matters is not the GUI, it is **what starts on boot**.
 
 ## Contents
 
@@ -34,9 +31,7 @@ The difference that matters is not the GUI — it is **what starts on boot**.
 | `go-schedule-desktop_<ver>_darwin_<arch>` | GUI, daemon, and CLI in one `.app` | Not until you register the service |
 | `go-schedule_<ver>_darwin_<arch>.tar.gz` | Daemon and CLI | Once you register the service |
 
-Both are available for `amd64` (Intel) and `arm64` (Apple silicon). Verify
-either against `SHA256SUMS.txt` before opening it — the builds are not signed or
-notarized.
+Both are available for `amd64` (Intel) and `arm64` (Apple silicon). Verify either against `SHA256SUMS.txt` before opening it, the builds are not signed or notarized.
 
 ```sh
 shasum -a 256 -c SHA256SUMS.txt --ignore-missing
@@ -44,23 +39,15 @@ shasum -a 256 -c SHA256SUMS.txt --ignore-missing
 
 ## Desktop bundle
 
-`go-schedule-desktop_<ver>_darwin_<arch>` contains `gosched-gui.app`, with the
-daemon and CLI inside it at
-`gosched-gui.app/Contents/MacOS/`. Open it:
+`go-schedule-desktop_<ver>_darwin_<arch>` contains `gosched-gui.app`, with the daemon and CLI inside it at `gosched-gui.app/Contents/MacOS/`. Open it:
 
 ```sh
 open gosched-gui.app
 ```
 
-The first launch starts the background daemon itself, so there is nothing to
-configure beyond the one-time administrative-group setup below. That daemon
-keeps running after you close the window, so tasks continue to fire.
+The first launch starts the background daemon itself, so there is nothing to configure beyond the one-time administrative-group setup below. That daemon keeps running after you close the window, so tasks continue to fire.
 
-> **It does not survive a reboot.** An auto-started daemon is a plain background
-> process, not a registered service. If you want the scheduler running after the
-> machine restarts — which is the usual reason to want a scheduler — register
-> the service as well. That is the single most common surprise on macOS, and it
-> is worth doing at install time rather than discovering it later.
+> **It does not survive a reboot.** An auto-started daemon is a plain background process, not a registered service. If you want the scheduler running after the machine restarts, which is the usual reason to want a scheduler, register the service as well. That is the single most common surprise on macOS, and it is worth doing at install time rather than discovering it later.
 
 To use the bundled CLI from a terminal, either call it by path or link it:
 
@@ -81,20 +68,16 @@ gosched --version
 
 ## Register the service
 
-The daemon runs under `launchd` so it starts at boot. Registration writes a
-launch daemon plist, which is why it needs root:
+The daemon runs under `launchd` so it starts at boot. Registration writes a launch daemon plist, which is why it needs root:
 
-Before opening the desktop app or starting the service for the first time,
-create the dedicated group and add your account:
+Before opening the desktop app or starting the service for the first time, create the dedicated group and add your account:
 
 ```sh
 dseditgroup -o read goschedadmin >/dev/null 2>&1 || sudo dseditgroup -o create goschedadmin
 sudo dseditgroup -o edit -a "$USER" -t user goschedadmin
 ```
 
-Sign out and back in after changing membership. The daemon fails closed if its
-configured non-empty group does not exist. Its default data directory uses
-group `goschedadmin` and mode `0770`; the socket uses mode `0660`.
+Sign out and back in after changing membership. The daemon fails closed if its configured non-empty group does not exist. Its default data directory uses group `goschedadmin` and mode `0770`; the socket uses mode `0660`.
 
 ```sh
 sudo gosched service install
@@ -110,13 +93,9 @@ gosched health
 
 Expect `daemon ok (version …)`.
 
-`service status` does not require root. `install`, `uninstall`, `start`, `stop`,
-and `restart` do.
+`service status` does not require root. `install`, `uninstall`, `start`, `stop`, and `restart` do.
 
-If you installed the desktop bundle and had already been using its auto-started
-daemon, register the service and let it take over — a single-instance lock stops
-two daemons running at once, so the second one to start simply refuses rather
-than corrupting anything.
+If you installed the desktop bundle and had already been using its auto-started daemon, register the service and let it take over, a single-instance lock stops two daemons running at once, so the second one to start simply refuses rather than corrupting anything.
 
 ## First task
 
@@ -127,8 +106,7 @@ gosched task add nightly-backup \
   --tz America/Los_Angeles
 ```
 
-The command echoes back how it understood the schedule and the next few run
-times. Prove it works without waiting for one:
+The command echoes back how it understood the schedule and the next few run times. Prove it works without waiting for one:
 
 ```sh
 gosched task run-now <id>
@@ -152,8 +130,7 @@ Created on first run, and left alone when you remove the binaries.
 
 ## Upgrading
 
-For the desktop bundle, replace the `.app` with the new one. For the archive,
-stop the service, replace the binaries, start it again:
+For the desktop bundle, replace the `.app` with the new one. For the archive, stop the service, replace the binaries, start it again:
 
 ```sh
 sudo gosched service stop
@@ -162,8 +139,7 @@ sudo gosched service start
 gosched health
 ```
 
-The database migrates forward automatically and non-destructively on first
-start.
+The database migrates forward automatically and non-destructively on first start.
 
 ## Uninstalling
 
@@ -173,8 +149,7 @@ sudo gosched service uninstall
 sudo rm -f /usr/local/bin/goschedd /usr/local/bin/gosched
 ```
 
-Then delete `gosched-gui.app` if you installed the bundle. Data is left in
-place; to remove it too:
+Then delete `gosched-gui.app` if you installed the bundle. Data is left in place; to remove it too:
 
 ```sh
 sudo rm -rf "/Library/Application Support/goschedule"
@@ -182,31 +157,16 @@ sudo rm -rf "/Library/Application Support/goschedule"
 
 ## Troubleshooting
 
-**"go-schedule cannot be opened because the developer cannot be verified."** The
-builds are unsigned. Verify the SHA-256 hash against `SHA256SUMS.txt`, then
-right-click the app and choose *Open*, or clear the quarantine attribute:
+**"go-schedule cannot be opened because the developer cannot be verified."** The builds are unsigned. Verify the SHA-256 hash against `SHA256SUMS.txt`, then right-click the app and choose *Open*, or clear the quarantine attribute:
 
 ```sh
 xattr -d com.apple.quarantine gosched-gui.app
 ```
 
-**Tasks stop firing after a reboot.** The GUI's auto-started daemon is not a
-service. Register it — see [above](#register-the-service).
+**Tasks stop firing after a reboot.** The GUI's auto-started daemon is not a service. Register it, see [above](#register-the-service).
 
-**`gosched health` reports the daemon unreachable.** Check
-`gosched service status` first. If it says `running` but health still fails,
-read `gosched logs --severity error`; a daemon that failed at startup exits
-non-zero and says why.
+**`gosched health` reports the daemon unreachable.** Check `gosched service status` first. If it says `running` but health still fails, read `gosched logs --severity error`; a daemon that failed at startup exits non-zero and says why.
 
-**The daemon reports an `admin_group` lookup or permission error.** Verify the
-group with `dseditgroup -o read goschedadmin` and sign in again after membership
-changes. For a custom `ipc_path`, its existing parent must already belong to the
-configured group with exact mode `0770`; the daemon will not modify it. A
-foreground daemon can deliberately use the former broad local policy by passing
-`--config <path>` with `{"admin_group":""}`. This compatibility mode creates a
-`0666` socket and emits a startup warning; registered services remain on the
-secure default unless explicitly configured otherwise.
+**The daemon reports an `admin_group` lookup or permission error.** Verify the group with `dseditgroup -o read goschedadmin` and sign in again after membership changes. For a custom `ipc_path`, its existing parent must already belong to the configured group with exact mode `0770`; the daemon will not modify it. A foreground daemon can deliberately use the former broad local policy by passing `--config <path>` with `{"admin_group":""}`. This compatibility mode creates a `0666` socket and emits a startup warning; registered services remain on the secure default unless explicitly configured otherwise.
 
-**Tasks run but cannot find a tool they need.** A launchd service starts with a
-minimal environment, not your login shell's. Give the task what it needs
-explicitly with `--env` and `--cwd` rather than relying on inherited state.
+**Tasks run but cannot find a tool they need.** A launchd service starts with a minimal environment, not your login shell's. Give the task what it needs explicitly with `--env` and `--cwd` rather than relying on inherited state.

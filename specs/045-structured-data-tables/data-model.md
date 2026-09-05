@@ -1,8 +1,6 @@
 # Data Model: Structured Desktop Data Tables
 
-S045 introduces presentation models and exposes the existing stored run ID as
-an optional Calendar occurrence response field. No database, event, request, or
-persisted preference schema changes are required.
+S045 introduces presentation models and exposes the existing stored run ID as an optional Calendar occurrence response field. No database, event, request, or persisted preference schema changes are required.
 
 ## Structured Column
 
@@ -59,7 +57,7 @@ Source: `server.Occurrence`, extended with optional `run_id` for past records.
 | When | Existing localized formatted time | Neutral |
 | Task | Exact task name; `Unnamed task` fallback | Neutral |
 | Event | `SCHEDULED` for future or `COMPLETED` for past | Informational or neutral |
-| Outcome | Glyph plus normalized outcome or `— Not available` | Success, error, warning, informational, disabled, or neutral |
+| Outcome | Glyph plus normalized outcome or `N/A Not available` | Success, error, warning, informational, disabled, or neutral |
 
 Known outcomes: `SUCCESS`, `FAILURE`, `SKIPPED`, `CAUGHT UP`, `QUEUED`. Unknown values are uppercased with underscores changed to spaces and retain the neutral glyph `?`. Past occurrence identity uses the stored run ID so equal-time queued and completed records remain distinct across query-order changes. Computed future occurrences fall back to task identity plus timestamp because no run exists yet; a duplicate ordinal only disambiguates repeated representations of the same source identity.
 

@@ -179,7 +179,7 @@ func TestUpdateTask_UnknownGroupIsValidationError(t *testing.T) {
 	}
 }
 
-// TestUpdateTask_UntouchedSaveLeavesScheduleIdentical is SC-002 — the central
+// TestUpdateTask_UntouchedSaveLeavesScheduleIdentical is SC-002, the central
 // promise of the schedule-fidelity fix. Opening a task and saving without
 // changing anything must not move when it runs.
 func TestUpdateTask_UntouchedSaveLeavesScheduleIdentical(t *testing.T) {

@@ -1,8 +1,6 @@
 # Requirements Checklist: Windows Demo Qualification
 
-**Purpose**: Verify that the S043 specification is complete and testable before implementation
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Verify that the S043 specification is complete and testable before implementation **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 ## Requirement quality
 

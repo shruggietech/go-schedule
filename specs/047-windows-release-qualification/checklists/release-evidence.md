@@ -1,9 +1,6 @@
 # Release Evidence Requirements Checklist: Windows Release Qualification
 
-**Purpose**: Test whether S047's release-evidence requirements are complete,
-unambiguous, measurable, safe, and issue-traceable before planning
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Test whether S047's release-evidence requirements are complete, unambiguous, measurable, safe, and issue-traceable before planning **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 ## Evidence Identity and Boundaries
 
@@ -56,5 +53,4 @@ unambiguous, measurable, safe, and issue-traceable before planning
 ## Notes
 
 - All 30 release-evidence requirements checks passed on 2026-09-03.
-- The checklist is for requirements quality. Runtime verification is defined in
-  the later quickstart and task artifacts.
+- The checklist is for requirements quality. Runtime verification is defined in the later quickstart and task artifacts.

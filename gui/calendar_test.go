@@ -34,7 +34,7 @@ func TestScheduleRowModelsNormalizeEventsAndOutcomes(t *testing.T) {
 		wantEventStyle   widget.Importance
 		wantOutcomeStyle widget.Importance
 	}{
-		{name: "future", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "scheduled"}, wantEvent: "▷ SCHEDULED", wantOutcome: "— NOT AVAILABLE", wantEventStyle: widget.HighImportance, wantOutcomeStyle: widget.LowImportance},
+		{name: "future", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "scheduled"}, wantEvent: "▷ SCHEDULED", wantOutcome: "NOT AVAILABLE", wantEventStyle: widget.HighImportance, wantOutcomeStyle: widget.LowImportance},
 		{name: "success", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeSuccess}, wantEvent: "COMPLETED", wantOutcome: "✓ SUCCESS", wantOutcomeStyle: widget.SuccessImportance},
 		{name: "failure", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeFailure}, wantEvent: "COMPLETED", wantOutcome: "✗ FAILURE", wantOutcomeStyle: widget.DangerImportance},
 		{name: "skipped", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeSkipped}, wantEvent: "COMPLETED", wantOutcome: "↷ SKIPPED", wantOutcomeStyle: widget.LowImportance},
@@ -42,7 +42,7 @@ func TestScheduleRowModelsNormalizeEventsAndOutcomes(t *testing.T) {
 		{name: "queued", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.OutcomeQueued}, wantEvent: "COMPLETED", wantOutcome: "⋯ QUEUED", wantOutcomeStyle: widget.WarningImportance},
 		{name: "missing", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past"}, wantEvent: "COMPLETED", wantOutcome: "• NOT AVAILABLE", wantOutcomeStyle: widget.MediumImportance},
 		{name: "unknown", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "past", Outcome: domain.RunOutcome("awaiting_review")}, wantEvent: "COMPLETED", wantOutcome: "? AWAITING REVIEW", wantOutcomeStyle: widget.MediumImportance},
-		{name: "unknown event", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "deferred"}, wantEvent: "? DEFERRED", wantOutcome: "— NOT AVAILABLE", wantEventStyle: widget.MediumImportance, wantOutcomeStyle: widget.LowImportance},
+		{name: "unknown event", occurrence: server.Occurrence{TaskID: "a", TaskName: "Backup", Time: base, Kind: "deferred"}, wantEvent: "? DEFERRED", wantOutcome: "NOT AVAILABLE", wantEventStyle: widget.MediumImportance, wantOutcomeStyle: widget.LowImportance},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

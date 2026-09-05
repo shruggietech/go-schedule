@@ -1,8 +1,6 @@
 # Recovery Requirements Checklist: IPC Access-Denied Recovery
 
-**Purpose**: Review recovery, classification, security, and evidence requirement quality
-**Created**: 2026-08-31
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Review recovery, classification, security, and evidence requirement quality **Created**: 2026-08-31 **Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

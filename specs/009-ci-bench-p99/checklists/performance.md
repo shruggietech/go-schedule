@@ -1,11 +1,6 @@
 # Performance & Measurement Requirements Checklist: Run engine benchmarks in CI and enforce the p99 dispatch-latency budget
 
-**Purpose**: Validate that the requirements for the p99 latency gate and CI
-benchmark wiring are complete, unambiguous, measurable, and consistent — before
-planning and implementation. These are "unit tests for the requirements," not
-tests of the code.
-**Created**: 2026-07-23
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that the requirements for the p99 latency gate and CI benchmark wiring are complete, unambiguous, measurable, and consistent, before planning and implementation. These are "unit tests for the requirements," not tests of the code. **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
 
 ## Measurement Correctness
 
@@ -54,8 +49,5 @@ tests of the code.
 
 ## Notes
 
-- All items interrogate the **requirements**, not the eventual code. An unchecked
-  item means the spec needs tightening before implementation, not that a test
-  failed.
-- Highest-risk items for this feature: CHK004 (sample count), CHK012–CHK014
-  (non-flakiness), and CHK022 (constitutional consistency of the absolute gate).
+- All items interrogate the **requirements**, not the eventual code. An unchecked item means the spec needs tightening before implementation, not that a test failed.
+- Highest-risk items for this feature: CHK004 (sample count), CHK012–CHK014 (non-flakiness), and CHK022 (constitutional consistency of the absolute gate).

@@ -1,7 +1,6 @@
 # Maintenance Requirements Quality Checklist: S029
 
-**Purpose**: Review whether the maintenance, security, and deferral requirements are complete enough for implementation and third-party review.
-**Created**: 2026-08-30
+**Purpose**: Review whether the maintenance, security, and deferral requirements are complete enough for implementation and third-party review. **Created**: 2026-08-30
 
 ## Lifecycle Requirements
 

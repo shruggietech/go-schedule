@@ -25,11 +25,7 @@
 
 ## Aggregate gate
 
-The canonical foreground driver completed with all eight gates passing on
-2026-08-30. This Windows host exposes WSL Bash rather than `sh`, so the unchanged
-driver was invoked as `bash scripts/verify.sh all` with `GO=go.exe`,
-`GOFMT=gofmt.exe`, and `SH=bash`; nested scripts now honor those tool overrides
-and keep native-Go coverage profiles on a mutually accessible relative path.
+The canonical foreground driver completed with all eight gates passing on 2026-08-30. This Windows host exposes WSL Bash rather than `sh`, so the unchanged driver was invoked as `bash scripts/verify.sh all` with `GO=go.exe`, `GOFMT=gofmt.exe`, and `SH=bash`; nested scripts now honor those tool overrides and keep native-Go coverage profiles on a mutually accessible relative path.
 
 - format: PASS, no files reported;
 - vet: PASS;

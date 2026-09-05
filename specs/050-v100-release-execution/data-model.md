@@ -50,13 +50,9 @@
 
 ## PublishedAssetSet
 
-Before promotion the draft has exactly nine payloads: seven platform packages,
-`windows-candidate-manifest.json`, and the formal evidence ZIP. Promotion adds
-`SHA256SUMS.txt`, yielding exactly ten public assets.
+Before promotion the draft has exactly nine payloads: seven platform packages, `windows-candidate-manifest.json`, and the formal evidence ZIP. Promotion adds `SHA256SUMS.txt`, yielding exactly ten public assets.
 
-Every checksum line maps to exactly one non-checksum payload. Asset names are
-unique, all bytes are non-empty, and the public bytes equal the qualified draft
-bytes.
+Every checksum line maps to exactly one non-checksum payload. Asset names are unique, all bytes are non-empty, and the public bytes equal the qualified draft bytes.
 
 ## ReleaseAudit
 

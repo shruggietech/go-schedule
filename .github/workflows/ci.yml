@@ -33,7 +33,7 @@ jobs:
         run: sh scripts/verify.sh automation
 
   test:
-    name: Test (race) — ${{ matrix.os }}
+    name: Test (race), ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -256,7 +256,7 @@ jobs:
     name: Docs link check
     runs-on: ubuntu-latest
     # No Go toolchain: docs-check.sh is pure POSIX sh with no network. It guards
-    # the docs/ site sources — front matter, on-disk link integrity, no links
+    # the docs/ site sources, front matter, on-disk link integrity, no links
     # escaping docs/, and pointer-README validity. Runs the same script
     # contributors run locally, so the local and CI checks cannot drift.
     steps:

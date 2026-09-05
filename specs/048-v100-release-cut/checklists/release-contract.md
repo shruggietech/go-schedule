@@ -42,5 +42,4 @@
 
 ## Notes
 
-- Complete. The contract preserves every S040/S047 release gate and the
-  constitution's separate tag/release authorization boundary.
+- Complete. The contract preserves every S040/S047 release gate and the constitution's separate tag/release authorization boundary.

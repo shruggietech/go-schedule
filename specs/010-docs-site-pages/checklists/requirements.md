@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Documentation site on GitHub Pages + README consolidation
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-07-23
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -32,8 +30,4 @@
 ## Notes
 
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.
-- The spec is deliberately technology-agnostic in its normative body (FRs, SCs,
-  scenarios). Concrete technology choices (Jekyll served from `/docs`,
-  just-the-docs theme, POSIX-sh check) are captured as the operator-agreed
-  approach for the planning phase, not baked into the requirements — a reviewer
-  swapping the generator would not invalidate a single FR.
+- The spec is deliberately technology-agnostic in its normative body (FRs, SCs, scenarios). Concrete technology choices (Jekyll served from `/docs`, just-the-docs theme, POSIX-sh check) are captured as the operator-agreed approach for the planning phase, not baked into the requirements, a reviewer swapping the generator would not invalidate a single FR.

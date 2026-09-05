@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Windows Release Qualification
 
-**Purpose**: Validate specification completeness and quality before planning
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before planning **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

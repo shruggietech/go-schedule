@@ -1,15 +1,8 @@
 # Portability & Operator-Safety Requirements Checklist: Feature 006
 
-**Purpose**: Validate that the requirements governing cross-platform parity, the
-prerequisite contract, concurrency, bounded execution, measurement honesty, and repository
-hygiene are complete, unambiguous, and objectively verifiable — *before* implementation.
-**Created**: 2026-07-23
-**Feature**: [spec.md](../spec.md)
-**Depth**: Release gate (reviewed at the single pre-push halt)
-**Audience**: Reviewer
+**Purpose**: Validate that the requirements governing cross-platform parity, the prerequisite contract, concurrency, bounded execution, measurement honesty, and repository hygiene are complete, unambiguous, and objectively verifiable, *before* implementation. **Created**: 2026-07-23 **Feature**: [spec.md](../spec.md) **Depth**: Release gate (reviewed at the single pre-push halt) **Audience**: Reviewer
 
-These items test the requirements, not the code. An unchecked item means the spec needs a
-sentence, not that a script needs a fix.
+These items test the requirements, not the code. An unchecked item means the spec needs a sentence, not that a script needs a fix.
 
 ## Twin Parity (PowerShell ↔ POSIX shell)
 
@@ -60,7 +53,7 @@ sentence, not that a script needs a fix.
 - [x] CHK018 - Is the resolution order stated as strictly ordered precedence rather than an
       unordered set of places to look? [Clarity, Spec §FR-016]
 - [x] CHK019 - Are requirements defined for what happens when a located tool exists but is
-      unusable — wrong architecture, not executable, too old? [Gap, Spec §FR-016]
+      unusable, wrong architecture, not executable, too old? [Gap, Spec §FR-016]
 - [x] CHK020 - Is a minimum acceptable version of the external tool specified, or is any
       version presumed acceptable? [Gap, Spec §FR-016]
 - [x] CHK021 - Does the spec state that checksum verification precedes installation, not
@@ -77,8 +70,8 @@ sentence, not that a script needs a fix.
 
 ## Concurrency & Bounded Execution
 
-- [x] CHK026 - Is "tolerate concurrent writers" quantified with a bound — how long to wait,
-      how many times to retry — or left unmeasurable? [Measurability, Spec §FR-021]
+- [x] CHK026 - Is "tolerate concurrent writers" quantified with a bound, how long to wait,
+      how many times to retry, or left unmeasurable? [Measurability, Spec §FR-021]
 - [x] CHK027 - Are requirements defined for what happens when contention *exceeds* that
       bound? [Coverage, Gap, Spec §FR-021]
 - [x] CHK028 - Does the spec require that the bounded-loop guarantee hold when *both* bounds
@@ -86,9 +79,9 @@ sentence, not that a script needs a fix.
 - [x] CHK029 - Are the requirements explicit about which bound wins when a maximum count and
       a maximum duration would end the loop at different moments? [Ambiguity, Spec §FR-004]
 - [x] CHK030 - Is there a requirement covering interaction between the deliberate-slowness
-      knob and the loop bounds — can a single slow run overrun the duration bound?
+      knob and the loop bounds, can a single slow run overrun the duration bound?
       [Conflict, Spec §FR-004 and §FR-005]
-- [x] CHK031 - Are requirements defined for interrupted execution — a run terminated
+- [x] CHK031 - Are requirements defined for interrupted execution, a run terminated
       mid-flight by the scheduler or the operator? [Gap, Exception Flow]
 
 ## Measurement Honesty
@@ -136,40 +129,22 @@ sentence, not that a script needs a fix.
 
 ## Notes
 
-Items CHK014, CHK025, CHK030, and CHK037 mark places where two requirements could be read as
-disagreeing. These are the highest-value items in the list: a conflict resolved at spec time
-costs a sentence, and the same conflict resolved after implementation costs a rewrite of both
-twins plus their tests.
+Items CHK014, CHK025, CHK030, and CHK037 mark places where two requirements could be read as disagreeing. These are the highest-value items in the list: a conflict resolved at spec time costs a sentence, and the same conflict resolved after implementation costs a rewrite of both twins plus their tests.
 
-CHK042 exists because the repository-configuration change carries a process obligation the
-functional requirements do not mention, and process obligations are exactly what gets
-forgotten between the plan and the commit.
+CHK042 exists because the repository-configuration change carries a process obligation the functional requirements do not mention, and process obligations are exactly what gets forgotten between the plan and the commit.
 
 ## Resolution Record (2026-07-23)
 
 All 46 items pass. Two passes were required.
 
-**Pass 1 — 39/46.** The seven failures were real gaps, not wording quibbles.
+**Pass 1, 39/46.** The seven failures were real gaps, not wording quibbles.
 
-**Pass 2 — 46/46**, after amending the spec. The four items flagged in the Notes above as
-potential conflicts all turned out to be genuine, and each is now resolved explicitly rather
-than by a reading that happens to reconcile them:
+**Pass 2, 46/46**, after amending the spec. The four items flagged in the Notes above as potential conflicts all turned out to be genuine, and each is now resolved explicitly rather than by a reading that happens to reconcile them:
 
-- CHK014 — the induced-failure knob could have been handed the code reserved for unmet
-  prerequisites, making a deliberate failure indistinguishable from a missing tool. FR-006
-  now forbids the reserved codes.
-- CHK025 — an unsupported architecture and an uninstalled tool produced the same exit and
-  the same advice, sending a maintainer to install something that was never going to work.
-  FR-018a now separates them.
-- CHK030 — the duration bound and the deliberate-slowness knob could each be read as
-  overriding the other. FR-004a picks one, and states why interrupting a run mid-write is
-  the worse option.
-- CHK037 — SC-002 could have been read as this feature asserting compliance with the
-  scheduler's dispatch budget. It measures and compares; it does not certify.
+- CHK014, the induced-failure knob could have been handed the code reserved for unmet prerequisites, making a deliberate failure indistinguishable from a missing tool. FR-006 now forbids the reserved codes.
+- CHK025, an unsupported architecture and an uninstalled tool produced the same exit and the same advice, sending a maintainer to install something that was never going to work. FR-018a now separates them.
+- CHK030, the duration bound and the deliberate-slowness knob could each be read as overriding the other. FR-004a picks one, and states why interrupting a run mid-write is the worse option.
+- CHK037, SC-002 could have been read as this feature asserting compliance with the scheduler's dispatch budget. It measures and compares; it does not certify.
 
-The seven pass-1 gaps produced FR-018b, FR-018c, FR-018d, FR-021c, FR-021d, FR-021e, and the
-vendoring-drift sentence in Assumptions. The most consequential is **FR-021c**: writing the
-beat once at the end of the run, rather than twice, halves contention and makes an
-interrupted run present as a missed firing — which is the honest signal, since a maintainer
-cannot act differently on a run that vanished mid-flight than on one that never started.
+The seven pass-1 gaps produced FR-018b, FR-018c, FR-018d, FR-021c, FR-021d, FR-021e, and the vendoring-drift sentence in Assumptions. The most consequential is **FR-021c**: writing the beat once at the end of the run, rather than twice, halves contention and makes an interrupted run present as a missed firing, which is the honest signal, since a maintainer cannot act differently on a run that vanished mid-flight than on one that never started.
 

@@ -1,8 +1,6 @@
 # Brand-System Requirements Checklist
 
-**Purpose**: Review brand-integrity, distribution, accessibility, and consumer-synchronization requirements before implementation
-**Created**: 2026-08-30
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Review brand-integrity, distribution, accessibility, and consumer-synchronization requirements before implementation **Created**: 2026-08-30 **Feature**: [spec.md](../spec.md)
 
 ## Canonical Source and Inventory
 

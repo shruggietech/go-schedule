@@ -100,7 +100,7 @@ You **MUST** consider the user input before proceeding (if not empty).
       - Depth calibration (e.g., "Is this a lightweight pre-commit sanity list or a formal release gate?")
       - Audience framing (e.g., "Will this be used by the author only or peers during PR review?")
       - Boundary exclusion (e.g., "Should we explicitly exclude performance tuning items this round?")
-      - Scenario class gap (e.g., "No recovery flows detected—are rollback / partial failure paths in scope?")
+      - Scenario class gap (e.g., "No recovery flows detected-are rollback / partial failure paths in scope?")
 
    Question formatting rules:
    - If presenting options, generate a compact table with columns: Option | Candidate | Why It Matters
@@ -142,8 +142,7 @@ You **MUST** consider the user input before proceeding (if not empty).
      - If file exists: Append new items to existing file, continuing from the last CHK ID (e.g., if last item is CHK015, start new items at CHK016)
    - Never delete or replace existing checklist content - always preserve and append
 
-   **CORE PRINCIPLE - Test the Requirements, Not the Implementation**:
-   Every checklist item MUST evaluate the REQUIREMENTS THEMSELVES for:
+   **CORE PRINCIPLE - Test the Requirements, Not the Implementation**: Every checklist item MUST evaluate the REQUIREMENTS THEMSELVES for:
    - **Completeness**: Are all necessary requirements present?
    - **Clarity**: Are requirements unambiguous and specific?
    - **Consistency**: Do requirements align with each other?
@@ -177,8 +176,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - "Are loading states defined for asynchronous episode data?" [Completeness]
    - "Does the spec define visual hierarchy for competing UI elements?" [Clarity]
 
-   **ITEM STRUCTURE**:
-   Each item should follow this pattern:
+   **ITEM STRUCTURE**: Each item should follow this pattern:
    - Question format asking about requirement quality
    - Focus on what's WRITTEN (or not written) in the spec/plan
    - Include quality dimension in brackets [Completeness/Clarity/Consistency/etc.]
@@ -221,8 +219,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Each item should reference: spec section `[Spec §X.Y]`, or use markers: `[Gap]`, `[Ambiguity]`, `[Conflict]`, `[Assumption]`
    - If no ID system exists: "Is a requirement & acceptance criteria ID scheme established? [Traceability]"
 
-   **Surface & Resolve Issues** (Requirements Quality Problems):
-   Ask questions about the requirements themselves:
+   **Surface & Resolve Issues** (Requirements Quality Problems): Ask questions about the requirements themselves:
    - Ambiguities: "Is the term 'fast' quantified with specific metrics? [Ambiguity, Spec §NFR-1]"
    - Conflicts: "Do navigation requirements conflict between §FR-10 and §FR-10a? [Conflict]"
    - Assumptions: "Is the assumption of 'always available podcast API' validated? [Assumption]"
@@ -342,8 +339,7 @@ Sample items:
 
 ## Post-Execution Checks
 
-**Check for extension hooks (after checklist generation)**:
-Check if `.specify/extensions.yml` exists in the project root.
+**Check for extension hooks (after checklist generation)**: Check if `.specify/extensions.yml` exists in the project root.
 - If it exists, read it and look for entries under the `hooks.after_checklist` key
 - If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
 - Filter out hooks where `enabled` is explicitly `false`. Treat hooks without an `enabled` field as enabled by default.

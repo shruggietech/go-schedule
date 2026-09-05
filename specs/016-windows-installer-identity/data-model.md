@@ -1,7 +1,6 @@
 # Data Model: Windows Installer Identity and Verification
 
-No product database or runtime entity changes. This feature models build and
-verification evidence only.
+No product database or runtime entity changes. This feature models build and verification evidence only.
 
 ## Installer identity contract
 

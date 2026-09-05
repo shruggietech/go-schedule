@@ -1,7 +1,6 @@
 # Specification Quality Checklist: Windows MSI Local-Group Recovery
 
-**Purpose**: Validate specification completeness and quality before proceeding
-to planning
+**Purpose**: Validate specification completeness and quality before proceeding to planning
 
 **Created**: 2026-08-31
 
@@ -35,6 +34,4 @@ to planning
 ## Notes
 
 - Validation iteration 1: 16/16 items pass.
-- The names `goschedadmin`, `goschedd`, HRESULT `0x80070005`, and installer
-  error 26421 are retained because they are observable issue contracts, not
-  discretionary implementation choices.
+- The names `goschedadmin`, `goschedd`, HRESULT `0x80070005`, and installer error 26421 are retained because they are observable issue contracts, not discretionary implementation choices.

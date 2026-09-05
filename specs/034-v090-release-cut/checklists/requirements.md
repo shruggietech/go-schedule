@@ -33,5 +33,4 @@
 
 ## Notes
 
-- Clarification completed autonomously from the explicit user instruction,
-  existing v0.9.0 milestone, and current tagged release workflow.
+- Clarification completed autonomously from the explicit user instruction, existing v0.9.0 milestone, and current tagged release workflow.

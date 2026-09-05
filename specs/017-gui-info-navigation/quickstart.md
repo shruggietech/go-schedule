@@ -17,14 +17,9 @@ Expected:
 
 ## Manual desktop observation
 
-Run the GUI against the normal local daemon and inspect the leading navigation.
-Select Info and confirm the hierarchy remains readable at the default window
-size and after making the window smaller. The mark should retain its proportions,
-and the version, maintainer attribution, repository, and documentation should be
-readable without contacting the daemon.
+Run the GUI against the normal local daemon and inspect the leading navigation. Select Info and confirm the hierarchy remains readable at the default window size and after making the window smaller. The mark should retain its proportions, and the version, maintainer attribution, repository, and documentation should be readable without contacting the daemon.
 
-External-link activation may be observed with the machine's default browser, but
-the automated contract validates destinations without launching a browser.
+External-link activation may be observed with the machine's default browser, but the automated contract validates destinations without launching a browser.
 
 ## Repository verification
 
@@ -32,5 +27,4 @@ the automated contract validates destinations without launching a browser.
 sh scripts/verify.sh all
 ```
 
-All eight gates must pass before the local feature commit. The PR description
-will use `Closes #29` and `Closes #32` because this slice completes both issues.
+All eight gates must pass before the local feature commit. The PR description will use `Closes #29` and `Closes #32` because this slice completes both issues.

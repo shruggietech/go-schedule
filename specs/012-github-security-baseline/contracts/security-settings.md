@@ -1,7 +1,6 @@
 # Contract: Hosted Security Activation
 
-Remote activation occurs only after the autopilot pre-push halt and explicit
-operator authorization.
+Remote activation occurs only after the autopilot pre-push halt and explicit operator authorization.
 
 ## Requested settings
 
@@ -17,17 +16,14 @@ operator authorization.
 ## Evidence classification
 
 - `enabled`: read-back or hosted check proves the control active.
-- `unavailable`: GitHub explicitly rejects or omits the capability for the
-  repository plan; record the exact response and compensating control.
-- `unverified`: the request may have succeeded, but the available token or API
-  cannot prove it.
+- `unavailable`: GitHub explicitly rejects or omits the capability for the repository plan; record the exact response and compensating control.
+- `unverified`: the request may have succeeded, but the available token or API cannot prove it.
 - `failed`: a supported control or workflow did not activate or complete.
 
 ## Safety rules
 
 - Never expose alert, secret, or vulnerability contents in evidence.
 - Report only aggregate alert counts when accessible.
-- Do not create a sample advisory, commit a test secret, dismiss an alert, or
-  change organization settings.
+- Do not create a sample advisory, commit a test secret, dismiss an alert, or change organization settings.
 - A missing token scope is `unverified`, not `unavailable` and not `enabled`.
 - A plan limitation must name the affected control individually.

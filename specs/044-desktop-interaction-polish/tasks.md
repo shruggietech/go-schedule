@@ -183,8 +183,7 @@
 4. Add licensed fonts and default migration, then compact Options storage.
 5. Finish navigation and apply scroll sensitivity to every owned vertical view.
 6. Run focused, full GUI, race, integrity, and canonical verification.
-7. Publish the already-authorized review branch and PR, resolve automatic review
-   and CI, then request and resolve no more than one second Codex review round.
+7. Publish the already-authorized review branch and PR, resolve automatic review and CI, then request and resolve no more than one second Codex review round.
 
 ## Notes
 

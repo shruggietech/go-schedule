@@ -2,12 +2,9 @@
 
 **Input**: Design documents from `specs/048-v100-release-cut/`
 
-**Tests**: Required by the constitution and the release-security scope. Existing
-release-copy, workflow, evidence, and canonical gates must all pass.
+**Tests**: Required by the constitution and the release-security scope. Existing release-copy, workflow, evidence, and canonical gates must all pass.
 
-**Organization**: Tasks are chronological and grouped by independently
-testable release outcomes. Tagging, release publication, hosted PR review, and
-branch cleanup are workflow evidence rather than implementation tasks.
+**Organization**: Tasks are chronological and grouped by independently testable release outcomes. Tagging, release publication, hosted PR review, and branch cleanup are workflow evidence rather than implementation tasks.
 
 ## Phase 1: Setup and Baseline
 
@@ -25,19 +22,15 @@ branch cleanup are workflow evidence rather than implementation tasks.
 - [x] T007 Define release preparation, staged candidate, asset, evidence, issue-disposition, and release-state entities in `specs/048-v100-release-cut/data-model.md`
 - [x] T008 Define the fail-closed post-merge ritual in `specs/048-v100-release-cut/contracts/publication.md` and complete its 22-item checklist
 
-**Checkpoint**: The preparation PR and separately authorized release operation
-have one unambiguous boundary.
+**Checkpoint**: The preparation PR and separately authorized release operation have one unambiguous boundary.
 
 ---
 
 ## Phase 3: User Story 1 - Review the Exact v1 Boundary (Priority: P1)
 
-**Goal**: Reviewers can approve the complete v1.0.0 source and version boundary
-before any tag exists.
+**Goal**: Reviewers can approve the complete v1.0.0 source and version boundary before any tag exists.
 
-**Independent Test**: All 33 pre-cut entries remain exactly once beneath the
-dated v1.0.0 heading; future Unreleased is empty; comparison links and health
-output identify v1.0.0; the README badge follows the latest published release.
+**Independent Test**: All 33 pre-cut entries remain exactly once beneath the dated v1.0.0 heading; future Unreleased is empty; comparison links and health output identify v1.0.0; the README badge follows the latest published release.
 
 - [x] T009 [US1] Cut the current `CHANGELOG.md` Unreleased content beneath `## [1.0.0] - 2026-09-03` while preserving every entry
 - [x] T010 [US1] Update the Unreleased and v1.0.0 comparison links in `CHANGELOG.md`
@@ -48,12 +41,9 @@ output identify v1.0.0; the README badge follows the latest published release.
 
 ## Phase 4: User Story 2 - Understand v1.0.0 Quickly (Priority: P1)
 
-**Goal**: The GitHub release body communicates the major outcomes concisely and
-links to the full immutable record.
+**Goal**: The GitHub release body communicates the major outcomes concisely and links to the full immutable record.
 
-**Independent Test**: The existing offline policy accepts exactly one
-v1.0.0 notes file with five bullets, one Highlights heading, and one tagged
-changelog link while rejecting all established malformed fixtures.
+**Independent Test**: The existing offline policy accepts exactly one v1.0.0 notes file with five bullets, one Highlights heading, and one tagged changelog link while rejecting all established malformed fixtures.
 
 - [x] T013 [US2] Add five concise v1.0.0 highlights and one tagged full-changelog link in `.github/release-notes/v1.0.0.md`
 - [x] T014 [US2] Run the release-note fixture suite and repository automation checker against the v1.0.0 notes
@@ -62,11 +52,9 @@ changelog link while rejecting all established malformed fixtures.
 
 ## Phase 5: User Story 3 - Execute the Post-Merge Release Safely (Priority: P1)
 
-**Goal**: The release operator has a complete, ordered, candidate-bound ritual
-without introducing another workflow or bypass.
+**Goal**: The release operator has a complete, ordered, candidate-bound ritual without introducing another workflow or bypass.
 
-**Independent Test**: Static workflow and integration-contract checks agree
-with the documented nine-payload, 47-observation, ten-issue promotion sequence.
+**Independent Test**: Static workflow and integration-contract checks agree with the documented nine-payload, 47-observation, ten-issue promotion sequence.
 
 - [x] T015 [US3] Inspect and preserve the existing Release/Promote workflow ordering, draft state, candidate manifest, evidence, checksum, and immutable-tag guards
 - [x] T016 [US3] Map all ten remaining v1 readiness issues to exact formal observations in `specs/048-v100-release-cut/data-model.md`
@@ -103,16 +91,10 @@ baseline -> specification/design -> reviewed v1 boundary -> release highlights
 ```
 
 - The changelog baseline must be recorded before the boundary moves.
-- README and release notes must be present in the commit that will later be
-  tagged, so preparation review precedes tag staging.
-- Formal evidence cannot exist before the tag-triggered Release workflow stages
-  the exact candidate and remains outside this implementation task list.
-- Issue closure and promotion depend on the future formal evidence and cannot be
-  represented as completed by the preparation PR.
+- README and release notes must be present in the commit that will later be tagged, so preparation review precedes tag staging.
+- Formal evidence cannot exist before the tag-triggered Release workflow stages the exact candidate and remains outside this implementation task list.
+- Issue closure and promotion depend on the future formal evidence and cannot be represented as completed by the preparation PR.
 
 ## Implementation Strategy
 
-Deliver the smallest coherent v1.0.0 preparation: one preserved changelog cut,
-one curated note file, two synchronized README lines, and a complete reuse-based
-release contract. Do not modify runtime code or the already sufficient release
-workflows unless a focused gate proves a release-blocking defect.
+Deliver the smallest coherent v1.0.0 preparation: one preserved changelog cut, one curated note file, two synchronized README lines, and a complete reuse-based release contract. Do not modify runtime code or the already sufficient release workflows unless a focused gate proves a release-blocking defect.

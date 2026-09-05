@@ -4,22 +4,18 @@
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
-**Tests**: Required by the feature specification and constitution. Every story
-uses a recorded red phase before production changes.
+**Tests**: Required by the feature specification and constitution. Every story uses a recorded red phase before production changes.
 
-**Organization**: Tasks are grouped by independently testable user story after
-the shared input boundary.
+**Organization**: Tasks are grouped by independently testable user story after the shared input boundary.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Can run in parallel because it affects a separate file and has no
-  incomplete dependency.
+- **[P]**: Can run in parallel because it affects a separate file and has no incomplete dependency.
 - **[Story]**: Maps a task to US1, US2, or US3 in spec.md.
 
 ## Phase 1: Setup and Baseline
 
-**Purpose**: Prove the starting behavior and capture the exact boundaries being
-superseded.
+**Purpose**: Prove the starting behavior and capture the exact boundaries being superseded.
 
 - [X] T001 Run the current `internal/cron`, `internal/schedule`, `internal/api/server`, `internal/cli`, and `gui` focused tests and record the green baseline in `specs/019-dual-syntax-input/verification.md`
 - [X] T002 Record current detector, human-only API parsing, expression persistence, import phrase substitution, GUI validation, and no-migration evidence in `specs/019-dual-syntax-input/verification.md`
@@ -28,8 +24,7 @@ superseded.
 
 ## Phase 2: Foundational Central Input Boundary
 
-**Purpose**: Establish one dual-syntax parser and identity contract that blocks
-all product-surface stories.
+**Purpose**: Establish one dual-syntax parser and identity contract that blocks all product-surface stories.
 
 **Critical**: No user story implementation begins until this phase is green.
 
@@ -45,19 +40,15 @@ all product-surface stories.
 - [X] T007 Implement typed syntax hints, single-parser compilation, retained source, named cron refusals, and source-identity derivation in `internal/scheduleinput/input.go`
 - [X] T008 Run `internal/cron` and `internal/scheduleinput` focused tests green and record the boundary evidence in `specs/019-dual-syntax-input/verification.md`
 
-**Checkpoint**: One deterministic parser can compile and identify either syntax
-without storage, API, CLI, GUI, or engine coupling.
+**Checkpoint**: One deterministic parser can compile and identify either syntax without storage, API, CLI, GUI, or engine coupling.
 
 ---
 
 ## Phase 3: User Story 1 - Create and Preview with Cron (Priority: P1) MVP
 
-**Goal**: Preview and create a recurring task with supported cron through the
-API/CLI request path, retaining cron source and returning source identity.
+**Goal**: Preview and create a recurring task with supported cron through the API/CLI request path, retaining cron source and returning source identity.
 
-**Independent Test**: Preview and create `0 9 * * 1-5`, fetch the task, and
-compare RRULE/upcoming runs to `weekdays at 09:00` while proving named failures
-mutate nothing.
+**Independent Test**: Preview and create `0 9 * * 1-5`, fetch the task, and compare RRULE/upcoming runs to `weekdays at 09:00` while proving named failures mutate nothing.
 
 ### Tests
 
@@ -71,18 +62,15 @@ mutate nothing.
 - [X] T013 [US1] Add optional `schedule_syntax`, central parse/error routing, preview identity, and derived task response identity in `internal/api/server/tasks.go`
 - [X] T014 [US1] Run the US1 and foundational suites green and record preview/create/read/storage parity in `specs/019-dual-syntax-input/verification.md`
 
-**Checkpoint**: Supported cron is independently useful for preview and task
-creation, with human input and one-offs unchanged.
+**Checkpoint**: Supported cron is independently useful for preview and task creation, with human input and one-offs unchanged.
 
 ---
 
 ## Phase 4: User Story 2 - Edit and Retrieve Original Syntax (Priority: P2)
 
-**Goal**: Replace or preserve recurring schedules through update, expose honest
-CLI help, and prevent accidental GUI scope expansion.
+**Goal**: Replace or preserve recurring schedules through update, expose honest CLI help, and prevent accidental GUI scope expansion.
 
-**Independent Test**: Update cron to human and human to cron, perform an
-unrelated edit, and verify source/timing/policy changes only when intended.
+**Independent Test**: Update cron to human and human to cron, perform an unrelated edit, and verify source/timing/policy changes only when intended.
 
 ### Tests
 
@@ -98,19 +86,15 @@ unrelated edit, and verify source/timing/policy changes only when intended.
 - [X] T021 [US2] Set explicit human syntax on existing recurring GUI preview/create/update requests in `gui/editor.go`
 - [X] T022 [US2] Run API, CLI, GUI, and foundational suites green and record source/policy/GUI-containment evidence in `specs/019-dual-syntax-input/verification.md`
 
-**Checkpoint**: Non-GUI edit/read round-trips both syntaxes, while GUI behavior
-remains deliberately unchanged.
+**Checkpoint**: Non-GUI edit/read round-trips both syntaxes, while GUI behavior remains deliberately unchanged.
 
 ---
 
 ## Phase 5: User Story 3 - Keep Cron Source Through Import (Priority: P3)
 
-**Goal**: Preview and create imported jobs from the scanner's cron expression
-while retaining explanatory phrase reporting and existing partial-success rules.
+**Goal**: Preview and create imported jobs from the scanner's cron expression while retaining explanatory phrase reporting and existing partial-success rules.
 
-**Independent Test**: Import a supported job through a recording preview/create
-double and verify both receive `Line.Expr` with cron identity, while dry-run,
-decline, unreachable-daemon, command, and partial-success results remain stable.
+**Independent Test**: Import a supported job through a recording preview/create double and verify both receive `Line.Expr` with cron identity, while dry-run, decline, unreachable-daemon, command, and partial-success results remain stable.
 
 ### Tests
 
@@ -129,8 +113,7 @@ decline, unreachable-daemon, command, and partial-success results remain stable.
 
 ## Phase 6: Polish and Cross-Cutting Verification
 
-**Purpose**: Synchronize current truth, validate artifacts, and prove repository
-quality before the local commit.
+**Purpose**: Synchronize current truth, validate artifacts, and prove repository quality before the local commit.
 
 - [X] T028 [P] Narrowly correct live dual-syntax task/input guidance in `README.md`, `docs/cli.md`, `docs/cron.md`, and the focused API contract without performing issue #52's broad rewrite (the repository has no `docs/api.md`)
 - [X] T029 [P] Supersede current boundary-only package comments in `internal/cron/cron.go`, `internal/schedule/parse.go`, and `internal/schedule/recur.go`
@@ -188,5 +171,4 @@ Then T019-T021: implement server, CLI, and GUI preservation paths
 
 1. Extend the same contract to update and CLI help while containing GUI scope.
 2. Switch import preview/create to retained cron source.
-3. Synchronize current docs/comments, run analysis and all verification gates,
-   then commit locally and halt before publication.
+3. Synchronize current docs/comments, run analysis and all verification gates, then commit locally and halt before publication.

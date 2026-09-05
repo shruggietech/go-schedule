@@ -12,11 +12,7 @@ Task create, task update, schedule preview, and task responses use:
 }
 ```
 
-Omitted create/preview values use the defaults shown. Omitted update values leave stored choices unchanged.
-Task detail and schedule preview also return `policy_summary`, a human-readable
-description of the effective basis and whether transition choices are active.
-Task detail exposes `schedule.elapsed_epoch` for elapsed schedules. It is the
-persisted UTC phase and does not change when only the task timezone changes.
+Omitted create/preview values use the defaults shown. Omitted update values leave stored choices unchanged. Task detail and schedule preview also return `policy_summary`, a human-readable description of the effective basis and whether transition choices are active. Task detail exposes `schedule.elapsed_epoch` for elapsed schedules. It is the persisted UTC phase and does not change when only the task timezone changes.
 
 ## Validation errors
 
@@ -36,10 +32,7 @@ Failures do not create a schedule or mutate a task.
 
 ## Desktop
 
-Advanced Settings contains friendly selectors for Time basis, Spring gap, and
-Fall overlap. Stored wire values remain the enum strings above. Live preview
-includes the current selections, and Save remains disabled when elapsed mode is
-incompatible with the entered recurrence.
+Advanced Settings contains friendly selectors for Time basis, Spring gap, and Fall overlap. Stored wire values remain the enum strings above. Live preview includes the current selections, and Save remains disabled when elapsed mode is incompatible with the entered recurrence.
 
 ## Recurrence examples
 

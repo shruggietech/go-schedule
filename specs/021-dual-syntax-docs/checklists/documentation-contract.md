@@ -1,10 +1,6 @@
 # Documentation Contract Requirements Checklist
 
-**Purpose**: Review whether S021's requirements fully and consistently define the dual-syntax documentation posture before planning
-**Created**: 2026-08-28
-**Feature**: [spec.md](../spec.md)
-**Depth**: Standard PR-review gate
-**Audience**: Author and third-party reviewers
+**Purpose**: Review whether S021's requirements fully and consistently define the dual-syntax documentation posture before planning **Created**: 2026-08-28 **Feature**: [spec.md](../spec.md) **Depth**: Standard PR-review gate **Audience**: Author and third-party reviewers
 
 ## Requirement Completeness
 

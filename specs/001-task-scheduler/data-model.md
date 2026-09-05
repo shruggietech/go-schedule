@@ -1,8 +1,6 @@
 # Phase 1 Data Model: Cross-Platform Task Scheduler
 
-Derived from the spec's Key Entities and Functional Requirements. All timestamps are stored in
-**UTC**; timezone is applied only when computing/displaying local run times. Entities map to
-SQLite tables in `internal/store`.
+Derived from the spec's Key Entities and Functional Requirements. All timestamps are stored in **UTC**; timezone is applied only when computing/displaying local run times. Entities map to SQLite tables in `internal/store`.
 
 ## Entity: Group
 
@@ -18,8 +16,7 @@ A named container forming a nested hierarchy (FR-019, FR-020).
 | updated_at | timestamp (UTC) | |
 
 - **Relationships**: parent → children (tree, arbitrary depth, ≥3 levels per SC-009); 1→N Tasks.
-- **Rules**: setting `enabled=false` makes every contained task ineligible to run until the group
-  (and ancestors) are re-enabled. Deleting a group requires it be empty or cascade explicitly.
+- **Rules**: setting `enabled=false` makes every contained task ineligible to run until the group (and ancestors) are re-enabled. Deleting a group requires it be empty or cascade explicitly.
 
 ## Entity: Task
 
@@ -45,12 +42,9 @@ A unit of work to execute (FR-001, FR-007, FR-011, FR-012, FR-017).
 
 - **Relationships**: N→1 Group; 1→1 Schedule; 1→N Run; may be the source/target of a Trigger.
 - **State transitions**:
-  - `active → completed`: a one-off task finishes its single run (FR-004a), or its recurrence
-    `UNTIL`/`COUNT` is exhausted. Stays in history; re-schedulable back to `active`.
+  - `active → completed`: a one-off task finishes its single run (FR-004a), or its recurrence `UNTIL`/`COUNT` is exhausted. Stays in history; re-schedulable back to `active`.
   - `active ↔ disabled`: user disables/enables (or an ancestor group does, effectively).
-- **Validation**: `command` non-empty; `timezone` resolvable; `schedule` valid; a one-off whose
-  time is already past at creation is rejected (Edge Cases) — except when discovered missed after
-  downtime, where catch-up applies.
+- **Validation**: `command` non-empty; `timezone` resolvable; `schedule` valid; a one-off whose time is already past at creation is rejected (Edge Cases), except when discovered missed after downtime, where catch-up applies.
 
 ## Entity: Schedule
 
@@ -69,17 +63,11 @@ The timing definition for a task (FR-002, FR-003, FR-004, FR-004a, FR-007, FR-01
 | expression | string \| null | Retained recurring source text for exact editing; null for one-offs and legacy expressionless rows |
 | source_syntax | derived enum | `human` \| `cron`, derived from expression for API clients; omitted when no expression exists |
 
-- **Rules**: exactly one of (`rrule`+optional `calendar_adjustment`+`anchor`),
-  `run_at`, or `trigger_id` is set per `kind`.
-  Next-run computation runs in the task's timezone, then normalizes DST (next-valid for
-  spring-forward, first-occurrence for fall-back) and converts to UTC (FR-016, FR-018).
-  Recurring input is classified once as human or cron, never retried through the other parser,
-  and compiled into the same RRULE/optional-adjustment/anchor model.
+- **Rules**: exactly one of (`rrule`+optional `calendar_adjustment`+`anchor`), `run_at`, or `trigger_id` is set per `kind`. Next-run computation runs in the task's timezone, then normalizes DST (next-valid for spring-forward, first-occurrence for fall-back) and converts to UTC (FR-016, FR-018). Recurring input is classified once as human or cron, never retried through the other parser, and compiled into the same RRULE/optional-adjustment/anchor model.
 
 ## Entity: Trigger (Event)
 
-A task-completion event that fires another task, with deduplication (FR-007, FR-014). v1 source
-is **another task's completion** only.
+A task-completion event that fires another task, with deduplication (FR-007, FR-014). v1 source is **another task's completion** only.
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -91,8 +79,7 @@ is **another task's completion** only.
 | dedup_window | duration | Window within which duplicates collapse to one run |
 
 - **Relationships**: source Task → Trigger → target Task.
-- **Backed by**: a **DedupLedger** record per delivered event (key + first-seen UTC) so
-  at-least-once delivery yields one execution per logical event within the window.
+- **Backed by**: a **DedupLedger** record per delivered event (key + first-seen UTC) so at-least-once delivery yields one execution per logical event within the window.
 
 ## Entity: DedupLedger (supporting)
 
@@ -103,8 +90,7 @@ is **another task's completion** only.
 | first_seen_at | timestamp (UTC) | Window start |
 | executed | bool | Whether the target run was dispatched |
 
-- **Rules**: unique on (trigger_id, dedup_key) within window; second delivery inside the window
-  is a no-op for execution.
+- **Rules**: unique on (trigger_id, dedup_key) within window; second delivery inside the window is a no-op for execution.
 
 ## Entity: Run (Execution Record)
 
@@ -139,8 +125,7 @@ A surfaced condition shown in the GUI and reflected in logs (FR-013, FR-024).
 | created_at | timestamp (UTC) | |
 | acknowledged | bool | User dismissal state |
 
-- **Rules**: an `overlap_queued` warning is created (and logged) whenever the queue-one policy
-  queues a pending run (FR-013); failures create `run_failed` alerts (FR-024).
+- **Rules**: an `overlap_queued` warning is created (and logged) whenever the queue-one policy queues a pending run (FR-013); failures create `run_failed` alerts (FR-024).
 
 ## Relationships (summary)
 
@@ -154,8 +139,6 @@ Trigger 1───N DedupLedger
 Task  1───N Alert
 ```
 
-## Config (not persisted as an entity — single schema, validated at startup)
+## Config (not persisted as an entity, single schema, validated at startup)
 
-Documented config file (`internal/config`) with fail-fast validation (constitution UX
-principle): data directory, IPC socket/pipe path, admin group, default timezone resolution,
-log level/format, output-capture size limit, worker-pool size.
+Documented config file (`internal/config`) with fail-fast validation (constitution UX principle): data directory, IPC socket/pipe path, admin group, default timezone resolution, log level/format, output-capture size limit, worker-pool size.

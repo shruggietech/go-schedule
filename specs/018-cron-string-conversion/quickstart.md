@@ -6,8 +6,7 @@
 
 - Repository root on branch `codex/018-cron-string-conversion`.
 - Go toolchain selected from `go.mod`.
-- No daemon is required. Stop it or point the environment at an unavailable
-  endpoint when manually proving locality.
+- No daemon is required. Stop it or point the environment at an unavailable endpoint when manually proving locality.
 
 ## Focused tests
 
@@ -21,8 +20,7 @@ go test ./internal/cron ./internal/cli -run 'Test.*Convert' -count=1
 go build -o ./tmp/gosched-convert ./cmd/gosched
 ```
 
-PowerShell may use `./tmp/gosched-convert.exe`; POSIX shells use
-`./tmp/gosched-convert`.
+PowerShell may use `./tmp/gosched-convert.exe`; POSIX shells use `./tmp/gosched-convert`.
 
 ## Cron to human
 
@@ -63,8 +61,7 @@ Expected: empty stdout, a minute-range diagnostic on stderr, and exit code 2.
 ./tmp/gosched-convert --json cron convert "every 7 minutes"
 ```
 
-The first command writes the five-field success object to stdout. The second
-writes the same shape with a refusal reason to stderr and exits 2.
+The first command writes the five-field success object to stdout. The second writes the same shape with a refusal reason to stderr and exits 2.
 
 ## Shell quoting
 
@@ -80,8 +77,7 @@ PowerShell:
 .\tmp\gosched-convert.exe cron convert 'weekdays at 09:00'
 ```
 
-In both cases, one quoted value reaches the command. Unquoted words are multiple
-arguments and are rejected by the normal command parser.
+In both cases, one quoted value reaches the command. Unquoted words are multiple arguments and are rejected by the normal command parser.
 
 ## Full verification
 
@@ -91,5 +87,4 @@ Run the canonical aggregate in the foreground:
 sh scripts/verify.sh all
 ```
 
-Record focused red/green evidence, all eight gate results, checklist completion,
-and issue #51 closure eligibility in `verification.md`.
+Record focused red/green evidence, all eight gate results, checklist completion, and issue #51 closure eligibility in `verification.md`.

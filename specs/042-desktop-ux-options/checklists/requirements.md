@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Desktop UX and Options
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-09-03
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-09-03 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -32,5 +30,4 @@
 ## Notes
 
 - Validation iteration 1 passed 16 of 16 items.
-- Native visual proof is explicitly assigned to the existing exact-candidate
-  gate rather than being mislabeled as headless acceptance.
+- Native visual proof is explicitly assigned to the existing exact-candidate gate rather than being mislabeled as headless acceptance.

@@ -1,8 +1,6 @@
 # Specification Quality Checklist: GUI Task Editor UX Overhaul
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-06-20
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-06-20 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -31,6 +29,5 @@
 
 ## Notes
 
-- Spec keeps tech references at the assumption level (Fyne GUI, IANA, RFC 3339) only where the
-  user explicitly scoped them; functional requirements remain capability-focused.
+- Spec keeps tech references at the assumption level (Fyne GUI, IANA, RFC 3339) only where the user explicitly scoped them; functional requirements remain capability-focused.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

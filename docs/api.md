@@ -9,21 +9,15 @@ nav_order: 5.5
 **Applies to:** the current unreleased local API contract\
 **Transport:** local Unix socket or Windows named pipe, never a public TCP port
 
-The CLI and desktop app use the same versioned JSON API hosted by `goschedd`.
-Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.
+The CLI and desktop app use the same versioned JSON API hosted by `goschedd`. Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.
 
 ## Runtime storage information
 
-`GET /v1/runtime-info` returns the absolute effective paths used by the running
-daemon: `data_dir`, `database_path`, optional `config_path`, `log_path`, and
-`lock_path`. Desktop clients use this endpoint for read-only storage disclosure,
-including when the daemon was launched with a custom configuration path.
+`GET /v1/runtime-info` returns the absolute effective paths used by the running daemon: `data_dir`, `database_path`, optional `config_path`, `log_path`, and `lock_path`. Desktop clients use this endpoint for read-only storage disclosure, including when the daemon was launched with a custom configuration path.
 
 ## Completion chains
 
-The chain representation contains `id`, `source_task_id`, `source_task_name`,
-`target_task_id`, `target_task_name`, `on_outcome`, `created_at`, and
-`updated_at`.
+The chain representation contains `id`, `source_task_id`, `source_task_name`, `target_task_id`, `target_task_name`, `on_outcome`, `created_at`, and `updated_at`.
 
 | Method | Path | Result |
 | --- | --- | --- |
@@ -43,15 +37,10 @@ Create example:
 }
 ```
 
-`on_outcome` is `success`, `failure`, or `any`. Missing resources return
-`not_found`. Invalid outcomes, self-links, duplicates, and direct or indirect
-cycles return `validation_failed` without partial mutation.
+`on_outcome` is `success`, `failure`, or `any`. Missing resources return `not_found`. Invalid outcomes, self-links, duplicates, and direct or indirect cycles return `validation_failed` without partial mutation.
 
 ## Correlated history and events
 
-Completion-triggered entries from `GET /v1/runs` have `trigger` set to
-`completion` and include optional `source_task_id` and `source_run_id`. The
-fields are absent for older and non-completion history.
+Completion-triggered entries from `GET /v1/runs` have `trigger` set to `completion` and include optional `source_task_id` and `source_run_id`. The fields are absent for older and non-completion history.
 
-`GET /v1/events` emits `kind: "chain"` with a `created`, `updated`, or `deleted`
-verb. Create and update include the current chain; delete carries its stable ID.
+`GET /v1/events` emits `kind: "chain"` with a `created`, `updated`, or `deleted` verb. Create and update include the current chain; delete carries its stable ID.

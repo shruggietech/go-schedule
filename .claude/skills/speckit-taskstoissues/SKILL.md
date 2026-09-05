@@ -65,18 +65,15 @@ You **MUST** consider the user input before proceeding (if not empty).
 git config --get remote.origin.url
 ```
 
-> [!CAUTION]
-> ONLY PROCEED TO NEXT STEPS IF THE REMOTE IS A GITHUB URL
+> [!CAUTION] ONLY PROCEED TO NEXT STEPS IF THE REMOTE IS A GITHUB URL
 
 1. For each task in the list, use the GitHub MCP server to create a new issue in the repository that is representative of the Git remote.
 
-> [!CAUTION]
-> UNDER NO CIRCUMSTANCES EVER CREATE ISSUES IN REPOSITORIES THAT DO NOT MATCH THE REMOTE URL
+> [!CAUTION] UNDER NO CIRCUMSTANCES EVER CREATE ISSUES IN REPOSITORIES THAT DO NOT MATCH THE REMOTE URL
 
 ## Post-Execution Checks
 
-**Check for extension hooks (after tasks-to-issues conversion)**:
-Check if `.specify/extensions.yml` exists in the project root.
+**Check for extension hooks (after tasks-to-issues conversion)**: Check if `.specify/extensions.yml` exists in the project root.
 - If it exists, read it and look for entries under the `hooks.after_taskstoissues` key
 - If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
 - Filter out hooks where `enabled` is explicitly `false`. Treat hooks without an `enabled` field as enabled by default.

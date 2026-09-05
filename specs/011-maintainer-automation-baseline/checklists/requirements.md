@@ -1,9 +1,6 @@
 # Specification Quality Checklist: Maintainer Automation Baseline
 
-**Purpose**: Validate specification completeness and quality before proceeding
-to planning
-**Created**: 2026-08-26
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before proceeding to planning **Created**: 2026-08-26 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

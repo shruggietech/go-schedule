@@ -1,16 +1,10 @@
 # Implementation Plan: IPC Access-Denied Recovery
 
-**Branch**: `codex/036-ipc-access-denied-recovery` | **Date**: 2026-08-31 |
-**Spec**: [spec.md](spec.md)
+**Branch**: `codex/036-ipc-access-denied-recovery` | **Date**: 2026-08-31 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
-Introduce typed client failure classification, then replace independent modal
-reporting with one application-owned connection incident rendered above the
-existing tabs. A single cancelable reconnect coordinator provides immediate
-Retry and bounded 2-to-30-second background backoff. Windows-only, read-only
-diagnostics determine whether local-group membership exists but the process
-token is stale; no authorization or installer policy changes.
+Introduce typed client failure classification, then replace independent modal reporting with one application-owned connection incident rendered above the existing tabs. A single cancelable reconnect coordinator provides immediate Retry and bounded 2-to-30-second background backoff. Windows-only, read-only diagnostics determine whether local-group membership exists but the process token is stale; no authorization or installer policy changes.
 
 ## Technical Context
 
@@ -44,43 +38,25 @@ token is stale; no authorization or installer policy changes.
 
 ### Post-design re-check
 
-All gates remain PASS. `docs/INSTALL-windows.md` is pinned and changes because
-the issue requires a fresh-install diagnostic walkthrough, so the dated
-decision is recorded in `CHANGELOG.md`. The IPC listener and ACL implementation
-remain untouched. Native Windows proves installed service, group, account,
-token, pipe, and guidance behavior; deterministic testing proves the authorized
-recovery transition without requiring the operator to terminate the session.
+All gates remain PASS. `docs/INSTALL-windows.md` is pinned and changes because the issue requires a fresh-install diagnostic walkthrough, so the dated decision is recorded in `CHANGELOG.md`. The IPC listener and ACL implementation remain untouched. Native Windows proves installed service, group, account, token, pipe, and guidance behavior; deterministic testing proves the authorized recovery transition without requiring the operator to terminate the session.
 
 ## Architecture and Decision Log
 
 ### Classify at the shared client boundary
 
-Wrap transport failures in a typed error carrying a stable category and the
-original cause. GUI string matching was rejected as fragile and duplicated;
-changing IPC dial signatures was rejected as unnecessary security-boundary churn.
-API `StatusError` remains distinct.
+Wrap transport failures in a typed error carrying a stable category and the original cause. GUI string matching was rejected as fragile and duplicated; changing IPC dial signatures was rejected as unnecessary security-boundary churn. API `StatusError` remains distinct.
 
 ### Own one incident in the GUI
 
-The application owns a mutex-protected incident snapshot and renders one
-persistent panel above tabs. Every transport source reports through that
-coordinator. Repeated reports update the snapshot rather than allocate dialogs.
-Unrelated operation errors still use existing modals after connectivity is healthy.
+The application owns a mutex-protected incident snapshot and renders one persistent panel above tabs. Every transport source reports through that coordinator. Repeated reports update the snapshot rather than allocate dialogs. Unrelated operation errors still use existing modals after connectivity is healthy.
 
 ### Coordinate retry rather than recursively refresh
 
-The stream goroutine is the sole background reconnect loop. It attempts the
-stream, records failures, waits with cancelable exponential backoff, and on
-successful reconnection clears the incident and performs one coordinated
-refresh. Retry interrupts the wait and requests an immediate attempt. Per-tab
-retries and fixed polling were rejected because they reproduce amplification.
+The stream goroutine is the sole background reconnect loop. It attempts the stream, records failures, waits with cancelable exponential backoff, and on successful reconnection clears the incident and performs one coordinated refresh. Retry interrupts the wait and requests an immediate attempt. Per-tab retries and fixed polling were rejected because they reproduce amplification.
 
 ### Diagnose Windows state without mutation
 
-A small build-tagged diagnostic reports service state, group existence,
-account membership, and token membership as verified values or unknown. Only
-verified membership plus missing token SID yields sign-out guidance. Diagnostic
-failure never broadens access or claims a root cause.
+A small build-tagged diagnostic reports service state, group existence, account membership, and token membership as verified values or unknown. Only verified membership plus missing token SID yields sign-out guidance. Diagnostic failure never broadens access or claims a root cause.
 
 ## Project Structure
 
@@ -96,8 +72,7 @@ CLAUDE.md
 specs/README.md
 ```
 
-**Structure Decision**: Extend the existing shared client and GUI packages,
-keeping OS inspection behind build tags. No new package or dependency is needed.
+**Structure Decision**: Extend the existing shared client and GUI packages, keeping OS inspection behind build tags. No new package or dependency is needed.
 
 ## Complexity Tracking
 

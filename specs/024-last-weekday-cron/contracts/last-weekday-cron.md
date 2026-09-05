@@ -19,8 +19,7 @@ Native monthly last-weekday schedules export as:
 <minute> <hour> * * <numeric-weekday>L
 ```
 
-Weekdays use Sunday 0 through Saturday 6. Numeric 7 and names are accepted on
-input but never emitted.
+Weekdays use Sunday 0 through Saturday 6. Numeric 7 and names are accepted on input but never emitted.
 
 ## Human representation
 
@@ -32,18 +31,12 @@ last <weekday-name> of the month at HH:MM
 
 ## Task boundary
 
-Successful cron input produces the existing monthly recurrence while retaining
-the original expression as source and `cron` as syntax. Malformed or refused
-input creates or updates no task.
+Successful cron input produces the existing monthly recurrence while retaining the original expression as source and `cron` as syntax. Malformed or refused input creates or updates no task.
 
 ## Refusal boundary
 
-The implementation does not approximate bare or malformed `L`, lists, ranges,
-steps, multiple terms, mixed `L`/`#`, day-of-month `L`, restricted dates or
-months, arbitrary negative ordinals, selector-rich native recurrences, `W`,
-Quartz seconds or `?`, and macro-only forms.
+The implementation does not approximate bare or malformed `L`, lists, ranges, steps, multiple terms, mixed `L`/`#`, day-of-month `L`, restricted dates or months, arbitrary negative ordinals, selector-rich native recurrences, `W`, Quartz seconds or `?`, and macro-only forms.
 
 ## Compatibility
 
-CLI text/JSON streams, crontab job classification, existing cron expressions,
-and existing named refusals remain unchanged outside this accepted subset.
+CLI text/JSON streams, crontab job classification, existing cron expressions, and existing named refusals remain unchanged outside this accepted subset.

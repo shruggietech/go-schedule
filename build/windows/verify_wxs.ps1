@@ -269,8 +269,8 @@ try {
 
 # The install folder must land on the machine PATH, or every documented bare
 # `gosched ...` command fails after a normal install (issue #5). Assert each
-# attribute separately so a partial edit — a per-user entry, or one that
-# survives uninstall — is reported for what it is rather than passing.
+# attribute separately so a partial edit, a per-user entry, or one that
+# survives uninstall, is reported for what it is rather than passing.
 if ($wxs -notmatch '<Environment[^>]*Name="PATH"') {
   $fail += 'no <Environment> element adding INSTALLFOLDER to PATH'
 } else {

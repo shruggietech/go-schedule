@@ -29,7 +29,7 @@ type taskCtx struct {
 	sch  domain.Schedule
 }
 
-// DispatchLatencyBudget is the documented ceiling for dispatch latency — the
+// DispatchLatencyBudget is the documented ceiling for dispatch latency, the
 // interval from a run's scheduled time to the start of its execution. Per the
 // constitution's Performance principle (IV), the p99 of this latency must stay
 // under this budget "under nominal load", and the budget lives next to the

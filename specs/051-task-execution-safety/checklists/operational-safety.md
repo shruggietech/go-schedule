@@ -1,8 +1,6 @@
 # Operational Safety Requirements Checklist
 
-**Purpose**: Validate that task activation, effective eligibility, and failure-diagnostic requirements are complete and reviewable
-**Created**: 2026-09-05
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate that task activation, effective eligibility, and failure-diagnostic requirements are complete and reviewable **Created**: 2026-09-05 **Feature**: [spec.md](../spec.md)
 
 ## Requirement Completeness
 

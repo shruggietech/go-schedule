@@ -2,8 +2,7 @@
 
 ## Compatibility boundary
 
-All additions are optional JSON fields or a new read endpoint under the existing
-local `/v1` API. Existing request and response fields retain their meanings.
+All additions are optional JSON fields or a new read endpoint under the existing local `/v1` API. Existing request and response fields retain their meanings.
 
 ## Create task
 
@@ -23,8 +22,7 @@ local `/v1` API. Existing request and response fields retain their meanings.
 | `false` | Task is atomically created disabled |
 | `true` | Task is atomically created enabled |
 
-The returned task contains the authoritative persisted `enabled` value. The
-server emits only the final created state and performs one scheduler reload.
+The returned task contains the authoritative persisted `enabled` value. The server emits only the final created state and performs one scheduler reload.
 
 ## Get exact run
 
@@ -49,8 +47,7 @@ Status `200` with one run object:
 
 ### Not found
 
-Status `404` with the existing `not_found` error envelope. The client must not
-substitute another run.
+Status `404` with the existing `not_found` error envelope. The client must not substitute another run.
 
 ## Alert response and events
 
@@ -64,13 +61,11 @@ Newly created `run_failed` alerts include:
 }
 ```
 
-Other and legacy alerts omit `run_id`. List and live-event representations use
-the same additive field.
+Other and legacy alerts omit `run_id`. List and live-event representations use the same additive field.
 
 ## Output contract
 
 - `output` contains at most the configured byte cap of combined stdout/stderr.
 - `output_truncated` is true if any additional bytes were discarded.
 - Empty output and unavailable output are distinct presentation states.
-- The diagnostic surface does not add arguments, standard input, environment
-  values, or reconstructed command lines.
+- The diagnostic surface does not add arguments, standard input, environment values, or reconstructed command lines.

@@ -4,8 +4,7 @@
 
 `cron.Field` retains its current values, wildcard, step, and bounds. It gains:
 
-- `Ordinal int`: zero for ordinary field behavior; 1 through 5 for one
-  day-of-week occurrence within a month.
+- `Ordinal int`: zero for ordinary field behavior; 1 through 5 for one day-of-week occurrence within a month.
 
 ### Invariants
 
@@ -17,9 +16,7 @@
 
 ## Existing ordinal-weekday schedule
 
-No domain entity changes. The existing monthly recurrence contains one numbered
-weekday (`rrule.Weekday` with positive `N`) plus hour, minute, timezone, and the
-existing missing-date policy.
+No domain entity changes. The existing monthly recurrence contains one numbered weekday (`rrule.Weekday` with positive `N`) plus hour, minute, timezone, and the existing missing-date policy.
 
 ### Export invariants
 
@@ -39,5 +36,4 @@ existing monthly RRULE -> fidelity checks -> canonical numeric cron
 -> parsed field and phrase -> equivalent existing monthly RRULE
 ```
 
-Malformed or refused input terminates before task persistence. There is no
-schema, migration, or stored-state transition.
+Malformed or refused input terminates before task persistence. There is no schema, migration, or stored-state transition.

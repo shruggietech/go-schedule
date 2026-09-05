@@ -1,8 +1,6 @@
 # Specification Quality Checklist: Documentation Dark-Theme Quality
 
-**Purpose**: Validate specification completeness and quality before planning.
-**Created**: 2026-08-27
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Validate specification completeness and quality before planning. **Created**: 2026-08-27 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
@@ -31,5 +29,4 @@
 
 ## Notes
 
-All 16 specification-quality checks pass. Implementation mechanisms remain a
-planning decision.
+All 16 specification-quality checks pass. Implementation mechanisms remain a planning decision.

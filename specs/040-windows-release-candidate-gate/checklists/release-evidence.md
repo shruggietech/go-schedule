@@ -1,8 +1,6 @@
 # Release Evidence Requirements Checklist: Windows Release Candidate Gate
 
-**Purpose**: Review the completeness, consistency, security, and measurability of the exact-candidate evidence and fail-closed publication requirements
-**Created**: 2026-09-02
-**Feature**: [spec.md](../spec.md)
+**Purpose**: Review the completeness, consistency, security, and measurability of the exact-candidate evidence and fail-closed publication requirements **Created**: 2026-09-02 **Feature**: [spec.md](../spec.md)
 
 **Audience and depth**: Formal pull-request review checklist for release maintainers and Windows evidence operators.
 
