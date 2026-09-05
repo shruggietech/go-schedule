@@ -31,7 +31,7 @@ func taskRowModelWithChains(task domain.Task, groups []domain.Group, chains []do
 	return taskRowModelWithSources(task, groups, chains, nil)
 }
 
-func taskRowModelWithSources(task domain.Task, groups []domain.Group, chains []domain.CompletionChain, triggers []server.TriggerResponse) structuredRowModel {
+func taskRowModelWithSources(task domain.Task, groups []domain.Group, chains []domain.CompletionChain, triggers []server.TriggerResponse, watcherSources ...[]server.FilesystemWatcherResponse) structuredRowModel {
 	name := tasklogic.DisplayName(task)
 	enabled := "Disabled"
 	enabledImportance := widget.LowImportance
@@ -39,7 +39,7 @@ func taskRowModelWithSources(task domain.Task, groups []domain.Group, chains []d
 		enabled = "Enabled"
 		enabledImportance = widget.SuccessImportance
 	}
-	effective := taskEffectiveStateWithSources(task, groups, chains, triggers)
+	effective := taskEffectiveStateWithSources(task, groups, chains, triggers, watcherSources...)
 	lifecycle := normalizedWords(string(task.State), "Unknown", false)
 	lifecycleImportance := widget.MediumImportance
 	switch task.State {
@@ -73,7 +73,7 @@ func taskRowModelWithSources(task domain.Task, groups []domain.Group, chains []d
 	}
 }
 
-func taskEffectiveStateWithSources(task domain.Task, groups []domain.Group, chains []domain.CompletionChain, triggers []server.TriggerResponse) structuredCell {
+func taskEffectiveStateWithSources(task domain.Task, groups []domain.Group, chains []domain.CompletionChain, triggers []server.TriggerResponse, watcherSources ...[]server.FilesystemWatcherResponse) structuredCell {
 	if task.State != domain.TaskActive {
 		state := normalizedWords(string(task.State), "Unknown", false)
 		return structuredCell{Text: "Lifecycle: " + state, Importance: widget.LowImportance}
@@ -92,7 +92,16 @@ func taskEffectiveStateWithSources(task domain.Task, groups []domain.Group, chai
 			break
 		}
 	}
-	readiness := tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger)
+	hasWatcher := false
+	if len(watcherSources) > 0 {
+		for _, watcher := range watcherSources[0] {
+			if watcher.Enabled && watcher.TargetTaskID == task.ID {
+				hasWatcher = true
+				break
+			}
+		}
+	}
+	readiness := tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger, hasWatcher)
 	if !readiness.CommandReady {
 		return structuredCell{Text: "Not runnable", Importance: widget.WarningImportance}
 	}
@@ -150,7 +159,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 		tasks = snapshot.Tasks
 		rows := make([]structuredRowModel, len(tasks))
 		for index, task := range tasks {
-			rows[index] = taskRowModelWithSources(task, snapshot.Groups, snapshot.Chains, snapshot.Triggers)
+			rows[index] = taskRowModelWithSources(task, snapshot.Groups, snapshot.Chains, snapshot.Triggers, snapshot.Watchers)
 		}
 		table.setRows(rows)
 	}

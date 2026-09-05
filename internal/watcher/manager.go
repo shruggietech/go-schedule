@@ -162,7 +162,9 @@ func (m *Manager) Run(ctx context.Context) error {
 type runtimeState struct {
 	manager       *Manager
 	observer      observer
+	definitions   map[string]domain.FilesystemWatcher
 	configs       map[string]domain.FilesystemWatcher
+	observed      map[string]bool
 	pending       map[string]pendingCandidate
 	generation    uint64
 	recoveryDue   time.Time
@@ -173,7 +175,9 @@ func (s *runtimeState) rebuild() {
 	s.closeObserver()
 	s.generation++
 	s.pending = map[string]pendingCandidate{}
+	s.definitions = map[string]domain.FilesystemWatcher{}
 	s.configs = map[string]domain.FilesystemWatcher{}
+	s.observed = map[string]bool{}
 	s.needsRecovery = false
 	s.recoveryDue = time.Time{}
 	definitions, err := s.manager.store.ListFilesystemWatchers()
@@ -185,6 +189,7 @@ func (s *runtimeState) rebuild() {
 	current := make(map[string]domain.FilesystemWatcher, len(definitions))
 	for _, definition := range definitions {
 		current[definition.ID] = definition
+		s.definitions[definition.ID] = definition
 		if !definition.Enabled {
 			s.manager.setHealth(definition, domain.WatcherDisabled, "watcher is disabled")
 		}
@@ -204,12 +209,11 @@ func (s *runtimeState) rebuild() {
 		return
 	}
 	s.observer = obs
-	added := map[string]bool{}
 	for _, definition := range definitions {
 		if !definition.Enabled {
 			continue
 		}
-		if err := s.register(definition, added); err != nil {
+		if err := s.register(definition, s.observed); err != nil {
 			s.manager.setHealth(definition, domain.WatcherDegraded, registrationReason(err))
 			s.scheduleRecovery()
 			continue
@@ -298,7 +302,7 @@ func (s *runtimeState) handleEvent(event fsnotify.Event) {
 	if !event.Has(fsnotify.Create) && !event.Has(fsnotify.Write) {
 		return
 	}
-	info, err := os.Stat(path)
+	info, err := os.Lstat(path)
 	if err != nil || !info.Mode().IsRegular() {
 		return
 	}
@@ -317,12 +321,11 @@ func (s *runtimeState) addCreatedDirectory(path string) {
 	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 || s.observer == nil {
 		return
 	}
-	added := map[string]bool{}
-	for _, watched := range s.configs {
+	for id, watched := range s.configs {
 		if watched.Kind != domain.WatcherDirectory || !watched.Recursive || !within(path, watched.Path) {
 			continue
 		}
-		_ = filepath.WalkDir(path, func(candidate string, entry fs.DirEntry, walkErr error) error {
+		err := filepath.WalkDir(path, func(candidate string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return walkErr
 			}
@@ -332,15 +335,21 @@ func (s *runtimeState) addCreatedDirectory(path string) {
 			if candidate != path && entry.Type()&os.ModeSymlink != 0 {
 				return filepath.SkipDir
 			}
-			return addObservation(s.observer, candidate, added)
+			return addObservation(s.observer, candidate, s.observed)
 		})
+		if err != nil {
+			s.manager.setHealth(watched, domain.WatcherDegraded, registrationReason(err))
+			delete(s.configs, id)
+			s.discardPending(id)
+			s.scheduleRecovery()
+		}
 	}
 }
 
 func (s *runtimeState) processDue() {
 	now := s.manager.clock.Now()
 	if s.needsRecovery && !s.recoveryDue.After(now) {
-		s.rebuild()
+		s.recoverDefinitions()
 		return
 	}
 	for key, candidate := range s.pending {
@@ -352,7 +361,7 @@ func (s *runtimeState) processDue() {
 			delete(s.pending, key)
 			continue
 		}
-		info, err := os.Stat(candidate.path)
+		info, err := os.Lstat(candidate.path)
 		if err != nil || !info.Mode().IsRegular() {
 			delete(s.pending, key)
 			continue
@@ -373,6 +382,37 @@ func (s *runtimeState) processDue() {
 		delete(s.pending, key)
 		if err := s.manager.dispatcher.FireFilesystemWatcher(candidate.watcherID); err != nil {
 			s.manager.log.Warn("watcher: task dispatch rejected", "watcher", candidate.watcherID, "err", err)
+		}
+	}
+}
+
+func (s *runtimeState) recoverDefinitions() {
+	if s.observer == nil {
+		s.rebuild()
+		return
+	}
+	s.needsRecovery = false
+	for id, definition := range s.definitions {
+		if !definition.Enabled {
+			continue
+		}
+		if _, active := s.configs[id]; active {
+			continue
+		}
+		if err := s.register(definition, s.observed); err != nil {
+			s.manager.setHealth(definition, domain.WatcherDegraded, registrationReason(err))
+			s.scheduleRecovery()
+			continue
+		}
+		s.configs[id] = definition
+		s.manager.setHealth(definition, domain.WatcherActive, "")
+	}
+}
+
+func (s *runtimeState) discardPending(watcherID string) {
+	for key, candidate := range s.pending {
+		if candidate.watcherID == watcherID {
+			delete(s.pending, key)
 		}
 	}
 }

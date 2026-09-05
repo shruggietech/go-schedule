@@ -23,3 +23,16 @@ func TestTriggersViewContainsFilesystemWatcherTable(t *testing.T) {
 		t.Fatal("filesystem watcher table is missing")
 	}
 }
+
+func TestWatcherOnlyTaskIsNotLabeledManualOnly(t *testing.T) {
+	task := domain.Task{ID: "task-1", Name: "Import", Command: "echo", State: domain.TaskActive, Enabled: true}
+	watchers := []server.FilesystemWatcherResponse{{ID: "watcher-1", TargetTaskID: task.ID, Enabled: true}}
+	row := taskRowModelWithSources(task, nil, nil, nil, watchers)
+	if row.Cells[2].Text != "Runnable" {
+		t.Fatalf("effective state = %q", row.Cells[2].Text)
+	}
+	groupModel := newGroupTreeModelWithSources(nil, []domain.Task{task}, nil, nil, watchers)
+	if label := groupModel.label(taskNodeID(task.ID)); label == "" || label == taskRowMarker+"Import   Manual only" {
+		t.Fatalf("group task label = %q", label)
+	}
+}

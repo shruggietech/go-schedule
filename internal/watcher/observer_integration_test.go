@@ -13,7 +13,7 @@ import (
 )
 
 func TestNativeObserverDetectsOneHundredAtomicReplacements(t *testing.T) {
-	root := t.TempDir()
+	root := canonicalTempDir(t)
 	target := filepath.Join(root, "target.txt")
 	store := &watcherStoreStub{items: []domain.FilesystemWatcher{{ID: "watcher-1", Name: "target", Kind: domain.WatcherFile, Path: target, Debounce: 25 * time.Millisecond, Stability: 25 * time.Millisecond, TargetTaskID: "task-1", Enabled: true}}}
 	dispatcher := &dispatcherStub{ch: make(chan string, 2)}
@@ -50,8 +50,8 @@ func TestNativeObserverDetectsOneHundredAtomicReplacements(t *testing.T) {
 }
 
 func TestManagerRejectsLinkedObservationRoot(t *testing.T) {
-	realRoot := t.TempDir()
-	link := filepath.Join(t.TempDir(), "linked")
+	realRoot := canonicalTempDir(t)
+	link := filepath.Join(canonicalTempDir(t), "linked")
 	if err := os.Symlink(realRoot, link); err != nil {
 		t.Skipf("symbolic links unavailable: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestManagerRejectsLinkedObservationRoot(t *testing.T) {
 }
 
 func TestNativeObserverDetectsDirectWriteInExistingNestedDirectory(t *testing.T) {
-	root := t.TempDir()
+	root := canonicalTempDir(t)
 	nested := filepath.Join(root, "nested")
 	if err := os.Mkdir(nested, 0o700); err != nil {
 		t.Fatal(err)

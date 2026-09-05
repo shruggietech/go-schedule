@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -165,6 +166,10 @@ func printWatcher(item server.FilesystemWatcherResponse) error {
 	if jsonOut {
 		return printJSON(item)
 	}
-	fmt.Fprintf(os.Stdout, "%s\t%s\t%s\t%s\n", item.ID, item.Name, item.Kind, item.Readiness)
-	return nil
+	return printWatcherTo(os.Stdout, item)
+}
+
+func printWatcherTo(output io.Writer, item server.FilesystemWatcherResponse) error {
+	_, err := fmt.Fprintf(output, "ID: %s\nName: %s\nKind: %s\nPath: %s\nPattern: %s\nRecursive: %t\nDebounce: %s\nStability: %s\nTarget: %s (%s)\nEnabled: %t\nHealth: %s\nHealth reason: %s\nReadiness: %s\nReadiness reason: %s\n", item.ID, item.Name, item.Kind, item.Path, item.Pattern, item.Recursive, item.Debounce, item.Stability, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Health.State, item.Health.Reason, item.Readiness, item.Reason)
+	return err
 }
