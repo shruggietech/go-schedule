@@ -35,3 +35,5 @@
 
 - First-round Codex findings were accepted and corrected: JSON fire failures now preserve stable API error codes, JSON deletion emits a machine-readable result, existing keys have a visible Reveal key flow, and secret-dialog copy actions provide visible confirmation.
 - The complete canonical eight-gate suite passed after the first-round fixes; the uncached GUI gate completed in 112.850 seconds.
+- The second-round Codex finding was accepted and corrected: enabled external triggers now contribute to task readiness in both the Tasks table and Group tree instead of displaying trigger-backed tasks as manual-only.
+- The complete canonical eight-gate suite passed after the second-round fix; the uncached GUI gate completed in 112.820 seconds.

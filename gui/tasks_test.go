@@ -6,6 +6,7 @@ import (
 
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
@@ -92,6 +93,15 @@ func TestTaskRowModelNormalizesMissingUnicodeAndUnknownValues(t *testing.T) {
 func TestTaskRowModelShowsRunnableEffectiveState(t *testing.T) {
 	groups := []domain.Group{{ID: "enabled", Name: "Enabled group", Enabled: true}}
 	row := taskRowModel(domain.Task{ID: "task", Enabled: true, State: domain.TaskActive, GroupID: "enabled", Command: "echo", ScheduleID: "schedule"}, groups)
+	if got := row.Cells[2]; got.Text != "Runnable" || got.Importance != widget.SuccessImportance {
+		t.Fatalf("effective cell=(%q,%v), want runnable success", got.Text, got.Importance)
+	}
+}
+
+func TestTaskRowModelShowsTriggerBackedTaskAsRunnable(t *testing.T) {
+	task := domain.Task{ID: "task", Enabled: true, State: domain.TaskActive, Command: "echo"}
+	triggers := []server.TriggerResponse{{ID: "trigger", TargetTaskID: task.ID, Enabled: true}}
+	row := taskRowModelWithSources(task, nil, nil, triggers)
 	if got := row.Cells[2]; got.Text != "Runnable" || got.Importance != widget.SuccessImportance {
 		t.Fatalf("effective cell=(%q,%v), want runnable success", got.Text, got.Importance)
 	}
