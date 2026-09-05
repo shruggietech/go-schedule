@@ -48,17 +48,17 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 		cmd.Stdin = strings.NewReader(task.Stdin)
 	}
 	platform.HideConsole(cmd) // no console window for the child process
+	buf := &capBuffer{cap: e.capBytes}
 
 	_, explicitHome := task.Env["HOME"]
 	if err := applyRunAs(cmd, task.RunAs, explicitHome); err != nil {
 		end := time.Now().UTC()
 		run.EndedAt = &end
 		run.Outcome = domain.OutcomeFailure
-		run.Output = "run_as: " + err.Error()
+		captureDiagnostic(buf, &run, "run_as: "+err.Error())
 		return run
 	}
 
-	buf := &capBuffer{cap: e.capBytes}
 	cmd.Stdout = buf
 	cmd.Stderr = buf
 
@@ -66,6 +66,7 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	end := time.Now().UTC()
 	run.EndedAt = &end
 	run.Output = buf.String()
+	run.OutputTruncated = buf.Truncated()
 
 	if err != nil {
 		run.Outcome = domain.OutcomeFailure
@@ -73,7 +74,7 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 			code := ee.ExitCode()
 			run.ExitCode = &code
 		} else if run.Output == "" {
-			run.Output = fmt.Sprintf("process start failed for %q: %v", task.Command, err)
+			captureDiagnostic(buf, &run, fmt.Sprintf("process start failed for %q: %v", task.Command, err))
 		}
 		return run
 	}
@@ -81,6 +82,12 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	run.Outcome = domain.OutcomeSuccess
 	run.ExitCode = &zero
 	return run
+}
+
+func captureDiagnostic(buf *capBuffer, run *domain.Run, message string) {
+	_, _ = buf.Write([]byte(message))
+	run.Output = buf.String()
+	run.OutputTruncated = buf.Truncated()
 }
 
 func envSlice(env map[string]string) []string {
@@ -94,9 +101,10 @@ func envSlice(env map[string]string) []string {
 // capBuffer is a thread-safe buffer that retains at most cap bytes. os/exec may
 // write stdout and stderr from separate goroutines, so writes are guarded.
 type capBuffer struct {
-	cap int
-	mu  sync.Mutex
-	buf bytes.Buffer
+	cap       int
+	mu        sync.Mutex
+	buf       bytes.Buffer
+	truncated bool
 }
 
 func (b *capBuffer) Write(p []byte) (int, error) {
@@ -104,13 +112,22 @@ func (b *capBuffer) Write(p []byte) (int, error) {
 	defer b.mu.Unlock()
 	remaining := b.cap - b.buf.Len()
 	if remaining <= 0 {
+		b.truncated = true
 		return len(p), nil // silently drop beyond the cap
 	}
 	if len(p) > remaining {
 		b.buf.Write(p[:remaining])
+		b.truncated = true
 		return len(p), nil
 	}
 	return b.buf.Write(p)
+}
+
+// Truncated reports whether Write discarded any bytes after reaching the cap.
+func (b *capBuffer) Truncated() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.truncated
 }
 
 func (b *capBuffer) String() string {

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Task creation, effective-state visibility, and failed-run diagnosis now form
+  a safer desktop workflow (Closes #102, #118, #120).** New tasks created in
+  the GUI remain inactive unless the operator selects the creation-only
+  activation option, while omitted API intent retains backward compatibility.
+  Task rows separately label configured, lifecycle, and effective eligibility,
+  including the nearest disabled group. Failed-run Activity detail resolves the
+  exact persisted task and run, identifies launch failures and exit statuses,
+  and presents bounded combined output with explicit truncation disclosure.
+
 ### Changed
 
 - **The v1.0.0 publication now has a durable exception audit (Refs #122).**
@@ -16,6 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   publication occurred before the planned formal archive, leaving the related
   evidence-dependent issues and milestone open instead of manufacturing
   completion evidence.
+
+### Decisions
+
+- **2026-09-05: preserve legacy API creation semantics while making the desktop
+  default safe.** `enabled` is additive and optional on task-create requests:
+  omission continues to mean enabled, while the GUI always sends its explicit
+  creation-only checkbox value. This avoids an externally breaking default
+  change and prevents a create-then-disable scheduling window.
+- **2026-09-05: retain bounded combined process output and disclose its limits.**
+  Failed-run detail labels the retained stream as combined stdout/stderr and
+  stores whether bytes were discarded. S051 does not introduce shell
+  invocation, unbounded capture, or new secret-bearing task inputs.
 
 ## [1.0.0] - 2026-09-03
 

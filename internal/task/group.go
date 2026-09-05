@@ -38,6 +38,30 @@ func ChainEnabled(groupID string, byID map[string]domain.Group) bool {
 	return true
 }
 
+// NearestDisabledGroup returns the first disabled group encountered while
+// walking from groupID toward the root. It identifies the most immediate reason
+// an otherwise active task is blocked without conflating group state with the
+// task's own enabled or lifecycle fields. Unknown ancestors and cycles produce
+// no blocker; callers can use ChainEnabled when they also need cycle status.
+func NearestDisabledGroup(groupID string, byID map[string]domain.Group) (domain.Group, bool) {
+	seen := map[string]bool{}
+	for id := groupID; id != ""; {
+		if seen[id] {
+			return domain.Group{}, false
+		}
+		seen[id] = true
+		group, ok := byID[id]
+		if !ok {
+			return domain.Group{}, false
+		}
+		if !group.Enabled {
+			return group, true
+		}
+		id = group.ParentID
+	}
+	return domain.Group{}, false
+}
+
 // WouldCycle reports whether making newParent the parent of groupID would create
 // a cycle — i.e. newParent is groupID itself or a descendant of groupID.
 func WouldCycle(groupID, newParent string, byID map[string]domain.Group) bool {

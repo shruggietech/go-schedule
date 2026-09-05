@@ -292,3 +292,77 @@ func TestActivityDetailRendersCompletionCorrelation(t *testing.T) {
 		}
 	}
 }
+
+func TestMergeLogEntriesPreservesFailedRunCorrelation(t *testing.T) {
+	alert := domain.Alert{
+		ID: "alert", TaskID: "task", RunID: "run", CreatedAt: time.Now(),
+		Severity: domain.SeverityError, Kind: domain.AlertRunFailed, Message: "task run failed",
+	}
+	entries := mergeLogEntries(nil, []domain.Alert{alert}, "", time.Time{})
+	if len(entries) != 1 || entries[0].taskID != "task" || entries[0].runID != "run" || !entries[0].runFailure {
+		t.Fatalf("entry=%+v", entries)
+	}
+}
+
+func TestFailedRunDetailIncludesExactActionableFields(t *testing.T) {
+	exitCode := 7
+	run := domain.Run{
+		ID: "run-7", TaskID: "task-1", Trigger: domain.TriggerCompletion,
+		Outcome: domain.OutcomeFailure, ExitCode: &exitCode,
+		Output: "stdout line\nstderr line\n", OutputTruncated: true,
+	}
+	entry := logEntry{
+		time: time.Date(2026, 9, 5, 1, 2, 3, 0, time.UTC), severity: domain.SeverityError,
+		source: "alert: run_failed", message: "task run failed", taskID: "task-1",
+		runID: "run-7", runFailure: true,
+	}
+	text := activityDetailText(entry, activityDiagnostic{run: &run, taskName: "Nightly backup"})
+	for _, want := range []string{
+		"Task: Nightly backup (task-1)", "Run: run-7", "Trigger: completion",
+		"Outcome: failure", "Exit status: 7", "Output truncated: Yes",
+		"Combined stdout/stderr:", "stdout line\nstderr line",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("detail %q missing %q", text, want)
+		}
+	}
+}
+
+func TestFailedRunDetailDistinguishesLaunchEmptyLegacyAndUnavailable(t *testing.T) {
+	launch := domain.Run{ID: "run", TaskID: "task", Outcome: domain.OutcomeFailure, Trigger: domain.TriggerManual}
+	text := activityDetailText(logEntry{taskID: "task", runID: "run", runFailure: true}, activityDiagnostic{run: &launch})
+	for _, want := range []string{"No process exit status (launch or setup failed)", "Combined stdout/stderr:\n(empty)", "Output truncated: No"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("launch detail %q missing %q", text, want)
+		}
+	}
+
+	legacy := activityDetailText(logEntry{runFailure: true}, activityDiagnostic{})
+	if !strings.Contains(legacy, "Run: Unavailable (legacy alert has no run identity)") {
+		t.Fatalf("legacy detail=%q", legacy)
+	}
+	missing := activityDetailText(logEntry{taskID: "task", runID: "gone", runFailure: true}, activityDiagnostic{runUnavailable: true, taskUnavailable: true})
+	for _, want := range []string{"Task: Unavailable (task may have been deleted) (task)", "Run: gone", "Run diagnostics: Unavailable"} {
+		if !strings.Contains(missing, want) {
+			t.Errorf("missing detail %q missing %q", missing, want)
+		}
+	}
+}
+
+func TestLoadActivityDiagnosticUsesOnlyExactIdentifiers(t *testing.T) {
+	backend := &fakeBackend{
+		tasks: []domain.Task{{ID: "task", Name: "Exact task"}},
+		runs:  map[string]domain.Run{"run": {ID: "run", TaskID: "task", Outcome: domain.OutcomeFailure}},
+	}
+	ui := NewUI(testApp, backend)
+	diagnostic := ui.loadActivityDiagnostic(context.Background(), logEntry{taskID: "task", runID: "run", runFailure: true})
+	if diagnostic.run == nil || diagnostic.run.ID != "run" || diagnostic.taskName != "Exact task" {
+		t.Fatalf("diagnostic=%+v", diagnostic)
+	}
+	backend.mu.Lock()
+	gotIDs := append([]string(nil), backend.getRunIDs...)
+	backend.mu.Unlock()
+	if !reflect.DeepEqual(gotIDs, []string{"run"}) {
+		t.Fatalf("run lookups=%v", gotIDs)
+	}
+}

@@ -209,3 +209,41 @@ func TestAlerts_AckFlow(t *testing.T) {
 		t.Fatalf("ack missing should be ErrNotFound, got %v", err)
 	}
 }
+
+func TestRunAndAlertDiagnosticRoundTrip(t *testing.T) {
+	st := openMem(t)
+	sch := &domain.Schedule{Kind: domain.ScheduleRecurring, RRULE: "FREQ=DAILY"}
+	if err := st.CreateSchedule(sch); err != nil {
+		t.Fatal(err)
+	}
+	task := &domain.Task{Name: "diagnostic", Command: "x", Timezone: "UTC", ScheduleID: sch.ID, State: domain.TaskActive}
+	if err := st.CreateTask(task); err != nil {
+		t.Fatal(err)
+	}
+	run := &domain.Run{
+		TaskID: task.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeFailure,
+		Trigger: domain.TriggerManual, Output: "partial", OutputTruncated: true,
+	}
+	if err := st.CreateRun(run); err != nil {
+		t.Fatal(err)
+	}
+	alert := &domain.Alert{
+		TaskID: task.ID, RunID: run.ID, Severity: domain.SeverityError,
+		Kind: domain.AlertRunFailed, Message: "task run failed",
+	}
+	if err := st.CreateAlert(alert); err != nil {
+		t.Fatal(err)
+	}
+
+	gotRun, err := st.GetRun(run.ID)
+	if err != nil || gotRun.ID != run.ID || gotRun.Output != "partial" || !gotRun.OutputTruncated {
+		t.Fatalf("GetRun = %+v, err=%v", gotRun, err)
+	}
+	alerts, err := st.ListAlerts(false)
+	if err != nil || len(alerts) != 1 || alerts[0].RunID != run.ID {
+		t.Fatalf("ListAlerts = %+v, err=%v", alerts, err)
+	}
+	if _, err := st.GetRun("missing"); err != ErrNotFound {
+		t.Fatalf("GetRun missing error = %v, want ErrNotFound", err)
+	}
+}

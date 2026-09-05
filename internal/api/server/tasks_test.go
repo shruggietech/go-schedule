@@ -47,6 +47,39 @@ func TestCreateTask_Recurring(t *testing.T) {
 	}
 }
 
+func TestCreateTaskOptionalEnabledIntentIsAtomicAndCompatible(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		enabled *bool
+		want    bool
+	}{
+		{name: "omitted preserves active default", want: true},
+		{name: "explicit inactive", enabled: boolPointer(false), want: false},
+		{name: "explicit active", enabled: boolPointer(true), want: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := newTestServer(t)
+			rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+				Name: "intent", Command: "/bin/true", Schedule: "every day at 09:00",
+				Timezone: "UTC", Enabled: test.enabled,
+			})
+			if rec.Code != http.StatusCreated {
+				t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+			}
+			var response TaskResponse
+			if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+				t.Fatal(err)
+			}
+			stored, err := s.store.GetTask(response.Task.ID)
+			if err != nil || response.Task.Enabled != test.want || stored.Enabled != test.want {
+				t.Fatalf("response=%+v stored=%+v err=%v want enabled=%v", response.Task, stored, err, test.want)
+			}
+		})
+	}
+}
+
+func boolPointer(value bool) *bool { return &value }
+
 func TestCreateTask_PersistsStdin(t *testing.T) {
 	s := newTestServer(t)
 	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{

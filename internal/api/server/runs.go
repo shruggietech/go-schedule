@@ -25,6 +25,15 @@ func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"runs": runs})
 }
 
+func (s *Server) handleGetRun(w http.ResponseWriter, r *http.Request) {
+	run, err := s.store.GetRun(r.PathValue("id"))
+	if err != nil {
+		s.notFoundOr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, run)
+}
+
 func (s *Server) handleListAlerts(w http.ResponseWriter, r *http.Request) {
 	unacked := r.URL.Query().Get("unacked") == "true" || r.URL.Query().Get("unacked") == "1"
 	alerts, err := s.store.ListAlerts(unacked)

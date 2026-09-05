@@ -20,14 +20,25 @@ import (
 // logEntry is a unified row in the Activity view: either a daemon log record or a
 // scheduler alert, normalized to a common shape.
 type logEntry struct {
-	id       string
-	time     time.Time
-	severity domain.AlertSeverity
-	source   string
-	message  string
-	detail   string
-	isAlert  bool
-	alertID  string
+	id         string
+	time       time.Time
+	severity   domain.AlertSeverity
+	source     string
+	message    string
+	detail     string
+	isAlert    bool
+	alertID    string
+	taskID     string
+	runID      string
+	runFailure bool
+}
+
+type activityDiagnostic struct {
+	run             *domain.Run
+	taskName        string
+	runUnavailable  bool
+	taskUnavailable bool
+	loading         bool
 }
 
 var activityColumns = []structuredColumn{
@@ -121,6 +132,46 @@ func activityDiagnosticsText(logPath string) string {
 
 // showLogDetail opens a dialog with the full message and cause/context of an entry.
 func (a *App) showLogDetail(e logEntry) {
+	diagnostic := activityDiagnostic{loading: e.runFailure && e.runID != ""}
+	entry := widget.NewMultiLineEntry()
+	entry.SetText(activityDetailText(e, diagnostic))
+	entry.Wrapping = fyne.TextWrapWord
+	d := dialog.NewCustom("Activity detail", "Close", entry, a.win)
+	d.Resize(fyne.NewSize(620, 440))
+	d.Show()
+	if !e.runFailure {
+		return
+	}
+	go func() {
+		ctx, cancel := a.bgCtx()
+		defer cancel()
+		loaded := a.loadActivityDiagnostic(ctx, e)
+		fyne.Do(func() { entry.SetText(activityDetailText(e, loaded)) })
+	}()
+}
+
+func (a *App) loadActivityDiagnostic(ctx context.Context, e logEntry) activityDiagnostic {
+	var diagnostic activityDiagnostic
+	if e.taskID != "" {
+		task, err := a.backend.GetTask(ctx, e.taskID)
+		if err != nil {
+			diagnostic.taskUnavailable = true
+		} else {
+			diagnostic.taskName = task.Task.Name
+		}
+	}
+	if e.runID != "" {
+		run, err := a.backend.GetRun(ctx, e.runID)
+		if err != nil || run.ID != e.runID || e.taskID != "" && run.TaskID != e.taskID {
+			diagnostic.runUnavailable = true
+		} else {
+			diagnostic.run = &run
+		}
+	}
+	return diagnostic
+}
+
+func activityDetailText(e logEntry, diagnostic activityDiagnostic) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Severity: %s\n", e.severity)
 	fmt.Fprintf(&b, "Time:     %s\n", e.time.Format(time.RFC3339))
@@ -131,12 +182,64 @@ func (a *App) showLogDetail(e logEntry) {
 	if e.detail != "" {
 		fmt.Fprintf(&b, "\n%s\n", e.detail)
 	}
-	entry := widget.NewMultiLineEntry()
-	entry.SetText(b.String())
-	entry.Wrapping = fyne.TextWrapWord
-	d := dialog.NewCustom("Activity detail", "Close", entry, a.win)
-	d.Resize(fyne.NewSize(560, 360))
-	d.Show()
+	if !e.runFailure {
+		return b.String()
+	}
+	b.WriteString("\nFailed run\n")
+	switch {
+	case diagnostic.taskName != "":
+		fmt.Fprintf(&b, "Task: %s (%s)\n", diagnostic.taskName, valueOr(e.taskID, "Unavailable"))
+	case diagnostic.taskUnavailable:
+		fmt.Fprintf(&b, "Task: Unavailable (task may have been deleted) (%s)\n", valueOr(e.taskID, "legacy alert has no task identity"))
+	default:
+		fmt.Fprintf(&b, "Task: %s\n", valueOr(e.taskID, "Unavailable (legacy alert has no task identity)"))
+	}
+	if e.runID == "" {
+		b.WriteString("Run: Unavailable (legacy alert has no run identity)\n")
+		return b.String()
+	}
+	fmt.Fprintf(&b, "Run: %s\n", e.runID)
+	switch {
+	case diagnostic.loading:
+		b.WriteString("Run diagnostics: Loading…\n")
+		return b.String()
+	case diagnostic.runUnavailable || diagnostic.run == nil:
+		b.WriteString("Run diagnostics: Unavailable (run record may have been deleted)\n")
+		return b.String()
+	}
+	run := diagnostic.run
+	fmt.Fprintf(&b, "Trigger: %s\n", run.Trigger)
+	fmt.Fprintf(&b, "Outcome: %s\n", run.Outcome)
+	if run.ExitCode == nil {
+		b.WriteString("Exit status: No process exit status (launch or setup failed)\n")
+	} else {
+		fmt.Fprintf(&b, "Exit status: %d\n", *run.ExitCode)
+	}
+	fmt.Fprintf(&b, "Output truncated: %s\n", yesNo(run.OutputTruncated))
+	b.WriteString("\nCombined stdout/stderr:\n")
+	if run.Output == "" {
+		b.WriteString("(empty)\n")
+	} else {
+		b.WriteString(run.Output)
+		if !strings.HasSuffix(run.Output, "\n") {
+			b.WriteByte('\n')
+		}
+	}
+	return b.String()
+}
+
+func valueOr(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func yesNo(value bool) string {
+	if value {
+		return "Yes"
+	}
+	return "No"
 }
 
 // mergeLogEntries combines log records and alerts into a single severity-filtered,
@@ -147,14 +250,15 @@ func mergeLogEntries(logs []domain.LogRecord, alerts []domain.Alert, filter doma
 		out = append(out, logEntry{
 			id:   l.ID,
 			time: l.Time, severity: l.Severity, source: srcOr(l.Source, "daemon"),
-			message: l.Message, detail: attrsDetail(l),
+			message: l.Message, detail: attrsDetail(l), taskID: l.TaskID, runID: l.RunID,
 		})
 	}
 	for _, al := range alerts {
 		out = append(out, logEntry{
 			id:   al.ID,
 			time: al.CreatedAt, severity: al.Severity, source: "alert: " + string(al.Kind),
-			message: al.Message, isAlert: true, alertID: al.ID,
+			message: al.Message, isAlert: true, alertID: al.ID, taskID: al.TaskID, runID: al.RunID,
+			runFailure: al.Kind == domain.AlertRunFailed,
 		})
 	}
 	filtered := out[:0]

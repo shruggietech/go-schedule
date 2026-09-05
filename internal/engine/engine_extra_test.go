@@ -85,6 +85,39 @@ func TestEngine_SetOnAlertFires(t *testing.T) {
 	r.release <- struct{}{}
 }
 
+func TestEngine_RunFailureAlertCorrelatesExactPersistedRun(t *testing.T) {
+	for _, trigger := range []domain.RunTrigger{
+		domain.TriggerManual, domain.TriggerSchedule, domain.TriggerCatchup,
+		domain.TriggerStartup, domain.TriggerCompletion,
+	} {
+		t.Run(string(trigger), func(t *testing.T) {
+			st, err := store.Open(":memory:")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer st.Close()
+			e := newEngine(st, instantRunner{})
+			task := setupTask(t, st, domain.OverlapAllowConcurrent)
+			run := domain.Run{
+				TaskID: task.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeFailure,
+				Trigger: trigger, Output: "diagnostic output",
+			}
+			e.recordRun(run, "")
+			runs, err := st.ListRuns(task.ID, 0)
+			if err != nil || len(runs) != 1 {
+				t.Fatalf("runs=%+v err=%v", runs, err)
+			}
+			alerts, err := st.ListAlerts(false)
+			if err != nil || len(alerts) != 1 {
+				t.Fatalf("alerts=%+v err=%v", alerts, err)
+			}
+			if alerts[0].TaskID != task.ID || alerts[0].RunID != runs[0].ID || alerts[0].Kind != domain.AlertRunFailed {
+				t.Fatalf("alert=%+v run=%+v", alerts[0], runs[0])
+			}
+		})
+	}
+}
+
 // TestEngine_CompleteOneOff covers the one-off completion path.
 func TestEngine_CompleteOneOff(t *testing.T) {
 	st, _ := store.Open(":memory:")

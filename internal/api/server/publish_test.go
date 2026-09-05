@@ -77,6 +77,29 @@ func TestPublish_TaskLifecycle(t *testing.T) {
 	}
 }
 
+func TestPublishTaskCreationEmitsOnlyFinalInactiveState(t *testing.T) {
+	s, broker := newBrokerServer(t)
+	ch, cancel := broker.Subscribe()
+	defer cancel()
+
+	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{
+		Name: "safe draft", Command: "/bin/true", Schedule: "every day at 09:00",
+		Timezone: "UTC", Enabled: boolPointer(false),
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	event := nextEvent(t, ch, events.KindTask)
+	if event.Task == nil || event.Task.Task == nil || event.Task.Verb != events.VerbCreated || event.Task.Task.Enabled {
+		t.Fatalf("creation event=%+v", event.Task)
+	}
+	select {
+	case extra := <-ch:
+		t.Fatalf("create emitted transient follow-up event: %+v", extra)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
 func TestPublish_GroupLifecycle(t *testing.T) {
 	s, broker := newBrokerServer(t)
 	ch, cancel := broker.Subscribe()

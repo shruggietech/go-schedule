@@ -36,10 +36,11 @@ type taskEditor struct {
 	scheduleUnreadable bool
 
 	// What to run
-	name        *widget.Entry
-	commandLine *widget.Entry
-	group       *widget.Select
-	leftContent *fyne.Container
+	name              *widget.Entry
+	commandLine       *widget.Entry
+	group             *widget.Select
+	activateAfterSave *widget.Check // creation only; nil while editing
+	leftContent       *fyne.Container
 	// groups is the snapshot the group choices were built from, so labels map
 	// back to IDs against the same data the user saw.
 	groups []domain.Group
@@ -97,6 +98,7 @@ type editorSnapshot struct {
 	overlap, catchup, group       string
 	missingDate                   string
 	timeBasis, dstGap, dstOverlap string
+	activateAfterSave             bool
 }
 
 const (
@@ -148,6 +150,9 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	e.groups = a.model.Snapshot().Groups
 	e.group = widget.NewSelect(groupChoiceLabels(e.groups), nil)
 	e.group.SetSelected(groupNoneLabel)
+	if e.existing == nil {
+		e.activateAfterSave = widget.NewCheck("Activate task after saving", nil)
+	}
 
 	e.tz = widget.NewSelectEntry(commonZones)
 	e.tz.SetText("Local")
@@ -226,11 +231,16 @@ func (e *taskEditor) build() *fyne.Container {
 	advForm.AppendItem(withHint(widget.NewFormItem("Fall overlap", e.dstOverlap), "When a local time occurs twice"))
 	advanced := newCollapsible("Advanced Settings", advForm)
 
+	activation := container.NewWithoutLayout()
+	if e.activateAfterSave != nil {
+		activation = container.NewVBox(e.activateAfterSave)
+	}
 	e.leftContent = container.New(&stretchVBoxLayout{stretch: 2},
 		sectionHeader("What to run"),
 		nameForm,
 		commandSection,
 		groupForm,
+		activation,
 		widget.NewSeparator(),
 		sectionHeader("When"),
 		e.whenHolder,
@@ -289,6 +299,10 @@ func (e *taskEditor) toggleHelp() {
 
 // snapshot captures current field values for dirty detection.
 func (e *taskEditor) snapshot() editorSnapshot {
+	activateAfterSave := false
+	if e.activateAfterSave != nil {
+		activateAfterSave = e.activateAfterSave.Checked
+	}
 	return editorSnapshot{
 		name: e.name.Text, commandLine: e.commandLine.Text, tz: e.tz.Text,
 		mode: e.mode.Selected, schedule: e.schedule.Text, startAt: e.startAt.Text,
@@ -296,7 +310,8 @@ func (e *taskEditor) snapshot() editorSnapshot {
 		overlap: e.overlap.Selected, catchup: e.catchup.Selected,
 		missingDate: e.missingDate.Selected,
 		timeBasis:   e.timeBasis.Selected, dstGap: e.dstGap.Selected, dstOverlap: e.dstOverlap.Selected,
-		group: e.group.Selected,
+		group:             e.group.Selected,
+		activateAfterSave: activateAfterSave,
 	}
 }
 
@@ -384,6 +399,9 @@ func (e *taskEditor) wireValidators() {
 	}
 	e.tz.OnChanged = func(string) { e.onChange(false) }
 	e.group.OnChanged = func(string) { e.onChange(false) }
+	if e.activateAfterSave != nil {
+		e.activateAfterSave.OnChanged = func(bool) { e.onChange(false) }
+	}
 	e.missingDate.OnChanged = func(string) { e.onChange(false) }
 	e.timeBasis.OnChanged = func(string) { e.onChange(false) }
 	e.dstGap.OnChanged = func(string) { e.onChange(false) }
@@ -665,6 +683,7 @@ func (e *taskEditor) buildForm() taskForm {
 		timeBasis:   string(timeBasisValue(e.timeBasis.Selected)),
 		dstGap:      string(dstGapValue(e.dstGap.Selected)),
 		dstOverlap:  string(dstOverlapValue(e.dstOverlap.Selected)),
+		activate:    e.activateAfterSave != nil && e.activateAfterSave.Checked,
 	}
 	if e.mode.Selected == modeOneOff {
 		if t, err := e.oneOffInstant(); err == nil {
@@ -888,6 +907,7 @@ type taskForm struct {
 	missingDate, scheduleSyntax                             string
 	timeBasis, dstGap, dstOverlap                           string
 	args                                                    []string
+	activate                                                bool
 	// groupID carries the three-way membership intent: nil leaves it unchanged,
 	// a pointer to "" removes the task from its group, and a pointer to an id
 	// assigns it.
@@ -907,11 +927,13 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 
 	a.run(func(ctx context.Context) error {
 		if existing == nil {
+			enabled := f.activate
 			req := server.TaskCreateRequest{
 				Name: f.name, Command: f.command, Args: f.args, Timezone: f.tz,
 				OverlapPolicy: f.overlap, CatchupPolicy: f.catchup,
 				MissingDatePolicy: f.missingDate,
 				TimeBasis:         f.timeBasis, DSTGapPolicy: f.dstGap, DSTOverlapPolicy: f.dstOverlap,
+				Enabled: &enabled,
 			}
 			if f.groupID != nil {
 				req.GroupID = *f.groupID

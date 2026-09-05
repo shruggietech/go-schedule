@@ -1,6 +1,9 @@
 package domain
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestStartupEventIdentityAndRunOrigin(t *testing.T) {
 	if StartupEventID != "scheduler_startup" {
@@ -42,4 +45,46 @@ func TestTaskSchedulePolicy(t *testing.T) {
 	if got := task.SchedulePolicy(); got != want {
 		t.Fatalf("SchedulePolicy = %#v, want %#v", got, want)
 	}
+}
+
+func TestExecutionDiagnosticJSONCompatibility(t *testing.T) {
+	legacyRun, err := json.Marshal(Run{ID: "run-legacy"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if jsonContainsField(t, legacyRun, "output_truncated") {
+		t.Fatalf("zero-value run unexpectedly changed legacy JSON: %s", legacyRun)
+	}
+	legacyAlert, err := json.Marshal(Alert{ID: "alert-legacy"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if jsonContainsField(t, legacyAlert, "run_id") {
+		t.Fatalf("zero-value alert unexpectedly changed legacy JSON: %s", legacyAlert)
+	}
+
+	runJSON, err := json.Marshal(Run{ID: "run-truncated", OutputTruncated: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !jsonContainsField(t, runJSON, "output_truncated") {
+		t.Fatalf("truncated run omitted diagnostic metadata: %s", runJSON)
+	}
+	alertJSON, err := json.Marshal(Alert{ID: "alert-correlated", RunID: "run-truncated"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !jsonContainsField(t, alertJSON, "run_id") {
+		t.Fatalf("correlated alert omitted run identity: %s", alertJSON)
+	}
+}
+
+func jsonContainsField(t *testing.T, data []byte, field string) bool {
+	t.Helper()
+	var value map[string]any
+	if err := json.Unmarshal(data, &value); err != nil {
+		t.Fatal(err)
+	}
+	_, ok := value[field]
+	return ok
 }

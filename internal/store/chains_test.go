@@ -35,6 +35,25 @@ func chainTask(t *testing.T, st *Store, name string) domain.Task {
 	return task
 }
 
+func TestRecordRunAndCreateDeliveriesPersistsOutputTruncation(t *testing.T) {
+	st := openMem(t)
+	task := chainTask(t, st, "source")
+	run := domain.Run{
+		TaskID: task.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeFailure,
+		Output: "bounded output", OutputTruncated: true, Trigger: domain.TriggerManual,
+	}
+	if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetRun(run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.OutputTruncated || got.Output != run.Output {
+		t.Fatalf("stored run diagnostics=%+v, want truncation and retained output", got)
+	}
+}
+
 func TestCompletionChainsCRUDAndCycleValidation(t *testing.T) {
 	st := openMem(t)
 	a := chainTask(t, st, "a")

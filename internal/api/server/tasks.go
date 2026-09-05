@@ -38,6 +38,9 @@ type TaskCreateRequest struct {
 	TimeBasis         string `json:"time_basis,omitempty"`
 	DSTGapPolicy      string `json:"dst_gap_policy,omitempty"`
 	DSTOverlapPolicy  string `json:"dst_overlap_policy,omitempty"`
+	// Enabled is optional for wire compatibility. Omitted requests retain the
+	// historical enabled default; explicit false supports atomic draft creation.
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // TaskResponse is the detail returned for a task.
@@ -150,9 +153,13 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
 	task := &domain.Task{
 		Name: req.Name, GroupID: req.GroupID, Command: req.Command, Args: req.Args,
-		WorkingDir: req.WorkingDir, Env: req.Env, Stdin: req.Stdin, RunAs: req.RunAs, Enabled: true,
+		WorkingDir: req.WorkingDir, Env: req.Env, Stdin: req.Stdin, RunAs: req.RunAs, Enabled: enabled,
 		Timezone: tz, ScheduleID: sch.ID, OverlapPolicy: overlap, CatchupPolicy: catchup,
 		MissingDatePolicy: missingDate, TimeBasis: timeBasis, DSTGapPolicy: dstGap,
 		DSTOverlapPolicy: dstOverlap, State: domain.TaskActive,

@@ -126,6 +126,13 @@ func (c *Client) ListRuns(ctx context.Context, taskID string, limit int) ([]doma
 	return out.Runs, err
 }
 
+// GetRun returns one run by exact identity.
+func (c *Client) GetRun(ctx context.Context, id string) (domain.Run, error) {
+	var out domain.Run
+	err := c.do(ctx, http.MethodGet, "/v1/runs/"+url.PathEscape(id), nil, &out)
+	return out, err
+}
+
 // ListAlerts returns alerts, optionally only unacknowledged.
 func (c *Client) ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, error) {
 	q := url.Values{}

@@ -46,6 +46,9 @@ type fakeBackend struct {
 	previews    int
 	lastPreview server.PreviewRequest
 	acked       []string
+	runs        map[string]domain.Run
+	getRunErr   error
+	getRunIDs   []string
 }
 
 // lastUpdateCall returns the recorded update count and the most recent request.
@@ -156,6 +159,18 @@ func (f *fakeBackend) UpdateTask(_ context.Context, id string, req server.TaskUp
 func (f *fakeBackend) DeleteTask(context.Context, string) error           { return nil }
 func (f *fakeBackend) SetTaskEnabled(context.Context, string, bool) error { return nil }
 func (f *fakeBackend) RunNow(context.Context, string) error               { return nil }
+func (f *fakeBackend) GetRun(_ context.Context, id string) (domain.Run, error) {
+	f.mu.Lock()
+	f.getRunIDs = append(f.getRunIDs, id)
+	f.mu.Unlock()
+	if f.getRunErr != nil {
+		return domain.Run{}, f.getRunErr
+	}
+	if run, ok := f.runs[id]; ok {
+		return run, nil
+	}
+	return domain.Run{}, errors.New("run not found")
+}
 func (f *fakeBackend) CreateChain(context.Context, server.ChainCreateRequest) (domain.CompletionChain, error) {
 	return domain.CompletionChain{}, nil
 }
@@ -368,7 +383,7 @@ func TestTaskTableHasFixedHeadersAndFullValueDisclosure(t *testing.T) {
 	if ui.taskTable == nil || ui.taskTable.header == nil || ui.taskTable.list != ui.taskList {
 		t.Fatal("Tasks did not expose the shared fixed-header table")
 	}
-	wantHeaders := []string{"Task", "Enabled", "Lifecycle", "Time zone", "Group"}
+	wantHeaders := []string{"Task", "Enabled", "Effective", "Lifecycle", "Time zone", "Group"}
 	for index, want := range wantHeaders {
 		if got := ui.taskTable.header.labels[index].Text; got != want {
 			t.Errorf("header %d=%q, want %q", index, got, want)
@@ -382,10 +397,75 @@ func TestTaskTableHasFixedHeadersAndFullValueDisclosure(t *testing.T) {
 		}
 	}
 	ui.taskList.Select(0)
-	for _, want := range []string{"Task: A very long Unicode task 備份", "Enabled: Enabled", "Lifecycle: Active", "Time zone: America/Argentina/Buenos_Aires", "Group: Not assigned"} {
+	for _, want := range []string{"Task: A very long Unicode task 備份", "Enabled: Enabled", "Effective: Runnable", "Lifecycle: Active", "Time zone: America/Argentina/Buenos_Aires", "Group: Not assigned"} {
 		if !strings.Contains(ui.taskTable.disclosure.Text, want) {
 			t.Errorf("disclosure %q missing %q", ui.taskTable.disclosure.Text, want)
 		}
+	}
+}
+
+func TestTaskTableRefreshesEffectiveStateAfterGroupEvent(t *testing.T) {
+	backend := &fakeBackend{
+		tasks:  []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "group"}},
+		groups: []domain.Group{{ID: "group", Name: "Operations", Enabled: true}},
+	}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	ui.taskList.Select(0)
+	if got := ui.taskTable.rows[0].Cells[2].Text; got != "Runnable" {
+		t.Fatalf("initial effective state=%q, want Runnable", got)
+	}
+
+	ui.model.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
+		Verb:  events.VerbUpdated,
+		ID:    "group",
+		Group: &domain.Group{ID: "group", Name: "Operations", Enabled: false},
+	}})
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if got := ui.taskTable.rows[0].Cells[2].Text; got != "Blocked by Operations" {
+		t.Fatalf("updated effective state=%q, want disabled-group explanation", got)
+	}
+	if ui.taskTable.selectedIdentity != "task" {
+		t.Fatalf("selection identity=%q, want task", ui.taskTable.selectedIdentity)
+	}
+}
+
+func TestTaskTableBecomesRunnableAfterCascadedGroupDelete(t *testing.T) {
+	backend := &fakeBackend{
+		tasks: []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "child"}},
+		groups: []domain.Group{
+			{ID: "parent", Name: "Parent", Enabled: true},
+			{ID: "child", Name: "Blocked child", ParentID: "parent", Enabled: false},
+		},
+	}
+	ui := NewUI(testApp, backend)
+	ui.model.OnChange = nil
+	if err := ui.model.Refresh(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if got := ui.taskTable.rows[0].Cells[2].Text; got != "Blocked by Parent / Blocked child" {
+		t.Fatalf("initial effective state=%q", got)
+	}
+
+	ui.model.ApplyEvent(events.Event{Kind: events.KindGroup, Group: &events.GroupEvent{
+		Verb: events.VerbDeleted, ID: "parent",
+	}})
+	for _, refresh := range ui.refreshers {
+		refresh()
+	}
+	if got := ui.taskTable.rows[0].Cells[2].Text; got != "Runnable" {
+		t.Fatalf("post-delete effective state=%q, want Runnable", got)
 	}
 }
 

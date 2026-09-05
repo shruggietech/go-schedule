@@ -45,6 +45,30 @@ func TestChainEnabled(t *testing.T) {
 	}
 }
 
+func TestNearestDisabledGroup(t *testing.T) {
+	tests := []struct {
+		name    string
+		groupID string
+		groups  []domain.Group
+		wantID  string
+		wantOK  bool
+	}{
+		{name: "direct group", groupID: "leaf", groups: []domain.Group{{ID: "leaf", Enabled: false}}, wantID: "leaf", wantOK: true},
+		{name: "nearest ancestor", groupID: "leaf", groups: []domain.Group{{ID: "root", Enabled: false}, {ID: "child", ParentID: "root", Enabled: false}, {ID: "leaf", ParentID: "child", Enabled: true}}, wantID: "child", wantOK: true},
+		{name: "enabled chain", groupID: "leaf", groups: sampleGroups()},
+		{name: "unknown ancestor", groupID: "missing", groups: sampleGroups()},
+		{name: "cycle terminates", groupID: "a", groups: []domain.Group{{ID: "a", ParentID: "b", Enabled: true}, {ID: "b", ParentID: "a", Enabled: true}}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := NearestDisabledGroup(tt.groupID, ByID(tt.groups))
+			if ok != tt.wantOK || got.ID != tt.wantID {
+				t.Fatalf("NearestDisabledGroup()=(%q,%v), want (%q,%v)", got.ID, ok, tt.wantID, tt.wantOK)
+			}
+		})
+	}
+}
+
 func TestWouldCycle(t *testing.T) {
 	byID := ByID(sampleGroups())
 	if !WouldCycle("root", "root", byID) {
