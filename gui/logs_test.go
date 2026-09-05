@@ -106,6 +106,25 @@ func TestActivityTableHasFixedHeadersAndSemanticCells(t *testing.T) {
 	}
 }
 
+func TestActivityExposesAdjustableBoundariesAndResetAction(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	if ui.activityTable.profile == nil || len(ui.activityTable.header.boundaries) != len(activityColumns)-1 {
+		t.Fatalf("Activity adjustable profile/boundaries missing: profile=%v boundaries=%d", ui.activityTable.profile, len(ui.activityTable.header.boundaries))
+	}
+	found := false
+	walkInfoObjects(ui.navigation.contentFor(navigationActivity), func(object fyne.CanvasObject) {
+		if button, ok := object.(*widget.Button); ok && button.Text == "Reset columns" {
+			found = true
+		}
+	})
+	if !found {
+		t.Fatal("Activity Reset columns action missing")
+	}
+	if defaults := defaultColumnProportions(activityColumns); defaults[0] <= 0.2 {
+		t.Fatalf("Activity When default=%v, want practical share above 20%%", defaults[0])
+	}
+}
+
 func TestMergeLogEntries_MergesSortsAndFilters(t *testing.T) {
 	t0 := time.Unix(100, 0)
 	logs := []domain.LogRecord{

@@ -113,6 +113,54 @@ func TestScheduleTableHasFixedHeadersAndDisclosure(t *testing.T) {
 	}
 }
 
+func TestScheduleColumnsPersistAndResetIndependently(t *testing.T) {
+	prefs := testApp.Preferences()
+	oldSchedule := prefs.String(scheduleColumnLayoutPreferenceKey)
+	oldActivity := prefs.String(activityColumnLayoutPreferenceKey)
+	t.Cleanup(func() {
+		prefs.SetString(scheduleColumnLayoutPreferenceKey, oldSchedule)
+		prefs.SetString(activityColumnLayoutPreferenceKey, oldActivity)
+	})
+	prefs.RemoveValue(scheduleColumnLayoutPreferenceKey)
+	prefs.RemoveValue(activityColumnLayoutPreferenceKey)
+	ui := NewUI(testApp, &fakeBackend{})
+	ui.scheduleTable.profile.setProportions([]float32{0.4, 0.25, 0.15, 0.2}, true)
+	ui.activityTable.profile.setProportions([]float32{0.2, 0.2, 0.25, 0.35}, true)
+
+	rebuilt := NewUI(testApp, &fakeBackend{})
+	if got := rebuilt.scheduleTable.profile.proportions(); !closeFloat32s(got, []float32{0.4, 0.25, 0.15, 0.2}) {
+		t.Fatalf("Schedule restore=%v", got)
+	}
+	if got := rebuilt.activityTable.profile.proportions(); !closeFloat32s(got, []float32{0.2, 0.2, 0.25, 0.35}) {
+		t.Fatalf("Activity restore=%v", got)
+	}
+	rebuilt.scheduleTable.resetColumns()
+	if got := rebuilt.scheduleTable.profile.proportions(); !closeFloat32s(got, defaultColumnProportions(scheduleColumns)) {
+		t.Fatalf("Schedule reset=%v", got)
+	}
+	if got := rebuilt.activityTable.profile.proportions(); !closeFloat32s(got, []float32{0.2, 0.2, 0.25, 0.35}) {
+		t.Fatalf("Activity changed by Schedule reset=%v", got)
+	}
+}
+
+func TestScheduleExposesResetColumnsActionAndPracticalWhenDefault(t *testing.T) {
+	ui := NewUI(testApp, &fakeBackend{})
+	root := ui.navigation.contentFor(navigationSchedule)
+	found := false
+	walkInfoObjects(root, func(object fyne.CanvasObject) {
+		if button, ok := object.(*widget.Button); ok && button.Text == "Reset columns" {
+			found = true
+		}
+	})
+	if !found {
+		t.Fatal("Schedule Reset columns action missing")
+	}
+	defaults := defaultColumnProportions(scheduleColumns)
+	if defaults[0] <= 0.2 {
+		t.Fatalf("Schedule When default=%v, want practical share above 20%%", defaults[0])
+	}
+}
+
 func TestScheduleControlsPreserveRangeAndListCalendarRoundTrip(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
 	root := ui.navigation.contentFor(navigationSchedule)

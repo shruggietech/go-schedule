@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/test"
 	"fyne.io/fyne/v2/widget"
 )
@@ -51,6 +52,122 @@ func TestResponsiveColumnWidthsProtectMinimaAndWeightSurplus(t *testing.T) {
 	narrow := responsiveColumnWidths(columns, 104, 2)
 	if got, want := narrow, []float32{50, 25, 25}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("narrow widths=%v, want %v", got, want)
+	}
+}
+
+func TestProfileWidthsConserveAndClampAtSupportedAndNarrowSizes(t *testing.T) {
+	columns := []structuredColumn{
+		{Header: "When", Minimum: 140},
+		{Header: "Task", Minimum: 160},
+		{Header: "State", Minimum: 100},
+	}
+	profile := &columnProfile{columns: columns, values: []float32{0.6, 0.2, 0.2}}
+	wide := profile.widths(604, 2)
+	if got, want := wide, []float32{330, 160, 110}; !closeFloat32s(got, want) {
+		t.Fatalf("wide profile widths=%v, want %v", got, want)
+	}
+	narrow := profile.widths(204, 2)
+	if got, want := narrow, []float32{70, 80, 50}; !closeFloat32s(got, want) {
+		t.Fatalf("narrow profile widths=%v, want %v", got, want)
+	}
+}
+
+func TestAdjustableStructuredListBoundarySupportsPointerKeyboardAndAccessibility(t *testing.T) {
+	prefs := testApp.Preferences()
+	const key = "test.columns.boundary"
+	t.Cleanup(func() { prefs.RemoveValue(key) })
+	columns := []structuredColumn{
+		{Header: "When", Minimum: 100, Preferred: 1},
+		{Header: "Task", Minimum: 100, Preferred: 1},
+		{Header: "State", Minimum: 80, Preferred: 1},
+	}
+	table := newAdjustableStructuredList(columns, "", nil, nil, prefs, key)
+	if got := len(table.header.boundaries); got != 2 {
+		t.Fatalf("boundary count=%d, want 2", got)
+	}
+	table.header.Resize(fyne.NewSize(600, 36))
+	boundary := table.header.boundaries[0]
+	if boundary.AccessibilityLabel() != "Resize When and Task columns" || boundary.AccessibilityRole() != fyne.AccessibleRoleButton {
+		t.Fatalf("boundary accessibility=%q/%q", boundary.AccessibilityLabel(), boundary.AccessibilityRole())
+	}
+	if boundary.Cursor() != desktop.HResizeCursor {
+		t.Fatalf("boundary cursor=%v", boundary.Cursor())
+	}
+	before := table.profile.widths(600, structuredColumnGap)
+	boundary.FocusGained()
+	if !boundary.focused {
+		t.Fatal("boundary did not expose focus state")
+	}
+	boundary.TypedKey(&fyne.KeyEvent{Name: fyne.KeyRight})
+	afterKey := table.profile.widths(600, structuredColumnGap)
+	if math.Abs(float64(afterKey[0]-before[0]-columnKeyboardStep)) > 0.01 {
+		t.Fatalf("keyboard widths=%v, before=%v", afterKey, before)
+	}
+	boundary.Dragged(&fyne.DragEvent{Dragged: fyne.Delta{DX: 20}})
+	boundary.DragEnd()
+	afterDrag := table.profile.widths(600, structuredColumnGap)
+	if math.Abs(float64(afterDrag[0]-afterKey[0]-20)) > 0.01 || afterDrag[2] != before[2] {
+		t.Fatalf("drag widths=%v, keyboard=%v", afterDrag, afterKey)
+	}
+	if got := newColumnProfile(columns, prefs, key).widths(600, structuredColumnGap); !closeFloat32s(got, afterDrag) {
+		t.Fatalf("persisted widths=%v, want %v", got, afterDrag)
+	}
+	boundary.FocusLost()
+	if boundary.focused {
+		t.Fatal("boundary retained focus state")
+	}
+}
+
+func TestAdjustableStructuredListKeepsHeaderAndBodyAlignedAfterResize(t *testing.T) {
+	columns := []structuredColumn{
+		{Header: "When", Minimum: 100, Preferred: 1},
+		{Header: "Task", Minimum: 100, Preferred: 1},
+		{Header: "State", Minimum: 80, Preferred: 1},
+	}
+	table := newAdjustableStructuredList(columns, "", nil, nil, nil, "")
+	table.header.Resize(fyne.NewSize(600, 36))
+	body := table.list.CreateItem().(*structuredRow)
+	body.bind(structuredRowModel{Identity: "row", Cells: []structuredCell{{Text: "a"}, {Text: "b"}, {Text: "c"}}}, 0)
+	body.Resize(fyne.NewSize(600, 36))
+	table.header.boundaries[1].TypedKey(&fyne.KeyEvent{Name: fyne.KeyLeft})
+	body.Refresh()
+	body.Resize(fyne.NewSize(600, 36))
+	for i := range columns {
+		if table.header.labels[i].Position() != body.labels[i].Position() || table.header.labels[i].Size() != body.labels[i].Size() {
+			t.Fatalf("column %d header=(%v,%v) body=(%v,%v)", i, table.header.labels[i].Position(), table.header.labels[i].Size(), body.labels[i].Position(), body.labels[i].Size())
+		}
+	}
+}
+
+func TestColumnBoundariesRenderInBothThemesAtSupportedWidths(t *testing.T) {
+	t.Cleanup(func() { applyBrandTheme(testApp.Settings(), defaultAppearancePreferences()) })
+	columns := []structuredColumn{
+		{Header: "When", Minimum: 145, Preferred: 28},
+		{Header: "Task", Minimum: 160, Preferred: 31},
+		{Header: "Event", Minimum: 105, Preferred: 18},
+		{Header: "Outcome", Minimum: 125, Preferred: 23},
+	}
+	for _, mode := range []appearanceMode{appearanceDark, appearanceLight} {
+		applyBrandTheme(testApp.Settings(), appearancePreferences{Mode: mode, Font: fontSystem, ScrollSensitivity: defaultScrollSensitivity})
+		table := newAdjustableStructuredList(columns, "", nil, nil, nil, "")
+		for _, width := range []float32{560, 1200} {
+			table.header.Resize(fyne.NewSize(width, 36))
+			allocated := structuredColumnGap * float32(len(columns)-1)
+			for _, columnWidth := range table.profile.widths(width, structuredColumnGap) {
+				allocated += columnWidth
+			}
+			if math.Abs(float64(allocated-width)) > 0.01 {
+				t.Fatalf("mode=%q width=%v allocated=%v", mode, width, allocated)
+			}
+		}
+		for _, boundary := range table.header.boundaries {
+			renderer := boundary.CreateRenderer().(*columnBoundaryRenderer)
+			renderer.Refresh()
+			_, _, _, alpha := renderer.line.FillColor.RGBA()
+			if alpha == 0 {
+				t.Fatalf("mode=%q boundary is invisible", mode)
+			}
+		}
 	}
 }
 
