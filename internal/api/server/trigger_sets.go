@@ -94,13 +94,8 @@ func (s *Server) handleCreateTriggerSet(w http.ResponseWriter, r *http.Request) 
 		s.triggerSetStoreError(w, err)
 		return
 	}
-	loaded, err := s.store.GetTriggerSet(set.ID)
-	if err != nil {
-		s.internal(w, err)
-		return
-	}
-	s.publishTriggerSet(events.VerbCreated, loaded)
-	writeJSON(w, http.StatusCreated, s.triggerSetSecretResponse(loaded))
+	s.publishTriggerSet(events.VerbCreated, set)
+	writeJSON(w, http.StatusCreated, s.triggerSetSecretResponse(set))
 }
 
 func (s *Server) handleListTriggerSets(w http.ResponseWriter, _ *http.Request) {
@@ -140,11 +135,13 @@ func (s *Server) handleRetargetTriggerSet(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusBadRequest, CodeValidation, "target_task_id", "target task is required")
 		return
 	}
-	if err := s.store.RetargetTriggerSet(r.PathValue("id"), req.TargetTaskID); err != nil {
+	set, err := s.store.RetargetTriggerSet(r.PathValue("id"), req.TargetTaskID)
+	if err != nil {
 		s.triggerSetStoreError(w, err)
 		return
 	}
-	s.writeUpdatedTriggerSet(w, r.PathValue("id"))
+	s.publishTriggerSet(events.VerbUpdated, set)
+	writeJSON(w, http.StatusOK, s.triggerSetResponse(set))
 }
 
 func (s *Server) handleEnableTriggerSet(w http.ResponseWriter, r *http.Request) {
@@ -156,17 +153,9 @@ func (s *Server) handleDisableTriggerSet(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) setTriggerSetEnabled(w http.ResponseWriter, id string, enabled bool) {
-	if err := s.store.SetTriggerSetEnabled(id, enabled); err != nil {
-		s.triggerSetStoreError(w, err)
-		return
-	}
-	s.writeUpdatedTriggerSet(w, id)
-}
-
-func (s *Server) writeUpdatedTriggerSet(w http.ResponseWriter, id string) {
-	set, err := s.store.GetTriggerSet(id)
+	set, err := s.store.SetTriggerSetEnabled(id, enabled)
 	if err != nil {
-		s.internal(w, err)
+		s.triggerSetStoreError(w, err)
 		return
 	}
 	s.publishTriggerSet(events.VerbUpdated, set)

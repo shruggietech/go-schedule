@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func TestTriggerRowsExposeStructuredLifecycleFields(t *testing.T) {
@@ -13,6 +14,14 @@ func TestTriggerRowsExposeStructuredLifecycleFields(t *testing.T) {
 	}
 	if rows[0].Cells[0].Text != "Build hook" || rows[0].Cells[1].Text != "Standalone" || rows[0].Cells[2].Text != "-" || rows[0].Cells[3].Text != "Build" || rows[0].Cells[4].Text != "Yes" || rows[0].Cells[5].Text != "Ready" {
 		t.Fatalf("cells = %+v", rows[0].Cells)
+	}
+}
+
+func TestSortedTriggerTasksDoesNotReorderModelSlice(t *testing.T) {
+	tasks := []domain.Task{{ID: "z", Name: "Zulu"}, {ID: "a", Name: "Alpha"}}
+	sorted, labels, ids := sortedTriggerTasks(tasks)
+	if tasks[0].ID != "z" || sorted[0].ID != "a" || labels[0] != "Alpha (a)" || ids[labels[0]] != "a" {
+		t.Fatalf("source=%+v sorted=%+v labels=%v ids=%v", tasks, sorted, labels, ids)
 	}
 }
 

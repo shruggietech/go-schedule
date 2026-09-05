@@ -142,9 +142,9 @@ func TestTriggerSetMaximumOperationsMeetNominalBudget(t *testing.T) {
 	set := domain.TriggerSet{Name: "Maximum", TargetTaskID: first.ID}
 	assertUnderSecond(t, "create", func() error { return st.CreateTriggerSet(&set, 99, true) })
 	assertUnderSecond(t, "reveal", func() error { _, err := st.GetTriggerSet(set.ID); return err })
-	assertUnderSecond(t, "retarget", func() error { return st.RetargetTriggerSet(set.ID, second.ID) })
-	assertUnderSecond(t, "disable", func() error { return st.SetTriggerSetEnabled(set.ID, false) })
-	assertUnderSecond(t, "enable", func() error { return st.SetTriggerSetEnabled(set.ID, true) })
+	assertUnderSecond(t, "retarget", func() error { _, err := st.RetargetTriggerSet(set.ID, second.ID); return err })
+	assertUnderSecond(t, "disable", func() error { _, err := st.SetTriggerSetEnabled(set.ID, false); return err })
+	assertUnderSecond(t, "enable", func() error { _, err := st.SetTriggerSetEnabled(set.ID, true); return err })
 	assertUnderSecond(t, "rotate", func() error { _, err := st.RotateTriggerSet(set.ID); return err })
 	assertUnderSecond(t, "delete", func() error { _, err := st.DeleteTriggerSet(set.ID); return err })
 }
@@ -169,16 +169,16 @@ func TestTriggerSetListsDuplicateNamesAndReportsInvalidReferences(t *testing.T) 
 	if err := st.CreateTriggerSet(&domain.TriggerSet{Name: "Missing", TargetTaskID: "missing"}, 1, true); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("create missing target error=%v", err)
 	}
-	if err := st.RetargetTriggerSet(sets[0].ID, ""); !errors.Is(err, ErrInvalidTriggerSet) {
+	if _, err := st.RetargetTriggerSet(sets[0].ID, ""); !errors.Is(err, ErrInvalidTriggerSet) {
 		t.Fatalf("empty retarget error=%v", err)
 	}
-	if err := st.RetargetTriggerSet(sets[0].ID, "missing"); !errors.Is(err, ErrNotFound) {
+	if _, err := st.RetargetTriggerSet(sets[0].ID, "missing"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing retarget target error=%v", err)
 	}
-	if err := st.RetargetTriggerSet("missing", task.ID); !errors.Is(err, ErrNotFound) {
+	if _, err := st.RetargetTriggerSet("missing", task.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing retarget set error=%v", err)
 	}
-	if err := st.SetTriggerSetEnabled("missing", false); !errors.Is(err, ErrNotFound) {
+	if _, err := st.SetTriggerSetEnabled("missing", false); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing enable set error=%v", err)
 	}
 	if _, err := st.RotateTriggerSet("missing"); !errors.Is(err, ErrNotFound) {
@@ -215,15 +215,23 @@ func TestTriggerSetBroadLifecycleAndRollback(t *testing.T) {
 	if err := st.SetTaskEnabled(firstTask.ID, true); err != nil {
 		t.Fatal(err)
 	}
-	if err := st.RetargetTriggerSet(set.ID, secondTask.ID); err != nil {
+	retargeted, err := st.RetargetTriggerSet(set.ID, secondTask.ID)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if retargeted.TargetTaskID != secondTask.ID || len(retargeted.Members) != 2 || retargeted.Members[0].TargetTaskID != secondTask.ID {
+		t.Fatalf("retarget snapshot=%+v", retargeted)
 	}
 	oldTarget, _ := st.GetTask(firstTask.ID)
 	if oldTarget.Enabled {
 		t.Fatal("old target remained enabled after final sources moved")
 	}
-	if err := st.SetTriggerSetEnabled(set.ID, false); err != nil {
+	disabled, err := st.SetTriggerSetEnabled(set.ID, false)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if disabled.Members[0].Enabled || disabled.Members[1].Enabled {
+		t.Fatalf("disabled snapshot=%+v", disabled)
 	}
 	loaded, _ := st.GetTriggerSet(set.ID)
 	for _, member := range loaded.Members {

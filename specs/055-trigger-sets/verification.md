@@ -20,6 +20,8 @@
 
 After the first external review, the set-membership check moved into the individual update transaction, deleted-set events retained their redacted target and member summary, and bulk-copy dialogs gained visible success status. Focused regression suites passed, then `scripts/verify.sh all` passed all eight gates again with 80.3 percent store coverage.
 
+After the authorized second and final external review, retarget and enable-state mutations began returning their post-mutation snapshots from inside the transaction, and Trigger Set task choices began sorting a defensive copy of model state. Focused regression suites passed, then `scripts/verify.sh all` passed all eight gates again with 80.1 percent store coverage.
+
 ## Security and scope evidence
 
 - Raw keys are held only in the existing recoverable trigger storage and returned only by create, explicit reveal, or rotate operations.

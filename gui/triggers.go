@@ -273,6 +273,7 @@ func (a *App) showTriggerSetCreator() {
 }
 
 func sortedTriggerTasks(tasks []domain.Task) ([]domain.Task, []string, map[string]string) {
+	tasks = append([]domain.Task(nil), tasks...)
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].Name < tasks[j].Name })
 	labels := make([]string, 0, len(tasks))
 	ids := make(map[string]string, len(tasks))

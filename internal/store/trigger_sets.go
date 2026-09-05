@@ -43,8 +43,7 @@ func (s *Store) CreateTriggerSet(set *domain.TriggerSet, count int, enabled bool
 		return fmt.Errorf("store: begin create trigger set: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	var one int
-	if err := tx.QueryRow(`SELECT 1 FROM tasks WHERE id=?`, set.TargetTaskID).Scan(&one); err != nil {
+	if err := tx.QueryRow(`SELECT name FROM tasks WHERE id=?`, set.TargetTaskID).Scan(&set.TargetTaskName); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrNotFound
 		}
@@ -106,63 +105,77 @@ func (s *Store) ListTriggerSets() ([]domain.TriggerSet, error) {
 	return sets, nil
 }
 
-// RetargetTriggerSet atomically moves every member to one existing task.
-func (s *Store) RetargetTriggerSet(id, targetTaskID string) error {
+// RetargetTriggerSet atomically moves every member to one existing task and returns the committed snapshot.
+func (s *Store) RetargetTriggerSet(id, targetTaskID string) (domain.TriggerSet, error) {
 	if targetTaskID == "" {
-		return ErrInvalidTriggerSet
+		return domain.TriggerSet{}, ErrInvalidTriggerSet
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
-		return fmt.Errorf("store: begin retarget trigger set: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: begin retarget trigger set: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 	var oldTarget string
 	if err := tx.QueryRow(`SELECT target_task_id FROM external_trigger_sets WHERE id=?`, id).Scan(&oldTarget); err != nil {
-		return triggerSetLookupError(err)
+		return domain.TriggerSet{}, triggerSetLookupError(err)
 	}
 	var one int
 	if err := tx.QueryRow(`SELECT 1 FROM tasks WHERE id=?`, targetTaskID).Scan(&one); err != nil {
-		return triggerSetLookupError(err)
+		return domain.TriggerSet{}, triggerSetLookupError(err)
 	}
 	now := fmtTime(time.Now().UTC())
 	if _, err := tx.Exec(`UPDATE external_trigger_sets SET target_task_id=?,updated_at=? WHERE id=?`, targetTaskID, now, id); err != nil {
-		return fmt.Errorf("store: retarget trigger set: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: retarget trigger set: %w", err)
 	}
 	if _, err := tx.Exec(`UPDATE external_triggers SET target_task_id=?,updated_at=? WHERE set_id=?`, targetTaskID, now, id); err != nil {
-		return fmt.Errorf("store: retarget trigger set members: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: retarget trigger set members: %w", err)
 	}
 	if oldTarget != targetTaskID {
 		if err := disableIfNotActivationReady(tx, oldTarget); err != nil {
-			return err
+			return domain.TriggerSet{}, err
 		}
 	}
-	return commitTriggerSetTx(tx, "retarget")
+	set, err := triggerSetSnapshot(tx, id)
+	if err != nil {
+		return domain.TriggerSet{}, err
+	}
+	if err := commitTriggerSetTx(tx, "retarget"); err != nil {
+		return domain.TriggerSet{}, err
+	}
+	return set, nil
 }
 
-// SetTriggerSetEnabled atomically changes every member's enabled state.
-func (s *Store) SetTriggerSetEnabled(id string, enabled bool) error {
+// SetTriggerSetEnabled atomically changes every member's enabled state and returns the committed snapshot.
+func (s *Store) SetTriggerSetEnabled(id string, enabled bool) (domain.TriggerSet, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
-		return fmt.Errorf("store: begin set trigger set enabled: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: begin set trigger set enabled: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 	var targetID string
 	if err := tx.QueryRow(`SELECT target_task_id FROM external_trigger_sets WHERE id=?`, id).Scan(&targetID); err != nil {
-		return triggerSetLookupError(err)
+		return domain.TriggerSet{}, triggerSetLookupError(err)
 	}
 	now := fmtTime(time.Now().UTC())
 	if _, err := tx.Exec(`UPDATE external_trigger_sets SET updated_at=? WHERE id=?`, now, id); err != nil {
-		return fmt.Errorf("store: update trigger set timestamp: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: update trigger set timestamp: %w", err)
 	}
 	if _, err := tx.Exec(`UPDATE external_triggers SET enabled=?,updated_at=? WHERE set_id=?`, boolToInt(enabled), now, id); err != nil {
-		return fmt.Errorf("store: set trigger set members enabled: %w", err)
+		return domain.TriggerSet{}, fmt.Errorf("store: set trigger set members enabled: %w", err)
 	}
 	if !enabled {
 		if err := disableIfNotActivationReady(tx, targetID); err != nil {
-			return err
+			return domain.TriggerSet{}, err
 		}
 	}
-	return commitTriggerSetTx(tx, "set enabled")
+	set, err := triggerSetSnapshot(tx, id)
+	if err != nil {
+		return domain.TriggerSet{}, err
+	}
+	if err := commitTriggerSetTx(tx, "set enabled"); err != nil {
+		return domain.TriggerSet{}, err
+	}
+	return set, nil
 }
 
 // RotateTriggerSet atomically replaces every member key and returns new secrets.
@@ -276,6 +289,18 @@ func listTriggerSetMembers(query rowsQueryer, id string) ([]domain.ExternalTrigg
 		members = append(members, member)
 	}
 	return members, rows.Err()
+}
+
+func triggerSetSnapshot(query interface {
+	queryer
+	rowsQueryer
+}, id string) (domain.TriggerSet, error) {
+	set, err := scanTriggerSet(query.QueryRow(triggerSetSelect+` WHERE s.id=?`, id))
+	if err != nil {
+		return domain.TriggerSet{}, err
+	}
+	set.Members, err = listTriggerSetMembers(query, id)
+	return set, err
 }
 
 func triggerSetLookupError(err error) error {
