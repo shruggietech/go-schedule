@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The v1.0.0 publication now has a durable exception audit (Refs #122).**
+  S050 records the immutable tag and staging run, exact Windows candidate,
+  maintainer install approval, installed service and health checks, public asset
+  inventory, and independently verified checksums. It also records that direct
+  publication occurred before the planned formal archive, leaving the related
+  evidence-dependent issues and milestone open instead of manufacturing
+  completion evidence.
+
 ## [1.0.0] - 2026-09-03
 
 ### Added
