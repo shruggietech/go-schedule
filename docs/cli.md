@@ -22,6 +22,7 @@ nav_order: 3
 - [`task`](#task)
 - [`cron`](#cron)
 - [`group`](#group)
+- [`trigger`](#trigger)
 - [`runs`](#runs)
 - [`logs`](#logs)
 - [`service`](#service)
@@ -333,7 +334,26 @@ gosched runs --task 6f1c… --limit 20
 | `--task` | Filter to one task ID. | all tasks |
 | `--limit` | Maximum rows. | `50` |
 
-The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for a chained execution; they are `-` for schedule, startup, catch-up, and manual runs. The `EXIT` column is the process exit code, or `-` where there isn't one, a run that never started has no exit code, and printing `0` for it would be a lie.
+The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for a chained execution. `SOURCE TRIGGER` identifies an external trigger without exposing its key. These columns are `-` when they do not apply. The `EXIT` column is the process exit code, or `-` where there isn't one, a run that never started has no exit code, and printing `0` for it would be a lie.
+
+## `trigger`
+
+External triggers let a local process request one run through the normal scheduler by presenting one opaque key.
+
+```sh
+gosched trigger create --name "Build hook" --task <task-id>
+gosched trigger list
+gosched trigger show <trigger-id>
+gosched trigger show <trigger-id> --reveal-key
+gosched trigger update <trigger-id> --name "Release hook" --task <task-id>
+gosched trigger disable <trigger-id>
+gosched trigger enable <trigger-id>
+gosched trigger rotate <trigger-id>
+gosched trigger fire <key>
+gosched trigger rm <trigger-id>
+```
+
+Create defaults to enabled; pass `--disabled` to create a dormant trigger. Create, rotate, and explicit `show --reveal-key` are the only commands that display a raw key. Rotation invalidates the old key immediately. Firing respects the target task's current lifecycle, enabled state, ancestor groups, worker limit, and overlap policy.
 
 ## `chain`
 

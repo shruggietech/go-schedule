@@ -227,8 +227,8 @@ func (s *Store) RecordRunAndCreateDeliveries(r *domain.Run, incomingDeliveryID s
 		return fmt.Errorf("store: begin record run: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	_, err = tx.Exec(`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID))
+	_, err = tx.Exec(`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID), nullStr(r.SourceTriggerID))
 	if err != nil {
 		return fmt.Errorf("store: record run: %w", err)
 	}

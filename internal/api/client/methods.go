@@ -103,6 +103,62 @@ func (c *Client) DeleteChain(ctx context.Context, id string) error {
 	return c.do(ctx, http.MethodDelete, "/v1/chains/"+id, nil, nil)
 }
 
+func (c *Client) CreateTrigger(ctx context.Context, req server.TriggerCreateRequest) (server.TriggerSecretResponse, error) {
+	var out server.TriggerSecretResponse
+	err := c.do(ctx, http.MethodPost, "/v1/triggers", req, &out)
+	return out, err
+}
+
+func (c *Client) ListTriggers(ctx context.Context) ([]server.TriggerResponse, error) {
+	var out struct {
+		Triggers []server.TriggerResponse `json:"triggers"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/triggers", nil, &out)
+	return out.Triggers, err
+}
+
+func (c *Client) GetTrigger(ctx context.Context, id string) (server.TriggerResponse, error) {
+	var out server.TriggerResponse
+	err := c.do(ctx, http.MethodGet, "/v1/triggers/"+url.PathEscape(id), nil, &out)
+	return out, err
+}
+
+func (c *Client) UpdateTrigger(ctx context.Context, id string, req server.TriggerUpdateRequest) (server.TriggerResponse, error) {
+	var out server.TriggerResponse
+	err := c.do(ctx, http.MethodPatch, "/v1/triggers/"+url.PathEscape(id), req, &out)
+	return out, err
+}
+
+func (c *Client) DeleteTrigger(ctx context.Context, id string) error {
+	return c.do(ctx, http.MethodDelete, "/v1/triggers/"+url.PathEscape(id), nil, nil)
+}
+
+func (c *Client) SetTriggerEnabled(ctx context.Context, id string, enabled bool) (server.TriggerResponse, error) {
+	action := "disable"
+	if enabled {
+		action = "enable"
+	}
+	var out server.TriggerResponse
+	err := c.do(ctx, http.MethodPost, "/v1/triggers/"+url.PathEscape(id)+"/"+action, nil, &out)
+	return out, err
+}
+
+func (c *Client) RotateTrigger(ctx context.Context, id string) (server.TriggerSecretResponse, error) {
+	var out server.TriggerSecretResponse
+	err := c.do(ctx, http.MethodPost, "/v1/triggers/"+url.PathEscape(id)+"/rotate", nil, &out)
+	return out, err
+}
+
+func (c *Client) RevealTrigger(ctx context.Context, id string) (server.TriggerSecretResponse, error) {
+	var out server.TriggerSecretResponse
+	err := c.do(ctx, http.MethodPost, "/v1/triggers/"+url.PathEscape(id)+"/reveal", nil, &out)
+	return out, err
+}
+
+func (c *Client) FireTrigger(ctx context.Context, key string) error {
+	return c.do(ctx, http.MethodPost, "/v1/triggers/fire", map[string]string{"key": key}, nil)
+}
+
 // Preview returns the RRULE, summary, and next runs for a schedule expression.
 func (c *Client) Preview(ctx context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
 	var out server.PreviewResponse

@@ -76,6 +76,7 @@ type App struct {
 	taskTable        *structuredList
 	scheduleTable    *structuredList
 	activityTable    *structuredList
+	triggerTable     *structuredList
 
 	navigation *navigationShell
 	refreshers []func()
@@ -161,6 +162,7 @@ func (a *App) buildRoot() fyne.CanvasObject {
 		{ID: navigationTasks, Label: "Tasks", Content: a.buildTasksTab(), Section: navigationDefinitions},
 		{ID: navigationGroups, Label: "Groups", Content: a.buildGroupsTab(), Section: navigationDefinitions},
 		{ID: navigationChains, Label: "Chains", Content: a.buildChainsTab(), Section: navigationDefinitions},
+		{ID: navigationTriggers, Label: "Triggers", Content: a.buildTriggersTab(), Section: navigationDefinitions},
 		{ID: navigationSchedule, Label: "Schedule", Content: a.buildScheduleTab(), Section: navigationOperations},
 		{ID: navigationActivity, Label: activityTabLabel(0), Content: a.buildLogsTab(), Section: navigationOperations},
 		{ID: navigationOptions, Label: "Options", Content: a.buildOptionsTab(), Section: navigationOperations},
@@ -248,6 +250,9 @@ func (a *App) streamEvents() {
 		err := a.backend.StreamEvents(a.runCtx, func(e events.Event) {
 			streamRecovered.Store(true)
 			a.model.ApplyEvent(e)
+			if e.Kind == events.KindTrigger || e.Kind == events.KindTask || e.Kind == events.KindGroup {
+				a.refreshAll()
+			}
 		})
 		if a.runCtx.Err() != nil {
 			return

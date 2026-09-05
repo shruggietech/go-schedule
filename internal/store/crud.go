@@ -259,7 +259,11 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 	if err != nil {
 		return err
 	}
-	readiness := tasklogic.EvaluateReadiness(*t, hasCompletion)
+	hasTrigger, err := taskHasEnabledTrigger(tx, t.ID)
+	if err != nil {
+		return err
+	}
+	readiness := tasklogic.EvaluateReadiness(*t, hasCompletion, hasTrigger)
 	if !readiness.CommandReady || !readiness.ActivationReady || t.State != domain.TaskActive {
 		t.Enabled = false
 	}
@@ -338,7 +342,11 @@ func (s *Store) SetTaskEnabled(id string, enabled bool) error {
 		if err != nil {
 			return err
 		}
-		readiness := tasklogic.EvaluateReadiness(task, hasCompletion)
+		hasTrigger, err := taskHasEnabledTrigger(tx, id)
+		if err != nil {
+			return err
+		}
+		readiness := tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger)
 		switch {
 		case task.State != domain.TaskActive:
 			return ErrTaskTerminal
@@ -454,6 +462,18 @@ func taskHasIncomingCompletion(q queryer, id string) (bool, error) {
 	return count > 0, nil
 }
 
+func taskHasEnabledTrigger(q queryer, id string) (bool, error) {
+	var count int
+	if err := q.QueryRow(`SELECT COUNT(*) FROM external_triggers WHERE target_task_id=? AND enabled=1`, id).Scan(&count); err != nil {
+		return false, fmt.Errorf("store: count task trigger sources: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (s *Store) TaskHasEnabledTrigger(id string) (bool, error) {
+	return taskHasEnabledTrigger(s.db, id)
+}
+
 func (s *Store) TaskHasIncomingCompletion(id string) (bool, error) {
 	return taskHasIncomingCompletion(s.db, id)
 }
@@ -470,7 +490,11 @@ func disableIfNotActivationReady(tx *sql.Tx, id string) error {
 	if err != nil {
 		return err
 	}
-	if task.ScheduleID == "" && !hasCompletion {
+	hasTrigger, err := taskHasEnabledTrigger(tx, id)
+	if err != nil {
+		return err
+	}
+	if task.ScheduleID == "" && !hasCompletion && !hasTrigger {
 		_, err = tx.Exec(`UPDATE tasks SET enabled=0,updated_at=? WHERE id=?`, fmtTime(time.Now().UTC()), id)
 	}
 	return err
@@ -484,10 +508,10 @@ func (s *Store) CreateRun(r *domain.Run) error {
 		r.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt),
-		string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID),
+		string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID), nullStr(r.SourceTriggerID),
 	)
 	if err != nil {
 		return fmt.Errorf("store: create run: %w", err)
@@ -497,14 +521,14 @@ func (s *Store) CreateRun(r *domain.Run) error {
 
 // GetRun returns the run by exact ID, or ErrNotFound.
 func (s *Store) GetRun(id string) (domain.Run, error) {
-	row := s.db.QueryRow(`SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id FROM runs WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id FROM runs WHERE id=?`, id)
 	return scanRun(row)
 }
 
 // ListRuns returns runs for a task (or all when taskID is empty), newest first,
 // up to limit (0 = no limit).
 func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id FROM runs`
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id FROM runs`
 	var args []any
 	if taskID != "" {
 		q += ` WHERE task_id=?`
@@ -537,8 +561,8 @@ func scanRun(sc scanner) (domain.Run, error) {
 	var exit sql.NullInt64
 	var truncated int
 	var outcome, trigger, scheduled string
-	var sourceTask, sourceRun sql.NullString
-	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun); err != nil {
+	var sourceTask, sourceRun, sourceTrigger sql.NullString
+	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun, &sourceTrigger); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Run{}, ErrNotFound
 		}
@@ -551,6 +575,7 @@ func scanRun(sc scanner) (domain.Run, error) {
 	r.Trigger = domain.RunTrigger(trigger)
 	r.SourceTaskID = sourceTask.String
 	r.SourceRunID = sourceRun.String
+	r.SourceTriggerID = sourceTrigger.String
 	r.ExitCode = intPtr(exit)
 	r.OutputTruncated = truncated != 0
 	return r, nil

@@ -28,14 +28,18 @@ func newRunsCmd() *cobra.Command {
 				return printJSON(runs)
 			}
 			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(tw, "SCHEDULED\tOUTCOME\tTRIGGER\tSOURCE TASK\tSOURCE RUN\tEXIT")
+			fmt.Fprintln(tw, "SCHEDULED\tOUTCOME\tTRIGGER\tSOURCE TASK\tSOURCE RUN\tSOURCE TRIGGER\tEXIT")
 			for _, r := range runs {
 				exit := "-"
 				if r.ExitCode != nil {
 					exit = fmt.Sprintf("%d", *r.ExitCode)
 				}
 				sourceTask, sourceRun := runSourceColumns(r)
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n", r.ScheduledFor.Format(time.RFC3339), r.Outcome, r.Trigger, sourceTask, sourceRun, exit)
+				sourceTrigger := r.SourceTriggerID
+				if sourceTrigger == "" {
+					sourceTrigger = "-"
+				}
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", r.ScheduledFor.Format(time.RFC3339), r.Outcome, r.Trigger, sourceTask, sourceRun, sourceTrigger, exit)
 			}
 			return tw.Flush()
 		},

@@ -77,6 +77,7 @@ func newRoot() *cobra.Command {
 	root.AddCommand(
 		newTaskCmd(),
 		newChainCmd(),
+		newTriggerCmd(),
 		newCronCmd(),
 		newGroupCmd(),
 		newRunsCmd(),

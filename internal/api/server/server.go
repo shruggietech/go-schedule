@@ -74,6 +74,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/tasks/{id}/disable", s.handleDisableTask)
 	s.mux.HandleFunc("POST /v1/tasks/{id}/run-now", s.handleRunNow)
 
+	s.mux.HandleFunc("GET /v1/triggers", s.handleListTriggers)
+	s.mux.HandleFunc("POST /v1/triggers", s.handleCreateTrigger)
+	s.mux.HandleFunc("POST /v1/triggers/fire", s.handleFireTrigger)
+	s.mux.HandleFunc("GET /v1/triggers/{id}", s.handleGetTrigger)
+	s.mux.HandleFunc("PATCH /v1/triggers/{id}", s.handleUpdateTrigger)
+	s.mux.HandleFunc("DELETE /v1/triggers/{id}", s.handleDeleteTrigger)
+	s.mux.HandleFunc("POST /v1/triggers/{id}/enable", s.handleEnableTrigger)
+	s.mux.HandleFunc("POST /v1/triggers/{id}/disable", s.handleDisableTrigger)
+	s.mux.HandleFunc("POST /v1/triggers/{id}/rotate", s.handleRotateTrigger)
+	s.mux.HandleFunc("POST /v1/triggers/{id}/reveal", s.handleRevealTrigger)
+
 	s.mux.HandleFunc("GET /v1/chains", s.handleListChains)
 	s.mux.HandleFunc("POST /v1/chains", s.handleCreateChain)
 	s.mux.HandleFunc("GET /v1/chains/{id}", s.handleGetChain)

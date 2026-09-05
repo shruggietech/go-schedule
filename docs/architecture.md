@@ -13,4 +13,10 @@ When an executor returns a terminal success or failure, one SQLite transaction r
 
 Each delivery is unique for `(chain_id, source_run_id)`. Completed and resolved deliveries never replay. On daemon start, an interrupted `claimed` delivery returns to `pending` and is attempted again. This provides durable at-least-once delivery without a polling loop. A crash after the external command launches but before its completion transaction can repeat that command because SQLite cannot atomically observe an external process's side effects.
 
-Completion chains form a directed acyclic graph. Validation rejects self-links and any update or insertion that can reach its own source. The dedicated v9 schema intentionally does not restore the obsolete generic `triggers` or `dedup_ledger` tables.
+Completion chains form a directed acyclic graph. Validation rejects self-links and any update or insertion that can reach its own source. The dedicated v9 schema did not restore the obsolete v2 generic `triggers` or `dedup_ledger` tables.
+
+## External trigger dispatch
+
+Schema v12 introduces a distinct `external_triggers` table. A generated 256-bit key enters through the existing authenticated local IPC API, so the feature adds no TCP listener or second resident service. After key and target eligibility checks, the engine submits the request through the existing overlap-aware dispatcher and records `external_trigger` plus the stable trigger ID in run history.
+
+The user-scoped database retains the recoverable key because the desktop can explicitly reveal and copy it after restart. Ordinary list and detail responses, live events, run history, logs, and errors omit the key. Create, rotate, and explicit reveal are the only disclosure operations.

@@ -362,7 +362,8 @@ func (s *Server) taskDetail(task domain.Task, sch *domain.Schedule, now time.Tim
 		}
 	}
 	hasCompletion, _ := s.store.TaskHasIncomingCompletion(task.ID)
-	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion), PolicySummary: policySummary, NextRuns: runs}
+	hasTrigger, _ := s.store.TaskHasEnabledTrigger(task.ID)
+	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger), PolicySummary: policySummary, NextRuns: runs}
 }
 
 func (s *Server) reload() {

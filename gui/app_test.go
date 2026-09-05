@@ -24,6 +24,7 @@ type fakeBackend struct {
 	tasks       []domain.Task
 	groups      []domain.Group
 	chains      []domain.CompletionChain
+	triggers    []server.TriggerResponse
 	alerts      []domain.Alert
 	logs        []domain.LogRecord
 	logPath     string
@@ -92,6 +93,9 @@ func (f *fakeBackend) ListTasks(context.Context, string, string) ([]domain.Task,
 }
 func (f *fakeBackend) ListChains(context.Context) ([]domain.CompletionChain, error) {
 	return f.chains, nil
+}
+func (f *fakeBackend) ListTriggers(context.Context) ([]server.TriggerResponse, error) {
+	return f.triggers, nil
 }
 func (f *fakeBackend) ListGroups(context.Context) ([]domain.Group, error) { return f.groups, nil }
 func (f *fakeBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
@@ -178,6 +182,22 @@ func (f *fakeBackend) UpdateChain(context.Context, string, server.ChainUpdateReq
 	return domain.CompletionChain{}, nil
 }
 func (f *fakeBackend) DeleteChain(context.Context, string) error { return nil }
+func (f *fakeBackend) CreateTrigger(context.Context, server.TriggerCreateRequest) (server.TriggerSecretResponse, error) {
+	return server.TriggerSecretResponse{}, nil
+}
+func (f *fakeBackend) UpdateTrigger(context.Context, string, server.TriggerUpdateRequest) (server.TriggerResponse, error) {
+	return server.TriggerResponse{}, nil
+}
+func (f *fakeBackend) DeleteTrigger(context.Context, string) error { return nil }
+func (f *fakeBackend) SetTriggerEnabled(context.Context, string, bool) (server.TriggerResponse, error) {
+	return server.TriggerResponse{}, nil
+}
+func (f *fakeBackend) RotateTrigger(context.Context, string) (server.TriggerSecretResponse, error) {
+	return server.TriggerSecretResponse{}, nil
+}
+func (f *fakeBackend) RevealTrigger(context.Context, string) (server.TriggerSecretResponse, error) {
+	return server.TriggerSecretResponse{}, nil
+}
 func (f *fakeBackend) Preview(_ context.Context, req server.PreviewRequest) (server.PreviewResponse, error) {
 	f.mu.Lock()
 	f.previews++
@@ -211,7 +231,7 @@ func TestUI_BuildsCompleteNavigation(t *testing.T) {
 		alerts: []domain.Alert{{ID: "a1", Kind: domain.AlertRunFailed, Message: "boom"}},
 	})
 
-	want := []string{"Tasks", "Groups", "Chains", "Schedule", "Activity", "Options", "Info"}
+	want := []string{"Tasks", "Groups", "Chains", "Triggers", "Schedule", "Activity", "Options", "Info"}
 	if got := ui.navigation.labels(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("navigation = %v, want %v", got, want)
 	}
@@ -602,7 +622,7 @@ func TestShutdownCancelsBackendContexts(t *testing.T) {
 
 func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	ui := NewUI(testApp, &fakeBackend{})
-	if got := ui.navigation.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Groups", "Chains", "Schedule", "Activity", "Options", "Info"}) {
+	if got := ui.navigation.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Groups", "Chains", "Triggers", "Schedule", "Activity", "Options", "Info"}) {
 		t.Fatalf("initial navigation = %v", got)
 	}
 	// Drive the badge synchronously: the production OnChange marshals through
@@ -613,7 +633,7 @@ func TestUI_ActivityBadgeReflectsUnacked(t *testing.T) {
 	if got := ui.navigation.label(navigationActivity); got != "Activity (1)" {
 		t.Fatalf("activity badge = %q, want Activity (1)", got)
 	}
-	if got := ui.navigation.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Groups", "Chains", "Schedule", "Activity (1)", "Options", "Info"}) {
+	if got := ui.navigation.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Groups", "Chains", "Triggers", "Schedule", "Activity (1)", "Options", "Info"}) {
 		t.Fatal("Activity badge update moved navigation destinations")
 	}
 }
