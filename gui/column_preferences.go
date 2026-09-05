@@ -91,6 +91,9 @@ func normalizeColumnProportions(values []float32) []float32 {
 	}
 	for i := range normalized {
 		normalized[i] /= total
+		if normalized[i] <= 0 || !finiteFloat32(normalized[i]) {
+			return nil
+		}
 	}
 	return normalized
 }

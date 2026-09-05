@@ -43,13 +43,14 @@ func TestColumnProfileRejectsInvalidAndObsoletePreferencesAtomically(t *testing.
 	}
 	want := []float32{1.0 / 3, 0.5, 1.0 / 6}
 	for name, raw := range map[string]string{
-		"malformed":     "{",
-		"wrong version": `{"version":99,"columns":["When","Task","State"],"proportions":[0.5,0.3,0.2]}`,
-		"wrong columns": `{"version":1,"columns":["When","Other","State"],"proportions":[0.5,0.3,0.2]}`,
-		"wrong length":  `{"version":1,"columns":["When","Task","State"],"proportions":[0.5,0.5]}`,
-		"non positive":  `{"version":1,"columns":["When","Task","State"],"proportions":[0.5,0.5,0]}`,
-		"non finite":    `{"version":1,"columns":["When","Task","State"],"proportions":[1e999,0.5,0.5]}`,
-		"sum overflow":  `{"version":1,"columns":["When","Task","State"],"proportions":[3e38,3e38,1]}`,
+		"malformed":               "{",
+		"wrong version":           `{"version":99,"columns":["When","Task","State"],"proportions":[0.5,0.3,0.2]}`,
+		"wrong columns":           `{"version":1,"columns":["When","Other","State"],"proportions":[0.5,0.3,0.2]}`,
+		"wrong length":            `{"version":1,"columns":["When","Task","State"],"proportions":[0.5,0.5]}`,
+		"non positive":            `{"version":1,"columns":["When","Task","State"],"proportions":[0.5,0.5,0]}`,
+		"non finite":              `{"version":1,"columns":["When","Task","State"],"proportions":[1e999,0.5,0.5]}`,
+		"sum overflow":            `{"version":1,"columns":["When","Task","State"],"proportions":[3e38,3e38,1]}`,
+		"normalization underflow": `{"version":1,"columns":["When","Task","State"],"proportions":[3e38,1e-45,1e-45]}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			prefs.SetString(key, raw)
