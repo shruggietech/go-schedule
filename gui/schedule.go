@@ -17,10 +17,10 @@ import (
 )
 
 var scheduleColumns = []structuredColumn{
-	{Header: "When", Minimum: 145},
-	{Header: "Task", Minimum: 160, Weight: 3},
-	{Header: "Event", Minimum: 105, Alignment: fyne.TextAlignCenter},
-	{Header: "Outcome", Minimum: 125, Weight: 1},
+	{Header: "When", Minimum: 145, Preferred: 28},
+	{Header: "Task", Minimum: 160, Weight: 3, Preferred: 31},
+	{Header: "Event", Minimum: 105, Preferred: 18, Alignment: fyne.TextAlignCenter},
+	{Header: "Outcome", Minimum: 125, Weight: 1, Preferred: 23},
 }
 
 func scheduleRowModels(occurrences []server.Occurrence) []structuredRowModel {
@@ -120,7 +120,7 @@ func (s *scheduleState) setView(v string)             { s.mu.Lock(); s.view = v;
 // window is preserved across view toggles (FR-027) and both views update live.
 func (a *App) buildScheduleTab() fyne.CanvasObject {
 	st := &scheduleState{days: 7, view: "List"}
-	table := newStructuredList(scheduleColumns, "Select an occurrence to see its complete values.", nil, nil)
+	table := newAdjustableStructuredList(scheduleColumns, "Select an occurrence to see its complete values.", nil, nil, a.fyne.Preferences(), scheduleColumnLayoutPreferenceKey)
 	a.scheduleTable = table
 
 	calBox := container.NewVBox()
@@ -195,6 +195,7 @@ func (a *App) buildScheduleTab() fyne.CanvasObject {
 	toolbar := container.NewHBox(
 		widget.NewLabel("View:"), viewSel,
 		widget.NewLabel("Window:"), rangeSel,
+		widget.NewButton("Reset columns", table.resetColumns),
 	)
 	return container.NewBorder(toolbar, nil, nil, nil, content)
 }

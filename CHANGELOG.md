@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Schedule and Activity columns are now adjustable and persist per user
+  (Closes #119).** Visible header boundaries support pointer dragging and
+  focused arrow-key adjustment, with practical timestamp defaults and isolated
+  **Reset columns** actions. Versioned normalized proportions survive window,
+  display-scale, and font changes; malformed or obsolete values fall back
+  atomically while narrow layouts retain the no-horizontal-scroll behavior.
+
 - **Task creation, effective-state visibility, and failed-run diagnosis now form
   a safer desktop workflow (Closes #102, #118, #120).** New tasks created in
   the GUI remain inactive unless the operator selects the creation-only
@@ -29,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completion evidence.
 
 ### Decisions
+
+- **2026-09-05: persist table layout intent as versioned proportions.** S052
+  keeps Schedule and Activity layout state in independent current-user desktop
+  preferences rather than daemon storage or raw device pixels. This preserves
+  intent across window, DPI, and font changes and rejects incompatible column
+  schemas without a migration or partial recovery state.
 
 - **2026-09-05: preserve legacy API creation semantics while making the desktop
   default safe.** `enabled` is additive and optional on task-create requests:

@@ -8,11 +8,16 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
-const structuredColumnGap float32 = 4
+const (
+	structuredColumnGap float32 = 4
+	columnBoundaryWidth float32 = 12
+	columnKeyboardStep  float32 = 10
+)
 
 // colorNameAlternateRow is a quiet, translucent structural stripe. It remains
 // translucent so Fyne's full-row hover and selection surfaces stay visible
@@ -27,6 +32,7 @@ type structuredColumn struct {
 	Header    string
 	Minimum   float32
 	Weight    float32
+	Preferred float32
 	Alignment fyne.TextAlign
 }
 
@@ -96,6 +102,7 @@ func responsiveColumnWidths(columns []structuredColumn, available, gap float32) 
 type structuredColumnsLayout struct {
 	columns []structuredColumn
 	gap     float32
+	profile *columnProfile
 }
 
 func (l *structuredColumnsLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
@@ -103,14 +110,23 @@ func (l *structuredColumnsLayout) Layout(objects []fyne.CanvasObject, size fyne.
 		return
 	}
 	widths := responsiveColumnWidths(l.columns, size.Width, l.gap)
+	if l.profile != nil {
+		widths = l.profile.widths(size.Width, l.gap)
+	}
 	x := float32(0)
-	for i, object := range objects {
-		width := float32(0)
-		if i < len(widths) {
-			width = widths[i]
+	for i := range l.columns {
+		if i >= len(objects) {
+			break
 		}
+		object := objects[i]
+		width := widths[i]
 		object.Move(fyne.NewPos(x, 0))
 		object.Resize(fyne.NewSize(width, size.Height))
+		if i < len(l.columns)-1 && len(objects) > len(l.columns)+i {
+			boundary := objects[len(l.columns)+i]
+			boundary.Move(fyne.NewPos(x+width+(l.gap-columnBoundaryWidth)/2, 0))
+			boundary.Resize(fyne.NewSize(columnBoundaryWidth, size.Height))
+		}
 		x += width + l.gap
 	}
 }
@@ -132,7 +148,9 @@ type structuredRow struct {
 	widget.BaseWidget
 	columns    []structuredColumn
 	labels     []*widget.Label
+	boundaries []*columnBoundary
 	content    *fyne.Container
+	profile    *columnProfile
 	header     bool
 	alternate  bool
 	identity   string
@@ -142,13 +160,18 @@ type structuredRow struct {
 }
 
 func newStructuredRow(columns []structuredColumn, header bool, onSelect, onActivate func(string)) *structuredRow {
+	return newStructuredRowWithProfile(columns, header, nil, nil, onSelect, onActivate)
+}
+
+func newStructuredRowWithProfile(columns []structuredColumn, header bool, profile *columnProfile, onResize func(int, float32, bool), onSelect, onActivate func(string)) *structuredRow {
 	row := &structuredRow{
 		columns:    append([]structuredColumn(nil), columns...),
 		header:     header,
+		profile:    profile,
 		onSelect:   onSelect,
 		onActivate: onActivate,
 	}
-	objects := make([]fyne.CanvasObject, len(columns))
+	objects := make([]fyne.CanvasObject, 0, len(columns)*2-1)
 	row.labels = make([]*widget.Label, len(columns))
 	for i, column := range columns {
 		text := ""
@@ -158,14 +181,111 @@ func newStructuredRow(columns []structuredColumn, header bool, onSelect, onActiv
 		label := widget.NewLabelWithStyle(text, column.Alignment, fyne.TextStyle{Bold: header})
 		label.Truncation = fyne.TextTruncateEllipsis
 		row.labels[i] = label
-		objects[i] = label
+		objects = append(objects, label)
 	}
-	row.content = container.New(&structuredColumnsLayout{columns: row.columns, gap: structuredColumnGap}, objects...)
+	if header && profile != nil {
+		row.boundaries = make([]*columnBoundary, max(len(columns)-1, 0))
+		for i := range row.boundaries {
+			boundary := newColumnBoundary(columns[i].Header, columns[i+1].Header, i, onResize)
+			row.boundaries[i] = boundary
+			objects = append(objects, boundary)
+		}
+	}
+	row.content = container.New(&structuredColumnsLayout{columns: row.columns, gap: structuredColumnGap, profile: profile}, objects...)
 	if header {
 		row.summary = structuredHeaderSummary(columns)
 	}
 	row.ExtendBaseWidget(row)
 	return row
+}
+
+// columnBoundary is the shared pointer and keyboard interaction at one header
+// boundary. It transfers width through the owning table instead of storing a
+// second copy of layout state.
+type columnBoundary struct {
+	widget.BaseWidget
+	left, right string
+	index       int
+	onResize    func(int, float32, bool)
+	focused     bool
+}
+
+func newColumnBoundary(left, right string, index int, onResize func(int, float32, bool)) *columnBoundary {
+	boundary := &columnBoundary{left: left, right: right, index: index, onResize: onResize}
+	boundary.ExtendBaseWidget(boundary)
+	return boundary
+}
+
+func (b *columnBoundary) AccessibilityLabel() string {
+	return "Resize " + b.left + " and " + b.right + " columns"
+}
+
+func (b *columnBoundary) AccessibilityRole() fyne.AccessibleRole { return fyne.AccessibleRoleButton }
+
+func (b *columnBoundary) Cursor() desktop.Cursor { return desktop.HResizeCursor }
+
+func (b *columnBoundary) Dragged(event *fyne.DragEvent) {
+	if b.onResize != nil {
+		b.onResize(b.index, event.Dragged.DX, false)
+	}
+}
+
+func (b *columnBoundary) DragEnd() {
+	if b.onResize != nil {
+		b.onResize(b.index, 0, true)
+	}
+}
+
+func (b *columnBoundary) FocusGained() { b.focused = true; b.Refresh() }
+
+func (b *columnBoundary) FocusLost() { b.focused = false; b.Refresh() }
+
+func (b *columnBoundary) TypedRune(rune) {}
+
+func (b *columnBoundary) TypedKey(event *fyne.KeyEvent) {
+	if b.onResize == nil {
+		return
+	}
+	switch event.Name {
+	case fyne.KeyLeft:
+		b.onResize(b.index, -columnKeyboardStep, true)
+	case fyne.KeyRight:
+		b.onResize(b.index, columnKeyboardStep, true)
+	}
+}
+
+func (b *columnBoundary) CreateRenderer() fyne.WidgetRenderer {
+	line := canvas.NewRectangle(b.Theme().Color(theme.ColorNameSeparator, fyne.CurrentApp().Settings().ThemeVariant()))
+	return &columnBoundaryRenderer{boundary: b, line: line}
+}
+
+type columnBoundaryRenderer struct {
+	boundary *columnBoundary
+	line     *canvas.Rectangle
+}
+
+func (r *columnBoundaryRenderer) Destroy() {}
+
+func (r *columnBoundaryRenderer) Layout(size fyne.Size) {
+	width := float32(1)
+	if r.boundary.focused {
+		width = 3
+	}
+	r.line.Move(fyne.NewPos((size.Width-width)/2, 2))
+	r.line.Resize(fyne.NewSize(width, maxFloat32(size.Height-4, 0)))
+}
+
+func (r *columnBoundaryRenderer) MinSize() fyne.Size { return fyne.NewSize(columnBoundaryWidth, 0) }
+
+func (r *columnBoundaryRenderer) Objects() []fyne.CanvasObject { return []fyne.CanvasObject{r.line} }
+
+func (r *columnBoundaryRenderer) Refresh() {
+	name := theme.ColorNameSeparator
+	if r.boundary.focused {
+		name = theme.ColorNamePrimary
+	}
+	r.line.FillColor = r.boundary.Theme().Color(name, fyne.CurrentApp().Settings().ThemeVariant())
+	r.line.Refresh()
 }
 
 func (r *structuredRow) bind(model structuredRowModel, index int) {
@@ -260,6 +380,7 @@ func (r *structuredRowRenderer) Refresh() {
 // list to existing view tests and Fyne keyboard behavior.
 type structuredList struct {
 	columns          []structuredColumn
+	profile          *columnProfile
 	rows             []structuredRowModel
 	header           *structuredRow
 	list             *widget.List
@@ -272,17 +393,26 @@ type structuredList struct {
 }
 
 func newStructuredList(columns []structuredColumn, emptyDisclosure string, onSelected, onActivate func(string)) *structuredList {
+	return newStructuredListWithProfile(columns, emptyDisclosure, onSelected, onActivate, nil)
+}
+
+func newAdjustableStructuredList(columns []structuredColumn, emptyDisclosure string, onSelected, onActivate func(string), preferences fyne.Preferences, preferenceKey string) *structuredList {
+	return newStructuredListWithProfile(columns, emptyDisclosure, onSelected, onActivate, newColumnProfile(columns, preferences, preferenceKey))
+}
+
+func newStructuredListWithProfile(columns []structuredColumn, emptyDisclosure string, onSelected, onActivate func(string), profile *columnProfile) *structuredList {
 	table := &structuredList{
 		columns:         append([]structuredColumn(nil), columns...),
+		profile:         profile,
 		emptyDisclosure: emptyDisclosure,
 		onSelected:      onSelected,
 		onActivate:      onActivate,
 	}
-	table.header = newStructuredRow(table.columns, true, nil, nil)
+	table.header = newStructuredRowWithProfile(table.columns, true, profile, table.resizeColumns, nil, nil)
 	table.list = widget.NewList(
 		func() int { return len(table.rows) },
 		func() fyne.CanvasObject {
-			return newStructuredRow(table.columns, false, table.selectIdentity, table.activateIdentity)
+			return newStructuredRowWithProfile(table.columns, false, profile, nil, table.selectIdentity, table.activateIdentity)
 		},
 		func(index widget.ListItemID, object fyne.CanvasObject) {
 			row := object.(*structuredRow)
@@ -324,6 +454,28 @@ func newStructuredList(columns []structuredColumn, emptyDisclosure string, onSel
 	}
 	table.root = container.NewBorder(table.header, table.disclosure, nil, nil, table.list)
 	return table
+}
+
+func (t *structuredList) resizeColumns(boundary int, delta float32, persist bool) {
+	if t.profile == nil {
+		return
+	}
+	if delta != 0 && t.profile.adjust(boundary, delta, t.header.Size().Width, structuredColumnGap) {
+		t.header.Refresh()
+		t.list.Refresh()
+	}
+	if persist {
+		t.profile.persist()
+	}
+}
+
+func (t *structuredList) resetColumns() {
+	if t.profile == nil {
+		return
+	}
+	t.profile.reset()
+	t.header.Refresh()
+	t.list.Refresh()
 }
 
 func (t *structuredList) setRows(rows []structuredRowModel) {

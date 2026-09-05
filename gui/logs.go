@@ -42,10 +42,10 @@ type activityDiagnostic struct {
 }
 
 var activityColumns = []structuredColumn{
-	{Header: "When", Minimum: 145},
-	{Header: "Severity", Minimum: 110, Alignment: fyne.TextAlignCenter},
-	{Header: "Source", Minimum: 150, Weight: 1},
-	{Header: "Summary", Minimum: 200, Weight: 3},
+	{Header: "When", Minimum: 145, Preferred: 26},
+	{Header: "Severity", Minimum: 110, Preferred: 16, Alignment: fyne.TextAlignCenter},
+	{Header: "Source", Minimum: 150, Weight: 1, Preferred: 22},
+	{Header: "Summary", Minimum: 200, Weight: 3, Preferred: 36},
 }
 
 // buildLogsTab shows a unified, filterable Activity view that merges daemon log
@@ -58,14 +58,14 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 	var clearedAt time.Time            // Clear View cutoff
 
 	var table *structuredList
-	table = newStructuredList(activityColumns, "", func(identity string) {
+	table = newAdjustableStructuredList(activityColumns, "", func(identity string) {
 		entry, ok := activityEntryForIdentity(rows, table.rows, identity)
 		if !ok {
 			return
 		}
 		a.showLogDetail(entry)
 		table.list.UnselectAll()
-	}, nil)
+	}, nil, a.fyne.Preferences(), activityColumnLayoutPreferenceKey)
 	a.activityTable = table
 	diagnostics := widget.NewLabel(activityDiagnosticsText(""))
 	diagnostics.Wrapping = fyne.TextWrapBreak
@@ -116,7 +116,7 @@ func (a *App) buildLogsTab() fyne.CanvasObject {
 		rebuild()
 	})
 
-	toolbar := container.NewHBox(widget.NewLabel("Severity:"), severitySel, clearBtn)
+	toolbar := container.NewHBox(widget.NewLabel("Severity:"), severitySel, clearBtn, widget.NewButton("Reset columns", table.resetColumns))
 	help := widget.NewLabel("Hides current activity and acknowledges visible alerts. Records are not deleted.")
 	help.Wrapping = fyne.TextWrapWord
 	return container.NewBorder(container.NewVBox(toolbar, diagnostics, help), nil, nil, nil, table.root)
