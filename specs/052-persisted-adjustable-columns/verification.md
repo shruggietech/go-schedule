@@ -53,3 +53,14 @@
   evidence above.
 - No dependency, daemon schema, IPC contract, scheduler behavior, or pinned
   process artifact changed.
+
+## Pull-request review
+
+- First-round Codex review identified that individually finite stored values
+  could overflow during normalization and replace defaults with an empty slice.
+  Regression fixture `[3e38, 3e38, 1]` reproduced the failure. The loader now
+  retains its initialized defaults unless normalization returns a complete
+  valid profile.
+- Post-fix focused test, focused race test, and canonical eight-gate verification
+  all passed; the full GUI gate completed in 90.855 seconds and core coverage
+  remained unchanged.

@@ -48,7 +48,9 @@ func newColumnProfile(columns []structuredColumn, prefs fyne.Preferences, key st
 	if err := json.Unmarshal([]byte(prefs.String(key)), &stored); err != nil || !validStoredColumnLayout(stored, columns) {
 		return profile
 	}
-	profile.values = normalizeColumnProportions(stored.Proportions)
+	if normalized := normalizeColumnProportions(stored.Proportions); len(normalized) == len(columns) {
+		profile.values = normalized
+	}
 	return profile
 }
 

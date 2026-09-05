@@ -49,6 +49,7 @@ func TestColumnProfileRejectsInvalidAndObsoletePreferencesAtomically(t *testing.
 		"wrong length":  `{"version":1,"columns":["When","Task","State"],"proportions":[0.5,0.5]}`,
 		"non positive":  `{"version":1,"columns":["When","Task","State"],"proportions":[0.5,0.5,0]}`,
 		"non finite":    `{"version":1,"columns":["When","Task","State"],"proportions":[1e999,0.5,0.5]}`,
+		"sum overflow":  `{"version":1,"columns":["When","Task","State"],"proportions":[3e38,3e38,1]}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			prefs.SetString(key, raw)
