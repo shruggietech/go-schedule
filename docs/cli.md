@@ -72,7 +72,9 @@ Worth knowing: the version printed here is the **daemon's**, which can differ fr
 
 Create and manage tasks. A task is a command, a schedule, and the policies that decide what happens when runs collide or are missed.
 
-### `task add <name>`
+### `task add [name]`
+
+The name, command, and timing are optional at creation so unfinished work can be saved safely. An omitted name displays as `unnamed`; a task without a command is not runnable, while a task with a command but no schedule is manual-only and remains available through `task run-now`.
 
 Create a task. Exactly one of `--schedule` (recurring) or `--at` (one-off) is required, along with `--command`.
 
@@ -139,6 +141,8 @@ For `wall_clock`, **DST gap** decides whether a nonexistent spring-forward time 
 ### `task edit <id>`
 
 Modify a task. Only the fields you pass change; everything else is left alone. The flags are those of `task add`, with two differences worth knowing before you use them:
+
+Pass `--name ""` or `--command ""` to clear that value, and pass `--clear-schedule` to remove automatic timing. Clearing command or the final automatic source disables the task atomically.
 
 - `--arg` and `--env` **replace** the existing set rather than appending to it. Pass the full list you want.
 - `--group` is three-way. Omit it and group membership is untouched; pass a group ID to move the task; pass an empty string (`--group ""`) to remove the task from its group.

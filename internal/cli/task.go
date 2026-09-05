@@ -11,6 +11,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
 // missingDateUsage is shared by add and edit so the two cannot drift. The values
@@ -42,8 +43,9 @@ func groupIntent(cmd *cobra.Command, group string) *string {
 }
 
 func taskEdit() *cobra.Command {
-	var command, cwd, group, tz, sched, at, overlap, catchup, missingDate string
+	var name, command, cwd, group, tz, sched, at, overlap, catchup, missingDate string
 	var timeBasis, dstGap, dstOverlap string
+	var clearSchedule bool
 	var args, env []string
 	cmd := &cobra.Command{
 		Use:   "edit <id>",
@@ -58,10 +60,11 @@ func taskEdit() *cobra.Command {
 				return fmt.Errorf("%w: %v", errUsage, err)
 			}
 			req := server.TaskUpdateRequest{
-				Command: command, Args: args, WorkingDir: cwd, Env: envMap,
+				Name: name, Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
 				MissingDatePolicy: missingDate,
 				TimeBasis:         timeBasis, DSTGapPolicy: dstGap, DSTOverlapPolicy: dstOverlap,
+				ClearName: cmd.Flags().Changed("name") && name == "", ClearCommand: cmd.Flags().Changed("command") && command == "", ClearSchedule: clearSchedule,
 			}
 			req.GroupID = groupIntent(cmd, group)
 			if at != "" {
@@ -80,13 +83,14 @@ func taskEdit() *cobra.Command {
 			if jsonOut {
 				return printJSON(resp)
 			}
-			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\n", resp.Task.ID, resp.Schedule.HumanSummary)
+			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\nreadiness: %s\n", resp.Task.ID, taskScheduleSummary(resp), resp.Readiness.Status)
 			printPolicySummary(resp.PolicySummary)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
 	}
 	f := cmd.Flags()
+	f.StringVar(&name, "name", "", "task name (pass an empty value to clear)")
 	f.StringVar(&command, "command", "", "program or script to run")
 	f.StringArrayVar(&args, "arg", nil, "argument (repeatable; replaces existing)")
 	f.StringVar(&cwd, "cwd", "", "working directory")
@@ -95,6 +99,7 @@ func taskEdit() *cobra.Command {
 	f.StringVar(&tz, "tz", "", "IANA timezone")
 	f.StringVar(&sched, "schedule", "", "new human-readable recurrence or supported cron expression")
 	f.StringVar(&at, "at", "", "new one-off run time (RFC3339)")
+	f.BoolVar(&clearSchedule, "clear-schedule", false, "remove the automatic schedule")
 	f.StringVar(&overlap, "overlap", "", "overlap policy: queue_one|skip|allow_concurrent")
 	f.StringVar(&catchup, "catchup", "", "catch-up policy: one|none")
 	f.StringVar(&missingDate, "missing-date", "", missingDateUsage)
@@ -122,22 +127,23 @@ func taskAdd() *cobra.Command {
 		dstOverlap  string
 	)
 	cmd := &cobra.Command{
-		Use:   "add <name>",
+		Use:   "add [name]",
 		Short: "Create a task (schedule or startup event via --schedule; one-off via --at)",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, a []string) error {
-			if command == "" {
-				return fmt.Errorf("%w: --command is required", errUsage)
-			}
-			if (sched == "") == (at == "") {
-				return fmt.Errorf("%w: provide exactly one of --schedule or --at", errUsage)
+			if sched != "" && at != "" {
+				return fmt.Errorf("%w: provide at most one of --schedule or --at", errUsage)
 			}
 			envMap, err := parseEnv(env)
 			if err != nil {
 				return fmt.Errorf("%w: %v", errUsage, err)
 			}
+			name := ""
+			if len(a) == 1 {
+				name = a[0]
+			}
 			req := server.TaskCreateRequest{
-				Name: a[0], Command: command, Args: args, WorkingDir: cwd, Env: envMap,
+				Name: name, Command: command, Args: args, WorkingDir: cwd, Env: envMap,
 				GroupID: group, Timezone: tz, Schedule: sched, OverlapPolicy: overlap, CatchupPolicy: catchup,
 				MissingDatePolicy: missingDate,
 				TimeBasis:         timeBasis, DSTGapPolicy: dstGap, DSTOverlapPolicy: dstOverlap,
@@ -158,14 +164,14 @@ func taskAdd() *cobra.Command {
 			if jsonOut {
 				return printJSON(resp)
 			}
-			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\n", resp.Task.ID, resp.Task.Name, resp.Schedule.HumanSummary)
+			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\nreadiness: %s\n", resp.Task.ID, tasklogic.DisplayName(resp.Task), taskScheduleSummary(resp), resp.Readiness.Status)
 			printPolicySummary(resp.PolicySummary)
 			printNextRuns(resp.NextRuns)
 			return nil
 		},
 	}
 	f := cmd.Flags()
-	f.StringVar(&command, "command", "", "program or script to run (required)")
+	f.StringVar(&command, "command", "", "program or script to run")
 	f.StringArrayVar(&args, "arg", nil, "argument to the command (repeatable)")
 	f.StringVar(&cwd, "cwd", "", "working directory")
 	f.StringArrayVar(&env, "env", nil, "environment variable KEY=VALUE (repeatable)")
@@ -200,7 +206,7 @@ func taskList() *cobra.Command {
 			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 			fmt.Fprintln(tw, "ID\tNAME\tSTATE\tENABLED\tTZ")
 			for _, t := range tasks {
-				fmt.Fprintf(tw, "%s\t%s\t%s\t%t\t%s\n", t.ID, t.Name, t.State, t.Enabled, t.Timezone)
+				fmt.Fprintf(tw, "%s\t%s\t%s\t%t\t%s\n", t.ID, tasklogic.DisplayName(t), t.State, t.Enabled, t.Timezone)
 			}
 			return tw.Flush()
 		},
@@ -226,10 +232,9 @@ func taskShow() *cobra.Command {
 				return printJSON(resp)
 			}
 			t := resp.Task
-			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\n",
-				t.ID, t.Name, t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "),
-				resp.Schedule.HumanSummary)
-			if resp.Schedule.Kind == domain.ScheduleEvent {
+			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\nreadiness: %s\n",
+				t.ID, tasklogic.DisplayName(t), t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "), taskScheduleSummary(resp), resp.Readiness.Status)
+			if resp.Schedule != nil && resp.Schedule.Kind == domain.ScheduleEvent {
 				fmt.Fprintf(os.Stdout, "overlap: %s\n", t.OverlapPolicy)
 			} else {
 				printPolicySummary(resp.PolicySummary)
@@ -240,6 +245,13 @@ func taskShow() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func taskScheduleSummary(resp server.TaskResponse) string {
+	if resp.Schedule == nil {
+		return "none"
+	}
+	return resp.Schedule.HumanSummary
 }
 
 func taskEnable() *cobra.Command {

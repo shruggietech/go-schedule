@@ -24,17 +24,18 @@ var taskColumns = []structuredColumn{
 }
 
 func taskRowModel(task domain.Task, groups []domain.Group) structuredRowModel {
-	name := task.Name
-	if name == "" {
-		name = "Unnamed task"
-	}
+	return taskRowModelWithChains(task, groups, nil)
+}
+
+func taskRowModelWithChains(task domain.Task, groups []domain.Group, chains []domain.CompletionChain) structuredRowModel {
+	name := tasklogic.DisplayName(task)
 	enabled := "Disabled"
 	enabledImportance := widget.LowImportance
 	if task.Enabled {
 		enabled = "Enabled"
 		enabledImportance = widget.SuccessImportance
 	}
-	effective := taskEffectiveState(task, groups)
+	effective := taskEffectiveStateWithChains(task, groups, chains)
 	lifecycle := normalizedWords(string(task.State), "Unknown", false)
 	lifecycleImportance := widget.MediumImportance
 	switch task.State {
@@ -68,13 +69,27 @@ func taskRowModel(task domain.Task, groups []domain.Group) structuredRowModel {
 	}
 }
 
-func taskEffectiveState(task domain.Task, groups []domain.Group) structuredCell {
-	if !task.Enabled {
-		return structuredCell{Text: "Task disabled", Importance: widget.LowImportance}
-	}
+func taskEffectiveStateWithChains(task domain.Task, groups []domain.Group, chains []domain.CompletionChain) structuredCell {
 	if task.State != domain.TaskActive {
 		state := normalizedWords(string(task.State), "Unknown", false)
 		return structuredCell{Text: "Lifecycle: " + state, Importance: widget.LowImportance}
+	}
+	hasCompletion := false
+	for _, chain := range chains {
+		if chain.TargetTaskID == task.ID {
+			hasCompletion = true
+			break
+		}
+	}
+	readiness := tasklogic.EvaluateReadiness(task, hasCompletion)
+	if !readiness.CommandReady {
+		return structuredCell{Text: "Not runnable", Importance: widget.WarningImportance}
+	}
+	if !readiness.ActivationReady {
+		return structuredCell{Text: "Manual only", Importance: widget.MediumImportance}
+	}
+	if !task.Enabled {
+		return structuredCell{Text: "Task disabled", Importance: widget.LowImportance}
 	}
 	byID := tasklogic.ByID(groups)
 	if blocker, ok := tasklogic.NearestDisabledGroup(task.GroupID, byID); ok {
@@ -124,7 +139,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 		tasks = snapshot.Tasks
 		rows := make([]structuredRowModel, len(tasks))
 		for index, task := range tasks {
-			rows[index] = taskRowModel(task, snapshot.Groups)
+			rows[index] = taskRowModelWithChains(task, snapshot.Groups, snapshot.Chains)
 		}
 		table.setRows(rows)
 	}
@@ -157,7 +172,7 @@ func (a *App) buildTasksTab() fyne.CanvasObject {
 	})
 	delBtn := newToolbarButton("Delete", theme.DeleteIcon(), func() {
 		withSel(func(task domain.Task) {
-			dialog.ShowConfirm("Delete task", "Delete "+task.Name+"?", func(ok bool) {
+			dialog.ShowConfirm("Delete task", "Delete "+tasklogic.DisplayName(task)+"?", func(ok bool) {
 				if ok {
 					a.run(func(ctx context.Context) error { return a.backend.DeleteTask(ctx, task.ID) })
 				}

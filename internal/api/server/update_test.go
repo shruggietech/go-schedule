@@ -82,6 +82,31 @@ func TestUpdateTask_ArgsTriState(t *testing.T) {
 	}
 }
 
+func TestUpdateTaskExplicitlyClearsDraftFields(t *testing.T) {
+	s := newTestServer(t)
+	task := newTaskFor(t, s, TaskCreateRequest{Name: "named", Command: "echo", Schedule: "every day at 09:00", Timezone: "UTC"})
+	rec := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+task.Task.ID, TaskUpdateRequest{ClearName: true, ClearCommand: true, ClearSchedule: true})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	got := getTask(t, s, task.Task.ID)
+	if got.Task.Name != "" || got.Task.Command != "" || got.Task.ScheduleID != "" || got.Task.Enabled || got.Schedule != nil {
+		t.Fatalf("cleared task = %+v", got)
+	}
+}
+
+func TestUpdateTaskRejectsClearAndReplacementWithoutMutation(t *testing.T) {
+	s := newTestServer(t)
+	task := newTaskFor(t, s, TaskCreateRequest{Name: "named", Command: "echo", Schedule: "every day at 09:00", Timezone: "UTC"})
+	rec := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+task.Task.ID, TaskUpdateRequest{ClearCommand: true, Command: "other"})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := getTask(t, s, task.Task.ID).Task.Command; got != "echo" {
+		t.Fatalf("command mutated to %q", got)
+	}
+}
+
 func TestUpdateTask_StdinTriState(t *testing.T) {
 	s := newTestServer(t)
 	task := newTaskFor(t, s, TaskCreateRequest{

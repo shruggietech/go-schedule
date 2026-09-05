@@ -21,7 +21,7 @@ func recurringDetail(expression string) *server.TaskResponse {
 			ID: "t1", Name: "nightly", Command: "/bin/true", Timezone: "UTC",
 			OverlapPolicy: domain.OverlapQueueOne, CatchupPolicy: domain.CatchupOne,
 		},
-		Schedule: domain.Schedule{
+		Schedule: &domain.Schedule{
 			Kind:         domain.ScheduleRecurring,
 			RRULE:        "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
 			HumanSummary: "Every weekday at 09:00",
@@ -38,7 +38,7 @@ func oneOffDetail(t *testing.T, tz string, at time.Time) *server.TaskResponse {
 			ID: "t2", Name: "once", Command: "/bin/true", Timezone: tz,
 			OverlapPolicy: domain.OverlapQueueOne, CatchupPolicy: domain.CatchupOne,
 		},
-		Schedule: domain.Schedule{
+		Schedule: &domain.Schedule{
 			Kind:         domain.ScheduleOneOff,
 			RunAt:        &utc,
 			HumanSummary: "Once at " + utc.Format("2006-01-02 15:04 MST"),
@@ -268,7 +268,7 @@ func TestEditor_ModeSwitchRequiresNewTiming(t *testing.T) {
 // detail fetch, and a failed fetch does not block editing.
 func TestTasksTab_EditFetchesDetail(t *testing.T) {
 	fb := &fakeBackend{
-		tasks:   []domain.Task{{ID: "t1", Name: "nightly", Command: "/bin/true", Timezone: "UTC", Enabled: true, State: domain.TaskActive}},
+		tasks:   []domain.Task{{ID: "t1", Name: "nightly", Command: "/bin/true", Timezone: "UTC", Enabled: true, State: domain.TaskActive, ScheduleID: "s1"}},
 		details: map[string]server.TaskResponse{"t1": *recurringDetail("weekdays at 09:00")},
 	}
 	ui := NewUI(testApp, fb)
@@ -288,7 +288,7 @@ func TestTasksTab_EditFetchesDetail(t *testing.T) {
 	if degraded.Task.ID != task.ID {
 		t.Errorf("degraded detail lost the task: %+v", degraded.Task)
 	}
-	if degraded.Schedule.Kind != "" {
+	if degraded.Schedule != nil {
 		t.Errorf("degraded detail should carry no schedule, got %+v", degraded.Schedule)
 	}
 

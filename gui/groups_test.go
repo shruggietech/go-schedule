@@ -64,6 +64,20 @@ func TestGroupTree_ShowsEveryTaskExactlyOnce(t *testing.T) {
 	}
 }
 
+func TestGroupSubmissionEnterAndButtonShareDuplicateSafePath(t *testing.T) {
+	var names []string
+	submission := &groupSubmission{create: func(name string) { names = append(names, name) }}
+	if submission.submit("   ") {
+		t.Fatal("blank submission succeeded")
+	}
+	if !submission.submit("  keyboard group  ") {
+		t.Fatal("valid submission failed")
+	}
+	if submission.submit("duplicate") || len(names) != 1 || names[0] != "keyboard group" {
+		t.Fatalf("submissions = %v", names)
+	}
+}
+
 // TestGroupTree_UngroupedNodeAlwaysPresent covers FR-019: the destination for
 // removing a task from a group must be visible before there is anything in it.
 func TestGroupTree_UngroupedNodeAlwaysPresent(t *testing.T) {

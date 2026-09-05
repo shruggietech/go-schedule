@@ -47,6 +47,42 @@ func TestCreateTask_Recurring(t *testing.T) {
 	}
 }
 
+func TestCreateTask_BlankDraftHasNoScheduleAndIsDisabled(t *testing.T) {
+	s := newTestServer(t)
+	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	var resp TaskResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Task.Name != "" || resp.Task.Command != "" || resp.Task.ScheduleID != "" || resp.Task.Enabled || resp.Schedule != nil {
+		t.Fatalf("draft detail = %+v", resp)
+	}
+	if resp.Readiness.Status != "not_runnable" {
+		t.Fatalf("readiness = %+v", resp.Readiness)
+	}
+	loaded := getTask(t, s, resp.Task.ID)
+	if loaded.Schedule != nil || loaded.Task.ID != resp.Task.ID {
+		t.Fatalf("loaded draft = %+v", loaded)
+	}
+}
+
+func TestEnableAndRunNowRejectMissingReadinessFields(t *testing.T) {
+	s := newTestServer(t)
+	manual := newTaskFor(t, s, TaskCreateRequest{Command: "echo"})
+	rec := doJSON(t, s, http.MethodPost, "/v1/tasks/"+manual.Task.ID+"/enable", nil)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "automatic activation source") {
+		t.Fatalf("enable status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	draft := newTaskFor(t, s, TaskCreateRequest{})
+	rec = doJSON(t, s, http.MethodPost, "/v1/tasks/"+draft.Task.ID+"/run-now", nil)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "command") {
+		t.Fatalf("run-now status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCreateTaskOptionalEnabledIntentIsAtomicAndCompatible(t *testing.T) {
 	for _, test := range []struct {
 		name    string

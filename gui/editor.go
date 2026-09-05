@@ -104,6 +104,7 @@ type editorSnapshot struct {
 const (
 	modeRecurring = "Recurring"
 	modeOneOff    = "One-off"
+	modeManual    = "Manual only"
 )
 
 // showTaskEditor opens the guided create/edit dialog. A live preview of both the
@@ -157,7 +158,7 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	e.tz = widget.NewSelectEntry(commonZones)
 	e.tz.SetText("Local")
 
-	e.mode = widget.NewSelect([]string{modeRecurring, modeOneOff}, nil)
+	e.mode = widget.NewSelect([]string{modeRecurring, modeOneOff, modeManual}, nil)
 
 	e.schedule = widget.NewEntry()
 	e.schedule.SetPlaceHolder(`e.g. "every 15 minutes" or "0 9 * * 1-5"`)
@@ -202,8 +203,8 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 func (e *taskEditor) build() *fyne.Container {
 	// Left pane: the command field stays outside widget.Form so its containing
 	// layout can assign it all additional vertical room (S046 FR-003).
-	nameForm := widget.NewForm(requiredItem("Name", e.name))
-	commandLabel := sectionHeader("Command line *")
+	nameForm := widget.NewForm(widget.NewFormItem("Name", e.name))
+	commandLabel := sectionHeader("Command line")
 	commandHint := widget.NewLabel("Type the program and arguments together. Quotes preserve spaces; no shell is implied.")
 	commandHint.Wrapping = fyne.TextWrapWord
 	commandSection := container.NewBorder(container.NewVBox(commandLabel, commandHint), nil, nil, nil, e.commandLine)
@@ -289,7 +290,7 @@ func (e *taskEditor) toggleHelp() {
 		e.helpToggle.SetText("Preview")
 		e.previewContent.Hide()
 		e.helpContent.Show()
-	} else {
+	} else if e.mode.Selected == modeRecurring {
 		e.rightTitle.SetText("Preview")
 		e.helpToggle.SetText("Help")
 		e.helpContent.Hide()
@@ -346,7 +347,8 @@ func (e *taskEditor) rebuildWhen() {
 		widget.NewFormItem("Timezone", e.tz),
 		widget.NewFormItem("Mode", e.mode),
 	}
-	if e.mode.Selected == modeOneOff {
+	switch e.mode.Selected {
+	case modeOneOff:
 		e.schedPreview.Hide()
 		dateRow := container.NewBorder(nil, nil, nil, e.datePickerButton(), e.oneOffDate)
 		items = append(items,
@@ -354,13 +356,10 @@ func (e *taskEditor) rebuildWhen() {
 			requiredItem("Time", e.oneOffTime),
 			withHint(widget.NewFormItem("", e.oneOffEcho), "Interpreted in the task's timezone"),
 		)
-	} else {
+	case modeRecurring:
 		e.schedPreview.Show()
 		scheduleRow := container.NewBorder(nil, nil, nil, nil, e.schedule)
-		schedItem := requiredItem("Schedule", scheduleRow)
-		if e.existing != nil {
-			schedItem = widget.NewFormItem("Schedule", scheduleRow) // optional on edit (blank = keep)
-		}
+		schedItem := widget.NewFormItem("Schedule", scheduleRow)
 		schedItem.HintText = "Human phrase or supported five- or six-field cron"
 		items = append(items, schedItem)
 		if schedule.IsSubDailyInterval(e.effectiveScheduleRaw()) {
@@ -368,6 +367,8 @@ func (e *taskEditor) rebuildWhen() {
 			items = append(items, withHint(widget.NewFormItem("Start at", startRow),
 				"Optional anchor for the first cycle, e.g. 09:00"))
 		}
+	default:
+		e.schedPreview.Show()
 	}
 	e.whenForm = widget.NewForm(items...)
 	e.whenHolder.Objects = []fyne.CanvasObject{e.whenForm}
@@ -377,8 +378,10 @@ func (e *taskEditor) rebuildWhen() {
 // --- validators & wiring -------------------------------------------------
 
 func (e *taskEditor) wireValidators() {
-	e.name.Validator = nonEmptyValidator("name")
 	e.commandLine.Validator = func(s string) error {
+		if strings.TrimSpace(s) == "" {
+			return nil
+		}
 		_, err := e.parseCommand(s)
 		return err
 	}
@@ -454,6 +457,11 @@ func (e *taskEditor) prefill() {
 func (e *taskEditor) prefillSchedule() {
 	sch := e.detail.Schedule
 	switch {
+	case sch == nil && e.existing.ScheduleID == "":
+		e.storedMode = modeManual
+	case sch == nil:
+		e.storedMode = modeRecurring
+		e.scheduleUnreadable = true
 	case sch.Kind == domain.ScheduleOneOff && sch.RunAt != nil:
 		e.storedMode = modeOneOff
 		loc, err := timezone.Resolve(e.tzName())
@@ -507,6 +515,9 @@ func splitAnchorClause(expr string) (phrase, anchor string) {
 func (e *taskEditor) updatePreview() {
 	e.updateCmdPreview()
 	if e.mode.Selected != modeRecurring {
+		if e.mode.Selected == modeManual {
+			e.schedPreview.SetText("No automatic schedule. A configured command can still be run manually.")
+		}
 		return
 	}
 	s := e.effectiveSchedule()
@@ -621,14 +632,16 @@ func (e *taskEditor) revalidate() {
 }
 
 func (e *taskEditor) valid() bool {
-	if strings.TrimSpace(e.name.Text) == "" {
-		return false
-	}
-	if _, err := e.invocation(); err != nil {
-		return false
+	if strings.TrimSpace(e.commandLine.Text) != "" {
+		if _, err := e.invocation(); err != nil {
+			return false
+		}
 	}
 	if _, err := timezone.Resolve(e.tzName()); err != nil {
 		return false
+	}
+	if e.mode.Selected == modeManual {
+		return true
 	}
 	// Leaving the timing blank means "keep the existing schedule". That is only
 	// meaningful for an edit whose mode still matches the stored one: after a
@@ -647,7 +660,13 @@ func (e *taskEditor) valid() bool {
 	// Recurring.
 	s := e.effectiveSchedule()
 	if s == "" {
-		return mayKeepExisting && schedule.ValidatePolicy(e.detail.Schedule, e.selectedSchedulePolicy()) == nil
+		if e.existing == nil || e.existing.ScheduleID == "" {
+			return true
+		}
+		if e.scheduleUnreadable {
+			return mayKeepExisting
+		}
+		return mayKeepExisting && e.detail.Schedule != nil && schedule.ValidatePolicy(*e.detail.Schedule, e.selectedSchedulePolicy()) == nil
 	}
 	input, err := e.recurringInput()
 	return err == nil && schedule.ValidatePolicy(input.Schedule, e.selectedSchedulePolicy()) == nil
@@ -670,7 +689,10 @@ func (e *taskEditor) submit() { e.app.submitTask(e.existing, e.buildForm()) }
 // friendly overlap/catch-up labels back to their wire values and appending any
 // interval anchor to the schedule phrase.
 func (e *taskEditor) buildForm() taskForm {
-	invocation, _ := e.invocation()
+	var invocation commandline.Invocation
+	if strings.TrimSpace(e.commandLine.Text) != "" {
+		invocation, _ = e.invocation()
+	}
 	// Keep zero arguments distinct from an omitted update. TaskUpdateRequest
 	// serializes a non-nil empty slice as [], which explicitly clears stale args.
 	args := append([]string{}, invocation.Args...)
@@ -695,6 +717,7 @@ func (e *taskEditor) buildForm() taskForm {
 			f.scheduleSyntax = string(input.Syntax)
 		}
 	}
+	f.clearSchedule = e.existing != nil && e.mode.Selected == modeManual && e.existing.ScheduleID != ""
 	f.groupID = e.groupIntent()
 	return f
 }
@@ -818,15 +841,6 @@ func withHint(item *widget.FormItem, hint string) *widget.FormItem {
 	return item
 }
 
-func nonEmptyValidator(field string) func(string) error {
-	return func(s string) error {
-		if strings.TrimSpace(s) == "" {
-			return errEmptyField(field)
-		}
-		return nil
-	}
-}
-
 // helpView is the in-modal Help content: a field-by-field guide with examples
 // (FR-004). It replaces the old per-field Examples popup.
 const editorHelpMarkdown = `## Task editor help
@@ -908,6 +922,7 @@ type taskForm struct {
 	timeBasis, dstGap, dstOverlap                           string
 	args                                                    []string
 	activate                                                bool
+	clearSchedule                                           bool
 	// groupID carries the three-way membership intent: nil leaves it unchanged,
 	// a pointer to "" removes the task from its group, and a pointer to an id
 	// assigns it.
@@ -952,6 +967,7 @@ func (a *App) submitTask(existing *domain.Task, f taskForm) {
 			OverlapPolicy: f.overlap, CatchupPolicy: f.catchup, GroupID: f.groupID,
 			MissingDatePolicy: f.missingDate,
 			TimeBasis:         f.timeBasis, DSTGapPolicy: f.dstGap, DSTOverlapPolicy: f.dstOverlap,
+			ClearName: existing.Name != "" && strings.TrimSpace(f.name) == "", ClearCommand: existing.Command != "" && f.command == "", ClearSchedule: f.clearSchedule,
 		}
 		if atPtr != nil {
 			req.At = atPtr

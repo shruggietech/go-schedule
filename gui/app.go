@@ -158,13 +158,13 @@ func NewUI(fyneApp fyne.App, backend Backend) *App {
 // buildRoot assembles the leading navigation rail and active content.
 func (a *App) buildRoot() fyne.CanvasObject {
 	a.navigation = newNavigationShell([]navigationDestinationSpec{
-		{ID: navigationTasks, Label: "Tasks", Content: a.buildTasksTab()},
-		{ID: navigationGroups, Label: "Groups", Content: a.buildGroupsTab()},
-		{ID: navigationChains, Label: "Chains", Content: a.buildChainsTab()},
-		{ID: navigationSchedule, Label: "Schedule", Content: a.buildScheduleTab()},
-		{ID: navigationActivity, Label: activityTabLabel(0), Content: a.buildLogsTab()},
-		{ID: navigationOptions, Label: "Options", Content: a.buildOptionsTab()},
-		{ID: navigationInfo, Label: "Info", Content: a.buildInfoTab()},
+		{ID: navigationTasks, Label: "Tasks", Content: a.buildTasksTab(), Section: navigationDefinitions},
+		{ID: navigationGroups, Label: "Groups", Content: a.buildGroupsTab(), Section: navigationDefinitions},
+		{ID: navigationChains, Label: "Chains", Content: a.buildChainsTab(), Section: navigationDefinitions},
+		{ID: navigationSchedule, Label: "Schedule", Content: a.buildScheduleTab(), Section: navigationOperations},
+		{ID: navigationActivity, Label: activityTabLabel(0), Content: a.buildLogsTab(), Section: navigationOperations},
+		{ID: navigationOptions, Label: "Options", Content: a.buildOptionsTab(), Section: navigationOperations},
+		{ID: navigationInfo, Label: "Info", Content: a.buildInfoTab(), Section: navigationOperations},
 	}, a.requestClose)
 	a.connectionTitle = widget.NewLabel("")
 	a.connectionTitle.TextStyle = fyne.TextStyle{Bold: true}

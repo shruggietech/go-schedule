@@ -172,6 +172,9 @@ func (e *Engine) recompute(now time.Time) {
 		if !task.Enabled {
 			continue
 		}
+		if task.ScheduleID == "" {
+			continue
+		}
 		// A task is ineligible if any ancestor group is disabled (cascade).
 		if ok, err := e.store.GroupChainEnabled(task.GroupID); err == nil && !ok {
 			continue

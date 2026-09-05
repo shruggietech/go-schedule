@@ -10,10 +10,17 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
 // ErrNotFound is returned when a requested entity does not exist.
 var ErrNotFound = errors.New("store: not found")
+
+var ErrTaskNotRunnable = errors.New("store: task has no command")
+
+var ErrTaskNotActivationReady = errors.New("store: task has no automatic activation source")
+
+var ErrTaskTerminal = errors.New("store: task lifecycle is not active")
 
 const rfc3339 = time.RFC3339Nano
 
@@ -209,6 +216,10 @@ func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
 // CreateTask inserts t, assigning an ID and timestamps when empty.
 func (s *Store) CreateTask(t *domain.Task) error {
 	normalizeTaskSchedulePolicy(t)
+	readiness := tasklogic.EvaluateReadiness(*t, false)
+	if !readiness.CommandReady || !readiness.ActivationReady || t.State != domain.TaskActive {
+		t.Enabled = false
+	}
 	if t.ID == "" {
 		t.ID = newID()
 	}
@@ -223,7 +234,7 @@ func (s *Store) CreateTask(t *domain.Task) error {
 		`INSERT INTO tasks(id,name,group_id,command,args_json,working_dir,env_json,stdin,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,state,created_at,updated_at)
 		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		t.ID, t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON),
-		t.Stdin, t.RunAs, boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy),
+		t.Stdin, t.RunAs, boolToInt(t.Enabled), t.Timezone, nullStr(t.ScheduleID), string(t.OverlapPolicy),
 		string(t.CatchupPolicy), string(t.MissingDatePolicy), string(t.TimeBasis), string(t.DSTGapPolicy), string(t.DSTOverlapPolicy),
 		string(t.State), fmtTime(t.CreatedAt), fmtTime(t.UpdatedAt),
 	)
@@ -239,14 +250,33 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 	t.UpdatedAt = time.Now().UTC()
 	argsJSON, _ := json.Marshal(t.Args)
 	envJSON, _ := json.Marshal(t.Env)
-	res, err := s.db.Exec(
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin update task: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	hasCompletion, err := taskHasIncomingCompletion(tx, t.ID)
+	if err != nil {
+		return err
+	}
+	readiness := tasklogic.EvaluateReadiness(*t, hasCompletion)
+	if !readiness.CommandReady || !readiness.ActivationReady || t.State != domain.TaskActive {
+		t.Enabled = false
+	}
+	res, err := tx.Exec(
 		`UPDATE tasks SET name=?,group_id=?,command=?,args_json=?,working_dir=?,env_json=?,stdin=?,run_as=?,
 		 enabled=?,timezone=?,schedule_id=?,overlap_policy=?,catchup_policy=?,missing_date_policy=?,time_basis=?,dst_gap_policy=?,dst_overlap_policy=?,state=?,updated_at=? WHERE id=?`,
 		t.Name, nullStr(t.GroupID), t.Command, string(argsJSON), t.WorkingDir, string(envJSON), t.Stdin, t.RunAs,
-		boolToInt(t.Enabled), t.Timezone, t.ScheduleID, string(t.OverlapPolicy), string(t.CatchupPolicy),
+		boolToInt(t.Enabled), t.Timezone, nullStr(t.ScheduleID), string(t.OverlapPolicy), string(t.CatchupPolicy),
 		string(t.MissingDatePolicy), string(t.TimeBasis), string(t.DSTGapPolicy), string(t.DSTOverlapPolicy), string(t.State), fmtTime(t.UpdatedAt), t.ID,
 	)
-	return affected(res, err, "update task")
+	if err := affected(res, err, "update task"); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("store: commit update task: %w", err)
+	}
+	return nil
 }
 
 // GetTask returns the task by id, or ErrNotFound.
@@ -268,7 +298,7 @@ func (s *Store) ListTasks(groupID, state string) ([]domain.Task, error) {
 		q += ` AND state=?`
 		args = append(args, state)
 	}
-	q += ` ORDER BY name`
+	q += ` ORDER BY name,id`
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list tasks: %w", err)
@@ -294,15 +324,70 @@ func (s *Store) SetTaskState(id string, state domain.TaskState) error {
 
 // SetTaskEnabled toggles a task's enabled flag.
 func (s *Store) SetTaskEnabled(id string, enabled bool) error {
-	res, err := s.db.Exec(`UPDATE tasks SET enabled=?, updated_at=? WHERE id=?`,
-		boolToInt(enabled), fmtTime(time.Now().UTC()), id)
-	return affected(res, err, "set task enabled")
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin set task enabled: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if enabled {
+		task, err := scanTask(tx.QueryRow(taskSelect+` WHERE id=?`, id))
+		if err != nil {
+			return err
+		}
+		hasCompletion, err := taskHasIncomingCompletion(tx, id)
+		if err != nil {
+			return err
+		}
+		readiness := tasklogic.EvaluateReadiness(task, hasCompletion)
+		switch {
+		case task.State != domain.TaskActive:
+			return ErrTaskTerminal
+		case !readiness.CommandReady:
+			return ErrTaskNotRunnable
+		case !readiness.ActivationReady:
+			return ErrTaskNotActivationReady
+		}
+	}
+	res, err := tx.Exec(`UPDATE tasks SET enabled=?, updated_at=? WHERE id=?`, boolToInt(enabled), fmtTime(time.Now().UTC()), id)
+	if err := affected(res, err, "set task enabled"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // DeleteTask removes a task (cascading to its runs and schedule).
 func (s *Store) DeleteTask(id string) error {
-	res, err := s.db.Exec(`DELETE FROM tasks WHERE id=?`, id)
-	return affected(res, err, "delete task")
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin delete task: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.Query(`SELECT DISTINCT target_task_id FROM completion_chains WHERE source_task_id=?`, id)
+	if err != nil {
+		return fmt.Errorf("store: list affected completion targets: %w", err)
+	}
+	var targets []string
+	for rows.Next() {
+		var target string
+		if err := rows.Scan(&target); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		targets = append(targets, target)
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	res, err := tx.Exec(`DELETE FROM tasks WHERE id=?`, id)
+	if err := affected(res, err, "delete task"); err != nil {
+		return err
+	}
+	for _, target := range targets {
+		if err := disableIfNotActivationReady(tx, target); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 const taskSelect = `SELECT id,name,group_id,command,args_json,working_dir,env_json,stdin,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,state,created_at,updated_at FROM tasks`
@@ -328,18 +413,19 @@ func normalizeTaskSchedulePolicy(t *domain.Task) {
 
 func scanTask(sc scanner) (domain.Task, error) {
 	var t domain.Task
-	var group sql.NullString
+	var group, scheduleID sql.NullString
 	var argsJSON, envJSON string
 	var enabled int
 	var overlap, catchup, missingDate, timeBasis, dstGap, dstOverlap, state, created, updated string
 	if err := sc.Scan(&t.ID, &t.Name, &group, &t.Command, &argsJSON, &t.WorkingDir, &envJSON, &t.Stdin, &t.RunAs,
-		&enabled, &t.Timezone, &t.ScheduleID, &overlap, &catchup, &missingDate, &timeBasis, &dstGap, &dstOverlap, &state, &created, &updated); err != nil {
+		&enabled, &t.Timezone, &scheduleID, &overlap, &catchup, &missingDate, &timeBasis, &dstGap, &dstOverlap, &state, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Task{}, ErrNotFound
 		}
 		return domain.Task{}, fmt.Errorf("store: scan task: %w", err)
 	}
 	t.GroupID = group.String
+	t.ScheduleID = scheduleID.String
 	_ = json.Unmarshal([]byte(argsJSON), &t.Args)
 	_ = json.Unmarshal([]byte(envJSON), &t.Env)
 	t.Enabled = enabled != 0
@@ -354,6 +440,40 @@ func scanTask(sc scanner) (domain.Task, error) {
 	t.CreatedAt, _ = parseTime(created)
 	t.UpdatedAt, _ = parseTime(updated)
 	return t, nil
+}
+
+type queryer interface {
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+func taskHasIncomingCompletion(q queryer, id string) (bool, error) {
+	var count int
+	if err := q.QueryRow(`SELECT COUNT(*) FROM completion_chains WHERE target_task_id=?`, id).Scan(&count); err != nil {
+		return false, fmt.Errorf("store: count task completion sources: %w", err)
+	}
+	return count > 0, nil
+}
+
+func (s *Store) TaskHasIncomingCompletion(id string) (bool, error) {
+	return taskHasIncomingCompletion(s.db, id)
+}
+
+func disableIfNotActivationReady(tx *sql.Tx, id string) error {
+	task, err := scanTask(tx.QueryRow(taskSelect+` WHERE id=?`, id))
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	hasCompletion, err := taskHasIncomingCompletion(tx, id)
+	if err != nil {
+		return err
+	}
+	if task.ScheduleID == "" && !hasCompletion {
+		_, err = tx.Exec(`UPDATE tasks SET enabled=0,updated_at=? WHERE id=?`, fmtTime(time.Now().UTC()), id)
+	}
+	return err
 }
 
 // ---- Run ----------------------------------------------------------------

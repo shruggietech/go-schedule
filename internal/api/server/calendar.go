@@ -61,7 +61,7 @@ func (s *Server) handleCalendar(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Future scheduled occurrences in the window (active tasks only).
-		if task.State != domain.TaskActive || !task.Enabled {
+		if task.State != domain.TaskActive || !task.Enabled || task.ScheduleID == "" {
 			continue
 		}
 		sch, err := s.store.GetSchedule(task.ScheduleID)

@@ -45,6 +45,9 @@ type TaskUpdateRequest struct {
 	TimeBasis         string `json:"time_basis,omitempty"`
 	DSTGapPolicy      string `json:"dst_gap_policy,omitempty"`
 	DSTOverlapPolicy  string `json:"dst_overlap_policy,omitempty"`
+	ClearName         bool   `json:"clear_name,omitempty"`
+	ClearCommand      bool   `json:"clear_command,omitempty"`
+	ClearSchedule     bool   `json:"clear_schedule,omitempty"`
 }
 
 func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
@@ -63,11 +66,27 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule_syntax", "schedule_syntax requires schedule")
 		return
 	}
+	if req.ClearName && req.Name != "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "name", "cannot clear and replace name together")
+		return
+	}
+	if req.ClearCommand && req.Command != "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "command", "cannot clear and replace command together")
+		return
+	}
+	if req.ClearSchedule && (req.Schedule != "" || req.At != nil) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", "cannot clear and replace schedule together")
+		return
+	}
 
-	if req.Name != "" {
+	if req.ClearName {
+		task.Name = ""
+	} else if req.Name != "" {
 		task.Name = req.Name
 	}
-	if req.Command != "" {
+	if req.ClearCommand {
+		task.Command = ""
+	} else if req.Command != "" {
 		task.Command = req.Command
 	}
 	if req.Args != nil {
@@ -163,14 +182,17 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Optional schedule replacement.
-	var sch domain.Schedule
+	var sch *domain.Schedule
 	switch {
+	case req.ClearSchedule:
+		task.ScheduleID = ""
 	case req.At != nil:
 		if !req.At.After(now) {
 			writeError(w, http.StatusBadRequest, CodeValidation, "at", "one-off time is in the past")
 			return
 		}
-		sch = schedule.NewOneOff(*req.At)
+		oneOff := schedule.NewOneOff(*req.At)
+		sch = &oneOff
 	case req.Schedule != "":
 		input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), task.Timezone, now)
 		if err != nil {
@@ -181,14 +203,14 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, CodeValidation, field, err.Error())
 			return
 		}
-		sch = input.Schedule
+		sch = &input.Schedule
 	}
-	if sch.Kind != "" {
-		if err := schedule.PrepareForPolicy(&sch, task.Timezone, task.SchedulePolicy()); err != nil {
+	if sch != nil {
+		if err := schedule.PrepareForPolicy(sch, task.Timezone, task.SchedulePolicy()); err != nil {
 			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 			return
 		}
-		if err := s.store.CreateSchedule(&sch); err != nil {
+		if err := s.store.CreateSchedule(sch); err != nil {
 			s.internal(w, err)
 			return
 		}
@@ -197,14 +219,15 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		if task.State == domain.TaskCompleted {
 			task.State = domain.TaskActive
 		}
-	} else {
-		sch, err = s.store.GetSchedule(task.ScheduleID)
+	} else if task.ScheduleID != "" {
+		stored, err := s.store.GetSchedule(task.ScheduleID)
 		if err != nil {
 			s.internal(w, err)
 			return
 		}
+		sch = &stored
 		needsElapsedEpoch := task.SchedulePolicy().TimeBasis == domain.TimeBasisElapsed && sch.ElapsedEpoch == nil
-		if err := schedule.PrepareForPolicy(&sch, task.Timezone, task.SchedulePolicy()); err != nil {
+		if err := schedule.PrepareForPolicy(sch, task.Timezone, task.SchedulePolicy()); err != nil {
 			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
 			return
 		}
@@ -213,7 +236,7 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 			// absolute phase as a replacement row when an existing task first
 			// switches to elapsed mode.
 			sch.ID = ""
-			if err := s.store.CreateSchedule(&sch); err != nil {
+			if err := s.store.CreateSchedule(sch); err != nil {
 				s.internal(w, err)
 				return
 			}

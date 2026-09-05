@@ -61,7 +61,7 @@ func TestEditor_ModeVisibility(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 
 	labels := whenLabels(e)
-	if !hasLabel(labels, "Schedule *") {
+	if !hasLabel(labels, "Schedule") {
 		t.Fatalf("Recurring mode missing Schedule row: %v", labels)
 	}
 	if hasLabel(labels, "Date *") || hasLabel(labels, "Time *") {
@@ -73,7 +73,7 @@ func TestEditor_ModeVisibility(t *testing.T) {
 	if !hasLabel(labels, "Date *") || !hasLabel(labels, "Time *") {
 		t.Fatalf("One-off mode missing date/time rows: %v", labels)
 	}
-	if hasLabel(labels, "Schedule *") {
+	if hasLabel(labels, "Schedule") {
 		t.Fatalf("One-off mode should not show Schedule row: %v", labels)
 	}
 }
@@ -99,14 +99,14 @@ func TestEditor_ModeTogglePreservesValues(t *testing.T) {
 func TestEditor_SaveGating(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 
-	if !e.save.Disabled() {
-		t.Fatal("Save should start disabled (empty form)")
+	if e.save.Disabled() {
+		t.Fatal("Save should allow an empty draft")
 	}
 
 	e.name.SetText("nightly")
 	e.commandLine.SetText("cmd")
-	if !e.save.Disabled() {
-		t.Fatal("Save should stay disabled without a schedule")
+	if e.save.Disabled() {
+		t.Fatal("Save should allow a manual-only draft without a schedule")
 	}
 
 	e.schedule.SetText("every 15 minutes")

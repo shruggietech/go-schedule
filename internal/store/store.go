@@ -43,8 +43,9 @@ func (s *Store) Close() error { return s.db.Close() }
 
 // migration is one ordered schema change.
 type migration struct {
-	version int
-	stmts   string
+	version        int
+	stmts          string
+	foreignKeysOff bool
 }
 
 var migrations = []migration{
@@ -260,6 +261,45 @@ ALTER TABLE runs ADD COLUMN output_truncated INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE alerts ADD COLUMN run_id TEXT;
 `,
 	},
+	{
+		// v11: a task may be saved before an automatic schedule is known. Rebuild
+		// the table because SQLite cannot remove a NOT NULL constraint in place.
+		// Foreign keys are disabled only around this migration so dependent rows
+		// keep referencing the replacement table by its canonical name.
+		version:        11,
+		foreignKeysOff: true,
+		stmts: `
+CREATE TABLE tasks_v11 (
+	id                  TEXT PRIMARY KEY,
+	name                TEXT NOT NULL,
+	group_id            TEXT REFERENCES groups(id) ON DELETE SET NULL,
+	command             TEXT NOT NULL,
+	args_json           TEXT NOT NULL DEFAULT '[]',
+	working_dir         TEXT NOT NULL DEFAULT '',
+	env_json            TEXT NOT NULL DEFAULT '{}',
+	run_as              TEXT NOT NULL DEFAULT '',
+	enabled             INTEGER NOT NULL DEFAULT 1,
+	timezone            TEXT NOT NULL DEFAULT 'Local',
+	schedule_id         TEXT REFERENCES schedules(id) ON DELETE CASCADE,
+	overlap_policy      TEXT NOT NULL DEFAULT 'queue_one',
+	catchup_policy      TEXT NOT NULL DEFAULT 'one',
+	state               TEXT NOT NULL DEFAULT 'active',
+	created_at          TEXT NOT NULL,
+	updated_at          TEXT NOT NULL,
+	missing_date_policy TEXT NOT NULL DEFAULT 'skip',
+	time_basis          TEXT NOT NULL DEFAULT 'wall_clock',
+	dst_gap_policy      TEXT NOT NULL DEFAULT 'next_valid',
+	dst_overlap_policy  TEXT NOT NULL DEFAULT 'first',
+	stdin               TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO tasks_v11(id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,stdin)
+SELECT id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,stdin FROM tasks;
+DROP TABLE tasks;
+ALTER TABLE tasks_v11 RENAME TO tasks;
+CREATE INDEX idx_tasks_group ON tasks(group_id);
+CREATE INDEX idx_tasks_state ON tasks(state);
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.
@@ -276,20 +316,50 @@ func (s *Store) migrate() error {
 		if m.version <= current {
 			continue
 		}
+		if m.foreignKeysOff {
+			if _, err := s.db.Exec(`PRAGMA foreign_keys = OFF`); err != nil {
+				return fmt.Errorf("store: disable foreign keys for migration %d: %w", m.version, err)
+			}
+		}
 		tx, err := s.db.Begin()
 		if err != nil {
+			if m.foreignKeysOff {
+				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
+			}
 			return fmt.Errorf("store: begin migration %d: %w", m.version, err)
 		}
 		if _, err := tx.Exec(m.stmts); err != nil {
 			_ = tx.Rollback()
+			if m.foreignKeysOff {
+				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
+			}
 			return fmt.Errorf("store: apply migration %d: %w", m.version, err)
 		}
 		if _, err := tx.Exec(`INSERT INTO schema_version(version) VALUES (?)`, m.version); err != nil {
 			_ = tx.Rollback()
+			if m.foreignKeysOff {
+				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
+			}
 			return fmt.Errorf("store: record migration %d: %w", m.version, err)
 		}
 		if err := tx.Commit(); err != nil {
+			if m.foreignKeysOff {
+				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
+			}
 			return fmt.Errorf("store: commit migration %d: %w", m.version, err)
+		}
+		if m.foreignKeysOff {
+			if _, err := s.db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
+				return fmt.Errorf("store: restore foreign keys after migration %d: %w", m.version, err)
+			}
+			var table, rowID, parent string
+			var fkID int
+			if err := s.db.QueryRow(`PRAGMA foreign_key_check`).Scan(&table, &rowID, &parent, &fkID); err != sql.ErrNoRows {
+				if err != nil {
+					return fmt.Errorf("store: check foreign keys after migration %d: %w", m.version, err)
+				}
+				return fmt.Errorf("store: foreign key violation after migration %d: table %s row %s parent %s", m.version, table, rowID, parent)
+			}
 		}
 	}
 	return nil

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -122,6 +123,33 @@ func TestTaskCommandAndArgumentsRoundTripExactly(t *testing.T) {
 	}
 	if got.Command != want.Command || !reflect.DeepEqual(got.Args, want.Args) {
 		t.Fatalf("task = command %q args %#v, want command %q args %#v", got.Command, got.Args, want.Command, want.Args)
+	}
+}
+
+func TestDraftTaskRoundTripsWithoutScheduleAndCannotEnableUntilReady(t *testing.T) {
+	st := openMem(t)
+	draft := &domain.Task{Name: "", Command: "echo", Enabled: true, Timezone: "UTC", State: domain.TaskActive}
+	if err := st.CreateTask(draft); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetTask(draft.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ScheduleID != "" || got.Enabled {
+		t.Fatalf("draft = %+v, want no schedule and disabled", got)
+	}
+	if err := st.SetTaskEnabled(draft.ID, true); !errors.Is(err, ErrTaskNotActivationReady) {
+		t.Fatalf("enable draft error = %v, want ErrTaskNotActivationReady", err)
+	}
+	got.Command = ""
+	got.Enabled = true
+	if err := st.UpdateTask(&got); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = st.GetTask(got.ID)
+	if got.Enabled {
+		t.Fatal("task with removed command remained enabled")
 	}
 }
 

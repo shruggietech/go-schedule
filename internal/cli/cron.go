@@ -483,7 +483,12 @@ func exportLines(details []server.TaskResponse) []exportLine {
 	out := make([]exportLine, 0, len(details))
 	for _, d := range details {
 		e := exportLine{TaskID: d.Task.ID, Name: d.Task.Name}
-		expr, bad, ok := cron.Export(d.Task, d.Schedule)
+		if d.Schedule == nil {
+			e.Declined = "task has no schedule"
+			out = append(out, e)
+			continue
+		}
+		expr, bad, ok := cron.Export(d.Task, *d.Schedule)
 		if ok {
 			e.Line = expr + " " + commandOf(d.Task)
 		} else {

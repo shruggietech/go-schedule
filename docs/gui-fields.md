@@ -9,6 +9,8 @@ nav_order: 4
 
 This page explains every field in the desktop GUI's **New Task** / **Edit Task** dialog: what it accepts, what's required, and what each option means. It's the GUI counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
+Task fields may be left incomplete and saved for later. A blank name displays as `unnamed`, a blank command makes the task not runnable, and **Manual only** removes automatic timing while preserving Run now once a valid command exists. Incomplete tasks remain disabled until their command and an automatic source are both ready.
+
 ## Data view tables
 
 The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed headers above vertically scrolling rows. Columns contract proportionally when the window narrows, so these views do not introduce horizontal scrolling. Long values are shortened visually with an ellipsis. Selecting a Tasks or Schedule row exposes its complete labeled values below the list; selecting an Activity row opens its existing full-detail dialog.

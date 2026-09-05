@@ -57,6 +57,19 @@ func TestTaskScheduleHelpDescribesBothAcceptedSyntaxes(t *testing.T) {
 	}
 }
 
+func TestTaskAddAcceptsUnnamedDraftAndEditExposesClearIntent(t *testing.T) {
+	add := taskAdd()
+	if err := add.Args(add, nil); err != nil {
+		t.Fatalf("task add rejected an unnamed draft: %v", err)
+	}
+	edit := taskEdit()
+	for _, name := range []string{"name", "command", "clear-schedule"} {
+		if edit.Flags().Lookup(name) == nil {
+			t.Errorf("task edit missing --%s", name)
+		}
+	}
+}
+
 func TestRootHelpUsesHumanFirstDualSyntaxPositioning(t *testing.T) {
 	help := strings.ToLower(newRoot().Short)
 	if !strings.Contains(help, "readable") || !strings.Contains(help, "cron") {

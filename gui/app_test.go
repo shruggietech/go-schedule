@@ -370,7 +370,7 @@ func TestTaskListSingleDoubleRefreshAndStaleIdentity(t *testing.T) {
 func TestTaskTableHasFixedHeadersAndFullValueDisclosure(t *testing.T) {
 	backend := &fakeBackend{tasks: []domain.Task{{
 		ID: "long", Name: "A very long Unicode task 備份", Enabled: true,
-		State: domain.TaskActive, Timezone: "America/Argentina/Buenos_Aires",
+		State: domain.TaskActive, Timezone: "America/Argentina/Buenos_Aires", Command: "echo", ScheduleID: "schedule",
 	}}}
 	ui := NewUI(testApp, backend)
 	ui.model.OnChange = nil
@@ -406,7 +406,7 @@ func TestTaskTableHasFixedHeadersAndFullValueDisclosure(t *testing.T) {
 
 func TestTaskTableRefreshesEffectiveStateAfterGroupEvent(t *testing.T) {
 	backend := &fakeBackend{
-		tasks:  []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "group"}},
+		tasks:  []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "group", Command: "echo", ScheduleID: "schedule"}},
 		groups: []domain.Group{{ID: "group", Name: "Operations", Enabled: true}},
 	}
 	ui := NewUI(testApp, backend)
@@ -440,7 +440,7 @@ func TestTaskTableRefreshesEffectiveStateAfterGroupEvent(t *testing.T) {
 
 func TestTaskTableBecomesRunnableAfterCascadedGroupDelete(t *testing.T) {
 	backend := &fakeBackend{
-		tasks: []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "child"}},
+		tasks: []domain.Task{{ID: "task", Name: "Task", Enabled: true, State: domain.TaskActive, GroupID: "child", Command: "echo", ScheduleID: "schedule"}},
 		groups: []domain.Group{
 			{ID: "parent", Name: "Parent", Enabled: true},
 			{ID: "child", Name: "Blocked child", ParentID: "parent", Enabled: false},
