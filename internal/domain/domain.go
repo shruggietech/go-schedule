@@ -289,9 +289,12 @@ type Run struct {
 	Outcome      RunOutcome `json:"outcome"`
 	ExitCode     *int       `json:"exit_code,omitempty"`
 	Output       string     `json:"output,omitempty"`
-	Trigger      RunTrigger `json:"trigger"`
-	SourceTaskID string     `json:"source_task_id,omitempty"`
-	SourceRunID  string     `json:"source_run_id,omitempty"`
+	// OutputTruncated reports that the configured capture cap discarded one or
+	// more output bytes. It is metadata so the retained output stays within cap.
+	OutputTruncated bool       `json:"output_truncated,omitempty"`
+	Trigger         RunTrigger `json:"trigger"`
+	SourceTaskID    string     `json:"source_task_id,omitempty"`
+	SourceRunID     string     `json:"source_run_id,omitempty"`
 }
 
 // CompletionChain connects a source task's terminal outcome to a target task.
@@ -341,8 +344,11 @@ type LogRecord struct {
 
 // Alert is a surfaced condition shown in the GUI and reflected in logs.
 type Alert struct {
-	ID           string        `json:"id"`
-	TaskID       string        `json:"task_id,omitempty"`
+	ID     string `json:"id"`
+	TaskID string `json:"task_id,omitempty"`
+	// RunID correlates a run failure to the exact persisted run. Other and
+	// legacy alerts leave it empty.
+	RunID        string        `json:"run_id,omitempty"`
 	Severity     AlertSeverity `json:"severity"`
 	Kind         AlertKind     `json:"kind"`
 	Message      string        `json:"message"`

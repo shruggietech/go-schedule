@@ -203,6 +203,64 @@ func TestEditor_CommandValidationAndExactCreateSubmission(t *testing.T) {
 	}
 }
 
+func TestEditorCreationActivationDefaultsClearedAndPersistsThroughValidation(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	if e.activateAfterSave == nil || e.activateAfterSave.Checked {
+		t.Fatalf("fresh activation choice=%v, want visible and cleared", e.activateAfterSave)
+	}
+	e.activateAfterSave.SetChecked(true)
+	e.name.SetText("")
+	e.commandLine.SetText(`program "unclosed`)
+	if !e.activateAfterSave.Checked {
+		t.Fatal("validation changes reset the activation choice")
+	}
+	if !e.isDirty() {
+		t.Fatal("changing activation intent did not mark the creation draft dirty")
+	}
+}
+
+func TestEditorCreationSubmitsExplicitActivationIntentAndFreshEditorResets(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		set  bool
+	}{
+		{name: "inactive default", set: false},
+		{name: "active opt in", set: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			e, backend := newTestEditor(t, nil)
+			e.name.SetText("safe")
+			e.commandLine.SetText("program")
+			e.schedule.SetText("every day at 09:00")
+			e.activateAfterSave.SetChecked(test.set)
+			e.submit()
+			waitFor(t, func() bool { count, _ := backend.lastCreateCall(); return count == 1 })
+			_, request := backend.lastCreateCall()
+			if request.Enabled == nil || *request.Enabled != test.set {
+				t.Fatalf("create enabled intent=%v, want %v", request.Enabled, test.set)
+			}
+		})
+	}
+	fresh, _ := newTestEditor(t, nil)
+	if fresh.activateAfterSave.Checked {
+		t.Fatal("fresh creation editor retained prior opt-in")
+	}
+}
+
+func TestEditorExistingTaskHasNoCreationActivationChoice(t *testing.T) {
+	existing := &domain.Task{ID: "task", Name: "existing", Enabled: true, State: domain.TaskActive}
+	e, backend := newTestEditor(t, existing)
+	if e.activateAfterSave != nil {
+		t.Fatal("edit editor exposed creation-only activation choice")
+	}
+	e.name.SetText("renamed")
+	e.submit()
+	waitFor(t, func() bool { count, _, _ := backend.lastUpdateCall(); return count == 1 })
+	if existing.Enabled != true {
+		t.Fatal("editing mutated enabled state")
+	}
+}
+
 func TestEditor_InvalidCommandDisablesSave(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 	e.name.SetText("invalid")

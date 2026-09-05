@@ -11,11 +11,13 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
 var taskColumns = []structuredColumn{
 	{Header: "Task", Minimum: 150, Weight: 3},
 	{Header: "Enabled", Minimum: 80, Alignment: fyne.TextAlignCenter},
+	{Header: "Effective", Minimum: 150, Weight: 2},
 	{Header: "Lifecycle", Minimum: 90, Alignment: fyne.TextAlignCenter},
 	{Header: "Time zone", Minimum: 110, Weight: 1},
 	{Header: "Group", Minimum: 110, Weight: 2},
@@ -32,6 +34,7 @@ func taskRowModel(task domain.Task, groups []domain.Group) structuredRowModel {
 		enabled = "Enabled"
 		enabledImportance = widget.SuccessImportance
 	}
+	effective := taskEffectiveState(task, groups)
 	lifecycle := normalizedWords(string(task.State), "Unknown", false)
 	lifecycleImportance := widget.MediumImportance
 	switch task.State {
@@ -53,6 +56,7 @@ func taskRowModel(task domain.Task, groups []domain.Group) structuredRowModel {
 	cells := []structuredCell{
 		{Text: name},
 		{Text: enabled, Importance: enabledImportance},
+		effective,
 		{Text: lifecycle, Importance: lifecycleImportance},
 		{Text: timezone},
 		{Text: group, Importance: groupImportance},
@@ -62,6 +66,27 @@ func taskRowModel(task domain.Task, groups []domain.Group) structuredRowModel {
 		Cells:    cells,
 		Summary:  structuredRowSummary(taskColumns, cells),
 	}
+}
+
+func taskEffectiveState(task domain.Task, groups []domain.Group) structuredCell {
+	if !task.Enabled {
+		return structuredCell{Text: "Task disabled", Importance: widget.LowImportance}
+	}
+	if task.State != domain.TaskActive {
+		state := normalizedWords(string(task.State), "Unknown", false)
+		return structuredCell{Text: "Lifecycle: " + state, Importance: widget.LowImportance}
+	}
+	byID := tasklogic.ByID(groups)
+	if blocker, ok := tasklogic.NearestDisabledGroup(task.GroupID, byID); ok {
+		return structuredCell{
+			Text:       "Blocked by " + groupLabelForID(blocker.ID, groups),
+			Importance: widget.WarningImportance,
+		}
+	}
+	if !tasklogic.ChainEnabled(task.GroupID, byID) {
+		return structuredCell{Text: "Group chain invalid", Importance: widget.WarningImportance}
+	}
+	return structuredCell{Text: "Runnable", Importance: widget.SuccessImportance}
 }
 
 // taskDetailFor fetches a task's full detail (task + schedule) so the editor can

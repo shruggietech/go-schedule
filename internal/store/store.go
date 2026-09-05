@@ -249,6 +249,17 @@ CREATE TABLE completion_deliveries (
 CREATE INDEX idx_completion_deliveries_state ON completion_deliveries(state, created_at);
 `,
 	},
+	{
+		// v10: correlate newly created run-failure alerts to their exact run and
+		// disclose whether bounded output capture discarded bytes. Both changes
+		// are additive. Existing runs were never able to report truncation and
+		// existing alerts remain intentionally uncorrelated.
+		version: 10,
+		stmts: `
+ALTER TABLE runs ADD COLUMN output_truncated INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE alerts ADD COLUMN run_id TEXT;
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

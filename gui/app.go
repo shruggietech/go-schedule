@@ -45,6 +45,7 @@ type Backend interface {
 	DeleteTask(ctx context.Context, id string) error
 	SetTaskEnabled(ctx context.Context, id string, enabled bool) error
 	RunNow(ctx context.Context, id string) error
+	GetRun(ctx context.Context, id string) (domain.Run, error)
 	Preview(ctx context.Context, req server.PreviewRequest) (server.PreviewResponse, error)
 	CreateChain(ctx context.Context, req server.ChainCreateRequest) (domain.CompletionChain, error)
 	UpdateChain(ctx context.Context, id string, req server.ChainUpdateRequest) (domain.CompletionChain, error)

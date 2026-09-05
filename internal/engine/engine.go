@@ -321,7 +321,7 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 	e.log.Info("engine: recorded run", "task", run.TaskID, "run", run.ID, "trigger", run.Trigger,
 		"source_task", run.SourceTaskID, "source_run", run.SourceRunID, "delivery", incomingDeliveryID)
 	if run.Outcome == domain.OutcomeFailure {
-		e.raiseAlert(run.TaskID, domain.SeverityError, domain.AlertRunFailed, "task run failed")
+		e.raiseRunAlert(run.TaskID, run.ID, domain.SeverityError, domain.AlertRunFailed, "task run failed")
 	}
 	if e.onRun != nil {
 		e.onRun(run)
@@ -411,7 +411,11 @@ func (e *Engine) finish(task domain.Task) {
 
 // raiseAlert stores an alert and logs it.
 func (e *Engine) raiseAlert(taskID string, sev domain.AlertSeverity, kind domain.AlertKind, msg string) {
-	a := domain.Alert{TaskID: taskID, Severity: sev, Kind: kind, Message: msg}
+	e.raiseRunAlert(taskID, "", sev, kind, msg)
+}
+
+func (e *Engine) raiseRunAlert(taskID, runID string, sev domain.AlertSeverity, kind domain.AlertKind, msg string) {
+	a := domain.Alert{TaskID: taskID, RunID: runID, Severity: sev, Kind: kind, Message: msg}
 	if err := e.store.CreateAlert(&a); err != nil {
 		e.log.Error("engine: create alert", "err", err)
 	}

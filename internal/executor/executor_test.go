@@ -106,6 +106,25 @@ func TestExecutor_OutputCap(t *testing.T) {
 	if len(run.Output) > 10 {
 		t.Fatalf("output not capped: %d bytes", len(run.Output))
 	}
+	if !run.OutputTruncated {
+		t.Fatal("discarded output was not reported as truncated")
+	}
+}
+
+func TestCapBufferReportsOnlyDiscardedBytesAsTruncated(t *testing.T) {
+	exact := &capBuffer{cap: 4}
+	if n, err := exact.Write([]byte("four")); err != nil || n != 4 {
+		t.Fatalf("exact write n=%d err=%v", n, err)
+	}
+	if exact.Truncated() {
+		t.Fatal("exactly capped output reported truncation")
+	}
+	if n, err := exact.Write([]byte("more")); err != nil || n != 4 {
+		t.Fatalf("discarded write n=%d err=%v", n, err)
+	}
+	if !exact.Truncated() || exact.String() != "four" {
+		t.Fatalf("buffer=%q truncated=%v", exact.String(), exact.Truncated())
+	}
 }
 
 func TestExecutor_SuppliesExactStdin(t *testing.T) {

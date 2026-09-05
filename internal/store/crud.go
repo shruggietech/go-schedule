@@ -364,10 +364,10 @@ func (s *Store) CreateRun(r *domain.Run) error {
 		r.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,trigger,source_task_id,source_run_id)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
 		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt),
-		string(r.Outcome), nullInt(r.ExitCode), r.Output, string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID),
+		string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID),
 	)
 	if err != nil {
 		return fmt.Errorf("store: create run: %w", err)
@@ -375,10 +375,16 @@ func (s *Store) CreateRun(r *domain.Run) error {
 	return nil
 }
 
+// GetRun returns the run by exact ID, or ErrNotFound.
+func (s *Store) GetRun(id string) (domain.Run, error) {
+	row := s.db.QueryRow(`SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id FROM runs WHERE id=?`, id)
+	return scanRun(row)
+}
+
 // ListRuns returns runs for a task (or all when taskID is empty), newest first,
 // up to limit (0 = no limit).
 func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,trigger,source_task_id,source_run_id FROM runs`
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id FROM runs`
 	var args []any
 	if taskID != "" {
 		q += ` WHERE task_id=?`
@@ -396,25 +402,38 @@ func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
 	defer rows.Close()
 	var out []domain.Run
 	for rows.Next() {
-		var r domain.Run
-		var started, ended sql.NullString
-		var exit sql.NullInt64
-		var outcome, trigger, scheduled string
-		var sourceTask, sourceRun sql.NullString
-		if err := rows.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &trigger, &sourceTask, &sourceRun); err != nil {
-			return nil, fmt.Errorf("store: scan run: %w", err)
+		r, err := scanRun(rows)
+		if err != nil {
+			return nil, err
 		}
-		r.ScheduledFor, _ = parseTime(scheduled)
-		r.StartedAt, _ = parseTimePtr(started)
-		r.EndedAt, _ = parseTimePtr(ended)
-		r.Outcome = domain.RunOutcome(outcome)
-		r.Trigger = domain.RunTrigger(trigger)
-		r.SourceTaskID = sourceTask.String
-		r.SourceRunID = sourceRun.String
-		r.ExitCode = intPtr(exit)
 		out = append(out, r)
 	}
 	return out, rows.Err()
+}
+
+func scanRun(sc scanner) (domain.Run, error) {
+	var r domain.Run
+	var started, ended sql.NullString
+	var exit sql.NullInt64
+	var truncated int
+	var outcome, trigger, scheduled string
+	var sourceTask, sourceRun sql.NullString
+	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Run{}, ErrNotFound
+		}
+		return domain.Run{}, fmt.Errorf("store: scan run: %w", err)
+	}
+	r.ScheduledFor, _ = parseTime(scheduled)
+	r.StartedAt, _ = parseTimePtr(started)
+	r.EndedAt, _ = parseTimePtr(ended)
+	r.Outcome = domain.RunOutcome(outcome)
+	r.Trigger = domain.RunTrigger(trigger)
+	r.SourceTaskID = sourceTask.String
+	r.SourceRunID = sourceRun.String
+	r.ExitCode = intPtr(exit)
+	r.OutputTruncated = truncated != 0
+	return r, nil
 }
 
 // ---- Alert --------------------------------------------------------------
@@ -428,8 +447,8 @@ func (s *Store) CreateAlert(a *domain.Alert) error {
 		a.CreatedAt = time.Now().UTC()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO alerts(id,task_id,severity,kind,message,created_at,acknowledged) VALUES(?,?,?,?,?,?,?)`,
-		a.ID, nullStr(a.TaskID), string(a.Severity), string(a.Kind), a.Message,
+		`INSERT INTO alerts(id,task_id,run_id,severity,kind,message,created_at,acknowledged) VALUES(?,?,?,?,?,?,?,?)`,
+		a.ID, nullStr(a.TaskID), nullStr(a.RunID), string(a.Severity), string(a.Kind), a.Message,
 		fmtTime(a.CreatedAt), boolToInt(a.Acknowledged),
 	)
 	if err != nil {
@@ -440,7 +459,7 @@ func (s *Store) CreateAlert(a *domain.Alert) error {
 
 // ListAlerts returns alerts, optionally only unacknowledged ones, newest first.
 func (s *Store) ListAlerts(unackedOnly bool) ([]domain.Alert, error) {
-	q := `SELECT id,task_id,severity,kind,message,created_at,acknowledged FROM alerts`
+	q := `SELECT id,task_id,run_id,severity,kind,message,created_at,acknowledged FROM alerts`
 	if unackedOnly {
 		q += ` WHERE acknowledged=0`
 	}
@@ -453,13 +472,14 @@ func (s *Store) ListAlerts(unackedOnly bool) ([]domain.Alert, error) {
 	var out []domain.Alert
 	for rows.Next() {
 		var a domain.Alert
-		var task sql.NullString
+		var task, run sql.NullString
 		var ack int
 		var severity, kind, created string
-		if err := rows.Scan(&a.ID, &task, &severity, &kind, &a.Message, &created, &ack); err != nil {
+		if err := rows.Scan(&a.ID, &task, &run, &severity, &kind, &a.Message, &created, &ack); err != nil {
 			return nil, fmt.Errorf("store: scan alert: %w", err)
 		}
 		a.TaskID = task.String
+		a.RunID = run.String
 		a.Severity = domain.AlertSeverity(severity)
 		a.Kind = domain.AlertKind(kind)
 		a.CreatedAt, _ = parseTime(created)

@@ -66,6 +66,7 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	end := time.Now().UTC()
 	run.EndedAt = &end
 	run.Output = buf.String()
+	run.OutputTruncated = buf.Truncated()
 
 	if err != nil {
 		run.Outcome = domain.OutcomeFailure
@@ -94,9 +95,10 @@ func envSlice(env map[string]string) []string {
 // capBuffer is a thread-safe buffer that retains at most cap bytes. os/exec may
 // write stdout and stderr from separate goroutines, so writes are guarded.
 type capBuffer struct {
-	cap int
-	mu  sync.Mutex
-	buf bytes.Buffer
+	cap       int
+	mu        sync.Mutex
+	buf       bytes.Buffer
+	truncated bool
 }
 
 func (b *capBuffer) Write(p []byte) (int, error) {
@@ -104,13 +106,22 @@ func (b *capBuffer) Write(p []byte) (int, error) {
 	defer b.mu.Unlock()
 	remaining := b.cap - b.buf.Len()
 	if remaining <= 0 {
+		b.truncated = true
 		return len(p), nil // silently drop beyond the cap
 	}
 	if len(p) > remaining {
 		b.buf.Write(p[:remaining])
+		b.truncated = true
 		return len(p), nil
 	}
 	return b.buf.Write(p)
+}
+
+// Truncated reports whether Write discarded any bytes after reaching the cap.
+func (b *capBuffer) Truncated() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.truncated
 }
 
 func (b *capBuffer) String() string {
