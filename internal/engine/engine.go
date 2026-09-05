@@ -15,6 +15,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/schedule"
 	"github.com/shruggietech/go-schedule/internal/store"
+	watchruntime "github.com/shruggietech/go-schedule/internal/watcher"
 )
 
 // Runner executes a task and returns its Run record. The executor implements it;
@@ -57,6 +58,7 @@ type Engine struct {
 	runWG     sync.WaitGroup // tracks in-flight runs for graceful drain
 	onRun     func(domain.Run)
 	onAlert   func(domain.Alert)
+	watchers  *watchruntime.Manager
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -64,7 +66,7 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 	if workers <= 0 {
 		workers = 1
 	}
-	return &Engine{
+	engine := &Engine{
 		store:   st,
 		clk:     clk,
 		runner:  runner,
@@ -77,6 +79,8 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 		reload:  make(chan struct{}, 1),
 		ready:   make(chan struct{}),
 	}
+	engine.watchers = watchruntime.New(st, engine, clk, log)
+	return engine
 }
 
 // SetOnRun registers a callback invoked after each run is recorded (used for
@@ -86,6 +90,17 @@ func (e *Engine) SetOnRun(f func(domain.Run)) { e.onRun = f }
 // SetOnAlert registers a callback invoked after each alert is raised (used to
 // stream alerts to GUI clients).
 func (e *Engine) SetOnAlert(f func(domain.Alert)) { e.onAlert = f }
+
+// SetOnWatcherHealth registers a callback for watcher runtime health transitions.
+func (e *Engine) SetOnWatcherHealth(f func(domain.FilesystemWatcher, domain.WatcherHealth)) {
+	e.watchers.SetHealthReporter(f)
+}
+
+// ReloadWatchers asks the watcher runtime to rebuild native registrations.
+func (e *Engine) ReloadWatchers() { e.watchers.Reload() }
+
+// WatcherHealth returns the current runtime health for a watcher.
+func (e *Engine) WatcherHealth(id string) domain.WatcherHealth { return e.watchers.Health(id) }
 
 // Reload asks the loop to recompute schedules from the store (call after tasks
 // change). Non-blocking and coalesced.
@@ -105,6 +120,15 @@ func (e *Engine) Ready() <-chan struct{} { return e.ready }
 // runs. It blocks, must be called once, and is normally run in a goroutine.
 func (e *Engine) Start(ctx context.Context) error {
 	e.runCtx = ctx
+	watchDone := make(chan error, 1)
+	go func() { watchDone <- e.watchers.Run(ctx) }()
+	select {
+	case <-e.watchers.Ready():
+	case err := <-watchDone:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 	e.recompute(e.clk.Now())
 	if recovered, err := e.store.RecoverCompletionDeliveries(); err != nil {
 		e.log.Error("engine: recover completion deliveries", "err", err)
@@ -129,6 +153,7 @@ func (e *Engine) Start(ctx context.Context) error {
 				timer.Stop()
 			}
 			e.runWG.Wait()
+			<-watchDone
 			return ctx.Err()
 		case <-e.reload:
 			if timer != nil {
@@ -310,6 +335,7 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		run.SourceTaskID = origin.sourceTaskID
 		run.SourceRunID = origin.sourceRunID
 		run.SourceTriggerID = origin.sourceTriggerID
+		run.SourceWatcherID = origin.sourceWatcherID
 		e.recordRun(run, origin.deliveryID)
 		e.finish(task)
 	}()
@@ -323,7 +349,7 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 		return
 	}
 	e.log.Info("engine: recorded run", "task", run.TaskID, "run", run.ID, "trigger", run.Trigger,
-		"source_task", run.SourceTaskID, "source_run", run.SourceRunID, "source_trigger", run.SourceTriggerID, "delivery", incomingDeliveryID)
+		"source_task", run.SourceTaskID, "source_run", run.SourceRunID, "source_trigger", run.SourceTriggerID, "source_watcher", run.SourceWatcherID, "delivery", incomingDeliveryID)
 	if run.Outcome == domain.OutcomeFailure {
 		e.raiseRunAlert(run.TaskID, run.ID, domain.SeverityError, domain.AlertRunFailed, "task run failed")
 	}

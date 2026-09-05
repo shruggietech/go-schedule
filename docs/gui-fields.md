@@ -186,6 +186,12 @@ Trigger readiness reflects the current target command, lifecycle, enabled state,
 
 The second toolbar administers Trigger Sets. **New set** creates 1 through 99 keys for one target and displays the ordered commands. Select any set member before using **Copy set**, **Retarget set**, **Enable or disable set**, **Rotate set**, or **Delete set**. Broad and destructive confirmations identify the set and affected member count. Raw keys appear only in the explicit create, copy, reveal, and rotate flows.
 
+### Filesystem watchers
+
+The lower section of the **Triggers** view administers filesystem watchers separately from opaque-key triggers. The table shows watcher name, path and optional pattern, target, enabled state, runtime health, and execution readiness. Select a row to inspect its full values; double-click to edit it.
+
+**Kind** selects an exact file or a directory. Directory watchers apply **File-name pattern** to each file basename and can include descendant directories with **Recursive**. Linked directories are excluded. **Debounce** waits for event noise to stop, and **Stability** requires two equal size and modification-time observations before dispatch. Missing paths may be saved and show degraded health until they become observable. Enable, disable, and edit changes take effect without restarting the daemon; deletion requires confirmation.
+
 ### Overlap
 
 What to do when a task is still running at the moment its next run would start:

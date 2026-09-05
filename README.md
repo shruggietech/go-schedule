@@ -147,6 +147,8 @@ Trigger requests use the task's current enabled state, group eligibility, worker
 
 Trigger Sets create and administer 1 through 99 independently usable keys for one task. `gosched trigger set create --name "Build agents" --task <task-id> --count 10` prints the ordered invocation commands once, and `gosched trigger set reveal <set-id>` retrieves them explicitly when needed. Set-level retarget, enable, disable, rotate, and remove operations are atomic; individual members can still be renamed, enabled, disabled, rotated, revealed, fired, or deleted without changing siblings.
 
+Filesystem watchers request a normal task run when a selected file is created, written, or atomically replaced and then becomes stable. File watchers select one exact path; directory watchers use a basename glob and can optionally include real subdirectories. Configure them in the desktop Triggers view or with `gosched watcher create --name "Incoming JSON" --kind directory --path ./incoming --pattern "*.json" --task <task-id>`. Missing or inaccessible roots remain saved with degraded health and recover automatically. Network filesystems are best effort, linked directory traversal is excluded, events that occur while the daemon is stopped are not replayed, and matched file paths are never retained in run history.
+
 Then open the desktop app, if you installed it:
 
 ```sh

@@ -78,6 +78,7 @@ func newRoot() *cobra.Command {
 		newTaskCmd(),
 		newChainCmd(),
 		newTriggerCmd(),
+		newWatcherCmd(),
 		newCronCmd(),
 		newGroupCmd(),
 		newRunsCmd(),

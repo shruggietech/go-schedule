@@ -33,6 +33,7 @@ type State struct {
 	RecentRuns  []domain.Run
 	Triggers    []server.TriggerResponse
 	TriggerSets []server.TriggerSetResponse
+	Watchers    []server.FilesystemWatcherResponse
 }
 
 const (
@@ -100,6 +101,15 @@ func (m *Model) Refresh(ctx context.Context) error {
 			return err
 		}
 	}
+	var watchers []server.FilesystemWatcherResponse
+	if api, ok := m.api.(interface {
+		ListFilesystemWatchers(context.Context) ([]server.FilesystemWatcherResponse, error)
+	}); ok {
+		watchers, err = api.ListFilesystemWatchers(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	m.mu.Lock()
 	m.st.Tasks = tasks
 	m.st.Groups = groups
@@ -109,6 +119,7 @@ func (m *Model) Refresh(ctx context.Context) error {
 	m.st.LogPath = logs.LogPath
 	m.st.Triggers = triggers
 	m.st.TriggerSets = triggerSets
+	m.st.Watchers = watchers
 	m.mu.Unlock()
 	m.notify()
 	return nil

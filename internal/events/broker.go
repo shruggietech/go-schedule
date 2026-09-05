@@ -22,6 +22,7 @@ const (
 	KindChain      Kind = "chain"
 	KindTrigger    Kind = "trigger"
 	KindTriggerSet Kind = "trigger_set"
+	KindWatcher    Kind = "filesystem_watcher"
 )
 
 // Verb describes a change to an entity in a task/group event.
@@ -68,6 +69,14 @@ type TriggerSetEvent struct {
 	TriggerSet *domain.TriggerSet `json:"trigger_set,omitempty"`
 }
 
+// WatcherEvent describes a filesystem watcher change or runtime health transition without exposing its path.
+type WatcherEvent struct {
+	Verb   Verb                  `json:"verb"`
+	ID     string                `json:"id"`
+	Name   string                `json:"name,omitempty"`
+	Health *domain.WatcherHealth `json:"health,omitempty"`
+}
+
 // Event is a single notification delivered to subscribers.
 type Event struct {
 	Kind       Kind              `json:"kind"`
@@ -79,6 +88,7 @@ type Event struct {
 	Chain      *ChainEvent       `json:"chain,omitempty"`
 	Trigger    *TriggerEvent     `json:"trigger,omitempty"`
 	TriggerSet *TriggerSetEvent  `json:"trigger_set,omitempty"`
+	Watcher    *WatcherEvent     `json:"filesystem_watcher,omitempty"`
 }
 
 // Broker fans out events to all current subscribers.
@@ -170,6 +180,11 @@ func (b *Broker) PublishTriggerSet(verb Verb, id string, set *domain.TriggerSet)
 		set = &copy
 	}
 	b.Publish(Event{Kind: KindTriggerSet, TriggerSet: &TriggerSetEvent{Verb: verb, ID: id, TriggerSet: set}})
+}
+
+// PublishWatcher is a convenience for path-free watcher lifecycle and health events.
+func (b *Broker) PublishWatcher(verb Verb, id, name string, health *domain.WatcherHealth) {
+	b.Publish(Event{Kind: KindWatcher, Watcher: &WatcherEvent{Verb: verb, ID: id, Name: name, Health: health}})
 }
 
 // SubscriberCount reports the number of active subscribers (for tests/metrics).

@@ -10,12 +10,13 @@ import (
 )
 
 type fakeAPI struct {
-	tasks   []domain.Task
-	groups  []domain.Group
-	chains  []domain.CompletionChain
-	alerts  []domain.Alert
-	logs    []domain.LogRecord
-	logPath string
+	tasks    []domain.Task
+	groups   []domain.Group
+	chains   []domain.CompletionChain
+	alerts   []domain.Alert
+	logs     []domain.LogRecord
+	logPath  string
+	watchers []server.FilesystemWatcherResponse
 }
 
 func (f *fakeAPI) ListTasks(context.Context, string, string) ([]domain.Task, error) {
@@ -29,13 +30,17 @@ func (f *fakeAPI) ListAlerts(context.Context, bool) ([]domain.Alert, error) { re
 func (f *fakeAPI) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	return server.LogsResponse{Logs: f.logs, LogPath: f.logPath}, nil
 }
+func (f *fakeAPI) ListFilesystemWatchers(context.Context) ([]server.FilesystemWatcherResponse, error) {
+	return f.watchers, nil
+}
 
 func TestRefresh_LoadsState(t *testing.T) {
 	api := &fakeAPI{
-		tasks:  []domain.Task{{ID: "t1", Name: "A"}},
-		groups: []domain.Group{{ID: "g1", Name: "G"}},
-		chains: []domain.CompletionChain{{ID: "c1", SourceTaskID: "t1", TargetTaskID: "t2", OnOutcome: domain.CompletionOnSuccess}},
-		alerts: []domain.Alert{{ID: "a1"}},
+		tasks:    []domain.Task{{ID: "t1", Name: "A"}},
+		groups:   []domain.Group{{ID: "g1", Name: "G"}},
+		chains:   []domain.CompletionChain{{ID: "c1", SourceTaskID: "t1", TargetTaskID: "t2", OnOutcome: domain.CompletionOnSuccess}},
+		alerts:   []domain.Alert{{ID: "a1"}},
+		watchers: []server.FilesystemWatcherResponse{{ID: "w1", Name: "Incoming"}},
 	}
 	m := New(api)
 	changed := 0
@@ -45,7 +50,7 @@ func TestRefresh_LoadsState(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := m.Snapshot()
-	if len(s.Tasks) != 1 || len(s.Groups) != 1 || len(s.Chains) != 1 || len(s.Alerts) != 1 {
+	if len(s.Tasks) != 1 || len(s.Groups) != 1 || len(s.Chains) != 1 || len(s.Alerts) != 1 || len(s.Watchers) != 1 {
 		t.Fatalf("state not loaded: %+v", s)
 	}
 	if changed != 1 {

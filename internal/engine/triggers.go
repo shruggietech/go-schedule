@@ -32,29 +32,51 @@ func (e *Engine) FireExternalTrigger(key string) (string, error) {
 	if !trigger.Enabled {
 		return trigger.ID, ErrTriggerDisabled
 	}
-	task, err := e.store.GetTask(trigger.TargetTaskID)
+	if err := e.dispatchTriggeredTask(trigger.TargetTaskID, dispatchOrigin{trigger: domain.TriggerExternal, sourceTriggerID: trigger.ID}); err != nil {
+		return trigger.ID, err
+	}
+	return trigger.ID, nil
+}
+
+// FireFilesystemWatcher submits one request from an active watcher definition.
+func (e *Engine) FireFilesystemWatcher(id string) error {
+	watcher, err := e.store.GetFilesystemWatcher(id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return trigger.ID, ErrTriggerTargetMissing
+			return ErrTriggerUnknown
 		}
-		return trigger.ID, fmt.Errorf("fire external trigger: %w", err)
+		return fmt.Errorf("fire filesystem watcher: %w", err)
+	}
+	if !watcher.Enabled {
+		return ErrTriggerDisabled
+	}
+	return e.dispatchTriggeredTask(watcher.TargetTaskID, dispatchOrigin{trigger: domain.TriggerFilesystem, sourceWatcherID: watcher.ID})
+}
+
+func (e *Engine) dispatchTriggeredTask(taskID string, origin dispatchOrigin) error {
+	task, err := e.store.GetTask(taskID)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return ErrTriggerTargetMissing
+		}
+		return fmt.Errorf("dispatch triggered task: %w", err)
 	}
 	if strings.TrimSpace(task.Command) == "" {
-		return trigger.ID, ErrTriggerCommandIncomplete
+		return ErrTriggerCommandIncomplete
 	}
 	if task.State != domain.TaskActive {
-		return trigger.ID, ErrTriggerTaskInactive
+		return ErrTriggerTaskInactive
 	}
 	if !task.Enabled {
-		return trigger.ID, ErrTriggerTaskDisabled
+		return ErrTriggerTaskDisabled
 	}
 	groupsEnabled, err := e.store.GroupChainEnabled(task.GroupID)
 	if err != nil {
-		return trigger.ID, fmt.Errorf("fire external trigger: %w", err)
+		return fmt.Errorf("dispatch triggered task: %w", err)
 	}
 	if !groupsEnabled {
-		return trigger.ID, ErrTriggerGroupBlocked
+		return ErrTriggerGroupBlocked
 	}
-	e.dispatchWithOrigin(task, e.clk.Now(), dispatchOrigin{trigger: domain.TriggerExternal, sourceTriggerID: trigger.ID})
-	return trigger.ID, nil
+	e.dispatchWithOrigin(task, e.clk.Now(), origin)
+	return nil
 }

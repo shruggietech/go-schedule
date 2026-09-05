@@ -79,6 +79,18 @@ func (s *Server) publishTriggerDeleted(id string) {
 	}
 }
 
+func (s *Server) publishFilesystemWatcher(verb events.Verb, watcher domain.FilesystemWatcher) {
+	if s.broker != nil {
+		s.broker.PublishWatcher(verb, watcher.ID, watcher.Name, nil)
+	}
+}
+
+func (s *Server) publishFilesystemWatcherDeleted(id string) {
+	if s.broker != nil {
+		s.broker.PublishWatcher(events.VerbDeleted, id, "", nil)
+	}
+}
+
 func (s *Server) publishTriggerSet(verb events.Verb, set domain.TriggerSet) {
 	if s.broker != nil {
 		s.broker.PublishTriggerSet(verb, set.ID, &set)

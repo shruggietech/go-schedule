@@ -23,6 +23,7 @@ nav_order: 3
 - [`cron`](#cron)
 - [`group`](#group)
 - [`trigger`](#trigger)
+- [`watcher`](#watcher)
 - [`runs`](#runs)
 - [`logs`](#logs)
 - [`service`](#service)
@@ -334,7 +335,7 @@ gosched runs --task 6f1c… --limit 20
 | `--task` | Filter to one task ID. | all tasks |
 | `--limit` | Maximum rows. | `50` |
 
-The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for a chained execution. `SOURCE TRIGGER` identifies an external trigger without exposing its key. These columns are `-` when they do not apply. The `EXIT` column is the process exit code, or `-` where there isn't one, a run that never started has no exit code, and printing `0` for it would be a lie.
+The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for a chained execution. `SOURCE TRIGGER` identifies an external trigger without exposing its key. `SOURCE WATCHER` identifies a filesystem watcher without recording its matched path. These columns are `-` when they do not apply. The `EXIT` column is the process exit code, or `-` where there isn't one, a run that never started has no exit code, and printing `0` for it would be a lie.
 
 ## `trigger`
 
@@ -370,6 +371,22 @@ gosched trigger set rm <set-id>
 ```
 
 Create, reveal, and rotate print exactly one complete `gosched trigger fire <key>` command per member in permanent position order with one final newline. Pass `--json` for structured identities, positions, keys, and commands. Ordinary list and show output remains redacted. Set-level mutations are atomic, while individual member operations continue to affect only the selected member.
+
+## `watcher`
+
+Filesystem watchers request one normal scheduler run after matching file activity settles. The complete lifecycle is available in human-readable and JSON modes:
+
+```text
+gosched watcher create --name "Incoming JSON" --kind directory --path ./incoming --pattern "*.json" --recursive --debounce 250ms --stability 500ms --task <task-id>
+gosched watcher list
+gosched watcher show <watcher-id>
+gosched watcher update <watcher-id> --path ./other --pattern "*.json" --stability 1s
+gosched watcher disable <watcher-id>
+gosched watcher enable <watcher-id>
+gosched watcher rm <watcher-id>
+```
+
+Use `--kind file` for one exact file or `--kind directory` for basename glob matching. Missing paths can be configured and appear as degraded until observation succeeds. Recursive directory observation excludes symbolic links and junctions. Network filesystems are best effort. The default debounce is 250 milliseconds and the default stability interval is 500 milliseconds; both accept values from 25 milliseconds through one hour. Changes while the daemon is stopped or degraded are not replayed.
 
 ## `chain`
 

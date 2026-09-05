@@ -159,6 +159,46 @@ func (c *Client) FireTrigger(ctx context.Context, key string) error {
 	return c.do(ctx, http.MethodPost, "/v1/triggers/fire", map[string]string{"key": key}, nil)
 }
 
+func (c *Client) CreateFilesystemWatcher(ctx context.Context, req server.FilesystemWatcherCreateRequest) (server.FilesystemWatcherResponse, error) {
+	var out server.FilesystemWatcherResponse
+	err := c.do(ctx, http.MethodPost, "/v1/filesystem-watchers", req, &out)
+	return out, err
+}
+
+func (c *Client) ListFilesystemWatchers(ctx context.Context) ([]server.FilesystemWatcherResponse, error) {
+	var out struct {
+		FilesystemWatchers []server.FilesystemWatcherResponse `json:"filesystem_watchers"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/filesystem-watchers", nil, &out)
+	return out.FilesystemWatchers, err
+}
+
+func (c *Client) GetFilesystemWatcher(ctx context.Context, id string) (server.FilesystemWatcherResponse, error) {
+	var out server.FilesystemWatcherResponse
+	err := c.do(ctx, http.MethodGet, "/v1/filesystem-watchers/"+url.PathEscape(id), nil, &out)
+	return out, err
+}
+
+func (c *Client) UpdateFilesystemWatcher(ctx context.Context, id string, req server.FilesystemWatcherUpdateRequest) (server.FilesystemWatcherResponse, error) {
+	var out server.FilesystemWatcherResponse
+	err := c.do(ctx, http.MethodPatch, "/v1/filesystem-watchers/"+url.PathEscape(id), req, &out)
+	return out, err
+}
+
+func (c *Client) SetFilesystemWatcherEnabled(ctx context.Context, id string, enabled bool) (server.FilesystemWatcherResponse, error) {
+	action := "disable"
+	if enabled {
+		action = "enable"
+	}
+	var out server.FilesystemWatcherResponse
+	err := c.do(ctx, http.MethodPost, "/v1/filesystem-watchers/"+url.PathEscape(id)+"/"+action, nil, &out)
+	return out, err
+}
+
+func (c *Client) DeleteFilesystemWatcher(ctx context.Context, id string) error {
+	return c.do(ctx, http.MethodDelete, "/v1/filesystem-watchers/"+url.PathEscape(id), nil, nil)
+}
+
 // CreateTriggerSet atomically creates a set and returns its ordered secrets.
 func (c *Client) CreateTriggerSet(ctx context.Context, req server.TriggerSetCreateRequest) (server.TriggerSetSecretResponse, error) {
 	var out server.TriggerSetSecretResponse

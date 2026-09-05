@@ -77,6 +77,7 @@ type App struct {
 	scheduleTable    *structuredList
 	activityTable    *structuredList
 	triggerTable     *structuredList
+	watcherTable     *structuredList
 
 	navigation *navigationShell
 	refreshers []func()
@@ -250,7 +251,7 @@ func (a *App) streamEvents() {
 		err := a.backend.StreamEvents(a.runCtx, func(e events.Event) {
 			streamRecovered.Store(true)
 			a.model.ApplyEvent(e)
-			if e.Kind == events.KindTrigger || e.Kind == events.KindTriggerSet || e.Kind == events.KindTask || e.Kind == events.KindGroup {
+			if e.Kind == events.KindTrigger || e.Kind == events.KindTriggerSet || e.Kind == events.KindWatcher || e.Kind == events.KindTask || e.Kind == events.KindGroup {
 				a.refreshAll()
 			}
 		})

@@ -155,6 +155,24 @@ const (
 	TriggerManual     RunTrigger = "manual"
 	TriggerCompletion RunTrigger = "completion"
 	TriggerExternal   RunTrigger = "external_trigger"
+	TriggerFilesystem RunTrigger = "filesystem_watcher"
+)
+
+// WatcherKind distinguishes an exact file name from a directory selection.
+type WatcherKind string
+
+const (
+	WatcherFile      WatcherKind = "file"
+	WatcherDirectory WatcherKind = "directory"
+)
+
+// WatcherHealthState describes the current daemon observation state.
+type WatcherHealthState string
+
+const (
+	WatcherActive   WatcherHealthState = "active"
+	WatcherDisabled WatcherHealthState = "disabled"
+	WatcherDegraded WatcherHealthState = "degraded"
 )
 
 // CompletionOutcome selects which terminal source outcomes activate a chain.
@@ -297,6 +315,7 @@ type Run struct {
 	SourceTaskID    string     `json:"source_task_id,omitempty"`
 	SourceRunID     string     `json:"source_run_id,omitempty"`
 	SourceTriggerID string     `json:"source_trigger_id,omitempty"`
+	SourceWatcherID string     `json:"source_watcher_id,omitempty"`
 }
 
 // ExternalTrigger maps one opaque local key to one task invocation.
@@ -324,6 +343,30 @@ type TriggerSet struct {
 	Members        []ExternalTrigger `json:"members,omitempty"`
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
+}
+
+// FilesystemWatcher maps a portable file-selection rule to one task.
+type FilesystemWatcher struct {
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	Kind           WatcherKind   `json:"kind"`
+	Path           string        `json:"path"`
+	Pattern        string        `json:"pattern,omitempty"`
+	Recursive      bool          `json:"recursive"`
+	Debounce       time.Duration `json:"debounce"`
+	Stability      time.Duration `json:"stability"`
+	TargetTaskID   string        `json:"target_task_id"`
+	TargetTaskName string        `json:"target_task_name,omitempty"`
+	Enabled        bool          `json:"enabled"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
+}
+
+// WatcherHealth is the daemon-owned observation state for one watcher.
+type WatcherHealth struct {
+	State     WatcherHealthState `json:"state"`
+	Reason    string             `json:"reason,omitempty"`
+	ChangedAt time.Time          `json:"changed_at"`
 }
 
 // CompletionChain connects a source task's terminal outcome to a target task.

@@ -30,6 +30,22 @@ An ordinary trigger representation contains `id`, `name`, optional `set_id`, opt
 
 Fire failures use stable codes: `trigger_unknown`, `trigger_disabled`, `trigger_target_missing`, `trigger_command_incomplete`, `trigger_task_inactive`, `trigger_task_disabled`, `trigger_group_blocked`, or `trigger_dispatch_unavailable`. Error responses never echo the submitted key.
 
+## Filesystem watchers
+
+A filesystem watcher representation contains `id`, `name`, `kind`, `path`, optional `pattern`, `recursive`, string durations `debounce` and `stability`, target identity, enabled state, runtime `health`, readiness, reason, and timestamps. `kind` is `file` for one exact path or `directory` for basename-glob selection. A directory pattern defaults to `*`; recursive selection excludes linked directories. Durations accept Go duration syntax such as `250ms`, `2s`, or `1m` and must be from 25 milliseconds through one hour.
+
+| Method | Path | Behavior |
+|---|---|---|
+| `GET` | `/v1/filesystem-watchers` | List definitions joined with current runtime health |
+| `POST` | `/v1/filesystem-watchers` | Create a definition and reload observation; `201` |
+| `GET` | `/v1/filesystem-watchers/{id}` | Show one definition and current health |
+| `PATCH` | `/v1/filesystem-watchers/{id}` | Update selection, timing, target, or name and reload observation |
+| `DELETE` | `/v1/filesystem-watchers/{id}` | Delete, cancel pending candidates, and reload observation; `204` |
+| `POST` | `/v1/filesystem-watchers/{id}/enable` | Enable and reload observation |
+| `POST` | `/v1/filesystem-watchers/{id}/disable` | Disable, cancel pending candidates, and reload observation |
+
+Watcher lifecycle and health events use `kind: "filesystem_watcher"` with identity, name, verb, and optional health only. They omit configured and matched paths. Filesystem-originated runs have `trigger: "filesystem_watcher"` and `source_watcher_id`; they never retain the matched path.
+
 ### Trigger Sets
 
 Ordinary Trigger Set representations include stable set identity, name, target, member and enabled counts, ordered redacted members, and timestamps. Create, reveal, and rotate responses additionally contain ordered member keys and complete commands.
@@ -76,7 +92,7 @@ Create example:
 
 ## Correlated history and events
 
-Completion-triggered entries from `GET /v1/runs` have `trigger` set to `completion` and include optional `source_task_id` and `source_run_id`. Externally triggered entries have `trigger` set to `external_trigger` and include `source_trigger_id`. Raw keys are never stored in run history.
+Completion-triggered entries from `GET /v1/runs` have `trigger` set to `completion` and include optional `source_task_id` and `source_run_id`. Externally triggered entries have `trigger` set to `external_trigger` and include `source_trigger_id`. Filesystem-triggered entries have `trigger` set to `filesystem_watcher` and include `source_watcher_id`. Raw keys and matched file paths are never stored in run history.
 
 `GET /v1/events` emits `kind: "chain"` with a `created`, `updated`, or `deleted` verb. Create and update include the current chain; delete carries its stable ID.
 
