@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -53,6 +54,19 @@ func TestEngine_RunNowFiresHooks(t *testing.T) {
 	// Unknown task is an error.
 	if err := e.RunNow("missing"); err == nil {
 		t.Fatal("RunNow on missing task should error")
+	}
+}
+
+func TestEngineRunNowRejectsTaskWithoutCommand(t *testing.T) {
+	st, _ := store.Open(":memory:")
+	defer st.Close()
+	e := newEngine(st, instantRunner{})
+	draft := &domain.Task{Timezone: "UTC", State: domain.TaskActive}
+	if err := st.CreateTask(draft); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.RunNow(draft.ID); !errors.Is(err, store.ErrTaskNotRunnable) {
+		t.Fatalf("RunNow error = %v, want ErrTaskNotRunnable", err)
 	}
 }
 

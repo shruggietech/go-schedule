@@ -481,10 +481,11 @@ func TestExportLines_EveryTaskAppearsOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	oneOff := schedule.NewOneOff(anchor)
 	details := []server.TaskResponse{
-		{Task: domain.Task{ID: "1", Name: "report", Command: "/bin/report", Enabled: true, State: domain.TaskActive}, Schedule: recurring},
-		{Task: domain.Task{ID: "2", Name: "once", Enabled: true, State: domain.TaskActive}, Schedule: schedule.NewOneOff(anchor)},
-		{Task: domain.Task{ID: "3", Name: "off", Command: "/bin/x", Enabled: false, State: domain.TaskDisabled}, Schedule: recurring},
+		{Task: domain.Task{ID: "1", Name: "report", Command: "/bin/report", Enabled: true, State: domain.TaskActive}, Schedule: &recurring},
+		{Task: domain.Task{ID: "2", Name: "once", Enabled: true, State: domain.TaskActive}, Schedule: &oneOff},
+		{Task: domain.Task{ID: "3", Name: "off", Command: "/bin/x", Enabled: false, State: domain.TaskDisabled}, Schedule: &recurring},
 	}
 
 	lines := exportLines(details)

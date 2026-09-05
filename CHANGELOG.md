@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Task authoring now supports safe drafts and trigger-ready readiness (Closes #129, #130, #131).** Tasks may omit name, command, or schedule without fake persisted values; `unnamed`, not-runnable, manual-only, ready, disabled, group-blocked, and terminal states remain distinct. Enable and Run now enforce the shared readiness contract, completion-source removal disables affected tasks atomically, the sidebar separates definitions from operational views, and Enter submits the New Group dialog through the same duplicate-safe path as Create.
+
 - **Schedule and Activity columns are now adjustable and persist per user (Closes #119).** Visible header boundaries support pointer dragging and focused arrow-key adjustment, with practical timestamp defaults and isolated **Reset columns** actions. Versioned normalized proportions survive window, display-scale, and font changes; malformed or obsolete values fall back atomically while narrow layouts retain the no-horizontal-scroll behavior.
 
 - **Task creation, effective-state visibility, and failed-run diagnosis now form a safer desktop workflow (Closes #102, #118, #120).** New tasks created in the GUI remain inactive unless the operator selects the creation-only activation option, while omitted API intent retains backward compatibility. Task rows separately label configured, lifecycle, and effective eligibility, including the nearest disabled group. Failed-run Activity detail resolves the exact persisted task and run, identifies launch failures and exit statuses, and presents bounded combined output with explicit truncation disclosure.
@@ -19,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **The v1.0.0 publication now has a durable exception audit (Refs #122).** S050 records the immutable tag and staging run, exact Windows candidate, maintainer install approval, installed service and health checks, public asset inventory, and independently verified checksums. It also records that direct publication occurred before the planned formal archive, leaving the related evidence-dependent issues and milestone open instead of manufacturing completion evidence.
 
 ### Decisions
+
+- **2026-09-05: derive readiness instead of persisting it.** Command readiness, automatic sources, and effective status are computed from task, schedule, chain, lifecycle, enabled, and group state so future trigger sources can join the same vocabulary without migrating a second state machine.
 
 - **2026-09-05: enforce GitHub source formatting at publication time.** Repository guidance, the Markdown authoring skill, and the local format gate now reject Unicode em dashes and width-based Markdown prose wrapping. Changes to pinned workflows, installer sources, ignore rules, and Windows documentation in this sweep are formatting-only and intentionally preserve behavior.
 

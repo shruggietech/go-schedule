@@ -78,6 +78,11 @@ func (s *Store) UpdateCompletionChain(c *domain.CompletionChain) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return ErrNotFound
 	}
+	if existing.TargetTaskID != c.TargetTaskID {
+		if err := disableIfNotActivationReady(tx, existing.TargetTaskID); err != nil {
+			return err
+		}
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit completion chain update: %w", err)
 	}
@@ -111,8 +116,26 @@ func (s *Store) ListCompletionChains() ([]domain.CompletionChain, error) {
 // retain the snapshotted identity so the engine can terminally resolve them
 // instead of silently losing durable work.
 func (s *Store) DeleteCompletionChain(id string) error {
-	res, err := s.db.Exec(`DELETE FROM completion_chains WHERE id=?`, id)
-	return affected(res, err, "delete completion chain")
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin delete completion chain: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var targetID string
+	if err := tx.QueryRow(`SELECT target_task_id FROM completion_chains WHERE id=?`, id).Scan(&targetID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("store: find completion chain target: %w", err)
+	}
+	res, err := tx.Exec(`DELETE FROM completion_chains WHERE id=?`, id)
+	if err := affected(res, err, "delete completion chain"); err != nil {
+		return err
+	}
+	if err := disableIfNotActivationReady(tx, targetID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 const completionChainSelect = `SELECT c.id,c.source_task_id,s.name,c.target_task_id,t.name,c.on_outcome,c.created_at,c.updated_at

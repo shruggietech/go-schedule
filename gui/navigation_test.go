@@ -51,6 +51,20 @@ func TestNavigationOrderSelectionAndLabelUpdate(t *testing.T) {
 	}
 }
 
+func TestNavigationSeparatesDefinitionsFromOperations(t *testing.T) {
+	shell := newNavigationShell([]navigationDestinationSpec{
+		{ID: navigationTasks, Label: "Tasks", Content: canvas.NewRectangle(nil), Section: navigationDefinitions},
+		{ID: navigationChains, Label: "Chains", Content: canvas.NewRectangle(nil), Section: navigationDefinitions},
+		{ID: navigationSchedule, Label: "Schedule", Content: canvas.NewRectangle(nil), Section: navigationOperations},
+	}, func() {})
+	if shell.sectionBoundary == nil || !shell.sectionBoundary.Visible() {
+		t.Fatal("semantic navigation section boundary is missing")
+	}
+	if got := shell.labels(); !reflect.DeepEqual(got, []string{"Tasks", "Chains", "Schedule"}) {
+		t.Fatalf("navigation labels = %v", got)
+	}
+}
+
 func TestNavigationRailHasFullHeightContentBoundary(t *testing.T) {
 	shell := newNavigationShell([]navigationDestinationSpec{
 		{ID: navigationTasks, Label: "Tasks", Content: canvas.NewRectangle(nil)},

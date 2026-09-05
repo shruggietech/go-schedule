@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/schedule"
 	"github.com/shruggietech/go-schedule/internal/scheduleinput"
 	"github.com/shruggietech/go-schedule/internal/store"
+	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
@@ -45,10 +46,11 @@ type TaskCreateRequest struct {
 
 // TaskResponse is the detail returned for a task.
 type TaskResponse struct {
-	Task          domain.Task     `json:"task"`
-	Schedule      domain.Schedule `json:"schedule"`
-	PolicySummary string          `json:"policy_summary"`
-	NextRuns      []time.Time     `json:"next_runs"`
+	Task          domain.Task         `json:"task"`
+	Schedule      *domain.Schedule    `json:"schedule"`
+	Readiness     tasklogic.Readiness `json:"readiness"`
+	PolicySummary string              `json:"policy_summary"`
+	NextRuns      []time.Time         `json:"next_runs"`
 }
 
 func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
@@ -59,15 +61,6 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	now := time.Now().UTC()
 
-	// Validate basics.
-	if req.Name == "" {
-		writeError(w, http.StatusBadRequest, CodeValidation, "name", "name is required")
-		return
-	}
-	if req.Command == "" {
-		writeError(w, http.StatusBadRequest, CodeValidation, "command", "command is required")
-		return
-	}
 	tz := req.Timezone
 	if tz == "" {
 		tz = "Local"
@@ -85,14 +78,15 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Build the schedule: one-off (At) or recurring (Schedule).
-	var sch domain.Schedule
+	var sch *domain.Schedule
 	switch {
 	case req.At != nil:
 		if !req.At.After(now) {
 			writeError(w, http.StatusBadRequest, CodeValidation, "at", "one-off time is in the past")
 			return
 		}
-		sch = schedule.NewOneOff(*req.At)
+		oneOff := schedule.NewOneOff(*req.At)
+		sch = &oneOff
 	case req.Schedule != "":
 		input, err := scheduleinput.Parse(req.Schedule, scheduleinput.Syntax(req.ScheduleSyntax), tz, now)
 		if err != nil {
@@ -103,10 +97,7 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, CodeValidation, field, err.Error())
 			return
 		}
-		sch = input.Schedule
-	default:
-		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", "provide either 'schedule' or 'at'")
-		return
+		sch = &input.Schedule
 	}
 
 	overlap := domain.OverlapPolicy(orDefault(req.OverlapPolicy, string(domain.OverlapQueueOne)))
@@ -140,27 +131,35 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	policy := domain.SchedulePolicy{MissingDate: missingDate, TimeBasis: timeBasis, DSTGap: dstGap, DSTOverlap: dstOverlap}
-	if err := schedule.ValidatePolicy(sch, policy); err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
-		return
-	}
-	if err := schedule.PrepareForPolicy(&sch, tz, policy); err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
-		return
+	if sch != nil {
+		if err := schedule.ValidatePolicy(*sch, policy); err != nil {
+			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+			return
+		}
+		if err := schedule.PrepareForPolicy(sch, tz, policy); err != nil {
+			writeError(w, http.StatusBadRequest, CodeValidation, "time_basis", err.Error())
+			return
+		}
 	}
 
-	if err := s.store.CreateSchedule(&sch); err != nil {
-		s.internal(w, err)
-		return
+	if sch != nil {
+		if err := s.store.CreateSchedule(sch); err != nil {
+			s.internal(w, err)
+			return
+		}
 	}
-	enabled := true
+	enabled := sch != nil && req.Command != ""
 	if req.Enabled != nil {
-		enabled = *req.Enabled
+		enabled = *req.Enabled && enabled
+	}
+	scheduleID := ""
+	if sch != nil {
+		scheduleID = sch.ID
 	}
 	task := &domain.Task{
 		Name: req.Name, GroupID: req.GroupID, Command: req.Command, Args: req.Args,
 		WorkingDir: req.WorkingDir, Env: req.Env, Stdin: req.Stdin, RunAs: req.RunAs, Enabled: enabled,
-		Timezone: tz, ScheduleID: sch.ID, OverlapPolicy: overlap, CatchupPolicy: catchup,
+		Timezone: tz, ScheduleID: scheduleID, OverlapPolicy: overlap, CatchupPolicy: catchup,
 		MissingDatePolicy: missingDate, TimeBasis: timeBasis, DSTGapPolicy: dstGap,
 		DSTOverlapPolicy: dstOverlap, State: domain.TaskActive,
 	}
@@ -188,10 +187,14 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 		s.notFoundOr(w, err)
 		return
 	}
-	sch, err := s.store.GetSchedule(task.ScheduleID)
-	if err != nil {
-		s.internal(w, err)
-		return
+	var sch *domain.Schedule
+	if task.ScheduleID != "" {
+		stored, err := s.store.GetSchedule(task.ScheduleID)
+		if err != nil {
+			s.internal(w, err)
+			return
+		}
+		sch = &stored
 	}
 	writeJSON(w, http.StatusOK, s.taskDetail(task, sch, time.Now().UTC()))
 }
@@ -213,6 +216,18 @@ func (s *Server) handleDisableTask(w http.ResponseWriter, r *http.Request) { s.s
 func (s *Server) setEnabled(w http.ResponseWriter, r *http.Request, enabled bool) {
 	id := r.PathValue("id")
 	if err := s.store.SetTaskEnabled(id, enabled); err != nil {
+		if errors.Is(err, store.ErrTaskNotRunnable) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "enabled", "configure a command before enabling this task")
+			return
+		}
+		if errors.Is(err, store.ErrTaskNotActivationReady) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "enabled", "configure an automatic activation source before enabling this task")
+			return
+		}
+		if errors.Is(err, store.ErrTaskTerminal) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "enabled", "only active tasks can be enabled")
+			return
+		}
 		s.notFoundOr(w, err)
 		return
 	}
@@ -223,8 +238,13 @@ func (s *Server) setEnabled(w http.ResponseWriter, r *http.Request, enabled bool
 
 func (s *Server) handleRunNow(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if _, err := s.store.GetTask(id); err != nil {
+	task, err := s.store.GetTask(id)
+	if err != nil {
 		s.notFoundOr(w, err)
+		return
+	}
+	if !tasklogic.EvaluateReadiness(task, false).CommandReady {
+		writeError(w, http.StatusBadRequest, CodeValidation, "command", "configure a command before running this task")
 		return
 	}
 	if s.sched != nil {
@@ -326,19 +346,23 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 
 // ---- helpers ------------------------------------------------------------
 
-func (s *Server) taskDetail(task domain.Task, sch domain.Schedule, now time.Time) TaskResponse {
-	runs, _ := schedule.UpcomingRunsWithPolicy(sch, task.Timezone, task.SchedulePolicy(), now, 5)
+func (s *Server) taskDetail(task domain.Task, sch *domain.Schedule, now time.Time) TaskResponse {
+	var runs []time.Time
+	var policySummary string
 	// The summary is rendered against the task's policy on the way out rather
 	// than stored, because the policy can change without the phrase changing. The
 	// stored HumanSummary stays the phrase-level sentence; every client reads
 	// this one, so none of them can claim a rule fires in a period it skips.
-	sch.HumanSummary = schedule.Describe(sch, task.MissingDatePolicy)
-	sch.SourceSyntax = string(scheduleinput.SourceSyntax(sch))
-	policySummary := ""
-	if !schedule.IsStartup(sch) {
-		policySummary = schedule.DescribePolicy(task.SchedulePolicy())
+	if sch != nil {
+		runs, _ = schedule.UpcomingRunsWithPolicy(*sch, task.Timezone, task.SchedulePolicy(), now, 5)
+		sch.HumanSummary = schedule.Describe(*sch, task.MissingDatePolicy)
+		sch.SourceSyntax = string(scheduleinput.SourceSyntax(*sch))
+		if !schedule.IsStartup(*sch) {
+			policySummary = schedule.DescribePolicy(task.SchedulePolicy())
+		}
 	}
-	return TaskResponse{Task: task, Schedule: sch, PolicySummary: policySummary, NextRuns: runs}
+	hasCompletion, _ := s.store.TaskHasIncomingCompletion(task.ID)
+	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion), PolicySummary: policySummary, NextRuns: runs}
 }
 
 func (s *Server) reload() {

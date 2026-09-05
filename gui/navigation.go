@@ -9,6 +9,13 @@ import (
 
 type navigationID string
 
+type navigationSection string
+
+const (
+	navigationDefinitions navigationSection = "definitions"
+	navigationOperations  navigationSection = "operations"
+)
+
 const (
 	navigationTasks    navigationID = "tasks"
 	navigationGroups   navigationID = "groups"
@@ -25,6 +32,7 @@ type navigationDestinationSpec struct {
 	ID      navigationID
 	Label   string
 	Content fyne.CanvasObject
+	Section navigationSection
 }
 
 type navigationDestination struct {
@@ -34,18 +42,20 @@ type navigationDestination struct {
 }
 
 type navigationShell struct {
-	root         fyne.CanvasObject
-	rail         *fyne.Container
-	content      *fyne.Container
-	boundary     *widget.Separator
-	exit         *cursorButton
-	destinations []*navigationDestination
-	selected     navigationID
+	root            fyne.CanvasObject
+	rail            *fyne.Container
+	content         *fyne.Container
+	boundary        *widget.Separator
+	exit            *cursorButton
+	destinations    []*navigationDestination
+	sectionBoundary *widget.Separator
+	selected        navigationID
 }
 
 func newNavigationShell(specs []navigationDestinationSpec, onExit func()) *navigationShell {
 	shell := &navigationShell{}
-	buttons := make([]fyne.CanvasObject, 0, len(specs))
+	definitionButtons := make([]fyne.CanvasObject, 0, len(specs))
+	operationButtons := make([]fyne.CanvasObject, 0, len(specs))
 	contents := make([]fyne.CanvasObject, 0, len(specs))
 	labels := make([]string, 0, len(specs))
 	for _, spec := range specs {
@@ -55,7 +65,20 @@ func newNavigationShell(specs []navigationDestinationSpec, onExit func()) *navig
 		})
 		destination.button.Alignment = widget.ButtonAlignLeading
 		shell.destinations = append(shell.destinations, destination)
-		buttons = append(buttons, destination.button)
+		section := spec.Section
+		if section == "" {
+			switch spec.ID {
+			case navigationTasks, navigationGroups, navigationChains:
+				section = navigationDefinitions
+			default:
+				section = navigationOperations
+			}
+		}
+		if section == navigationDefinitions {
+			definitionButtons = append(definitionButtons, destination.button)
+		} else {
+			operationButtons = append(operationButtons, destination.button)
+		}
 		contents = append(contents, destination.content)
 		labels = append(labels, spec.Label)
 	}
@@ -63,7 +86,13 @@ func newNavigationShell(specs []navigationDestinationSpec, onExit func()) *navig
 	shell.content = container.NewStack(contents...)
 	shell.exit = newCursorButton("Exit", theme.LogoutIcon(), widget.DangerImportance, onExit)
 	shell.exit.Alignment = widget.ButtonAlignTrailing
-	top := container.NewVBox(buttons...)
+	shell.sectionBoundary = widget.NewSeparator()
+	topObjects := append([]fyne.CanvasObject{}, definitionButtons...)
+	if len(definitionButtons) > 0 && len(operationButtons) > 0 {
+		topObjects = append(topObjects, shell.sectionBoundary)
+	}
+	topObjects = append(topObjects, operationButtons...)
+	top := container.NewVBox(topObjects...)
 	shell.rail = container.New(&navigationRailLayout{minimumWidth: navigationRailMinimumWidth(labels)}, top, widget.NewSeparator(), shell.exit)
 	shell.boundary = widget.NewSeparator()
 	railWithBoundary := container.NewBorder(nil, nil, shell.rail, shell.boundary)

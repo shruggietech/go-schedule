@@ -9,6 +9,8 @@ nav_order: 4
 
 This page explains every field in the desktop GUI's **New Task** / **Edit Task** dialog: what it accepts, what's required, and what each option means. It's the GUI counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
+Task fields may be left incomplete and saved for later. A blank name displays as `unnamed`, a blank command makes the task not runnable, and **Manual only** removes automatic timing while preserving Run now once a valid command exists. Incomplete tasks remain disabled until their command and an automatic source are both ready.
+
 ## Data view tables
 
 The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed headers above vertically scrolling rows. Columns contract proportionally when the window narrows, so these views do not introduce horizontal scrolling. Long values are shortened visually with an ellipsis. Selecting a Tasks or Schedule row exposes its complete labeled values below the list; selecting an Activity row opens its existing full-detail dialog.
@@ -21,20 +23,20 @@ The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed hea
 
 Alternating rows use a quiet theme-aware surface. Selection, hover, focus, and semantic meaning retain a text or glyph cue in every appearance mode, so color is never the only indicator. Row identity, rather than the current visual index, controls selection and activation across live refreshes.
 
-The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run** (Name and Command line), **When** (Timezone, Mode, the relevant time field), and a collapsible **Advanced Settings** (Overlap, Catch-up, Missing dates, Time basis, Spring gap, Fall overlap) that starts closed - its disclosure arrow points ▶ when collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a **Help** button that swaps it to a field-by-field guide (and back). Required fields are marked with a `*`, and the **Save** button (bottom-right, next to **Cancel**) stays disabled until every required field is valid. Clicking **Cancel** after you've typed something asks for confirmation before discarding.
+The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run** (Name and Command line), **When** (Timezone, Mode, the relevant time field), and a collapsible **Advanced Settings** (Overlap, Catch-up, Missing dates, Time basis, Spring gap, Fall overlap) that starts closed - its disclosure arrow points ▶ when collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a **Help** button that swaps it to a field-by-field guide (and back). A draft can be saved with blank fields, while invalid values such as malformed command syntax or an incomplete one-off time keep **Save** disabled. Clicking **Cancel** after you've typed something asks for confirmation before discarding.
 
 ## At a glance
 
 | Field | Required | Format / options | Default |
 |-------|----------|------------------|---------|
-| **Name** | yes | any text label | N/A |
-| **Command line** | yes | program followed by arguments in the portable direct-command syntax below | N/A |
+| **Name** | no | any text label; blank displays as `unnamed` | N/A |
+| **Command line** | no | program followed by arguments in the portable direct-command syntax below; blank creates a non-runnable draft | N/A |
 | **Group** | no | `(none)`, or a group shown by its path (`Backups / Nightly`) | `(none)` |
 | **Timezone** | no | searchable list of common zones, or any IANA name / `Local` | `Local` |
-| **Mode** | yes | `Recurring` or `One-off` | `Recurring` |
-| **Schedule** | when Recurring (create) | human phrase or supported five- or six-field cron (see below) | n/a |
+| **Mode** | yes | `Recurring`, `One-off`, or `Manual only` | `Recurring` |
+| **Schedule** | no | human phrase or supported five- or six-field cron (see below); blank creates a draft without automatic timing | n/a |
 | **Start at** | no | anchor time for sub-daily intervals, e.g. `09:00` | N/A |
-| **One-off date / time** | when One-off (create) | date + time picked in the task's zone, must be future | N/A |
+| **One-off date / time** | when One-off | date + time picked in the task's zone, must be future | N/A |
 | **Overlap** *(Advanced)* | no | Queue one run · Skip this run · Allow concurrent runs | Queue one run |
 | **Catch-up** *(Advanced)* | no | Run once to catch up · Skip missed runs | Run once to catch up |
 | **Missing dates** *(Advanced)* | no | Skip that period · Use the last valid date · Roll into the next period | Skip that period |
@@ -42,9 +44,9 @@ The dialog is a two-pane layout. The **left** pane holds the form, grouped into 
 | **Spring gap** *(Advanced)* | no | Run at the next valid time · Skip that occurrence | Run at the next valid time |
 | **Fall overlap** *(Advanced)* | no | First occurrence · Both occurrences · Last occurrence | First occurrence |
 
-**Mode decides which time field is shown.** In `Recurring` mode the **Schedule** (and optional **Start at**) field is shown and the one-off inputs are hidden; in `One-off` mode it's the reverse. Switching Mode keeps whatever you already typed in either field. When editing an existing task, leaving the time field blank keeps the task's current schedule.
+**Mode decides which time field is shown.** In `Recurring` mode the **Schedule** (and optional **Start at**) field is shown and the one-off inputs are hidden; in `One-off` mode it's the reverse; in `Manual only` mode neither automatic timing field is shown. Switching Mode keeps whatever you already typed in the hidden fields, but Manual only never submits those retained values. When editing an existing task, selecting Manual only removes its automatic schedule.
 
-**Editing shows the task as it actually is.** Opening an existing task fills in its real Mode and either its retained schedule expression or its one-off date and time, shown in the task's own timezone, so you can see what the task is currently set to before changing anything. Saving without touching those fields leaves the schedule exactly as it was. If you *switch* Mode, the new mode's time fields become required, there is no existing schedule of the new kind to fall back on.
+**Editing shows the task as it actually is.** Opening an existing task fills in its real Mode and either its retained schedule expression or its one-off date and time, shown in the task's own timezone, so you can see what the task is currently set to before changing anything. Saving without touching those fields leaves the schedule exactly as it was. Switching to Manual only deliberately clears that timing; switching to One-off requires a complete future date and time.
 
 Tasks created before this was added have no stored schedule phrase, so their Schedule field opens blank. That is safe, a blank field keeps the existing schedule, and typing a new expression replaces it.
 
@@ -82,7 +84,7 @@ This syntax only separates a program from its arguments. It does **not** expand 
 
 To request shell behavior, name the shell explicitly. For example, use `cmd /c "echo hello > output.txt"` on Windows or `sh -c 'echo hello > output.txt'` on a POSIX host. That named shell then owns its platform-specific quoting, expansion, redirection, and security behavior. go-schedule still stores and launches one program plus its ordered arguments.
 
-The field is required, displays at least six lines at the default dialog size, and grows when the dialog gains vertical space. A quoted literal line break is part of one argument; an unquoted line break separates values.
+The field displays at least six lines at the default dialog size and grows when the dialog gains vertical space. It may be left blank to save a non-runnable draft. A quoted literal line break is part of one argument; an unquoted line break separates values.
 
 ## Group
 
@@ -105,6 +107,7 @@ An [IANA time-zone name](https://en.wikipedia.org/wiki/List_of_tz_database_time_
 
 - **Recurring**, the task fires repeatedly on a schedule. Fill in **Schedule**.
 - **One-off**, the task fires exactly once at a specific time. Fill in **One-off time**.
+- **Manual only**, the task has no automatic timing and can run only through **Run now** once it has a valid command.
 
 ## Schedule *(Recurring mode)*
 

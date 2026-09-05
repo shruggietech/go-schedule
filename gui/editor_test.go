@@ -61,7 +61,7 @@ func TestEditor_ModeVisibility(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 
 	labels := whenLabels(e)
-	if !hasLabel(labels, "Schedule *") {
+	if !hasLabel(labels, "Schedule") {
 		t.Fatalf("Recurring mode missing Schedule row: %v", labels)
 	}
 	if hasLabel(labels, "Date *") || hasLabel(labels, "Time *") {
@@ -73,7 +73,7 @@ func TestEditor_ModeVisibility(t *testing.T) {
 	if !hasLabel(labels, "Date *") || !hasLabel(labels, "Time *") {
 		t.Fatalf("One-off mode missing date/time rows: %v", labels)
 	}
-	if hasLabel(labels, "Schedule *") {
+	if hasLabel(labels, "Schedule") {
 		t.Fatalf("One-off mode should not show Schedule row: %v", labels)
 	}
 }
@@ -99,14 +99,14 @@ func TestEditor_ModeTogglePreservesValues(t *testing.T) {
 func TestEditor_SaveGating(t *testing.T) {
 	e, _ := newTestEditor(t, nil)
 
-	if !e.save.Disabled() {
-		t.Fatal("Save should start disabled (empty form)")
+	if e.save.Disabled() {
+		t.Fatal("Save should allow an empty draft")
 	}
 
 	e.name.SetText("nightly")
 	e.commandLine.SetText("cmd")
-	if !e.save.Disabled() {
-		t.Fatal("Save should stay disabled without a schedule")
+	if e.save.Disabled() {
+		t.Fatal("Save should allow a manual-only draft without a schedule")
 	}
 
 	e.schedule.SetText("every 15 minutes")
@@ -433,6 +433,38 @@ func TestEditor_OneOffSubmissionOmitsRecurringSyntax(t *testing.T) {
 	}
 }
 
+func TestEditor_ManualSubmissionOmitsStaleRecurringSchedule(t *testing.T) {
+	e, fb := newTestEditor(t, nil)
+	e.commandLine.SetText("cmd")
+	e.schedule.SetText("every day at 09:00")
+	e.mode.SetSelected(modeManual)
+
+	e.submit()
+	waitFor(t, func() bool { n, _ := fb.lastCreateCall(); return n == 1 })
+	if _, req := fb.lastCreateCall(); req.Schedule != "" || req.ScheduleSyntax != "" || req.At != nil {
+		t.Fatalf("manual create = %+v, want no automatic schedule", req)
+	}
+}
+
+func TestEditor_ManualModeRejectsStaleRecurringPreview(t *testing.T) {
+	e, _ := newTestEditor(t, nil)
+	e.schedule.SetText("every day at 09:00")
+	staleGeneration := e.previewGeneration.Load()
+	e.schedule.SetText("every weekday at 10:00")
+	e.schedPreview.SetText("Current recurring preview")
+	e.fetchSchedulePreview(server.PreviewRequest{Schedule: "every day at 09:00"}, staleGeneration)
+	if got := e.schedPreview.Text; got != "Current recurring preview" {
+		t.Fatalf("recurring preview = %q, want stale generation ignored", got)
+	}
+
+	e.mode.SetSelected(modeManual)
+	want := e.schedPreview.Text
+	e.fetchSchedulePreview(server.PreviewRequest{Schedule: "every weekday at 10:00"}, e.previewGeneration.Load())
+	if got := e.schedPreview.Text; got != want {
+		t.Fatalf("manual preview = %q, want stale recurring response ignored and %q retained", got, want)
+	}
+}
+
 func TestEditor_HelpDocumentsDualSyntax(t *testing.T) {
 	for _, want := range []string{
 		"plain-language phrase",
@@ -449,22 +481,26 @@ func TestEditor_HelpDocumentsDualSyntax(t *testing.T) {
 // --- 003: Help toggle ----------------------------------------------------
 
 func TestEditor_HelpToggle(t *testing.T) {
-	e, _ := newTestEditor(t, nil)
-	e.schedule.SetText("every 15 minutes")
-
-	if !e.previewContent.Visible() || e.helpContent.Visible() {
-		t.Fatal("right pane should start on Preview")
-	}
-	e.toggleHelp()
-	if e.previewContent.Visible() || !e.helpContent.Visible() {
-		t.Fatal("toggle should show Help, hide Preview")
-	}
-	e.toggleHelp()
-	if !e.previewContent.Visible() || e.helpContent.Visible() {
-		t.Fatal("toggle back should restore Preview")
-	}
-	if e.schedule.Text != "every 15 minutes" {
-		t.Fatalf("input lost across Help toggle: %q", e.schedule.Text)
+	for _, mode := range []string{modeRecurring, modeOneOff, modeManual} {
+		t.Run(mode, func(t *testing.T) {
+			e, _ := newTestEditor(t, nil)
+			e.mode.SetSelected(mode)
+			e.schedule.SetText("every 15 minutes")
+			if !e.previewContent.Visible() || e.helpContent.Visible() {
+				t.Fatal("right pane should start on Preview")
+			}
+			e.toggleHelp()
+			if e.previewContent.Visible() || !e.helpContent.Visible() {
+				t.Fatal("toggle should show Help, hide Preview")
+			}
+			e.toggleHelp()
+			if !e.previewContent.Visible() || e.helpContent.Visible() {
+				t.Fatal("toggle back should restore Preview")
+			}
+			if e.schedule.Text != "every 15 minutes" {
+				t.Fatalf("input lost across Help toggle: %q", e.schedule.Text)
+			}
+		})
 	}
 }
 

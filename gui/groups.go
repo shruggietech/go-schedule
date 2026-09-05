@@ -45,10 +45,29 @@ type groupTreeModel struct {
 	tasks    map[string]domain.Task
 }
 
+type groupSubmission struct {
+	submitted bool
+	create    func(string)
+}
+
+func (s *groupSubmission) submit(name string) bool {
+	name = strings.TrimSpace(name)
+	if name == "" || s.submitted {
+		return false
+	}
+	s.submitted = true
+	s.create(name)
+	return true
+}
+
 // newGroupTreeModel arranges groups into their hierarchy and files every task
 // under its group, or under Ungrouped when it has none, or names one that no
 // longer resolves (FR-019a). Every task appears exactly once.
 func newGroupTreeModel(groups []domain.Group, tasks []domain.Task) *groupTreeModel {
+	return newGroupTreeModelWithChains(groups, tasks, nil)
+}
+
+func newGroupTreeModelWithChains(groups []domain.Group, tasks []domain.Task, chains []domain.CompletionChain) *groupTreeModel {
 	m := &groupTreeModel{
 		children: map[string][]string{},
 		labels:   map[string]string{},
@@ -76,7 +95,12 @@ func newGroupTreeModel(groups []domain.Group, tasks []domain.Task) *groupTreeMod
 	m.labels[ungroupedNodeID] = ungroupedLabel
 
 	sorted := append([]domain.Task(nil), tasks...)
-	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Name < sorted[j].Name })
+	sort.Slice(sorted, func(i, j int) bool {
+		if sorted[i].Name == sorted[j].Name {
+			return sorted[i].ID < sorted[j].ID
+		}
+		return sorted[i].Name < sorted[j].Name
+	})
 	for _, t := range sorted {
 		m.tasks[t.ID] = t
 		parent := ungroupedNodeID
@@ -84,8 +108,8 @@ func newGroupTreeModel(groups []domain.Group, tasks []domain.Task) *groupTreeMod
 			parent = groupNodeID(t.GroupID)
 		}
 		m.children[parent] = append(m.children[parent], taskNodeID(t.ID))
-		m.labels[taskNodeID(t.ID)] = taskRowMarker + t.Name + "   [" + string(t.State) + "]   " +
-			boolStr(t.Enabled, "enabled", "disabled")
+		effective := taskEffectiveStateWithChains(t, groups, chains)
+		m.labels[taskNodeID(t.ID)] = taskRowMarker + task.DisplayName(t) + "   " + effective.Text
 	}
 	return m
 }
@@ -148,7 +172,7 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 
 	refresh := func() {
 		snap := a.model.Snapshot()
-		model = newGroupTreeModel(snap.Groups, snap.Tasks)
+		model = newGroupTreeModelWithChains(snap.Groups, snap.Tasks, snap.Chains)
 		tree.Refresh()
 	}
 	a.registerRefresher(refresh)
@@ -178,19 +202,30 @@ func (a *App) buildGroupsTab() fyne.CanvasObject {
 			parent = g.ID
 			parentNote = "under " + g.Name
 		}
-		items := []*widget.FormItem{
+		form := widget.NewForm(
 			widget.NewFormItem("Name", nameEntry),
 			widget.NewFormItem("Parent", widget.NewLabel(parentNote)),
-		}
-		dialog.NewForm("New Group", "Create", "Cancel", items, func(ok bool) {
-			if !ok || nameEntry.Text == "" {
-				return
-			}
+		)
+		submission := &groupSubmission{create: func(name string) {
 			a.run(func(ctx context.Context) error {
-				_, err := a.backend.CreateGroup(ctx, server.GroupCreateRequest{Name: nameEntry.Text, ParentID: parent})
+				_, err := a.backend.CreateGroup(ctx, server.GroupCreateRequest{Name: name, ParentID: parent})
 				return err
 			})
-		}, a.win).Show()
+		}}
+		var popup dialog.Dialog
+		create := newCursorButton("Create", theme.ConfirmIcon(), widget.HighImportance, func() {
+			if submission.submit(nameEntry.Text) {
+				popup.Hide()
+			}
+		})
+		cancel := newCursorButton("Cancel", theme.CancelIcon(), widget.MediumImportance, func() { popup.Hide() })
+		popup = dialog.NewCustomWithoutButtons("New Group", container.NewVBox(form, container.NewHBox(cancel, create)), a.win)
+		nameEntry.OnSubmitted = func(string) {
+			if submission.submit(nameEntry.Text) {
+				popup.Hide()
+			}
+		}
+		popup.Show()
 	})
 	toggleBtn := newToolbarButtonPlain("Enable/Disable", func() {
 		withGroup(func(g domain.Group) {

@@ -33,14 +33,14 @@ func TestTaskRowModelSeparatesEnabledFromLifecycle(t *testing.T) {
 	}{
 		{
 			name:       "enabled active",
-			task:       domain.Task{ID: "a", Name: "Backup", Enabled: true, State: domain.TaskActive, Timezone: "UTC", GroupID: "nightly"},
+			task:       domain.Task{ID: "a", Name: "Backup", Enabled: true, State: domain.TaskActive, Timezone: "UTC", GroupID: "nightly", Command: "echo", ScheduleID: "schedule"},
 			wantCells:  []string{"Backup", "Enabled", "Blocked by Operations", "Active", "UTC", "Operations / Nightly"},
 			importance: []widget.Importance{widget.MediumImportance, widget.SuccessImportance, widget.WarningImportance, widget.HighImportance, widget.MediumImportance, widget.MediumImportance},
 		},
 		{
 			name:       "disabled completed",
 			task:       domain.Task{ID: "b", Name: "One shot", Enabled: false, State: domain.TaskCompleted, Timezone: "America/New_York"},
-			wantCells:  []string{"One shot", "Disabled", "Task disabled", "Completed", "America/New_York", "Not assigned"},
+			wantCells:  []string{"One shot", "Disabled", "Lifecycle: Completed", "Completed", "America/New_York", "Not assigned"},
 			importance: []widget.Importance{widget.MediumImportance, widget.LowImportance, widget.LowImportance, widget.MediumImportance, widget.MediumImportance, widget.LowImportance},
 		},
 		{
@@ -73,7 +73,7 @@ func TestTaskRowModelNormalizesMissingUnicodeAndUnknownValues(t *testing.T) {
 		ID: "unicode", Name: "備份 ✅", Enabled: false,
 		State: domain.TaskState("awaiting_review"), GroupID: "missing",
 	}, nil)
-	want := []string{"備份 ✅", "Disabled", "Task disabled", "Awaiting review", "Unknown", "Not assigned"}
+	want := []string{"備份 ✅", "Disabled", "Lifecycle: Awaiting review", "Awaiting review", "Unknown", "Not assigned"}
 	for i, cell := range row.Cells {
 		if cell.Text != want[i] {
 			t.Errorf("cell %d=%q, want %q", i, cell.Text, want[i])
@@ -84,14 +84,14 @@ func TestTaskRowModelNormalizesMissingUnicodeAndUnknownValues(t *testing.T) {
 	}
 
 	empty := taskRowModel(domain.Task{ID: "empty"}, nil)
-	if empty.Cells[0].Text != "Unnamed task" || empty.Cells[3].Text != "Unknown" {
+	if empty.Cells[0].Text != "unnamed" || empty.Cells[3].Text != "Unknown" {
 		t.Fatalf("empty fallbacks=%q/%q", empty.Cells[0].Text, empty.Cells[3].Text)
 	}
 }
 
 func TestTaskRowModelShowsRunnableEffectiveState(t *testing.T) {
 	groups := []domain.Group{{ID: "enabled", Name: "Enabled group", Enabled: true}}
-	row := taskRowModel(domain.Task{ID: "task", Enabled: true, State: domain.TaskActive, GroupID: "enabled"}, groups)
+	row := taskRowModel(domain.Task{ID: "task", Enabled: true, State: domain.TaskActive, GroupID: "enabled", Command: "echo", ScheduleID: "schedule"}, groups)
 	if got := row.Cells[2]; got.Text != "Runnable" || got.Importance != widget.SuccessImportance {
 		t.Fatalf("effective cell=(%q,%v), want runnable success", got.Text, got.Importance)
 	}

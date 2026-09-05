@@ -54,6 +54,8 @@ go-schedule is built around that. Schedules can be written in plain language or 
 
 **Groups that nest.** Tasks live in groups, groups live in groups, and enabling or disabling one cascades through its whole subtree, one command to silence a region of the schedule.
 
+**Draft first, activate when ready.** Tasks and groups can be saved before every detail is known. Nameless tasks display as `unnamed`, tasks without commands are visibly not runnable, and tasks with commands but no automatic source remain available for Run now as manual-only work.
+
 **A desktop app, not a wrapper.** A Go-native GUI with calendar and schedule views, a guided task editor that previews the schedule as you build it, a group tree, and a live Activity view. Opening it never leaves a console window behind. See the [GUI field reference](docs/gui-fields.md) for what each editor field accepts.
 
 ## Install

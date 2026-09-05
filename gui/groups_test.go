@@ -64,6 +64,20 @@ func TestGroupTree_ShowsEveryTaskExactlyOnce(t *testing.T) {
 	}
 }
 
+func TestGroupSubmissionEnterAndButtonShareDuplicateSafePath(t *testing.T) {
+	var names []string
+	submission := &groupSubmission{create: func(name string) { names = append(names, name) }}
+	if submission.submit("   ") {
+		t.Fatal("blank submission succeeded")
+	}
+	if !submission.submit("  keyboard group  ") {
+		t.Fatal("valid submission failed")
+	}
+	if submission.submit("duplicate") || len(names) != 1 || names[0] != "keyboard group" {
+		t.Fatalf("submissions = %v", names)
+	}
+}
+
 // TestGroupTree_UngroupedNodeAlwaysPresent covers FR-019: the destination for
 // removing a task from a group must be visible before there is anything in it.
 func TestGroupTree_UngroupedNodeAlwaysPresent(t *testing.T) {
@@ -111,6 +125,15 @@ func TestGroupTree_TaskRowsAreDistinguishable(t *testing.T) {
 	}
 	if !strings.HasPrefix(taskLabel, taskRowMarker) {
 		t.Errorf("task label = %q, want the task marker prefix so rows read differently from groups", taskLabel)
+	}
+}
+
+func TestGroupTreeTaskLabelReflectsDisabledAncestor(t *testing.T) {
+	groups := []domain.Group{{ID: "parent", Name: "Parent", Enabled: false}, {ID: "child", Name: "Child", ParentID: "parent", Enabled: true}}
+	tasks := []domain.Task{{ID: "task", Name: "Ready", GroupID: "child", Command: "echo", ScheduleID: "schedule", Enabled: true, State: domain.TaskActive}}
+	tree := newGroupTreeModelWithChains(groups, tasks, nil)
+	if label := tree.label(taskNodeID("task")); !strings.Contains(label, "Blocked by Parent") {
+		t.Fatalf("task label = %q", label)
 	}
 }
 

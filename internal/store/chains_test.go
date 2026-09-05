@@ -95,6 +95,52 @@ func TestCompletionChainsCRUDAndCycleValidation(t *testing.T) {
 	}
 }
 
+func TestDeletingFinalCompletionSourceDisablesUnscheduledTarget(t *testing.T) {
+	st := openMem(t)
+	source := chainTask(t, st, "source")
+	target := &domain.Task{Name: "target", Command: "echo", Timezone: "UTC", State: domain.TaskActive}
+	if err := st.CreateTask(target); err != nil {
+		t.Fatal(err)
+	}
+	chain := &domain.CompletionChain{SourceTaskID: source.ID, TargetTaskID: target.ID, OnOutcome: domain.CompletionOnAny}
+	if err := st.CreateCompletionChain(chain); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetTaskEnabled(target.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteCompletionChain(chain.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.GetTask(target.ID)
+	if got.Enabled {
+		t.Fatal("target remained enabled after its final completion source was removed")
+	}
+}
+
+func TestDeletingSourceTaskDisablesTargetThatLosesFinalCompletionSource(t *testing.T) {
+	st := openMem(t)
+	source := chainTask(t, st, "source")
+	target := &domain.Task{Name: "target", Command: "echo", Timezone: "UTC", State: domain.TaskActive}
+	if err := st.CreateTask(target); err != nil {
+		t.Fatal(err)
+	}
+	chain := &domain.CompletionChain{SourceTaskID: source.ID, TargetTaskID: target.ID, OnOutcome: domain.CompletionOnAny}
+	if err := st.CreateCompletionChain(chain); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetTaskEnabled(target.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteTask(source.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := st.GetTask(target.ID)
+	if got.Enabled {
+		t.Fatal("target remained enabled after source-task deletion removed its final completion source")
+	}
+}
+
 func TestCompletionChainsRejectIndirectCycleAcrossHundredTasks(t *testing.T) {
 	st := openMem(t)
 	tasks := make([]domain.Task, 100)
