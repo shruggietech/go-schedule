@@ -484,10 +484,14 @@ func (s *runtimeState) scheduleCandidate(id string, definition domain.Filesystem
 	if previous, ok := s.dispatched[key]; ok && previous.suppressUntil.After(now) && sameVersion(previous.version, current) {
 		return
 	}
-	if candidate, ok := s.pending[key]; ok && !nativeHint && sameVersion(candidate.version, current) {
-		return
+	reconciled := !nativeHint
+	if candidate, ok := s.pending[key]; ok && sameVersion(candidate.version, current) {
+		if !nativeHint {
+			return
+		}
+		reconciled = candidate.reconciled
 	}
-	s.pending[key] = pendingCandidate{watcherID: id, path: path, generation: s.generation, dueAt: now.Add(definition.Debounce), version: current, reconciled: !nativeHint}
+	s.pending[key] = pendingCandidate{watcherID: id, path: path, generation: s.generation, dueAt: now.Add(definition.Debounce), version: current, reconciled: reconciled}
 }
 
 func inspectFile(path string) fileState {
@@ -499,6 +503,10 @@ func inspectFile(path string) fileState {
 }
 
 func versionOf(info os.FileInfo) fileVersion {
+	// Windows resolves the stable file ID lazily from the path in os.SameFile.
+	// Resolve it while this version still owns the path so a later replacement
+	// cannot make an old baseline appear identical to the new file.
+	_ = os.SameFile(info, info)
 	return fileVersion{info: info, size: info.Size(), modTime: info.ModTime()}
 }
 
