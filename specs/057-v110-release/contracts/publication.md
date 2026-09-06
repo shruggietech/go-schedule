@@ -2,7 +2,7 @@
 
 ## Preparation
 
-The preparation branch cuts the changelog boundary without losing entries, updates the README example, adds four concise highlights with one tagged changelog link, and passes the full local and hosted verification suites.
+The preparation branch cuts the changelog boundary without losing entries, updates the README example, adds four concise highlights with one tagged changelog link, and passes the full local and hosted verification suites. The push-triggered CI workflow for the reviewed merge commit must also complete successfully before release staging can begin.
 
 ## Tagging
 
@@ -10,7 +10,7 @@ Immediately before creating `v1.1.0`, fetch and prune origin, fast-forward `main
 
 ## Staging
 
-Accept only the successful tag-push Release workflow whose head SHA matches the tag. The release must remain draft and contain the complete expected packages plus `windows-candidate-manifest.json`. Verify the manifest and MSI before any installation.
+Accept only the successful tag-push Release workflow whose head SHA matches the tag. Its preflight must locate the push-triggered CI run on `main` for that exact SHA and require a successful conclusion before any package is built or uploaded. A missing, pending, failed, cancelled, or timed-out CI result cannot stage release artifacts. The release must remain draft and contain the complete expected packages plus `windows-candidate-manifest.json`. Verify the manifest and MSI before any installation.
 
 ## Qualification
 

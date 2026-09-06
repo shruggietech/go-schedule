@@ -293,13 +293,26 @@ else
     /^  binaries:[[:space:]]*$/ { section = "binaries"; next }
     /^  [[:alnum:]_-]+:[[:space:]]*(#.*)?$/ { section = "" }
     section == "state" &&
-      /^    needs:[[:space:]]*readme-version[[:space:]]*$/ { state = 1 }
+      /^    needs:[[:space:]]*\[readme-version, ci-success\][[:space:]]*$/ { state = 1 }
     section == "binaries" &&
       /^    needs:[[:space:]]*release-state[[:space:]]*$/ { binaries = 1 }
     END { exit !(state && binaries) }
   ' "$RELEASE"; then
-    report "$RELEASE: binaries job missing README version preflight dependency through release-state"
+    report "$RELEASE: binaries job missing README and exact-commit CI preflight dependencies through release-state"
   fi
+  require_release_text 'Require successful CI for tagged commit' \
+    'exact-commit main CI preflight'
+  require_release_text '      actions: read' \
+    'workflow-run read permission for exact-commit CI preflight'
+  require_release_text \
+    'actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push' \
+    'exact tagged-commit CI workflow query'
+  require_release_text '.head_branch == "main" and .event == "push"' \
+    'main push CI run filter'
+  require_release_text 'Timed out waiting for successful main CI' \
+    'bounded exact-commit CI wait'
+  require_release_text 'if [ "$STATUS" = completed ]; then' \
+    'completed non-success CI rejection'
   require_release_text 'generate_release_notes: false' \
     'disabled generated release notes contract'
   require_release_text \
