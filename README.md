@@ -85,7 +85,7 @@ gosched health
 ```
 
 ```text
-daemon ok (version 1.0.0)
+daemon ok (version 1.1.0)
 ```
 
 Create a weekday report with a readable phrase:
