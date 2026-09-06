@@ -21,7 +21,7 @@
 **Alternatives considered**:
 
 - Watching the file directly fails common atomic-save workflows and cannot register a missing file.
-- Polling the file after deletion narrows but does not eliminate the notification gap and adds a second observation model.
+- Relying only on parent-directory notifications proved insufficient on macOS because kqueue can coalesce a rapid remove and rename sequence before fsnotify rescans the directory.
 
 ## Decision 3: Implement recursion explicitly and exclude link traversal
 
@@ -89,3 +89,17 @@
 
 - Reusing `source_trigger_id` would blur opaque external trigger and filesystem source contracts.
 - Recording each matched path improves per-file diagnostics but creates unbounded sensitive history and is not requested.
+
+## Decision 9: Reconcile exact-file identity after native notification gaps
+
+**Decision**: Supplement native hints with one event-loop timer that checks only configured exact-file targets every 250 milliseconds. Registration and recovery establish a prospective baseline without dispatch, while a later appearance or file-identity change enters the existing debounce and stability state machine.
+
+**Rationale**: The macOS race job missed one of 100 rapid atomic replacements because fsnotify's kqueue backend reconstructs child events by rescanning a watched directory and the kernel can coalesce the remove and rename notifications. Parent-directory observation remains necessary, but native hints alone cannot satisfy the cross-platform atomic-replacement contract. Comparing operating-system file identity as well as size and modification time catches replacement by an equal-sized file and suppresses a late native hint after that identity has already dispatched.
+
+**Deviation from the original design**: S056 initially rejected polling because a general polling observer would duplicate native observation and scan directory trees. The production failure demonstrates that a bounded exact-path reconciliation check is required for the promised behavior. This correction does not scan directories, replay startup or degraded-period changes, create per-watcher goroutines, or replace native notifications for directory watchers.
+
+**Alternatives considered**:
+
+- Weakening the 100-trial test to Windows would hide a supported-platform product defect and contradict SC-002.
+- Increasing the test timeout cannot recover a notification that was never delivered.
+- Persisting file identities would introduce downtime replay semantics that the feature explicitly excludes.

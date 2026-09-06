@@ -24,7 +24,7 @@ Add durable file and directory watcher definitions that feed stable matching fil
 
 **Performance Goals**: Lifecycle and health reads below one second at 100 watchers; 100-trial write-storm and rename fidelity; existing dispatch p99 below 100 milliseconds after watcher acceptance
 
-**Constraints**: No remote listener, no payload forwarding, no durable event replay, no link-directory traversal, no direct wall-clock use in the watcher state machine, no repeated identical health logs or events, and no matched path in durable run history
+**Constraints**: No remote listener, no payload forwarding, no durable event replay, no directory-content polling, no link-directory traversal, no direct wall-clock use in the watcher state machine, no repeated identical health logs or events, and no matched path in durable run history
 
 **Scale/Scope**: 100 configured watchers, arbitrary selected files bounded by native observer capacity and existing task overlap policies
 
@@ -37,7 +37,7 @@ Add durable file and directory watcher definitions that feed stable matching fil
 | I. Code Quality | The runtime has one owned event loop, generation-scoped state, explicit observer closure, contextual errors, and documented exported contracts. | PASS |
 | II. Testing Standards | Store migration, dispatch, coalescing, recovery, restart, race, CLI, API, and headless GUI tests are mandatory; timing uses the injected Clock. | PASS |
 | III. User Experience Consistency | Watchers use the existing local API envelope, verb-noun CLI lifecycle, JSON parity, actionable health, and structured desktop controls. | PASS |
-| IV. Performance Requirements | The design retains the existing dispatch budget, adds 100-watcher lifecycle budgets, and keeps one observer and one event-loop goroutine instead of one poller per watcher. | PASS |
+| IV. Performance Requirements | The design retains the existing dispatch budget, adds 100-watcher lifecycle budgets, and keeps one observer, one event-loop goroutine, and one shared exact-file reconciliation timer instead of one poller per watcher. | PASS |
 | V. Autonomous Execution | S056 is issue-backed and runs the full Spec Kit sequence, analyze gate, review branch, authorized PR, and at most two review rounds. | PASS |
 
 ## Architecture
@@ -48,11 +48,11 @@ Schema v14 adds `filesystem_watchers` with a task foreign key and validated sele
 
 ### Native observer boundary
 
-`internal/watcher` owns the event loop and depends on narrow Store, Dispatcher, Observer, Clock, Stat, and lifecycle-reporting interfaces. Production uses one fsnotify observer. File watchers observe the parent directory and filter the exact file name, which preserves atomic replacement workflows. Recursive directory watchers walk only real directories and add newly created real subdirectories.
+`internal/watcher` owns the event loop and depends on narrow Store, Dispatcher, Observer, Clock, Stat, and lifecycle-reporting interfaces. Production uses one fsnotify observer. File watchers observe the parent directory and filter the exact file name, then use one shared bounded reconciliation timer to detect a prospective file-identity change if a native backend coalesces the replacement notification. Recursive directory watchers walk only real directories and add newly created real subdirectories.
 
 ### Generation and timing state machine
 
-Every successful reload closes the old observer, clears pending candidates, increments a generation, loads current enabled definitions, and builds a new registration map. Candidate state is keyed by watcher ID and cleaned absolute file path. The first matching create or write signal sets a debounce deadline. Subsequent signals move that deadline. After debounce, the runtime captures size and modification time, waits one stability period, and dispatches only if the second snapshot matches. A mutation or degradation invalidates the generation before any pending dispatch.
+Every successful reload closes the old observer, clears pending candidates, increments a generation, loads current enabled definitions, and builds a new registration map. Candidate state is keyed by watcher ID and cleaned absolute file path. Registration and recovery baseline each exact-file identity without dispatch. The first matching create or write signal, or a later reconciled identity change, sets a debounce deadline. Subsequent signals move that deadline. After debounce, the runtime captures file identity, size, and modification time, waits one stability period, and dispatches only if the second snapshot matches. A mutation or degradation invalidates the generation before any pending dispatch.
 
 ### Health and recovery
 

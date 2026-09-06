@@ -119,6 +119,8 @@ func TestManagerAcceptsRenameHintWhenFinalPathIsRegular(t *testing.T) {
 	go func() { done <- manager.Run(ctx) }()
 	<-manager.Ready()
 	fake.events <- fsnotify.Event{Name: path, Op: fsnotify.Rename}
+	waitFor(t, func() bool { return len(fake.events) == 0 })
+	time.Sleep(10 * time.Millisecond)
 	waitFor(t, func() bool { return clk.Waiters() > 0 })
 	clk.Advance(25 * time.Millisecond)
 	waitFor(t, func() bool { return clk.Waiters() > 0 })
@@ -130,6 +132,77 @@ func TestManagerAcceptsRenameHintWhenFinalPathIsRegular(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("rename hint did not dispatch")
+	}
+	cancel()
+	<-done
+}
+
+func TestManagerReconcilesMissedAtomicReplacementWithoutReplay(t *testing.T) {
+	root := canonicalTempDir(t)
+	path := filepath.Join(root, "ready.txt")
+	if err := os.WriteFile(path, []byte("ready"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	original, err := os.Lstat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clk := clock.NewFake(time.Now())
+	definition := domain.FilesystemWatcher{ID: "watcher-1", Name: "ready", Kind: domain.WatcherFile, Path: path, Debounce: 25 * time.Millisecond, Stability: 25 * time.Millisecond, TargetTaskID: "task-1", Enabled: true}
+	dispatcher := &dispatcherStub{ch: make(chan string, 2)}
+	fake := newFakeObserver()
+	manager := newManager(&watcherStoreStub{items: []domain.FilesystemWatcher{definition}}, dispatcher, clk, slog.Default(), func() (observer, error) { return fake, nil })
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- manager.Run(ctx) }()
+	<-manager.Ready()
+
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(reconciliationInterval)
+	time.Sleep(5 * time.Millisecond)
+	select {
+	case id := <-dispatcher.ch:
+		t.Fatalf("startup reconciliation replayed %q", id)
+	default:
+	}
+
+	temporary := filepath.Join(root, "temporary.txt")
+	if err := os.WriteFile(temporary, []byte("ready"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(temporary, original.ModTime(), original.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(temporary, path); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(reconciliationInterval)
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(definition.Debounce)
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(definition.Stability)
+	select {
+	case id := <-dispatcher.ch:
+		if id != definition.ID {
+			t.Fatalf("dispatch id = %q", id)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("missed atomic replacement was not reconciled")
+	}
+
+	fake.events <- fsnotify.Event{Name: path, Op: fsnotify.Write}
+	waitFor(t, func() bool { return len(fake.events) == 0 })
+	waitFor(t, func() bool { return clk.Waiters() > 0 })
+	clk.Advance(definition.Debounce + definition.Stability)
+	time.Sleep(5 * time.Millisecond)
+	select {
+	case id := <-dispatcher.ch:
+		t.Fatalf("late native hint duplicated dispatch %q", id)
+	default:
 	}
 	cancel()
 	<-done
