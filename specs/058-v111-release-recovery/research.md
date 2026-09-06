@@ -35,3 +35,9 @@
 **Decision**: Reuse the existing draft staging and no-rebuild promotion workflows after the exact-commit CI correction in PR #143.
 
 **Rationale**: The workflow now requires successful main-branch CI for the precise tag commit before building. Replacing the pipeline would expand scope and risk without improving the release guarantee.
+
+## Automation regression closure
+
+**Decision**: Update the approved release-workflow fixture for the exact-commit CI contract and execute its fixture suite from the canonical automation gate.
+
+**Rationale**: Direct workflow validation can pass while its synthetic approved baseline is stale. Running both from one gate prevents future validator changes from escaping CI without fixture reconciliation.

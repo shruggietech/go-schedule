@@ -2,7 +2,7 @@
 
 ## Specification analysis
 
-The specification defines 11 functional requirements, 5 measurable outcomes, 3 independently testable user stories, 14 completed requirements-quality checks, and 10 chronological repository tasks. Every requirement maps to historical preservation, source preparation, staging, qualification, promotion, or final-audit evidence. No unresolved ambiguity, duplicate planning record, scope leak, constitution conflict, or missing requirement coverage remains.
+The specification defines 12 functional requirements, 5 measurable outcomes, 3 independently testable user stories, 14 completed requirements-quality checks, and 13 chronological repository tasks. Every requirement maps to historical preservation, source preparation, automation regression closure, staging, qualification, promotion, or final-audit evidence. No unresolved ambiguity, duplicate planning record, scope leak, constitution conflict, or missing requirement coverage remains.
 
 ## Historical and hosted evidence
 
@@ -14,7 +14,11 @@ Issue [#140](https://github.com/shruggietech/go-schedule/issues/140) and milesto
 
 The v1.1.1 release note passed the established highlights-only contract with exactly four bullets and one final tagged changelog link. The changelog contains an empty Unreleased boundary, a dated v1.1.1 correction section, the preserved v1.1.0 historical section, and correct comparison references. The README contains exactly one synchronized 1.1.1 health example.
 
-The canonical `scripts/verify.sh all` run passed all eight gates through the installed WSL shell with Windows Go binaries explicitly selected: format, vet, lint with zero findings, race, GUI, coverage, documentation, and automation. Coverage results were engine 81.9 percent, schedule 89.2 percent, timezone 91.3 percent, store 80.1 percent, catchup 88.9 percent, and logbus 91.1 percent. The separate specification lifecycle audit reported all 58 specifications consistent, and `git diff --check` reported no whitespace errors.
+The initial canonical `scripts/verify.sh all` run passed all eight gates through the installed WSL shell with Windows Go binaries explicitly selected: format, vet, lint with zero findings, race, GUI, coverage, documentation, and direct automation validation. Coverage results were engine 81.9 percent, schedule 89.2 percent, timezone 91.3 percent, store 80.1 percent, catchup 88.9 percent, and logbus 91.1 percent. The separate specification lifecycle audit reported all 58 specifications consistent, and `git diff --check` reported no whitespace errors.
+
+Second-round Codex review identified that the approved release-workflow fixture was stale even though direct automation validation passed. The finding reproduced exactly. S058 updated the fixture with the exact-commit CI job and dependency contract, corrected the associated negative cases, and added `test/scripts/automation-check_test.sh automation` to the canonical automation gate. The focused fixture suite then passed. The first complete post-fix run passed format, vet, lint, race, GUI, coverage, and documentation before the automation gate correctly rejected T013 while it remained open. The next run proved that a Windows Go executable cannot consume a fixture rooted in WSL `/tmp`, so the harness now creates its verified disposable tree beneath the repository where both toolchains resolve it consistently.
+
+The final canonical `scripts/verify.sh all` rerun passed all eight gates, including direct automation validation and `automation-check-test: OK (automation)` under the Windows-Go-from-WSL configuration. Coverage remained engine 81.9 percent, schedule 89.2 percent, timezone 91.3 percent, store 80.1 percent, catchup 88.9 percent, and logbus 91.1 percent.
 
 ## Publication evidence
 

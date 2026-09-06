@@ -85,6 +85,7 @@ A user downloads v1.1.1 and receives artifacts built from the reviewed correctiv
 - **FR-009**: The exact staged Windows MSI MUST pass the applicable candidate and attended qualification gates before promotion.
 - **FR-010**: Promotion MUST verify the staged artifact set, qualification evidence, tag identity, and final checksum inventory without rebuilding artifacts.
 - **FR-011**: The final audit MUST verify public, latest, tag, commit, asset, checksum, note, changelog, README, and binary version consistency for v1.1.1.
+- **FR-012**: The canonical automation gate MUST execute the approved-workflow fixture regression suite so validator contract changes cannot leave a stale fixture undetected.
 
 ## Success Criteria
 

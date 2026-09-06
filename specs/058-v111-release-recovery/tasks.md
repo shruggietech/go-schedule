@@ -20,10 +20,16 @@
 - [x] T009 Run release-copy, lifecycle, formatting, focused integration, and complete eight-gate verification.
 - [x] T010 Record exact verification evidence and mark S058 implementation complete.
 
-## Phase 3: Publication operations
+## Phase 3: Review hardening
+
+- [x] T011 Reproduce the second-round Codex finding against `test/scripts/automation-check_test.sh` and confirm the approved release fixture is stale.
+- [x] T012 Update the approved exact-commit CI fixture and its dependency mutation cases, then make `scripts/verify.sh automation` execute the regression suite.
+- [x] T013 Rerun focused and complete canonical verification, record the review resolution, and prepare the verified correction for push.
+
+## Phase 4: Publication operations
 
 Publication operations are tracked by issue #140 rather than represented as repository implementation tasks. They proceed after the reviewed preparation merge in this order: revalidate and preserve the v1.1.0 tag, retire only its unpublished draft, create the immutable v1.1.1 tag, require successful main CI for the exact commit, stage draft artifacts, qualify the exact candidate, promote without rebuild, perform the final checksum and identity audit, then close the issue and milestone.
 
 ## Dependencies and execution order
 
-T001 through T004 establish release authority and an internally consistent recovery design. T005 synchronizes authoritative hosted planning. T006 through T008 prepare the source identity and public copy. T009 validates the result before T010 records completion. Public release operations begin only after the preparation pull request is reviewed, green, and merged.
+T001 through T004 establish release authority and an internally consistent recovery design. T005 synchronizes authoritative hosted planning. T006 through T008 prepare the source identity and public copy. T009 and T010 validate and record the initial implementation. T011 through T013 close review-discovered verification gaps before publication. Public release operations begin only after the preparation pull request is reviewed, green, and merged.

@@ -54,9 +54,11 @@ specs/058-v111-release-recovery/
 ├── tasks.md
 └── verification.md
 specs/README.md
+scripts/verify.sh
+test/scripts/automation-check_test.sh
 ```
 
-**Structure Decision**: Release recovery changes only versioned identity, release copy, planning records, and Spec Kit evidence. Existing build and promotion workflows remain unchanged because PR #143 already added the exact-commit CI preflight.
+**Structure Decision**: Release recovery changes versioned identity, release copy, planning records, Spec Kit evidence, and the canonical automation test path. Existing build and promotion workflows remain unchanged because PR #143 already added the exact-commit CI preflight; S058 synchronizes its approved fixture and makes the canonical automation gate execute that regression suite.
 
 ## Complexity Tracking
 

@@ -149,6 +149,19 @@ EOF
   cat > "$fixture/.github/workflows/release.yml" <<'EOF'
 name: Release
 jobs:
+  ci-success:
+    name: Require successful CI for tagged commit
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - run: |
+          RESPONSE="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push"
+          RUN='.head_branch == "main" and .event == "push"'
+          if [ "$STATUS" = completed ]; then
+            exit 1
+          fi
+          echo "Timed out waiting for successful main CI"
   readme-version:
     steps:
       - run: |
@@ -156,7 +169,7 @@ jobs:
           BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
           test "$BADGE_LINE_COUNT" -eq 1
   release-state:
-    needs: readme-version
+    needs: [readme-version, ci-success]
     steps:
       - name: Refuse to mutate an already-public release
         run: test "$(printf '%s' "$BODY" | jq -r '.draft')" = true
@@ -233,7 +246,7 @@ EOF
 run_automation_cases() {
   [ -f "$CHECK" ] || fail "missing $CHECK"
 
-  tmp=$(mktemp -d)
+  tmp=$(mktemp -d "$ROOT/.automation-check-test.XXXXXX")
   trap 'rm -rf "$tmp"' EXIT HUP INT TERM
   good="$tmp/good"
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
@@ -347,21 +360,21 @@ run_automation_cases() {
 
   ungated_release="$tmp/ungated-release"
   cp -R "$good" "$ungated_release"
-  sed 's/needs: readme-version/needs: binaries/' \
+  sed 's/needs: \[readme-version, ci-success\]/needs: readme-version/' \
     "$good/.github/workflows/release.yml" > \
     "$ungated_release/.github/workflows/release.yml"
   printf '  gui: # desktop release\n    needs: readme-version\n' >> \
     "$ungated_release/.github/workflows/release.yml"
-  run_expect_fail ungated-release 'README version preflight dependency' \
+  run_expect_fail ungated-release 'README and exact-commit CI preflight dependencies' \
     sh "$CHECK" "$ungated_release"
 
   nested_dependency="$tmp/nested-dependency"
   cp -R "$good" "$nested_dependency"
-  sed 's/^    needs: readme-version$/    env:\
-      needs: readme-version/' \
+  sed 's/^    needs: \[readme-version, ci-success\]$/    env:\
+      needs: [readme-version, ci-success]/' \
     "$good/.github/workflows/release.yml" > \
     "$nested_dependency/.github/workflows/release.yml"
-  run_expect_fail nested-dependency 'README version preflight dependency' \
+  run_expect_fail nested-dependency 'README and exact-commit CI preflight dependencies' \
     sh "$CHECK" "$nested_dependency"
 
   sigpipe_preflight="$tmp/sigpipe-preflight"

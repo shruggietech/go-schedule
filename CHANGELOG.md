@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Exact-file watchers now recover native replacement events without duplicate runs (Closes #142; Refs #135).** Periodic reconciliation detects replacements that the operating system reports only against the containing directory, preserves the last stable file identity through temporary absence, and deduplicates late native notifications against the reconciled outcome.
 
-- **Release staging now requires successful main CI for the exact tagged commit (Closes #142; Refs #140).** The Release workflow waits for the push-triggered `main` CI run whose commit matches the tag, fails closed on unsuccessful conclusions or timeout, and cannot build or upload packages from an unverified merge commit.
+- **Release staging now requires successful main CI for the exact tagged commit (Closes #142; Refs #140).** The Release workflow waits for the push-triggered `main` CI run whose commit matches the tag, fails closed on unsuccessful conclusions or timeout, and cannot build or upload packages from an unverified merge commit. The canonical automation gate also executes its fixture regression suite so workflow-contract changes cannot leave the approved baseline stale.
 
 ## [1.1.0] - 2026-09-05
 
