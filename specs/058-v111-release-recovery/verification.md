@@ -1,0 +1,21 @@
+# Verification: v1.1.1 Release Recovery
+
+## Specification analysis
+
+The specification defines 11 functional requirements, 5 measurable outcomes, 3 independently testable user stories, 14 completed requirements-quality checks, and 10 chronological repository tasks. Every requirement maps to historical preservation, source preparation, staging, qualification, promotion, or final-audit evidence. No unresolved ambiguity, duplicate planning record, scope leak, constitution conflict, or missing requirement coverage remains.
+
+## Historical and hosted evidence
+
+GitHub API inspection confirmed that the annotated v1.1.0 tag object `24e116c7436f737aafd136c6f7190d0fce301d8b` still points to commit `d3b47e44c18faab7474ed383021f483488064a06`. The v1.1.0 GitHub release remains an unpublished draft, and no v1.1.1 tag or release exists. Exact-commit main CI run [34005457330](https://github.com/shruggietech/go-schedule/actions/runs/34005457330) completed successfully for corrective merge `d207daf24b53bd351d671d1b4a90221b4dbd151d`.
+
+Issue [#140](https://github.com/shruggietech/go-schedule/issues/140) and milestone #4 now identify v1.1.1 as the authoritative corrected release target. Their acceptance criteria preserve the historical v1.1.0 tag, prohibit publishing its draft, require exact-commit main CI, and retain the existing qualification and no-rebuild promotion controls.
+
+## Repository evidence
+
+The v1.1.1 release note passed the established highlights-only contract with exactly four bullets and one final tagged changelog link. The changelog contains an empty Unreleased boundary, a dated v1.1.1 correction section, the preserved v1.1.0 historical section, and correct comparison references. The README contains exactly one synchronized 1.1.1 health example.
+
+The canonical `scripts/verify.sh all` run passed all eight gates through the installed WSL shell with Windows Go binaries explicitly selected: format, vet, lint with zero findings, race, GUI, coverage, documentation, and automation. Coverage results were engine 81.9 percent, schedule 89.2 percent, timezone 91.3 percent, store 80.1 percent, catchup 88.9 percent, and logbus 91.1 percent. The separate specification lifecycle audit reported all 58 specifications consistent, and `git diff --check` reported no whitespace errors.
+
+## Publication evidence
+
+Public release operations remain tracked by issue [#140](https://github.com/shruggietech/go-schedule/issues/140) and begin only after the reviewed S058 preparation merge. Their first destructive step must revalidate the unpublished v1.1.0 draft before deleting that draft only; the immutable v1.1.0 Git tag remains untouched.

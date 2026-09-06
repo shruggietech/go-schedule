@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-05
+
+### Fixed
+
+- **Exact-file watchers now recover native replacement events without duplicate runs (Closes #142; Refs #135).** Periodic reconciliation detects replacements that the operating system reports only against the containing directory, preserves the last stable file identity through temporary absence, and deduplicates late native notifications against the reconciled outcome.
+
+- **Release staging now requires successful main CI for the exact tagged commit (Closes #142; Refs #140).** The Release workflow waits for the push-triggered `main` CI run whose commit matches the tag, fails closed on unsuccessful conclusions or timeout, and cannot build or upload packages from an unverified merge commit.
+
 ## [1.1.0] - 2026-09-05
 
 ### Added
@@ -564,7 +572,8 @@ Upgrading is a normal install; the store migrates forward automatically. Note th
   - `internal/autostart`, the GUI now starts the background daemon automatically (detached, windowless) if none is reachable, and reuses an already-running one (e.g. the installed service); the daemon's single-instance lock prevents duplicates.
   - Releases now publish a self-contained `go-scheduler-desktop_<os>_<arch>` archive bundling the GUI + daemon + CLI, so desktop users download one file and just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/shruggietech/go-schedule/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/shruggietech/go-schedule/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/shruggietech/go-schedule/compare/v0.9.1...v1.0.0
 [0.9.1]: https://github.com/shruggietech/go-schedule/compare/v0.9.0...v0.9.1
