@@ -13,6 +13,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  ci-success:
+    name: Require successful CI for tagged commit
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Wait for exact-commit main CI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do
+            RESPONSE=$(curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push&per_page=10")
+            RUN=$(printf '%s' "$RESPONSE" | jq -c '[.workflow_runs[] | select(.head_branch == "main" and .event == "push")] | sort_by(.created_at) | reverse | .[0] // empty')
+            if [ -n "$RUN" ]; then
+              STATUS=$(printf '%s' "$RUN" | jq -r '.status')
+              CONCLUSION=$(printf '%s' "$RUN" | jq -r '.conclusion // ""')
+              URL=$(printf '%s' "$RUN" | jq -r '.html_url')
+              if [ "$STATUS" = completed ] && [ "$CONCLUSION" = success ]; then
+                echo "Exact-commit main CI succeeded: ${URL}"
+                exit 0
+              fi
+              if [ "$STATUS" = completed ]; then
+                echo "::error::Exact-commit main CI concluded ${CONCLUSION}: ${URL}"
+                exit 1
+              fi
+              echo "Exact-commit main CI is ${STATUS}: ${URL}"
+            else
+              echo "Exact-commit main CI has not started yet."
+            fi
+            if [ "$attempt" -eq 120 ]; then
+              echo "::error::Timed out waiting for successful main CI on ${GITHUB_SHA}."
+              exit 1
+            fi
+            sleep 15
+          done
+
   # The badge follows the latest published GitHub release, while release
   # preparation updates the static health example through review. Verify both
   # in the tagged checkout without trying to push directly to main. This
@@ -53,7 +94,7 @@ jobs:
 
   release-state:
     name: Require absent or draft release state
-    needs: readme-version
+    needs: [readme-version, ci-success]
     runs-on: ubuntu-latest
     permissions:
       contents: read

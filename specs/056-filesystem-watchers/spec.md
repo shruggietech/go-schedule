@@ -91,12 +91,12 @@ An operator expects watchers to recover predictably when a root is missing, repl
 - **FR-001**: The system MUST persist named filesystem watchers with a stable identifier, explicit `file` or `directory` kind, configured path, optional file-name pattern, recursive selection, debounce duration, stability duration, target task, enabled state, and creation and update timestamps.
 - **FR-002**: The system MUST accept watcher creation for a currently missing path because the explicit kind removes path-type ambiguity, while reporting the watcher as degraded until the path becomes observable.
 - **FR-003**: A file watcher MUST select only its exact configured regular file; a directory watcher MUST select regular files under its root at the configured depth whose base name matches its pattern, with `*` as the default pattern.
-- **FR-004**: The system MUST treat create, content-write, and rename-into-place events that leave a selected regular file present as dispatch candidates, and MUST ignore removals, directory-only changes, metadata-only changes, and unsupported non-regular files.
+- **FR-004**: The system MUST treat create, content-write, rename-into-place, and a prospectively observed exact-file identity change that leave a selected regular file present as dispatch candidates, and MUST ignore removals, directory-only changes, metadata-only changes, and unsupported non-regular files.
 - **FR-005**: Dispatch candidates for the same watcher and file MUST be coalesced until no candidate event occurs for the configured debounce duration.
 - **FR-006**: After debounce, the system MUST require the selected file's size and modification time to remain unchanged for the configured stability duration before requesting a run; a change or temporary disappearance restarts settling rather than dispatching early.
 - **FR-007**: Each settled candidate MUST request one run through the existing overlap-aware task dispatcher and MUST preserve task command readiness, active state, enabled state, ancestor-group eligibility, worker limits, overlap policy, diagnostics, and run history.
 - **FR-008**: Filesystem-originated runs MUST carry the `filesystem_watcher` trigger classification and the stable watcher identifier as provenance without recording the matched path in append-only run history.
-- **FR-009**: The daemon MUST load all enabled watchers at startup, observe only future events after registration, and MUST NOT scan or replay changes that occurred while stopped or degraded.
+- **FR-009**: The daemon MUST load all enabled watchers at startup, establish a prospective baseline for exact-file targets, observe only future changes after registration, and MUST NOT scan directory contents or replay changes that occurred while stopped or degraded.
 - **FR-010**: The daemon MUST apply watcher create, update, enable, disable, and delete mutations without restart, and MUST cancel pending candidates from an obsolete or disabled configuration before they can dispatch.
 - **FR-011**: The system MUST expose runtime health as `active`, `disabled`, or `degraded`, with a bounded actionable reason and last transition time; health MUST be derived from the current daemon runtime rather than persisted as historical truth.
 - **FR-012**: Missing roots, replaced roots, permission loss, unsupported links, observer errors, and overflow MUST transition affected watchers to degraded health, discard pending candidates, and retry observation at a bounded interval.
@@ -113,6 +113,7 @@ An operator expects watchers to recover predictably when a root is missing, repl
 - **FR-023**: Every watcher-owned goroutine, timer, observer handle, and recovery loop MUST terminate when the daemon stops or the watcher configuration is replaced.
 - **FR-024**: Migration from schema version 13 MUST be forward-only, preserve all existing data, add watcher persistence and watcher run provenance, and be proven against a real version-13 schema fixture.
 - **FR-025**: Automated tests MUST document and verify the supported behavior on Windows, Linux, and macOS without assuming identical low-level event sequences.
+- **FR-026**: The daemon MUST reconcile configured exact-file identities at a bounded interval so a native notification gap cannot lose an atomic replacement, while suppressing duplicate dispatch from a late native hint for the same file identity.
 
 ### Key Entities
 

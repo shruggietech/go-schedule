@@ -21,8 +21,10 @@ import (
 )
 
 const (
-	recoveryInterval = 2 * time.Second
-	maxHealthReason  = 512
+	recoveryInterval       = 2 * time.Second
+	reconciliationInterval = 250 * time.Millisecond
+	duplicateHintWindow    = time.Second
+	maxHealthReason        = 512
 )
 
 // Store supplies the current durable watcher definitions.
@@ -40,7 +42,8 @@ type HealthReporter func(domain.FilesystemWatcher, domain.WatcherHealth)
 
 type observerFactory func() (observer, error)
 
-type fileSnapshot struct {
+type fileVersion struct {
+	info    os.FileInfo
 	size    int64
 	modTime time.Time
 }
@@ -50,8 +53,10 @@ type pendingCandidate struct {
 	path        string
 	generation  uint64
 	dueAt       time.Time
-	snapshot    *fileSnapshot
+	version     fileVersion
+	snapshot    *fileVersion
 	stableSince time.Time
+	reconciled  bool
 }
 
 // Manager owns one native observer and one generation-scoped event loop.
@@ -169,7 +174,21 @@ type runtimeState struct {
 	pending       map[string]pendingCandidate
 	generation    uint64
 	recoveryDue   time.Time
+	reconcileDue  time.Time
 	needsRecovery bool
+	fileStates    map[string]fileState
+	dispatched    map[string]recentDispatch
+}
+
+type fileState struct {
+	initialized bool
+	present     bool
+	version     fileVersion
+}
+
+type recentDispatch struct {
+	version       fileVersion
+	suppressUntil time.Time
 }
 
 func (s *runtimeState) rebuild() {
@@ -179,8 +198,11 @@ func (s *runtimeState) rebuild() {
 	s.definitions = map[string]domain.FilesystemWatcher{}
 	s.configs = map[string]domain.FilesystemWatcher{}
 	s.observed = map[string]bool{}
+	s.fileStates = map[string]fileState{}
+	s.dispatched = map[string]recentDispatch{}
 	s.needsRecovery = false
 	s.recoveryDue = time.Time{}
+	s.reconcileDue = time.Time{}
 	definitions, err := s.manager.store.ListFilesystemWatchers()
 	if err != nil {
 		s.manager.log.Error("watcher: load definitions", "err", err)
@@ -220,8 +242,10 @@ func (s *runtimeState) rebuild() {
 			continue
 		}
 		s.configs[definition.ID] = definition
+		s.baselineFile(definition)
 		s.manager.setHealth(definition, domain.WatcherActive, "")
 	}
+	s.scheduleReconciliation()
 }
 
 func (s *runtimeState) register(definition domain.FilesystemWatcher, added map[string]bool) error {
@@ -312,8 +336,10 @@ func (s *runtimeState) handleEvent(event fsnotify.Event) {
 		if !matches(definition, path) {
 			continue
 		}
-		key := id + "\x00" + normalizedPath(path)
-		s.pending[key] = pendingCandidate{watcherID: id, path: path, generation: s.generation, dueAt: now.Add(definition.Debounce)}
+		if definition.Kind == domain.WatcherFile {
+			s.fileStates[id] = fileState{initialized: true, present: true, version: versionOf(info)}
+		}
+		s.scheduleCandidate(id, definition, path, info, now, true)
 	}
 }
 
@@ -353,6 +379,10 @@ func (s *runtimeState) processDue() {
 		s.recoverDefinitions()
 		return
 	}
+	if !s.reconcileDue.IsZero() && !s.reconcileDue.After(now) {
+		s.reconcileFiles(now)
+		s.scheduleReconciliation()
+	}
 	for key, candidate := range s.pending {
 		if candidate.dueAt.After(now) {
 			continue
@@ -367,9 +397,10 @@ func (s *runtimeState) processDue() {
 			delete(s.pending, key)
 			continue
 		}
-		current := fileSnapshot{size: info.Size(), modTime: info.ModTime()}
-		if candidate.snapshot == nil || *candidate.snapshot != current {
+		current := versionOf(info)
+		if candidate.snapshot == nil || !sameVersion(*candidate.snapshot, current) {
 			candidate.snapshot = &current
+			candidate.version = current
 			candidate.stableSince = now
 			candidate.dueAt = now.Add(definition.Stability)
 			s.pending[key] = candidate
@@ -381,6 +412,11 @@ func (s *runtimeState) processDue() {
 			continue
 		}
 		delete(s.pending, key)
+		if definition.Kind == domain.WatcherFile && candidate.reconciled {
+			s.dispatched[key] = recentDispatch{version: current, suppressUntil: now.Add(duplicateHintWindow)}
+		} else {
+			delete(s.dispatched, key)
+		}
 		if err := s.manager.dispatcher.FireFilesystemWatcher(candidate.watcherID); err != nil {
 			s.manager.log.Warn("watcher: task dispatch rejected", "watcher", candidate.watcherID, "err", err)
 		}
@@ -406,8 +442,76 @@ func (s *runtimeState) recoverDefinitions() {
 			continue
 		}
 		s.configs[id] = definition
+		s.baselineFile(definition)
 		s.manager.setHealth(definition, domain.WatcherActive, "")
 	}
+	s.scheduleReconciliation()
+}
+
+func (s *runtimeState) baselineFile(definition domain.FilesystemWatcher) {
+	if definition.Kind != domain.WatcherFile {
+		return
+	}
+	s.fileStates[definition.ID] = inspectFile(definition.Path)
+}
+
+func (s *runtimeState) reconcileFiles(now time.Time) {
+	for key, recent := range s.dispatched {
+		if !recent.suppressUntil.After(now) {
+			delete(s.dispatched, key)
+		}
+	}
+	for id, definition := range s.configs {
+		if definition.Kind != domain.WatcherFile {
+			continue
+		}
+		previous := s.fileStates[id]
+		current := inspectFile(definition.Path)
+		s.fileStates[id] = current
+		if !previous.initialized || !current.present {
+			continue
+		}
+		if previous.present && sameVersion(previous.version, current.version) {
+			continue
+		}
+		s.scheduleCandidate(id, definition, definition.Path, current.version.info, now, false)
+	}
+}
+
+func (s *runtimeState) scheduleCandidate(id string, definition domain.FilesystemWatcher, path string, info os.FileInfo, now time.Time, nativeHint bool) {
+	key := id + "\x00" + normalizedPath(path)
+	current := versionOf(info)
+	if previous, ok := s.dispatched[key]; ok && previous.suppressUntil.After(now) && sameVersion(previous.version, current) {
+		return
+	}
+	reconciled := !nativeHint
+	if candidate, ok := s.pending[key]; ok && sameVersion(candidate.version, current) {
+		if !nativeHint {
+			return
+		}
+		reconciled = candidate.reconciled
+	}
+	s.pending[key] = pendingCandidate{watcherID: id, path: path, generation: s.generation, dueAt: now.Add(definition.Debounce), version: current, reconciled: reconciled}
+}
+
+func inspectFile(path string) fileState {
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		return fileState{initialized: true}
+	}
+	return fileState{initialized: true, present: true, version: versionOf(info)}
+}
+
+func versionOf(info os.FileInfo) fileVersion {
+	// Windows resolves the stable file ID lazily from the path in os.SameFile.
+	// Resolve it while this version still owns the path so a later replacement
+	// cannot make an old baseline appear identical to the new file.
+	_ = os.SameFile(info, info)
+	return fileVersion{info: info, size: info.Size(), modTime: info.ModTime()}
+}
+
+func sameVersion(left, right fileVersion) bool {
+	return left.info != nil && right.info != nil && os.SameFile(left.info, right.info) && left.size == right.size && left.modTime.Equal(right.modTime)
 }
 
 func (s *runtimeState) discardPending(watcherID string) {
@@ -428,6 +532,9 @@ func (s *runtimeState) nextTimer() (*clock.Timer, <-chan time.Time) {
 	if s.needsRecovery && (earliest.IsZero() || s.recoveryDue.Before(earliest)) {
 		earliest = s.recoveryDue
 	}
+	if !s.reconcileDue.IsZero() && (earliest.IsZero() || s.reconcileDue.Before(earliest)) {
+		earliest = s.reconcileDue
+	}
 	if earliest.IsZero() {
 		return nil, nil
 	}
@@ -446,6 +553,9 @@ func (s *runtimeState) degradeAll(reason string) {
 	s.closeObserver()
 	s.pending = map[string]pendingCandidate{}
 	s.configs = map[string]domain.FilesystemWatcher{}
+	s.fileStates = map[string]fileState{}
+	s.dispatched = map[string]recentDispatch{}
+	s.reconcileDue = time.Time{}
 	s.scheduleRecovery()
 }
 
@@ -460,6 +570,7 @@ func (s *runtimeState) degradeAffectedRoots(path, reason string) bool {
 		s.manager.setHealth(definition, domain.WatcherDegraded, reason)
 		delete(s.configs, id)
 		s.discardPending(id)
+		delete(s.fileStates, id)
 	}
 	if affected {
 		s.scheduleRecovery()
@@ -478,6 +589,16 @@ func (s *runtimeState) forgetObserved(path string) {
 func (s *runtimeState) scheduleRecovery() {
 	s.needsRecovery = true
 	s.recoveryDue = s.manager.clock.Now().Add(recoveryInterval)
+}
+
+func (s *runtimeState) scheduleReconciliation() {
+	for _, definition := range s.configs {
+		if definition.Kind == domain.WatcherFile {
+			s.reconcileDue = s.manager.clock.Now().Add(reconciliationInterval)
+			return
+		}
+	}
+	s.reconcileDue = time.Time{}
 }
 
 func (s *runtimeState) closeObserver() {
