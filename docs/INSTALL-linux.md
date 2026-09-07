@@ -10,11 +10,12 @@ nav_order: 2
 **Applies to:** go-schedule 0.6.0 and later\
 **See also:** [`gosched` command reference](cli.md) · [macOS](INSTALL-macos.md) · [Windows](INSTALL-windows.md)
 
-Linux ships as a release archive holding the daemon and the CLI. Both are cgo-free, so there is nothing to compile and no runtime dependency to satisfy. The desktop GUI is built separately and needs a C toolchain and OpenGL; a headless server does not want it and does not need it.
+The v1.2 candidate adds a Linux desktop archive beside the existing server archive. The server archive contains the cgo-free daemon and CLI. The desktop archive adds the native Wails application and freedesktop integration assets; it uses the system WebKitGTK runtime, while a headless server does not need desktop or WebView dependencies. The Wails archive is not part of the latest public v1.1.1 release.
 
 ## Contents
 
 - [Install](#install)
+- [Desktop bundle](#desktop-bundle)
 - [Register the service](#register-the-service)
 - [First task](#first-task)
 - [Where things live](#where-things-live)
@@ -47,6 +48,18 @@ sudo install -m 0755 goschedd gosched /usr/local/bin/
 ```sh
 gosched --version
 ```
+
+## Desktop bundle
+
+For an amd64 workstation, download `go-schedule-desktop_<ver>_linux_amd64.tar.gz`. It contains `gosched-gui`, `goschedd`, `gosched`, and a `share/` tree with the desktop entry and icons. The Wails application uses the system WebKitGTK 4.1 runtime. Keep the three binaries together or install them on `PATH`, then install the integration assets if wanted:
+
+```sh
+sudo install -m 0755 gosched-gui goschedd gosched /usr/local/bin/
+sudo cp -R share/applications share/icons /usr/local/share/
+gosched gui
+```
+
+The `arm64` release remains daemon-and-CLI only.
 
 ## Register the service
 

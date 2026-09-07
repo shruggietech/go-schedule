@@ -56,7 +56,7 @@ body:
       options:
         - Scheduling engine
         - CLI (gosched)
-        - Desktop GUI (gosched-gui)
+        - Wails desktop (gosched-gui)
         - Daemon / service lifecycle
         - Packaging and installers
         - Documentation

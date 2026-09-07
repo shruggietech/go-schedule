@@ -56,23 +56,24 @@ go-schedule is built around that. Schedules can be written in plain language or 
 
 **Draft first, activate when ready.** Tasks and groups can be saved before every detail is known. Nameless tasks display as `unnamed`, tasks without commands are visibly not runnable, and tasks with commands but no automatic source remain available for Run now as manual-only work.
 
-**A desktop app, not a wrapper.** A Go-native GUI with calendar and schedule views, a guided task editor that previews the schedule as you build it, a group tree, and a live Activity view. Opening it never leaves a console window behind. See the [GUI field reference](docs/gui-fields.md) for what each editor field accepts.
+**A native Wails desktop control center.** The desktop provides calendar and schedule views, a guided task editor that previews the schedule as you build it, a group tree, and a live Activity view. Opening it never leaves a console window behind. See the [GUI field reference](docs/gui-fields.md) for what each editor field accepts.
 
 ## Install
 
-Every [release](https://github.com/shruggietech/go-schedule/releases/latest) ships installers and archives per platform. Verify downloads against `SHA256SUMS.txt`; the artifacts are not signed.
+Every [release](https://github.com/shruggietech/go-schedule/releases/latest) ships installers and archives per platform. Verify downloads against `SHA256SUMS.txt`; the artifacts are not signed. The Wails desktop formats below describe the v1.2 candidate and later; the latest public release remains v1.1.1 until the separately authorized release ritual completes.
 
 | Platform | Download | Guide |
 | --- | --- | --- |
 | **Windows** | `go-schedule_<ver>_windows_amd64.msi` | [Windows install guide](docs/INSTALL-windows.md) |
-| **macOS desktop** | `go-schedule-desktop_<ver>_darwin_<arch>` | [macOS install guide](docs/INSTALL-macos.md) |
-| **Linux / headless** | `go-schedule_<ver>_<os>_<arch>.tar.gz` | [Linux install guide](docs/INSTALL-linux.md) |
+| **macOS desktop** | `go-schedule-desktop_<ver>_darwin_arm64.tar.gz` | [macOS install guide](docs/INSTALL-macos.md) |
+| **Linux desktop** | `go-schedule-desktop_<ver>_linux_amd64.tar.gz` | [Linux install guide](docs/INSTALL-linux.md) |
+| **Linux / macOS headless** | `go-schedule_<ver>_<os>_<arch>.tar.gz` | [Installation guides](docs/install.md) |
 
 On **Windows**, the `.msi` is a formal system installer: it installs to *Program Files*, registers the scheduler as an auto-starting Windows service, adds itself to `PATH`, and adds a Start-Menu shortcut. Uninstall through *Apps & features*.
 
 On **macOS**, the desktop bundle is self-contained, the GUI, daemon, and CLI in one `.app`, and starts the daemon itself on first launch. That daemon is not a service, so if you want the schedule to survive a reboot, register the service as well. The macOS guide covers this; it is the one thing people miss.
 
-On **Linux**, the archive holds the daemon and CLI, both cgo-free, with nothing to compile. Register the service and it starts on boot.
+On **Linux**, choose the amd64 Wails desktop bundle or the cgo-free daemon-and-CLI archive. Register the daemon as a service when the schedule must start on boot.
 
 ## Quick start
 
@@ -188,10 +189,10 @@ The complete, repository-owned brand kit lives in [`brand/`](brand/). Start with
 ## Project layout
 
 ```text
-cmd/        goschedd (daemon) · gosched (CLI) · gosched-gui (Fyne GUI)
+cmd/        goschedd (daemon) · gosched (CLI)
 internal/   engine · schedule · task · store · executor · catchup · timezone
             api · ipc · service · config · platform · logbus · autostart
-gui/        Fyne views, schedule list, calendar, editor, groups, logs
+desktop/    Wails desktop control center · React frontend · native bridge
 brand/      canonical brand guide · masters · outputs · tokens · platform assets
 test/       integration tests · maintainer test scripts
 docs/       install guides · CLI reference · GUI fields · brand system
@@ -209,7 +210,7 @@ Development is spec-driven, via [Spec Kit](https://github.com/github/spec-kit). 
 
 Later features have their own directories under `specs/`. Engineering standards are governed by the project [constitution](.specify/memory/constitution.md): `gofmt`, `go vet`, and `golangci-lint` clean, `go test -race` green, at least 80 percent coverage on core packages, and a documented dispatch-latency budget.
 
-The daemon and CLI are cgo-free. The GUI needs a C toolchain and OpenGL to build, which CI and the release workflow provide; on Windows it is built windowless and spawns tasks with no console window.
+The daemon and CLI are cgo-free. The separate Wails desktop module needs Node.js, npm, a C toolchain, and the platform WebView development prerequisites; on Windows it is built windowless and spawns tasks with no console window.
 
 ## Contributing
 

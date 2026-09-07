@@ -447,7 +447,7 @@ The other five genuinely change system state and genuinely require elevation. Th
 gosched gui
 ```
 
-Launches the desktop application and detaches. On Windows no console window appears, which is why launching it this way is preferable to running the GUI binary from a shell.
+Launches the Wails desktop application and detaches. On Windows no console window appears, which is why launching it this way is preferable to running the GUI binary from a shell.
 
 The GUI must be present next to the `gosched` binary. If it is not, a server-only install, for instance, the command says so and names the path it looked in.
 

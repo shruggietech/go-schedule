@@ -206,34 +206,23 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
-          cache: true
-      - name: Install Fyne build dependencies (Linux)
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            go.sum
+            desktop/go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/frontend/package-lock.json
+      - name: Install Wails build dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libgl1-mesa-dev \
-            libwayland-dev \
-            libxkbcommon-dev \
-            wayland-protocols \
-            xorg-dev
-
-      # Embed the .exe file icon (shown in Explorer/taskbar) via a generated COFF
-      # resource. The .syso is built here, not committed: a Windows-format .syso
-      # would break the CGO-free `go build ./...` path on other platforms, and it
-      # only links cleanly under the external (cgo) linker the GUI build uses.
-      - name: Generate Windows executable icon resource
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          # -64 is required: without it goversioninfo emits a 32-bit (i386)
-          # resource that the amd64 linker rejects ("incompatible architecture").
-          go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 \
-            -64 \
-            -icon=brand/platform/windows/go-schedule.ico \
-            -o=cmd/gosched-gui/resource_windows_amd64.syso \
-            cmd/gosched-gui/versioninfo.json
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Install exact frontend dependencies
+        working-directory: desktop/frontend
+        run: npm ci
 
       # WiX v6 builds the Windows .msi from build/windows/goschedule.wxs.
       - name: Install WiX Toolset (Windows)
@@ -260,39 +249,28 @@ jobs:
           BASE="-s -w -X github.com/shruggietech/go-schedule/internal/buildinfo.Version=${VERSION}"
           stage="go-schedule-desktop_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p "$stage"
-          # GUI: windowless on Windows. It auto-starts the daemon if none is running.
-          go build -ldflags "$BASE ${{ matrix.ldflags }}" -o "$stage/gosched-gui${{ matrix.ext }}" ./cmd/gosched-gui
-          # Bundle the daemon and CLI so the GUI is self-contained.
+          if [ "${{ matrix.goos }}" = "linux" ]; then
+            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -tags webkit2_41 -ldflags "$BASE")
+            cp desktop/build/bin/gosched-gui "$stage/gosched-gui"
+          else
+            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -ldflags "$BASE ${{ matrix.ldflags }}")
+          fi
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
+          fi
+          # Bundle the daemon and CLI so the desktop distribution is self-contained.
           go build -ldflags "$BASE" -o "$stage/goschedd${{ matrix.ext }}" ./cmd/goschedd
           go build -ldflags "$BASE" -o "$stage/gosched${{ matrix.ext }}" ./cmd/gosched
           cp README.md LICENSE CHANGELOG.md "$stage/"
           if [ "${{ matrix.goos }}" = "darwin" ]; then
-            # Wrap the GUI in a .app so Finder/Dock show the icon. The daemon and
-            # CLI live beside the GUI binary inside the bundle, so the GUI's
-            # "daemon next to me" autostart lookup still resolves.
+            # Wails creates the native .app. The daemon and CLI live beside its
+            # executable so the desktop's "daemon next to me" lookup resolves.
             app="$stage/gosched-gui.app"
-            mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-            mv "$stage/gosched-gui" "$stage/goschedd" "$stage/gosched" "$app/Contents/MacOS/"
-            # The reviewed platform artifact is generated with the rest of the
-            # canonical kit and verified before commit. Release packaging copies
-            # it directly instead of maintaining a second resampling pipeline.
+            cp -R desktop/build/bin/gosched-gui.app "$app"
+            mv "$stage/goschedd" "$stage/gosched" "$app/Contents/MacOS/"
             cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
-            cat > "$app/Contents/Info.plist" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>CFBundleName</key><string>go-schedule</string>
-            <key>CFBundleDisplayName</key><string>go-schedule</string>
-            <key>CFBundleExecutable</key><string>gosched-gui</string>
-            <key>CFBundleIdentifier</key><string>tech.shruggie.goschedule</string>
-            <key>CFBundleShortVersionString</key><string>${VERSION#v}</string>
-            <key>CFBundleIconFile</key><string>icon.icns</string>
-            <key>CFBundlePackageType</key><string>APPL</string>
-            <key>NSHighResolutionCapable</key><true/>
-          </dict>
-          </plist>
-          PLIST
+            /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier tech.shruggie.goschedule" "$app/Contents/Info.plist"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION#v}" "$app/Contents/Info.plist"
           fi
           if [ "${{ matrix.goos }}" = "linux" ]; then
             # Ship freedesktop integration beside the portable desktop bundle.

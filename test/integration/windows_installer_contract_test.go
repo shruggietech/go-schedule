@@ -754,14 +754,13 @@ func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
 func TestWindowsInstallerGUIResourceContract(t *testing.T) {
 	workflow := string(readRepositoryFile(t, ".github", "workflows", "release.yml"))
 	required := []string{
-		"go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1",
-		"-64",
-		"-icon=brand/platform/windows/go-schedule.ico",
+		"github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build",
+		"desktop/build/bin/gosched-gui.exe",
 		`cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"`,
 		`cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"`,
 		`cp -R brand/platform/linux/hicolor "$stage/share/icons/"`,
-		"-o=cmd/gosched-gui/resource_windows_amd64.syso",
-		"./cmd/gosched-gui",
+		"go-version-file: desktop/go.mod",
+		"cache-dependency-path: desktop/frontend/package-lock.json",
 	}
 	for _, fragment := range required {
 		if !strings.Contains(workflow, fragment) {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "go-schedule-desktop",
-  "outputfilename": "go-schedule",
+  "name": "go-schedule",
+  "outputfilename": "gosched-gui",
   "frontend:install": "npm ci",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",

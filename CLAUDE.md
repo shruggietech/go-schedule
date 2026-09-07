@@ -1,6 +1,6 @@
 # go-schedule
 
-Cross-platform (Linux/macOS/Windows) task scheduler in Go. A system-wide daemon (`goschedd`) hosts the scheduling engine, SQLite store, and executor; the CLI (`gosched`) and the Go-native Fyne GUI (`gosched-gui`) are thin clients over a local IPC API (Unix socket / Windows named pipe). The master specification is `specs/001-task-scheduler/spec.md`, whose authoritative task list is `specs/001-task-scheduler/tasks.md`; that scope is delivered, and the roadmap of work still open is the GitHub issue tracker (`gh issue list`). Per-feature specs live under `specs/NNN-name/`.
+Cross-platform (Linux/macOS/Windows) task scheduler in Go. A system-wide daemon (`goschedd`) hosts the scheduling engine, SQLite store, and executor; the CLI (`gosched`) and Wails desktop (`gosched-gui`) are thin clients over a local IPC API (Unix socket / Windows named pipe). The master specification is `specs/001-task-scheduler/spec.md`, whose authoritative task list is `specs/001-task-scheduler/tasks.md`; that scope is delivered, and the roadmap of work still open is the GitHub issue tracker (`gh issue list`). Per-feature specs live under `specs/NNN-name/`.
 
 ## Build-phase autopilot
 
@@ -28,7 +28,7 @@ Run CI parity in the foreground and watch it finish. NEVER launch the test suite
 sh scripts/verify.sh all
 ```
 
-This is the single definition of green. It runs `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`, in that order, and stops on the first failure. Use `sh scripts/verify.sh <gate>` only to diagnose an individual gate. The format gate must print no files. The race gate excludes the cgo-only GUI entry point and the Fyne widget package (races there are inside Fyne's own font cache, not this project's code); `gui/viewmodel` stays race-tested and the GUI is covered by the headless gate.
+This is the single definition of green. It runs `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`, in that order, and stops on the first failure. Use `sh scripts/verify.sh <gate>` only to diagnose an individual gate. The format gate must print no files. The root race gate covers every daemon and CLI package. The `gui` compatibility gate covers the Wails Go module, frontend tests and bundle, and a native application build.
 
 `scripts/coverage-gate.sh` is the core-package coverage gate: the six core packages must stay at or above 80 percent. CI runs this exact script, so the local result and the CI result are the same measurement rather than two approximations of one, do not substitute `go test -cover`, which reports per-package coverage and will disagree, because the gate measures cross-package coverage with `-coverpkg` (a package's statements count as covered when *any* test in the tree reaches them).
 
@@ -55,5 +55,5 @@ Two local-environment traps, neither of which indicates a problem with the repo:
 Internal scheduling in UTC; per-task IANA timezone with DST (next-valid / first-occurrence); recurrence via RFC 5545 RRULE (rrule-go) behind a human-readable layer; injected `Clock` interface; `log/slog` structured logs; `go test -race`; dispatch latency p99 < 100ms. The GUI is built windowless (`-H windowsgui`) and tasks spawn with no console window.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure, shell commands, and other important information, read the current plan at specs/065-options-info/plan.md
+For additional context about technologies to be used, project structure, shell commands, and other important information, read the current plan at specs/066-wails-release-cutover/plan.md
 <!-- SPECKIT END -->

@@ -19,7 +19,7 @@ run_gate() {
 
   case "$gate" in
     format)
-      unformatted=$("$GOFMT" -l internal cmd test)
+      unformatted=$("$GOFMT" -l internal cmd test desktop)
       if [ -n "$unformatted" ]; then
         printf '%s\n' "$unformatted" >&2
         printf 'format: unformatted Go files found\n' >&2
@@ -43,20 +43,19 @@ run_gate() {
       CGO_ENABLED=0 "$GO" run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
       ;;
     race)
-      # Enumerate with cgo off so excluded desktop packages cannot make package
-      # discovery depend on OpenGL headers; the selected tests still run with cgo.
-      all_packages=$(CGO_ENABLED=0 "$GO" list ./...)
-      packages=$(printf '%s\n' "$all_packages" | grep -vE '/cmd/gosched-gui$|/gui$' || true)
-      if [ -z "$packages" ]; then
-        printf 'race: package selection is empty\n' >&2
-        return 1
-      fi
-      # Deliberate word splitting passes the newline-delimited package list as arguments.
-      # shellcheck disable=SC2086
-      CGO_ENABLED=1 "$GO" test -race $packages
+      CGO_ENABLED=1 "$GO" test -race ./...
       ;;
     gui)
-      "$GO" test ./gui/...
+      (
+        cd desktop
+        "$GO" test -race ./...
+        "$GO" run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+      )
+      (
+        cd desktop/frontend
+        npm test
+        npm run build
+      )
       ;;
     coverage)
       # Keep the profile relative to the repository so a Windows Go toolchain

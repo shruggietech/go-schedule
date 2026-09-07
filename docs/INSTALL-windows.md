@@ -7,12 +7,14 @@ nav_order: 1
 # Installing go-schedule on Windows
 
 **Audience:** Windows users installing go-schedule\
-**Applies to:** MSI-based releases from 0.6.0 onward; S039 lifecycle controls are unreleased\
+**Applies to:** MSI-based releases from 0.6.0 onward; Wails desktop guidance applies to the v1.2 candidate and later\
 **See also:** [`gosched` command reference](cli.md) · [Linux](INSTALL-linux.md) · [macOS](INSTALL-macos.md)
 
-> **Release status:** User-controlled shortcuts, completion actions, and the preserve-or-wipe uninstall flow described below are implemented for the next release after v0.9.1. They are not present in v0.9.1 or earlier installers.
+> **Release status:** The Wails package described below is the v1.2 candidate and is not part of the latest public v1.1.1 release. Tagging and publishing v1.2 require the separate post-merge release ritual.
 
 go-schedule installs as a formal Windows application via an `.msi` package. It puts the program in *Program Files*, runs the scheduler as an auto-starting **Windows service**, adds the install directory to `PATH`, and lets you choose Start Menu and desktop shortcuts. There is no "extract a zip and run an exe from Downloads" step.
+
+The v1.2 candidate installs the Wails desktop at the established `gosched-gui.exe` path. Upgrading a Fyne-era MSI replaces that executable in place, preserves daemon-owned tasks and run history, and migrates a valid System, Light, or Dark appearance preference on first Wails start. Framework-specific font and scroll settings are intentionally retired.
 
 ## Contents
 
@@ -104,7 +106,7 @@ Use **Settings -> Apps -> Installed apps -> go-schedule -> Modify**. Windows Ins
 - **Remove software and preserve application data** (default). This stops and removes the service, binaries, product registration, machine `PATH` entry, installer registry markers, and every selected installer-created shortcut. It preserves tasks, history, configuration, logs, runtime files, and desktop preferences for a later reinstall.
 - **Remove software and erase application data**. This requires a separate, explicit confirmation. Cleanup begins only after software removal commits successfully.
 
-Wipe covers the application-owned machine root `C:\ProgramData\goschedule\` and the application preference leaf `AppData\Roaming\fyne\tech.shruggie.goschedule` for every safely registered, accessible local Windows profile on a fixed local volume. It does not follow reparse points or accept path overrides. It does not delete exports, administrator-configured paths outside the default roots, adjacent user files, disconnected roaming copies, detached profile containers, or unregistered profile directories.
+Wipe covers the application-owned machine root `C:\ProgramData\goschedule\` and the legacy Fyne preference leaf `AppData\Roaming\fyne\tech.shruggie.goschedule` for every safely registered, accessible local Windows profile on a fixed local volume. The Wails preference file is removed through its application-owned settings boundary. Wipe does not follow reparse points or accept path overrides. It does not delete exports, administrator-configured paths outside the default roots, adjacent user files, disconnected roaming copies, detached profile containers, or unregistered profile directories.
 
 If any candidate root is redirected or otherwise unsafe, wipe refuses before deleting data. If a safe root cannot be completely removed, software removal still completes and a protected report is retained at:
 

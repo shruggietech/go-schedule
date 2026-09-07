@@ -80,15 +80,13 @@ require_ci_text() {
 if [ ! -f "$CI" ]; then
   report "$CI: canonical CI workflow not found"
 else
-  require_ci_text '  wails-proof:' 'Wails proof job'
   require_ci_text 'os: [ubuntu-latest, macos-latest, windows-latest]' \
-    'three-platform Wails proof matrix'
+    'three-platform production Wails matrix'
   require_ci_text 'uses: actions/setup-node@v7' 'approved Node setup action'
-  require_ci_text 'node-version: 24' 'Node 24 proof baseline'
-  require_ci_text 'go test -race ./...' 'nested Go race proof'
+  require_ci_text 'node-version: 24' 'Node 24 desktop baseline'
+  require_ci_text 'go test -race ./...' 'desktop Go race gate'
   require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build' \
-    'exact Wails proof build version'
-  require_ci_text '  wails-browser-contract:' 'Wails browser contract job'
+    'exact production Wails build version'
   require_ci_text '  wails-desktop:' 'production Wails desktop job'
   require_ci_text 'working-directory: desktop' 'production Wails desktop boundary'
   require_ci_text 'cache-dependency-path: desktop/go.sum' 'production Wails Go dependency cache'
@@ -98,6 +96,15 @@ else
     'production Wails frontend audit and verification'
   require_ci_text '  wails-desktop-browser-contract:' \
     'production Wails browser contract job'
+  require_ci_text 'desktop/build/bin/gosched-gui.exe' \
+    'Windows installer Wails payload'
+  require_ci_text 'Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage' \
+    'Windows installer documentation payload'
+  require_ci_text 'Inspect stable desktop identity' \
+    'three-platform stable desktop identity inspection'
+  if grep -Eq 'wails-proof:|wails-browser-contract:|Install Fyne|GUI build & test \(cgo\)' "$CI"; then
+    report "$CI: retired or parallel desktop validation remains"
+  fi
 fi
 
 CODEQL="$ROOT/.github/workflows/codeql.yml"
@@ -206,15 +213,15 @@ if [ ! -f "$DEPENDABOT" ]; then
   report "$DEPENDABOT: Dependabot configuration not found"
 else
   ecosystem_count=$(grep -Ec '^  - package-ecosystem:' "$DEPENDABOT" || true)
-  if [ "$ecosystem_count" -ne 2 ]; then
-    report "$DEPENDABOT: expected exactly two package ecosystems"
+  if [ "$ecosystem_count" -ne 4 ]; then
+    report "$DEPENDABOT: expected root Go, desktop Go, desktop npm, and GitHub Actions entries"
   fi
 
   invalid_ecosystems=$(awk '
     /^  - package-ecosystem:/ {
       ecosystem = $0
       sub(/^  - package-ecosystem:[[:space:]]*/, "", ecosystem)
-      if (ecosystem != "gomod" && ecosystem != "github-actions") print ecosystem
+      if (ecosystem != "gomod" && ecosystem != "npm" && ecosystem != "github-actions") print ecosystem
     }
   ' "$DEPENDABOT")
   if [ -n "$invalid_ecosystems" ]; then
@@ -223,8 +230,10 @@ else
 
   for ecosystem in gomod github-actions; do
     count=$(grep -Ec "^  - package-ecosystem: $ecosystem$" "$DEPENDABOT" || true)
-    if [ "$count" -ne 1 ]; then
-      report "$DEPENDABOT: expected exactly one $ecosystem entry"
+    expected_count=1
+    if [ "$ecosystem" = gomod ]; then expected_count=2; fi
+    if [ "$count" -ne "$expected_count" ]; then
+      report "$DEPENDABOT: expected $expected_count $ecosystem entry or entries"
       continue
     fi
 
@@ -258,10 +267,6 @@ else
     fi
 
     if [ "$ecosystem" = gomod ]; then
-      require_dependabot_pattern "$block" '^      gui-minor-and-patch:$' \
-        'gomod isolated GUI update group'
-      require_dependabot_pattern "$block" '^          - fyne\.io/\*$' \
-        'gomod GUI dependency pattern'
       require_dependabot_pattern "$block" '^      storage-minor-and-patch:$' \
         'gomod isolated storage update group'
       require_dependabot_pattern "$block" '^          - modernc\.org/sqlite$' \
@@ -275,6 +280,18 @@ else
         'gomod system dependency pattern'
     fi
   done
+
+  for required in \
+    '    directory: /desktop' \
+    '    directory: /desktop/frontend' \
+    '          - github.com/wailsapp/wails/v2'; do
+    if ! grep -Fq -- "$required" "$DEPENDABOT"; then
+      report "$DEPENDABOT: missing production desktop dependency boundary: $required"
+    fi
+  done
+  if grep -Fq -- 'fyne.io/*' "$DEPENDABOT"; then
+    report "$DEPENDABOT: retired Fyne dependency group remains"
+  fi
 fi
 
 LIFECYCLE="$ROOT/scripts/spec-lifecycle-check.sh"
@@ -301,8 +318,8 @@ require_release_text() {
 if [ ! -f "$RELEASE" ]; then
   report "$RELEASE: release workflow not found"
 else
-  require_release_text '-icon=brand/platform/windows/go-schedule.ico' \
-    'canonical Windows ICO'
+  require_release_text 'desktop/build/bin/gosched-gui.exe' \
+    'production Windows Wails executable'
   require_release_text \
     "cp brand/platform/macos/go-schedule.icns \"\$app/Contents/Resources/icon.icns\"" \
     'canonical macOS ICNS'
@@ -357,10 +374,19 @@ else
   require_release_text \
     'https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF' \
     'published-release badge source'
-  require_release_text 'libwayland-dev' \
-    'Linux desktop Wayland development headers'
-  require_release_text 'wayland-protocols' \
-    'Linux desktop Wayland protocols'
+  require_release_text 'libwebkit2gtk-4.1-dev' \
+    'Linux Wails WebKit development headers'
+  require_release_text 'go-version-file: desktop/go.mod' \
+    'production desktop Go module'
+  require_release_text 'cache-dependency-path: desktop/frontend/package-lock.json' \
+    'production frontend lockfile'
+  require_release_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build' \
+    'pinned native Wails release build'
+  require_release_text 'desktop/build/bin/gosched-gui.exe' \
+    'stable Windows Wails payload'
+  if grep -Eq 'Install Fyne|goversioninfo|\./cmd/gosched-gui' "$RELEASE"; then
+    report "$RELEASE: retired Fyne release path remains"
+  fi
   release_upload_count=$(grep -Ec \
     'uses: softprops/action-gh-release@v3' "$RELEASE" || true)
   draft_upload_count=$(grep -Ec '^[[:space:]]+draft: true$' \

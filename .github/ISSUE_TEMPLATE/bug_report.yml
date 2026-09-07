@@ -40,7 +40,7 @@ body:
       options:
         - Daemon (goschedd)
         - CLI (gosched)
-        - Desktop GUI (gosched-gui)
+        - Wails desktop (gosched-gui)
         - Installer / packaging
         - Maintainer test scripts
         - Documentation

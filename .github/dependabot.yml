@@ -1,4 +1,4 @@
-# S029: low-noise dependency proposals for the two maintained ecosystems.
+# Low-noise dependency proposals for the root services, production desktop, frontend, and hosted automation.
 version: 2
 updates:
   - package-ecosystem: gomod
@@ -7,15 +7,8 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      # Keep high-impact subsystems isolated so a GUI regression cannot block or
-      # obscure an otherwise healthy storage or platform update. The catch-all
+      # Keep high-impact storage and platform updates isolated. The catch-all
       # group preserves the low-noise policy for remaining routine updates.
-      gui-minor-and-patch:
-        patterns:
-          - fyne.io/*
-        update-types:
-          - minor
-          - patch
       storage-minor-and-patch:
         patterns:
           - modernc.org/sqlite
@@ -29,6 +22,42 @@ updates:
         update-types:
           - minor
           - patch
+      routine-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+
+  - package-ecosystem: gomod
+    directory: /desktop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      desktop-minor-and-patch:
+        patterns:
+          - github.com/wailsapp/wails/v2
+        update-types:
+          - minor
+          - patch
+      routine-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /desktop/frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
       routine-minor-and-patch:
         patterns:
           - "*"

@@ -1,6 +1,6 @@
 ---
 name: go-schedule-verify
-description: Run the go-schedule CI-parity verification gates correctly - the exact six commands, in the foreground, watched to completion - and interpret the two local-environment traps that make them fail for reasons unrelated to the code. Use before any commit, before the pre-push halt, when asked to "verify", "run the tests", "check CI parity", or when a gate has failed and the cause is unclear. Also use when reporting verification results, because the honesty rules about skipped gates live here.
+description: Run the go-schedule CI-parity verification gates correctly in the foreground, watch them to completion, and interpret local-environment failures honestly. Use before any commit, before publication, when asked to verify or run tests, or when a gate has failed and the cause is unclear.
 ---
 
 # go-schedule Verification
@@ -15,35 +15,15 @@ The CI-parity procedure for this repository. It exists as a skill rather than on
 
 ## The gates
 
-Run all six. They mirror `.github/workflows/ci.yml`.
+Run the canonical driver. It executes all eight gates in CI order and stops at the first failure.
 
 ```bash
-gofmt -l internal cmd test
+sh scripts/verify.sh all
 ```
 
-Must print **nothing**. Any output is a failure.
+The gates are `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`. The `gui` compatibility name now covers the production Wails module, frontend tests and build, and a native Wails application build.
 
-```bash
-go vet ./...
-```
-
-```bash
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
-```
-
-```bash
-CGO_ENABLED=1 go test -race $(go list ./... | grep -vE '/cmd/gosched-gui|/gui$')
-```
-
-```bash
-go test ./gui/...
-```
-
-```bash
-sh scripts/coverage-gate.sh
-```
-
-The race run excludes the cgo-only GUI entry point and the Fyne widget package, races there live inside Fyne's own font cache, not this project's code. `gui/viewmodel` stays race-tested, and the GUI is covered by the headless run.
+The format gate checks root and desktop Go sources and the GitHub publication format contract. The root race gate now covers every package because the legacy Fyne module has been retired. The Wails module is independently race-tested before its native application build, and the frontend runs both component tests and a production bundle build.
 
 For changes touching `test/scripts/`, add:
 
@@ -63,7 +43,7 @@ pwsh -File .claude/skills/shruggie-powershell/scripts/Test-ScriptCompliance.ps1 
 
 The six core packages must stay at or above 80 percent.
 
-## The two local-environment traps
+## Local-environment traps
 
 Neither indicates a problem with the repository.
 
@@ -76,7 +56,7 @@ Your **base** Go toolchain is older than the `go` line in `go.mod`. `go version`
 Either upgrade the base Go install to match `go.mod`, or force it for that one command:
 
 ```bash
-GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.6 run ./...
+GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
 ```
 
 **Do not "fix" this by editing `.golangci.yml` or `go.mod`.** CI installs the Go version from `go.mod` as its base toolchain and the pinned setup passes there. Both files are pinned artifacts anyway.
@@ -94,6 +74,10 @@ Check before you start:
 ```bash
 command -v gcc || command -v cc || command -v clang || echo "NO C COMPILER - race gate cannot run locally"
 ```
+
+### The native desktop build needs platform WebView tooling
+
+The Wails build requires Node.js, npm, and the platform WebView development prerequisites. On Linux that includes WebKit2GTK and related development headers. A missing native prerequisite means the `gui` gate did not run successfully; report the unavailable tool or header rather than treating frontend-only tests as equivalent.
 
 ## Reporting results honestly
 

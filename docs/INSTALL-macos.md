@@ -12,6 +12,8 @@ nav_order: 3
 
 macOS has two downloads, and which one you want depends on whether you want a desktop app or a background scheduler on a machine you mostly reach over SSH. The difference that matters is not the GUI, it is **what starts on boot**.
 
+The Wails bundle below describes the v1.2 candidate and later. It is not part of the latest public v1.1.1 release until the separately authorized release ritual completes.
+
 ## Contents
 
 - [Which download](#which-download)
@@ -28,10 +30,10 @@ macOS has two downloads, and which one you want depends on whether you want a de
 
 | Download | Contents | Starts on boot |
 | --- | --- | --- |
-| `go-schedule-desktop_<ver>_darwin_<arch>` | GUI, daemon, and CLI in one `.app` | Not until you register the service |
+| `go-schedule-desktop_<ver>_darwin_arm64.tar.gz` | Wails desktop, daemon, and CLI in one `.app` | Not until you register the service |
 | `go-schedule_<ver>_darwin_<arch>.tar.gz` | Daemon and CLI | Once you register the service |
 
-Both are available for `amd64` (Intel) and `arm64` (Apple silicon). Verify either against `SHA256SUMS.txt` before opening it, the builds are not signed or notarized.
+The desktop bundle targets `arm64` (Apple silicon). The daemon-and-CLI archive remains available for `amd64` (Intel) and `arm64`. Verify either against `SHA256SUMS.txt` before opening it, the builds are not signed or notarized.
 
 ```sh
 shasum -a 256 -c SHA256SUMS.txt --ignore-missing
@@ -39,7 +41,7 @@ shasum -a 256 -c SHA256SUMS.txt --ignore-missing
 
 ## Desktop bundle
 
-`go-schedule-desktop_<ver>_darwin_<arch>` contains `gosched-gui.app`, with the daemon and CLI inside it at `gosched-gui.app/Contents/MacOS/`. Open it:
+`go-schedule-desktop_<ver>_darwin_arm64.tar.gz` contains the Wails application `gosched-gui.app`, with the daemon and CLI inside it at `gosched-gui.app/Contents/MacOS/`. Open it:
 
 ```sh
 open gosched-gui.app
