@@ -85,7 +85,7 @@ jobs:
       - run: echo desktop/build/bin/gosched-gui.exe
       - run: echo 'Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage'
       - name: Inspect stable desktop identity
-        run: test -f build/bin/gosched-gui
+        run: test -f build/bin/go-schedule.app/Contents/MacOS/gosched-gui
   wails-desktop-browser-contract:
     steps:
       - run: npm run test:e2e
@@ -227,6 +227,8 @@ jobs:
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
+      - run: cp -R desktop/build/bin/go-schedule.app "$app"
+      - run: app="$stage/gosched-gui.app"
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
       - run: cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
       - run: cp -R brand/platform/linux/hicolor "$stage/share/icons/"

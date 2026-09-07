@@ -20,6 +20,7 @@
 12. `sh scripts/verify.sh all` was rerun from the corrected state and passed all eight gates in order: format, vet, lint, race, gui, coverage, docs, and automation. Coverage was engine 82.8 percent, schedule 89.1 percent, timezone 91.3 percent, store 80.2 percent, catchup 88.9 percent, and logbus 91.1 percent.
 13. Final read-only spec-kit analysis found 20 requirements, 8 success criteria, 35 completed tasks, no unresolved markers, no lifecycle conflict across 66 specifications, and no constitution conflict or unexplained requirement gap.
 14. After the Windows documentation payload and hosted staging contract were added, `sh scripts/verify.sh all` was run once more from the complete state and passed all eight gates, including the full automation mutation matrix.
+15. Initial pull-request CI showed that Wails produces `go-schedule.app` from the display name while retaining `gosched-gui` as the inner executable from `outputfilename`. CI now inspects that generated identity, and release staging explicitly renames the bundle directory to the stable `gosched-gui.app` contract. Focused contracts, the primary automation policy check, and all eight canonical gates passed after the correction.
 
 ## Hosted evidence boundary
 

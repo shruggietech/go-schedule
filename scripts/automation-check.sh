@@ -102,6 +102,8 @@ else
     'Windows installer documentation payload'
   require_ci_text 'Inspect stable desktop identity' \
     'three-platform stable desktop identity inspection'
+  require_ci_text 'build/bin/go-schedule.app/Contents/MacOS/gosched-gui' \
+    'macOS Wails display-name bundle and stable executable inspection'
   if grep -Eq 'wails-proof:|wails-browser-contract:|Install Fyne|GUI build & test \(cgo\)' "$CI"; then
     report "$CI: retired or parallel desktop validation remains"
   fi
@@ -384,6 +386,10 @@ else
     'pinned native Wails release build'
   require_release_text 'desktop/build/bin/gosched-gui.exe' \
     'stable Windows Wails payload'
+  require_release_text 'desktop/build/bin/go-schedule.app' \
+    'generated macOS Wails bundle'
+  require_release_text 'app="$stage/gosched-gui.app"' \
+    'stable staged macOS bundle identity'
   if grep -Eq 'Install Fyne|goversioninfo|\./cmd/gosched-gui' "$RELEASE"; then
     report "$RELEASE: retired Fyne release path remains"
   fi

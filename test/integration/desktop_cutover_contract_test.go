@@ -36,6 +36,8 @@ func TestReleaseWorkflowBuildsProductionWailsPayload(t *testing.T) {
 		"npm ci",
 		"github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build",
 		"desktop/build/bin/gosched-gui",
+		"desktop/build/bin/go-schedule.app",
+		`app="$stage/gosched-gui.app"`,
 		"go build -ldflags \"$BASE\" -o \"$stage/goschedd",
 		"go build -ldflags \"$BASE\" -o \"$stage/gosched",
 		"build/windows/verify_wxs.ps1 -StageDir",

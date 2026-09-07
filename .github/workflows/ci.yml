@@ -257,8 +257,11 @@ jobs:
           if [ "${{ runner.os }}" = "Windows" ]; then
             test -f build/bin/gosched-gui.exe
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            test -d build/bin/gosched-gui.app
-            test -f build/bin/gosched-gui.app/Contents/MacOS/gosched-gui
+            # Wails uses the application display name for the generated bundle
+            # directory and outputfilename for its executable. Release staging
+            # renames this bundle to the stable gosched-gui.app contract.
+            test -d build/bin/go-schedule.app
+            test -f build/bin/go-schedule.app/Contents/MacOS/gosched-gui
           else
             test -f build/bin/gosched-gui
           fi

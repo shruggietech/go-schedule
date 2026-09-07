@@ -265,8 +265,10 @@ jobs:
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             # Wails creates the native .app. The daemon and CLI live beside its
             # executable so the desktop's "daemon next to me" lookup resolves.
+            # Its generated bundle uses the display name; staging renames that
+            # directory to preserve the established gosched-gui.app contract.
             app="$stage/gosched-gui.app"
-            cp -R desktop/build/bin/gosched-gui.app "$app"
+            cp -R desktop/build/bin/go-schedule.app "$app"
             mv "$stage/goschedd" "$stage/gosched" "$app/Contents/MacOS/"
             cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
             /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier tech.shruggie.goschedule" "$app/Contents/Info.plist"
