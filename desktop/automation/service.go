@@ -64,16 +64,16 @@ func buildWorkspace(tasks []server.TaskResponse, chains []domain.CompletionChain
 		w.Chains = append(w.Chains, ChainSummary{ID: value.ID, SourceTaskID: value.SourceTaskID, SourceTaskName: fallback(value.SourceTaskName, "Missing task"), TargetTaskID: value.TargetTaskID, TargetTaskName: fallback(value.TargetTaskName, "Missing task"), OnOutcome: string(value.OnOutcome), Readiness: readiness, Reason: reason, UpdatedAt: value.UpdatedAt.Format(time.RFC3339Nano)})
 	}
 	for _, value := range triggers {
-		if value.SetID != "" {
-			continue
-		}
-		w.Triggers = append(w.Triggers, TriggerSummary{ID: value.ID, Name: value.Name, TargetTaskID: value.TargetTaskID, TargetTaskName: fallback(value.TargetTaskName, "Missing task"), Readiness: value.Readiness, Reason: value.Reason, UpdatedAt: value.UpdatedAt.Format(time.RFC3339Nano), Enabled: value.Enabled})
+		w.Triggers = append(w.Triggers, TriggerSummary{ID: value.ID, Name: value.Name, TargetTaskID: value.TargetTaskID, TargetTaskName: fallback(value.TargetTaskName, "Missing task"), Readiness: value.Readiness, Reason: value.Reason, UpdatedAt: value.UpdatedAt.Format(time.RFC3339Nano), SetID: value.SetID, SetName: value.SetName, SetPosition: value.SetPosition, Enabled: value.Enabled})
 	}
 	for _, value := range sets {
 		summary := TriggerSetSummary{ID: value.ID, Name: value.Name, TargetTaskID: value.TargetTaskID, TargetTaskName: fallback(value.TargetTaskName, "Missing task"), MemberCount: value.MemberCount, EnabledCount: value.EnabledCount, Readiness: "ready", Reason: "All enabled members are ready.", UpdatedAt: value.UpdatedAt.Format(time.RFC3339Nano), Members: make([]TriggerSetMember, 0, len(value.Members))}
+		if value.EnabledCount == 0 {
+			summary.Readiness, summary.Reason = "disabled", "All members are disabled."
+		}
 		for _, member := range value.Members {
-			summary.Members = append(summary.Members, TriggerSetMember{ID: member.ID, Name: member.Name, Position: member.SetPosition, Enabled: member.Enabled, Readiness: member.Readiness, Reason: member.Reason})
-			if member.Readiness != "ready" && summary.Readiness == "ready" {
+			summary.Members = append(summary.Members, TriggerSetMember{ID: member.ID, Name: member.Name, TargetTaskID: member.TargetTaskID, TargetTaskName: fallback(member.TargetTaskName, "Missing task"), Position: member.SetPosition, Enabled: member.Enabled, Readiness: member.Readiness, Reason: member.Reason, UpdatedAt: member.UpdatedAt.Format(time.RFC3339Nano)})
+			if member.Enabled && member.Readiness != "ready" && summary.Readiness == "ready" {
 				summary.Readiness, summary.Reason = member.Readiness, member.Reason
 			}
 		}

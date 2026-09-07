@@ -56,18 +56,18 @@ func TestWorkspaceIsCompleteSecretFreeAndHonest(t *testing.T) {
 	fake := &fakeBackend{
 		tasks:    []server.TaskResponse{{Task: domain.Task{ID: "task-1", Name: "Build"}}},
 		chains:   []domain.CompletionChain{{ID: "chain-1", SourceTaskID: "gone", TargetTaskID: "task-1", TargetTaskName: "Build", OnOutcome: domain.CompletionOnSuccess, UpdatedAt: now}},
-		triggers: []server.TriggerResponse{{ID: "trigger-1", Name: "Deploy", TargetTaskID: "gone", Readiness: "target_missing", Reason: "Target task is missing.", UpdatedAt: now}, {ID: "member-1", Name: "Member", SetID: "set-1", UpdatedAt: now}},
-		sets:     []server.TriggerSetResponse{{ID: "set-1", Name: "Fleet", TargetTaskID: "task-1", TargetTaskName: "Build", MemberCount: 1, EnabledCount: 1, UpdatedAt: now, Members: []server.TriggerResponse{{ID: "member-1", Name: "Member", SetPosition: 1, Enabled: true, Readiness: "ready"}}}},
+		triggers: []server.TriggerResponse{{ID: "trigger-1", Name: "Deploy", TargetTaskID: "gone", Readiness: "target_missing", Reason: "Target task is missing.", UpdatedAt: now}, {ID: "member-1", Name: "Member", TargetTaskID: "task-1", TargetTaskName: "Build", SetID: "set-1", SetName: "Fleet", SetPosition: 1, Enabled: true, Readiness: "ready", UpdatedAt: now}},
+		sets:     []server.TriggerSetResponse{{ID: "set-1", Name: "Fleet", TargetTaskID: "task-1", TargetTaskName: "Build", MemberCount: 2, EnabledCount: 1, UpdatedAt: now, Members: []server.TriggerResponse{{ID: "member-1", Name: "Member", TargetTaskID: "task-1", TargetTaskName: "Build", SetPosition: 1, Enabled: true, Readiness: "ready", UpdatedAt: now}, {ID: "member-2", Name: "Paused", TargetTaskID: "task-1", TargetTaskName: "Build", SetPosition: 2, Enabled: false, Readiness: "disabled", Reason: "Trigger is disabled.", UpdatedAt: now}}}},
 		watchers: []server.FilesystemWatcherResponse{{ID: "watcher-1", Name: "Inbox", Kind: domain.WatcherDirectory, Path: `C:\very\long\inbox`, TargetTaskID: "task-1", TargetTaskName: "Build", Enabled: true, Health: domain.WatcherHealth{State: domain.WatcherDegraded, Reason: "permission denied"}, Readiness: "ready", UpdatedAt: now}},
 	}
 	result := NewService(fake).Workspace(context.Background())
 	if result.Outcome != "accepted" || result.Workspace == nil {
 		t.Fatalf("result=%+v", result)
 	}
-	if len(result.Workspace.Triggers) != 1 {
-		t.Fatalf("standalone triggers=%d", len(result.Workspace.Triggers))
+	if len(result.Workspace.Triggers) != 2 || result.Workspace.Triggers[1].SetID != "set-1" {
+		t.Fatalf("triggers=%+v", result.Workspace.Triggers)
 	}
-	if result.Workspace.Chains[0].Readiness != "source_missing" || result.Workspace.Watchers[0].Health != "degraded" || result.Workspace.Watchers[0].HealthReason != "permission denied" {
+	if result.Workspace.Chains[0].Readiness != "source_missing" || result.Workspace.TriggerSets[0].Readiness != "ready" || result.Workspace.Watchers[0].Health != "degraded" || result.Workspace.Watchers[0].HealthReason != "permission denied" {
 		t.Fatalf("workspace=%+v", result.Workspace)
 	}
 	encoded, err := json.Marshal(result)

@@ -1,7 +1,7 @@
 export type TaskChoice = { id: string; name: string; readiness: string; reason: string }
 export type ChainSummary = { id: string; sourceTaskId: string; sourceTaskName: string; targetTaskId: string; targetTaskName: string; onOutcome: string; readiness: string; reason: string; updatedAt: string }
-export type TriggerSummary = { id: string; name: string; targetTaskId: string; targetTaskName: string; enabled: boolean; readiness: string; reason: string; updatedAt: string }
-export type TriggerSetMember = { id: string; name: string; position: number; enabled: boolean; readiness: string; reason: string }
+export type TriggerSummary = { id: string; name: string; targetTaskId: string; targetTaskName: string; enabled: boolean; readiness: string; reason: string; updatedAt: string; setId?: string; setName?: string; setPosition?: number }
+export type TriggerSetMember = { id: string; name: string; targetTaskId: string; targetTaskName: string; position: number; enabled: boolean; readiness: string; reason: string; updatedAt: string }
 export type TriggerSetSummary = { id: string; name: string; targetTaskId: string; targetTaskName: string; memberCount: number; enabledCount: number; members: TriggerSetMember[]; readiness: string; reason: string; updatedAt: string }
 export type WatcherSummary = { id: string; name: string; kind: 'file' | 'directory'; path: string; pattern: string; recursive: boolean; debounce: string; stability: string; targetTaskId: string; targetTaskName: string; enabled: boolean; health: string; healthReason: string; readiness: string; reason: string; updatedAt: string }
 export type AutomationWorkspace = { tasks: TaskChoice[]; chains: ChainSummary[]; triggers: TriggerSummary[]; triggerSets: TriggerSetSummary[]; watchers: WatcherSummary[]; loadedAt: string }

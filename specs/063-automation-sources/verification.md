@@ -16,7 +16,7 @@ Spec Kit analysis found no critical, high, medium, ambiguity, duplication, or un
 | `go vet ./...` from `desktop/` | PASS |
 | `go test -race -count=20 ./...` from `desktop/` | PASS, repeated application and service concurrency coverage |
 | Automation package tests | PASS, complete-snapshot failure, secret-free JSON, missing relationships, daemon watcher health, stale overwrite, and internal-key firing |
-| `npm test -- --run` from `desktop/frontend/` | PASS, 12 files and 34 tests after first-round review fixes |
+| `npm test -- --run` from `desktop/frontend/` | PASS, 12 files and 37 tests after both review rounds |
 | `npm run build` from `desktop/frontend/` | PASS, TypeScript and Vite production build |
 | `npm run test:e2e` from `desktop/frontend/` | PASS, 9 Chromium contracts including 100 automation sources, WCAG checks, focus retention, narrow width, 200 percent zoom, and long degraded watcher paths |
 | `go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean` from `desktop/` | PASS, native Windows amd64 package built as `go-schedule.exe` |
@@ -37,13 +37,13 @@ Spec Kit analysis found no critical, high, medium, ambiguity, duplication, or un
 
 - Completion chains support create, inspect, edit, retarget, outcome selection, stale-write rejection with explicit overwrite, and confirmed deletion.
 - Standalone triggers support create, inspect, edit, retarget, enable, disable, explicit reveal and copy, rotate, fire, and confirmed deletion.
-- Trigger Sets support atomic creation, retargeting, enablement, disablement, reveal, rotation, and deletion while preserving ordered member presentation.
+- Trigger Sets support atomic creation, scoped and confirmed retargeting, enablement, disablement, rotation, and deletion while preserving ordered member presentation and full per-member administration.
 - Filesystem watchers support create, inspect, edit, retarget, enable, disable, and deletion with complete path, pattern, recursion, timing, readiness, and health context.
 - Pending controls suppress duplicate mutations, successful actions refresh complete snapshots, and a refresh failure after a successful mutation is not misreported as a failed mutation.
 
 ### Secret boundary
 
-- Ordinary Wails workspace and operation models have no key or command fields, and member triggers are represented through secret-free Trigger Set summaries.
+- Ordinary Wails workspace and operation models have no key or command fields, and member triggers remain secret-free in both the complete trigger collection and Trigger Set summaries.
 - Create, reveal, and rotate return a distinct ephemeral secret result only after explicit user action. Closing the dialog or leaving the route destroys its React state.
 - Fire now accepts only the trigger identifier from React. Go reveals and consumes the raw key within one bounded service call, and the returned result remains secret-free.
 - Safe error mapping uses a fixed field and message vocabulary and never reflects daemon payload text.
@@ -59,6 +59,15 @@ The desktop composes existing daemon APIs rather than adding a new aggregate end
 - Watcher debounce and stability values are rejected outside the daemon's exported 25 millisecond through 1 hour bounds before submission.
 - Source editors now wrap forward and reverse Tab navigation, restore their invoker, and retain Escape close behavior.
 - Focused Go, Go race, 34 React tests, TypeScript production build, and 9 Chromium contracts passed after these changes.
+
+## Second-round review verification
+
+- Trigger Set members remain present in the complete workspace and expose edit, enable, disable, reveal, rotate, fire, and delete actions from their ordered set context.
+- A trigger-save follow-up refresh participates in the same request sequence as manual and event-driven loads, so an older snapshot cannot replace newer state.
+- Trigger Set retargeting, enable all, disable all, rotation, and deletion confirmations name the set and state the affected member count.
+- Trigger Set readiness now evaluates enabled members only and reports disabled only when no members are enabled.
+- Secret dialogs opened by trigger and Trigger Set creation restore focus to the original Create button when closed.
+- Focused Go, Go race, 37 React tests, TypeScript production build, and the complete eight-gate repository verification passed after these changes.
 
 ## Canonical repository verification
 

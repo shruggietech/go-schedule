@@ -28,16 +28,22 @@ type TriggerSummary struct {
 	Readiness      string `json:"readiness"`
 	Reason         string `json:"reason"`
 	UpdatedAt      string `json:"updatedAt"`
+	SetID          string `json:"setId,omitempty"`
+	SetName        string `json:"setName,omitempty"`
+	SetPosition    int    `json:"setPosition,omitempty"`
 	Enabled        bool   `json:"enabled"`
 }
 
 type TriggerSetMember struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Readiness string `json:"readiness"`
-	Reason    string `json:"reason"`
-	Position  int    `json:"position"`
-	Enabled   bool   `json:"enabled"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	TargetTaskID   string `json:"targetTaskId"`
+	TargetTaskName string `json:"targetTaskName"`
+	Readiness      string `json:"readiness"`
+	Reason         string `json:"reason"`
+	UpdatedAt      string `json:"updatedAt"`
+	Position       int    `json:"position"`
+	Enabled        bool   `json:"enabled"`
 }
 
 type TriggerSetSummary struct {

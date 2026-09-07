@@ -8,10 +8,16 @@ export function useAutomationWorkspace(bridge: AutomationBridge) {
   const apply = useCallback((result: OperationResult) => { setStatus(result); if (result.workspace) setWorkspace(result.workspace) }, [])
   const accept = useCallback((result: OperationResult) => { sequence.current++; apply(result) }, [apply])
   const load = useCallback(async () => { const request = ++sequence.current; const result = await bridge.workspace(); if (request === sequence.current) apply(result) }, [apply, bridge])
+  const refreshAfter = useCallback(async (saved: OperationResult) => {
+    const request = ++sequence.current; apply(saved)
+    const refresh = await bridge.workspace()
+    if (request !== sequence.current) return
+    apply(refresh.workspace ? { ...saved, workspace: refresh.workspace } : { ...saved, message: `${saved.message} Refresh the workspace to see the latest state.` })
+  }, [apply, bridge])
   useEffect(() => {
     void load(); let timer: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = bridge.subscribe?.((event) => { if (['chain.', 'trigger.', 'trigger_set.', 'filesystem_watcher.', 'task.'].some((prefix) => event.kind.startsWith(prefix))) { clearTimeout(timer); timer = setTimeout(() => void load(), 75) } })
     return () => { clearTimeout(timer); unsubscribe?.() }
   }, [bridge, load])
-  return { workspace, status, setStatus, load, accept }
+  return { workspace, status, setStatus, load, accept, refreshAfter }
 }
