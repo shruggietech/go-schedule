@@ -39,4 +39,19 @@ describe('connection store', () => {
     expect(fake.bridge.retry).toHaveBeenCalledOnce()
     expect(result.current.announcement).toBe('Trying again.')
   })
+
+  it('suppresses duplicate pending retries', async () => {
+    let release!: () => void
+    const pending = new Promise<void>((resolve) => { release = resolve })
+    const fake = fakeBridge(unavailableSnapshot)
+    fake.bridge.retry = vi.fn().mockImplementation(async () => { await pending; return { action: 'retry', outcome: 'accepted', message: 'Trying again.' } })
+    const { result } = renderHook(() => useConnection(fake.bridge))
+    await waitFor(() => expect(result.current.snapshot.state).toBe('unavailable'))
+    let first!: Promise<void>
+    act(() => { first = result.current.retry(); void result.current.retry() })
+    expect(fake.bridge.retry).toHaveBeenCalledOnce()
+    expect(result.current.retryPending).toBe(true)
+    release(); await act(async () => { await first })
+    expect(result.current.retryPending).toBe(false)
+  })
 })

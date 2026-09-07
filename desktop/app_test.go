@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/operations"
+	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
@@ -36,13 +38,31 @@ func (e *appEmitter) Emit(_ context.Context, name string, value any) {
 	}
 }
 
-type appNative struct{ quit bool }
+type appNative struct {
+	quit   bool
+	copied string
+	opened string
+}
 
 func (n *appNative) Quit(context.Context) { n.quit = true }
+func (n *appNative) ClipboardSetText(_ context.Context, value string) error {
+	n.copied = value
+	return nil
+}
+func (n *appNative) BrowserOpenURL(_ context.Context, value string) error {
+	n.opened = value
+	return nil
+}
 
 type facadeTaskBackend struct{ taskgroup.Backend }
 
 type facadeOperationsBackend struct{ operations.Backend }
+
+type facadeSettingsBackend struct{}
+
+func (facadeSettingsBackend) RuntimeInfo(context.Context) (server.RuntimeInfoResponse, error) {
+	return server.RuntimeInfoResponse{}, nil
+}
 
 func (facadeOperationsBackend) GetCalendar(_ context.Context, from, to time.Time) (server.CalendarResponse, error) {
 	return server.CalendarResponse{From: from, To: to, Occurrences: []server.Occurrence{}}, nil
@@ -131,6 +151,35 @@ func TestAppFacadeExposesScheduleActivityAndAcknowledgement(t *testing.T) {
 	}
 	if result := app.AcknowledgeAlert("alert-1"); result.Outcome != "accepted" || result.Activity == nil {
 		t.Fatalf("acknowledge=%+v", result)
+	}
+	app.shutdown(context.Background())
+}
+
+func TestAppFacadeExposesDesktopSettings(t *testing.T) {
+	native := &appNative{}
+	deps := settings.DefaultDependencies()
+	deps.Paths.Preferences = t.TempDir() + "/preferences.json"
+	deps.Paths.LegacyPreferences = t.TempDir() + "/legacy.json"
+	deps.Paths.ApplicationData = t.TempDir()
+	service := settings.NewServiceWithDependencies(facadeSettingsBackend{}, native, deps)
+	app := newApp(appBackend{}, nil, native, appServices{settings: service})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.startup(ctx)
+	if result := app.SettingsWorkspace(); result.Outcome != "accepted" || result.Workspace == nil {
+		t.Fatalf("settings=%+v", result)
+	}
+	if result := app.SaveAppearance("dark"); result.Outcome != "accepted" || result.Workspace.Preferences.Appearance != settings.AppearanceDark {
+		t.Fatalf("appearance=%+v", result)
+	}
+	if result := app.RestoreDesktopPreferences(); result.Outcome != "accepted" || result.Workspace.Preferences.Appearance != settings.AppearanceSystem {
+		t.Fatalf("restore=%+v", result)
+	}
+	if result := app.CopyStoragePath("desktop-preferences"); result.Outcome != "accepted" || native.copied != filepath.Clean(deps.Paths.Preferences) {
+		t.Fatalf("copy=%+v copied=%q", result, native.copied)
+	}
+	if result := app.OpenProductLink("documentation"); result.Outcome != "accepted" || native.opened != "https://shruggietech.github.io/go-schedule/" {
+		t.Fatalf("open=%+v opened=%q", result, native.opened)
 	}
 	app.shutdown(context.Background())
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/operations"
+	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 )
 
@@ -15,7 +16,11 @@ const desktopEventName = "desktop:event"
 type eventEmitter interface {
 	Emit(context.Context, string, any)
 }
-type nativeRuntime interface{ Quit(context.Context) }
+type nativeRuntime interface {
+	Quit(context.Context)
+	ClipboardSetText(context.Context, string) error
+	BrowserOpenURL(context.Context, string) error
+}
 
 // ActionResult gives the frontend a stable result without exposing native errors.
 type ActionResult struct {
@@ -30,6 +35,7 @@ type App struct {
 	tasks      *taskgroup.Service
 	automation *automation.Service
 	operations *operations.Service
+	settings   *settings.Service
 	emitter    eventEmitter
 	native     nativeRuntime
 	ctx        context.Context
@@ -39,6 +45,7 @@ type appServices struct {
 	tasks      *taskgroup.Service
 	automation *automation.Service
 	operations *operations.Service
+	settings   *settings.Service
 }
 
 func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, services ...appServices) *App {
@@ -47,9 +54,50 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 		app.tasks = services[0].tasks
 		app.automation = services[0].automation
 		app.operations = services[0].operations
+		app.settings = services[0].settings
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+// SettingsWorkspace returns desktop-local settings and storage information.
+func (a *App) SettingsWorkspace() settings.Result {
+	if a.settings == nil || a.ctx == nil {
+		return settings.Result{Action: "load_settings", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
+	}
+	return a.settings.Workspace(a.ctx)
+}
+
+// SaveAppearance persists one validated desktop appearance.
+func (a *App) SaveAppearance(value string) settings.Result {
+	if a.settings == nil || a.ctx == nil {
+		return settings.Result{Action: "save_appearance", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
+	}
+	return a.settings.SaveAppearance(a.ctx, value)
+}
+
+// RestoreDesktopPreferences restores only desktop-local preference defaults.
+func (a *App) RestoreDesktopPreferences() settings.Result {
+	if a.settings == nil || a.ctx == nil {
+		return settings.Result{Action: "restore_preferences", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
+	}
+	return a.settings.Restore(a.ctx)
+}
+
+// CopyStoragePath copies one current backend-resolved storage path.
+func (a *App) CopyStoragePath(id string) settings.Result {
+	if a.settings == nil || a.ctx == nil {
+		return settings.Result{Action: "copy_storage_path", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
+	}
+	return a.settings.CopyStoragePath(a.ctx, id)
+}
+
+// OpenProductLink opens one fixed product destination in the system browser.
+func (a *App) OpenProductLink(key string) settings.Result {
+	if a.settings == nil || a.ctx == nil {
+		return settings.Result{Action: "open_product_link", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
+	}
+	return a.settings.OpenProductLink(a.ctx, key)
 }
 
 func (a *App) ScheduleWindow(days int) operations.OperationResult {
