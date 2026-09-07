@@ -47,6 +47,8 @@ type TaskUpdateRequest struct {
 	DSTOverlapPolicy  string `json:"dst_overlap_policy,omitempty"`
 	ClearName         bool   `json:"clear_name,omitempty"`
 	ClearCommand      bool   `json:"clear_command,omitempty"`
+	ClearWorkingDir   bool   `json:"clear_working_dir,omitempty"`
+	ClearRunAs        bool   `json:"clear_run_as,omitempty"`
 	ClearSchedule     bool   `json:"clear_schedule,omitempty"`
 }
 
@@ -74,6 +76,14 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "command", "cannot clear and replace command together")
 		return
 	}
+	if req.ClearWorkingDir && req.WorkingDir != "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "working_dir", "cannot clear and replace working directory together")
+		return
+	}
+	if req.ClearRunAs && req.RunAs != "" {
+		writeError(w, http.StatusBadRequest, CodeValidation, "run_as", "cannot clear and replace run-as identity together")
+		return
+	}
 	if req.ClearSchedule && (req.Schedule != "" || req.At != nil) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", "cannot clear and replace schedule together")
 		return
@@ -92,7 +102,9 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	if req.Args != nil {
 		task.Args = req.Args
 	}
-	if req.WorkingDir != "" {
+	if req.ClearWorkingDir {
+		task.WorkingDir = ""
+	} else if req.WorkingDir != "" {
 		task.WorkingDir = req.WorkingDir
 	}
 	if req.Env != nil {
@@ -117,7 +129,9 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		}
 		task.GroupID = *req.GroupID
 	}
-	if req.RunAs != "" {
+	if req.ClearRunAs {
+		task.RunAs = ""
+	} else if req.RunAs != "" {
 		if err := executor.ValidateRunAs(req.RunAs); err != nil {
 			writeError(w, http.StatusBadRequest, CodeValidation, "run_as", err.Error())
 			return

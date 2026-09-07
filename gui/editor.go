@@ -2,6 +2,7 @@ package gui
 
 import (
 	"context"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -14,6 +15,7 @@ import (
 	xwidget "fyne.io/x/fyne/widget"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/commandexample"
 	"github.com/shruggietech/go-schedule/internal/commandline"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/schedule"
@@ -38,7 +40,7 @@ type taskEditor struct {
 
 	// What to run
 	name              *widget.Entry
-	commandLine       *widget.Entry
+	commandLine       *suggestionEntry
 	group             *widget.Select
 	activateAfterSave *widget.Check // creation only; nil while editing
 	leftContent       *fyne.Container
@@ -147,10 +149,20 @@ func newTaskEditor(a *App, detail *server.TaskResponse) *taskEditor {
 	}
 
 	e.name = widget.NewEntry()
-	e.commandLine = widget.NewMultiLineEntry()
+	suggestion := ""
+	if detail == nil {
+		if value, ok := commandexample.ForPlatform(runtime.GOOS); ok {
+			suggestion = value.Display
+		}
+	}
+	e.commandLine = newSuggestionEntry(suggestion)
 	e.commandLine.SetMinRowsVisible(6)
 	e.commandLine.Wrapping = fyne.TextWrapWord
-	e.commandLine.SetPlaceHolder(`e.g. python -m http.server --bind "127.0.0.1"`)
+	if suggestion != "" {
+		e.commandLine.SetPlaceHolder("Press Tab to insert the safe example: " + suggestion)
+	} else {
+		e.commandLine.SetPlaceHolder("Enter a program and its arguments")
+	}
 
 	e.groups = a.model.Snapshot().Groups
 	e.group = widget.NewSelect(groupChoiceLabels(e.groups), nil)
@@ -589,8 +601,12 @@ func (e *taskEditor) fetchSchedulePreview(req server.PreviewRequest, generation 
 // syntax guidance. An invalid draft can never leave a stale valid preview.
 func (e *taskEditor) updateCmdPreview() {
 	if strings.TrimSpace(e.commandLine.Text) == "" {
+		guidance := "Enter a command line to see the exact program and arguments"
+		if e.commandLine.suggestion != "" {
+			guidance = "Press Tab to insert the safe example " + e.commandLine.suggestion + ". Save the task, choose Run now, then inspect its captured output in Activity."
+		}
 		e.cmdPreview.Segments = []widget.RichTextSegment{
-			&widget.TextSegment{Style: widget.RichTextStyleInline, Text: "Enter a command line to see the exact program and arguments"},
+			&widget.TextSegment{Style: widget.RichTextStyleInline, Text: guidance},
 		}
 	} else if invocation, err := e.invocation(); err != nil {
 		e.cmdPreview.Segments = []widget.RichTextSegment{
@@ -856,9 +872,7 @@ const editorHelpMarkdown = `## Task editor help
 
 **Name**, a label to identify the task. _e.g._ ` + "`nightly-backup`" + `
 
-**Command line**: type the program and its arguments together, for example
-` + "`python -m http.server --bind \"127.0.0.1\"`" + ` or
-` + "`\"C:\\Program Files\\Tool\\tool.exe\" --name \"Ada Lovelace\"`" + `.
+**Command line**: type the program and its arguments together. New tasks offer a harmless example for the execution host: ` + "`cmd.exe /d /c ver`" + ` on Windows, ` + "`/usr/bin/sw_vers`" + ` on macOS, or ` + "`uname -a`" + ` on Linux. Press Tab once in an empty command field to insert it; ordinary Tab traversal resumes after insertion.
 
 More exact-boundary examples:
 - Windows path, repeated flags, and an empty argument:

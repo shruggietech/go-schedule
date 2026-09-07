@@ -65,10 +65,14 @@ A label for the task, any text. Used only to identify the task in lists and the 
 Type the executable and arguments together in the same roomy field:
 
 ```text
-python -m http.server --bind "127.0.0.1"
+cmd.exe /d /c ver
+/usr/bin/sw_vers
+uname -a
 "C:\Program Files\Tool\tool.exe" --name "Ada Lovelace"
 /usr/bin/printf '%s\n' 'hello world'
 ```
+
+For a new task, the empty Command line field offers exactly one harmless example for the execution host: `cmd.exe /d /c ver` on Windows, `/usr/bin/sw_vers` on macOS, or `uname -a` on Linux. Press Tab once to insert it. The next Tab continues normal keyboard traversal. Clearing the field makes the suggestion available again; Shift+Tab never inserts it.
 
 The editor uses one portable direct-command grammar with identical value boundaries on Windows, macOS, and Linux:
 
@@ -229,20 +233,12 @@ For wall-clock schedules, **Spring gap** either advances a nonexistent reading t
 
 ## A known-good example
 
-A "heartbeat" task you can watch succeed within a couple of minutes:
+Create a task named `platform check`, leave it inactive, and use the command for the computer where the scheduler service runs:
 
-| Field | Value |
-|-------|-------|
-| Name | `heartbeat` |
-| Command line | `cmd /c "echo %DATE% %TIME% >> C:\Users\you\gosched-test.txt"` |
-| Timezone | `Local` |
-| Mode | `Recurring` |
-| Schedule | `every 1 minute` |
-| Overlap *(Advanced)* | Queue one run |
-| Catch-up *(Advanced)* | Run once to catch up |
-| Missing dates *(Advanced)* | Skip that period |
-| Time basis *(Advanced)* | Local wall clock |
-| Spring gap *(Advanced)* | Run at the next valid time |
-| Fall overlap *(Advanced)* | First occurrence |
+| Execution platform | Command line | Expected captured output |
+| --- | --- | --- |
+| Windows | `cmd.exe /d /c ver` | A Windows version line |
+| macOS | `/usr/bin/sw_vers` | Product name, version, and build information |
+| Linux | `uname -a` | A kernel and system information line |
 
-After saving, a new timestamp line should appear in the file about once a minute.
+These platform-native commands are read-only, noninteractive, start no listener, make no network request, write no file, and exit promptly. In a fresh new-task editor, press Tab once in the empty Command line field to insert the matching command. Confirm the exact Program and Arguments in Preview, save the task inactive, choose **Run now**, then open **Activity** to inspect the successful record and captured output.

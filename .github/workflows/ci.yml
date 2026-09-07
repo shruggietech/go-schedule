@@ -289,7 +289,7 @@ jobs:
         run: npm run test:e2e
 
   wails-desktop:
-    name: Production desktop foundation (${{ matrix.os }})
+    name: Production desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -322,10 +322,13 @@ jobs:
         run: npm audit --audit-level=high && npm test && npm run build
       - name: Test connection boundary under race detector
         run: go test -race ./...
-      - name: Build Linux desktop foundation
+      - name: Exercise the guided platform task end to end
+        working-directory: .
+        run: go test ./test/integration -run TestGuidedPlatformExampleCreatesRunsAndRecordsRecognizableActivity -count=1
+      - name: Build Linux desktop
         if: runner.os == 'Linux'
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -tags webkit2_41
-      - name: Build native desktop foundation
+      - name: Build native desktop
         if: runner.os != 'Linux'
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
 

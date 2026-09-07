@@ -1,0 +1,27 @@
+import { useCallback, useEffect, useState } from 'react'
+import type { OperationResult, TaskBridge, Workspace } from './model'
+
+export function useTaskWorkspace(bridge: TaskBridge) {
+  const [workspace, setWorkspace] = useState<Workspace>()
+  const [status, setStatus] = useState<OperationResult>()
+  const [selected, setSelected] = useState('')
+  const accept = useCallback((result: OperationResult) => {
+    setStatus(result)
+    if (!result.workspace) return
+    setWorkspace(result.workspace)
+    setSelected((current) => result.workspace?.tasks.some((task) => task.id === current) ? current : result.workspace?.tasks[0]?.id ?? '')
+  }, [])
+  const load = useCallback(async () => accept(await bridge.workspace()), [accept, bridge])
+  useEffect(() => {
+    void load()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const unsubscribe = bridge.subscribe?.((event) => {
+      if (event.kind.startsWith('task.') || event.kind.startsWith('group.')) {
+        clearTimeout(timer)
+        timer = setTimeout(() => void load(), 75)
+      }
+    })
+    return () => { clearTimeout(timer); unsubscribe?.() }
+  }, [bridge, load])
+  return { workspace, status, selected, setSelected, load, accept, setStatus }
+}

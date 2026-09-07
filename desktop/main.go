@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/ipc"
@@ -35,8 +36,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	backend := connection.NewLocalBackend(client.New(ipc.Endpoint(cfg)))
-	app := newApp(backend, wailsEmitter{}, wailsNative{})
+	daemon := client.New(ipc.Endpoint(cfg))
+	backend := connection.NewLocalBackend(daemon)
+	app := newApp(backend, wailsEmitter{}, wailsNative{}, taskgroup.NewService(taskgroup.NewLocalBackend(daemon)))
 	if err := wails.Run(&options.App{
 		Title: "go-schedule", Width: 1440, Height: 900, MinWidth: 900, MinHeight: 650,
 		BackgroundColour: &options.RGBA{R: 245, G: 247, B: 250, A: 1},

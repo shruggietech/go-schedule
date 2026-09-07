@@ -3,22 +3,25 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import type { ConnectionSnapshot, DesktopBridge } from './connection/model'
+import type { TaskBridge } from './tasks/model'
 
 const connected: ConnectionSnapshot = { generation: 1, revision: 2, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'linux', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.' }
 const bridge: DesktopBridge = { snapshot: vi.fn().mockResolvedValue(connected), retry: vi.fn().mockResolvedValue({ action: 'retry', outcome: 'accepted', message: 'Trying again.' }), quit: vi.fn().mockResolvedValue({ action: 'quit', outcome: 'accepted', message: 'Closing.' }), subscribe: () => () => undefined }
+const taskResult = { action: 'load', outcome: 'accepted' as const, message: 'Loaded.', workspace: { tasks: [], groups: [], loadedAt: '2026-09-07T00:00:00Z' } }
+const tasks: TaskBridge = { workspace: vi.fn().mockResolvedValue(taskResult), task: vi.fn(), previewTask: vi.fn(), saveTask: vi.fn(), runTask: vi.fn(), setTaskEnabled: vi.fn(), deleteTask: vi.fn(), saveGroup: vi.fn(), setGroupEnabled: vi.fn(), deleteGroup: vi.fn() }
 
 describe('production shell', () => {
   it('keeps target and page identity visible across honest placeholders', async () => {
-    const user = userEvent.setup(); render(<App bridge={bridge} />)
-    await waitFor(() => expect(screen.getByText('Desktop foundation ready')).toBeVisible())
+    const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} />)
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Tasks' })).toBeVisible())
     await user.click(screen.getByRole('button', { name: 'Activity' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Activity' })).toBeVisible()
     expect(screen.getAllByText('This computer').length).toBeGreaterThan(0)
-    expect(screen.getByText(/not migrated yet/i)).toBeVisible()
+    expect(screen.getByRole('heading', { level: 2, name: /not migrated yet/i })).toBeVisible()
   })
 
   it('controls appearance, connection details, retry, and exit', async () => {
-    const user = userEvent.setup(); render(<App bridge={bridge} />)
+    const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} />)
     await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
     expect(document.querySelector('.app')).toHaveAttribute('data-appearance', 'dark')
     await user.click(screen.getByRole('button', { name: 'Connection details' }))

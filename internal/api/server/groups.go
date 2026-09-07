@@ -13,6 +13,7 @@ import (
 type GroupCreateRequest struct {
 	Name     string `json:"name"`
 	ParentID string `json:"parent_id,omitempty"`
+	Enabled  *bool  `json:"enabled,omitempty"`
 }
 
 // GroupUpdateRequest is the body for PATCH /v1/groups/{id}. Provide Name to
@@ -32,7 +33,11 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "name", "name is required")
 		return
 	}
-	g := &domain.Group{Name: req.Name, ParentID: req.ParentID, Enabled: true}
+	enabled := true
+	if req.Enabled != nil {
+		enabled = *req.Enabled
+	}
+	g := &domain.Group{Name: req.Name, ParentID: req.ParentID, Enabled: enabled}
 	if err := s.store.CreateGroup(g); err != nil {
 		s.groupErr(w, err)
 		return

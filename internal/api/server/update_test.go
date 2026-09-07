@@ -107,6 +107,46 @@ func TestUpdateTaskRejectsClearAndReplacementWithoutMutation(t *testing.T) {
 	}
 }
 
+func TestUpdateTaskExplicitlyClearsWorkingDirectoryAndRunAs(t *testing.T) {
+	s := newTestServer(t)
+	task := newTaskFor(t, s, TaskCreateRequest{Name: "configured", Command: "echo", WorkingDir: "work", Schedule: "every day at 09:00", Timezone: "UTC"})
+	stored, err := s.store.GetTask(task.Task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored.RunAs = "current"
+	if err := s.store.UpdateTask(&stored); err != nil {
+		t.Fatal(err)
+	}
+	rec := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+task.Task.ID, TaskUpdateRequest{ClearWorkingDir: true, ClearRunAs: true})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	got := getTask(t, s, task.Task.ID).Task
+	if got.WorkingDir != "" || got.RunAs != "" {
+		t.Fatalf("working_dir=%q run_as=%q", got.WorkingDir, got.RunAs)
+	}
+}
+
+func TestUpdateTaskRejectsClearAndReplacementForOptionalStrings(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		req  TaskUpdateRequest
+	}{
+		{name: "working directory", req: TaskUpdateRequest{WorkingDir: "new", ClearWorkingDir: true}},
+		{name: "run as", req: TaskUpdateRequest{RunAs: "current", ClearRunAs: true}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := newTestServer(t)
+			task := newTaskFor(t, s, TaskCreateRequest{Name: "configured", Command: "echo", Schedule: "every day at 09:00", Timezone: "UTC"})
+			rec := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+task.Task.ID, test.req)
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+}
+
 func TestUpdateTask_StdinTriState(t *testing.T) {
 	s := newTestServer(t)
 	task := newTaskFor(t, s, TaskCreateRequest{

@@ -178,7 +178,25 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"tasks": tasks})
+	if r.URL.Query().Get("details") != "true" {
+		writeJSON(w, http.StatusOK, map[string]any{"tasks": tasks})
+		return
+	}
+	details := make([]TaskResponse, 0, len(tasks))
+	now := time.Now().UTC()
+	for _, task := range tasks {
+		var sch *domain.Schedule
+		if task.ScheduleID != "" {
+			stored, err := s.store.GetSchedule(task.ScheduleID)
+			if err != nil {
+				s.internal(w, err)
+				return
+			}
+			sch = &stored
+		}
+		details = append(details, s.taskDetail(task, sch, now))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tasks": details})
 }
 
 func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {

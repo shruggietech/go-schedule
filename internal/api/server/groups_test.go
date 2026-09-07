@@ -72,3 +72,24 @@ func TestGroups_CreateNestAndCascadeRoutes(t *testing.T) {
 		t.Fatalf("expected cascade delete to remove all groups, got %d", len(resp.Groups))
 	}
 }
+
+func TestCreateGroupOptionalEnabledIntentIsAtomicAndCompatible(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		enabled *bool
+		want    bool
+	}{
+		{name: "omitted preserves enabled default", want: true},
+		{name: "explicit disabled", enabled: boolPointer(false), want: false},
+		{name: "explicit enabled", enabled: boolPointer(true), want: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := newTestServer(t)
+			rec := doJSON(t, s, http.MethodPost, "/v1/groups", GroupCreateRequest{Name: "draft", Enabled: test.enabled})
+			var group domain.Group
+			if rec.Code != http.StatusCreated || json.Unmarshal(rec.Body.Bytes(), &group) != nil || group.Enabled != test.want {
+				t.Fatalf("status=%d body=%s want enabled=%v", rec.Code, rec.Body.String(), test.want)
+			}
+		})
+	}
+}
