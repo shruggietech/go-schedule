@@ -73,7 +73,7 @@ func TestManagerExactRetryCadenceAndManualInterruption(t *testing.T) {
 	failure := &Failure{State: StateUnavailable, Message: "Unavailable.", Action: "Retry."}
 	backend := &backendFake{results: []backendResult{{err: failure}, {err: failure}, {err: failure}, {health: Health{Version: "1.0.0"}}}}
 	observer := observerFake{events: make(chan Event, 32)}
-	scheduler := schedulerFake{delays: make(chan time.Duration, 4), releases: make(chan chan struct{}, 4)}
+	scheduler := schedulerFake{delays: make(chan time.Duration, 4), releases: make(chan func(), 4)}
 	manager := newManager(backend, observer, scheduler, time.Now)
 	manager.Start(context.Background())
 	wants := []time.Duration{250 * time.Millisecond, time.Second, 5 * time.Second}
@@ -82,13 +82,13 @@ func TestManagerExactRetryCadenceAndManualInterruption(t *testing.T) {
 		if got := <-scheduler.delays; got != want {
 			t.Fatalf("delay %d=%s want %s", index, got, want)
 		}
-		ready := <-scheduler.releases
+		release := <-scheduler.releases
 		if index == 1 {
 			if !manager.Retry() || !manager.Retry() {
 				t.Fatal("manual retry rejected")
 			}
 		} else {
-			close(ready)
+			release()
 		}
 	}
 	nextState(t, observer.events, StateConnected)
@@ -118,13 +118,13 @@ func TestManagerPublishesEveryConnectionState(t *testing.T) {
 	transient := &Failure{State: StateTimedOut, Message: "Timed out.", Action: "Retry."}
 	backend := &backendFake{results: []backendResult{{err: transient}, {health: Health{Version: "1.0.0"}}}}
 	observer := observerFake{events: make(chan Event, 12)}
-	scheduler := schedulerFake{delays: make(chan time.Duration, 1), releases: make(chan chan struct{}, 1)}
+	scheduler := schedulerFake{delays: make(chan time.Duration, 1), releases: make(chan func(), 1)}
 	manager := newManager(backend, observer, scheduler, time.Now)
 	manager.Start(context.Background())
 	nextState(t, observer.events, StateConnecting)
 	nextState(t, observer.events, StateTimedOut)
 	<-scheduler.delays
-	close(<-scheduler.releases)
+	(<-scheduler.releases)()
 	nextState(t, observer.events, StateRecovering)
 	nextState(t, observer.events, StateConnected)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -174,7 +174,7 @@ func TestManagerRejectsDomainEventFromStaleGeneration(t *testing.T) {
 func TestManagerDegradesAndRecoversAfterEventFailure(t *testing.T) {
 	backend := &backendFake{results: []backendResult{{health: Health{Version: "1.0.0"}}}}
 	observer := observerFake{events: make(chan Event, 16)}
-	scheduler := schedulerFake{delays: make(chan time.Duration, 2), releases: make(chan chan struct{}, 2)}
+	scheduler := schedulerFake{delays: make(chan time.Duration, 2), releases: make(chan func(), 2)}
 	manager := newManager(backend, observer, scheduler, time.Now)
 	manager.Start(context.Background())
 	nextState(t, observer.events, StateConnected)
@@ -187,7 +187,7 @@ func TestManagerDegradesAndRecoversAfterEventFailure(t *testing.T) {
 	if got := <-scheduler.delays; got != 250*time.Millisecond {
 		t.Fatalf("delay=%s", got)
 	}
-	close(<-scheduler.releases)
+	(<-scheduler.releases)()
 	nextState(t, observer.events, StateConnected)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

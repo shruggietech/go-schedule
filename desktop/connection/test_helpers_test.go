@@ -56,20 +56,18 @@ func (o observerFake) Publish(event Event) { o.events <- event }
 
 type schedulerFake struct {
 	delays   chan time.Duration
-	releases chan chan struct{}
+	releases chan func()
 }
 
 func (s schedulerFake) After(ctx context.Context, delay time.Duration) <-chan struct{} {
 	ready := make(chan struct{})
+	var once sync.Once
+	release := func() { once.Do(func() { close(ready) }) }
 	s.delays <- delay
-	s.releases <- ready
+	s.releases <- release
 	go func() {
 		<-ctx.Done()
-		select {
-		case <-ready:
-		default:
-			close(ready)
-		}
+		release()
 	}()
 	return ready
 }

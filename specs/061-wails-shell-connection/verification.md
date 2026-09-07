@@ -14,6 +14,7 @@ Spec Kit analysis found no critical, high, or medium inconsistencies. All 21 fun
 | --- | --- |
 | `go vet ./...` from `desktop/` | PASS |
 | `go test -race ./...` from `desktop/` | PASS, application facade and connection manager packages |
+| `go test -race -count=100 ./connection` from `desktop/` | PASS, repeated scheduler and lifecycle stress after eliminating a cross-platform fake release race |
 | `go test -cover ./...` from `desktop/` | PASS, 58.6 percent application facade and 77.5 percent connection package statement coverage |
 | `npm audit --audit-level=high` from `desktop/frontend/` | PASS, zero vulnerabilities |
 | `npm test` from `desktop/frontend/` | PASS, 4 files and 10 tests |
