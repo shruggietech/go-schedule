@@ -6,11 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **A stable Wails foundation and accessible control-center direction now guide the desktop replacement (Closes #149, #150; Refs #147).** An isolated Wails v2.14.0, React, and TypeScript proof exercises the existing protected IPC client, live events, native dialogs, clean shutdown, local brand assets, representative target-aware workflows, nine operating states, compact reflow, keyboard navigation, and WCAG 2.2 AA automation without changing the shipped Fyne application or release inputs. Hosted CI builds the proof on Windows, macOS, and Linux and runs its Chromium accessibility contract.
+
 ### Fixed
 
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-07: adopt Wails v2.14.0 stable and the Calm Operations experience direction for the desktop replacement.** S060 selects the stable platform-native webview line instead of Wails v3 prerelease or a bundled browser runtime, keeps direct dependencies exactly pinned, and requires the same three-platform proof before a stable upgrade. The future control center uses a slim application rail, persistent target context, one page purpose and primary action, contextual detail, plain operational states, local approved brand assets, and measurable keyboard, contrast, zoom, and reduced-motion rules. Vite advances from the upstream template's vulnerable 7.0.0 to 7.3.6, while jsdom remains at Node-24-compatible 29.0.0.
 
 - **2026-09-07: validate complete Unix credential pairs before command mutation.** S059 uses the standard unsigned fixed-width parser and a pure resolved-account seam so boundary and failure cases remain deterministic without mutable lookup hooks or host account provisioning. Account lookup, environment behavior, and unrelated Unix IPC group ownership remain unchanged.
 

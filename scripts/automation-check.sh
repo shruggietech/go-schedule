@@ -23,6 +23,7 @@ approved_for() {
   case "$1" in
     actions/checkout) printf '%s' 'actions/checkout@v7' ;;
     actions/setup-go) printf '%s' 'actions/setup-go@v7' ;;
+    actions/setup-node) printf '%s' 'actions/setup-node@v7' ;;
     actions/upload-artifact) printf '%s' 'actions/upload-artifact@v7' ;;
     github/codeql-action/init) printf '%s' 'github/codeql-action/init@v4' ;;
     github/codeql-action/analyze) printf '%s' 'github/codeql-action/analyze@v4' ;;
@@ -64,6 +65,30 @@ done
 
 if [ "$found_workflow" -eq 0 ]; then
   report "$ROOT/.github/workflows: no .yml or .yaml workflow files found"
+fi
+
+CI="$ROOT/.github/workflows/ci.yml"
+
+require_ci_text() {
+  text=$1
+  description=$2
+  if ! grep -Fq -- "$text" "$CI"; then
+    report "$CI: missing $description"
+  fi
+}
+
+if [ ! -f "$CI" ]; then
+  report "$CI: canonical CI workflow not found"
+else
+  require_ci_text '  wails-proof:' 'Wails proof job'
+  require_ci_text 'os: [ubuntu-latest, macos-latest, windows-latest]' \
+    'three-platform Wails proof matrix'
+  require_ci_text 'uses: actions/setup-node@v7' 'approved Node setup action'
+  require_ci_text 'node-version: 24' 'Node 24 proof baseline'
+  require_ci_text 'go test -race ./...' 'nested Go race proof'
+  require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build' \
+    'exact Wails proof build version'
+  require_ci_text '  wails-browser-contract:' 'Wails browser contract job'
 fi
 
 CODEQL="$ROOT/.github/workflows/codeql.yml"

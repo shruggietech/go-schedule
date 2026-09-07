@@ -48,3 +48,10 @@ Thumbs.db
 
 # Local build output
 dist/
+node_modules/
+playwright-report/
+test-results/
+experiments/wails-foundation/build/bin/
+experiments/wails-foundation/build/*/
+experiments/wails-foundation/frontend/package.json.md5
+experiments/wails-foundation/frontend/wailsjs/

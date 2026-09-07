@@ -64,8 +64,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
       - uses: actions/upload-artifact@v7
       - uses: softprops/action-gh-release@v3
+  wails-proof:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - run: go test -race ./...
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
+  wails-browser-contract:
+    steps:
+      - run: npm run test:e2e
 EOF
   cat > "$fixture/.github/dependabot.yml" <<'EOF'
 version: 2
@@ -538,6 +551,19 @@ run_automation_cases() {
   sed 's#actions/checkout@v7#actions/checkout@v4#' \
     "$good/.github/workflows/ci.yml" > "$old/.github/workflows/ci.yml"
   run_expect_fail obsolete 'actions/checkout@v4' sh "$CHECK" "$old"
+
+  old_node="$tmp/old-node"
+  cp -R "$good" "$old_node"
+  sed 's#actions/setup-node@v7#actions/setup-node@v6#' \
+    "$good/.github/workflows/ci.yml" > "$old_node/.github/workflows/ci.yml"
+  run_expect_fail obsolete-node 'actions/setup-node@v6' sh "$CHECK" "$old_node"
+
+  incomplete_wails_matrix="$tmp/incomplete-wails-matrix"
+  cp -R "$good" "$incomplete_wails_matrix"
+  sed 's/os: \[ubuntu-latest, macos-latest, windows-latest\]/os: [ubuntu-latest, windows-latest]/' \
+    "$good/.github/workflows/ci.yml" > "$incomplete_wails_matrix/.github/workflows/ci.yml"
+  run_expect_fail incomplete-wails-matrix 'three-platform Wails proof matrix' \
+    sh "$CHECK" "$incomplete_wails_matrix"
 
   old_codeql="$tmp/old-codeql"
   cp -R "$good" "$old_codeql"
