@@ -55,3 +55,7 @@ experiments/wails-foundation/build/bin/
 experiments/wails-foundation/build/*/
 experiments/wails-foundation/frontend/package.json.md5
 experiments/wails-foundation/frontend/wailsjs/
+desktop/build/bin/
+desktop/build/*/
+desktop/frontend/package.json.md5
+desktop/frontend/wailsjs/

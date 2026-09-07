@@ -79,6 +79,22 @@ jobs:
   wails-browser-contract:
     steps:
       - run: npm run test:e2e
+  wails-desktop:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - run: go test -race ./...
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
+      - run: npm audit --audit-level=high && npm test && npm run build
+      - run: echo cache-dependency-path: desktop/go.sum
+      - run: echo cache-dependency-path: desktop/frontend/package-lock.json
+  wails-desktop-browser-contract:
+    steps:
+      - run: npm run test:e2e
 EOF
   cat > "$fixture/.github/dependabot.yml" <<'EOF'
 version: 2
@@ -564,6 +580,13 @@ run_automation_cases() {
     "$good/.github/workflows/ci.yml" > "$incomplete_wails_matrix/.github/workflows/ci.yml"
   run_expect_fail incomplete-wails-matrix 'three-platform Wails proof matrix' \
     sh "$CHECK" "$incomplete_wails_matrix"
+
+  missing_production_desktop="$tmp/missing-production-desktop"
+  cp -R "$good" "$missing_production_desktop"
+  sed '/^  wails-desktop:$/,/^  wails-desktop-browser-contract:$/d' \
+    "$good/.github/workflows/ci.yml" > "$missing_production_desktop/.github/workflows/ci.yml"
+  run_expect_fail missing-production-desktop 'production Wails desktop job' \
+    sh "$CHECK" "$missing_production_desktop"
 
   old_codeql="$tmp/old-codeql"
   cp -R "$good" "$old_codeql"

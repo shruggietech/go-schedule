@@ -89,6 +89,15 @@ else
   require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build' \
     'exact Wails proof build version'
   require_ci_text '  wails-browser-contract:' 'Wails browser contract job'
+  require_ci_text '  wails-desktop:' 'production Wails desktop job'
+  require_ci_text 'working-directory: desktop' 'production Wails desktop boundary'
+  require_ci_text 'cache-dependency-path: desktop/go.sum' 'production Wails Go dependency cache'
+  require_ci_text 'cache-dependency-path: desktop/frontend/package-lock.json' \
+    'production Wails frontend dependency cache'
+  require_ci_text 'npm audit --audit-level=high && npm test && npm run build' \
+    'production Wails frontend audit and verification'
+  require_ci_text '  wails-desktop-browser-contract:' \
+    'production Wails browser contract job'
 fi
 
 CODEQL="$ROOT/.github/workflows/codeql.yml"
