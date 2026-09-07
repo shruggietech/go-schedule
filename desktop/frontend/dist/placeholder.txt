@@ -1,0 +1,1 @@
+This tracked placeholder keeps the embedded asset directory valid for clean-checkout Go tests. Production builds add the generated frontend files beside it.

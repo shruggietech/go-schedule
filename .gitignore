@@ -48,6 +48,9 @@ Thumbs.db
 
 # Local build output
 dist/
+!desktop/frontend/dist/
+desktop/frontend/dist/*
+!desktop/frontend/dist/placeholder.txt
 node_modules/
 playwright-report/
 test-results/

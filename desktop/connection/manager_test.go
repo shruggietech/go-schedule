@@ -13,6 +13,30 @@ type cancelableHealthBackend struct {
 	count atomic.Int32
 }
 
+type joiningHealthBackend struct {
+	calls    chan int32
+	canceled chan struct{}
+	release  chan struct{}
+	count    atomic.Int32
+}
+
+func (b *joiningHealthBackend) Health(ctx context.Context) (Health, error) {
+	call := b.count.Add(1)
+	b.calls <- call
+	if call == 1 {
+		<-ctx.Done()
+		close(b.canceled)
+		<-b.release
+		return Health{}, ctx.Err()
+	}
+	return Health{Version: "1.0.0"}, nil
+}
+
+func (*joiningHealthBackend) StreamEvents(ctx context.Context, _ func(DomainEvent)) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
 func (b *cancelableHealthBackend) Health(ctx context.Context) (Health, error) {
 	call := b.count.Add(1)
 	b.calls <- call
@@ -145,6 +169,43 @@ func TestManagerManualRetryCancelsActiveHealthAttempt(t *testing.T) {
 	connected := nextState(t, observer.events, StateConnected)
 	if connected.Generation != 2 {
 		t.Fatalf("generation=%d", connected.Generation)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := manager.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestManagerCoalescesRetriesDuringCanceledHealthJoin(t *testing.T) {
+	backend := &joiningHealthBackend{calls: make(chan int32, 4), canceled: make(chan struct{}), release: make(chan struct{})}
+	observer := observerFake{events: make(chan Event, 8)}
+	manager := newManager(backend, observer, timerScheduler{}, time.Now)
+	manager.Start(context.Background())
+	if call := <-backend.calls; call != 1 {
+		t.Fatalf("first call=%d", call)
+	}
+	if !manager.Retry() {
+		t.Fatal("manual retry rejected")
+	}
+	<-backend.canceled
+	for index := 0; index < 10; index++ {
+		if !manager.Retry() {
+			t.Fatalf("retry %d rejected", index)
+		}
+	}
+	close(backend.release)
+	if call := <-backend.calls; call != 2 {
+		t.Fatalf("second call=%d", call)
+	}
+	connected := nextState(t, observer.events, StateConnected)
+	if connected.Generation != 2 {
+		t.Fatalf("generation=%d want 2", connected.Generation)
+	}
+	select {
+	case call := <-backend.calls:
+		t.Fatalf("coalesced retries started call %d", call)
+	case <-time.After(100 * time.Millisecond):
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()

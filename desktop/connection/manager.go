@@ -31,14 +31,16 @@ type Manager struct {
 	observer  Observer
 	now       func() time.Time
 
-	mu       sync.RWMutex
-	snapshot Snapshot
-	cancel   context.CancelFunc
-	done     chan struct{}
-	retry    chan struct{}
-	started  bool
-	stopped  bool
-	sequence atomic.Uint64
+	mu              sync.RWMutex
+	snapshot        Snapshot
+	cancel          context.CancelFunc
+	done            chan struct{}
+	retry           chan struct{}
+	retryQueued     bool
+	retryProcessing bool
+	started         bool
+	stopped         bool
+	sequence        atomic.Uint64
 }
 
 // NewManager creates an idle manager with an honest initial snapshot.
@@ -72,17 +74,31 @@ func (m *Manager) Snapshot() Snapshot {
 
 // Retry requests one fresh generation and coalesces repeated requests.
 func (m *Manager) Retry() bool {
-	m.mu.RLock()
-	stopped := m.stopped
-	m.mu.RUnlock()
-	if stopped {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.stopped {
 		return false
 	}
-	select {
-	case m.retry <- struct{}{}:
-	default:
+	if !m.retryQueued {
+		m.retryQueued = true
+		m.retry <- struct{}{}
 	}
 	return true
+}
+
+func (m *Manager) beginRetry() {
+	m.mu.Lock()
+	m.retryProcessing = true
+	m.mu.Unlock()
+}
+
+func (m *Manager) completeRetry() {
+	m.mu.Lock()
+	if m.retryProcessing {
+		m.retryQueued = false
+		m.retryProcessing = false
+	}
+	m.mu.Unlock()
 }
 
 // Stop cancels owned work and waits within the caller's deadline.
@@ -138,6 +154,7 @@ connectionLoop:
 			health, err := m.backend.Health(attemptCtx)
 			result <- healthResult{health: health, err: err}
 		}()
+		m.completeRetry()
 		var health Health
 		var err error
 		select {
@@ -149,6 +166,7 @@ connectionLoop:
 			<-result
 			return
 		case <-m.retry:
+			m.beginRetry()
 			cancelAttempt()
 			<-result
 			retryIndex = 0
@@ -204,6 +222,7 @@ connectionLoop:
 				<-streamDone
 				return
 			case <-m.retry:
+				m.beginRetry()
 				cancelStream()
 				<-streamDone
 				retryIndex = 0
@@ -241,6 +260,7 @@ func (m *Manager) waitManual(ctx context.Context) bool {
 	case <-ctx.Done():
 		return false
 	case <-m.retry:
+		m.beginRetry()
 		return true
 	}
 }
@@ -252,6 +272,7 @@ func (m *Manager) waitRetry(ctx context.Context, delay time.Duration) (bool, boo
 	case <-ctx.Done():
 		return false, false
 	case <-m.retry:
+		m.beginRetry()
 		return true, true
 	case <-m.scheduler.After(waitCtx, delay):
 		return true, false
