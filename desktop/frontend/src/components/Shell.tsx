@@ -3,7 +3,7 @@ import { Button, Dialog, StatusBadge, ToastRegion } from '.'
 import type { Appearance, ConnectionSnapshot, Route } from '../connection/model'
 
 const routes: Array<{ id: Route; label: string }> = [
-  { id: 'tasks', label: 'Tasks' }, { id: 'schedule', label: 'Schedule' }, { id: 'activity', label: 'Activity' }, { id: 'connections', label: 'Connections' }, { id: 'settings', label: 'Settings' },
+  { id: 'tasks', label: 'Tasks' }, { id: 'automation', label: 'Automation Sources' }, { id: 'schedule', label: 'Schedule' }, { id: 'activity', label: 'Activity' }, { id: 'connections', label: 'Connections' }, { id: 'settings', label: 'Settings' },
 ]
 
 export function Shell({ route, onRoute, appearance, onAppearance, connection, announcement, onRetry, onQuit, children }: { route: Route; onRoute(route: Route): void; appearance: Appearance; onAppearance(value: Appearance): void; connection: ConnectionSnapshot; announcement: string; onRetry(): void; onQuit(): void; children: ReactNode }) {

@@ -6,7 +6,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 900, height: 650 
     test.use({ viewport })
     test('keeps long page and target identity reachable without page overflow', async ({ page }) => {
       await page.goto('/')
-      for (const destination of ['Tasks', 'Schedule', 'Activity', 'Connections', 'Settings']) {
+      for (const destination of ['Tasks', 'Automation Sources', 'Schedule', 'Activity', 'Connections', 'Settings']) {
         await page.getByRole('button', { name: destination, exact: true }).click()
         await expect(page.getByRole('heading', { level: 1, name: destination })).toBeVisible()
         await expect(page.getByText('This computer').first()).toBeVisible()

@@ -86,7 +86,7 @@ func TestAppFacadeStartsSnapshotsRetriesAndQuits(t *testing.T) {
 }
 
 func TestAppFacadeExposesSafeTaskWorkspace(t *testing.T) {
-	app := newApp(appBackend{}, nil, nil, taskgroup.NewService(facadeTaskBackend{}))
+	app := newApp(appBackend{}, nil, nil, appServices{tasks: taskgroup.NewService(facadeTaskBackend{})})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	app.startup(ctx)

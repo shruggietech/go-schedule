@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 )
@@ -24,20 +25,136 @@ type ActionResult struct {
 
 // App is the deliberately small Wails bridge facade.
 type App struct {
-	manager *connection.Manager
-	tasks   *taskgroup.Service
-	emitter eventEmitter
-	native  nativeRuntime
-	ctx     context.Context
+	manager    *connection.Manager
+	tasks      *taskgroup.Service
+	automation *automation.Service
+	emitter    eventEmitter
+	native     nativeRuntime
+	ctx        context.Context
 }
 
-func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, taskServices ...*taskgroup.Service) *App {
+type appServices struct {
+	tasks      *taskgroup.Service
+	automation *automation.Service
+}
+
+func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, services ...appServices) *App {
 	app := &App{emitter: emitter, native: native}
-	if len(taskServices) > 0 {
-		app.tasks = taskServices[0]
+	if len(services) > 0 {
+		app.tasks = services[0].tasks
+		app.automation = services[0].automation
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+func (a *App) AutomationWorkspace() automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "load", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.Workspace(a.ctx)
+}
+func (a *App) SaveChain(d automation.ChainDraft) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "save_chain", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.SaveChain(a.ctx, d)
+}
+func (a *App) DeleteChain(id string) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "delete_chain", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.DeleteChain(a.ctx, id)
+}
+func (a *App) SaveTrigger(d automation.TriggerDraft) automation.SecretResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.SecretResult{Action: "save_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.SaveTrigger(a.ctx, d)
+}
+func (a *App) SetTriggerEnabled(id string, enabled bool) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "toggle_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.SetTriggerEnabled(a.ctx, id, enabled)
+}
+func (a *App) RevealTrigger(id string) automation.SecretResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.SecretResult{Action: "reveal_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.RevealTrigger(a.ctx, id)
+}
+func (a *App) RotateTrigger(id string) automation.SecretResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.SecretResult{Action: "rotate_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.RotateTrigger(a.ctx, id)
+}
+func (a *App) FireTrigger(id string) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "fire_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.FireTrigger(a.ctx, id)
+}
+func (a *App) DeleteTrigger(id string) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "delete_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.DeleteTrigger(a.ctx, id)
+}
+func (a *App) CreateTriggerSet(d automation.TriggerSetDraft) automation.SecretResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.SecretResult{Action: "create_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.CreateTriggerSet(a.ctx, d)
+}
+func (a *App) RetargetTriggerSet(id, target, updated string, overwrite bool) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "retarget_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.RetargetTriggerSet(a.ctx, id, target, updated, overwrite)
+}
+func (a *App) SetTriggerSetEnabled(id string, enabled bool) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "toggle_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.SetTriggerSetEnabled(a.ctx, id, enabled)
+}
+func (a *App) RevealTriggerSet(id string) automation.SecretResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.SecretResult{Action: "reveal_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.RevealTriggerSet(a.ctx, id)
+}
+func (a *App) RotateTriggerSet(id string) automation.SecretResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.SecretResult{Action: "rotate_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.RotateTriggerSet(a.ctx, id)
+}
+func (a *App) DeleteTriggerSet(id string) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "delete_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.DeleteTriggerSet(a.ctx, id)
+}
+func (a *App) SaveFilesystemWatcher(d automation.WatcherDraft) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "save_watcher", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.SaveWatcher(a.ctx, d)
+}
+func (a *App) SetFilesystemWatcherEnabled(id string, enabled bool) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "toggle_watcher", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.SetWatcherEnabled(a.ctx, id, enabled)
+}
+func (a *App) DeleteFilesystemWatcher(id string) automation.OperationResult {
+	if a.automation == nil || a.ctx == nil {
+		return automation.OperationResult{Action: "delete_watcher", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	}
+	return a.automation.DeleteWatcher(a.ctx, id)
 }
 
 func (a *App) Workspace() taskgroup.OperationResult {
