@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="go-schedule mark">
+  <title>go-schedule mark</title>
+  <path fill="#28414B" fill-rule="evenodd" d="M132 102h248c29.82 0 54 24.18 54 54v200c0 29.82-24.18 54-54 54H132c-29.82 0-54-24.18-54-54V156c0-29.82 24.18-54 54-54z M132 122c-18.78 0-34 15.22-34 34v200c0 18.78 15.22 34 34 34h248c18.78 0 34-15.22 34-34V156c0-18.78-15.22-34-34-34H132z"/><path fill="#58A6FF" d="M116 164l18-18 44 40v16l-44 40-18-18 34-30z"/><rect x="194" y="238" width="172" height="24" rx="12" fill="#62D9B7"/><rect x="122" y="326" width="20" height="20" rx="5" fill="#62D9B7"/><rect x="184" y="326" width="20" height="20" rx="5" fill="#62D9B7"/><rect x="246" y="326" width="20" height="20" rx="5" fill="#58A6FF"/><rect x="308" y="326" width="20" height="20" rx="5" fill="#62D9B7"/><rect x="370" y="326" width="20" height="20" rx="5" fill="#62D9B7"/>
+</svg>

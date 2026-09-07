@@ -227,6 +227,67 @@ jobs:
           CGO_ENABLED: "1"
         run: sh scripts/verify.sh gui
 
+  wails-proof:
+    name: Wails foundation proof (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: experiments/wails-foundation
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: experiments/wails-foundation/frontend/package-lock.json
+      - name: Install Linux WebKitGTK prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Install exact frontend dependencies
+        working-directory: experiments/wails-foundation/frontend
+        run: npm ci
+      - name: Test and build frontend
+        working-directory: experiments/wails-foundation/frontend
+        run: npm run test && npm run build
+      - name: Test Go boundary under race detector
+        run: go test -race ./...
+      - name: Build Linux proof
+        if: runner.os == 'Linux'
+        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -tags webkit2_41
+      - name: Build native proof
+        if: runner.os != 'Linux'
+        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+
+  wails-browser-contract:
+    name: Wails accessibility and responsive contract
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: experiments/wails-foundation/frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: experiments/wails-foundation/frontend/package-lock.json
+      - name: Install exact frontend dependencies
+        run: npm ci
+      - name: Install Chromium test runtime
+        run: npx playwright install --with-deps chromium
+      - name: Exercise accessibility and responsive contracts
+        run: npm run test:e2e
+
   bench:
     name: Engine benchmarks (artifact only)
     runs-on: ubuntu-latest
