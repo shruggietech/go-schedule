@@ -61,4 +61,42 @@ describe('control center', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByRole('heading', { name: 'Scheduled work' })).toBeVisible()
   })
+
+  it('renders task counts and inspector details from the loaded snapshot', async () => {
+    const loaded = fixtureFor('connected')
+    loaded.tasks = [{ id: 'sync', name: 'Sync invoices', enabled: true, state: 'active', schedule: 'Weekdays at 09:15', nextRun: 'Tomorrow, 09:15', lastResult: 'failed' }]
+    render(<App snapshotLoader={() => Promise.resolve(loaded)} />)
+    expect(await screen.findByText('1 task')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Sync invoices' })).toBeVisible()
+    expect(screen.getAllByText('Weekdays at 09:15')).toHaveLength(2)
+    expect(screen.queryByText('Nightly backup')).not.toBeInTheDocument()
+  })
+
+  it('shows a retry state when a degraded snapshot has no task data', async () => {
+    const loaded = fixtureFor('degraded')
+    loaded.tasks = []
+    render(<App snapshotLoader={() => Promise.resolve(loaded)} />)
+    expect(await screen.findByRole('heading', { name: 'Tasks unavailable' })).toBeVisible()
+    expect(screen.queryByText('Nightly backup')).not.toBeInTheDocument()
+  })
+
+  it('saves and cancels the task editor workflow', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Create task' }))
+    await user.click(screen.getByRole('button', { name: 'Save task' }))
+    expect(screen.getByText('Success')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Tasks' })).toBeVisible()
+  })
+
+  it('returns dialog focus to the exact switch-target invoker', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'Targets' }))
+    const invoker = screen.getAllByRole('button', { name: 'Switch target' }).at(-1)!
+    await user.click(invoker)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(invoker).toHaveFocus()
+  })
 })

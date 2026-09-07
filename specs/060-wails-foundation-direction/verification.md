@@ -5,7 +5,7 @@
 | Gate | Result |
 | --- | --- |
 | Nested Go boundary and lifecycle | `go test -race ./...` passed on Windows with connected, disconnected, degraded, native-action, event, duplicate-start, cancellation, and shutdown coverage. |
-| Frontend component and accessibility | `npm run test` passed 13 tests across four files, including first-round regressions for real snapshot conditions and every advertised recovery or page action. |
+| Frontend component and accessibility | `npm run test` passed 17 tests across four files, including regressions for real snapshot data, every advertised recovery and workflow action, and exact dialog focus return. |
 | Type safety and production bundle | `npm run build` passed with TypeScript 5.6.3 and Vite 7.3.6. |
 | Browser experience contract | `npm run test:e2e` passed five Chromium tests at 1440 by 900, 900 by 650, light and dark appearances, required states, keyboard flow, axe serious and critical violations, screenshots, horizontal overflow, and 200 percent zoom. |
 | Dependency audit | `npm audit --audit-level=high` reported zero vulnerabilities from the committed lockfile. |
@@ -34,7 +34,9 @@
 
 [CI run 34091460576](https://github.com/shruggietech/go-schedule/actions/runs/34091460576) passed the exact Wails proof on Windows, macOS, and Linux and passed the Chromium accessibility contract on Ubuntu. The run also passed CodeQL, lint and vet, three-platform root race tests, LocalSystem execution, cross-compilation, docs, benchmarks, and coverage; the existing GUI and MSI jobs were still finishing when the S060 platform evidence was recorded.
 
-Codex review round one identified three prototype interaction defects: daemon snapshots did not synchronize the selected condition, page-level primary buttons could be inert, and loading or disconnected recovery controls could be inert. The fixes derive real conditions from loaded snapshots, keep prototype overrides explicit, wire every action, and add direct component regressions. Every review thread is resolved after the fix commit is published.
+Codex review round one identified three prototype interaction defects: daemon snapshots did not synchronize the selected condition, page-level primary buttons could be inert, and loading or disconnected recovery controls could be inert. The fixes derive real conditions from loaded snapshots, keep prototype overrides explicit, wire every action, and add direct component regressions.
+
+The authorized second and final Codex review identified three remaining contract defects: the task list and inspector invented fixture details instead of rendering an arbitrary daemon snapshot, editor save and cancel controls were inert, and the target dialog always returned focus to the target-bar control instead of its exact invoker. The fixes render loaded counts and task details, provide an explicit degraded no-data recovery state, complete save and cancel transitions, and retain the dialog invoker for focus restoration. All six review findings have direct regression coverage and resolved review threads.
 
 ## Issue traceability
 
