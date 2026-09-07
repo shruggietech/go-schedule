@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/store"
 	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
@@ -274,11 +275,11 @@ func (s *Service) SaveWatcher(ctx context.Context, draft WatcherDraft) Operation
 	if draft.TargetTaskID == "" {
 		return rejected("save_watcher", "targetTaskId", "Select a target task.")
 	}
-	if _, err := time.ParseDuration(draft.Debounce); err != nil {
-		return rejected("save_watcher", "debounce", "Enter a valid debounce duration.")
+	if !validWatcherDuration(draft.Debounce) {
+		return rejected("save_watcher", "debounce", "Enter a debounce duration from 25ms through 1h.")
 	}
-	if _, err := time.ParseDuration(draft.Stability); err != nil {
-		return rejected("save_watcher", "stability", "Enter a valid stability duration.")
+	if !validWatcherDuration(draft.Stability) {
+		return rejected("save_watcher", "stability", "Enter a stability duration from 25ms through 1h.")
 	}
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
@@ -335,6 +336,11 @@ func fallback(value, fallbackValue string) string {
 		return fallbackValue
 	}
 	return value
+}
+
+func validWatcherDuration(value string) bool {
+	duration, err := time.ParseDuration(value)
+	return err == nil && duration >= store.MinWatcherDuration && duration <= store.MaxWatcherDuration
 }
 func stale(updated time.Time, original string, overwrite bool) bool {
 	return !overwrite && original != "" && updated.Format(time.RFC3339Nano) != original

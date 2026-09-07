@@ -62,4 +62,20 @@ describe('AutomationPage', () => {
     const button = await screen.findByRole('button', { name: 'Fire now' }); await user.click(button); await user.click(button)
     expect(fire).toHaveBeenCalledTimes(1); finish({ action: 'fire_trigger', outcome: 'accepted', message: 'Fired.', workspace: readyWorkspace }); await waitFor(() => expect(button).toBeEnabled())
   })
+
+  it('confirms key rotations with the affected source identity', async () => {
+    const user = userEvent.setup(); const rotate = vi.fn().mockResolvedValue({ action: 'rotate_trigger', outcome: 'accepted', message: 'Rotated.', secrets: [{ label: 'Webhook', key: 'replacement', command: 'fire replacement' }] }); const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<AutomationPage bridge={mockBridge({ rotateTrigger: rotate })} />); const button = await screen.findByRole('button', { name: 'Rotate' }); await user.click(button); expect(rotate).not.toHaveBeenCalled(); expect(confirm).toHaveBeenCalledWith(expect.stringContaining('Webhook'))
+    confirm.mockReturnValue(true); await user.click(button); expect(rotate).toHaveBeenCalledTimes(1); confirm.mockRestore()
+  })
+
+  it('preserves trigger-save success when its refresh fails', async () => {
+    const user = userEvent.setup(); const load = vi.fn().mockResolvedValueOnce(accepted).mockResolvedValue({ action: 'load', outcome: 'unavailable', message: 'Offline.' }); const save = vi.fn().mockResolvedValue({ action: 'save_trigger', outcome: 'accepted', message: 'Trigger saved.', entityId: 'trigger-1' })
+    render(<AutomationPage bridge={mockBridge({ workspace: load, saveTrigger: save })} />); const trigger = await screen.findByRole('heading', { name: 'Webhook' }); await user.click(trigger.closest('article')!.querySelector<HTMLButtonElement>('button')!); await user.click(screen.getByRole('button', { name: 'Save' })); expect(await screen.findByText(/Trigger saved\. Refresh the workspace/)).toBeVisible(); expect(screen.getByRole('heading', { name: 'Webhook' })).toBeVisible()
+  })
+
+  it('traps focus inside the source editor and restores its invoker', async () => {
+    const user = userEvent.setup(); render(<AutomationPage bridge={mockBridge()} />); const heading = await screen.findByRole('heading', { name: 'External triggers' }); const create = heading.closest('section')!.querySelector<HTMLButtonElement>('button')!; await user.click(create)
+    expect(screen.getByRole('dialog', { name: 'Create external trigger' })).toBeVisible(); expect(screen.getByLabelText('Name')).toHaveFocus(); await user.keyboard('{Shift>}{Tab}{/Shift}'); expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus(); await user.keyboard('{Escape}'); expect(create).toHaveFocus()
+  })
 })

@@ -16,7 +16,7 @@ Spec Kit analysis found no critical, high, medium, ambiguity, duplication, or un
 | `go vet ./...` from `desktop/` | PASS |
 | `go test -race -count=20 ./...` from `desktop/` | PASS, repeated application and service concurrency coverage |
 | Automation package tests | PASS, complete-snapshot failure, secret-free JSON, missing relationships, daemon watcher health, stale overwrite, and internal-key firing |
-| `npm test -- --run` from `desktop/frontend/` | PASS, 12 files and 31 tests |
+| `npm test -- --run` from `desktop/frontend/` | PASS, 12 files and 34 tests after first-round review fixes |
 | `npm run build` from `desktop/frontend/` | PASS, TypeScript and Vite production build |
 | `npm run test:e2e` from `desktop/frontend/` | PASS, 9 Chromium contracts including 100 automation sources, WCAG checks, focus retention, narrow width, 200 percent zoom, and long degraded watcher paths |
 | `go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean` from `desktop/` | PASS, native Windows amd64 package built as `go-schedule.exe` |
@@ -51,6 +51,14 @@ Spec Kit analysis found no critical, high, medium, ambiguity, duplication, or un
 ## Deliberate implementation decisions
 
 The desktop composes existing daemon APIs rather than adding a new aggregate endpoint, persistence model, or frontend readiness state machine. This keeps daemon validation, Trigger Set atomicity, task readiness, and watcher health authoritative. The four source types share collection and status language but retain type-specific editors because a generic form would combine unrelated constraints and weaken accessibility.
+
+## First-round review verification
+
+- Trigger and Trigger Set rotations now require confirmations that name the source and state the number of affected keys before invalidation.
+- Trigger edits retain their accepted save outcome and last complete snapshot when the follow-up refresh fails, with explicit refresh guidance.
+- Watcher debounce and stability values are rejected outside the daemon's exported 25 millisecond through 1 hour bounds before submission.
+- Source editors now wrap forward and reverse Tab navigation, restore their invoker, and retain Escape close behavior.
+- Focused Go, Go race, 34 React tests, TypeScript production build, and 9 Chromium contracts passed after these changes.
 
 ## Canonical repository verification
 

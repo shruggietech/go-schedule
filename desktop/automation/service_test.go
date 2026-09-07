@@ -115,3 +115,20 @@ func TestFireTriggerKeepsSecretInsideService(t *testing.T) {
 		t.Fatalf("fire result leaked key: %s", encoded)
 	}
 }
+
+func TestWatcherDurationBoundsAreValidatedBeforeSubmission(t *testing.T) {
+	service := NewService(&fakeBackend{})
+	base := WatcherDraft{Name: "Inbox", Kind: "directory", Path: "inbox", TargetTaskID: "task-1", Debounce: "25ms", Stability: "1h", IsNew: true}
+	for _, test := range []struct{ field, value string }{{"debounce", "0s"}, {"debounce", "-1s"}, {"debounce", "2h"}, {"stability", "24ms"}, {"stability", "invalid"}} {
+		draft := base
+		if test.field == "debounce" {
+			draft.Debounce = test.value
+		} else {
+			draft.Stability = test.value
+		}
+		result := service.SaveWatcher(context.Background(), draft)
+		if result.Outcome != "rejected" || result.Field != test.field {
+			t.Fatalf("%s=%q result=%+v", test.field, test.value, result)
+		}
+	}
+}
