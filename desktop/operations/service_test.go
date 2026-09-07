@@ -14,6 +14,7 @@ import (
 type stubBackend struct {
 	calendar server.CalendarResponse
 	runs     []domain.Run
+	active   []domain.Run
 	logs     server.LogsResponse
 	alerts   []domain.Alert
 	errAt    string
@@ -32,13 +33,19 @@ func (s *stubBackend) ListRuns(context.Context, string, int) ([]domain.Run, erro
 	}
 	return s.runs, nil
 }
+func (s *stubBackend) ListActiveRuns(context.Context) ([]domain.Run, error) {
+	if s.errAt == "active" {
+		return nil, errors.New("boom")
+	}
+	return s.active, nil
+}
 func (s *stubBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	if s.errAt == "logs" {
 		return server.LogsResponse{}, errors.New("boom")
 	}
 	return s.logs, nil
 }
-func (s *stubBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
+func (s *stubBackend) ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error) {
 	if s.errAt == "alerts" {
 		return nil, errors.New("boom")
 	}
@@ -88,6 +95,26 @@ func TestActivityWorkspaceIsCompleteAndPreservesDiagnostics(t *testing.T) {
 	backend.errAt = "alerts"
 	if failed := service.ActivityWorkspace(context.Background()); failed.Outcome != "unavailable" || failed.Activity != nil {
 		t.Fatalf("partial=%+v", failed)
+	}
+}
+
+func TestActivityWorkspaceIncludesAuthoritativeActiveRuns(t *testing.T) {
+	now := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
+	backend := &stubBackend{active: []domain.Run{{ID: "active-1", TaskID: "task-1", ScheduledFor: now.Add(-time.Hour), StartedAt: &now, Trigger: domain.TriggerManual}}}
+	service := NewService(backend)
+	service.now = func() time.Time { return now }
+	result := service.ActivityWorkspace(context.Background())
+	if result.Outcome != "accepted" || len(result.Activity.Runs) != 1 || result.Activity.Runs[0].State != "running" {
+		t.Fatalf("result=%+v", result)
+	}
+}
+
+func TestActivityWorkspacePrefersPersistedCompletionDuringHandoff(t *testing.T) {
+	now := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
+	backend := &stubBackend{runs: []domain.Run{{ID: "run-1", TaskID: "task-1", ScheduledFor: now, EndedAt: &now, Outcome: domain.OutcomeSuccess}}, active: []domain.Run{{ID: "run-1", TaskID: "task-1", ScheduledFor: now, StartedAt: &now}}}
+	result := NewService(backend).ActivityWorkspace(context.Background())
+	if len(result.Activity.Runs) != 1 || result.Activity.Runs[0].State != "success" {
+		t.Fatalf("result=%+v", result)
 	}
 }
 

@@ -50,10 +50,13 @@ func (facadeOperationsBackend) GetCalendar(_ context.Context, from, to time.Time
 func (facadeOperationsBackend) ListRuns(context.Context, string, int) ([]domain.Run, error) {
 	return []domain.Run{}, nil
 }
+func (facadeOperationsBackend) ListActiveRuns(context.Context) ([]domain.Run, error) {
+	return []domain.Run{}, nil
+}
 func (facadeOperationsBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	return server.LogsResponse{Logs: []domain.LogRecord{}}, nil
 }
-func (facadeOperationsBackend) ListAlerts(context.Context, bool) ([]domain.Alert, error) {
+func (facadeOperationsBackend) ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error) {
 	return []domain.Alert{}, nil
 }
 func (facadeOperationsBackend) AckAlert(context.Context, string) error { return nil }

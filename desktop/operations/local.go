@@ -11,8 +11,9 @@ import (
 type Backend interface {
 	GetCalendar(context.Context, time.Time, time.Time) (server.CalendarResponse, error)
 	ListRuns(context.Context, string, int) ([]domain.Run, error)
+	ListActiveRuns(context.Context) ([]domain.Run, error)
 	ListLogs(context.Context, string, int) (server.LogsResponse, error)
-	ListAlerts(context.Context, bool) ([]domain.Alert, error)
+	ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error)
 	AckAlert(context.Context, string) error
 }
 
@@ -26,11 +27,14 @@ func (b *LocalBackend) GetCalendar(ctx context.Context, from, to time.Time) (ser
 func (b *LocalBackend) ListRuns(ctx context.Context, task string, limit int) ([]domain.Run, error) {
 	return b.daemon.ListRuns(ctx, task, limit)
 }
+func (b *LocalBackend) ListActiveRuns(ctx context.Context) ([]domain.Run, error) {
+	return b.daemon.ListActiveRuns(ctx)
+}
 func (b *LocalBackend) ListLogs(ctx context.Context, severity string, limit int) (server.LogsResponse, error) {
 	return b.daemon.ListLogs(ctx, severity, limit)
 }
-func (b *LocalBackend) ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, error) {
-	return b.daemon.ListAlerts(ctx, unacked)
+func (b *LocalBackend) ListAlertsLimited(ctx context.Context, unacked bool, limit int) ([]domain.Alert, error) {
+	return b.daemon.ListAlertsLimited(ctx, unacked, limit)
 }
 func (b *LocalBackend) AckAlert(ctx context.Context, id string) error {
 	return b.daemon.AckAlert(ctx, id)

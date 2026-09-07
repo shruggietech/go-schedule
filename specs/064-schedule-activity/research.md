@@ -2,11 +2,11 @@
 
 ## Decision 1: Adapt existing daemon APIs through one desktop service
 
-**Decision**: Add `desktop/operations` with a narrow backend interface for calendar, runs, logs, alerts, and acknowledgement.
+**Decision**: Add `desktop/operations` with a narrow backend interface for calendar, persisted and active runs, logs, bounded alerts, and acknowledgement.
 
-**Rationale**: The daemon APIs already own scheduling, history, retention, and alert semantics. A Wails adapter can shape stable presentation models without changing those contracts.
+**Rationale**: The daemon already owns scheduling, execution, history, retention, and alert semantics. A Wails adapter shapes stable presentation models, while two additive read-only queries expose active executions and bound the recent alert result without changing those semantics.
 
-**Alternatives considered**: A new aggregate daemon endpoint was rejected because it expands the public API without delivery value. Calling generated Wails bindings throughout React was rejected because it scatters error handling and mapping.
+**Alternatives considered**: A new aggregate daemon endpoint was rejected because it expands the public API without delivery value. Treating persisted history as active state was rejected because runs are written only after execution. Bounding alerts after transfer was rejected because it leaves the database query and transport unbounded. Calling generated Wails bindings throughout React was rejected because it scatters error handling and mapping.
 
 ## Decision 2: Keep Schedule and Activity as distinct routes
 

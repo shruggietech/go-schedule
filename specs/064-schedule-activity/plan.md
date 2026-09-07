@@ -24,9 +24,9 @@ Replace the Schedule and Activity placeholders with operational Wails workspaces
 
 **Performance Goals**: Filter, switch views, and select records in at least 100-row Schedule and Activity fixtures within two seconds
 
-**Constraints**: Predictions and recorded runs remain distinct; exact log path only; complete snapshots only; local Clear View cutoff; no daemon API, persistence, retention, or scheduling changes
+**Constraints**: Predictions and recorded runs remain distinct; exact log path only; complete snapshots only; local Clear View cutoff; only additive read-only daemon API changes; no persistence schema, retention, or scheduling-policy changes
 
-**Scale/Scope**: Two routes, one backend service package, five daemon reads, one acknowledgement mutation, and focused Go, React, accessibility, scale, and native-build coverage
+**Scale/Scope**: Two routes, one backend service package, bounded persisted and active operational reads, one acknowledgement mutation, and focused Go, React, accessibility, scale, and native-build coverage
 
 ## Constitution Check
 
@@ -86,7 +86,7 @@ desktop/
         └── store.test.ts
 ```
 
-**Structure Decision**: Add one desktop feature package parallel to `desktop/automation` and one React feature folder parallel to `desktop/frontend/src/automation`. Keep the two routes separate while sharing contracts and refresh state. Adapt existing daemon clients through a narrow interface instead of expanding the public API.
+**Structure Decision**: Add one desktop feature package parallel to `desktop/automation` and one React feature folder parallel to `desktop/frontend/src/automation`. Keep the two routes separate while sharing contracts and refresh state. Adapt existing daemon clients through a narrow interface and add only the bounded active-run and alert-limit reads needed for truthful state and scale.
 
 ## Complexity Tracking
 

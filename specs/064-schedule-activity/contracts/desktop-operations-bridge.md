@@ -10,7 +10,7 @@ Loads occurrences from one day before the current time through the requested 1-d
 
 ### `ActivityWorkspace() OperationResult`
 
-Loads up to 200 recent runs, recent daemon logs, and all current alerts. A successful result contains one complete ActivityWorkspace. Any failed constituent read returns unavailable without a partial workspace.
+Loads authoritative active executions, up to 200 recent persisted runs, 200 recent daemon logs, and 200 recent alerts. Active identities are assigned before execution and retained by the persisted record at completion. A successful result contains one complete ActivityWorkspace. Any failed constituent read returns unavailable without a partial workspace.
 
 ### `AcknowledgeAlert(id) OperationResult`
 

@@ -118,6 +118,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/schedules/preview", s.handlePreview)
 
 	s.mux.HandleFunc("GET /v1/runs", s.handleListRuns)
+	s.mux.HandleFunc("GET /v1/runs/active", s.handleListActiveRuns)
 	s.mux.HandleFunc("GET /v1/runs/{id}", s.handleGetRun)
 	s.mux.HandleFunc("GET /v1/alerts", s.handleListAlerts)
 	s.mux.HandleFunc("POST /v1/alerts/{id}/ack", s.handleAckAlert)

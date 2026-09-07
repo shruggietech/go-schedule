@@ -2,13 +2,18 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { ActivityWorkspace, OperationsBridge } from './model'
-import { ActivityPage } from './ActivityPage'
+import { ActivityPage, activityItems } from './ActivityPage'
 
 const workspace: ActivityWorkspace = { loadedAt: '2026-09-07T12:00:00Z', logPath: 'C:\\ProgramData\\goschedule\\logs\\goschedule.log', runs: [{ id: 'run-1', taskId: 'task-1', scheduledFor: '2026-09-07T11:00:00Z', startedAt: '2026-09-07T11:00:01Z', endedAt: '2026-09-07T11:00:02Z', state: 'failure', outcome: 'failure', exitCode: 7, output: 'broken', outputTruncated: true, trigger: 'watcher', sourceWatcherId: 'watcher-1' }], logs: [{ id: 'log-1', time: '2026-09-07T11:01:00Z', severity: 'warning', source: 'engine', message: 'slow operation', detail: 'elapsed: 3s' }], alerts: [{ id: 'alert-1', time: '2026-09-07T11:02:00Z', severity: 'error', kind: 'run_failed', message: 'Task failed', runId: 'run-1', acknowledged: false }] }
 const accepted = { action: 'load_activity', outcome: 'accepted' as const, message: 'Loaded.', activity: workspace }
 const bridge = (): OperationsBridge => ({ scheduleWindow: vi.fn(), activityWorkspace: vi.fn().mockResolvedValue(accepted), acknowledgeAlert: vi.fn().mockResolvedValue({ ...accepted, action: 'acknowledge_alerts' }), acknowledgeAlerts: vi.fn().mockResolvedValue({ ...accepted, action: 'acknowledge_alerts' }), subscribe: () => () => undefined })
 
 describe('ActivityPage', () => {
+  it('orders and clears runs by execution time instead of scheduled time', () => {
+    const items = activityItems({ ...workspace, runs: [{ ...workspace.runs[0], scheduledFor: '2026-09-01T00:00:00Z', startedAt: '2026-09-07T11:59:00Z', endedAt: '2026-09-07T12:00:00Z' }] })
+    expect(items[0].type).toBe('run'); expect(items[0].time).toBe('2026-09-07T12:00:00Z')
+  })
+
   it('keeps record types distinct, filters, and exposes full run diagnostics', async () => {
     const user = userEvent.setup(); render(<ActivityPage bridge={bridge()} available refreshToken={1} />)
     expect(await screen.findByText(workspace.logPath)).toBeVisible(); expect(screen.getByText('3 matching records')).toBeVisible()

@@ -21,7 +21,7 @@ Invariant: predictions have no run identity and never claim a recorded outcome.
 
 ## ActivityWorkspace
 
-- `runs`: recent persisted run records
+- `runs`: authoritative active executions followed by recent persisted run records, with one stable identity spanning active and completed states
 - `logs`: recent daemon log records
 - `alerts`: scheduler alerts
 - `logPath`: exact daemon-reported path or empty when unavailable
@@ -36,6 +36,8 @@ Invariant: the workspace is published only when all three collections load succe
 - outcome and derived display state
 - exit code, retained output, and truncation flag
 - trigger plus source task, run, trigger, and watcher identifiers
+
+Invariant: display ordering and Clear View use end time, then start time, then scheduled time; the originally scheduled instant remains diagnostic metadata.
 
 ## LogRecord
 

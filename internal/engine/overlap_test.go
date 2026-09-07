@@ -91,6 +91,11 @@ func TestOverlap_QueueOne(t *testing.T) {
 
 	e.dispatch(task, now, domain.TriggerSchedule)
 	recv(t, r.started, "first run start")
+	active := e.ActiveRuns()
+	if len(active) != 1 || active[0].TaskID != task.ID || active[0].StartedAt == nil || active[0].Outcome != "" {
+		t.Fatalf("active=%+v", active)
+	}
+	activeID := active[0].ID
 
 	// While running, dispatch twice more: first queues, second is dropped.
 	e.dispatch(task, now.Add(time.Minute), domain.TriggerSchedule)
@@ -115,6 +120,17 @@ func TestOverlap_QueueOne(t *testing.T) {
 	}
 	if out[domain.OutcomeQueued] != 1 {
 		t.Fatalf("want exactly 1 queued marker, got %d (%v)", out[domain.OutcomeQueued], out)
+	}
+	if active := e.ActiveRuns(); len(active) != 0 {
+		t.Fatalf("active after completion=%+v", active)
+	}
+	runs, _ := st.ListRuns(task.ID, 0)
+	found := false
+	for _, run := range runs {
+		found = found || run.ID == activeID
+	}
+	if !found {
+		t.Fatalf("active identity %q was not preserved in history", activeID)
 	}
 }
 

@@ -65,16 +65,34 @@ func (s *Service) ActivityWorkspace(ctx context.Context) OperationResult {
 	if err != nil {
 		return failure("load_activity", err)
 	}
+	activeRuns, err := s.backend.ListActiveRuns(c)
+	if err != nil {
+		return failure("load_activity", err)
+	}
 	logs, err := s.backend.ListLogs(c, "", activityLimit)
 	if err != nil {
 		return failure("load_activity", err)
 	}
-	alerts, err := s.backend.ListAlerts(c, false)
+	alerts, err := s.backend.ListAlertsLimited(c, false, activityLimit)
 	if err != nil {
 		return failure("load_activity", err)
 	}
-	workspace := buildActivity(runs, logs, alerts, s.now())
+	workspace := buildActivity(mergeRuns(runs, activeRuns), logs, alerts, s.now())
 	return OperationResult{Action: "load_activity", Outcome: "accepted", Message: "Activity is up to date.", Activity: &workspace}
+}
+
+func mergeRuns(persisted, active []domain.Run) []domain.Run {
+	merged := append([]domain.Run(nil), persisted...)
+	seen := make(map[string]bool, len(persisted))
+	for _, run := range persisted {
+		seen[run.ID] = true
+	}
+	for _, run := range active {
+		if !seen[run.ID] {
+			merged = append(merged, run)
+		}
+	}
+	return merged
 }
 
 func buildActivity(runs []domain.Run, logs server.LogsResponse, alerts []domain.Alert, loadedAt time.Time) ActivityWorkspace {

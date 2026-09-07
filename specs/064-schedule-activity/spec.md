@@ -80,7 +80,7 @@ A user can acknowledge an alert or clear the currently visible Activity view whi
 - **FR-003**: Schedule MUST label computed future occurrences as predictions and persisted occurrences as recorded runs.
 - **FR-004**: Schedule MUST display stable task identity, task name, occurrence time, record kind, and outcome where available.
 - **FR-005**: Calendar view MUST expose occurrence counts per local day and an accessible list for the selected day.
-- **FR-006**: Activity MUST present run records, daemon log records, and alerts as distinct record types in one recent operational workspace.
+- **FR-006**: Activity MUST present active executions, persisted run records, daemon log records, and alerts as distinct record types in one recent operational workspace.
 - **FR-007**: Activity MUST support text search plus record-type, severity, and outcome filters without changing backend data.
 - **FR-008**: Running, success, failure, skipped, caught-up, queued, predicted, acknowledged, unacknowledged, and unavailable states MUST use explicit text or symbol plus text and MUST NOT rely on color alone.
 - **FR-009**: Activity detail MUST preserve complete available run diagnostics, including trigger and source provenance, timestamps, exit status, output truncation, and retained output.
@@ -130,7 +130,7 @@ A user can acknowledge an alert or clear the currently visible Activity view whi
 
 ## Assumptions
 
-- Existing calendar, runs, logs, alerts, acknowledgement, runtime metadata, and event-stream APIs already provide the required source-of-truth data.
+- Existing calendar, persisted-run, log, alert, acknowledgement, runtime-metadata, and event-stream APIs provide most source-of-truth data; this slice adds bounded read-only active-run and alert-limit queries required for an accurate recent view.
 - The Wails desktop shell and shared components from slices 060 through 063 are the target UI foundation.
 - The Activity workspace is a bounded recent operational view; full daemon history remains in the daemon-reported log file.
 - One hundred rows in each workspace is the practical desktop interaction baseline for this slice.

@@ -10,7 +10,7 @@ const localTime = (value: string) => new Date(value).toLocaleString()
 export function activityItems(workspace?: ActivityWorkspace): ActivityItem[] {
   if (!workspace) return []
   return [
-    ...workspace.runs.map((run): ActivityItem => ({ id: `run:${run.id}`, type: 'run', time: run.scheduledFor, severity: run.state === 'failure' ? 'error' : 'info', state: run.state, source: run.taskId || 'Unknown task', summary: `${label(run.state)} run`, search: JSON.stringify(run).toLowerCase(), raw: run })),
+    ...workspace.runs.map((run): ActivityItem => ({ id: `run:${run.id}`, type: 'run', time: run.endedAt ?? run.startedAt ?? run.scheduledFor, severity: run.state === 'failure' ? 'error' : 'info', state: run.state, source: run.taskId || 'Unknown task', summary: `${label(run.state)} run`, search: JSON.stringify(run).toLowerCase(), raw: run })),
     ...workspace.logs.map((log): ActivityItem => ({ id: `log:${log.id}`, type: 'log', time: log.time, severity: log.severity, state: log.severity, source: log.source, summary: log.message, search: JSON.stringify(log).toLowerCase(), raw: log })),
     ...workspace.alerts.map((alert): ActivityItem => ({ id: `alert:${alert.id}`, type: 'alert', time: alert.time, severity: alert.severity, state: alert.acknowledged ? 'acknowledged' : 'unacknowledged', source: label(alert.kind), summary: alert.message, search: JSON.stringify(alert).toLowerCase(), raw: alert })),
   ].sort((a, b) => b.time.localeCompare(a.time))
