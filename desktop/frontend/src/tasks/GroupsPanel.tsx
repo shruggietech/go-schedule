@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button, Dialog, Field, Notice } from '../components'
 import type { GroupDraft, GroupSummary, OperationResult, TaskBridge } from './model'
 
@@ -9,12 +9,21 @@ export function GroupsPanel({ groups, bridge, available = true, onResult }: { gr
   const [draft, setDraft] = useState<GroupDraft | null>(null)
   const [confirmedAction, setConfirmedAction] = useState<ConfirmedAction | null>(null)
   const [saveResult, setSaveResult] = useState<OperationResult>()
+  const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
   const save = async () => {
-    if (!draft) return
-    const result = await bridge.saveGroup(draft)
-    setSaveResult(result)
-    onResult(result)
-    if (result.outcome === 'accepted') setDraft(null)
+    if (!draft || pendingRef.current) return
+    pendingRef.current = true
+    setPending(true)
+    try {
+      const result = await bridge.saveGroup(draft)
+      setSaveResult(result)
+      onResult(result)
+      if (result.outcome === 'accepted') setDraft(null)
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+    }
   }
   const confirm = async () => {
     if (!confirmedAction) return
@@ -38,7 +47,7 @@ export function GroupsPanel({ groups, bridge, available = true, onResult }: { gr
       <Field label="Group name"><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></Field>
       <Field label="Parent group"><select value={draft.parentId} onChange={(event) => setDraft({ ...draft, parentId: event.target.value })}><option value="">Root</option>{parents.map((group) => <option key={group.id} value={group.id}>{group.path}</option>)}</select></Field>
       <label><input type="checkbox" checked={draft.enabled} onChange={(event) => setDraft({ ...draft, enabled: event.target.checked })} /> Enabled</label>
-      <div className="actions"><Button disabled={!available} onClick={() => void save()}>Save group</Button><Button variant="quiet" onClick={() => setDraft(null)}>Cancel</Button></div>
+      <div className="actions"><Button disabled={!available || pending} onClick={() => void save()}>Save group</Button><Button variant="quiet" onClick={() => setDraft(null)}>Cancel</Button></div>
     </div>}
     <Dialog open={confirmedAction !== null} title={confirmedAction?.kind === 'delete' ? `Delete ${confirmedAction.group.name}?` : `${confirmedAction?.group.declaredEnabled ? 'Disable' : 'Enable'} ${confirmedAction?.group.name}?`} invoker={confirmedAction?.invoker ?? null} onClose={() => setConfirmedAction(null)}>
       <p>{confirmedAction?.kind === 'delete' ? `On This computer, this removes ${confirmedAction.group.descendantCount} descendant groups and leaves assigned tasks ungrouped.` : `On This computer, this changes effective scheduling for ${confirmedAction?.group.descendantCount ?? 0} descendant groups and their assigned tasks while preserving each declared setting.`}</p>

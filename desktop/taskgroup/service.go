@@ -54,6 +54,9 @@ func (s *Service) PreviewTask(ctx context.Context, draft TaskDraft) OperationRes
 	if err != nil {
 		return rejected("preview", "command", "Enter a valid direct command line.")
 	}
+	if draft.Mode == "recurring" && strings.TrimSpace(draft.Schedule) == "" {
+		return rejected("preview", "schedule", "Enter a schedule or select Manual only.")
+	}
 	result := OperationResult{Action: "preview", Outcome: "accepted", Message: "Command is valid.", Command: &CommandPreview{Program: invocation.Program, Args: append([]string{}, invocation.Args...)}}
 	detail := draft.TaskDetail
 	result.Task = &detail
@@ -85,6 +88,9 @@ func (s *Service) SaveTask(ctx context.Context, draft TaskDraft) OperationResult
 	invocation, err := parseDraftCommand(draft.CommandLine)
 	if err != nil {
 		return rejected("save_task", "command", "Enter a valid direct command line.")
+	}
+	if draft.Mode == "recurring" && strings.TrimSpace(draft.Schedule) == "" {
+		return rejected("save_task", "schedule", "Enter a schedule or select Manual only.")
 	}
 	env, field := environment(draft.Environment)
 	if field != "" {

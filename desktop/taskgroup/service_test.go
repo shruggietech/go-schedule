@@ -147,6 +147,16 @@ func TestOneOffPreviewUsesTaskTimezoneAndRejectsInvalidTimes(t *testing.T) {
 	}
 }
 
+func TestRecurringDraftRequiresScheduleForPreviewAndSave(t *testing.T) {
+	service := NewService(&fakeBackend{})
+	draft := TaskDraft{IsNew: true, TaskDetail: TaskDetail{CommandLine: "echo", Mode: "recurring", Schedule: "   "}}
+	for _, result := range []OperationResult{service.PreviewTask(context.Background(), draft), service.SaveTask(context.Background(), draft)} {
+		if result.Outcome != "rejected" || result.Field != "schedule" {
+			t.Fatalf("result=%+v", result)
+		}
+	}
+}
+
 func TestTaskDetailPreservesOneOffInstant(t *testing.T) {
 	runAt := time.Date(2030, time.January, 15, 14, 0, 0, 0, time.UTC)
 	detail := detailFrom(server.TaskResponse{Task: domain.Task{Timezone: "America/New_York"}, Schedule: &domain.Schedule{Kind: domain.ScheduleOneOff, RunAt: &runAt}})

@@ -1,17 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { OperationResult, TaskBridge, Workspace } from './model'
 
 export function useTaskWorkspace(bridge: TaskBridge) {
   const [workspace, setWorkspace] = useState<Workspace>()
   const [status, setStatus] = useState<OperationResult>()
   const [selected, setSelected] = useState('')
-  const accept = useCallback((result: OperationResult) => {
+  const requestSequence = useRef(0)
+  const apply = useCallback((result: OperationResult) => {
     setStatus(result)
     if (!result.workspace) return
     setWorkspace(result.workspace)
     setSelected((current) => result.workspace?.tasks.some((task) => task.id === current) ? current : result.workspace?.tasks[0]?.id ?? '')
   }, [])
-  const load = useCallback(async () => accept(await bridge.workspace()), [accept, bridge])
+  const accept = useCallback((result: OperationResult) => { requestSequence.current++; apply(result) }, [apply])
+  const load = useCallback(async () => {
+    const request = ++requestSequence.current
+    const result = await bridge.workspace()
+    if (request === requestSequence.current) apply(result)
+  }, [apply, bridge])
   useEffect(() => {
     void load()
     let timer: ReturnType<typeof setTimeout> | undefined

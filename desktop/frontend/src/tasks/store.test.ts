@@ -18,4 +18,14 @@ describe('task workspace authority', () => {
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 100)) })
     expect(workspace).toHaveBeenCalledTimes(2); expect(hook.current.selected).toBe('two')
   })
+
+  it('ignores an older workspace response that finishes last', async () => {
+    let resolveFirst: ((value: OperationResult) => void) | undefined; let resolveSecond: ((value: OperationResult) => void) | undefined
+    const workspace = vi.fn().mockImplementationOnce(() => new Promise<OperationResult>((resolve) => { resolveFirst = resolve })).mockImplementationOnce(() => new Promise<OperationResult>((resolve) => { resolveSecond = resolve }))
+    const bridge = { workspace } as unknown as TaskBridge
+    const { result: hook } = renderHook(() => useTaskWorkspace(bridge))
+    await waitFor(() => expect(workspace).toHaveBeenCalledTimes(1)); act(() => { void hook.current.load() }); await waitFor(() => expect(workspace).toHaveBeenCalledTimes(2))
+    await act(async () => { resolveSecond?.(result(['new'])); await Promise.resolve() }); expect(hook.current.selected).toBe('new')
+    await act(async () => { resolveFirst?.(result(['old'])); await Promise.resolve() }); expect(hook.current.selected).toBe('new')
+  })
 })
