@@ -617,12 +617,24 @@ func (s *Store) CreateAlert(a *domain.Alert) error {
 
 // ListAlerts returns alerts, optionally only unacknowledged ones, newest first.
 func (s *Store) ListAlerts(unackedOnly bool) ([]domain.Alert, error) {
+	return s.ListAlertsLimited(unackedOnly, 0)
+}
+
+// ListAlertsLimited returns alerts newest first and applies a positive maximum
+// at the database boundary. A non-positive limit preserves the full query.
+func (s *Store) ListAlertsLimited(unackedOnly bool, limit int) ([]domain.Alert, error) {
 	q := `SELECT id,task_id,run_id,severity,kind,message,created_at,acknowledged FROM alerts`
 	if unackedOnly {
 		q += ` WHERE acknowledged=0`
 	}
 	q += ` ORDER BY created_at DESC`
-	rows, err := s.db.Query(q)
+	var rows *sql.Rows
+	var err error
+	if limit > 0 {
+		rows, err = s.db.Query(q+` LIMIT ?`, limit)
+	} else {
+		rows, err = s.db.Query(q)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("store: list alerts: %w", err)
 	}

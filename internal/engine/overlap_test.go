@@ -86,11 +86,26 @@ func TestOverlap_QueueOne(t *testing.T) {
 	defer st.Close()
 	r := &blockingRunner{started: make(chan struct{}, 1), release: make(chan struct{})}
 	e := newEngine(st, r)
+	startedRuns := make(chan domain.Run, 1)
+	e.SetOnRunStarted(func(run domain.Run) { startedRuns <- run })
 	task := setupTask(t, st, domain.OverlapQueueOne)
 	now := time.Now().UTC()
 
 	e.dispatch(task, now, domain.TriggerSchedule)
 	recv(t, r.started, "first run start")
+	active := e.ActiveRuns()
+	if len(active) != 1 || active[0].TaskID != task.ID || active[0].StartedAt == nil || active[0].Outcome != "" {
+		t.Fatalf("active=%+v", active)
+	}
+	activeID := active[0].ID
+	select {
+	case notified := <-startedRuns:
+		if notified.ID != activeID || notified.StartedAt == nil {
+			t.Fatalf("started notification=%+v active=%+v", notified, active[0])
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for active run notification")
+	}
 
 	// While running, dispatch twice more: first queues, second is dropped.
 	e.dispatch(task, now.Add(time.Minute), domain.TriggerSchedule)
@@ -115,6 +130,17 @@ func TestOverlap_QueueOne(t *testing.T) {
 	}
 	if out[domain.OutcomeQueued] != 1 {
 		t.Fatalf("want exactly 1 queued marker, got %d (%v)", out[domain.OutcomeQueued], out)
+	}
+	if active := e.ActiveRuns(); len(active) != 0 {
+		t.Fatalf("active after completion=%+v", active)
+	}
+	runs, _ := st.ListRuns(task.ID, 0)
+	found := false
+	for _, run := range runs {
+		found = found || run.ID == activeID
+	}
+	if !found {
+		t.Fatalf("active identity %q was not preserved in history", activeID)
 	}
 }
 

@@ -298,6 +298,16 @@ func (c *Client) ListRuns(ctx context.Context, taskID string, limit int) ([]doma
 	return out.Runs, err
 }
 
+// ListActiveRuns returns authoritative in-memory executions that have started
+// but have not completed persistence.
+func (c *Client) ListActiveRuns(ctx context.Context) ([]domain.Run, error) {
+	var out struct {
+		Runs []domain.Run `json:"runs"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/runs/active", nil, &out)
+	return out.Runs, err
+}
+
 // GetRun returns one run by exact identity.
 func (c *Client) GetRun(ctx context.Context, id string) (domain.Run, error) {
 	var out domain.Run
@@ -307,9 +317,17 @@ func (c *Client) GetRun(ctx context.Context, id string) (domain.Run, error) {
 
 // ListAlerts returns alerts, optionally only unacknowledged.
 func (c *Client) ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, error) {
+	return c.ListAlertsLimited(ctx, unacked, 0)
+}
+
+// ListAlertsLimited returns alerts with an optional server-side maximum.
+func (c *Client) ListAlertsLimited(ctx context.Context, unacked bool, limit int) ([]domain.Alert, error) {
 	q := url.Values{}
 	if unacked {
 		q.Set("unacked", "true")
+	}
+	if limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", limit))
 	}
 	var out struct {
 		Alerts []domain.Alert `json:"alerts"`

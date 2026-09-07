@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
@@ -40,6 +41,25 @@ type appNative struct{ quit bool }
 func (n *appNative) Quit(context.Context) { n.quit = true }
 
 type facadeTaskBackend struct{ taskgroup.Backend }
+
+type facadeOperationsBackend struct{ operations.Backend }
+
+func (facadeOperationsBackend) GetCalendar(_ context.Context, from, to time.Time) (server.CalendarResponse, error) {
+	return server.CalendarResponse{From: from, To: to, Occurrences: []server.Occurrence{}}, nil
+}
+func (facadeOperationsBackend) ListRuns(context.Context, string, int) ([]domain.Run, error) {
+	return []domain.Run{}, nil
+}
+func (facadeOperationsBackend) ListActiveRuns(context.Context) ([]domain.Run, error) {
+	return []domain.Run{}, nil
+}
+func (facadeOperationsBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
+	return server.LogsResponse{Logs: []domain.LogRecord{}}, nil
+}
+func (facadeOperationsBackend) ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error) {
+	return []domain.Alert{}, nil
+}
+func (facadeOperationsBackend) AckAlert(context.Context, string) error { return nil }
 
 func (facadeTaskBackend) ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error) {
 	return []server.TaskResponse{}, nil
@@ -93,6 +113,24 @@ func TestAppFacadeExposesSafeTaskWorkspace(t *testing.T) {
 	result := app.Workspace()
 	if result.Outcome != "accepted" || result.Workspace == nil || result.Workspace.Tasks == nil || result.Workspace.Groups == nil {
 		t.Fatalf("workspace=%+v", result)
+	}
+	app.shutdown(context.Background())
+}
+
+func TestAppFacadeExposesScheduleActivityAndAcknowledgement(t *testing.T) {
+	service := operations.NewService(facadeOperationsBackend{})
+	app := newApp(appBackend{}, nil, nil, appServices{operations: service})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.startup(ctx)
+	if result := app.ScheduleWindow(7); result.Outcome != "accepted" || result.Schedule == nil {
+		t.Fatalf("schedule=%+v", result)
+	}
+	if result := app.ActivityWorkspace(); result.Outcome != "accepted" || result.Activity == nil {
+		t.Fatalf("activity=%+v", result)
+	}
+	if result := app.AcknowledgeAlert("alert-1"); result.Outcome != "accepted" || result.Activity == nil {
+		t.Fatalf("acknowledge=%+v", result)
 	}
 	app.shutdown(context.Background())
 }

@@ -222,16 +222,22 @@ func TestSchedule_GetNotFoundAndRunsLimit(t *testing.T) {
 
 func TestAlerts_AckFlow(t *testing.T) {
 	st := openMem(t)
-	a := &domain.Alert{Severity: domain.SeverityWarning, Kind: domain.AlertOverlapQueued, Message: "x"}
+	a := &domain.Alert{Severity: domain.SeverityWarning, Kind: domain.AlertOverlapQueued, Message: "x", CreatedAt: time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)}
 	_ = st.CreateAlert(a)
-	if got, _ := st.ListAlerts(true); len(got) != 1 {
-		t.Fatalf("unacked = %d, want 1", len(got))
+	for index := 1; index <= 2; index++ {
+		_ = st.CreateAlert(&domain.Alert{Severity: domain.SeverityInfo, Kind: domain.AlertMissedRun, Message: "later", CreatedAt: a.CreatedAt.Add(time.Duration(index) * time.Minute)})
+	}
+	if got, _ := st.ListAlerts(true); len(got) != 3 {
+		t.Fatalf("unacked = %d, want 3", len(got))
+	}
+	if got, _ := st.ListAlertsLimited(false, 2); len(got) != 2 || got[0].CreatedAt.Before(got[1].CreatedAt) {
+		t.Fatalf("limited alerts=%+v", got)
 	}
 	if err := st.AckAlert(a.ID); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := st.ListAlerts(true); len(got) != 0 {
-		t.Fatal("should be no unacked after ack")
+	if got, _ := st.ListAlerts(true); len(got) != 2 {
+		t.Fatalf("unacked after one acknowledgement=%d, want 2", len(got))
 	}
 	if err := st.AckAlert("missing"); err != ErrNotFound {
 		t.Fatalf("ack missing should be ErrNotFound, got %v", err)

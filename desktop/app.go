@@ -6,6 +6,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 )
 
@@ -28,6 +29,7 @@ type App struct {
 	manager    *connection.Manager
 	tasks      *taskgroup.Service
 	automation *automation.Service
+	operations *operations.Service
 	emitter    eventEmitter
 	native     nativeRuntime
 	ctx        context.Context
@@ -36,6 +38,7 @@ type App struct {
 type appServices struct {
 	tasks      *taskgroup.Service
 	automation *automation.Service
+	operations *operations.Service
 }
 
 func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, services ...appServices) *App {
@@ -43,9 +46,38 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 	if len(services) > 0 {
 		app.tasks = services[0].tasks
 		app.automation = services[0].automation
+		app.operations = services[0].operations
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+func (a *App) ScheduleWindow(days int) operations.OperationResult {
+	if a.operations == nil || a.ctx == nil {
+		return operations.OperationResult{Action: "load_schedule", Outcome: "unavailable", Message: "Schedule is unavailable."}
+	}
+	return a.operations.ScheduleWindow(a.ctx, days)
+}
+
+func (a *App) ActivityWorkspace() operations.OperationResult {
+	if a.operations == nil || a.ctx == nil {
+		return operations.OperationResult{Action: "load_activity", Outcome: "unavailable", Message: "Activity is unavailable."}
+	}
+	return a.operations.ActivityWorkspace(a.ctx)
+}
+
+func (a *App) AcknowledgeAlert(id string) operations.OperationResult {
+	if a.operations == nil || a.ctx == nil {
+		return operations.OperationResult{Action: "acknowledge_alerts", Outcome: "unavailable", Message: "Activity is unavailable."}
+	}
+	return a.operations.AcknowledgeAlert(a.ctx, id)
+}
+
+func (a *App) AcknowledgeAlerts(ids []string) operations.OperationResult {
+	if a.operations == nil || a.ctx == nil {
+		return operations.OperationResult{Action: "acknowledge_alerts", Outcome: "unavailable", Message: "Activity is unavailable."}
+	}
+	return a.operations.AcknowledgeAlerts(a.ctx, ids)
 }
 
 func (a *App) AutomationWorkspace() automation.OperationResult {

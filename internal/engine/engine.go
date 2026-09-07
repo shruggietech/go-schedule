@@ -7,8 +7,11 @@ package engine
 import (
 	"context"
 	"log/slog"
+	"sort"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/shruggietech/go-schedule/internal/catchup"
 	"github.com/shruggietech/go-schedule/internal/clock"
@@ -49,16 +52,18 @@ type Engine struct {
 	tasks   map[string]taskCtx   // active tasks by ID
 	next    map[string]time.Time // next scheduled run (UTC) by task ID
 	running map[string]bool
+	active  map[string]domain.Run
 	queued  map[string]pendingRun // one queued pending run, by task ID
 
-	reload    chan struct{}
-	ready     chan struct{}
-	readyOnce sync.Once
-	runCtx    context.Context
-	runWG     sync.WaitGroup // tracks in-flight runs for graceful drain
-	onRun     func(domain.Run)
-	onAlert   func(domain.Alert)
-	watchers  *watchruntime.Manager
+	reload       chan struct{}
+	ready        chan struct{}
+	readyOnce    sync.Once
+	runCtx       context.Context
+	runWG        sync.WaitGroup // tracks in-flight runs for graceful drain
+	onRun        func(domain.Run)
+	onRunStarted func(domain.Run)
+	onAlert      func(domain.Alert)
+	watchers     *watchruntime.Manager
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -75,6 +80,7 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 		tasks:   map[string]taskCtx{},
 		next:    map[string]time.Time{},
 		running: map[string]bool{},
+		active:  map[string]domain.Run{},
 		queued:  map[string]pendingRun{},
 		reload:  make(chan struct{}, 1),
 		ready:   make(chan struct{}),
@@ -86,6 +92,10 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 // SetOnRun registers a callback invoked after each run is recorded (used for
 // alerts/event streaming and for test synchronization).
 func (e *Engine) SetOnRun(f func(domain.Run)) { e.onRun = f }
+
+// SetOnRunStarted registers a callback invoked after an execution becomes
+// visible in ActiveRuns and before the runner begins work.
+func (e *Engine) SetOnRunStarted(f func(domain.Run)) { e.onRunStarted = f }
 
 // SetOnAlert registers a callback invoked after each alert is raised (used to
 // stream alerts to GUI clients).
@@ -101,6 +111,19 @@ func (e *Engine) ReloadWatchers() { e.watchers.Reload() }
 
 // WatcherHealth returns the current runtime health for a watcher.
 func (e *Engine) WatcherHealth(id string) domain.WatcherHealth { return e.watchers.Health(id) }
+
+// ActiveRuns returns immutable snapshots of executions that have acquired a
+// worker but have not completed persistence yet.
+func (e *Engine) ActiveRuns() []domain.Run {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	runs := make([]domain.Run, 0, len(e.active))
+	for _, run := range e.active {
+		runs = append(runs, run)
+	}
+	sort.SliceStable(runs, func(i, j int) bool { return runs[i].StartedAt.Before(*runs[j].StartedAt) })
+	return runs
+}
 
 // Reload asks the loop to recompute schedules from the store (call after tasks
 // change). Non-blocking and coalesced.
@@ -329,14 +352,26 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		defer e.runWG.Done()
 		e.sem <- struct{}{}
 		defer func() { <-e.sem }()
+		started := e.clk.Now().UTC()
+		active := domain.Run{ID: uuid.NewString(), TaskID: task.ID, ScheduledFor: scheduledFor, StartedAt: &started, Trigger: origin.trigger, SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID}
+		e.mu.Lock()
+		e.active[active.ID] = active
+		e.mu.Unlock()
+		if e.onRunStarted != nil {
+			e.onRunStarted(active)
+		}
 
 		run := e.runner.Run(e.runCtx, task, scheduledFor, origin.trigger)
+		run.ID = active.ID
 		run.Trigger = origin.trigger
 		run.SourceTaskID = origin.sourceTaskID
 		run.SourceRunID = origin.sourceRunID
 		run.SourceTriggerID = origin.sourceTriggerID
 		run.SourceWatcherID = origin.sourceWatcherID
 		e.recordRun(run, origin.deliveryID)
+		e.mu.Lock()
+		delete(e.active, active.ID)
+		e.mu.Unlock()
 		e.finish(task)
 	}()
 }
