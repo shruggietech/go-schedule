@@ -61,11 +61,11 @@ func buildSchedule(response server.CalendarResponse, loadedAt time.Time) Schedul
 func (s *Service) ActivityWorkspace(ctx context.Context) OperationResult {
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	runs, err := s.backend.ListRuns(c, "", activityLimit)
+	activeRuns, err := s.backend.ListActiveRuns(c)
 	if err != nil {
 		return failure("load_activity", err)
 	}
-	activeRuns, err := s.backend.ListActiveRuns(c)
+	runs, err := s.backend.ListRuns(c, "", activityLimit)
 	if err != nil {
 		return failure("load_activity", err)
 	}

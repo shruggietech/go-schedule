@@ -19,6 +19,7 @@ type stubBackend struct {
 	alerts   []domain.Alert
 	errAt    string
 	acked    []string
+	calls    []string
 }
 
 func (s *stubBackend) GetCalendar(context.Context, time.Time, time.Time) (server.CalendarResponse, error) {
@@ -28,12 +29,14 @@ func (s *stubBackend) GetCalendar(context.Context, time.Time, time.Time) (server
 	return s.calendar, nil
 }
 func (s *stubBackend) ListRuns(context.Context, string, int) ([]domain.Run, error) {
+	s.calls = append(s.calls, "persisted")
 	if s.errAt == "runs" {
 		return nil, errors.New("boom")
 	}
 	return s.runs, nil
 }
 func (s *stubBackend) ListActiveRuns(context.Context) ([]domain.Run, error) {
+	s.calls = append(s.calls, "active")
 	if s.errAt == "active" {
 		return nil, errors.New("boom")
 	}
@@ -115,6 +118,17 @@ func TestActivityWorkspacePrefersPersistedCompletionDuringHandoff(t *testing.T) 
 	result := NewService(backend).ActivityWorkspace(context.Background())
 	if len(result.Activity.Runs) != 1 || result.Activity.Runs[0].State != "success" {
 		t.Fatalf("result=%+v", result)
+	}
+}
+
+func TestActivityWorkspaceSnapshotsActiveBeforePersistedHistory(t *testing.T) {
+	backend := &stubBackend{}
+	result := NewService(backend).ActivityWorkspace(context.Background())
+	if result.Outcome != "accepted" {
+		t.Fatalf("result=%+v", result)
+	}
+	if !reflect.DeepEqual(backend.calls, []string{"active", "persisted"}) {
+		t.Fatalf("run snapshot order=%v", backend.calls)
 	}
 }
 
