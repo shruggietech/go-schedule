@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/ipc"
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:frontend/dist
@@ -38,7 +40,7 @@ func main() {
 	}
 	daemon := client.New(ipc.Endpoint(cfg))
 	backend := connection.NewLocalBackend(daemon)
-	app := newApp(backend, wailsEmitter{}, wailsNative{}, taskgroup.NewService(taskgroup.NewLocalBackend(daemon)))
+	app := newApp(backend, wailsEmitter{}, wailsNative{}, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(daemon)), automation: automation.NewService(automation.NewLocalBackend(daemon))})
 	if err := wails.Run(&options.App{
 		Title: "go-schedule", Width: 1440, Height: 900, MinWidth: 900, MinHeight: 650,
 		BackgroundColour: &options.RGBA{R: 245, G: 247, B: 250, A: 1},
