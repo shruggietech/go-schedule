@@ -22,18 +22,30 @@ func applyRunAs(cmd *exec.Cmd, runAs string, explicitHome bool) error {
 	if err != nil {
 		return fmt.Errorf("unknown user %q: %w", runAs, err)
 	}
-	uid, err := strconv.Atoi(u.Uid)
+	return applyResolvedRunAs(cmd, runAs, u, explicitHome)
+}
+
+func credentialForUser(runAs string, u *user.User) (*syscall.Credential, error) {
+	uid, err := strconv.ParseUint(u.Uid, 10, 32)
 	if err != nil {
-		return fmt.Errorf("invalid uid for %q: %w", runAs, err)
+		return nil, fmt.Errorf("invalid uid for %q: %w", runAs, err)
 	}
-	gid, err := strconv.Atoi(u.Gid)
+	gid, err := strconv.ParseUint(u.Gid, 10, 32)
 	if err != nil {
-		return fmt.Errorf("invalid gid for %q: %w", runAs, err)
+		return nil, fmt.Errorf("invalid gid for %q: %w", runAs, err)
+	}
+	return &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}, nil
+}
+
+func applyResolvedRunAs(cmd *exec.Cmd, runAs string, u *user.User, explicitHome bool) error {
+	credential, err := credentialForUser(runAs, u)
+	if err != nil {
+		return err
 	}
 	if cmd.SysProcAttr == nil {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
-	cmd.SysProcAttr.Credential = &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)}
+	cmd.SysProcAttr.Credential = credential
 	if cmd.Env == nil {
 		cmd.Env = os.Environ()
 	}

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
+
+### Decisions
+
+- **2026-09-07: validate complete Unix credential pairs before command mutation.** S059 uses the standard unsigned fixed-width parser and a pure resolved-account seam so boundary and failure cases remain deterministic without mutable lookup hooks or host account provisioning. Account lookup, environment behavior, and unrelated Unix IPC group ownership remain unchanged.
+
 ## [1.1.1] - 2026-09-05
 
 ### Fixed
