@@ -23,4 +23,17 @@ describe('ConnectionsPage', () => {
     rerender(<ConnectionsPage snapshot={{ ...base, state: 'recovering', action: 'Try again.' }} retryPending onRetry={retry} />)
     expect(screen.getByRole('button', { name: 'Trying again' })).toBeDisabled()
   })
+
+  it('keeps the focused retry control mounted across recovery and success', async () => {
+    const user = userEvent.setup(); const retry = vi.fn()
+    const { rerender } = render(<ConnectionsPage snapshot={{ ...base, state: 'unavailable', action: 'Start the service.' }} retryPending={false} onRetry={retry} />)
+    const button = screen.getByRole('button', { name: 'Try again' })
+    await user.click(button)
+    rerender(<ConnectionsPage snapshot={{ ...base, state: 'recovering', action: undefined }} retryPending={false} onRetry={retry} />)
+    expect(screen.getByRole('button', { name: 'Trying again' })).toBe(button)
+    expect(button).toHaveFocus()
+    rerender(<ConnectionsPage snapshot={base} retryPending={false} onRetry={retry} />)
+    expect(screen.getByRole('button', { name: 'No retry needed' })).toBe(button)
+    expect(button).toHaveFocus()
+  })
 })

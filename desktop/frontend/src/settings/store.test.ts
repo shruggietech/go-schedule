@@ -27,4 +27,12 @@ describe('useSettings', () => {
     expect(api.saveAppearance).toHaveBeenCalledOnce()
     release(); await act(async () => { await first })
   })
+
+  it('refreshes daemon-backed settings when connection identity changes', async () => {
+    const api = bridge(); const { result, rerender } = renderHook(({ token }) => useSettings(api, token), { initialProps: { token: '0:unavailable' } })
+    await waitFor(() => expect(api.workspace).toHaveBeenCalledOnce())
+    rerender({ token: '1:connected' })
+    await waitFor(() => expect(api.workspace).toHaveBeenCalledTimes(2))
+    expect(result.current.workspace).toEqual(workspace)
+  })
 })

@@ -12,11 +12,18 @@
 
 ## Focused frontend verification
 
-- `npm test -- --run`: 18 files and 58 tests passed.
+- `npm test -- --run`: 18 files and 60 tests passed.
 - `npm run build`: TypeScript validation and Vite production build passed.
 - `npx playwright test`: all 16 Chromium scenarios passed.
 - Settings-specific Chromium coverage passed at 80, 100, 150, and 200 percent zoom with no serious or critical WCAG 2.2 AA axe findings and no horizontal page overflow.
 - Chromium also proved persisted appearance updates, stable identifier routing for copy and product links, inline connection recovery, and absence of automatic dialogs.
+
+## Initial review remediation
+
+- Settings now refreshes when connection generation or state changes, preventing daemon-backed paths from remaining falsely offline or available.
+- The Connections retry button remains one stable mounted control through unavailable, recovering, failure, and connected states so keyboard focus is preserved.
+- The unavailable Settings state exposes Restore desktop defaults, allowing a malformed current preference file to be repaired without manual deletion.
+- Regression tests cover refresh triggers, stable retry focus, and restoring an invalid current document.
 
 ## Native desktop verification
 

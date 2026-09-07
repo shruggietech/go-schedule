@@ -11,7 +11,7 @@ const transitionCopy: Record<string, { title: string; detail: string }> = {
 }
 
 export function SettingsPage({ workspace, message, pending, onAppearance, onRestore, onCopy, onOpen, onConnections }: { workspace?: SettingsWorkspace; message: string; pending: boolean; onAppearance(value: Appearance): void; onRestore(): void; onCopy(id: string): void; onOpen(key: string): void; onConnections(): void }) {
-  if (!workspace) return <><PageHeader /><StatePanel title="Desktop settings are unavailable" detail={message || 'Check access to the user configuration directory, then try again.'} /></>
+  if (!workspace) return <><PageHeader /><StatePanel title="Desktop settings are unavailable" detail={message || 'Check access to the user configuration directory, then try again.'} busy={pending} action="Restore desktop defaults" onAction={onRestore} /></>
   const transition = transitionCopy[workspace.preferences.transition.status] ?? transitionCopy.not_found
   return <><PageHeader />
     <div className="settings-grid">

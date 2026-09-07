@@ -33,7 +33,7 @@ export function App({ bridge = desktopBridge, tasks = nativeTaskBridge, automati
   const [route, setRoute] = useState<Route>('tasks')
   const [appearance, setAppearance] = useState<Appearance>('system')
   const { snapshot, announcement, retryPending, retry } = useConnection(bridge)
-  const desktopSettings = useSettings(settings)
+  const desktopSettings = useSettings(settings, `${snapshot.generation}:${snapshot.state}`)
   useEffect(() => { if (desktopSettings.workspace) setAppearance(desktopSettings.workspace.preferences.appearance) }, [desktopSettings.workspace])
   const page = copy[route]
   const saveAppearance = (value: Appearance) => { void desktopSettings.saveAppearance(value) }

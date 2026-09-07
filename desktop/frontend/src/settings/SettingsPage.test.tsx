@@ -48,8 +48,10 @@ describe('SettingsPage', () => {
   })
 
   it('shows a useful local failure without inventing content', () => {
-    renderPage({ workspace: undefined, message: 'Desktop settings are unavailable.' })
+    const props = renderPage({ workspace: undefined, message: 'Desktop settings are unavailable.' })
     expect(screen.getByRole('heading', { name: 'Desktop settings are unavailable' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Copy path' })).not.toBeInTheDocument()
+    screen.getByRole('button', { name: 'Restore desktop defaults' }).click()
+    expect(props.onRestore).toHaveBeenCalledOnce()
   })
 })

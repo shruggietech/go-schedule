@@ -176,6 +176,18 @@ func TestSaveRestoreAndFailedReplacement(t *testing.T) {
 	}
 }
 
+func TestRestoreRepairsInvalidCurrentPreferences(t *testing.T) {
+	deps := testDependencies(t)
+	writeFixture(t, deps.Paths.Preferences, `{`)
+	result := NewServiceWithDependencies(fakeBackend{}, &fakeNative{}, deps).Restore(context.Background())
+	if result.Outcome != "accepted" || result.Workspace == nil || result.Workspace.Preferences.Appearance != AppearanceSystem {
+		t.Fatalf("restore=%+v", result)
+	}
+	if _, err := loadPreferences(deps); err != nil {
+		t.Fatalf("restored preferences remain invalid: %v", err)
+	}
+}
+
 func TestConcurrentPreferenceMutationsRemainValid(t *testing.T) {
 	deps := testDependencies(t)
 	service := NewServiceWithDependencies(fakeBackend{}, &fakeNative{}, deps)

@@ -3,7 +3,7 @@ import type { Appearance } from '../connection/model'
 import { settingsBridge } from './bridge'
 import type { SettingsBridge, SettingsWorkspace } from './model'
 
-export function useSettings(bridge: SettingsBridge = settingsBridge) {
+export function useSettings(bridge: SettingsBridge = settingsBridge, refreshToken: string | number = 0) {
   const [workspace, setWorkspace] = useState<SettingsWorkspace>()
   const [message, setMessage] = useState('')
   const [pending, setPending] = useState(false)
@@ -23,7 +23,7 @@ export function useSettings(bridge: SettingsBridge = settingsBridge) {
       setLoading(false)
     })
     return () => { active = false }
-  }, [bridge])
+  }, [bridge, refreshToken])
 
   const run = useCallback(async (operation: () => ReturnType<SettingsBridge['workspace']>) => {
     if (pendingRef.current) return undefined
