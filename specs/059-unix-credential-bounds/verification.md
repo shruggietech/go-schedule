@@ -36,6 +36,18 @@
 - The initial bare `sh scripts/verify.sh all` invocation did not start because `sh` was absent from the PowerShell PATH. The unchanged canonical script was then run in the foreground through the installed `C:\Program Files\Git\bin\bash.exe` and completed successfully; no gate was substituted or skipped.
 - Final Spec-Kit analysis retains 100 percent requirement/outcome task coverage, zero unmapped tasks, zero ambiguity or duplication findings, and zero constitution conflicts. Both 16-item checklists remain complete.
 
+## Hosted verification
+
+- PASS: CI run [34084322566](https://github.com/shruggietech/go-schedule/actions/runs/34084322566) completed every job: lint/vet, Linux/macOS/Windows race, coverage, daemon/CLI cross-compilation, GUI build and tests, engine benchmarks, documentation, Windows LocalSystem execution, and the compiled/silent MSI contract.
+- PASS: Linux and macOS race jobs executed the build-tagged synthetic boundary, rejection, atomicity, named-account, numeric-account, and environment compatibility cases.
+- PASS: CodeQL run [34084322575](https://github.com/shruggietech/go-schedule/actions/runs/34084322575) completed Go analysis with no pull-request finding. The four branch alerts identified by #145 are eligible to close when the correction merges to the default branch; none was dismissed or suppressed.
+
+## Review disposition
+
+- First Codex round completed on commit `4f6c7a9` with one P1 claiming T020 lacked the specified commit subject and co-author trailer. GitHub's immutable commit API showed both exact values on that commit. The evidence-backed response was posted in [the review thread](https://github.com/shruggietech/go-schedule/pull/191#discussion_r3946649460), no code change was warranted, and the thread was resolved.
+- The single authorized second Codex round completed on the same commit with a thumbs-up and no findings.
+- No third review round was requested. Every review comment is answered and every review thread is resolved.
+
 ## Issue disposition
 
-- Issue #145 is locally implementation-complete. Hosted Linux/macOS execution, CodeQL, and review evidence remain required before final maintainer review.
+- Issue #145 satisfies its implementation, regression, compatibility, repository-verification, hosted Unix, CodeQL pull-request, and review gates. PR #191 uses `Closes #145`; merge will place the correction on the default branch and close the issue and its four linked branch alerts through code resolution.

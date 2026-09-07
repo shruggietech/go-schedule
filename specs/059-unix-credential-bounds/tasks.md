@@ -34,7 +34,7 @@
 
 - [x] T007 [US1] Implement unsigned 32-bit credential-pair validation with field and account context in `internal/executor/runas_unix.go`
 - [x] T008 [US1] Refactor `applyRunAs` to assign process attributes, the complete credential pair, and environment only after validation succeeds in `internal/executor/runas_unix.go`
-- [ ] T009 [US1] Run focused executor tests and record passing evidence in `specs/059-unix-credential-bounds/verification.md`
+- [x] T009 [US1] Run focused executor tests and record passing evidence in `specs/059-unix-credential-bounds/verification.md`
 
 ---
 
@@ -45,7 +45,7 @@
 **Independent Test**: Existing and focused integration tests demonstrate unchanged valid behavior while the new parser accepts exact boundaries without host account dependencies.
 
 - [x] T010 [US2] Extend compatibility assertions for empty `run_as`, current named account, credential values, and explicit or inherited home behavior in `internal/executor/runas_unix_test.go`
-- [ ] T011 [US2] Run the executor package test and race test on an available Unix target and record any platform prerequisite honestly in `specs/059-unix-credential-bounds/verification.md`
+- [x] T011 [US2] Run the executor package test and race test on an available Unix target and record any platform prerequisite honestly in `specs/059-unix-credential-bounds/verification.md`
 
 ---
 
@@ -57,7 +57,7 @@
 
 - [x] T012 [US3] Audit process UID/GID assignments and document the boundary disposition in `specs/059-unix-credential-bounds/verification.md`
 - [x] T013 [US3] Add S059 correction and decision entries under `[Unreleased]` in `CHANGELOG.md`
-- [ ] T014 [US3] Update issue #145 closure eligibility and remaining hosted CodeQL evidence in `specs/059-unix-credential-bounds/verification.md`
+- [x] T014 [US3] Update issue #145 closure eligibility and remaining hosted CodeQL evidence in `specs/059-unix-credential-bounds/verification.md`
 
 ---
 
@@ -69,7 +69,7 @@
 - [x] T016 Run `go run ./scripts/github-format` and resolve every repository-publication formatting defect
 - [x] T017 Audit changed files for UTF-8 without BOM, mojibake, whitespace errors, and unintended scope changes
 - [x] T018 Run `sh scripts/verify.sh all` in the foreground and record format, vet, lint, race, GUI, coverage, docs, and automation evidence in `specs/059-unix-credential-bounds/verification.md`
-- [ ] T019 Advance S059 to Implemented with objective delivery evidence in `specs/059-unix-credential-bounds/spec.md` and `specs/README.md`
+- [x] T019 Advance S059 to Implemented with objective delivery evidence in `specs/059-unix-credential-bounds/spec.md` and `specs/README.md`
 - [x] T020 Commit the review-ready slice as `feat(059): reject invalid Unix credential IDs` with the required co-author trailer
 
 ---

@@ -4,11 +4,11 @@
 
 **Created**: 2026-09-07
 
-**Status**: In Progress
+**Status**: Implemented
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: Pending implementation
+**Delivery**: Pull request [#191](https://github.com/shruggietech/go-schedule/pull/191); local canonical verification, hosted Linux/macOS/Windows race tests, CodeQL, packaging, and two Codex review rounds completed 2026-09-07
 
 **Input**: Resolve GitHub issue [#145](https://github.com/shruggietech/go-schedule/issues/145) by rejecting invalid or out-of-range Unix UID and GID values before task process credentials are assigned, then complete the slice under autopilot and publish it for CI and third-party review.
 
