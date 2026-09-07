@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **The production Wails desktop foundation now has a shared application shell and one safe local connection contract (Closes #151, #152; Refs #147).** A separate non-shipping `desktop/` module provides target-aware navigation, appearance controls, accessible reusable primitives, honest workflow placeholders, and offline local assets. Its Go-owned manager negotiates This computer through existing protected IPC, distinguishes eight connection states, rejects stale generations, coordinates ordinary requests with one event stream, supports bounded automatic and manual recovery, sanitizes bridge data, and shuts down owned work without changing current Fyne or release inputs.
+
 - **A stable Wails foundation and accessible control-center direction now guide the desktop replacement (Closes #149, #150; Refs #147).** An isolated Wails v2.14.0, React, and TypeScript proof exercises the existing protected IPC client, live events, native dialogs, clean shutdown, local brand assets, representative target-aware workflows, nine operating states, compact reflow, keyboard navigation, and WCAG 2.2 AA automation without changing the shipped Fyne application or release inputs. Hosted CI builds the proof on Windows, macOS, and Linux and runs its Chromium accessibility contract.
 
 ### Fixed
@@ -15,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-07: isolate the production Wails module and make one generation loop own desktop connectivity.** S061 retains the S060 proof as immutable decision evidence and keeps production dependencies outside the root module until release migration. Feature code consumes sanitized snapshots and events, while the Go manager exclusively owns two-second health attempts, a 250 millisecond, one second, and five second retry progression, manual interruption, event degradation, stale-result rejection, and shutdown.
 
 - **2026-09-07: adopt Wails v2.14.0 stable and the Calm Operations experience direction for the desktop replacement.** S060 selects the stable platform-native webview line instead of Wails v3 prerelease or a bundled browser runtime, keeps direct dependencies exactly pinned, and requires the same three-platform proof before a stable upgrade. The future control center uses a slim application rail, persistent target context, one page purpose and primary action, contextual detail, plain operational states, local approved brand assets, and measurable keyboard, contrast, zoom, and reduced-motion rules. Vite advances from the upstream template's vulnerable 7.0.0 to 7.3.6, while jsdom remains at Node-24-compatible 29.0.0.
 
