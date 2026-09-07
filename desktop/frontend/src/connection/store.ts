@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { desktopBridge, unavailableSnapshot } from './bridge'
 import type { ConnectionSnapshot, DesktopBridge } from './model'
 
@@ -11,6 +11,8 @@ export function acceptSnapshot(current: ConnectionSnapshot, incoming: Connection
 export function useConnection(bridge: DesktopBridge = desktopBridge) {
   const [snapshot, setSnapshot] = useState<ConnectionSnapshot>(unavailableSnapshot)
   const [announcement, setAnnouncement] = useState('')
+  const [retryPending, setRetryPending] = useState(false)
+  const retryPendingRef = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -27,9 +29,19 @@ export function useConnection(bridge: DesktopBridge = desktopBridge) {
   }, [bridge])
 
   const retry = useCallback(async () => {
-    const result = await bridge.retry()
-    setAnnouncement(result.message)
+    if (retryPendingRef.current) return
+    retryPendingRef.current = true
+    setRetryPending(true)
+    try {
+      const result = await bridge.retry()
+      setAnnouncement(result.message)
+    } catch {
+      setAnnouncement('The retry could not be requested. Try again.')
+    } finally {
+      retryPendingRef.current = false
+      setRetryPending(false)
+    }
   }, [bridge])
 
-  return { snapshot, announcement, retry }
+  return { snapshot, announcement, retryPending, retry }
 }
