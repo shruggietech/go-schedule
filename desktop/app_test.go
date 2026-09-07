@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/taskgroup"
+	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 type appBackend struct{}
@@ -35,6 +38,16 @@ func (e *appEmitter) Emit(_ context.Context, name string, value any) {
 type appNative struct{ quit bool }
 
 func (n *appNative) Quit(context.Context) { n.quit = true }
+
+type facadeTaskBackend struct{ taskgroup.Backend }
+
+func (facadeTaskBackend) ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error) {
+	return []server.TaskResponse{}, nil
+}
+
+func (facadeTaskBackend) ListGroups(context.Context) ([]domain.Group, error) {
+	return []domain.Group{}, nil
+}
 
 func TestAppFacadeStartsSnapshotsRetriesAndQuits(t *testing.T) {
 	emitter := &appEmitter{}
@@ -70,4 +83,16 @@ func TestAppFacadeStartsSnapshotsRetriesAndQuits(t *testing.T) {
 			t.Fatalf("unsafe event=%+v", event)
 		}
 	}
+}
+
+func TestAppFacadeExposesSafeTaskWorkspace(t *testing.T) {
+	app := newApp(appBackend{}, nil, nil, taskgroup.NewService(facadeTaskBackend{}))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.startup(ctx)
+	result := app.Workspace()
+	if result.Outcome != "accepted" || result.Workspace == nil || result.Workspace.Tasks == nil || result.Workspace.Groups == nil {
+		t.Fatalf("workspace=%+v", result)
+	}
+	app.shutdown(context.Background())
 }

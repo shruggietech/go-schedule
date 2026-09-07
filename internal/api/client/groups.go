@@ -26,6 +26,13 @@ func (c *Client) ListGroups(ctx context.Context) ([]domain.Group, error) {
 	return out.Groups, err
 }
 
+// UpdateGroup renames and/or reparents a group.
+func (c *Client) UpdateGroup(ctx context.Context, id string, req server.GroupUpdateRequest) (domain.Group, error) {
+	var group domain.Group
+	err := c.do(ctx, http.MethodPatch, "/v1/groups/"+url.PathEscape(id), req, &group)
+	return group, err
+}
+
 // GroupTree returns the group hierarchy as a forest.
 func (c *Client) GroupTree(ctx context.Context) ([]*task.TreeNode, error) {
 	var out struct {

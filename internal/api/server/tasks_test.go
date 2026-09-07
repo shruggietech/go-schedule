@@ -116,6 +116,35 @@ func TestCreateTaskOptionalEnabledIntentIsAtomicAndCompatible(t *testing.T) {
 
 func boolPointer(value bool) *bool { return &value }
 
+func TestListTasksDetailedIsOptInAndComplete(t *testing.T) {
+	s := newTestServer(t)
+	created := newTaskFor(t, s, TaskCreateRequest{Name: "nightly", Command: "echo", Schedule: "every day at 09:00", Timezone: "UTC"})
+
+	plain := doJSON(t, s, http.MethodGet, "/v1/tasks", nil)
+	if plain.Code != http.StatusOK || strings.Contains(plain.Body.String(), `"readiness"`) {
+		t.Fatalf("plain list changed shape: status=%d body=%s", plain.Code, plain.Body.String())
+	}
+
+	detailed := doJSON(t, s, http.MethodGet, "/v1/tasks?details=true", nil)
+	var response struct {
+		Tasks []TaskResponse `json:"tasks"`
+	}
+	if detailed.Code != http.StatusOK || json.Unmarshal(detailed.Body.Bytes(), &response) != nil {
+		t.Fatalf("detailed list: status=%d body=%s", detailed.Code, detailed.Body.String())
+	}
+	if len(response.Tasks) != 1 || response.Tasks[0].Task.ID != created.Task.ID || response.Tasks[0].Schedule == nil || len(response.Tasks[0].NextRuns) == 0 {
+		t.Fatalf("details=%+v", response.Tasks)
+	}
+}
+
+func TestListTasksDetailedEmptyArray(t *testing.T) {
+	s := newTestServer(t)
+	rec := doJSON(t, s, http.MethodGet, "/v1/tasks?details=true", nil)
+	if rec.Code != http.StatusOK || rec.Body.String() != "{\"tasks\":[]}\n" {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestCreateTask_PersistsStdin(t *testing.T) {
 	s := newTestServer(t)
 	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{

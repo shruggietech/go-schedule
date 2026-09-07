@@ -35,6 +35,22 @@ func (c *Client) ListTasks(ctx context.Context, group, state string) ([]domain.T
 	return out.Tasks, err
 }
 
+// ListTaskDetails lists task details, including schedule previews and readiness.
+func (c *Client) ListTaskDetails(ctx context.Context, group, state string) ([]server.TaskResponse, error) {
+	q := url.Values{"details": {"true"}}
+	if group != "" {
+		q.Set("group", group)
+	}
+	if state != "" {
+		q.Set("state", state)
+	}
+	var out struct {
+		Tasks []server.TaskResponse `json:"tasks"`
+	}
+	err := c.do(ctx, http.MethodGet, withQuery("/v1/tasks", q), nil, &out)
+	return out.Tasks, err
+}
+
 // GetTask returns a task's detail.
 func (c *Client) GetTask(ctx context.Context, id string) (server.TaskResponse, error) {
 	var out server.TaskResponse
