@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { cloneElement, useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import type { ConnectionState } from '../connection/model'
 
 export function Button({ variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' | 'danger' }) {
@@ -20,9 +20,14 @@ export function StatePanel({ title, detail, busy = false, action, onAction }: { 
   return <section className="panel state-panel" aria-busy={busy}><span className="state-symbol" aria-hidden="true">○</span><h2>{title}</h2><p>{detail}</p>{action && <Button onClick={onAction}>{action}</Button>}</section>
 }
 
-export function Field({ label, help, error, children }: { label: string; help?: string; error?: string; children: ReactNode }) {
-  const helpID = useId(); const errorID = useId()
-  return <label className="field"><span>{label}</span><span aria-describedby={[help && helpID, error && errorID].filter(Boolean).join(' ') || undefined} aria-invalid={error ? true : undefined}>{children}</span>{help && <small id={helpID}>{help}</small>}{error && <small className="field-error" id={errorID}>{error}</small>}</label>
+type FieldControlProps = InputHTMLAttributes<HTMLInputElement> | SelectHTMLAttributes<HTMLSelectElement> | TextareaHTMLAttributes<HTMLTextAreaElement>
+
+export function Field({ label, help, error, children }: { label: string; help?: string; error?: string; children: ReactElement<FieldControlProps> }) {
+  const generatedControlID = useId(); const helpID = useId(); const errorID = useId()
+  const controlID = children.props.id ?? generatedControlID
+  const describedBy = [help && helpID, error && errorID].filter(Boolean).join(' ') || undefined
+  const control = cloneElement(children, { id: controlID, 'aria-describedby': describedBy, 'aria-invalid': error ? true : undefined })
+  return <div className="field"><label htmlFor={controlID}>{label}</label>{control}{help && <small id={helpID}>{help}</small>}{error && <small className="field-error" id={errorID}>{error}</small>}</div>
 }
 
 export function DataTable({ caption, headings, rows }: { caption: string; headings: string[]; rows: ReactNode[][] }) {

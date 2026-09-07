@@ -3,7 +3,9 @@ import { desktopBridge, unavailableSnapshot } from './bridge'
 import type { ConnectionSnapshot, DesktopBridge } from './model'
 
 export function acceptSnapshot(current: ConnectionSnapshot, incoming: ConnectionSnapshot): ConnectionSnapshot {
-  return incoming.generation < current.generation ? current : incoming
+  if (incoming.generation < current.generation) return current
+  if (incoming.generation === current.generation && incoming.revision < current.revision) return current
+  return incoming
 }
 
 export function useConnection(bridge: DesktopBridge = desktopBridge) {

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
 import type { DesktopBridge } from './connection/model'
 
-const bridge: DesktopBridge = { snapshot: vi.fn().mockResolvedValue({ generation: 1, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'linux', capabilities: ['tasks'], permissions: ['read'] }, message: 'Available.' }), retry: vi.fn(), quit: vi.fn(), subscribe: () => () => undefined }
+const bridge: DesktopBridge = { snapshot: vi.fn().mockResolvedValue({ generation: 1, revision: 2, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'linux', capabilities: ['tasks'], permissions: ['read'] }, message: 'Available.' }), retry: vi.fn(), quit: vi.fn(), subscribe: () => () => undefined }
 
 describe('accessibility contract', () => {
   it('has no serious or critical automated violations', async () => {

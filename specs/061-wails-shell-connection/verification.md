@@ -17,7 +17,7 @@ Spec Kit analysis found no critical, high, or medium inconsistencies. All 21 fun
 | `go test -race -count=100 ./connection` from `desktop/` | PASS, repeated scheduler and lifecycle stress after eliminating a cross-platform fake release race |
 | `go test -cover ./...` from `desktop/` | PASS, 58.6 percent application facade and 77.5 percent connection package statement coverage |
 | `npm audit --audit-level=high` from `desktop/frontend/` | PASS, zero vulnerabilities |
-| `npm test` from `desktop/frontend/` | PASS, 4 files and 10 tests |
+| `npm test` from `desktop/frontend/` | PASS, 4 files and 11 tests |
 | `npm run build` from `desktop/frontend/` | PASS, TypeScript and Vite production build |
 | `npm run test:e2e` from `desktop/frontend/` | PASS, 6 Chromium contracts at ordinary, compact, appearance, keyboard, 200 percent zoom, reduced-motion, and offline-asset conditions |
 | `go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean` from `desktop/` | PASS, native Windows amd64 package built as `go-schedule.exe` |
@@ -63,3 +63,7 @@ All eight gates passed in order: format, vet, lint, race, GUI, coverage, documen
 ## Hosted evidence boundary
 
 The pull request runs the new production desktop matrix on Windows, macOS, and Linux and the Chromium accessibility contract. Those hosted results are publication evidence and will be recorded on the pull request; they do not alter current release artifacts or claim the attended native qualification reserved for #157.
+
+## Review evidence
+
+Codex review round one identified four lifecycle and accessibility defects: manual retry did not cancel an active health attempt, persistent event-stream failure always retried at 250 milliseconds, equal-generation asynchronous snapshots could regress state, and field help and errors were attached to a wrapper instead of the form control. The fixes cancel and join an active attempt before advancing generation, retain event retry progression until a stream delivers an event, add a monotonic snapshot revision, and clone ARIA metadata onto an explicitly labelled control. Direct regressions and the 100-run race stress pass for all four changes.

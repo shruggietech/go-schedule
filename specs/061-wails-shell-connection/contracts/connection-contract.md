@@ -20,7 +20,7 @@ Requests orderly application shutdown through the native runtime. Browser adapte
 
 ## Event Channel
 
-One Wails runtime channel named `desktop:event` carries `DesktopEvent` values. `connection.changed` instructs the frontend store to replace its snapshot only when the event generation is at least its current generation. Sanitized daemon-domain events notify later workflows to refresh through their connection-facing application methods.
+One Wails runtime channel named `desktop:event` carries `DesktopEvent` values. `connection.changed` instructs the frontend store to replace its snapshot only when its generation is newer or its revision is at least the current revision within the same generation. Sanitized daemon-domain events notify later workflows to refresh through their connection-facing application methods.
 
 ## Compatibility
 

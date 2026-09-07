@@ -7,6 +7,7 @@ type NativeWindow = Window & {
 
 export const unavailableSnapshot: ConnectionSnapshot = {
   generation: 0,
+  revision: 0,
   state: 'unavailable',
   target: { id: 'local', displayName: 'This computer', platform: 'unknown', capabilities: [], permissions: [] },
   message: 'The native desktop connection is unavailable in this browser.',

@@ -28,11 +28,12 @@ Closed values: `connecting`, `connected`, `degraded`, `recovering`, `unavailable
 | Field | Type | Rule |
 | --- | --- | --- |
 | generation | unsigned integer | Increases for every connection attempt |
+| revision | unsigned integer | Increases for every committed state transition so asynchronous same-generation snapshots remain ordered |
 | target | Desktop Target | Always present, including unavailable state |
 | connection | Connection State | Current safe status and action |
 | lastSuccessfulContact | optional RFC 3339 timestamp | Updated only after compatible health succeeds |
 
-Snapshots are immutable values. Consumers replace by generation and never merge a lower generation over a higher one.
+Snapshots are immutable values. Consumers order first by generation and then by revision, and never merge an older value over a newer one.
 
 ## Desktop Event
 

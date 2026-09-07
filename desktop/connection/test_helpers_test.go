@@ -38,15 +38,15 @@ func (f *backendFake) StreamEvents(ctx context.Context, publish func(DomainEvent
 	f.streams = append(f.streams, eventsCh)
 	f.streamErrors = append(f.streamErrors, errorsCh)
 	f.mu.Unlock()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case event := <-eventsCh:
-		publish(event)
-		<-ctx.Done()
-		return ctx.Err()
-	case err := <-errorsCh:
-		return err
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case event := <-eventsCh:
+			publish(event)
+		case err := <-errorsCh:
+			return err
+		}
 	}
 }
 

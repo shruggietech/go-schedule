@@ -3,9 +3,30 @@ package connection
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+type cancelableHealthBackend struct {
+	calls chan int32
+	count atomic.Int32
+}
+
+func (b *cancelableHealthBackend) Health(ctx context.Context) (Health, error) {
+	call := b.count.Add(1)
+	b.calls <- call
+	if call == 1 {
+		<-ctx.Done()
+		return Health{}, ctx.Err()
+	}
+	return Health{Version: "1.0.0"}, nil
+}
+
+func (*cancelableHealthBackend) StreamEvents(ctx context.Context, _ func(DomainEvent)) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
 
 func nextState(t *testing.T, events <-chan Event, state State) Event {
 	t.Helper()
@@ -21,13 +42,13 @@ func nextState(t *testing.T, events <-chan Event, state State) Event {
 	}
 }
 
-func firstStream(t *testing.T, backend *backendFake) (chan DomainEvent, chan error) {
+func streamAt(t *testing.T, backend *backendFake, index int) (chan DomainEvent, chan error) {
 	t.Helper()
 	deadline := time.After(time.Second)
 	for {
 		backend.mu.Lock()
-		if len(backend.streams) > 0 {
-			eventsCh, errorsCh := backend.streams[0], backend.streamErrors[0]
+		if len(backend.streams) > index {
+			eventsCh, errorsCh := backend.streams[index], backend.streamErrors[index]
 			backend.mu.Unlock()
 			return eventsCh, errorsCh
 		}
@@ -38,6 +59,10 @@ func firstStream(t *testing.T, backend *backendFake) (chan DomainEvent, chan err
 		default:
 		}
 	}
+}
+
+func firstStream(t *testing.T, backend *backendFake) (chan DomainEvent, chan error) {
+	return streamAt(t, backend, 0)
 }
 
 func TestManagerConnectsPublishesEventsAndRejectsStaleGeneration(t *testing.T) {
@@ -69,7 +94,7 @@ func TestManagerConnectsPublishesEventsAndRejectsStaleGeneration(t *testing.T) {
 	stream <- DomainEvent{Kind: "task.updated", EntityID: "stale"}
 }
 
-func TestManagerExactRetryCadenceAndManualInterruption(t *testing.T) {
+func TestManagerExactRetryCadence(t *testing.T) {
 	failure := &Failure{State: StateUnavailable, Message: "Unavailable.", Action: "Retry."}
 	backend := &backendFake{results: []backendResult{{err: failure}, {err: failure}, {err: failure}, {health: Health{Version: "1.0.0"}}}}
 	observer := observerFake{events: make(chan Event, 32)}
@@ -83,15 +108,44 @@ func TestManagerExactRetryCadenceAndManualInterruption(t *testing.T) {
 			t.Fatalf("delay %d=%s want %s", index, got, want)
 		}
 		release := <-scheduler.releases
-		if index == 1 {
-			if !manager.Retry() || !manager.Retry() {
-				t.Fatal("manual retry rejected")
-			}
-		} else {
-			release()
-		}
+		release()
 	}
 	nextState(t, observer.events, StateConnected)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := manager.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestManagerCoalescesQueuedRetryRequests(t *testing.T) {
+	manager := newManager(&backendFake{}, nil, timerScheduler{}, time.Now)
+	if !manager.Retry() || !manager.Retry() {
+		t.Fatal("retry rejected before shutdown")
+	}
+	if got := len(manager.retry); got != 1 {
+		t.Fatalf("queued retries=%d want 1", got)
+	}
+}
+
+func TestManagerManualRetryCancelsActiveHealthAttempt(t *testing.T) {
+	backend := &cancelableHealthBackend{calls: make(chan int32, 2)}
+	observer := observerFake{events: make(chan Event, 8)}
+	manager := newManager(backend, observer, timerScheduler{}, time.Now)
+	manager.Start(context.Background())
+	if call := <-backend.calls; call != 1 {
+		t.Fatalf("first call=%d", call)
+	}
+	if !manager.Retry() {
+		t.Fatal("manual retry rejected")
+	}
+	if call := <-backend.calls; call != 2 {
+		t.Fatalf("second call=%d", call)
+	}
+	connected := nextState(t, observer.events, StateConnected)
+	if connected.Generation != 2 {
+		t.Fatalf("generation=%d", connected.Generation)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	if err := manager.Stop(ctx); err != nil {
@@ -192,6 +246,47 @@ func TestManagerDegradesAndRecoversAfterEventFailure(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	_ = manager.Stop(ctx)
+}
+
+func TestManagerBacksOffRepeatedEventFailuresAndResetsAfterActivity(t *testing.T) {
+	backend := &backendFake{results: []backendResult{{health: Health{Version: "1.0.0"}}}}
+	observer := observerFake{events: make(chan Event, 40)}
+	scheduler := schedulerFake{delays: make(chan time.Duration, 5), releases: make(chan func(), 5)}
+	manager := newManager(backend, observer, scheduler, time.Now)
+	manager.Start(context.Background())
+	nextState(t, observer.events, StateConnected)
+
+	for index, want := range []time.Duration{250 * time.Millisecond, time.Second, 5 * time.Second} {
+		_, errorsCh := streamAt(t, backend, index)
+		errorsCh <- errors.New("event endpoint unavailable")
+		nextState(t, observer.events, StateDegraded)
+		if got := <-scheduler.delays; got != want {
+			t.Fatalf("event retry %d=%s want %s", index, got, want)
+		}
+		(<-scheduler.releases)()
+		nextState(t, observer.events, StateConnected)
+	}
+
+	eventsCh, errorsCh := streamAt(t, backend, 3)
+	eventsCh <- DomainEvent{Kind: "task.updated", EntityID: "task-1"}
+	select {
+	case event := <-observer.events:
+		if event.Kind != "task.updated" {
+			t.Fatalf("event=%+v", event)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("stream activity was not published")
+	}
+	errorsCh <- errors.New("event endpoint unavailable again")
+	nextState(t, observer.events, StateDegraded)
+	if got := <-scheduler.delays; got != 250*time.Millisecond {
+		t.Fatalf("retry after stream activity=%s", got)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := manager.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestManagerLifecycleOneHundredCycles(t *testing.T) {

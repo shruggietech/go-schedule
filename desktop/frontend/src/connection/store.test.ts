@@ -4,7 +4,7 @@ import { unavailableSnapshot } from './bridge'
 import { acceptSnapshot, useConnection } from './store'
 import type { ConnectionSnapshot, DesktopBridge, DesktopEvent } from './model'
 
-const connected: ConnectionSnapshot = { generation: 2, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'windows', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.' }
+const connected: ConnectionSnapshot = { generation: 2, revision: 4, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'windows', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.' }
 
 function fakeBridge(initial = connected) {
   let listener: ((event: DesktopEvent) => void) | undefined
@@ -18,11 +18,15 @@ function fakeBridge(initial = connected) {
 describe('connection store', () => {
   it('rejects stale snapshots', () => { expect(acceptSnapshot(connected, { ...unavailableSnapshot, generation: 1 })).toBe(connected) })
 
+  it('rejects an older snapshot from the same generation', () => {
+    expect(acceptSnapshot(connected, { ...connected, revision: 3, state: 'connecting' })).toBe(connected)
+  })
+
   it('loads native state, accepts current events, and announces recovery', async () => {
     const fake = fakeBridge()
     const { result } = renderHook(() => useConnection(fake.bridge))
     await waitFor(() => expect(result.current.snapshot.state).toBe('connected'))
-    act(() => fake.emit({ id: '3', kind: 'connection.changed', message: 'Recovering.', generation: 3, occurredAt: 'now', snapshot: { ...connected, generation: 3, state: 'recovering' } }))
+    act(() => fake.emit({ id: '3', kind: 'connection.changed', message: 'Recovering.', generation: 3, occurredAt: 'now', snapshot: { ...connected, generation: 3, revision: 5, state: 'recovering' } }))
     expect(result.current.snapshot.state).toBe('recovering')
     expect(result.current.announcement).toBe('Recovering.')
   })

@@ -12,6 +12,9 @@ describe('shared component catalog', () => {
     expect(screen.getByRole('table', { name: 'Tasks' })).toBeVisible()
     expect(screen.getByText('Details')).toBeVisible()
     expect(document.querySelector('[aria-live="polite"]')).not.toBeNull()
+    const field = screen.getByRole('textbox', { name: 'Name' })
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    expect(field).toHaveAccessibleDescription('Required Enter a name')
   })
 
   it('honors disabled buttons', async () => {

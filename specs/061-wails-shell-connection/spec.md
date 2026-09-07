@@ -91,10 +91,10 @@ An operator uses primary navigation, appearance preferences, notices, forms, tab
 - **FR-004**: Shared primitives MUST define accessible names, focus behavior, keyboard behavior, disabled and busy behavior, destructive emphasis, error association, and non-color-only state communication.
 - **FR-005**: The shell MUST support light, dark, and system appearance, visible focus, reduced motion, 200 percent zoom, and useful layouts from 900 by 650 through 1440 by 900 logical pixels.
 - **FR-006**: Feature-facing frontend code MUST consume one connection-facing application contract and MUST NOT receive local endpoint names, credentials, transport objects, or raw backend errors.
-- **FR-007**: The connection contract MUST represent stable target identity, display name, execution platform, daemon version, capabilities, permissions, connection generation, health, safe guidance, and last successful contact.
+- **FR-007**: The connection contract MUST represent stable target identity, display name, execution platform, daemon version, capabilities, permissions, connection generation, transition revision, health, safe guidance, and last successful contact.
 - **FR-008**: The default target MUST be This computer over the existing protected local transport with no account, login, registration, remote URL, or network listener.
 - **FR-009**: Connection states MUST distinguish connecting, connected, degraded, recovering, unavailable, access denied, incompatible, and timed out.
-- **FR-010**: Connection transitions MUST be deterministic and reject stale responses or events from an earlier connection generation.
+- **FR-010**: Connection transitions MUST be deterministic and reject stale responses or events from an earlier connection generation or transition revision.
 - **FR-011**: Initial and manual connection attempts MUST time out within two seconds, while transient retry MUST use a bounded progression of 250 milliseconds, one second, and five seconds with no more than one active retry loop.
 - **FR-012**: Manual retry MUST cancel any pending retry delay, start one fresh generation, and remain available from every recoverable failure state.
 - **FR-013**: Ordinary requests and live events MUST share the connection lifecycle, cancellation root, safe error mapping, and shutdown behavior while allowing an event-only failure to report degraded service.
@@ -110,7 +110,7 @@ An operator uses primary navigation, appearance preferences, notices, forms, tab
 ### Key Entities
 
 - **Desktop target**: Stable identity for an execution host, including display name, platform, daemon metadata, capabilities, permissions, and current connection state.
-- **Connection snapshot**: Immutable generation-stamped view of target health, safe guidance, last successful contact, and supported capabilities.
+- **Connection snapshot**: Immutable generation-and-revision-stamped view of target health, safe guidance, last successful contact, and supported capabilities.
 - **Connection event**: Sanitized generation-stamped notification about connection or daemon state.
 - **Connection generation**: Monotonic attempt identity used to reject stale results and prevent overlapping lifecycle ownership.
 - **Shell route**: Stable destination in the production navigation frame, including availability and accessible page identity.

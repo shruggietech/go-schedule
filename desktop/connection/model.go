@@ -33,6 +33,7 @@ type Target struct {
 // Snapshot is an immutable generation-stamped view of the active connection.
 type Snapshot struct {
 	Generation       uint64 `json:"generation"`
+	Revision         uint64 `json:"revision"`
 	State            State  `json:"state"`
 	Target           Target `json:"target"`
 	Message          string `json:"message"`

@@ -13,6 +13,7 @@ export interface Target {
 
 export interface ConnectionSnapshot {
   generation: number
+  revision: number
   state: ConnectionState
   target: Target
   message: string
