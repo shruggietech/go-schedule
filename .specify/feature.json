@@ -1,1 +1,3 @@
-{"feature_directory":"specs\\058-v111-release-recovery"}
+{
+  "feature_directory": "specs/059-unix-credential-bounds"
+}
