@@ -14,6 +14,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/commandline"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	tasklogic "github.com/shruggietech/go-schedule/internal/task"
+	projecttimezone "github.com/shruggietech/go-schedule/internal/timezone"
 )
 
 const callTimeout = 3 * time.Second
@@ -53,10 +54,19 @@ func (s *Service) PreviewTask(ctx context.Context, draft TaskDraft) OperationRes
 	if err != nil {
 		return rejected("preview", "command", "Enter a valid direct command line.")
 	}
-	result := OperationResult{Action: "preview", Outcome: "accepted", Message: "Command is valid.", Command: &CommandPreview{Program: invocation.Program, Args: invocation.Args}}
+	result := OperationResult{Action: "preview", Outcome: "accepted", Message: "Command is valid.", Command: &CommandPreview{Program: invocation.Program, Args: append([]string{}, invocation.Args...)}}
 	detail := draft.TaskDetail
 	result.Task = &detail
-	if draft.Mode == "recurring" && strings.TrimSpace(draft.Schedule) != "" {
+	if draft.Mode == "one_off" {
+		runAt, err := parseOneOff(draft.At, draft.Timezone, draft.DSTGapPolicy, draft.DSTOverlapPolicy)
+		if err != nil || !runAt.After(time.Now()) {
+			return rejected("preview", "at", "Enter a valid future date and time.")
+		}
+		result.Message = "One-time schedule is valid."
+		detail.ScheduleSummary = "One time at " + formatOneOffEditorValue(runAt, draft.Timezone)
+		detail.PolicySummary = "Runs once in " + displayTimezone(draft.Timezone) + "."
+		detail.NextRuns = times([]time.Time{runAt})
+	} else if draft.Mode == "recurring" && strings.TrimSpace(draft.Schedule) != "" {
 		c, cancel := context.WithTimeout(ctx, callTimeout)
 		defer cancel()
 		preview, err := s.backend.Preview(c, previewRequest(draft))
@@ -349,7 +359,7 @@ func effectiveTask(detail server.TaskResponse, groups map[string]domain.Group, p
 func detailFrom(response server.TaskResponse) TaskDetail {
 	task := response.Task
 	command, _ := commandline.Format(task.Command, task.Args)
-	detail := TaskDetail{ID: task.ID, Name: task.Name, GroupID: task.GroupID, CommandLine: command, WorkingDir: task.WorkingDir, Stdin: task.Stdin, RunAs: task.RunAs, Enabled: task.Enabled, Timezone: task.Timezone, Mode: "manual", OverlapPolicy: string(task.OverlapPolicy), CatchupPolicy: string(task.CatchupPolicy), MissingDatePolicy: string(task.MissingDatePolicy), TimeBasis: string(task.TimeBasis), DSTGapPolicy: string(task.DSTGapPolicy), DSTOverlapPolicy: string(task.DSTOverlapPolicy), PolicySummary: response.PolicySummary, Readiness: string(response.Readiness.Status), UpdatedAt: task.UpdatedAt.Format(time.RFC3339Nano), NextRuns: times(response.NextRuns)}
+	detail := TaskDetail{ID: task.ID, Name: task.Name, GroupID: task.GroupID, CommandLine: command, WorkingDir: task.WorkingDir, Stdin: task.Stdin, RunAs: task.RunAs, Enabled: task.Enabled, Timezone: task.Timezone, Mode: "manual", OverlapPolicy: string(task.OverlapPolicy), CatchupPolicy: string(task.CatchupPolicy), MissingDatePolicy: string(task.MissingDatePolicy), TimeBasis: string(task.TimeBasis), DSTGapPolicy: string(task.DSTGapPolicy), DSTOverlapPolicy: string(task.DSTOverlapPolicy), PolicySummary: response.PolicySummary, Readiness: string(response.Readiness.Status), UpdatedAt: task.UpdatedAt.Format(time.RFC3339Nano), Environment: []EnvironmentRow{}, NextRuns: times(response.NextRuns)}
 	keys := make([]string, 0, len(task.Env))
 	for key := range task.Env {
 		keys = append(keys, key)
@@ -394,6 +404,40 @@ func parseDraftCommand(value string) (commandline.Invocation, error) {
 	}
 	return commandline.Parse(value)
 }
+
+func parseOneOff(value, timezoneName, gapPolicy, overlapPolicy string) (time.Time, error) {
+	if instant, err := time.Parse(time.RFC3339, value); err == nil {
+		return instant, nil
+	}
+	wall, err := time.Parse("2006-01-02T15:04", value)
+	if err != nil {
+		return time.Time{}, err
+	}
+	location, err := projecttimezone.Resolve(timezoneName)
+	if err != nil {
+		return time.Time{}, err
+	}
+	instants := projecttimezone.ResolveWallTime(location, wall.Year(), wall.Month(), wall.Day(), wall.Hour(), wall.Minute(), 0, domain.DSTGapPolicy(gapPolicy), domain.DSTOverlapPolicy(overlapPolicy))
+	if len(instants) == 0 {
+		return time.Time{}, errors.New("invalid local date and time")
+	}
+	return instants[0], nil
+}
+
+func formatOneOffEditorValue(value time.Time, timezone string) string {
+	location, err := projecttimezone.Resolve(timezone)
+	if err != nil {
+		return value.Format("2006-01-02T15:04")
+	}
+	return value.In(location).Format("2006-01-02T15:04")
+}
+
+func displayTimezone(timezone string) string {
+	if timezone == "" {
+		return "the local timezone"
+	}
+	return timezone
+}
 func previewRequest(d TaskDraft) server.PreviewRequest {
 	return server.PreviewRequest{Schedule: d.Schedule, ScheduleSyntax: d.ScheduleSyntax, Timezone: d.Timezone, MissingDatePolicy: d.MissingDatePolicy, TimeBasis: d.TimeBasis, DSTGapPolicy: d.DSTGapPolicy, DSTOverlapPolicy: d.DSTOverlapPolicy}
 }
@@ -402,7 +446,7 @@ func createRequest(d TaskDraft, i commandline.Invocation, env map[string]string)
 	if d.Mode == "recurring" {
 		req.Schedule, req.ScheduleSyntax = d.Schedule, d.ScheduleSyntax
 	} else if d.Mode == "one_off" {
-		value, err := time.Parse(time.RFC3339, d.At)
+		value, err := parseOneOff(d.At, d.Timezone, d.DSTGapPolicy, d.DSTOverlapPolicy)
 		if err != nil {
 			return req, err
 		}
@@ -468,7 +512,7 @@ func updateRequest(d TaskDraft, current server.TaskResponse, i commandline.Invoc
 	if d.Mode == "manual" {
 		req.ClearSchedule = current.Schedule != nil
 	} else if d.Mode == "one_off" {
-		value, err := time.Parse(time.RFC3339, d.At)
+		value, err := parseOneOff(d.At, d.Timezone, d.DSTGapPolicy, d.DSTOverlapPolicy)
 		if err != nil {
 			return req, err
 		}

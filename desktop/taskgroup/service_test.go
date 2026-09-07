@@ -109,6 +109,52 @@ func TestSaveTaskClearsOptionalFieldsAndMapsFailuresSafely(t *testing.T) {
 	}
 }
 
+func TestTaskDetailAndCommandPreviewUseEmptyCollections(t *testing.T) {
+	now := time.Now().UTC()
+	backend := &fakeBackend{tasks: []server.TaskResponse{{Task: domain.Task{ID: "task", Command: "/usr/bin/sw_vers", Timezone: "UTC", UpdatedAt: now}}}}
+	service := NewService(backend)
+	detail := service.Task(context.Background(), "task")
+	if detail.Task == nil || detail.Task.Environment == nil {
+		t.Fatalf("task detail must serialize an empty environment array: %+v", detail)
+	}
+	preview := service.PreviewTask(context.Background(), TaskDraft{TaskDetail: TaskDetail{CommandLine: "/usr/bin/sw_vers", Mode: "manual"}})
+	if preview.Command == nil || preview.Command.Args == nil || len(preview.Command.Args) != 0 {
+		t.Fatalf("command preview must serialize an empty argument array: %+v", preview)
+	}
+}
+
+func TestOneOffPreviewUsesTaskTimezoneAndRejectsInvalidTimes(t *testing.T) {
+	location, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := NewService(&fakeBackend{})
+	future := time.Now().In(location).Add(24 * time.Hour).Truncate(time.Minute)
+	draft := TaskDraft{TaskDetail: TaskDetail{CommandLine: "echo", Mode: "one_off", Timezone: "America/New_York", At: future.Format("2006-01-02T15:04")}}
+	result := service.PreviewTask(context.Background(), draft)
+	if result.Outcome != "accepted" || result.Task == nil || len(result.Task.NextRuns) != 1 || result.Task.NextRuns[0] != future.Format(time.RFC3339) || result.Task.ScheduleSummary == "" || result.Task.PolicySummary == "" {
+		t.Fatalf("preview=%+v", result)
+	}
+	past := draft
+	past.At = time.Now().In(location).Add(-time.Hour).Format("2006-01-02T15:04")
+	if rejected := service.PreviewTask(context.Background(), past); rejected.Outcome != "rejected" || rejected.Field != "at" {
+		t.Fatalf("past preview=%+v", rejected)
+	}
+	invalid := draft
+	invalid.At = "not-a-time"
+	if rejected := service.PreviewTask(context.Background(), invalid); rejected.Outcome != "rejected" || rejected.Field != "at" {
+		t.Fatalf("invalid preview=%+v", rejected)
+	}
+}
+
+func TestTaskDetailPreservesOneOffInstant(t *testing.T) {
+	runAt := time.Date(2030, time.January, 15, 14, 0, 0, 0, time.UTC)
+	detail := detailFrom(server.TaskResponse{Task: domain.Task{Timezone: "America/New_York"}, Schedule: &domain.Schedule{Kind: domain.ScheduleOneOff, RunAt: &runAt}})
+	if detail.At != "2030-01-15T14:00:00Z" {
+		t.Fatalf("at=%q", detail.At)
+	}
+}
+
 func TestOneHundredRepeatedMutationsAndCancellationsStayBounded(t *testing.T) {
 	service := NewService(&fakeBackend{})
 	for range 100 {

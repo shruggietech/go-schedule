@@ -21,4 +21,14 @@ describe('task editor', () => {
     render(<TaskEditor initial={{ ...blankTask(), commandLine: 'echo' }} groups={[]} platform="linux" bridge={bridge} onSaved={() => undefined} onCancel={() => undefined} />)
     await user.click(screen.getByRole('button', { name: 'Save inactive task' })); expect(screen.getByRole('button', { name: 'Overwrite newer version' })).toBeVisible()
   })
+
+  it('keeps one-off wall time in the selected task timezone', async () => {
+    const user = userEvent.setup(); const previewTask = vi.fn().mockResolvedValue({ action: 'preview', outcome: 'accepted', message: 'Valid.' }); const bridge = { previewTask } as unknown as TaskBridge
+    render(<TaskEditor initial={{ ...blankTask(), commandLine: 'echo', mode: 'one_off', timezone: 'America/New_York', at: '2030-01-15T14:00:00Z' }} groups={[]} platform="linux" bridge={bridge} onSaved={() => undefined} onCancel={() => undefined} />)
+    const runAt = screen.getByLabelText('Run at')
+    expect(runAt).toHaveValue('2030-01-15T09:00')
+    await user.clear(runAt); await user.type(runAt, '2030-01-16T10:30'); await user.click(screen.getByRole('button', { name: 'Preview' }))
+    expect(previewTask).toHaveBeenCalledWith(expect.objectContaining({ at: '2030-01-16T10:30', timezone: 'America/New_York' }))
+    expect(screen.getByText('Interpreted in America/New_York.')).toBeVisible()
+  })
 })
