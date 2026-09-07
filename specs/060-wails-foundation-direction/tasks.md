@@ -102,7 +102,7 @@
 
 - [x] T029 Generate exact Go and npm lock data, audit direct dependency licenses, and verify no runtime URL or release-path coupling in `experiments/wails-foundation/go.sum`, `experiments/wails-foundation/frontend/package-lock.json`, and `experiments/wails-foundation/README.md`
 - [x] T030 Update `[Unreleased]` architecture and experience entries plus dated decisions in `CHANGELOG.md`
-- [ ] T031 Advance S060 to `In Progress`, then `Implemented` with delivery evidence in `specs/060-wails-foundation-direction/spec.md` and `specs/README.md`
+- [x] T031 Advance S060 to `In Progress`, then `Implemented` with delivery evidence in `specs/060-wails-foundation-direction/spec.md` and `specs/README.md`
 - [x] T032 Run focused Go race, frontend, browser, brand, workflow-policy, lifecycle, encoding, mojibake, and diff-integrity checks and record results in `specs/060-wails-foundation-direction/verification.md`
 - [x] T033 Run the canonical eight-gate verification command in the foreground and record all gate and coverage results in `specs/060-wails-foundation-direction/verification.md`
 - [x] T034 Audit #149 and #150 acceptance traceability, resolve every task, and commit as `feat(060): prove Wails foundation and direction` with the required co-author trailer

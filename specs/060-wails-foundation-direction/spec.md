@@ -4,11 +4,11 @@
 
 **Created**: 2026-09-07
 
-**Status**: In Progress
+**Status**: Implemented
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: Pending implementation
+**Delivery**: Local canonical eight-gate verification and hosted Windows, macOS, Linux, and Chromium proof jobs passed in [CI run 34091460576](https://github.com/shruggietech/go-schedule/actions/runs/34091460576); first-round review fixes add direct state and action regressions on PR [#193](https://github.com/shruggietech/go-schedule/pull/193).
 
 **Input**: Bundle GitHub issues [#149](https://github.com/shruggietech/go-schedule/issues/149) and [#150](https://github.com/shruggietech/go-schedule/issues/150) into one end-to-end slice that selects and proves the supported Wails foundation, establishes one fresh accessible desktop direction, and completes under the operator-authorized autopilot publication and review workflow.
 
