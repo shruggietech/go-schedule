@@ -86,6 +86,8 @@ func TestOverlap_QueueOne(t *testing.T) {
 	defer st.Close()
 	r := &blockingRunner{started: make(chan struct{}, 1), release: make(chan struct{})}
 	e := newEngine(st, r)
+	startedRuns := make(chan domain.Run, 1)
+	e.SetOnRunStarted(func(run domain.Run) { startedRuns <- run })
 	task := setupTask(t, st, domain.OverlapQueueOne)
 	now := time.Now().UTC()
 
@@ -96,6 +98,14 @@ func TestOverlap_QueueOne(t *testing.T) {
 		t.Fatalf("active=%+v", active)
 	}
 	activeID := active[0].ID
+	select {
+	case notified := <-startedRuns:
+		if notified.ID != activeID || notified.StartedAt == nil {
+			t.Fatalf("started notification=%+v active=%+v", notified, active[0])
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for active run notification")
+	}
 
 	// While running, dispatch twice more: first queues, second is dropped.
 	e.dispatch(task, now.Add(time.Minute), domain.TriggerSchedule)

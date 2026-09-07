@@ -55,14 +55,15 @@ type Engine struct {
 	active  map[string]domain.Run
 	queued  map[string]pendingRun // one queued pending run, by task ID
 
-	reload    chan struct{}
-	ready     chan struct{}
-	readyOnce sync.Once
-	runCtx    context.Context
-	runWG     sync.WaitGroup // tracks in-flight runs for graceful drain
-	onRun     func(domain.Run)
-	onAlert   func(domain.Alert)
-	watchers  *watchruntime.Manager
+	reload       chan struct{}
+	ready        chan struct{}
+	readyOnce    sync.Once
+	runCtx       context.Context
+	runWG        sync.WaitGroup // tracks in-flight runs for graceful drain
+	onRun        func(domain.Run)
+	onRunStarted func(domain.Run)
+	onAlert      func(domain.Alert)
+	watchers     *watchruntime.Manager
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -91,6 +92,10 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 // SetOnRun registers a callback invoked after each run is recorded (used for
 // alerts/event streaming and for test synchronization).
 func (e *Engine) SetOnRun(f func(domain.Run)) { e.onRun = f }
+
+// SetOnRunStarted registers a callback invoked after an execution becomes
+// visible in ActiveRuns and before the runner begins work.
+func (e *Engine) SetOnRunStarted(f func(domain.Run)) { e.onRunStarted = f }
 
 // SetOnAlert registers a callback invoked after each alert is raised (used to
 // stream alerts to GUI clients).
@@ -352,6 +357,9 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		e.mu.Lock()
 		e.active[active.ID] = active
 		e.mu.Unlock()
+		if e.onRunStarted != nil {
+			e.onRunStarted(active)
+		}
 
 		run := e.runner.Run(e.runCtx, task, scheduledFor, origin.trigger)
 		run.ID = active.ID

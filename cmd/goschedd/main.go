@@ -107,6 +107,7 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 	// Scheduling engine wired to the broker for run/alert streaming.
 	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
 	eng.SetOnRun(broker.PublishRun)
+	eng.SetOnRunStarted(broker.PublishRun)
 	eng.SetOnAlert(broker.PublishAlert)
 	eng.SetOnWatcherHealth(func(watcher domain.FilesystemWatcher, health domain.WatcherHealth) {
 		broker.PublishWatcher(events.VerbUpdated, watcher.ID, watcher.Name, &health)

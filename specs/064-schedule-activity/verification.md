@@ -33,14 +33,14 @@ The specification, clarifications, checklists, plan, data model, bridge contract
 | lint | PASS, 0 issues |
 | race | PASS |
 | gui | PASS |
-| coverage | PASS, engine 82.6%, schedule 89.2%, timezone 91.3%, store 80.2%, catchup 88.9%, logbus 91.1% |
+| coverage | PASS, engine 82.8%, schedule 89.2%, timezone 91.3%, store 80.2%, catchup 88.9%, logbus 91.1% |
 | docs | PASS, 15 pages plus policy fixtures |
 | automation | PASS, workflow and fixture checks |
 
 ## Acceptance mapping
 
 - Schedule retains agenda and accessible calendar projections, 1-day, 7-day, and 30-day windows, stable identity selection, and explicit Prediction versus Recorded run labeling.
-- Activity snapshots active executions before persisted history for a race-free completion handoff, then retains recent daemon logs, bounded alerts, exact log-path metadata, text and typed filters, detailed output and provenance, individual acknowledgement, and non-destructive Clear View behavior.
+- Activity publishes run-change events when executions become active, snapshots active executions before persisted history for a race-free completion handoff, then retains recent daemon logs, bounded alerts, exact log-path metadata, text and typed filters, detailed output and provenance, individual acknowledgement, and non-destructive Clear View behavior.
 - Running, success, failure, skipped, caught-up, queued, upcoming, acknowledged, unacknowledged, and unavailable states use text labels and styled shapes rather than color alone.
 - Request sequence tests reject stale responses, view state remains component-owned across refresh, and failed loads retain the last complete snapshot.
 - Automated React and Chromium fixtures exceed the required 100 rows for both Schedule and Activity while preserving keyboard focus and responsive reflow.
