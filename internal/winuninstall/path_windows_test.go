@@ -14,7 +14,7 @@ func TestValidateCandidateRejectsUnsafeWindowsPaths(t *testing.T) {
 }
 
 func TestValidateCandidateAcceptsOwnedLeaves(t *testing.T) {
-	for _, path := range []string{`C:\ProgramData\goschedule`, `D:\Profiles\Ada\AppData\Roaming\fyne\tech.shruggie.goschedule`} {
+	for _, path := range []string{`C:\ProgramData\goschedule`, `D:\Profiles\Ada\AppData\Roaming\fyne\tech.shruggie.goschedule`, `D:\Profiles\Ada\AppData\Roaming\go-schedule\desktop`} {
 		if err := validateLexicalPath(path); err != nil {
 			t.Errorf("validateLexicalPath(%q): %v", path, err)
 		}
