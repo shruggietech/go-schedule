@@ -41,6 +41,7 @@ describe('NotificationsPage', () => {
     render(<NotificationsPage bridge={bridge({ testChannel, deleteChannel })} available refreshToken={1} />); await screen.findAllByText('Ops hook')
     const cards = screen.getAllByRole('article'); expect(within(cards[1]).getByRole('button', { name: 'Send test' })).toBeDisabled()
     await user.click(within(cards[0]).getByRole('button', { name: 'Send test' })); await waitFor(() => expect(testChannel).toHaveBeenCalledWith('c1'))
+    expect(await screen.findByRole('status', { name: 'Notification action complete' })).toHaveTextContent('Done.')
     await user.click(within(cards[0]).getByRole('button', { name: 'Remove' })); expect(screen.getByRole('dialog', { name: 'Remove webhook channel?' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Remove channel' })); await waitFor(() => expect(deleteChannel).toHaveBeenCalledWith('c1'))
   })

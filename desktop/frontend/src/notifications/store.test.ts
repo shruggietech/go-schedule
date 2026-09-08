@@ -22,6 +22,12 @@ describe('useNotifications', () => {
     act(() => { void hook.current.testChannel('c1'); void hook.current.testChannel('c1') }); expect(testChannel).toHaveBeenCalledTimes(1); pending.resolve(result(snapshot('done'))); await waitFor(() => expect(hook.current.pending).toBe(false))
   })
 
+  it('defers background workspace refreshes until an in-flight mutation completes', async () => {
+    const mutation = deferred<NotificationResult>(); const workspace = vi.fn().mockResolvedValueOnce(result(snapshot('initial'))).mockResolvedValue(result(snapshot('refreshed'))); const testChannel = vi.fn(() => mutation.promise); const testBridge = { ...base(), workspace, testChannel }; const { result: hook } = renderHook(() => useNotifications(testBridge, true, 1)); await waitFor(() => expect(hook.current.workspace).toBeDefined())
+    act(() => { void hook.current.testChannel('c1') }); await act(async () => { await hook.current.load() }); expect(workspace).toHaveBeenCalledTimes(1)
+    mutation.resolve(result(snapshot('mutated'))); await waitFor(() => expect(workspace).toHaveBeenCalledTimes(2)); expect(hook.current.workspace?.channels[0].name).toBe('refreshed')
+  })
+
   it('invalidates the prior policy as soon as the selected scope changes or clears', async () => {
     const next = deferred<NotificationResult>(); const loadPolicy = vi.fn().mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'ok', policy: policy('first') }).mockReturnValueOnce(next.promise); const testBridge = { ...base(), policy: loadPolicy }; const { result: hook } = renderHook(() => useNotifications(testBridge, true, 1)); await waitFor(() => expect(hook.current.workspace).toBeDefined())
     await act(async () => { await hook.current.selectPolicy('task', 'first') }); expect(hook.current.policy?.scope.id).toBe('first')
@@ -38,5 +44,16 @@ describe('useNotifications', () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(1000) }); expect(workspace).toHaveBeenCalledTimes(2); expect(hook.current.workspace?.deliveries[0].state).toBe('successful')
       await act(async () => { await vi.advanceTimersByTimeAsync(2000) }); expect(workspace).toHaveBeenCalledTimes(2)
     } finally { vi.useRealTimers() }
+  })
+
+  it('defers policy reloads until a save finishes and preserves the saved result', async () => {
+    const saved = deferred<NotificationResult>(); const loadPolicy = vi.fn().mockResolvedValue({ action: 'load_notification_policy', outcome: 'accepted', message: 'ok', policy: policy('selected') }); const savePolicy = vi.fn(() => saved.promise); const testBridge = { ...base(), policy: loadPolicy, savePolicy }; const { result: hook } = renderHook(() => useNotifications(testBridge, true, 1)); await waitFor(() => expect(hook.current.workspace).toBeDefined()); await act(async () => { await hook.current.selectPolicy('task', 'selected') })
+    act(() => { void hook.current.savePolicy({ scopeType: 'task', scopeId: 'selected', assignments: [] }); void hook.current.selectPolicy('task', 'selected') }); expect(loadPolicy).toHaveBeenCalledTimes(1)
+    saved.resolve({ action: 'save_notification_policy', outcome: 'accepted', message: 'saved', policy: policy('saved') }); await waitFor(() => expect(loadPolicy).toHaveBeenCalledTimes(2)); expect(hook.current.policy?.scope.id).toBe('selected')
+  })
+
+  it('reloads the selected policy after channel removal cascades assignments', async () => {
+    const before = policy('selected'); before.directAssignments = [{ channelId: 'removed', onFailure: true, onSuccess: false }]; const after = policy('selected'); const loadPolicy = vi.fn().mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'ok', policy: before }).mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'ok', policy: after }); const testBridge = { ...base(), policy: loadPolicy }; const { result: hook } = renderHook(() => useNotifications(testBridge, true, 1)); await waitFor(() => expect(hook.current.workspace).toBeDefined()); await act(async () => { await hook.current.selectPolicy('task', 'selected') })
+    await act(async () => { await hook.current.deleteChannel('removed') }); expect(loadPolicy).toHaveBeenCalledTimes(2); expect(hook.current.policy?.directAssignments).toEqual([])
   })
 })

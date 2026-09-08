@@ -14,13 +14,16 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
   const selectedScope = useRef<{ type: 'task' | 'group'; id: string } | undefined>(undefined)
   const mutationPending = useRef(false)
   const policyMutationPending = useRef(false)
+  const refreshAfterMutation = useRef(false)
+  const policyRefreshAfterMutation = useRef(false)
   const apply = useCallback((result: NotificationResult) => {
-    setStatus(result)
+    if (!['load_notifications', 'load_notification_policy'].includes(result.action) || result.outcome !== 'accepted') setStatus(result)
     if (result.workspace) setWorkspace(result.workspace)
     if (result.policy) setPolicy(result.policy)
   }, [])
   const load = useCallback(async () => {
     if (!available) return
+    if (mutationPending.current) { refreshAfterMutation.current = true; return }
     const request = ++workspaceSequence.current
     const result = await bridge.workspace()
     if (request === workspaceSequence.current) apply(result)
@@ -34,9 +37,14 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
       const result = await work()
       if (request === workspaceSequence.current) apply(result)
       return result
-    } finally { mutationPending.current = false; setPending(false) }
-  }, [apply, available])
+    } finally {
+      mutationPending.current = false
+      setPending(false)
+      if (refreshAfterMutation.current) { refreshAfterMutation.current = false; void load() }
+    }
+  }, [apply, available, load])
   const selectPolicy = useCallback(async (type: 'task' | 'group', id: string) => {
+    if (policyMutationPending.current) { policyRefreshAfterMutation.current = true; return }
     selectedScope.current = { type, id }
     setPolicy(undefined)
     setPolicyPending(true)
@@ -60,8 +68,12 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
     try {
       const result = await bridge.savePolicy(draft)
       if (request === policySequence.current) apply(result)
-    } finally { policyMutationPending.current = false; if (request === policySequence.current) setPolicyPending(false) }
-  }, [apply, available, bridge])
+    } finally {
+      policyMutationPending.current = false
+      if (request === policySequence.current) setPolicyPending(false)
+      if (policyRefreshAfterMutation.current) { policyRefreshAfterMutation.current = false; const scope = selectedScope.current; if (scope) void selectPolicy(scope.type, scope.id) }
+    }
+  }, [apply, available, bridge, selectPolicy])
   useEffect(() => { void load() }, [load, refreshToken])
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -82,6 +94,11 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
     saveChannel: (draft: ChannelDraft) => mutate(() => bridge.saveChannel(draft)),
     setChannelEnabled: (id: string, enabled: boolean) => mutate(() => bridge.setChannelEnabled(id, enabled)),
     testChannel: (id: string) => mutate(() => bridge.testChannel(id)),
-    deleteChannel: (id: string) => mutate(() => bridge.deleteChannel(id)),
+    deleteChannel: async (id: string) => {
+      const result = await mutate(() => bridge.deleteChannel(id))
+      const scope = selectedScope.current
+      if (result?.outcome === 'accepted' && scope) await selectPolicy(scope.type, scope.id)
+      return result
+    },
   }
 }
