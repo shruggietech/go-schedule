@@ -1,0 +1,104 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ChannelDraft, NotificationBridge, NotificationResult, NotificationWorkspace, Policy, PolicyDraft } from './model'
+
+const relevant = (kind: string) => ['notification.', 'task.', 'group.', 'run.'].some((prefix) => kind.startsWith(prefix))
+
+export function useNotifications(bridge: NotificationBridge, available: boolean, refreshToken: number) {
+  const [workspace, setWorkspace] = useState<NotificationWorkspace>()
+  const [policy, setPolicy] = useState<Policy>()
+  const [status, setStatus] = useState<NotificationResult>()
+  const [pending, setPending] = useState(false)
+  const [policyPending, setPolicyPending] = useState(false)
+  const workspaceSequence = useRef(0)
+  const policySequence = useRef(0)
+  const selectedScope = useRef<{ type: 'task' | 'group'; id: string } | undefined>(undefined)
+  const mutationPending = useRef(false)
+  const policyMutationPending = useRef(false)
+  const refreshAfterMutation = useRef(false)
+  const policyRefreshAfterMutation = useRef(false)
+  const apply = useCallback((result: NotificationResult) => {
+    if (!['load_notifications', 'load_notification_policy'].includes(result.action) || result.outcome !== 'accepted') setStatus(result)
+    if (result.workspace) setWorkspace(result.workspace)
+    if (result.policy) setPolicy(result.policy)
+  }, [])
+  const load = useCallback(async () => {
+    if (!available) return
+    if (mutationPending.current) { refreshAfterMutation.current = true; return }
+    const request = ++workspaceSequence.current
+    const result = await bridge.workspace()
+    if (request === workspaceSequence.current) apply(result)
+  }, [apply, available, bridge])
+  const mutate = useCallback(async (work: () => Promise<NotificationResult>) => {
+    if (!available || mutationPending.current) return undefined
+    mutationPending.current = true
+    setPending(true)
+    const request = ++workspaceSequence.current
+    try {
+      const result = await work()
+      if (request === workspaceSequence.current) apply(result)
+      return result
+    } finally {
+      mutationPending.current = false
+      setPending(false)
+      if (refreshAfterMutation.current) { refreshAfterMutation.current = false; void load() }
+    }
+  }, [apply, available, load])
+  const selectPolicy = useCallback(async (type: 'task' | 'group', id: string) => {
+    if (policyMutationPending.current) { policyRefreshAfterMutation.current = true; return }
+    selectedScope.current = { type, id }
+    setPolicy(undefined)
+    setPolicyPending(true)
+    const request = ++policySequence.current
+    try {
+      const result = await bridge.policy(type, id)
+      if (request === policySequence.current) apply(result)
+    } finally { if (request === policySequence.current) setPolicyPending(false) }
+  }, [apply, bridge])
+  const clearPolicy = useCallback(() => {
+    selectedScope.current = undefined
+    policySequence.current++
+    setPolicy(undefined)
+    setPolicyPending(false)
+  }, [])
+  const savePolicy = useCallback(async (draft: PolicyDraft) => {
+    if (!available || policyMutationPending.current) return
+    policyMutationPending.current = true
+    setPolicyPending(true)
+    const request = ++policySequence.current
+    try {
+      const result = await bridge.savePolicy(draft)
+      if (request === policySequence.current) apply(result)
+    } finally {
+      policyMutationPending.current = false
+      if (request === policySequence.current) setPolicyPending(false)
+      if (policyRefreshAfterMutation.current) { policyRefreshAfterMutation.current = false; const scope = selectedScope.current; if (scope) void selectPolicy(scope.type, scope.id) }
+    }
+  }, [apply, available, bridge, selectPolicy])
+  useEffect(() => { void load() }, [load, refreshToken])
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const unsubscribe = bridge.subscribe?.((event) => {
+      if (!relevant(event.kind)) return
+      clearTimeout(timer)
+      timer = setTimeout(() => { void load(); const scope = selectedScope.current; if (scope) void selectPolicy(scope.type, scope.id) }, 75)
+    })
+    return () => { clearTimeout(timer); unsubscribe?.() }
+  }, [bridge, load, selectPolicy])
+  useEffect(() => {
+    if (!available || !workspace?.deliveries.some((delivery) => ['queued', 'retrying', 'sending'].includes(delivery.state))) return
+    const timer = setTimeout(() => void load(), 1000)
+    return () => clearTimeout(timer)
+  }, [available, load, workspace])
+  return {
+    workspace, policy, status, pending, policyPending, load, selectPolicy, clearPolicy, savePolicy,
+    saveChannel: (draft: ChannelDraft) => mutate(() => bridge.saveChannel(draft)),
+    setChannelEnabled: (id: string, enabled: boolean) => mutate(() => bridge.setChannelEnabled(id, enabled)),
+    testChannel: (id: string) => mutate(() => bridge.testChannel(id)),
+    deleteChannel: async (id: string) => {
+      const result = await mutate(() => bridge.deleteChannel(id))
+      const scope = selectedScope.current
+      if (result?.outcome === 'accepted' && scope) await selectPolicy(scope.type, scope.id)
+      return result
+    },
+  }
+}

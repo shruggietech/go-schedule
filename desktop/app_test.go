@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
@@ -58,6 +59,8 @@ type facadeTaskBackend struct{ taskgroup.Backend }
 
 type facadeOperationsBackend struct{ operations.Backend }
 
+type facadeNotificationsBackend struct{ notifications.Backend }
+
 type facadeSettingsBackend struct{}
 
 func (facadeSettingsBackend) RuntimeInfo(context.Context) (server.RuntimeInfoResponse, error) {
@@ -80,6 +83,19 @@ func (facadeOperationsBackend) ListAlertsLimited(context.Context, bool, int) ([]
 	return []domain.Alert{}, nil
 }
 func (facadeOperationsBackend) AckAlert(context.Context, string) error { return nil }
+
+func (facadeNotificationsBackend) ListNotificationChannels(context.Context) ([]domain.NotificationChannel, error) {
+	return []domain.NotificationChannel{}, nil
+}
+func (facadeNotificationsBackend) ListNotificationDeliveries(context.Context, domain.NotificationDeliveryFilter) ([]domain.NotificationDelivery, error) {
+	return []domain.NotificationDelivery{}, nil
+}
+func (facadeNotificationsBackend) ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error) {
+	return []server.TaskResponse{}, nil
+}
+func (facadeNotificationsBackend) ListGroups(context.Context) ([]domain.Group, error) {
+	return []domain.Group{}, nil
+}
 
 func (facadeTaskBackend) ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error) {
 	return []server.TaskResponse{}, nil
@@ -151,6 +167,18 @@ func TestAppFacadeExposesScheduleActivityAndAcknowledgement(t *testing.T) {
 	}
 	if result := app.AcknowledgeAlert("alert-1"); result.Outcome != "accepted" || result.Activity == nil {
 		t.Fatalf("acknowledge=%+v", result)
+	}
+	app.shutdown(context.Background())
+}
+
+func TestAppFacadeExposesSecretFreeNotificationWorkspace(t *testing.T) {
+	service := notifications.NewService(facadeNotificationsBackend{})
+	app := newApp(appBackend{}, nil, nil, appServices{notifications: service})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.startup(ctx)
+	if result := app.NotificationWorkspace(); result.Outcome != "accepted" || result.Workspace == nil {
+		t.Fatalf("notifications=%+v", result)
 	}
 	app.shutdown(context.Background())
 }

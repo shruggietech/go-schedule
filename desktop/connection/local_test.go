@@ -38,10 +38,22 @@ func TestLocalBackendNegotiatesSafeThisComputerContract(t *testing.T) {
 	if health.Version != "1.2.0" || len(health.Capabilities) == 0 || len(health.Permissions) == 0 {
 		t.Fatalf("health=%+v", health)
 	}
+	if !contains(health.Capabilities, "notifications") {
+		t.Fatalf("notifications capability missing: %+v", health.Capabilities)
+	}
 	target := localTarget()
 	if target.ID != "local" || target.DisplayName != "This computer" {
 		t.Fatalf("target=%+v", target)
 	}
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 func TestLocalBackendRejectsIncompatibleVersion(t *testing.T) {

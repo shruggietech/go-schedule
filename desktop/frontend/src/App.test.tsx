@@ -6,6 +6,7 @@ import type { ConnectionSnapshot, DesktopBridge } from './connection/model'
 import type { TaskBridge } from './tasks/model'
 import type { OperationsBridge } from './operations/model'
 import type { SettingsBridge, SettingsWorkspace } from './settings/model'
+import type { NotificationBridge } from './notifications/model'
 
 const connected: ConnectionSnapshot = { generation: 1, revision: 2, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'linux', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.' }
 const bridge: DesktopBridge = { snapshot: vi.fn().mockResolvedValue(connected), retry: vi.fn().mockResolvedValue({ action: 'retry', outcome: 'accepted', message: 'Trying again.' }), quit: vi.fn().mockResolvedValue({ action: 'quit', outcome: 'accepted', message: 'Closing.' }), subscribe: () => () => undefined }
@@ -14,6 +15,7 @@ const tasks: TaskBridge = { workspace: vi.fn().mockResolvedValue(taskResult), ta
 const operations: OperationsBridge = { scheduleWindow: vi.fn().mockResolvedValue({ action: 'load_schedule', outcome: 'accepted', message: 'Loaded.', schedule: { from: '2026-09-06T00:00:00Z', to: '2026-09-14T00:00:00Z', loadedAt: '2026-09-07T00:00:00Z', occurrences: [] } }), activityWorkspace: vi.fn().mockResolvedValue({ action: 'load_activity', outcome: 'accepted', message: 'Loaded.', activity: { runs: [], logs: [], alerts: [], logPath: '', loadedAt: '2026-09-07T00:00:00Z' } }), acknowledgeAlert: vi.fn(), acknowledgeAlerts: vi.fn() }
 const settingsWorkspace: SettingsWorkspace = { preferences: { version: 1, appearance: 'system', transition: { status: 'not_found', retired: ['appearance.font', 'appearance.scroll_sensitivity'] } }, preferencePath: '/home/ada/.config/go-schedule/desktop/preferences.json', storage: [], product: { name: 'go-schedule', version: '1.2.0', publisher: 'ShruggieTech', links: [] }, daemonAvailable: true, loadedAt: '2026-09-07T00:00:00Z' }
 const settings: SettingsBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_settings', outcome: 'accepted', message: 'Loaded.', workspace: settingsWorkspace }), saveAppearance: vi.fn().mockImplementation(async (appearance) => ({ action: 'save_appearance', outcome: 'accepted', message: 'Saved.', workspace: { ...settingsWorkspace, preferences: { ...settingsWorkspace.preferences, appearance } } })), restore: vi.fn(), copyStoragePath: vi.fn(), openProductLink: vi.fn() }
+const notifications: NotificationBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_notifications', outcome: 'accepted', message: 'Loaded.', workspace: { channels: [], tasks: [], groups: [], deliveries: [], loadedAt: '2026-09-07T00:00:00Z' } }), saveChannel: vi.fn(), setChannelEnabled: vi.fn(), testChannel: vi.fn(), deleteChannel: vi.fn(), policy: vi.fn(), savePolicy: vi.fn() }
 
 describe('production shell', () => {
   it('keeps target and page identity visible across operational routes', async () => {
@@ -33,5 +35,13 @@ describe('production shell', () => {
     expect(screen.getByRole('dialog', { name: 'This computer connection' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Exit' }))
     expect(bridge.quit).toHaveBeenCalled()
+  })
+
+  it('opens the complete Notifications workspace from primary navigation', async () => {
+    const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} notifications={notifications} settings={settings} />)
+    await user.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Notifications' })).toBeVisible()
+    expect(await screen.findByRole('heading', { level: 2, name: 'No webhook channels' })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 2, name: 'No matching deliveries' })).toBeVisible()
   })
 })
