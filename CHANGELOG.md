@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Local observe-only MCP access exposes bounded scheduler context without adding mutation authority (Closes #161, #162; Refs #148).** Codex and other local hosts can launch `gosched mcp serve` over stdio to read daemon health, active tasks, upcoming schedules, recent alerts, and recent runs through the official MCP Go SDK. Dedicated allowlisted response types exclude executable configuration and secrets, deterministic continuation bounds collections, hostile display text and output remain explicitly untrusted, and existing Unix-socket or Windows-named-pipe authorization remains final.
+
 - **Desktop notification management now closes the loop from webhook setup through delivery diagnosis (Closes #160; Refs #19).** The production Wails control center can create, test, disable, repair, re-enable, and remove write-only webhook channels; assign failure and deliberate success outcomes to tasks or groups; explain direct overrides and nearest-group inheritance; and inspect 200 recent redacted tests and task-outcome deliveries across queued, retrying, sending, successful, and failed states.
 
 - **Dependable webhook notifications provide reusable, failure-isolated run-outcome delivery (Closes #158, #159; Refs #19).** Operators can manage write-only webhook channels, assign success and failure policies at task or group scope, explain nearest-scope precedence, send a stable generic JSON payload, and inspect redacted durable evidence through the local API and CLI. A dedicated bounded dispatcher provides three-attempt at-least-once delivery, stable deduplication identity, restart recovery, and terminal-history retention without occupying task workers or changing recorded task outcomes.
@@ -31,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-08: begin MCP with a process-launched Observe boundary over existing local IPC.** S069 uses the official Go SDK v1.7.0, supports protocol revisions `2026-07-28` and `2025-11-25`, registers five JSON resources and four continuation templates, and advertises no tools. The adapter opens no listener, requests at most 1,000 recent daemon records before returning 100-record pages, caps ordinary untrusted text at 2 KiB and command output at 8 KiB, and maps daemon models into allowlisted MCP types. Operate and Manage remain disabled pending separate authentication, authorization, audit attribution, and confirmation design.
 
 - **2026-09-07: keep notification precedence daemon-authoritative and protected values outside desktop response types.** S068 adds a dedicated desktop service that composes one bounded complete channel, scope, and delivery snapshot while loading policy only for the selected task or group. Endpoint, authorization, and payload fields do not exist in bridge response models; edits use explicit blank replacement inputs; asynchronous completion is sequenced; relevant events are debounced; and failed refreshes retain the last complete evidence.
 

@@ -7,6 +7,12 @@ nav_order: 8.5
 
 The daemon owns scheduling, persistence, execution, and completion delivery. The CLI and production Wails desktop remain thin local clients.
 
+## Local MCP observation
+
+`gosched mcp serve` is an optional process-launched adapter over the existing protected local IPC client. It uses the official MCP Go SDK and stdio transport, opens no network listener, advertises no tools, and exits with its host. Protocol registration, continuation cursors, bounded error mapping, and dedicated allowlisted response types live in `internal/mcpobserve`; scheduler policy, persistence, execution, and authorization remain daemon-owned.
+
+The enabled permission class is Observe. Responses exclude executable configuration and protected values, cap collections and untrusted text, and label user-controlled names, summaries, messages, and output as data rather than instructions. Future Operate and Manage classes remain disabled until authenticated identity, per-action authorization, attributable audit records, explicit arguments, and appropriate confirmation are implemented.
+
 ## Completion delivery
 
 When an executor returns a terminal success or failure, one SQLite transaction records the run and inserts a unique pending delivery for each matching chain. The engine claims deliveries in bounded batches, rechecks the target's current task and group eligibility, and sends eligible work through the existing worker and overlap path. The target run completes the incoming delivery and can create the next finite cascade in the same transaction.
