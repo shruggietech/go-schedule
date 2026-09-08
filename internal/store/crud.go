@@ -136,10 +136,21 @@ func (s *Store) SetGroupEnabled(id string, enabled bool) error {
 	return affected(res, err, "set group enabled")
 }
 
-// DeleteGroup removes a group (cascading to children via FK).
+// DeleteGroup removes a group, its descendants, and their unfinished notification work.
 func (s *Store) DeleteGroup(id string) error {
-	res, err := s.db.Exec(`DELETE FROM groups WHERE id=?`, id)
-	return affected(res, err, "delete group")
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin delete group: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`WITH RECURSIVE removed(id) AS (SELECT id FROM groups WHERE id=? UNION ALL SELECT groups.id FROM groups JOIN removed ON groups.parent_id=removed.id) DELETE FROM notification_deliveries WHERE group_id IN (SELECT id FROM removed) AND state IN (?,?)`, id, string(domain.NotificationDeliveryPending), string(domain.NotificationDeliveryClaimed)); err != nil {
+		return fmt.Errorf("store: delete unfinished group notification deliveries: %w", err)
+	}
+	res, err := tx.Exec(`DELETE FROM groups WHERE id=?`, id)
+	if err := affected(res, err, "delete group"); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 type scanner interface {
@@ -378,6 +389,9 @@ func (s *Store) DeleteTask(id string) error {
 		return fmt.Errorf("store: begin delete task: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`DELETE FROM notification_deliveries WHERE task_id=? AND state IN (?,?)`, id, string(domain.NotificationDeliveryPending), string(domain.NotificationDeliveryClaimed)); err != nil {
+		return fmt.Errorf("store: delete unfinished task notification deliveries: %w", err)
+	}
 	rows, err := tx.Query(`SELECT DISTINCT target_task_id FROM completion_chains WHERE source_task_id=?`, id)
 	if err != nil {
 		return fmt.Errorf("store: list affected completion targets: %w", err)

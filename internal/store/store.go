@@ -7,6 +7,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "modernc.org/sqlite" // registers the "sqlite" database/sql driver
 )
@@ -31,6 +32,12 @@ func Open(path string) (*Store, error) {
 		return nil, fmt.Errorf("store: pragmas: %w", err)
 	}
 	s := &Store{db: db}
+	if path != ":memory:" {
+		if err := os.Chmod(path, 0o600); err != nil {
+			_ = db.Close()
+			return nil, fmt.Errorf("store: protect database permissions: %w", err)
+		}
+	}
 	if err := s.migrate(); err != nil {
 		_ = db.Close()
 		return nil, err
@@ -358,6 +365,71 @@ CREATE TABLE filesystem_watchers (
 CREATE INDEX idx_filesystem_watchers_target ON filesystem_watchers(target_task_id);
 CREATE INDEX idx_filesystem_watchers_enabled ON filesystem_watchers(enabled);
 ALTER TABLE runs ADD COLUMN source_watcher_id TEXT;
+`,
+	},
+	{
+		// v15: add reusable notification channels, scoped assignments, and
+		// durable webhook deliveries. Existing databases gain no assignments,
+		// so migration cannot introduce outbound behavior.
+		version: 15,
+		stmts: `
+CREATE TABLE notification_channels (
+	id                 TEXT PRIMARY KEY,
+	name               TEXT NOT NULL,
+	kind               TEXT NOT NULL CHECK(kind IN ('webhook')),
+	endpoint           TEXT NOT NULL,
+	endpoint_summary   TEXT NOT NULL,
+	authorization      TEXT NOT NULL DEFAULT '',
+	enabled            INTEGER NOT NULL DEFAULT 1,
+	created_at         TEXT NOT NULL,
+	updated_at         TEXT NOT NULL
+);
+CREATE INDEX idx_notification_channels_enabled ON notification_channels(enabled);
+
+CREATE TABLE notification_assignments (
+	id          TEXT PRIMARY KEY,
+	channel_id  TEXT NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
+	task_id     TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+	group_id    TEXT REFERENCES groups(id) ON DELETE CASCADE,
+	on_success  INTEGER NOT NULL DEFAULT 0,
+	on_failure  INTEGER NOT NULL DEFAULT 0,
+	created_at  TEXT NOT NULL,
+	updated_at  TEXT NOT NULL,
+	CHECK ((task_id IS NOT NULL) != (group_id IS NOT NULL)),
+	CHECK (on_success = 1 OR on_failure = 1)
+);
+CREATE UNIQUE INDEX idx_notification_assignments_task_channel ON notification_assignments(task_id,channel_id) WHERE task_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_notification_assignments_group_channel ON notification_assignments(group_id,channel_id) WHERE group_id IS NOT NULL;
+CREATE INDEX idx_notification_assignments_task ON notification_assignments(task_id);
+CREATE INDEX idx_notification_assignments_group ON notification_assignments(group_id);
+
+CREATE TABLE notification_deliveries (
+	id                   TEXT PRIMARY KEY,
+	channel_id           TEXT REFERENCES notification_channels(id) ON DELETE SET NULL,
+	channel_name         TEXT NOT NULL,
+	destination_summary  TEXT NOT NULL,
+	endpoint             TEXT NOT NULL DEFAULT '',
+	authorization        TEXT NOT NULL DEFAULT '',
+	event_kind           TEXT NOT NULL CHECK(event_kind IN ('run.completed','test')),
+	task_id               TEXT,
+	run_id                TEXT,
+	task_name             TEXT NOT NULL DEFAULT '',
+	group_id              TEXT NOT NULL DEFAULT '',
+	group_name            TEXT NOT NULL DEFAULT '',
+	payload               BLOB NOT NULL,
+	state                 TEXT NOT NULL CHECK(state IN ('pending','claimed','succeeded','failed')),
+	attempts              INTEGER NOT NULL DEFAULT 0,
+	next_attempt_at       TEXT NOT NULL,
+	created_at            TEXT NOT NULL,
+	claimed_at            TEXT,
+	completed_at          TEXT,
+	last_status           INTEGER NOT NULL DEFAULT 0,
+	last_error            TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_notification_deliveries_pending ON notification_deliveries(state,next_attempt_at,created_at);
+CREATE INDEX idx_notification_deliveries_channel ON notification_deliveries(channel_id,created_at);
+CREATE INDEX idx_notification_deliveries_task ON notification_deliveries(task_id,created_at);
+CREATE INDEX idx_notification_deliveries_run ON notification_deliveries(run_id);
 `,
 	},
 }

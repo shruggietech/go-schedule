@@ -270,6 +270,9 @@ func (s *Store) RecordRunAndCreateDeliveries(r *domain.Run, incomingDeliveryID s
 			}
 		}
 	}
+	if err := s.createRunNotificationDeliveries(tx, *r); err != nil {
+		return fmt.Errorf("store: create notification deliveries: %w", err)
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit run and deliveries: %w", err)
 	}

@@ -231,3 +231,25 @@ func TestRecordRunLeavesCompletionDeliveryPendingDuringShutdown(t *testing.T) {
 	default:
 	}
 }
+
+func TestRecordRunWakesNotificationsOnlyAfterCommit(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	task := setupTask(t, st, domain.OverlapQueueOne)
+	runner := &completionRunner{outcomes: map[string]domain.RunOutcome{}, runs: make(chan domain.Run, 1)}
+	e := newEngine(st, runner)
+	wakes := 0
+	e.SetOnNotificationCommitted(func() {
+		if runs, _ := st.ListRuns(task.ID, 1); len(runs) != 1 {
+			t.Fatal("notification wake ran before source run commit")
+		}
+		wakes++
+	})
+	e.recordRun(domain.Run{TaskID: task.ID, ScheduledFor: time.Now().UTC(), Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}, "")
+	if wakes != 1 {
+		t.Fatalf("wakes=%d, want 1", wakes)
+	}
+}

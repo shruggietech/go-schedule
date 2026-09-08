@@ -43,7 +43,7 @@ func TestMigrationV14AddsFilesystemWatchersAndPreservesV13Data(t *testing.T) {
 		t.Fatalf("preserved run=%+v err=%v", run, err)
 	}
 	var version int
-	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 14 {
+	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version < 14 {
 		t.Fatalf("schema version=%d err=%v", version, err)
 	}
 }

@@ -63,6 +63,7 @@ type Engine struct {
 	onRun        func(domain.Run)
 	onRunStarted func(domain.Run)
 	onAlert      func(domain.Alert)
+	onNotify     func()
 	watchers     *watchruntime.Manager
 }
 
@@ -100,6 +101,10 @@ func (e *Engine) SetOnRunStarted(f func(domain.Run)) { e.onRunStarted = f }
 // SetOnAlert registers a callback invoked after each alert is raised (used to
 // stream alerts to GUI clients).
 func (e *Engine) SetOnAlert(f func(domain.Alert)) { e.onAlert = f }
+
+// SetOnNotificationCommitted registers a non-blocking wake callback invoked
+// after a run and all matching notification work commit atomically.
+func (e *Engine) SetOnNotificationCommitted(f func()) { e.onNotify = f }
 
 // SetOnWatcherHealth registers a callback for watcher runtime health transitions.
 func (e *Engine) SetOnWatcherHealth(f func(domain.FilesystemWatcher, domain.WatcherHealth)) {
@@ -390,6 +395,9 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 	}
 	if e.onRun != nil {
 		e.onRun(run)
+	}
+	if e.onNotify != nil {
+		e.onNotify()
 	}
 	if e.runCtx.Err() == nil {
 		e.drainCompletionDeliveries()

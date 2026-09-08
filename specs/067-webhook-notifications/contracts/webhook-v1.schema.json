@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shruggietech/go-schedule/specs/067-webhook-notifications/contracts/webhook-v1.schema.json",
+  "title": "go-schedule webhook v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "event", "delivery", "daemon", "task"],
+  "properties": {
+    "schema": { "const": "go-schedule.webhook.v1" },
+    "event": { "enum": ["run.completed", "test"] },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "daemon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": { "version": { "type": "string" } }
+    },
+    "task": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "group_id": { "type": "string" },
+        "group_name": { "type": "string" }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "outcome", "trigger", "scheduled_for"],
+      "properties": {
+        "id": { "type": "string" },
+        "outcome": { "enum": ["success", "failure"] },
+        "trigger": { "type": "string" },
+        "scheduled_for": { "type": "string", "format": "date-time" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "ended_at": { "type": "string", "format": "date-time" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "exit_code": { "type": "integer" }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "event": { "const": "run.completed" } } }, "then": { "required": ["run"], "properties": { "task": { "type": "object" } } } },
+    { "if": { "properties": { "event": { "const": "test" } } }, "then": { "properties": { "task": { "type": "null" } } } }
+  ]
+}

@@ -26,6 +26,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/ipc"
 	"github.com/shruggietech/go-schedule/internal/lock"
 	"github.com/shruggietech/go-schedule/internal/logbus"
+	"github.com/shruggietech/go-schedule/internal/notification"
 	"github.com/shruggietech/go-schedule/internal/service"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
@@ -45,8 +46,11 @@ func mainErr(configPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(cfg.DataDir, 0o755); err != nil {
+	if err := os.MkdirAll(cfg.DataDir, 0o700); err != nil {
 		return err
+	}
+	if err := os.Chmod(cfg.DataDir, 0o700); err != nil {
+		return fmt.Errorf("protect data directory: %w", err)
 	}
 	resolvedConfigPath := ""
 	if configPath != "" {
@@ -106,9 +110,13 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 
 	// Scheduling engine wired to the broker for run/alert streaming.
 	eng := engine.New(st, clock.NewReal(), executor.New(cfg.OutputCapBytes), log, cfg.WorkerPoolSize)
+	dispatcher := notification.NewDispatcher(st, notification.NewSender(nil), log, 4)
+	notifyErr := make(chan error, 1)
+	go func() { notifyErr <- dispatcher.Run(ctx) }()
 	eng.SetOnRun(broker.PublishRun)
 	eng.SetOnRunStarted(broker.PublishRun)
 	eng.SetOnAlert(broker.PublishAlert)
+	eng.SetOnNotificationCommitted(dispatcher.Wake)
 	eng.SetOnWatcherHealth(func(watcher domain.FilesystemWatcher, health domain.WatcherHealth) {
 		broker.PublishWatcher(events.VerbUpdated, watcher.ID, watcher.Name, &health)
 	})
@@ -123,8 +131,10 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 		return err
 	}
 
+	api := server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log)
+	api.SetNotificationDispatcher(dispatcher)
 	srv := &http.Server{
-		Handler:           server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log).Handler(),
+		Handler:           api.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -145,10 +155,13 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 		defer cancel()
 		err := srv.Shutdown(shutdownCtx)
 		<-engErr // wait for engine to drain in-flight runs
+		<-notifyErr
 		return err
 	case err := <-serveErr:
 		return err
 	case err := <-engErr:
+		return err
+	case err := <-notifyErr:
 		return err
 	}
 }
