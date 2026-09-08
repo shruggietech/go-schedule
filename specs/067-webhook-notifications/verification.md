@@ -16,6 +16,7 @@
 8. `sh scripts/verify.sh all` passed all eight gates in order: format, vet, lint, race, gui, coverage, docs, and automation. The native Windows Wails executable built, all 18 frontend test files containing 60 tests passed, and the frontend production bundle compiled.
 9. Final core-package coverage was engine 82.9 percent, schedule 89.1 percent, timezone 91.3 percent, store 80.0 percent, catchup 88.9 percent, and logbus 91.1 percent.
 10. Final read-only artifact checks confirmed all 33 tasks are complete, the receiver contract remains valid JSON Schema, and the specification lifecycle is consistent. No unresolved placeholder, mojibake, or publication-format defect remains.
+11. Initial pull-request CI exposed that the finalized specification delivery field lacked the review-branch or pull-request reference required for an Implemented lifecycle state. The delivery evidence now names both the review branch and PR #209, and the lifecycle and publication gates pass against the corrected metadata.
 
 ## Hosted evidence boundary
 

@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implemented and locally verified on 2026-09-07. Pull-request CI and external review remain the hosted delivery gates.
+**Delivery**: Implemented on review branch `codex/067-webhook-notifications` in PR #209 and locally verified on 2026-09-07. Pull-request CI and external review remain the hosted delivery gates.
 
 **Input**: User description: "Define reusable notification policies and deliver dependable webhook notifications for task and group run outcomes, satisfying GitHub issues #158 and #159."
 
