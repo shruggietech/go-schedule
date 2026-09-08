@@ -21,6 +21,11 @@ type Scheduler interface {
 	RunNow(taskID string) error
 }
 
+// NotificationDispatcher accepts coalesced wake requests for durable work.
+type NotificationDispatcher interface {
+	Wake()
+}
+
 // Server holds dependencies and the route mux.
 type Server struct {
 	store   *store.Store
@@ -30,6 +35,7 @@ type Server struct {
 	logPath string
 	runtime RuntimeInfoResponse
 	log     *slog.Logger
+	notify  NotificationDispatcher
 	mux     *http.ServeMux
 }
 
@@ -60,6 +66,10 @@ func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker,
 
 // Handler returns the HTTP handler for the API.
 func (s *Server) Handler() http.Handler { return s.mux }
+
+// SetNotificationDispatcher connects channel tests and committed policy work
+// to the outbound runtime without making handlers perform network requests.
+func (s *Server) SetNotificationDispatcher(dispatcher NotificationDispatcher) { s.notify = dispatcher }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/health", s.handleHealth)
@@ -120,6 +130,22 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/runs", s.handleListRuns)
 	s.mux.HandleFunc("GET /v1/runs/active", s.handleListActiveRuns)
 	s.mux.HandleFunc("GET /v1/runs/{id}", s.handleGetRun)
+
+	s.mux.HandleFunc("GET /v1/notification-channels", s.handleListNotificationChannels)
+	s.mux.HandleFunc("POST /v1/notification-channels", s.handleCreateNotificationChannel)
+	s.mux.HandleFunc("GET /v1/notification-channels/{id}", s.handleGetNotificationChannel)
+	s.mux.HandleFunc("PATCH /v1/notification-channels/{id}", s.handleUpdateNotificationChannel)
+	s.mux.HandleFunc("DELETE /v1/notification-channels/{id}", s.handleDeleteNotificationChannel)
+	s.mux.HandleFunc("POST /v1/notification-channels/{id}/enable", s.handleEnableNotificationChannel)
+	s.mux.HandleFunc("POST /v1/notification-channels/{id}/disable", s.handleDisableNotificationChannel)
+	s.mux.HandleFunc("POST /v1/notification-channels/{id}/rotate", s.handleRotateNotificationChannel)
+	s.mux.HandleFunc("POST /v1/notification-channels/{id}/test", s.handleTestNotificationChannel)
+	s.mux.HandleFunc("GET /v1/notification-deliveries", s.handleListNotificationDeliveries)
+	s.mux.HandleFunc("GET /v1/tasks/{id}/notifications", s.handleTaskNotifications)
+	s.mux.HandleFunc("PUT /v1/tasks/{id}/notifications", s.handleTaskNotifications)
+	s.mux.HandleFunc("GET /v1/tasks/{id}/notifications/effective", s.handleEffectiveTaskNotifications)
+	s.mux.HandleFunc("GET /v1/groups/{id}/notifications", s.handleGroupNotifications)
+	s.mux.HandleFunc("PUT /v1/groups/{id}/notifications", s.handleGroupNotifications)
 	s.mux.HandleFunc("GET /v1/alerts", s.handleListAlerts)
 	s.mux.HandleFunc("POST /v1/alerts/{id}/ack", s.handleAckAlert)
 	s.mux.HandleFunc("GET /v1/logs", s.handleListLogs)

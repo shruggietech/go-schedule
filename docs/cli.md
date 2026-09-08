@@ -416,6 +416,30 @@ gosched logs --severity error --limit 200
 | `--severity` | `info`, `warning`, or `error`. | all |
 | `--limit` | Maximum rows. | `100` |
 
+## `notification`
+
+Manage reusable webhook channels, task and group policies, and redacted delivery evidence. Add `--json` to every read or mutation that returns an object.
+
+```sh
+gosched notification channel add "Operations" --endpoint https://receiver.example/hook --authorization "Bearer value"
+gosched notification channel list
+gosched notification channel get <channel-id>
+gosched notification channel update <channel-id> --name "Primary operations" --endpoint https://new.example/hook
+gosched notification channel rotate <channel-id> --authorization "Bearer replacement"
+gosched notification channel test <channel-id>
+gosched notification channel disable <channel-id>
+gosched notification channel enable <channel-id>
+gosched notification task set <task-id> --channel <channel-id> --on failure
+gosched notification task show <task-id>
+gosched notification task effective <task-id>
+gosched notification group set <group-id> --channel <channel-id> --on success,failure
+gosched notification group show <group-id>
+gosched notification deliveries --state failed --limit 20
+gosched notification channel rm <channel-id>
+```
+
+`--authorization` is write-only and may be visible in shell history, so use the shell's protected input practices when that matters. An empty rotation value clears authorization. Task assignments replace inherited group assignments; otherwise the nearest group with assignments wins. Omitting every `--channel` from `task set` or `group set` clears the direct policy and resumes inheritance. The complete behavior and receiver contract are in [Webhook notifications](notifications.md).
+
 The Activity view identifies itself as a limited recent view and displays the exact configured path to the daemon's complete rotating JSONL log. Platform install guides list the default locations, but `log_file_path` overrides them; the path reported in Activity is authoritative for the running daemon.
 
 ## `service`

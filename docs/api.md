@@ -99,3 +99,27 @@ Completion-triggered entries from `GET /v1/runs` have `trigger` set to `completi
 Trigger lifecycle events use `kind: "trigger"` and contain only a redacted trigger or its stable deletion ID.
 
 Trigger Set lifecycle events use `kind: "trigger_set"` and contain set identity, name, member count, and verb without member keys. One set-level mutation publishes one event after its transaction commits.
+
+## Webhook notifications
+
+Notification channels are reusable write-only webhook destinations. Ordinary channel responses contain `id`, `name`, `kind`, `endpoint_summary`, `has_authorization`, `enabled`, `created_at`, and `updated_at`. See [Webhook notifications](notifications.md) for the receiver payload, precedence, retry, duplicate, and security contracts.
+
+| Method | Path | Result |
+| --- | --- | --- |
+| `GET` | `/v1/notification-channels` | `{"notification_channels": [...]}` with redacted metadata |
+| `POST` | `/v1/notification-channels` | Create from `name`, `endpoint`, optional `authorization`, and optional `enabled`; `201` |
+| `GET` | `/v1/notification-channels/{id}` | One redacted channel |
+| `PATCH` | `/v1/notification-channels/{id}` | Update optional `name`, `endpoint`, or `enabled` |
+| `DELETE` | `/v1/notification-channels/{id}` | Remove assignments and unfinished work while preserving safe terminal history; `204` |
+| `POST` | `/v1/notification-channels/{id}/enable` | Enable new delivery creation |
+| `POST` | `/v1/notification-channels/{id}/disable` | Disable new delivery creation |
+| `POST` | `/v1/notification-channels/{id}/rotate` | Replace or clear the write-only `authorization` value |
+| `POST` | `/v1/notification-channels/{id}/test` | Queue a transport-equivalent test delivery; `202` |
+| `GET` | `/v1/tasks/{id}/notifications` | List direct task assignments |
+| `PUT` | `/v1/tasks/{id}/notifications` | Atomically replace direct task assignments |
+| `GET` | `/v1/tasks/{id}/notifications/effective` | Return selected source scope and complete effective assignments |
+| `GET` | `/v1/groups/{id}/notifications` | List direct group assignments |
+| `PUT` | `/v1/groups/{id}/notifications` | Atomically replace direct group assignments |
+| `GET` | `/v1/notification-deliveries` | List redacted evidence with optional `channel`, `task`, `run`, `state`, and `limit` filters |
+
+An assignment contains `channel_id`, `on_success`, and `on_failure`; at least one outcome must be true and one channel may occur only once per scope. The nearest non-empty task or group scope replaces all more distant assignments. Delivery responses remain distinct from run responses and include a safe parsed `event`, attempts, timestamps, last status, and bounded diagnostic without protected endpoint or authorization fields.
