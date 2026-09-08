@@ -288,3 +288,110 @@ func TestNotificationDeliveryRetryRecoveryCompletionAndChannelRemoval(t *testing
 		t.Fatalf("preserved=%+v", terminal)
 	}
 }
+
+func TestNotificationRecoveryExhaustsThirdClaimAndErasesSecrets(t *testing.T) {
+	st := openMem(t)
+	channel := createNotificationTestChannel(t, st, "recovery exhaustion")
+	delivery, err := st.CreateTestNotificationDelivery(channel.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	for attempt := 1; attempt <= 3; attempt++ {
+		claimed, err := st.ClaimNotificationDeliveries(1, now.Add(time.Second))
+		if err != nil || len(claimed) != 1 || claimed[0].Attempts != attempt {
+			t.Fatalf("attempt %d claim=%+v err=%v", attempt, claimed, err)
+		}
+		if attempt < 3 {
+			if err := st.RetryNotificationDelivery(delivery.ID, now, 503, "retry"); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if recovered, err := st.RecoverNotificationDeliveries(now); err != nil || recovered != 1 {
+		t.Fatalf("recovered=%d err=%v", recovered, err)
+	}
+	failed, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{State: domain.NotificationDeliveryFailed})
+	if err != nil || len(failed) != 1 || failed[0].Endpoint != "" || failed[0].Authorization != "" {
+		t.Fatalf("failed=%+v err=%v", failed, err)
+	}
+}
+
+func TestNotificationOperationsReportClosedStore(t *testing.T) {
+	st := openMem(t)
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	checks := []struct {
+		name string
+		run  func() error
+	}{
+		{"delete group", func() error { return st.DeleteGroup("missing") }},
+		{"delete task", func() error { return st.DeleteTask("missing") }},
+		{"recover deliveries", func() error { _, err := st.RecoverNotificationDeliveries(now); return err }},
+		{"claim deliveries", func() error { _, err := st.ClaimNotificationDeliveries(1, now); return err }},
+		{"complete delivery", func() error { return st.CompleteNotificationDelivery("missing", false, 0, "", now) }},
+		{"list deliveries", func() error { _, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{}); return err }},
+	}
+	for _, check := range checks {
+		if err := check.run(); err == nil {
+			t.Fatalf("%s succeeded on closed store", check.name)
+		}
+	}
+}
+
+func TestDeletingNotificationSourcesRemovesOnlyUnfinishedWork(t *testing.T) {
+	st := openMem(t)
+	group := domain.Group{Name: "source group", Enabled: true}
+	if err := st.CreateGroup(&group); err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, group.ID)
+	channel := createNotificationTestChannel(t, st, "source lifecycle")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeGroup, group.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnSuccess: true}}); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	terminalRun := domain.Run{TaskID: task.ID, ScheduledFor: now, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+	if err := st.RecordRunAndCreateDeliveries(&terminalRun, ""); err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := st.ClaimNotificationDeliveries(1, now.Add(time.Second))
+	if err != nil || len(claimed) != 1 {
+		t.Fatalf("claimed=%+v err=%v", claimed, err)
+	}
+	if err := st.CompleteNotificationDelivery(claimed[0].ID, true, 204, "", now); err != nil {
+		t.Fatal(err)
+	}
+	pendingRun := domain.Run{TaskID: task.ID, ScheduledFor: now, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+	if err := st.RecordRunAndCreateDeliveries(&pendingRun, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteTask(task.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteTask(task.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("delete missing source task error=%v", err)
+	}
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{})
+	if err != nil || len(deliveries) != 1 || deliveries[0].State != domain.NotificationDeliverySucceeded {
+		t.Fatalf("deliveries after task deletion=%+v err=%v", deliveries, err)
+	}
+
+	groupTask := createNotificationTestTask(t, st, group.ID)
+	pendingGroupRun := domain.Run{TaskID: groupTask.ID, ScheduledFor: now, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+	if err := st.RecordRunAndCreateDeliveries(&pendingGroupRun, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeleteGroup(group.ID); err != nil {
+		t.Fatal(err)
+	}
+	deliveries, err = st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{RunID: pendingGroupRun.ID})
+	if err != nil || len(deliveries) != 0 {
+		t.Fatalf("deliveries after group deletion=%+v err=%v", deliveries, err)
+	}
+	if err := st.DeleteGroup(group.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("delete missing source group error=%v", err)
+	}
+}

@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	deliveryBatchSize = 16
-	maxAttempts       = 3
-	pollInterval      = 250 * time.Millisecond
+	maxAttempts  = 3
+	pollInterval = 250 * time.Millisecond
 )
 
 // DeliveryStore is the durable state used by Dispatcher.
@@ -89,24 +88,16 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 }
 
 func (d *Dispatcher) process(ctx context.Context) error {
-	deliveries, err := d.store.ClaimNotificationDeliveries(deliveryBatchSize, d.clock.Now().UTC())
+	deliveries, err := d.store.ClaimNotificationDeliveries(d.workers, d.clock.Now().UTC())
 	if err != nil || len(deliveries) == 0 {
 		return err
 	}
-	sem := make(chan struct{}, d.workers)
 	var wg sync.WaitGroup
 	for _, delivery := range deliveries {
 		delivery := delivery
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				d.finishAttempt(delivery, 0, "daemon shutting down", ctx.Err())
-				return
-			}
 			status, diagnostic, sendErr := d.sender.Send(ctx, delivery)
 			d.finishAttempt(delivery, status, diagnostic, sendErr)
 		}()

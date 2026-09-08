@@ -12,16 +12,18 @@ import (
 )
 
 type dispatcherStore struct {
-	mu        sync.Mutex
-	delivery  domain.NotificationDelivery
-	completed bool
-	retried   bool
+	mu         sync.Mutex
+	delivery   domain.NotificationDelivery
+	completed  bool
+	retried    bool
+	claimLimit int
 }
 
 func (s *dispatcherStore) RecoverNotificationDeliveries(time.Time) (int64, error) { return 0, nil }
-func (s *dispatcherStore) ClaimNotificationDeliveries(_ int, _ time.Time) ([]domain.NotificationDelivery, error) {
+func (s *dispatcherStore) ClaimNotificationDeliveries(limit int, _ time.Time) ([]domain.NotificationDelivery, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.claimLimit = limit
 	if s.completed || s.retried {
 		return nil, nil
 	}
@@ -60,6 +62,9 @@ func TestDispatcherCompletesOutsideCallerAndSchedulesBoundedRetry(t *testing.T) 
 	}
 	if !success.completed {
 		t.Fatal("delivery was not completed")
+	}
+	if success.claimLimit != 1 {
+		t.Fatalf("claim limit=%d, want one available worker", success.claimLimit)
 	}
 	failure := &dispatcherStore{delivery: domain.NotificationDelivery{ID: "retry", Attempts: 0}}
 	dispatcher = NewDispatcher(failure, dispatcherSender{err: context.DeadlineExceeded}, log, 1)
