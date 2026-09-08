@@ -5,7 +5,7 @@ nav_order: 8.5
 
 # Architecture
 
-The daemon owns scheduling, persistence, execution, and completion delivery. The CLI and desktop remain thin local clients.
+The daemon owns scheduling, persistence, execution, and completion delivery. The CLI and production Wails desktop remain thin local clients.
 
 ## Completion delivery
 

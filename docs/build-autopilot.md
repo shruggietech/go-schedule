@@ -62,7 +62,7 @@ The canonical aggregate mirrors `.github/workflows/ci.yml`. Run it in the foregr
 sh scripts/verify.sh all
 ```
 
-It runs all eight required gates, in order: `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`. The format gate must print no files. The race gate excludes the cgo-only GUI entry point and the Fyne widget package (whose races are inside Fyne's own font cache, not this project's code); the pure-Go `gui/viewmodel` package stays race-tested, and the GUI is covered by the headless gate. Coverage on the core packages must stay at or above 80 percent (constitution principle II). The automation gate independently guards approved hosted-action majors and the exact verification manifest.
+It runs all eight required gates, in order: `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`. The format gate must print no files. The root race gate covers every daemon and CLI package. The `gui` compatibility gate covers the Wails Go module, frontend tests and production bundle, and a native application build. Coverage on the core packages must stay at or above 80 percent (constitution principle II). The automation gate independently guards approved hosted-action majors and the exact verification manifest.
 
 A missing POSIX shell, Go command, formatter, or C toolchain is a failed or unrun prerequisite, never a green gate. Record the named gate and halt until it can be run; do not omit it from the aggregate or substitute a later CI result.
 

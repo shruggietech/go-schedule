@@ -7,7 +7,7 @@ nav_order: 4
 
 > **Release status:** cron entry in the Schedule field is currently an unreleased change planned for the first release after 0.8.0. Released 0.8.0 builds accept the human forms documented below.
 
-This page explains every field in the desktop GUI's **New Task** / **Edit Task** dialog: what it accepts, what's required, and what each option means. It's the GUI counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
+This page explains every field in the Wails desktop's **New Task** / **Edit Task** dialog: what it accepts, what's required, and what each option means. It's the desktop counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
 Task fields may be left incomplete and saved for later. A blank name displays as `unnamed`, a blank command makes the task not runnable, and **Manual only** removes automatic timing while preserving Run now once a valid command exists. Incomplete tasks remain disabled until their command and an automatic source are both ready.
 

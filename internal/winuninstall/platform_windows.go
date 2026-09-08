@@ -16,9 +16,13 @@ import (
 
 const (
 	profileListKey = `SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList`
-	profileLeaf    = `AppData\Roaming\fyne\tech.shruggie.goschedule`
 	resultKey      = `Software\ShruggieTech\go-schedule-uninstall`
 )
+
+var profileLeaves = [...]string{
+	`AppData\Roaming\fyne\tech.shruggie.goschedule`,
+	`AppData\Roaming\go-schedule\desktop`,
+}
 
 type windowsBackend struct {
 	programData string
@@ -89,19 +93,21 @@ func (b *windowsBackend) Discover() (targets []Target, resultErr error) {
 			return nil, fmt.Errorf("expand registered profile %s path: %w", sid, err)
 		}
 		profilePath = filepath.Clean(profilePath)
-		candidate := filepath.Join(profilePath, profileLeaf)
-		identity := strings.ToLower(filepath.Clean(candidate))
-		if seen[identity] {
-			continue
+		for _, profileLeaf := range profileLeaves {
+			candidate := filepath.Join(profilePath, profileLeaf)
+			identity := strings.ToLower(filepath.Clean(candidate))
+			if seen[identity] {
+				continue
+			}
+			seen[identity] = true
+			targets = append(targets, b.declareTarget(
+				TargetProfile,
+				sid,
+				candidate,
+				profilePath,
+				profileLeaf,
+			))
 		}
-		seen[identity] = true
-		targets = append(targets, b.declareTarget(
-			TargetProfile,
-			sid,
-			candidate,
-			profilePath,
-			profileLeaf,
-		))
 	}
 	return targets, nil
 }

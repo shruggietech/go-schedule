@@ -1,8 +1,8 @@
-# Production desktop foundation
+# Production desktop application
 
-`desktop/` is the production-intent Wails control-center module introduced by S061. It is deliberately separate from the repository root and from `experiments/wails-foundation`: the proof preserves the S060 decision evidence, while this module owns code intended to become the shipping desktop application after the feature migrations and release gates in #153 through #157.
+`desktop/` is the production Wails control-center module introduced by S061 and promoted to the sole maintained desktop application by S066. It remains a separate Go module so native WebView dependencies do not enter the cgo-free daemon and CLI module.
 
-The module is not referenced by current installers or release workflows. The Fyne application remains the shipping GUI until #157 explicitly changes that boundary.
+Current installers and release workflows build this module while preserving the established `gosched-gui` executable and application-bundle identity.
 
 ## Build and test
 
@@ -36,4 +36,4 @@ The local Geist and Space Grotesk fonts use their Open Font License files under 
 
 ## Feature contract
 
-Later workflow slices must use `connection.Backend` on the Go side and `DesktopBridge` plus the shared `components/` catalog on the React side. They must not call Wails-generated transport bindings directly for daemon data. S061 intentionally provides honest placeholder routes rather than partially migrating Tasks, Schedule, Activity, Connections, or Settings workflows.
+Desktop workflows use `connection.Backend` on the Go side and `DesktopBridge` plus the shared `components/` catalog on the React side. They do not call Wails-generated transport bindings directly for daemon data.

@@ -3,7 +3,7 @@ contact_links:
   - name: Installation help
     url: https://shruggietech.github.io/go-schedule/
     about: >
-      Per-platform install guides, the CLI reference, and the GUI field reference. Worth a look before filing, since several common reports are answered there.
+      Per-platform install guides, the CLI reference, and the Wails desktop field reference. Worth a look before filing, since several common reports are answered there.
   - name: Prove your install actually works
     url: https://shruggietech.github.io/go-schedule/test-scripts.html
     about: >

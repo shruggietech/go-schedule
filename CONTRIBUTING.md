@@ -42,7 +42,7 @@ Run the canonical aggregate in the **foreground**, watched to completion. Never 
 sh scripts/verify.sh all
 ```
 
-The aggregate runs eight named gates in order: `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`. Run one gate with `sh scripts/verify.sh <gate>` when diagnosing a failure. The format gate must print no files. The race gate excludes the cgo-only GUI entry point and the Fyne widget package (races there live inside Fyne's own font cache), while `gui/viewmodel` stays race-tested and the GUI is covered by the headless gate.
+The aggregate runs eight named gates in order: `format`, `vet`, `lint`, `race`, `gui`, `coverage`, `docs`, and `automation`. Run one gate with `sh scripts/verify.sh <gate>` when diagnosing a failure. The format gate must print no files. The root race gate covers every daemon and CLI package. The `gui` compatibility gate covers the Wails Go module, frontend tests and bundle, and a native application build.
 
 `scripts/coverage-gate.sh` is the core-package coverage gate: six packages must stay at or above 80 percent. CI runs this exact script, so the local number and the CI number are one measurement rather than two approximations of it. Do not substitute `go test -cover`; it reports per-package coverage and will disagree, because the gate measures cross-package coverage with `-coverpkg`, where a package's statements count as covered when *any* test in the tree reaches them.
 

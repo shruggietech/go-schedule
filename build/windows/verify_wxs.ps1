@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   Cheap guard against the WiX source drifting from reality:
-    * the three installed executables and installer-private cleanup helper are referenced,
+    * the installed executables, documentation, font licenses, and installer-private cleanup helper are referenced,
     * the canonical icon feeds installed-apps and both shortcut identities,
     * independently selectable shortcut features retain stable identities,
     * destructive cleanup remains an explicit, guarded commit action,
@@ -31,7 +31,14 @@ if (-not (Test-Path $wxsPath)) { throw "wxs not found at $wxsPath" }
 $wxs = Get-Content $wxsPath -Raw
 
 $expectedInstalledBinaries = @('goschedd.exe', 'gosched-gui.exe', 'gosched.exe')
-$expectedStageBinaries = $expectedInstalledBinaries + @('gosched-cleanup.exe')
+$expectedStageFiles = $expectedInstalledBinaries + @(
+  'gosched-cleanup.exe',
+  'README.md',
+  'LICENSE',
+  'CHANGELOG.md',
+  'OFL-Geist.txt',
+  'OFL-Space-Grotesk.txt'
+)
 $fail = @()
 
 foreach ($bin in $expectedInstalledBinaries) {
@@ -290,9 +297,9 @@ if ($wxs -notmatch '<Environment[^>]*Name="PATH"') {
 }
 
 if ($StageDir) {
-  foreach ($bin in $expectedStageBinaries) {
-    $p = Join-Path $StageDir $bin
-    if (-not (Test-Path $p)) { $fail += "staged binary missing: $p" }
+  foreach ($name in $expectedStageFiles) {
+    $p = Join-Path $StageDir $name
+    if (-not (Test-Path $p -PathType Leaf)) { $fail += "staged payload missing: $p" }
   }
 }
 

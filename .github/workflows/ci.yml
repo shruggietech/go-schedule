@@ -46,11 +46,8 @@ jobs:
           go-version-file: go.mod
           cache: true
       # The race detector requires cgo; the CI runners provide a C toolchain.
-      # Excluded here (verified by the dedicated `gui` job instead):
-      #  - cmd/gosched-gui: cgo-only, needs OpenGL.
-      #  - gui: the Fyne widget package; `-race` flags races inside Fyne's own
-      #    font cache (go-text/typesetting), not our code.
-      # The pure-Go gui/viewmodel package stays race-tested.
+      # The production desktop is a separate Go module with native WebView
+      # dependencies and is verified by the wails-desktop job below.
       - name: go test -race
         shell: bash
         env:
@@ -95,25 +92,37 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
-          go-version-file: go.mod
-          cache: true
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            go.sum
+            desktop/go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/frontend/package-lock.json
+      - name: Install exact frontend dependencies
+        working-directory: desktop/frontend
+        run: npm ci
       - name: Stage Windows installer binaries
         shell: pwsh
         run: |
           $root = Join-Path $env:RUNNER_TEMP 's039-msi-contract'
           $stage = Join-Path $root 'stage'
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
-          go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 `
-            -64 `
-            -icon=brand/platform/windows/go-schedule.ico `
-            -o=cmd/gosched-gui/resource_windows_amd64.syso `
-            cmd/gosched-gui/versioninfo.json
-          go build -ldflags '-H windowsgui' `
-            -o (Join-Path $stage 'gosched-gui.exe') ./cmd/gosched-gui
+          Push-Location desktop
+          try {
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+          } finally {
+            Pop-Location
+          }
+          Copy-Item desktop/build/bin/gosched-gui.exe (Join-Path $stage 'gosched-gui.exe')
           go build -o (Join-Path $stage 'goschedd.exe') ./cmd/goschedd
           go build -o (Join-Path $stage 'gosched.exe') ./cmd/gosched
           go build -ldflags '-H windowsgui' `
             -o (Join-Path $stage 'gosched-cleanup.exe') ./cmd/gosched-cleanup
+          Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage
+          Copy-Item brand/fonts/licenses/OFL-Geist.txt, brand/fonts/licenses/OFL-Space-Grotesk.txt -Destination $stage
       - name: Install pinned WiX Toolset
         shell: pwsh
         run: |
@@ -200,94 +209,6 @@ jobs:
             GOOS=$os GOARCH=$arch go build -o /dev/null ./cmd/goschedd ./cmd/gosched
           done
 
-  gui:
-    name: GUI build & test (cgo)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: true
-      - name: Install Fyne build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgl1-mesa-dev \
-            libwayland-dev \
-            libxkbcommon-dev \
-            wayland-protocols \
-            xorg-dev
-      - name: Build GUI (cgo + OpenGL driver)
-        env:
-          CGO_ENABLED: "1"
-        run: go build -o /dev/null ./cmd/gosched-gui
-      - name: Test GUI (headless)
-        env:
-          CGO_ENABLED: "1"
-        run: sh scripts/verify.sh gui
-
-  wails-proof:
-    name: Wails foundation proof (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    defaults:
-      run:
-        working-directory: experiments/wails-foundation
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: true
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: experiments/wails-foundation/frontend/package-lock.json
-      - name: Install Linux WebKitGTK prerequisites
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-      - name: Install exact frontend dependencies
-        working-directory: experiments/wails-foundation/frontend
-        run: npm ci
-      - name: Test and build frontend
-        working-directory: experiments/wails-foundation/frontend
-        run: npm run test && npm run build
-      - name: Test Go boundary under race detector
-        run: go test -race ./...
-      - name: Build Linux proof
-        if: runner.os == 'Linux'
-        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -tags webkit2_41
-      - name: Build native proof
-        if: runner.os != 'Linux'
-        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
-
-  wails-browser-contract:
-    name: Wails accessibility and responsive contract
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: experiments/wails-foundation/frontend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: experiments/wails-foundation/frontend/package-lock.json
-      - name: Install exact frontend dependencies
-        run: npm ci
-      - name: Install Chromium test runtime
-        run: npx playwright install --with-deps chromium
-      - name: Exercise accessibility and responsive contracts
-        run: npm run test:e2e
-
   wails-desktop:
     name: Production desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -331,6 +252,20 @@ jobs:
       - name: Build native desktop
         if: runner.os != 'Linux'
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+      - name: Inspect stable desktop identity
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            test -f build/bin/gosched-gui.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            # Wails uses the application display name for the generated bundle
+            # directory and outputfilename for its executable. Release staging
+            # renames this bundle to the stable gosched-gui.app contract.
+            test -d build/bin/go-schedule.app
+            test -f build/bin/go-schedule.app/Contents/MacOS/gosched-gui
+          else
+            test -f build/bin/gosched-gui
+          fi
 
   wails-desktop-browser-contract:
     name: Production desktop accessibility and responsive contract

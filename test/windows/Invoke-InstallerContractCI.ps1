@@ -31,6 +31,7 @@ $adminGroupName = 'goschedadmin'
 $installDirectory = 'C:\Program Files\go-schedule'
 $machineDataRoot = Join-Path $env:ProgramData 'goschedule'
 $profileDataRoot = Join-Path $env:APPDATA 'fyne\tech.shruggie.goschedule'
+$desktopDataRoot = Join-Path $env:APPDATA 'go-schedule\desktop'
 $machineSentinel = Join-Path $env:ProgramData 'goschedule-s039-sentinel.txt'
 $profileSentinel = Join-Path $env:APPDATA 'fyne\tech.shruggie.goschedule-s039-sentinel.txt'
 $operations = [System.Collections.Generic.List[object]]::new()
@@ -265,6 +266,7 @@ function Write-SeedData {
 
   New-Item -ItemType Directory -Path $machineDataRoot -Force | Out-Null
   New-Item -ItemType Directory -Path $profileDataRoot -Force | Out-Null
+  New-Item -ItemType Directory -Path $desktopDataRoot -Force | Out-Null
   New-Item -ItemType Directory -Path (Split-Path $profileSentinel -Parent) `
     -Force | Out-Null
   [IO.File]::WriteAllText(
@@ -275,6 +277,11 @@ function Write-SeedData {
   [IO.File]::WriteAllText(
     (Join-Path $profileDataRoot 'preferences.json'),
     "{`"s039`":`"$Label-profile`"}",
+    [Text.UTF8Encoding]::new($false)
+  )
+  [IO.File]::WriteAllText(
+    (Join-Path $desktopDataRoot 'preferences.json'),
+    "{`"appearance`":{`"mode`":`"dark`"}}",
     [Text.UTF8Encoding]::new($false)
   )
   [IO.File]::WriteAllText(
@@ -292,6 +299,8 @@ function Write-SeedData {
     machine_sha256 = (Get-FileHash -LiteralPath (Join-Path $machineDataRoot 's039-machine.txt') -Algorithm SHA256).Hash.ToLowerInvariant()
     profile_file = Join-Path $profileDataRoot 'preferences.json'
     profile_sha256 = (Get-FileHash -LiteralPath (Join-Path $profileDataRoot 'preferences.json') -Algorithm SHA256).Hash.ToLowerInvariant()
+    desktop_file = Join-Path $desktopDataRoot 'preferences.json'
+    desktop_sha256 = (Get-FileHash -LiteralPath (Join-Path $desktopDataRoot 'preferences.json') -Algorithm SHA256).Hash.ToLowerInvariant()
     machine_sentinel_sha256 = (Get-FileHash -LiteralPath $machineSentinel -Algorithm SHA256).Hash.ToLowerInvariant()
     profile_sentinel_sha256 = (Get-FileHash -LiteralPath $profileSentinel -Algorithm SHA256).Hash.ToLowerInvariant()
   }
@@ -300,6 +309,7 @@ function Write-SeedData {
     label = $Label
     machine_root = $machineDataRoot
     profile_root = $profileDataRoot
+    desktop_root = $desktopDataRoot
     inventory = $seed
   })
   $seed
@@ -314,6 +324,7 @@ function Assert-SeedPreserved {
   foreach ($contract in @(
     @{ Path = $Seed.machine_file; Hash = $Seed.machine_sha256 },
     @{ Path = $Seed.profile_file; Hash = $Seed.profile_sha256 },
+    @{ Path = $Seed.desktop_file; Hash = $Seed.desktop_sha256 },
     @{ Path = $machineSentinel; Hash = $Seed.machine_sentinel_sha256 },
     @{ Path = $profileSentinel; Hash = $Seed.profile_sentinel_sha256 }
   )) {
@@ -330,6 +341,7 @@ function Assert-SeedPreserved {
     label = $Label
     machine_file_sha256 = (Get-FileHash -LiteralPath $Seed.machine_file -Algorithm SHA256).Hash.ToLowerInvariant()
     profile_file_sha256 = (Get-FileHash -LiteralPath $Seed.profile_file -Algorithm SHA256).Hash.ToLowerInvariant()
+    desktop_file_sha256 = (Get-FileHash -LiteralPath $Seed.desktop_file -Algorithm SHA256).Hash.ToLowerInvariant()
     machine_sentinel_sha256 = (Get-FileHash -LiteralPath $machineSentinel -Algorithm SHA256).Hash.ToLowerInvariant()
     profile_sentinel_sha256 = (Get-FileHash -LiteralPath $profileSentinel -Algorithm SHA256).Hash.ToLowerInvariant()
   })
@@ -343,7 +355,8 @@ function Assert-WipeState {
   )
 
   $ownedRemain = (Test-Path -LiteralPath $machineDataRoot) -or
-    (Test-Path -LiteralPath $profileDataRoot)
+    (Test-Path -LiteralPath $profileDataRoot) -or
+    (Test-Path -LiteralPath $desktopDataRoot)
   if ($ExpectComplete -and $ownedRemain) {
     throw "$Label left a declared owned root after a complete wipe"
   }
@@ -418,6 +431,7 @@ function Remove-ProbePath {
   $allowed = @(
     [IO.Path]::GetFullPath($machineDataRoot),
     [IO.Path]::GetFullPath($profileDataRoot),
+    [IO.Path]::GetFullPath($desktopDataRoot),
     [IO.Path]::GetFullPath($machineSentinel),
     [IO.Path]::GetFullPath($profileSentinel)
   )
@@ -486,6 +500,7 @@ try {
   foreach ($path in @(
     $machineDataRoot,
     $profileDataRoot,
+    $desktopDataRoot,
     $machineSentinel,
     $profileSentinel
   )) {
@@ -631,6 +646,7 @@ try {
   foreach ($path in @(
     $machineDataRoot,
     $profileDataRoot,
+    $desktopDataRoot,
     $machineSentinel,
     $profileSentinel
   )) {

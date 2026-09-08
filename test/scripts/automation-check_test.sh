@@ -69,16 +69,6 @@ jobs:
           node-version: 24
       - uses: actions/upload-artifact@v7
       - uses: softprops/action-gh-release@v3
-  wails-proof:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - run: go test -race ./...
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
-  wails-browser-contract:
-    steps:
-      - run: npm run test:e2e
   wails-desktop:
     strategy:
       matrix:
@@ -92,6 +82,10 @@ jobs:
       - run: npm audit --audit-level=high && npm test && npm run build
       - run: echo cache-dependency-path: desktop/go.sum
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
+      - run: echo desktop/build/bin/gosched-gui.exe
+      - run: echo 'Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage'
+      - name: Inspect stable desktop identity
+        run: test -f build/bin/go-schedule.app/Contents/MacOS/gosched-gui
   wails-desktop-browser-contract:
     steps:
       - run: npm run test:e2e
@@ -105,12 +99,6 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      gui-minor-and-patch:
-        patterns:
-          - fyne.io/*
-        update-types:
-          - minor
-          - patch
       storage-minor-and-patch:
         patterns:
           - modernc.org/sqlite
@@ -124,6 +112,36 @@ updates:
         update-types:
           - minor
           - patch
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+  - package-ecosystem: gomod
+    directory: /desktop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      desktop-minor-and-patch:
+        patterns:
+          - github.com/wailsapp/wails/v2
+        update-types:
+          - minor
+          - patch
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+  - package-ecosystem: npm
+    directory: /desktop/frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
       routine-minor-and-patch:
         update-types:
           - minor
@@ -205,11 +223,16 @@ jobs:
   binaries:
     needs: release-state
     steps:
-      - run: go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.4.1 -icon=brand/platform/windows/go-schedule.ico
+      - run: echo go-version-file: desktop/go.mod
+      - run: echo cache-dependency-path: desktop/frontend/package-lock.json
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
+      - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
+      - run: cp -R desktop/build/bin/go-schedule.app "$app"
+      - run: app="$stage/gosched-gui.app"
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
       - run: cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
       - run: cp -R brand/platform/linux/hicolor "$stage/share/icons/"
-      - run: sudo apt-get install -y libwayland-dev wayland-protocols
+      - run: sudo apt-get install -y libwebkit2gtk-4.1-dev
       - uses: softprops/action-gh-release@v3
         with:
           draft: true
@@ -422,12 +445,12 @@ run_automation_cases() {
   run_expect_fail static-release-badge 'published-release badge source' \
     sh "$CHECK" "$static_release_badge"
 
-  missing_wayland="$tmp/missing-wayland"
-  cp -R "$good" "$missing_wayland"
-  sed 's/libwayland-dev //' "$good/.github/workflows/release.yml" > \
-    "$missing_wayland/.github/workflows/release.yml"
-  run_expect_fail missing-wayland 'Wayland development headers' \
-    sh "$CHECK" "$missing_wayland"
+  missing_webkit="$tmp/missing-webkit"
+  cp -R "$good" "$missing_webkit"
+  sed 's/libwebkit2gtk-4.1-dev//' "$good/.github/workflows/release.yml" > \
+    "$missing_webkit/.github/workflows/release.yml"
+  run_expect_fail missing-webkit 'Linux Wails WebKit development headers' \
+    sh "$CHECK" "$missing_webkit"
 
   public_staging="$tmp/public-staging"
   cp -R "$good" "$public_staging"
@@ -578,7 +601,7 @@ run_automation_cases() {
   cp -R "$good" "$incomplete_wails_matrix"
   sed 's/os: \[ubuntu-latest, macos-latest, windows-latest\]/os: [ubuntu-latest, windows-latest]/' \
     "$good/.github/workflows/ci.yml" > "$incomplete_wails_matrix/.github/workflows/ci.yml"
-  run_expect_fail incomplete-wails-matrix 'three-platform Wails proof matrix' \
+  run_expect_fail incomplete-wails-matrix 'three-platform production Wails matrix' \
     sh "$CHECK" "$incomplete_wails_matrix"
 
   missing_production_desktop="$tmp/missing-production-desktop"
@@ -670,7 +693,7 @@ run_automation_cases() {
     '    directory: /' \
     '    schedule:' \
     '      interval: weekly' >> "$extra_ecosystem/.github/dependabot.yml"
-  run_expect_fail extra-ecosystem 'unapproved package ecosystem' \
+  run_expect_fail extra-ecosystem 'expected root Go, desktop Go, desktop npm, and GitHub Actions entries' \
     sh "$CHECK" "$extra_ecosystem"
 
   grouped_major="$tmp/grouped-major"

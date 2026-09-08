@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -17,6 +18,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/api/client"
+	"github.com/shruggietech/go-schedule/internal/autostart"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
@@ -41,6 +43,12 @@ func (wailsNative) BrowserOpenURL(ctx context.Context, value string) error {
 	return nil
 }
 
+func ensureBundledDaemon(ping func(context.Context) error, spawn func() error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return autostart.EnsureRunning(ctx, ping, spawn)
+}
+
 func main() {
 	cfg, err := config.Load("")
 	if err != nil {
@@ -48,6 +56,10 @@ func main() {
 		os.Exit(1)
 	}
 	daemon := client.New(ipc.Endpoint(cfg))
+	_ = ensureBundledDaemon(func(ctx context.Context) error {
+		_, err := daemon.Health(ctx)
+		return err
+	}, autostart.SpawnDaemon)
 	backend := connection.NewLocalBackend(daemon)
 	native := wailsNative{}
 	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(daemon)), automation: automation.NewService(automation.NewLocalBackend(daemon)), operations: operations.NewService(operations.NewLocalBackend(daemon)), settings: settings.NewService(settings.NewLocalBackend(daemon), native)})

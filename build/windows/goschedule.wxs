@@ -44,7 +44,7 @@
     <MediaTemplate EmbedCab="yes" />
 
     <!-- One canonical icon row serves every installer-created identity surface.
-         The GUI executable embeds this same asset in the release workflow. -->
+         The Wails desktop carries the corresponding canonical application icon. -->
     <Icon Id="GoSchedule.ico" SourceFile="brand/platform/windows/go-schedule.ico" />
     <Property Id="ARPPRODUCTICON" Value="GoSchedule.ico" />
     <!-- Windows Settings can invoke an MSI's generated direct Remove entry
@@ -189,7 +189,7 @@
             Wait="yes" />
       </Component>
 
-      <!-- The desktop GUI (windowless build). -->
+      <!-- The production Wails desktop at the stable windowless upgrade path. -->
       <Component Id="GoschedGui" Guid="*">
         <File Id="gosched_gui.exe" Source="$(StageDir)\gosched-gui.exe" KeyPath="yes" />
       </Component>
@@ -220,6 +220,24 @@
             Part="last"
             Action="set"
             System="yes" />
+      </Component>
+
+      <!-- Keep license and operator guidance available with every desktop
+           distribution, including the installed Windows package. -->
+      <Component Id="ReadmeDocumentation" Guid="*">
+        <File Id="README.md" Source="$(StageDir)\README.md" KeyPath="yes" />
+      </Component>
+      <Component Id="LicenseDocumentation" Guid="*">
+        <File Id="LICENSE" Source="$(StageDir)\LICENSE" KeyPath="yes" />
+      </Component>
+      <Component Id="ChangelogDocumentation" Guid="*">
+        <File Id="CHANGELOG.md" Source="$(StageDir)\CHANGELOG.md" KeyPath="yes" />
+      </Component>
+      <Component Id="GeistFontLicenseDocumentation" Guid="*">
+        <File Id="OFL_Geist.txt" Name="OFL-Geist.txt" Source="$(StageDir)\OFL-Geist.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="SpaceGroteskFontLicenseDocumentation" Guid="*">
+        <File Id="OFL_Space_Grotesk.txt" Name="OFL-Space-Grotesk.txt" Source="$(StageDir)\OFL-Space-Grotesk.txt" KeyPath="yes" />
       </Component>
     </ComponentGroup>
 
