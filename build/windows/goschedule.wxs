@@ -233,6 +233,12 @@
       <Component Id="ChangelogDocumentation" Guid="*">
         <File Id="CHANGELOG.md" Source="$(StageDir)\CHANGELOG.md" KeyPath="yes" />
       </Component>
+      <Component Id="GeistFontLicenseDocumentation" Guid="*">
+        <File Id="OFL_Geist.txt" Name="OFL-Geist.txt" Source="$(StageDir)\OFL-Geist.txt" KeyPath="yes" />
+      </Component>
+      <Component Id="SpaceGroteskFontLicenseDocumentation" Guid="*">
+        <File Id="OFL_Space_Grotesk.txt" Name="OFL-Space-Grotesk.txt" Source="$(StageDir)\OFL-Space-Grotesk.txt" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
 
     <!-- Start-Menu shortcut to the GUI (per-machine; HKLM keypath). -->

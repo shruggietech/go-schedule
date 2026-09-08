@@ -54,7 +54,7 @@
     {"source":"fonts/woff2/GeistMono-Regular.woff2","targets":["docs/assets/fonts/GeistMono-Regular.woff2","desktop/frontend/public/fonts/GeistMono-Regular.woff2"],"purpose":"Documentation and desktop technical font"},
     {"source":"fonts/woff2/SpaceGrotesk-Bold.woff2","targets":["docs/assets/fonts/SpaceGrotesk-Bold.woff2","desktop/frontend/public/fonts/SpaceGrotesk-Bold.woff2"],"purpose":"Documentation and desktop bold display font"},
     {"source":"fonts/woff2/SpaceGrotesk-Medium.woff2","targets":["docs/assets/fonts/SpaceGrotesk-Medium.woff2","desktop/frontend/public/fonts/SpaceGrotesk-Medium.woff2"],"purpose":"Documentation and desktop display font"},
-    {"source":"fonts/licenses/OFL-Geist.txt","targets":["docs/assets/fonts/OFL-Geist.txt"],"purpose":"Geist redistribution license"},
-    {"source":"fonts/licenses/OFL-Space-Grotesk.txt","targets":["docs/assets/fonts/OFL-Space-Grotesk.txt"],"purpose":"Space Grotesk redistribution license"}
+    {"source":"fonts/licenses/OFL-Geist.txt","targets":["docs/assets/fonts/OFL-Geist.txt","desktop/frontend/public/licenses/OFL-Geist.txt"],"purpose":"Documentation and desktop Geist redistribution license"},
+    {"source":"fonts/licenses/OFL-Space-Grotesk.txt","targets":["docs/assets/fonts/OFL-Space-Grotesk.txt","desktop/frontend/public/licenses/OFL-Space-Grotesk.txt"],"purpose":"Documentation and desktop Space Grotesk redistribution license"}
   ]
 }

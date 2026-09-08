@@ -122,6 +122,7 @@ jobs:
           go build -ldflags '-H windowsgui' `
             -o (Join-Path $stage 'gosched-cleanup.exe') ./cmd/gosched-cleanup
           Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage
+          Copy-Item brand/fonts/licenses/OFL-Geist.txt, brand/fonts/licenses/OFL-Space-Grotesk.txt -Destination $stage
       - name: Install pinned WiX Toolset
         shell: pwsh
         run: |

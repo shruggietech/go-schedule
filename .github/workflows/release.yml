@@ -262,6 +262,7 @@ jobs:
           go build -ldflags "$BASE" -o "$stage/goschedd${{ matrix.ext }}" ./cmd/goschedd
           go build -ldflags "$BASE" -o "$stage/gosched${{ matrix.ext }}" ./cmd/gosched
           cp README.md LICENSE CHANGELOG.md "$stage/"
+          cp brand/fonts/licenses/OFL-Geist.txt brand/fonts/licenses/OFL-Space-Grotesk.txt "$stage/"
           if [ "${{ matrix.goos }}" = "darwin" ]; then
             # Wails creates the native .app. The daemon and CLI live beside its
             # executable so the desktop's "daemon next to me" lookup resolves.
@@ -271,6 +272,8 @@ jobs:
             cp -R desktop/build/bin/go-schedule.app "$app"
             mv "$stage/goschedd" "$stage/gosched" "$app/Contents/MacOS/"
             cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"
+            mkdir -p "$app/Contents/Resources/licenses"
+            cp brand/fonts/licenses/OFL-Geist.txt brand/fonts/licenses/OFL-Space-Grotesk.txt "$app/Contents/Resources/licenses/"
             /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier tech.shruggie.goschedule" "$app/Contents/Info.plist"
             /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION#v}" "$app/Contents/Info.plist"
           fi

@@ -38,6 +38,8 @@ func TestReleaseWorkflowBuildsProductionWailsPayload(t *testing.T) {
 		"desktop/build/bin/gosched-gui",
 		"desktop/build/bin/go-schedule.app",
 		`app="$stage/gosched-gui.app"`,
+		`cp brand/fonts/licenses/OFL-Geist.txt brand/fonts/licenses/OFL-Space-Grotesk.txt "$stage/"`,
+		`"$app/Contents/Resources/licenses/"`,
 		"go build -ldflags \"$BASE\" -o \"$stage/goschedd",
 		"go build -ldflags \"$BASE\" -o \"$stage/gosched",
 		"build/windows/verify_wxs.ps1 -StageDir",
@@ -63,6 +65,8 @@ func TestWindowsDesktopPackageIncludesAttributionAndGuidance(t *testing.T) {
 		`Source="$(StageDir)\README.md"`,
 		`Source="$(StageDir)\LICENSE"`,
 		`Source="$(StageDir)\CHANGELOG.md"`,
+		`Source="$(StageDir)\OFL-Geist.txt"`,
+		`Source="$(StageDir)\OFL-Space-Grotesk.txt"`,
 	} {
 		if !strings.Contains(wxs, required) {
 			t.Errorf("Windows desktop package is missing required payload %q", required)
@@ -70,12 +74,20 @@ func TestWindowsDesktopPackageIncludesAttributionAndGuidance(t *testing.T) {
 	}
 
 	ci := string(readRepositoryFile(t, ".github", "workflows", "ci.yml"))
-	if !strings.Contains(ci, "Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage") {
+	if !strings.Contains(ci, "Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage") ||
+		!strings.Contains(ci, "Copy-Item brand/fonts/licenses/OFL-Geist.txt, brand/fonts/licenses/OFL-Space-Grotesk.txt -Destination $stage") {
 		t.Error("Windows CI staging does not provide required documentation payloads to WiX")
 	}
 	release := string(readRepositoryFile(t, ".github", "workflows", "release.yml"))
-	if !strings.Contains(release, `cp README.md LICENSE CHANGELOG.md "$stage/"`) {
+	if !strings.Contains(release, `cp README.md LICENSE CHANGELOG.md "$stage/"`) ||
+		!strings.Contains(release, `cp brand/fonts/licenses/OFL-Geist.txt brand/fonts/licenses/OFL-Space-Grotesk.txt "$stage/"`) {
 		t.Error("release staging does not provide required documentation payloads to WiX")
+	}
+
+	for _, license := range []string{"OFL-Geist.txt", "OFL-Space-Grotesk.txt"} {
+		if _, err := os.Stat(filepath.Join("..", "..", "desktop", "frontend", "public", "licenses", license)); err != nil {
+			t.Errorf("desktop frontend is missing bundled font license %s: %v", license, err)
+		}
 	}
 }
 
