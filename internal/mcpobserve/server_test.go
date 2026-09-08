@@ -16,7 +16,7 @@ func TestServerDiscoveryAndEveryApprovedResource(t *testing.T) {
 	ctx := context.Background()
 	reader := &fakeReader{health: server.HealthResponse{Status: "ok", Version: "v1.3.0"}}
 	for i := 0; i < 101; i++ {
-		reader.tasks = append(reader.tasks, server.TaskResponse{Task: domain.Task{ID: fmt.Sprintf("task-%03d", i), State: domain.TaskActive}})
+		reader.tasks = append(reader.tasks, server.TaskObservationResponse{ID: fmt.Sprintf("task-%03d", i), State: domain.TaskActive})
 	}
 	observeServer := NewServer(reader, "test")
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()

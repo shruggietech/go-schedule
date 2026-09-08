@@ -35,6 +35,8 @@ No endpoint, path, configuration, environment, or identity is present.
 
 Commands, arguments, environment, stdin, working directory, run-as identity, schedule IDs, raw RRULEs, raw source syntax, overlap internals, and trigger configuration are absent.
 
+The daemon constructs this response from a page-sized persistence projection. Command readiness is reduced to a boolean in SQLite, and commands, arguments, environment values, stdin, working directories, run-as identities, cached source expressions, and cached schedule summaries are never loaded into the observation row or serialized across IPC.
+
 ## Schedule summary
 
 - `task_id`: stable identifier.

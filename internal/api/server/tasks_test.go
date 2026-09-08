@@ -145,6 +145,32 @@ func TestListTasksDetailedEmptyArray(t *testing.T) {
 	}
 }
 
+func TestListTaskObservationsArePagedBoundedAndAllowlisted(t *testing.T) {
+	s := newTestServer(t)
+	secret := "SECRET_EXECUTION_INPUT"
+	created := newTaskFor(t, s, TaskCreateRequest{Name: "nightly-long", Command: secret, Args: []string{secret}, WorkingDir: secret, Env: map[string]string{"TOKEN": secret}, Stdin: secret, Schedule: "every day at 09:00", Timezone: "UTC"})
+
+	rec := doJSON(t, s, http.MethodGet, "/v1/tasks?observation=true&state=active&scheduled=true&limit=1&text_limit=4", nil)
+	var response struct {
+		Tasks []TaskObservationResponse `json:"tasks"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil || rec.Code != http.StatusOK || len(response.Tasks) != 1 {
+		t.Fatalf("status=%d body=%s err=%v", rec.Code, rec.Body.String(), err)
+	}
+	observed := response.Tasks[0]
+	if observed.ID != created.Task.ID || observed.Name != "nigh" || !observed.NameTruncated || !observed.HasSchedule || len(observed.NextRuns) == 0 {
+		t.Fatalf("observation=%+v", observed)
+	}
+	if strings.Contains(rec.Body.String(), secret) || strings.Contains(rec.Body.String(), `"command"`) || strings.Contains(rec.Body.String(), `"env"`) || strings.Contains(rec.Body.String(), `"stdin"`) {
+		t.Fatalf("observation leaked execution fields: %s", rec.Body.String())
+	}
+
+	invalid := doJSON(t, s, http.MethodGet, "/v1/tasks?observation=true&limit=102", nil)
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid status=%d body=%s", invalid.Code, invalid.Body.String())
+	}
+}
+
 func TestCreateTask_PersistsStdin(t *testing.T) {
 	s := newTestServer(t)
 	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{

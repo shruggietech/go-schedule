@@ -6,7 +6,7 @@
 
 ## Focused evidence
 
-- `go test -race ./internal/store ./internal/api/server ./internal/api/client ./internal/mcpobserve ./internal/cli ./cmd/gosched` passed. This covers store-side output and message byte projection, page-sized IPC queries, allowlisted mapping, prohibited-field canaries, UTF-8 bounds, explicit truncation metadata for every bounded field, deterministic pagination, opaque cursor validation, bounded safe errors, deadlines, cancellation, SDK discovery, the `2026-07-28` protocol revision, real stdio initialization at `2025-11-25`, zero tool capability, all five resources, all four continuation templates, hidden Windows subprocess creation, protocol-only stdout, and host-disconnect shutdown.
+- `go test -race ./internal/store ./internal/api/server ./internal/api/client ./internal/mcpobserve ./internal/cli ./cmd/gosched` passed. This covers the page-sized allowlisted task and schedule persistence projection, store-side output and message byte projection, page-sized IPC queries, prohibited-field canaries, UTF-8 bounds, explicit truncation metadata for every bounded field, deterministic pagination, opaque cursor validation, bounded safe errors, deadlines, cancellation, SDK discovery, the `2026-07-28` protocol revision, real stdio initialization at `2025-11-25`, zero tool capability, all five resources, all four continuation templates, hidden Windows subprocess creation, protocol-only stdout, and host-disconnect shutdown.
 - `go test ./...` passed across every root Go package and integration package before the canonical run.
 - `go vet ./internal/mcpobserve ./internal/cli ./cmd/gosched` passed.
 - `go run ./scripts/github-format` passed with no Unicode em dash or hard-wrapped Markdown prose.
@@ -19,16 +19,16 @@
 
 ## Canonical verification
 
-`C:\Program Files\Git\bin\bash.exe scripts/verify.sh all` passed in the foreground on 2026-09-08 after one formatting-only import-group correction found by the first lint attempt.
+`C:\Program Files\Git\bin\bash.exe scripts/verify.sh all` passed in the foreground on 2026-09-08 after the second-round review fix.
 
 | Gate | Evidence |
 | --- | --- |
 | format | `gofmt` and `github-format` clean. |
 | vet | Root `go vet ./...` passed. |
 | lint | golangci-lint v2.12.0 reported zero issues. |
-| race | Every root package and the integration suite passed under the race detector; `test/integration` completed in 58.825 seconds. |
+| race | Every root package and the integration suite passed under the race detector; `test/integration` completed in 57.324 seconds. |
 | gui | Desktop Go packages, native Windows Wails production build, 20 Vitest files with 73 tests, TypeScript, and Vite production bundle passed. |
-| coverage | engine 82.9%, schedule 89.1%, timezone 91.3%, store 80.4%, catchup 88.9%, logbus 91.1%. |
+| coverage | engine 82.9%, schedule 89.1%, timezone 91.3%, store 80.7%, catchup 88.9%, logbus 91.1%. |
 | docs | Product policy, fixtures, 17 pages, links, front matter, fences, theme, and product copy passed. |
 | automation | Workflow, CodeQL, Dependabot, release, brand, lifecycle, eight-gate, and automation fixture checks passed. |
 
@@ -37,8 +37,8 @@
 - `internal/mcpobserve` imports no network-listener, persistence, executor, scheduler, notification, trigger, or elevation package. Its injected interface contains four read methods only.
 - Five static resources and four continuation templates are registered. No tool, prompt, subscription, TCP transport, or HTTP transport is registered.
 - Dedicated MCP response types contain no command, arguments, environment, stdin, working directory, run-as identity, trigger key, notification endpoint, authorization, raw schedule, IPC path, or filesystem path field.
-- A hostile `SECRET_CANARY` fixture occupies every prohibited daemon task and provenance field; encoded MCP resource assertions find zero matches.
-- User-controlled display fields and output are JSON strings, byte-bounded, truncation-aware, and named in each envelope's untrusted-field metadata beside the fixed data-only trust notice. Runs and alerts request only one page plus one lookahead record, and SQLite clips their large payload fields before they enter daemon memory or IPC.
+- Hostile secret-canary fixtures occupy prohibited task execution and run provenance fields. The daemon observation response has no execution-field keys, and encoded MCP resource assertions find zero canary matches.
+- User-controlled display fields and output are JSON strings, byte-bounded, truncation-aware, and named in each envelope's untrusted-field metadata beside the fixed data-only trust notice. Every collection requests only one page plus one lookahead record. SQLite omits task execution inputs from its observation projection and clips task names, run output, and alert messages before they enter daemon memory or IPC.
 - Git diff checks, UTF-8 and BOM checks in the format gate, publication formatting, and mojibake inspection are clean. The only secret-canary text in changed files is the deliberate test fixture and its verification description.
 
 ## Result

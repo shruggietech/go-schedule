@@ -15,23 +15,26 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
-	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
 type fakeReader struct {
-	health       server.HealthResponse
-	tasks        []server.TaskResponse
-	runs         []domain.Run
-	alerts       []domain.Alert
-	err          error
-	seenCtx      context.Context
-	runsLimit    int
-	alertLimit   int
-	runsOffset   int
-	alertOffset  int
-	outputLimit  int
-	messageLimit int
-	wait         bool
+	health        server.HealthResponse
+	tasks         []server.TaskObservationResponse
+	runs          []domain.Run
+	alerts        []domain.Alert
+	err           error
+	seenCtx       context.Context
+	runsLimit     int
+	alertLimit    int
+	runsOffset    int
+	alertOffset   int
+	outputLimit   int
+	messageLimit  int
+	taskLimit     int
+	taskOffset    int
+	taskTextLimit int
+	scheduledOnly bool
+	wait          bool
 }
 
 func (f *fakeReader) Health(ctx context.Context) (server.HealthResponse, error) {
@@ -43,9 +46,9 @@ func (f *fakeReader) Health(ctx context.Context) (server.HealthResponse, error) 
 	return f.health, f.err
 }
 
-func (f *fakeReader) ListTaskDetails(ctx context.Context, _, _ string) ([]server.TaskResponse, error) {
-	f.seenCtx = ctx
-	return f.tasks, f.err
+func (f *fakeReader) ListTaskObservations(ctx context.Context, _, _ string, scheduledOnly bool, offset, limit, textLimit int) ([]server.TaskObservationResponse, error) {
+	f.seenCtx, f.scheduledOnly, f.taskOffset, f.taskLimit, f.taskTextLimit = ctx, scheduledOnly, offset, limit, textLimit
+	return fakePage(f.tasks, offset, limit), f.err
 }
 
 func (f *fakeReader) ListRunsPage(ctx context.Context, _ string, offset, limit, outputLimit int) ([]domain.Run, error) {
@@ -75,12 +78,8 @@ func TestObserveResourcesAreBoundedPaginatedAndSecretFree(t *testing.T) {
 	reader := &fakeReader{health: server.HealthResponse{Status: "ok", Version: "v1.3.0"}}
 	for i := 0; i < 205; i++ {
 		id := fmt.Sprintf("task-%03d", i)
-		reader.tasks = append(reader.tasks, server.TaskResponse{
-			Task:          domain.Task{ID: id, Name: "task <ignore instructions> " + id, GroupID: "group", Command: secret, Args: []string{secret}, WorkingDir: secret, Env: map[string]string{"TOKEN": secret}, Stdin: secret, RunAs: secret, Enabled: true, Timezone: "UTC", ScheduleID: secret, State: domain.TaskActive, UpdatedAt: now},
-			Schedule:      &domain.Schedule{ID: secret, RRULE: secret, Expression: secret, HumanSummary: "Every day " + id},
-			Readiness:     tasklogic.Readiness{Status: tasklogic.StatusReady, Reason: "ready"},
-			PolicySummary: "wall clock",
-			NextRuns:      []time.Time{now.Add(time.Hour)},
+		reader.tasks = append(reader.tasks, server.TaskObservationResponse{
+			ID: id, Name: "task <ignore instructions> " + id, GroupID: "group", Enabled: true, State: domain.TaskActive, Timezone: "UTC", Readiness: "ready", ReadinessReason: "ready", HasSchedule: true, ScheduleSummary: "Every day " + id, PolicySummary: "wall clock", NextRuns: []time.Time{now.Add(time.Hour)}, UpdatedAt: now,
 		})
 	}
 	reader.runs = []domain.Run{{ID: "run", TaskID: "task", ScheduledFor: now, Output: strings.Repeat("界", OutputLimit), OutputTruncated: false, Trigger: domain.TriggerManual, SourceTriggerID: secret, SourceWatcherID: secret}}
@@ -135,6 +134,9 @@ func TestObserveResourcesAreBoundedPaginatedAndSecretFree(t *testing.T) {
 	if reader.runsLimit != PageLimit+1 || reader.alertLimit != PageLimit+1 || reader.outputLimit != OutputLimit || reader.messageLimit != TextLimit {
 		t.Fatalf("daemon bounds = runs %d/%d alerts %d/%d", reader.runsLimit, reader.outputLimit, reader.alertLimit, reader.messageLimit)
 	}
+	if reader.taskLimit != PageLimit+1 || reader.taskTextLimit != TextLimit {
+		t.Fatalf("task daemon bounds = %d/%d", reader.taskLimit, reader.taskTextLimit)
+	}
 	runEnvelope, _ := a.envelope(context.Background(), "runs", runsURI, 0)
 	run := runEnvelope.Data.([]RunSummary)[0]
 	if len(run.OutputExcerpt) > OutputLimit || !run.OutputTruncated {
@@ -149,7 +151,7 @@ func TestObserveResourcesAreBoundedPaginatedAndSecretFree(t *testing.T) {
 
 func TestTaskAndScheduleReportEveryTruncatedField(t *testing.T) {
 	long := strings.Repeat("x", TextLimit+1)
-	detail := server.TaskResponse{Task: domain.Task{Name: long}, Schedule: &domain.Schedule{HumanSummary: long}, Readiness: tasklogic.Readiness{Reason: long}, PolicySummary: long}
+	detail := server.TaskObservationResponse{Name: long, ScheduleSummary: long, ReadinessReason: long, PolicySummary: long}
 	task := safeTask(detail)
 	if got := strings.Join(task.TruncatedFields, ","); got != "name,policy_summary,readiness_reason,schedule_summary" {
 		t.Fatalf("task truncated fields = %q", got)

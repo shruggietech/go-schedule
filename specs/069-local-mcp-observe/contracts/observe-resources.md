@@ -25,7 +25,7 @@ Every resource has media type `application/json` and returns one Observe envelop
 | `goschedule://alerts/recent/page/{cursor}` | Continue recent alert summaries |
 | `goschedule://runs/recent/page/{cursor}` | Continue recent run summaries |
 
-The adapter requests one 101-record window and returns at most 100 items. The first page includes `page.next_uri` only when the lookahead record proves more eligible data exists. A client follows that URI through the matching template. Collection order is deterministic for an unchanged daemon snapshot. Run output and alert messages are byte-bounded by SQLite projection before they enter daemon memory or cross IPC.
+The adapter requests one 101-record window and returns at most 100 items. The first page includes `page.next_uri` only when the lookahead record proves more eligible data exists. A client follows that URI through the matching template. Collection order is deterministic for an unchanged daemon snapshot. Task and schedule pages originate from an allowlisted SQLite projection that omits execution inputs. Run output and alert messages are byte-bounded by SQLite projection before they enter daemon memory or cross IPC.
 
 ## Trust contract
 

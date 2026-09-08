@@ -51,6 +51,35 @@ func (c *Client) ListTaskDetails(ctx context.Context, group, state string) ([]se
 	return out.Tasks, err
 }
 
+// ListTaskObservations returns a stable, allowlisted page that excludes task
+// execution inputs from the daemon response.
+func (c *Client) ListTaskObservations(ctx context.Context, group, state string, scheduledOnly bool, offset, limit, textLimit int) ([]server.TaskObservationResponse, error) {
+	q := url.Values{"observation": {"true"}}
+	if group != "" {
+		q.Set("group", group)
+	}
+	if state != "" {
+		q.Set("state", state)
+	}
+	if scheduledOnly {
+		q.Set("scheduled", "true")
+	}
+	if offset > 0 {
+		q.Set("offset", fmt.Sprintf("%d", offset))
+	}
+	if limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", limit))
+	}
+	if textLimit > 0 {
+		q.Set("text_limit", fmt.Sprintf("%d", textLimit))
+	}
+	var out struct {
+		Tasks []server.TaskObservationResponse `json:"tasks"`
+	}
+	err := c.do(ctx, http.MethodGet, withQuery("/v1/tasks", q), nil, &out)
+	return out.Tasks, err
+}
+
 // GetTask returns a task's detail.
 func (c *Client) GetTask(ctx context.Context, id string) (server.TaskResponse, error) {
 	var out server.TaskResponse

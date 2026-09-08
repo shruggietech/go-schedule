@@ -25,7 +25,7 @@ const (
 
 type readClient interface {
 	Health(context.Context) (server.HealthResponse, error)
-	ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error)
+	ListTaskObservations(context.Context, string, string, bool, int, int, int) ([]server.TaskObservationResponse, error)
 	ListRunsPage(context.Context, string, int, int, int) ([]domain.Run, error)
 	ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
 }
@@ -87,34 +87,25 @@ func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int
 		result.Data = Health{Status: status, Version: version}
 		return result, nil
 	case "tasks", "schedules":
-		details, err := a.client.ListTaskDetails(ctx, "", string(domain.TaskActive))
+		observations, err := a.client.ListTaskObservations(ctx, "", string(domain.TaskActive), kind == "schedules", offset, PageLimit+1, TextLimit)
 		if err != nil {
 			return Envelope{}, err
 		}
-		sort.Slice(details, func(i, j int) bool { return details[i].Task.ID < details[j].Task.ID })
 		if kind == "tasks" {
-			items := make([]TaskSummary, 0, len(details))
-			for _, detail := range details {
-				items = append(items, safeTask(detail))
+			items := make([]TaskSummary, 0, len(observations))
+			for _, observation := range observations {
+				items = append(items, safeTask(observation))
 			}
-			page, metadata, err := paginate(items, offset, baseURI)
-			if err != nil {
-				return Envelope{}, err
-			}
+			page, metadata := boundedPage(items, offset, baseURI)
 			result.UntrustedFields = []string{"data[].name", "data[].readiness_reason", "data[].schedule_summary", "data[].policy_summary"}
 			result.Page, result.Data = metadata, page
 			return result, nil
 		}
-		items := make([]ScheduleSummary, 0, len(details))
-		for _, detail := range details {
-			if detail.Schedule != nil {
-				items = append(items, safeSchedule(detail))
-			}
+		items := make([]ScheduleSummary, 0, len(observations))
+		for _, observation := range observations {
+			items = append(items, safeSchedule(observation))
 		}
-		page, metadata, err := paginate(items, offset, baseURI)
-		if err != nil {
-			return Envelope{}, err
-		}
+		page, metadata := boundedPage(items, offset, baseURI)
 		result.UntrustedFields = []string{"data[].task_name", "data[].summary", "data[].policy_summary"}
 		result.Page, result.Data = metadata, page
 		return result, nil
@@ -195,23 +186,19 @@ func paginate[T any](items []T, offset int, baseURI string) ([]T, *Page, error) 
 	return page, metadata, nil
 }
 
-func safeTask(detail server.TaskResponse) TaskSummary {
-	name, nameTruncated := boundedText(detail.Task.Name, TextLimit)
-	reason, reasonTruncated := boundedText(detail.Readiness.Reason, TextLimit)
-	policy, policyTruncated := boundedText(detail.PolicySummary, TextLimit)
-	summary := ""
-	summaryTruncated := false
-	if detail.Schedule != nil {
-		summary, summaryTruncated = boundedText(detail.Schedule.HumanSummary, TextLimit)
-	}
-	return TaskSummary{ID: detail.Task.ID, Name: name, GroupID: detail.Task.GroupID, Enabled: detail.Task.Enabled, State: string(detail.Task.State), Timezone: detail.Task.Timezone, Readiness: string(detail.Readiness.Status), ReadinessReason: reason, ScheduleSummary: summary, PolicySummary: policy, NextRuns: safeTimes(detail.NextRuns), UpdatedAt: timestamp(detail.Task.UpdatedAt), TruncatedFields: truncatedFields(map[string]bool{"name": nameTruncated, "readiness_reason": reasonTruncated, "schedule_summary": summaryTruncated, "policy_summary": policyTruncated})}
+func safeTask(observation server.TaskObservationResponse) TaskSummary {
+	name, nameTruncated := boundedText(observation.Name, TextLimit)
+	reason, reasonTruncated := boundedText(observation.ReadinessReason, TextLimit)
+	policy, policyTruncated := boundedText(observation.PolicySummary, TextLimit)
+	summary, summaryTruncated := boundedText(observation.ScheduleSummary, TextLimit)
+	return TaskSummary{ID: observation.ID, Name: name, GroupID: observation.GroupID, Enabled: observation.Enabled, State: string(observation.State), Timezone: observation.Timezone, Readiness: string(observation.Readiness), ReadinessReason: reason, ScheduleSummary: summary, PolicySummary: policy, NextRuns: safeTimes(observation.NextRuns), UpdatedAt: timestamp(observation.UpdatedAt), TruncatedFields: truncatedFields(map[string]bool{"name": observation.NameTruncated || nameTruncated, "readiness_reason": observation.ReadinessReasonTruncated || reasonTruncated, "schedule_summary": observation.ScheduleSummaryTruncated || summaryTruncated, "policy_summary": observation.PolicySummaryTruncated || policyTruncated})}
 }
 
-func safeSchedule(detail server.TaskResponse) ScheduleSummary {
-	name, nameTruncated := boundedText(detail.Task.Name, TextLimit)
-	summary, summaryTruncated := boundedText(detail.Schedule.HumanSummary, TextLimit)
-	policy, policyTruncated := boundedText(detail.PolicySummary, TextLimit)
-	return ScheduleSummary{TaskID: detail.Task.ID, TaskName: name, GroupID: detail.Task.GroupID, Enabled: detail.Task.Enabled, Readiness: string(detail.Readiness.Status), Timezone: detail.Task.Timezone, Summary: summary, PolicySummary: policy, NextRuns: safeTimes(detail.NextRuns), TruncatedFields: truncatedFields(map[string]bool{"task_name": nameTruncated, "summary": summaryTruncated, "policy_summary": policyTruncated})}
+func safeSchedule(observation server.TaskObservationResponse) ScheduleSummary {
+	name, nameTruncated := boundedText(observation.Name, TextLimit)
+	summary, summaryTruncated := boundedText(observation.ScheduleSummary, TextLimit)
+	policy, policyTruncated := boundedText(observation.PolicySummary, TextLimit)
+	return ScheduleSummary{TaskID: observation.ID, TaskName: name, GroupID: observation.GroupID, Enabled: observation.Enabled, Readiness: string(observation.Readiness), Timezone: observation.Timezone, Summary: summary, PolicySummary: policy, NextRuns: safeTimes(observation.NextRuns), TruncatedFields: truncatedFields(map[string]bool{"task_name": observation.NameTruncated || nameTruncated, "summary": observation.ScheduleSummaryTruncated || summaryTruncated, "policy_summary": observation.PolicySummaryTruncated || policyTruncated})}
 }
 
 func truncatedFields(fields map[string]bool) []string {
