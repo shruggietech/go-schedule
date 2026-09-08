@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/shruggietech/go-schedule v0.0.0
-	github.com/wailsapp/wails/v2 v2.14.0
+	github.com/wailsapp/wails/v2 v2.15.0
 )
 
 require (
