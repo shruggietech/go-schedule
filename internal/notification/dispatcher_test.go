@@ -75,3 +75,63 @@ func TestDispatcherCompletesOutsideCallerAndSchedulesBoundedRetry(t *testing.T) 
 		t.Fatalf("retry=%t completed=%t", failure.retried, failure.completed)
 	}
 }
+
+type refillStore struct {
+	mu    sync.Mutex
+	queue []domain.NotificationDelivery
+}
+
+func (s *refillStore) RecoverNotificationDeliveries(time.Time) (int64, error) { return 0, nil }
+func (s *refillStore) ClaimNotificationDeliveries(limit int, _ time.Time) ([]domain.NotificationDelivery, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if limit != 1 || len(s.queue) == 0 {
+		return nil, nil
+	}
+	delivery := s.queue[0]
+	s.queue = s.queue[1:]
+	delivery.Attempts++
+	return []domain.NotificationDelivery{delivery}, nil
+}
+func (*refillStore) RetryNotificationDelivery(string, time.Time, int, string) error { return nil }
+func (*refillStore) CompleteNotificationDelivery(string, bool, int, string, time.Time) error {
+	return nil
+}
+
+type refillSender struct {
+	slowRelease chan struct{}
+	started     chan string
+}
+
+func (s refillSender) Send(ctx context.Context, delivery domain.NotificationDelivery) (int, string, error) {
+	s.started <- delivery.ID
+	if delivery.ID == "slow" {
+		select {
+		case <-s.slowRelease:
+		case <-ctx.Done():
+			return 0, "cancelled", ctx.Err()
+		}
+	}
+	return 204, "", nil
+}
+
+func TestDispatcherRefillsAvailableWorkerBeforeSlowAttemptFinishes(t *testing.T) {
+	st := &refillStore{queue: []domain.NotificationDelivery{{ID: "slow"}, {ID: "fast-1"}, {ID: "fast-2"}}}
+	sender := refillSender{slowRelease: make(chan struct{}), started: make(chan string, 3)}
+	dispatcher := NewDispatcher(st, sender, slog.New(slog.NewTextHandler(io.Discard, nil)), 2)
+	done := make(chan error, 1)
+	go func() { done <- dispatcher.process(context.Background()) }()
+	started := map[string]bool{}
+	for len(started) < 3 {
+		select {
+		case id := <-sender.started:
+			started[id] = true
+		case <-time.After(time.Second):
+			t.Fatalf("workers stalled before refill: started=%v", started)
+		}
+	}
+	close(sender.slowRelease)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+}

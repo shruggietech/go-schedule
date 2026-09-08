@@ -88,22 +88,30 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 }
 
 func (d *Dispatcher) process(ctx context.Context) error {
-	deliveries, err := d.store.ClaimNotificationDeliveries(d.workers, d.clock.Now().UTC())
-	if err != nil || len(deliveries) == 0 {
-		return err
-	}
 	var wg sync.WaitGroup
-	for _, delivery := range deliveries {
-		delivery := delivery
+	var firstErr error
+	var errOnce sync.Once
+	for range d.workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			status, diagnostic, sendErr := d.sender.Send(ctx, delivery)
-			d.finishAttempt(delivery, status, diagnostic, sendErr)
+			for {
+				deliveries, err := d.store.ClaimNotificationDeliveries(1, d.clock.Now().UTC())
+				if err != nil {
+					errOnce.Do(func() { firstErr = err })
+					return
+				}
+				if len(deliveries) == 0 {
+					return
+				}
+				delivery := deliveries[0]
+				status, diagnostic, sendErr := d.sender.Send(ctx, delivery)
+				d.finishAttempt(delivery, status, diagnostic, sendErr)
+			}
 		}()
 	}
 	wg.Wait()
-	return nil
+	return firstErr
 }
 
 func (d *Dispatcher) finishAttempt(delivery domain.NotificationDelivery, status int, diagnostic string, sendErr error) {

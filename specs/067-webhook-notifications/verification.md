@@ -20,6 +20,8 @@
 12. First-round Codex review found that claiming more deliveries than available sender workers could charge an attempt to work that never reached the sender during shutdown. The dispatcher now claims at most one delivery per immediately available worker, with a regression assertion on the claim bound.
 13. First-round Codex review also found that task or group deletion left unfinished notification snapshots eligible to send. Source deletion now removes pending and claimed work transactionally while retaining terminal redacted history, including descendant-group cleanup, with store regression coverage.
 14. After both review fixes, `sh scripts/verify.sh all` passed all eight gates again. Final store coverage increased to 80.4 percent, and the complete race, native desktop, frontend, documentation, lifecycle, and automation mutation suites remained green.
+15. The authorized second Codex review found that a batch barrier could leave fast sender slots idle behind the slowest request. Each bounded worker now claims one item only when ready, immediately invokes the sender, and refills its own slot until no eligible work remains. A blocked-sender regression proves later work advances before the slow request is released.
+16. After the second-round fix, focused race and integration tests passed, the coverage gate retained 80.4 percent for `store`, and `sh scripts/verify.sh all` passed all eight gates on the final local revision.
 
 ## Hosted evidence boundary
 
