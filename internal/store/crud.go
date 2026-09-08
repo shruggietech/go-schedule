@@ -554,16 +554,35 @@ func (s *Store) GetRun(id string) (domain.Run, error) {
 // ListRuns returns runs for a task (or all when taskID is empty), newest first,
 // up to limit (0 = no limit).
 func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id FROM runs`
+	return s.ListRunsPage(taskID, 0, limit, 0)
+}
+
+// ListRunsPage returns a stable newest-first page. A positive outputLimit
+// bounds output bytes in SQLite before they enter daemon memory and marks
+// either source-side or projection-side truncation.
+func (s *Store) ListRunsPage(taskID string, offset, limit, outputLimit int) ([]domain.Run, error) {
+	outputExpr := `output,output_truncated`
 	var args []any
+	if outputLimit > 0 {
+		outputExpr = `CAST(substr(CAST(output AS BLOB),1,?) AS TEXT),CASE WHEN output_truncated=1 OR length(CAST(output AS BLOB))>? THEN 1 ELSE 0 END`
+		args = append(args, outputLimit, outputLimit)
+	}
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id FROM runs`
 	if taskID != "" {
 		q += ` WHERE task_id=?`
 		args = append(args, taskID)
 	}
-	q += ` ORDER BY scheduled_for DESC`
+	q += ` ORDER BY scheduled_for DESC,id DESC`
 	if limit > 0 {
 		q += ` LIMIT ?`
 		args = append(args, limit)
+	}
+	if offset > 0 {
+		if limit <= 0 {
+			q += ` LIMIT -1`
+		}
+		q += ` OFFSET ?`
+		args = append(args, offset)
 	}
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
@@ -637,18 +656,35 @@ func (s *Store) ListAlerts(unackedOnly bool) ([]domain.Alert, error) {
 // ListAlertsLimited returns alerts newest first and applies a positive maximum
 // at the database boundary. A non-positive limit preserves the full query.
 func (s *Store) ListAlertsLimited(unackedOnly bool, limit int) ([]domain.Alert, error) {
-	q := `SELECT id,task_id,run_id,severity,kind,message,created_at,acknowledged FROM alerts`
+	return s.ListAlertsPage(unackedOnly, 0, limit, 0)
+}
+
+// ListAlertsPage returns a stable newest-first page. A positive messageLimit
+// bounds message bytes in SQLite before they enter daemon memory.
+func (s *Store) ListAlertsPage(unackedOnly bool, offset, limit, messageLimit int) ([]domain.Alert, error) {
+	messageExpr := `message,0`
+	var args []any
+	if messageLimit > 0 {
+		messageExpr = `CAST(substr(CAST(message AS BLOB),1,?) AS TEXT),CASE WHEN length(CAST(message AS BLOB))>? THEN 1 ELSE 0 END`
+		args = append(args, messageLimit, messageLimit)
+	}
+	q := `SELECT id,task_id,run_id,severity,kind,` + messageExpr + `,created_at,acknowledged FROM alerts`
 	if unackedOnly {
 		q += ` WHERE acknowledged=0`
 	}
-	q += ` ORDER BY created_at DESC`
-	var rows *sql.Rows
-	var err error
+	q += ` ORDER BY created_at DESC,id DESC`
 	if limit > 0 {
-		rows, err = s.db.Query(q+` LIMIT ?`, limit)
-	} else {
-		rows, err = s.db.Query(q)
+		q += ` LIMIT ?`
+		args = append(args, limit)
 	}
+	if offset > 0 {
+		if limit <= 0 {
+			q += ` LIMIT -1`
+		}
+		q += ` OFFSET ?`
+		args = append(args, offset)
+	}
+	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list alerts: %w", err)
 	}
@@ -657,15 +693,16 @@ func (s *Store) ListAlertsLimited(unackedOnly bool, limit int) ([]domain.Alert, 
 	for rows.Next() {
 		var a domain.Alert
 		var task, run sql.NullString
-		var ack int
+		var truncated, ack int
 		var severity, kind, created string
-		if err := rows.Scan(&a.ID, &task, &run, &severity, &kind, &a.Message, &created, &ack); err != nil {
+		if err := rows.Scan(&a.ID, &task, &run, &severity, &kind, &a.Message, &truncated, &created, &ack); err != nil {
 			return nil, fmt.Errorf("store: scan alert: %w", err)
 		}
 		a.TaskID = task.String
 		a.RunID = run.String
 		a.Severity = domain.AlertSeverity(severity)
 		a.Kind = domain.AlertKind(kind)
+		a.MessageTruncated = truncated != 0
 		a.CreatedAt, _ = parseTime(created)
 		a.Acknowledged = ack != 0
 		out = append(out, a)

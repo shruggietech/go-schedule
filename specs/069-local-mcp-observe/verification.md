@@ -6,7 +6,7 @@
 
 ## Focused evidence
 
-- `go test -race ./internal/mcpobserve ./internal/cli ./cmd/gosched` passed. This covers allowlisted mapping, prohibited-field canaries, UTF-8 bounds, output and message truncation, deterministic pagination, opaque cursor validation, bounded safe errors, deadlines, cancellation, SDK discovery, the `2026-07-28` protocol revision, real stdio initialization at `2025-11-25`, zero tool capability, all five resources, all four continuation templates, hidden Windows subprocess creation, protocol-only stdout, and host-disconnect shutdown.
+- `go test -race ./internal/store ./internal/api/server ./internal/api/client ./internal/mcpobserve ./internal/cli ./cmd/gosched` passed. This covers store-side output and message byte projection, page-sized IPC queries, allowlisted mapping, prohibited-field canaries, UTF-8 bounds, explicit truncation metadata for every bounded field, deterministic pagination, opaque cursor validation, bounded safe errors, deadlines, cancellation, SDK discovery, the `2026-07-28` protocol revision, real stdio initialization at `2025-11-25`, zero tool capability, all five resources, all four continuation templates, hidden Windows subprocess creation, protocol-only stdout, and host-disconnect shutdown.
 - `go test ./...` passed across every root Go package and integration package before the canonical run.
 - `go vet ./internal/mcpobserve ./internal/cli ./cmd/gosched` passed.
 - `go run ./scripts/github-format` passed with no Unicode em dash or hard-wrapped Markdown prose.
@@ -38,7 +38,7 @@
 - Five static resources and four continuation templates are registered. No tool, prompt, subscription, TCP transport, or HTTP transport is registered.
 - Dedicated MCP response types contain no command, arguments, environment, stdin, working directory, run-as identity, trigger key, notification endpoint, authorization, raw schedule, IPC path, or filesystem path field.
 - A hostile `SECRET_CANARY` fixture occupies every prohibited daemon task and provenance field; encoded MCP resource assertions find zero matches.
-- User-controlled display fields and output are JSON strings, byte-bounded, truncation-aware, and named in each envelope's untrusted-field metadata beside the fixed data-only trust notice.
+- User-controlled display fields and output are JSON strings, byte-bounded, truncation-aware, and named in each envelope's untrusted-field metadata beside the fixed data-only trust notice. Runs and alerts request only one page plus one lookahead record, and SQLite clips their large payload fields before they enter daemon memory or IPC.
 - Git diff checks, UTF-8 and BOM checks in the format gate, publication formatting, and mojibake inspection are clean. The only secret-canary text in changed files is the deliberate test fixture and its verification description.
 
 ## Result

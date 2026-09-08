@@ -26,8 +26,8 @@ const (
 type readClient interface {
 	Health(context.Context) (server.HealthResponse, error)
 	ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error)
-	ListRuns(context.Context, string, int) ([]domain.Run, error)
-	ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error)
+	ListRunsPage(context.Context, string, int, int, int) ([]domain.Run, error)
+	ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
 }
 
 type adapter struct {
@@ -64,7 +64,11 @@ func resourceOffset(uri, base string) (int, error) {
 	if !strings.HasPrefix(uri, prefix) || strings.Contains(strings.TrimPrefix(uri, prefix), "/") {
 		return 0, errors.New("invalid_resource: resource URI is not approved")
 	}
-	return decodeCursor(strings.TrimPrefix(uri, prefix))
+	offset, err := decodeCursor(strings.TrimPrefix(uri, prefix))
+	if err != nil || offset == 0 || offset%PageLimit != 0 {
+		return 0, errInvalidCursor
+	}
+	return offset, nil
 }
 
 func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int) (Envelope, error) {
@@ -115,7 +119,7 @@ func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int
 		result.Page, result.Data = metadata, page
 		return result, nil
 	case "alerts":
-		alerts, err := a.client.ListAlertsLimited(ctx, false, FetchLimit)
+		alerts, err := a.client.ListAlertsPage(ctx, false, offset, PageLimit+1, TextLimit)
 		if err != nil {
 			return Envelope{}, err
 		}
@@ -129,15 +133,12 @@ func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int
 		for _, alert := range alerts {
 			items = append(items, safeAlert(alert))
 		}
-		page, metadata, err := paginate(items, offset, baseURI)
-		if err != nil {
-			return Envelope{}, err
-		}
+		page, metadata := boundedPage(items, offset, baseURI)
 		result.UntrustedFields = []string{"data[].message"}
 		result.Page, result.Data = metadata, page
 		return result, nil
 	case "runs":
-		runs, err := a.client.ListRuns(ctx, "", FetchLimit)
+		runs, err := a.client.ListRunsPage(ctx, "", offset, PageLimit+1, OutputLimit)
 		if err != nil {
 			return Envelope{}, err
 		}
@@ -151,16 +152,28 @@ func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int
 		for _, run := range runs {
 			items = append(items, safeRun(run))
 		}
-		page, metadata, err := paginate(items, offset, baseURI)
-		if err != nil {
-			return Envelope{}, err
-		}
+		page, metadata := boundedPage(items, offset, baseURI)
 		result.UntrustedFields = []string{"data[].output_excerpt"}
 		result.Page, result.Data = metadata, page
 		return result, nil
 	default:
 		return Envelope{}, errors.New("invalid_resource: resource URI is not approved")
 	}
+}
+
+func boundedPage[T any](items []T, offset int, baseURI string) ([]T, *Page) {
+	hasMore := len(items) > PageLimit
+	if hasMore {
+		items = items[:PageLimit]
+	}
+	if items == nil {
+		items = []T{}
+	}
+	metadata := &Page{Count: len(items), Limit: PageLimit}
+	if hasMore {
+		metadata.NextURI = baseURI + "/page/" + encodeCursor(offset+PageLimit)
+	}
+	return items, metadata
 }
 
 func paginate[T any](items []T, offset int, baseURI string) ([]T, *Page, error) {
@@ -183,21 +196,33 @@ func paginate[T any](items []T, offset int, baseURI string) ([]T, *Page, error) 
 }
 
 func safeTask(detail server.TaskResponse) TaskSummary {
-	name, _ := boundedText(detail.Task.Name, TextLimit)
-	reason, _ := boundedText(detail.Readiness.Reason, TextLimit)
-	policy, _ := boundedText(detail.PolicySummary, TextLimit)
+	name, nameTruncated := boundedText(detail.Task.Name, TextLimit)
+	reason, reasonTruncated := boundedText(detail.Readiness.Reason, TextLimit)
+	policy, policyTruncated := boundedText(detail.PolicySummary, TextLimit)
 	summary := ""
+	summaryTruncated := false
 	if detail.Schedule != nil {
-		summary, _ = boundedText(detail.Schedule.HumanSummary, TextLimit)
+		summary, summaryTruncated = boundedText(detail.Schedule.HumanSummary, TextLimit)
 	}
-	return TaskSummary{ID: detail.Task.ID, Name: name, GroupID: detail.Task.GroupID, Enabled: detail.Task.Enabled, State: string(detail.Task.State), Timezone: detail.Task.Timezone, Readiness: string(detail.Readiness.Status), ReadinessReason: reason, ScheduleSummary: summary, PolicySummary: policy, NextRuns: safeTimes(detail.NextRuns), UpdatedAt: timestamp(detail.Task.UpdatedAt)}
+	return TaskSummary{ID: detail.Task.ID, Name: name, GroupID: detail.Task.GroupID, Enabled: detail.Task.Enabled, State: string(detail.Task.State), Timezone: detail.Task.Timezone, Readiness: string(detail.Readiness.Status), ReadinessReason: reason, ScheduleSummary: summary, PolicySummary: policy, NextRuns: safeTimes(detail.NextRuns), UpdatedAt: timestamp(detail.Task.UpdatedAt), TruncatedFields: truncatedFields(map[string]bool{"name": nameTruncated, "readiness_reason": reasonTruncated, "schedule_summary": summaryTruncated, "policy_summary": policyTruncated})}
 }
 
 func safeSchedule(detail server.TaskResponse) ScheduleSummary {
-	name, _ := boundedText(detail.Task.Name, TextLimit)
-	summary, _ := boundedText(detail.Schedule.HumanSummary, TextLimit)
-	policy, _ := boundedText(detail.PolicySummary, TextLimit)
-	return ScheduleSummary{TaskID: detail.Task.ID, TaskName: name, GroupID: detail.Task.GroupID, Enabled: detail.Task.Enabled, Readiness: string(detail.Readiness.Status), Timezone: detail.Task.Timezone, Summary: summary, PolicySummary: policy, NextRuns: safeTimes(detail.NextRuns)}
+	name, nameTruncated := boundedText(detail.Task.Name, TextLimit)
+	summary, summaryTruncated := boundedText(detail.Schedule.HumanSummary, TextLimit)
+	policy, policyTruncated := boundedText(detail.PolicySummary, TextLimit)
+	return ScheduleSummary{TaskID: detail.Task.ID, TaskName: name, GroupID: detail.Task.GroupID, Enabled: detail.Task.Enabled, Readiness: string(detail.Readiness.Status), Timezone: detail.Task.Timezone, Summary: summary, PolicySummary: policy, NextRuns: safeTimes(detail.NextRuns), TruncatedFields: truncatedFields(map[string]bool{"task_name": nameTruncated, "summary": summaryTruncated, "policy_summary": policyTruncated})}
+}
+
+func truncatedFields(fields map[string]bool) []string {
+	result := make([]string, 0, len(fields))
+	for name, truncated := range fields {
+		if truncated {
+			result = append(result, name)
+		}
+	}
+	sort.Strings(result)
+	return result
 }
 
 func safeRun(run domain.Run) RunSummary {
@@ -207,7 +232,7 @@ func safeRun(run domain.Run) RunSummary {
 
 func safeAlert(alert domain.Alert) AlertSummary {
 	message, truncated := boundedText(alert.Message, TextLimit)
-	return AlertSummary{ID: alert.ID, TaskID: alert.TaskID, RunID: alert.RunID, Severity: string(alert.Severity), Kind: string(alert.Kind), Message: message, MessageTruncated: truncated, CreatedAt: timestamp(alert.CreatedAt), Acknowledged: alert.Acknowledged}
+	return AlertSummary{ID: alert.ID, TaskID: alert.TaskID, RunID: alert.RunID, Severity: string(alert.Severity), Kind: string(alert.Kind), Message: message, MessageTruncated: alert.MessageTruncated || truncated, CreatedAt: timestamp(alert.CreatedAt), Acknowledged: alert.Acknowledged}
 }
 
 func safeTimes(values []time.Time) []string {

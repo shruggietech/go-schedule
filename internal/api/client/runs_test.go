@@ -44,3 +44,24 @@ func TestActiveRunsAndLimitedAlertsUseBoundedPaths(t *testing.T) {
 		t.Fatalf("paths=%v", paths)
 	}
 }
+
+func TestPagedRunsAndAlertsSendBoundaryParameters(t *testing.T) {
+	var paths []string
+	client := &Client{http: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		paths = append(paths, request.URL.RequestURI())
+		collection := "runs"
+		if request.URL.Path == "/v1/alerts" {
+			collection = "alerts"
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"` + collection + `":[]}`))}, nil
+	})}}
+	if _, err := client.ListRunsPage(context.Background(), "task", 100, 101, 8192); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.ListAlertsPage(context.Background(), true, 200, 101, 2048); err != nil {
+		t.Fatal(err)
+	}
+	if len(paths) != 2 || paths[0] != "/v1/runs?limit=101&offset=100&output_limit=8192&task=task" || paths[1] != "/v1/alerts?limit=101&message_limit=2048&offset=200&unacked=true" {
+		t.Fatalf("paths=%v", paths)
+	}
+}

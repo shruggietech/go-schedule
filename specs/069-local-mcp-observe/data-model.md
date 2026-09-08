@@ -31,6 +31,7 @@ No endpoint, path, configuration, environment, or identity is present.
 - `policy_summary`: bounded untrusted human-facing policy summary when present.
 - `next_runs`: up to five UTC timestamps.
 - `updated_at`: UTC timestamp.
+- `truncated_fields`: sorted field names when any bounded display value was clipped.
 
 Commands, arguments, environment, stdin, working directory, run-as identity, schedule IDs, raw RRULEs, raw source syntax, overlap internals, and trigger configuration are absent.
 
@@ -45,6 +46,7 @@ Commands, arguments, environment, stdin, working directory, run-as identity, sch
 - `summary`: bounded untrusted human-facing summary.
 - `policy_summary`: bounded untrusted human-facing policy summary.
 - `next_runs`: up to five UTC timestamps.
+- `truncated_fields`: sorted field names when any bounded display value was clipped.
 
 ## Run summary
 

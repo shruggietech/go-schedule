@@ -220,6 +220,33 @@ func TestSchedule_GetNotFoundAndRunsLimit(t *testing.T) {
 	}
 }
 
+func TestRunAndAlertPagesBoundTextAtDatabaseBoundary(t *testing.T) {
+	st := openMem(t)
+	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
+	task := &domain.Task{Name: "bounded", Timezone: "UTC", State: domain.TaskActive}
+	if err := st.CreateTask(task); err != nil {
+		t.Fatal(err)
+	}
+	for index := 0; index < 3; index++ {
+		run := &domain.Run{TaskID: task.ID, ScheduledFor: now.Add(time.Duration(index) * time.Second), Output: "123456789", Trigger: domain.TriggerManual}
+		if err := st.CreateRun(run); err != nil {
+			t.Fatal(err)
+		}
+		alert := &domain.Alert{CreatedAt: now.Add(time.Duration(index) * time.Second), Message: "abcdefghi"}
+		if err := st.CreateAlert(alert); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runs, err := st.ListRunsPage("", 1, 1, 4)
+	if err != nil || len(runs) != 1 || runs[0].Output != "1234" || !runs[0].OutputTruncated {
+		t.Fatalf("run page = %+v, %v", runs, err)
+	}
+	alerts, err := st.ListAlertsPage(false, 1, 1, 4)
+	if err != nil || len(alerts) != 1 || alerts[0].Message != "abcd" || !alerts[0].MessageTruncated {
+		t.Fatalf("alert page = %+v, %v", alerts, err)
+	}
+}
+
 func TestAlerts_AckFlow(t *testing.T) {
 	st := openMem(t)
 	a := &domain.Alert{Severity: domain.SeverityWarning, Kind: domain.AlertOverlapQueued, Message: "x", CreatedAt: time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)}

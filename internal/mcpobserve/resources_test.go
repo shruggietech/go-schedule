@@ -19,15 +19,19 @@ import (
 )
 
 type fakeReader struct {
-	health     server.HealthResponse
-	tasks      []server.TaskResponse
-	runs       []domain.Run
-	alerts     []domain.Alert
-	err        error
-	seenCtx    context.Context
-	runsLimit  int
-	alertLimit int
-	wait       bool
+	health       server.HealthResponse
+	tasks        []server.TaskResponse
+	runs         []domain.Run
+	alerts       []domain.Alert
+	err          error
+	seenCtx      context.Context
+	runsLimit    int
+	alertLimit   int
+	runsOffset   int
+	alertOffset  int
+	outputLimit  int
+	messageLimit int
+	wait         bool
 }
 
 func (f *fakeReader) Health(ctx context.Context) (server.HealthResponse, error) {
@@ -44,14 +48,25 @@ func (f *fakeReader) ListTaskDetails(ctx context.Context, _, _ string) ([]server
 	return f.tasks, f.err
 }
 
-func (f *fakeReader) ListRuns(ctx context.Context, _ string, limit int) ([]domain.Run, error) {
-	f.seenCtx, f.runsLimit = ctx, limit
-	return f.runs, f.err
+func (f *fakeReader) ListRunsPage(ctx context.Context, _ string, offset, limit, outputLimit int) ([]domain.Run, error) {
+	f.seenCtx, f.runsOffset, f.runsLimit, f.outputLimit = ctx, offset, limit, outputLimit
+	return fakePage(f.runs, offset, limit), f.err
 }
 
-func (f *fakeReader) ListAlertsLimited(ctx context.Context, _ bool, limit int) ([]domain.Alert, error) {
-	f.seenCtx, f.alertLimit = ctx, limit
-	return f.alerts, f.err
+func (f *fakeReader) ListAlertsPage(ctx context.Context, _ bool, offset, limit, messageLimit int) ([]domain.Alert, error) {
+	f.seenCtx, f.alertOffset, f.alertLimit, f.messageLimit = ctx, offset, limit, messageLimit
+	return fakePage(f.alerts, offset, limit), f.err
+}
+
+func fakePage[T any](items []T, offset, limit int) []T {
+	if offset >= len(items) {
+		return nil
+	}
+	end := offset + limit
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[offset:end]
 }
 
 func TestObserveResourcesAreBoundedPaginatedAndSecretFree(t *testing.T) {
@@ -117,8 +132,8 @@ func TestObserveResourcesAreBoundedPaginatedAndSecretFree(t *testing.T) {
 			t.Fatalf("%s lacks untrusted-content metadata", tc.kind)
 		}
 	}
-	if reader.runsLimit != FetchLimit || reader.alertLimit != FetchLimit {
-		t.Fatalf("daemon bounds = runs %d alerts %d", reader.runsLimit, reader.alertLimit)
+	if reader.runsLimit != PageLimit+1 || reader.alertLimit != PageLimit+1 || reader.outputLimit != OutputLimit || reader.messageLimit != TextLimit {
+		t.Fatalf("daemon bounds = runs %d/%d alerts %d/%d", reader.runsLimit, reader.outputLimit, reader.alertLimit, reader.messageLimit)
 	}
 	runEnvelope, _ := a.envelope(context.Background(), "runs", runsURI, 0)
 	run := runEnvelope.Data.([]RunSummary)[0]
@@ -129,6 +144,19 @@ func TestObserveResourcesAreBoundedPaginatedAndSecretFree(t *testing.T) {
 	alert := alertEnvelope.Data.([]AlertSummary)[0]
 	if len(alert.Message) > TextLimit || !alert.MessageTruncated {
 		t.Fatalf("alert message = %d bytes, truncated %t", len(alert.Message), alert.MessageTruncated)
+	}
+}
+
+func TestTaskAndScheduleReportEveryTruncatedField(t *testing.T) {
+	long := strings.Repeat("x", TextLimit+1)
+	detail := server.TaskResponse{Task: domain.Task{Name: long}, Schedule: &domain.Schedule{HumanSummary: long}, Readiness: tasklogic.Readiness{Reason: long}, PolicySummary: long}
+	task := safeTask(detail)
+	if got := strings.Join(task.TruncatedFields, ","); got != "name,policy_summary,readiness_reason,schedule_summary" {
+		t.Fatalf("task truncated fields = %q", got)
+	}
+	schedule := safeSchedule(detail)
+	if got := strings.Join(schedule.TruncatedFields, ","); got != "policy_summary,summary,task_name" {
+		t.Fatalf("schedule truncated fields = %q", got)
 	}
 }
 

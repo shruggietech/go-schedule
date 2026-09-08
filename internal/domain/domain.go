@@ -420,10 +420,13 @@ type Alert struct {
 	TaskID string `json:"task_id,omitempty"`
 	// RunID correlates a run failure to the exact persisted run. Other and
 	// legacy alerts leave it empty.
-	RunID        string        `json:"run_id,omitempty"`
-	Severity     AlertSeverity `json:"severity"`
-	Kind         AlertKind     `json:"kind"`
-	Message      string        `json:"message"`
-	CreatedAt    time.Time     `json:"created_at"`
-	Acknowledged bool          `json:"acknowledged"`
+	RunID    string        `json:"run_id,omitempty"`
+	Severity AlertSeverity `json:"severity"`
+	Kind     AlertKind     `json:"kind"`
+	Message  string        `json:"message"`
+	// MessageTruncated reports that a bounded read discarded message bytes. It
+	// is false for ordinary persisted alert reads.
+	MessageTruncated bool      `json:"message_truncated,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
+	Acknowledged     bool      `json:"acknowledged"`
 }

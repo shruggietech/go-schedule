@@ -40,7 +40,7 @@ Restart or reconnect the MCP host after changing its server configuration. The s
 | `goschedule://alerts/recent` | Recent bounded alert evidence. |
 | `goschedule://runs/recent` | Recent bounded run evidence and output excerpts. |
 
-Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit.
+Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Each read requests only that page plus one lookahead record. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field, and run output plus alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
 
 The initial server advertises resources only. It has no tools, prompts, scheduler mutations, TCP listener, remote authentication, direct database access, or raw log resource.
 

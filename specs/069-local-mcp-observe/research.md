@@ -36,9 +36,9 @@
 
 ## Pagination
 
-**Decision**: Sort each collection by stable keys, return at most 100 items, and encode a versioned offset as an opaque URL-safe cursor in a continuation URI.
+**Decision**: Sort each collection by stable keys, request at most 101 records for one page, return at most 100 items, and encode a versioned offset as an opaque URL-safe cursor in a continuation URI. Run output and alert messages are truncated in SQLite before entering daemon memory or IPC.
 
-**Rationale**: Existing daemon reads already return bounded alert and run sets and complete task details. Adapter-side slicing provides predictable context sizes without changing daemon business APIs. An opaque versioned cursor lets the representation evolve and rejects malformed input cleanly.
+**Rationale**: Page-sized daemon reads and store-side text projection provide predictable memory, IPC, and agent-context sizes even when persisted output is extremely large. An opaque versioned cursor lets the representation evolve and rejects malformed input cleanly.
 
 **Alternatives considered**: Unbounded arrays were rejected for context and denial-of-service risk. Database-backed snapshot cursors were rejected as disproportionate for local observation and would put MCP concerns into persistence.
 
