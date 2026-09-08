@@ -38,6 +38,7 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
   }, [apply, available])
   const selectPolicy = useCallback(async (type: 'task' | 'group', id: string) => {
     selectedScope.current = { type, id }
+    setPolicy(undefined)
     setPolicyPending(true)
     const request = ++policySequence.current
     try {
@@ -45,6 +46,12 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
       if (request === policySequence.current) apply(result)
     } finally { if (request === policySequence.current) setPolicyPending(false) }
   }, [apply, bridge])
+  const clearPolicy = useCallback(() => {
+    selectedScope.current = undefined
+    policySequence.current++
+    setPolicy(undefined)
+    setPolicyPending(false)
+  }, [])
   const savePolicy = useCallback(async (draft: PolicyDraft) => {
     if (!available || policyMutationPending.current) return
     policyMutationPending.current = true
@@ -65,8 +72,13 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
     })
     return () => { clearTimeout(timer); unsubscribe?.() }
   }, [bridge, load, selectPolicy])
+  useEffect(() => {
+    if (!available || !workspace?.deliveries.some((delivery) => ['queued', 'retrying', 'sending'].includes(delivery.state))) return
+    const timer = setTimeout(() => void load(), 1000)
+    return () => clearTimeout(timer)
+  }, [available, load, workspace])
   return {
-    workspace, policy, status, pending, policyPending, load, selectPolicy, savePolicy,
+    workspace, policy, status, pending, policyPending, load, selectPolicy, clearPolicy, savePolicy,
     saveChannel: (draft: ChannelDraft) => mutate(() => bridge.saveChannel(draft)),
     setChannelEnabled: (id: string, enabled: boolean) => mutate(() => bridge.setChannelEnabled(id, enabled)),
     testChannel: (id: string) => mutate(() => bridge.testChannel(id)),

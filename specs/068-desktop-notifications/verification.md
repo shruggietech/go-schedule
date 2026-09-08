@@ -17,6 +17,9 @@
 9. `scripts/verify.sh all` passed all eight gates in order: format, vet, lint, race, gui, coverage, docs, and automation. The native Windows Wails executable built, all frontend tests passed again, and the production bundle compiled.
 10. Core-package coverage remained engine 82.9 percent, schedule 89.1 percent, timezone 91.3 percent, store 80.4 percent, catchup 88.9 percent, and logbus 91.1 percent.
 11. The final automation mutation fixtures exited successfully after validating actions, CodeQL, Dependabot, release operations, release notes, brand, lifecycle, and the eight-gate contract.
+12. The first third-party Codex review identified three valid integration gaps: policy state could outlive a scope change, nonterminal deliveries had no transition refresh, and the production connection contract omitted the notifications capability. The implementation now invalidates policy state synchronously, polls only while nonterminal deliveries exist, and advertises the production capability.
+13. New failure-first regressions passed for policy invalidation, bounded delivery polling that stops on terminal state, and production capability negotiation. The focused notification frontend suite passed 9 tests, and the desktop connection package passed its Go tests.
+14. The review-fixed revision passed `scripts/verify.sh all` across all eight gates. This run included the Windows Wails production build, 70 frontend tests, production bundle compilation, unchanged core coverage thresholds, documentation validation, and the complete automation mutation fixture.
 
 ## Hosted evidence boundary
 

@@ -54,6 +54,14 @@ describe('NotificationsPage', () => {
     await waitFor(() => expect(savePolicy).toHaveBeenCalledWith(expect.objectContaining({ scopeType: 'task', scopeId: 't1', assignments: [expect.objectContaining({ channelId: 'c1', onSuccess: true })] })))
   })
 
+  it('hides a prior policy immediately when the selected scope changes or clears', async () => {
+    const user = userEvent.setup(); const next = new Promise<NotificationResult>(() => undefined); const loadPolicy = vi.fn().mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'Done.', policy }).mockReturnValueOnce(next)
+    render(<NotificationsPage bridge={bridge({ policy: loadPolicy })} available refreshToken={1} />); await screen.findAllByText('Ops hook')
+    await user.selectOptions(screen.getByLabelText('Task or group'), 'task:t1'); expect(await screen.findByText('Direct assignments for Backup')).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Task or group'), 'group:g1'); expect(screen.queryByText('Direct assignments for Backup')).not.toBeInTheDocument(); expect(screen.getByText('Loading policy')).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Task or group'), ''); expect(screen.queryByText('Direct assignments for Backup')).not.toBeInTheDocument()
+  })
+
   it('distinguishes every delivery state and test detail from task outcomes', async () => {
     const user = userEvent.setup(); render(<NotificationsPage bridge={bridge()} available refreshToken={1} />)
     expect(await screen.findByText('5 matching deliveries')).toBeInTheDocument()

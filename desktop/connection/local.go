@@ -13,7 +13,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/events"
 )
 
-var localCapabilities = []string{"tasks", "groups", "chains", "triggers", "watchers", "schedule", "activity"}
+var localCapabilities = []string{"tasks", "groups", "chains", "triggers", "watchers", "schedule", "activity", "notifications"}
 var localPermissions = []string{"read", "manage"}
 
 type daemonClient interface {

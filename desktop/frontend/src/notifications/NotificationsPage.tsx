@@ -31,13 +31,13 @@ export function NotificationsPage({ bridge, available, refreshToken }: { bridge:
   const [selectedDelivery, setSelectedDelivery] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Channel>()
   const [deleteInvoker, setDeleteInvoker] = useState<HTMLElement | null>(null)
-  useEffect(() => { if (state.policy) setAssignments(state.policy.directAssignments.map((item) => ({ ...item }))) }, [state.policy])
+  useEffect(() => { setAssignments(state.policy?.directAssignments.map((item) => ({ ...item })) ?? []) }, [state.policy])
   const deliveries = useMemo(() => (state.workspace?.deliveries ?? []).filter((item) => (channelFilter === 'all' || item.channelId === channelFilter) && (stateFilter === 'all' || item.state === stateFilter)), [channelFilter, state.workspace, stateFilter])
   const selected = deliveries.find((item) => item.id === selectedDelivery)
   const missing = Boolean(selectedDelivery && state.workspace && !selected)
   const edit = (channel: Channel) => setDraft({ id: channel.id, name: channel.name, endpoint: '', authorization: '', replaceEndpoint: false, replaceAuthorization: false, isNew: false })
   const saveChannel = async () => { const result = await state.saveChannel(draft); if (result?.outcome === 'accepted') setDraft(blankDraft()) }
-  const chooseScope = (value: string) => { setScopeValue(value); const [type, id] = value.split(':') as ['task' | 'group', string]; if (id) void state.selectPolicy(type, id) }
+  const chooseScope = (value: string) => { setScopeValue(value); const [type, id] = value.split(':') as ['task' | 'group', string]; if (id) void state.selectPolicy(type, id); else state.clearPolicy() }
   const changeAssignment = (channelId: string, key: 'onSuccess' | 'onFailure', checked: boolean) => setAssignments((current) => { const next = { ...assignment(current, channelId), [key]: checked }; return [...current.filter((item) => item.channelId !== channelId), next].filter((item) => item.onFailure || item.onSuccess) })
   const savePolicy = () => { if (!state.policy) return; void state.savePolicy({ scopeType: state.policy.scope.type, scopeId: state.policy.scope.id, assignments }) }
   return <>
