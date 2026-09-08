@@ -6,6 +6,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
@@ -31,21 +32,23 @@ type ActionResult struct {
 
 // App is the deliberately small Wails bridge facade.
 type App struct {
-	manager    *connection.Manager
-	tasks      *taskgroup.Service
-	automation *automation.Service
-	operations *operations.Service
-	settings   *settings.Service
-	emitter    eventEmitter
-	native     nativeRuntime
-	ctx        context.Context
+	manager       *connection.Manager
+	tasks         *taskgroup.Service
+	automation    *automation.Service
+	operations    *operations.Service
+	notifications *notifications.Service
+	settings      *settings.Service
+	emitter       eventEmitter
+	native        nativeRuntime
+	ctx           context.Context
 }
 
 type appServices struct {
-	tasks      *taskgroup.Service
-	automation *automation.Service
-	operations *operations.Service
-	settings   *settings.Service
+	tasks         *taskgroup.Service
+	automation    *automation.Service
+	operations    *operations.Service
+	notifications *notifications.Service
+	settings      *settings.Service
 }
 
 func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, services ...appServices) *App {
@@ -54,10 +57,54 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 		app.tasks = services[0].tasks
 		app.automation = services[0].automation
 		app.operations = services[0].operations
+		app.notifications = services[0].notifications
 		app.settings = services[0].settings
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+func (a *App) NotificationWorkspace() notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "load_notifications", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.Workspace(a.ctx)
+}
+func (a *App) SaveNotificationChannel(d notifications.ChannelDraft) notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "save_notification_channel", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.SaveChannel(a.ctx, d)
+}
+func (a *App) SetNotificationChannelEnabled(id string, enabled bool) notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "toggle_notification_channel", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.SetChannelEnabled(a.ctx, id, enabled)
+}
+func (a *App) TestNotificationChannel(id string) notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "test_notification_channel", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.TestChannel(a.ctx, id)
+}
+func (a *App) DeleteNotificationChannel(id string) notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "delete_notification_channel", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.DeleteChannel(a.ctx, id)
+}
+func (a *App) NotificationPolicy(scopeType, scopeID string) notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "load_notification_policy", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.Policy(a.ctx, scopeType, scopeID)
+}
+func (a *App) SaveNotificationPolicy(d notifications.PolicyDraft) notifications.Result {
+	if a.notifications == nil || a.ctx == nil {
+		return notifications.Result{Action: "save_notification_policy", Outcome: "unavailable", Message: "Notifications are unavailable."}
+	}
+	return a.notifications.SavePolicy(a.ctx, d)
 }
 
 // SettingsWorkspace returns desktop-local settings and storage information.

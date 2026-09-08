@@ -1,6 +1,6 @@
 export type ConnectionState = 'connecting' | 'connected' | 'degraded' | 'recovering' | 'unavailable' | 'access_denied' | 'incompatible' | 'timed_out'
 export type Appearance = 'system' | 'light' | 'dark'
-export type Route = 'tasks' | 'automation' | 'schedule' | 'activity' | 'connections' | 'settings'
+export type Route = 'tasks' | 'automation' | 'schedule' | 'activity' | 'notifications' | 'connections' | 'settings'
 
 export interface Target {
   id: string
