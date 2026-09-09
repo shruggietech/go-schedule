@@ -152,6 +152,8 @@ check_frontmatter() {
 page_count=0
 sh scripts/docs-policy-check.sh
 sh test/scripts/docs-policy-check_test.sh
+sh scripts/remote-architecture-check.sh .
+sh test/scripts/remote-architecture-check_test.sh
 check_theme_contract
 for f in "$DOCS_DIR"/*.md; do
   [ -e "$f" ] || continue
