@@ -19,7 +19,7 @@ Every initialized daemon has one opaque installation identifier and one editable
 | Rename | Preserved | Updated | Preserved |
 | Confirmed identity reset | Replaced | Preserved | Preserved |
 
-A database backup represents one logical daemon, so restoring it restores identity. Copying a database also copies identity. Before operating both copies independently at the same time, reset one clone by confirming its exact current identifier:
+A database backup represents one logical daemon, so restoring it restores identity. Copying a database also copies identity, but a raw file copy is safe only while the daemon is stopped because SQLite write-ahead logging can hold committed state outside the main database file. For a running daemon, use a SQLite backup operation that includes committed WAL state instead of copying only `goschedule.db`. Before operating both copies independently at the same time, reset one clone by confirming its exact current identifier:
 
 ```sh
 gosched daemon manifest

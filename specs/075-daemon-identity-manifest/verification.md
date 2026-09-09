@@ -34,3 +34,7 @@
 ## Canonical verification
 
 `bash scripts/verify.sh all` passed on 2026-09-09 after local remediations for goimports grouping and preserving separate desktop OS and architecture fields. All eight gates passed: format, vet, lint, race, GUI, coverage, documentation, and automation.
+
+## Review remediation
+
+- First-round Codex review identified that the clone instructions needed to account for SQLite WAL state. The guide now requires stopping the daemon before a raw database-file copy or using a WAL-aware SQLite backup operation while it runs.
