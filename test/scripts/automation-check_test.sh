@@ -628,6 +628,19 @@ run_automation_cases() {
   run_expect_fail missing-v13-qualification 'named v1.3 release qualification job' \
     sh "$CHECK" "$missing_v13_qualification"
 
+  incomplete_v13_matrix="$tmp/incomplete-v13-matrix"
+  cp -R "$good" "$incomplete_v13_matrix"
+  awk '
+    $0 == "  v13-release-qualification:" { inside = 1 }
+    inside && $0 == "        os: [ubuntu-latest, macos-latest, windows-latest]" {
+      print "        os: [ubuntu-latest]"
+      next
+    }
+    { print }
+  ' "$good/.github/workflows/ci.yml" > "$incomplete_v13_matrix/.github/workflows/ci.yml"
+  run_expect_fail incomplete-v13-matrix 'v13-release-qualification job missing three-platform matrix' \
+    sh "$CHECK" "$incomplete_v13_matrix"
+
   old_codeql="$tmp/old-codeql"
   cp -R "$good" "$old_codeql"
   sed 's#github/codeql-action/init@v4#github/codeql-action/init@v3#' \
