@@ -7,9 +7,11 @@ nav_order: 5.5
 
 **Audience:** client and integration authors\
 **Applies to:** the current unreleased local API contract\
-**Transport:** local Unix socket or Windows named pipe, never a public TCP port
+**Transport:** local Unix socket or Windows named pipe; the current daemon opens no remote API port
 
 The CLI and desktop app use the same versioned JSON API hosted by `goschedd`. Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.
+
+The reviewed [remote access architecture](remote-access.md) defines a future opt-in `/api/v1` HTTPS allowlist around shared daemon operations. It does not expose this local mux, enable a listener, or change current client behavior.
 
 ## External triggers
 

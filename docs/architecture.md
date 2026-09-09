@@ -7,6 +7,10 @@ nav_order: 8.5
 
 The daemon owns scheduling, persistence, execution, and completion delivery. The CLI and production Wails desktop remain thin local clients.
 
+## Remote access boundary
+
+The [remote access architecture](remote-access.md) defines the reviewed v1.4 trust, transport, deployment, compatibility, credential, dependency, and verification boundary. It is a future implementation contract, not a shipped network feature. The current daemon still exposes its management API only through protected local IPC.
+
 ## Local MCP observation
 
 `gosched mcp serve` is an optional process-launched adapter over the existing protected local IPC client. It uses the official MCP Go SDK and stdio transport, opens no network listener, advertises no tools, and exits with its host. Protocol registration, continuation cursors, bounded error mapping, and dedicated allowlisted response types live in `internal/mcpobserve`; scheduler policy, persistence, execution, and authorization remain daemon-owned.
