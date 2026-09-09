@@ -6,7 +6,7 @@ Current installers and release workflows build this module while preserving the 
 
 ## Build and test
 
-Requirements are Go 1.25, Node.js 24, npm, the platform WebView development prerequisites required by Wails v2.14.0, and Chromium for the optional browser contract.
+Requirements are Go 1.25, Node.js 26, npm, the platform WebView development prerequisites required by Wails v2.15.0, and Chromium for the optional browser contract.
 
 ```text
 cd desktop/frontend
@@ -30,7 +30,7 @@ React receives only the documented connection snapshot, action result, and `desk
 
 ## Dependency and asset attribution
 
-The Go module pins Wails v2.14.0 and uses the root module through a local replacement. The frontend pins React 19.1.0, React DOM 19.1.0, TypeScript 5.6.3, Vite 7.3.6, Vitest 5.0.0, Playwright 1.63.0, Testing Library 16.3.3, axe-core 4.13.0, and the exact transitive dependency lock in `frontend/package-lock.json`. Dependency licenses remain available through their upstream packages and module caches and are audited with `go-licenses` and `npm audit` in CI.
+The Go module pins Wails v2.15.0 and uses the root module through a local replacement. The frontend pins React 19.2.8, React DOM 19.2.8, TypeScript 5.6.3, Vite 8.2.2, Vitest 5.0.0, Playwright 1.63.0, Testing Library 16.3.3, axe-core 4.13.0, and the exact transitive dependency lock in `frontend/package-lock.json`. Dependency licenses remain available through their upstream packages and module caches and are audited with `go-licenses` and `npm audit` in CI.
 
 The local Geist and Space Grotesk fonts use their Open Font License files under `brand/fonts/licenses/`. The mark and application icon are canonical repository assets registered in `brand/repository-consumers.json`. The runtime makes no CDN, telemetry, analytics, remote font, remote image, script, or stylesheet request.
 

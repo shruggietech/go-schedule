@@ -612,17 +612,21 @@ run_automation_cases() {
 
   old_node_runtime="$tmp/old-node-runtime"
   cp -R "$good" "$old_node_runtime"
-  sed 's#node-version: 26#node-version: 24#g' \
-    "$good/.github/workflows/ci.yml" > "$old_node_runtime/.github/workflows/ci.yml"
-  run_expect_fail old-node-runtime 'Node 26 desktop baseline' \
+  awk '
+    !changed && /node-version: 26/ { sub(/node-version: 26/, "node-version: 24"); changed = 1 }
+    { print }
+  ' "$good/.github/workflows/ci.yml" > "$old_node_runtime/.github/workflows/ci.yml"
+  run_expect_fail old-node-runtime 'every CI Node runtime pin must use Node 26; found 24' \
     sh "$CHECK" "$old_node_runtime"
 
   old_release_node_runtime="$tmp/old-release-node-runtime"
   cp -R "$good" "$old_release_node_runtime"
-  sed 's#node-version: 26#node-version: 24#g' \
-    "$good/.github/workflows/release.yml" > \
+  awk '
+    !changed && /node-version: 26/ { sub(/node-version: 26/, "node-version: 24"); changed = 1 }
+    { print }
+  ' "$good/.github/workflows/release.yml" > \
     "$old_release_node_runtime/.github/workflows/release.yml"
-  run_expect_fail old-release-node-runtime 'Node 26 release desktop baseline' \
+  run_expect_fail old-release-node-runtime 'every release Node runtime pin must use Node 26; found 24' \
     sh "$CHECK" "$old_release_node_runtime"
 
   incomplete_wails_matrix="$tmp/incomplete-wails-matrix"
