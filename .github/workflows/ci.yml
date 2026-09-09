@@ -262,7 +262,7 @@ jobs:
       - name: Install Linux WebKitGTK prerequisites
         if: runner.os == 'Linux'
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
       - name: Install exact frontend dependencies
@@ -314,7 +314,7 @@ jobs:
         run: npm ci
       - name: Install Chromium test runtime
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           npx playwright install --with-deps chromium
       - name: Exercise production accessibility, responsive, and offline contracts
         run: npm run test:e2e

@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Pull-request Linux jobs no longer depend on an unrelated hosted-runner Chrome apt source.** Desktop and Playwright prerequisite installation removes that preconfigured source before refreshing Ubuntu package metadata, preventing a stale Google repository mirror from causing reproducible hash-mismatch failures before project tests can run.
+- **Pull-request Linux jobs no longer depend on unrelated hosted-runner Chrome apt sources.** Desktop and Playwright prerequisite installation removes both supported source-file forms before refreshing Ubuntu package metadata, preventing a stale Google repository mirror from causing reproducible hash-mismatch failures before project tests can run.
 
 - **Desktop target context now comes from the connected daemon (Closes #166; Refs #18).** The local connection consumes the daemon-owned installation ID, display name, product version, platform, and deterministic capability list while retaining the existing protected IPC transport, health compatibility, and local permission experience.
 
@@ -54,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Decisions
 
-- **2026-09-09: isolate Linux CI prerequisite installation from the hosted runner's Google Chrome apt source.** The source is not used by go-schedule, Chromium is installed by Playwright, and repeated S076 runs failed before project code executed because the source served package metadata inconsistent with its signed release index. Removing only that source in the affected ephemeral jobs preserves Ubuntu package verification and avoids weakening apt integrity checks or adding blind retries.
+- **2026-09-09: isolate Linux CI prerequisite installation from the hosted runner's Google Chrome apt sources.** The sources are not used by go-schedule, Chromium is installed by Playwright, and repeated S076 runs failed before project code executed because a source served package metadata inconsistent with its signed release index. Removing both the legacy `.list` and deb822 `.sources` forms in the affected ephemeral jobs preserves Ubuntu package verification and avoids weakening apt integrity checks or adding blind retries.
 
 - **2026-09-09: bind stable daemon identity to the logical SQLite store and require explicit clone reset.** S075 keeps one random UUID and editable generic name in a singleton schema v16 row, so restart, upgrade, and backup restore preserve the same target without deriving identity from machine data. A copied database remains the same logical daemon until an operator atomically resets one copy by confirming its exact current identifier. The bounded local manifest advertises current product capabilities and safe OS/architecture facts, while actor authority, credentials, audit, remote protocols, and listeners remain assigned to #167 onward.
 
