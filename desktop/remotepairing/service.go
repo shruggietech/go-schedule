@@ -57,7 +57,7 @@ func (s *Service) Pair(ctx context.Context, draft Draft) Result {
 	payload, _ := json.Marshal(map[string]any{"daemon_id": draft.DaemonID, "pairing_id": draft.PairingID, "phrase": draft.Phrase, "display_name": draft.DisplayName, "kind": domain.ActorKindDesktop, "capability": draft.Capability})
 	request, _ := http.NewRequestWithContext(ctx, http.MethodPost, base.String()+"/api/v1/enroll", bytes.NewReader(payload))
 	request.Header.Set("Content-Type", "application/json")
-	client := &http.Client{Timeout: 15 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: pool}}}
+	client := &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }, Transport: &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: pool}}}
 	response, err := client.Do(request)
 	if err != nil {
 		return rejected("The trusted HTTPS daemon could not be reached.")

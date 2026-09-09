@@ -12,45 +12,43 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// Defines values for EnrollmentRequestCapability.
+// Defines values for ActorState.
 const (
-	Enroll  EnrollmentRequestCapability = "enroll"
-	Manage  EnrollmentRequestCapability = "manage"
-	Observe EnrollmentRequestCapability = "observe"
-	Operate EnrollmentRequestCapability = "operate"
+	ActorStateActive  ActorState = "active"
+	ActorStateExpired ActorState = "expired"
+	ActorStateRevoked ActorState = "revoked"
 )
 
-// Valid indicates whether the value is a known member of the EnrollmentRequestCapability enum.
-func (e EnrollmentRequestCapability) Valid() bool {
+// Valid indicates whether the value is a known member of the ActorState enum.
+func (e ActorState) Valid() bool {
 	switch e {
-	case Enroll:
+	case ActorStateActive:
 		return true
-	case Manage:
+	case ActorStateExpired:
 		return true
-	case Observe:
-		return true
-	case Operate:
+	case ActorStateRevoked:
 		return true
 	default:
 		return false
 	}
 }
 
-// Defines values for EnrollmentRequestKind.
+// Defines values for ActorKind.
 const (
-	Cli     EnrollmentRequestKind = "cli"
-	Desktop EnrollmentRequestKind = "desktop"
-	Json    EnrollmentRequestKind = "json"
-	Mcp     EnrollmentRequestKind = "mcp"
+	Cli     ActorKind = "cli"
+	Desktop ActorKind = "desktop"
+	Json    ActorKind = "json"
+	Mcp     ActorKind = "mcp"
 )
 
-// Valid indicates whether the value is a known member of the EnrollmentRequestKind enum.
-func (e EnrollmentRequestKind) Valid() bool {
+// Valid indicates whether the value is a known member of the ActorKind enum.
+func (e ActorKind) Valid() bool {
 	switch e {
 	case Cli:
 		return true
@@ -65,56 +63,957 @@ func (e EnrollmentRequestKind) Valid() bool {
 	}
 }
 
-// EnrollmentRequest defines model for EnrollmentRequest.
-type EnrollmentRequest struct {
-	Capability  EnrollmentRequestCapability `json:"capability"`
-	DaemonId    openapi_types.UUID          `json:"daemon_id"`
-	DisplayName string                      `json:"display_name"`
-	Kind        EnrollmentRequestKind       `json:"kind"`
-	PairingId   openapi_types.UUID          `json:"pairing_id"`
-	Phrase      string                      `json:"phrase"`
+// Defines values for AlertSeverity.
+const (
+	Error   AlertSeverity = "error"
+	Info    AlertSeverity = "info"
+	Warning AlertSeverity = "warning"
+)
+
+// Valid indicates whether the value is a known member of the AlertSeverity enum.
+func (e AlertSeverity) Valid() bool {
+	switch e {
+	case Error:
+		return true
+	case Info:
+		return true
+	case Warning:
+		return true
+	default:
+		return false
+	}
 }
 
-// EnrollmentRequestCapability defines model for EnrollmentRequest.Capability.
-type EnrollmentRequestCapability string
+// Defines values for AuditEventResult.
+const (
+	AuditEventResultDenied    AuditEventResult = "denied"
+	AuditEventResultFailed    AuditEventResult = "failed"
+	AuditEventResultSucceeded AuditEventResult = "succeeded"
+	AuditEventResultUncertain AuditEventResult = "uncertain"
+)
 
-// EnrollmentRequestKind defines model for EnrollmentRequest.Kind.
-type EnrollmentRequestKind string
+// Valid indicates whether the value is a known member of the AuditEventResult enum.
+func (e AuditEventResult) Valid() bool {
+	switch e {
+	case AuditEventResultDenied:
+		return true
+	case AuditEventResultFailed:
+		return true
+	case AuditEventResultSucceeded:
+		return true
+	case AuditEventResultUncertain:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Capability.
+const (
+	Enroll  Capability = "enroll"
+	Manage  Capability = "manage"
+	Observe Capability = "observe"
+	Operate Capability = "operate"
+)
+
+// Valid indicates whether the value is a known member of the Capability enum.
+func (e Capability) Valid() bool {
+	switch e {
+	case Enroll:
+		return true
+	case Manage:
+		return true
+	case Observe:
+		return true
+	case Operate:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for HealthStatus.
+const (
+	Ok HealthStatus = "ok"
+)
+
+// Valid indicates whether the value is a known member of the HealthStatus enum.
+func (e HealthStatus) Valid() bool {
+	switch e {
+	case Ok:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for IssuedCredentialState.
+const (
+	IssuedCredentialStateActive  IssuedCredentialState = "active"
+	IssuedCredentialStateRevoked IssuedCredentialState = "revoked"
+)
+
+// Valid indicates whether the value is a known member of the IssuedCredentialState enum.
+func (e IssuedCredentialState) Valid() bool {
+	switch e {
+	case IssuedCredentialStateActive:
+		return true
+	case IssuedCredentialStateRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OccurrenceKind.
+const (
+	Past      OccurrenceKind = "past"
+	Scheduled OccurrenceKind = "scheduled"
+)
+
+// Valid indicates whether the value is a known member of the OccurrenceKind enum.
+func (e OccurrenceKind) Valid() bool {
+	switch e {
+	case Past:
+		return true
+	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ScheduleKind.
+const (
+	Event     ScheduleKind = "event"
+	OneOff    ScheduleKind = "one_off"
+	Recurring ScheduleKind = "recurring"
+)
+
+// Valid indicates whether the value is a known member of the ScheduleKind enum.
+func (e ScheduleKind) Valid() bool {
+	switch e {
+	case Event:
+		return true
+	case OneOff:
+		return true
+	case Recurring:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskCreateRequestCatchupPolicy.
+const (
+	TaskCreateRequestCatchupPolicyNone TaskCreateRequestCatchupPolicy = "none"
+	TaskCreateRequestCatchupPolicyOne  TaskCreateRequestCatchupPolicy = "one"
+)
+
+// Valid indicates whether the value is a known member of the TaskCreateRequestCatchupPolicy enum.
+func (e TaskCreateRequestCatchupPolicy) Valid() bool {
+	switch e {
+	case TaskCreateRequestCatchupPolicyNone:
+		return true
+	case TaskCreateRequestCatchupPolicyOne:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskCreateRequestDstGapPolicy.
+const (
+	TaskCreateRequestDstGapPolicyNextValid TaskCreateRequestDstGapPolicy = "next_valid"
+	TaskCreateRequestDstGapPolicySkip      TaskCreateRequestDstGapPolicy = "skip"
+)
+
+// Valid indicates whether the value is a known member of the TaskCreateRequestDstGapPolicy enum.
+func (e TaskCreateRequestDstGapPolicy) Valid() bool {
+	switch e {
+	case TaskCreateRequestDstGapPolicyNextValid:
+		return true
+	case TaskCreateRequestDstGapPolicySkip:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskCreateRequestDstOverlapPolicy.
+const (
+	TaskCreateRequestDstOverlapPolicyBoth  TaskCreateRequestDstOverlapPolicy = "both"
+	TaskCreateRequestDstOverlapPolicyFirst TaskCreateRequestDstOverlapPolicy = "first"
+	TaskCreateRequestDstOverlapPolicyLast  TaskCreateRequestDstOverlapPolicy = "last"
+)
+
+// Valid indicates whether the value is a known member of the TaskCreateRequestDstOverlapPolicy enum.
+func (e TaskCreateRequestDstOverlapPolicy) Valid() bool {
+	switch e {
+	case TaskCreateRequestDstOverlapPolicyBoth:
+		return true
+	case TaskCreateRequestDstOverlapPolicyFirst:
+		return true
+	case TaskCreateRequestDstOverlapPolicyLast:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskCreateRequestMissingDatePolicy.
+const (
+	TaskCreateRequestMissingDatePolicyLastValid TaskCreateRequestMissingDatePolicy = "last_valid"
+	TaskCreateRequestMissingDatePolicyNextValid TaskCreateRequestMissingDatePolicy = "next_valid"
+	TaskCreateRequestMissingDatePolicySkip      TaskCreateRequestMissingDatePolicy = "skip"
+)
+
+// Valid indicates whether the value is a known member of the TaskCreateRequestMissingDatePolicy enum.
+func (e TaskCreateRequestMissingDatePolicy) Valid() bool {
+	switch e {
+	case TaskCreateRequestMissingDatePolicyLastValid:
+		return true
+	case TaskCreateRequestMissingDatePolicyNextValid:
+		return true
+	case TaskCreateRequestMissingDatePolicySkip:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskCreateRequestOverlapPolicy.
+const (
+	TaskCreateRequestOverlapPolicyAllowConcurrent TaskCreateRequestOverlapPolicy = "allow_concurrent"
+	TaskCreateRequestOverlapPolicyQueueOne        TaskCreateRequestOverlapPolicy = "queue_one"
+	TaskCreateRequestOverlapPolicySkip            TaskCreateRequestOverlapPolicy = "skip"
+)
+
+// Valid indicates whether the value is a known member of the TaskCreateRequestOverlapPolicy enum.
+func (e TaskCreateRequestOverlapPolicy) Valid() bool {
+	switch e {
+	case TaskCreateRequestOverlapPolicyAllowConcurrent:
+		return true
+	case TaskCreateRequestOverlapPolicyQueueOne:
+		return true
+	case TaskCreateRequestOverlapPolicySkip:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskCreateRequestTimeBasis.
+const (
+	TaskCreateRequestTimeBasisElapsed   TaskCreateRequestTimeBasis = "elapsed"
+	TaskCreateRequestTimeBasisUtc       TaskCreateRequestTimeBasis = "utc"
+	TaskCreateRequestTimeBasisWallClock TaskCreateRequestTimeBasis = "wall_clock"
+)
+
+// Valid indicates whether the value is a known member of the TaskCreateRequestTimeBasis enum.
+func (e TaskCreateRequestTimeBasis) Valid() bool {
+	switch e {
+	case TaskCreateRequestTimeBasisElapsed:
+		return true
+	case TaskCreateRequestTimeBasisUtc:
+		return true
+	case TaskCreateRequestTimeBasisWallClock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskUpdateRequestCatchupPolicy.
+const (
+	TaskUpdateRequestCatchupPolicyNone TaskUpdateRequestCatchupPolicy = "none"
+	TaskUpdateRequestCatchupPolicyOne  TaskUpdateRequestCatchupPolicy = "one"
+)
+
+// Valid indicates whether the value is a known member of the TaskUpdateRequestCatchupPolicy enum.
+func (e TaskUpdateRequestCatchupPolicy) Valid() bool {
+	switch e {
+	case TaskUpdateRequestCatchupPolicyNone:
+		return true
+	case TaskUpdateRequestCatchupPolicyOne:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskUpdateRequestDstGapPolicy.
+const (
+	TaskUpdateRequestDstGapPolicyNextValid TaskUpdateRequestDstGapPolicy = "next_valid"
+	TaskUpdateRequestDstGapPolicySkip      TaskUpdateRequestDstGapPolicy = "skip"
+)
+
+// Valid indicates whether the value is a known member of the TaskUpdateRequestDstGapPolicy enum.
+func (e TaskUpdateRequestDstGapPolicy) Valid() bool {
+	switch e {
+	case TaskUpdateRequestDstGapPolicyNextValid:
+		return true
+	case TaskUpdateRequestDstGapPolicySkip:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskUpdateRequestDstOverlapPolicy.
+const (
+	TaskUpdateRequestDstOverlapPolicyBoth  TaskUpdateRequestDstOverlapPolicy = "both"
+	TaskUpdateRequestDstOverlapPolicyFirst TaskUpdateRequestDstOverlapPolicy = "first"
+	TaskUpdateRequestDstOverlapPolicyLast  TaskUpdateRequestDstOverlapPolicy = "last"
+)
+
+// Valid indicates whether the value is a known member of the TaskUpdateRequestDstOverlapPolicy enum.
+func (e TaskUpdateRequestDstOverlapPolicy) Valid() bool {
+	switch e {
+	case TaskUpdateRequestDstOverlapPolicyBoth:
+		return true
+	case TaskUpdateRequestDstOverlapPolicyFirst:
+		return true
+	case TaskUpdateRequestDstOverlapPolicyLast:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskUpdateRequestMissingDatePolicy.
+const (
+	TaskUpdateRequestMissingDatePolicyLastValid TaskUpdateRequestMissingDatePolicy = "last_valid"
+	TaskUpdateRequestMissingDatePolicyNextValid TaskUpdateRequestMissingDatePolicy = "next_valid"
+	TaskUpdateRequestMissingDatePolicySkip      TaskUpdateRequestMissingDatePolicy = "skip"
+)
+
+// Valid indicates whether the value is a known member of the TaskUpdateRequestMissingDatePolicy enum.
+func (e TaskUpdateRequestMissingDatePolicy) Valid() bool {
+	switch e {
+	case TaskUpdateRequestMissingDatePolicyLastValid:
+		return true
+	case TaskUpdateRequestMissingDatePolicyNextValid:
+		return true
+	case TaskUpdateRequestMissingDatePolicySkip:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskUpdateRequestOverlapPolicy.
+const (
+	TaskUpdateRequestOverlapPolicyAllowConcurrent TaskUpdateRequestOverlapPolicy = "allow_concurrent"
+	TaskUpdateRequestOverlapPolicyQueueOne        TaskUpdateRequestOverlapPolicy = "queue_one"
+	TaskUpdateRequestOverlapPolicySkip            TaskUpdateRequestOverlapPolicy = "skip"
+)
+
+// Valid indicates whether the value is a known member of the TaskUpdateRequestOverlapPolicy enum.
+func (e TaskUpdateRequestOverlapPolicy) Valid() bool {
+	switch e {
+	case TaskUpdateRequestOverlapPolicyAllowConcurrent:
+		return true
+	case TaskUpdateRequestOverlapPolicyQueueOne:
+		return true
+	case TaskUpdateRequestOverlapPolicySkip:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TaskUpdateRequestTimeBasis.
+const (
+	TaskUpdateRequestTimeBasisElapsed   TaskUpdateRequestTimeBasis = "elapsed"
+	TaskUpdateRequestTimeBasisUtc       TaskUpdateRequestTimeBasis = "utc"
+	TaskUpdateRequestTimeBasisWallClock TaskUpdateRequestTimeBasis = "wall_clock"
+)
+
+// Valid indicates whether the value is a known member of the TaskUpdateRequestTimeBasis enum.
+func (e TaskUpdateRequestTimeBasis) Valid() bool {
+	switch e {
+	case TaskUpdateRequestTimeBasisElapsed:
+		return true
+	case TaskUpdateRequestTimeBasisUtc:
+		return true
+	case TaskUpdateRequestTimeBasisWallClock:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AuditListParamsResult.
+const (
+	AuditListParamsResultDenied    AuditListParamsResult = "denied"
+	AuditListParamsResultFailed    AuditListParamsResult = "failed"
+	AuditListParamsResultSucceeded AuditListParamsResult = "succeeded"
+	AuditListParamsResultUncertain AuditListParamsResult = "uncertain"
+)
+
+// Valid indicates whether the value is a known member of the AuditListParamsResult enum.
+func (e AuditListParamsResult) Valid() bool {
+	switch e {
+	case AuditListParamsResultDenied:
+		return true
+	case AuditListParamsResultFailed:
+		return true
+	case AuditListParamsResultSucceeded:
+		return true
+	case AuditListParamsResultUncertain:
+		return true
+	default:
+		return false
+	}
+}
+
+// Actor defines model for Actor.
+type Actor struct {
+	Builtin     bool               `json:"builtin"`
+	Capability  Capability         `json:"capability"`
+	CreatedAt   time.Time          `json:"created_at"`
+	DisplayName string             `json:"display_name"`
+	ExpiresAt   *time.Time         `json:"expires_at,omitempty"`
+	Id          openapi_types.UUID `json:"id"`
+	Kind        ActorKind          `json:"kind"`
+	State       ActorState         `json:"state"`
+	UpdatedAt   time.Time          `json:"updated_at"`
+}
+
+// ActorState defines model for Actor.State.
+type ActorState string
+
+// ActorKind defines model for ActorKind.
+type ActorKind string
+
+// ActorList defines model for ActorList.
+type ActorList struct {
+	Actors []Actor `json:"actors"`
+}
+
+// Alert defines model for Alert.
+type Alert struct {
+	Acknowledged     bool                `json:"acknowledged"`
+	CreatedAt        time.Time           `json:"created_at"`
+	Id               openapi_types.UUID  `json:"id"`
+	Kind             string              `json:"kind"`
+	Message          string              `json:"message"`
+	MessageTruncated *bool               `json:"message_truncated,omitempty"`
+	RunId            *openapi_types.UUID `json:"run_id,omitempty"`
+	Severity         AlertSeverity       `json:"severity"`
+	TaskId           *openapi_types.UUID `json:"task_id,omitempty"`
+}
+
+// AlertSeverity defines model for Alert.Severity.
+type AlertSeverity string
+
+// AlertList defines model for AlertList.
+type AlertList struct {
+	Alerts []Alert `json:"alerts"`
+}
+
+// AuditEvent defines model for AuditEvent.
+type AuditEvent struct {
+	ActorId       *openapi_types.UUID `json:"actor_id,omitempty"`
+	CompletedAt   *time.Time          `json:"completed_at,omitempty"`
+	CorrelationId openapi_types.UUID  `json:"correlation_id"`
+	DaemonId      openapi_types.UUID  `json:"daemon_id"`
+	Id            openapi_types.UUID  `json:"id"`
+	OccurredAt    time.Time           `json:"occurred_at"`
+	Operation     string              `json:"operation"`
+	Result        AuditEventResult    `json:"result"`
+	TargetId      *openapi_types.UUID `json:"target_id,omitempty"`
+	TargetKind    string              `json:"target_kind"`
+}
+
+// AuditEventResult defines model for AuditEvent.Result.
+type AuditEventResult string
+
+// AuditList defines model for AuditList.
+type AuditList struct {
+	Events []AuditEvent `json:"events"`
+}
+
+// Calendar defines model for Calendar.
+type Calendar struct {
+	From        time.Time    `json:"from"`
+	Occurrences []Occurrence `json:"occurrences"`
+	To          time.Time    `json:"to"`
+}
+
+// Capability defines model for Capability.
+type Capability string
+
+// EnrollmentRequest defines model for EnrollmentRequest.
+type EnrollmentRequest struct {
+	Capability  Capability         `json:"capability"`
+	DaemonId    openapi_types.UUID `json:"daemon_id"`
+	DisplayName string             `json:"display_name"`
+	Kind        ActorKind          `json:"kind"`
+	PairingId   openapi_types.UUID `json:"pairing_id"`
+	Phrase      string             `json:"phrase"`
+}
 
 // ErrorEnvelope defines model for ErrorEnvelope.
 type ErrorEnvelope struct {
 	Error struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
+		Code    string  `json:"code"`
+		Field   *string `json:"field,omitempty"`
+		Message string  `json:"message"`
 	} `json:"error"`
 }
+
+// Group defines model for Group.
+type Group struct {
+	CreatedAt time.Time           `json:"created_at"`
+	Enabled   bool                `json:"enabled"`
+	Id        openapi_types.UUID  `json:"id"`
+	Name      string              `json:"name"`
+	ParentId  *openapi_types.UUID `json:"parent_id,omitempty"`
+	UpdatedAt time.Time           `json:"updated_at"`
+}
+
+// GroupList defines model for GroupList.
+type GroupList struct {
+	Groups *[]Group         `json:"groups,omitempty"`
+	Tree   *[]GroupTreeNode `json:"tree,omitempty"`
+}
+
+// GroupTreeNode defines model for GroupTreeNode.
+type GroupTreeNode struct {
+	Children []GroupTreeNode     `json:"children"`
+	Enabled  bool                `json:"enabled"`
+	Id       openapi_types.UUID  `json:"id"`
+	Name     string              `json:"name"`
+	ParentId *openapi_types.UUID `json:"parent_id,omitempty"`
+}
+
+// Health defines model for Health.
+type Health struct {
+	Status  HealthStatus `json:"status"`
+	Version string       `json:"version"`
+}
+
+// HealthStatus defines model for Health.Status.
+type HealthStatus string
+
+// IssuedCredential defines model for IssuedCredential.
+type IssuedCredential struct {
+	Actor       Actor                 `json:"actor"`
+	ActorId     openapi_types.UUID    `json:"actor_id"`
+	CreatedAt   time.Time             `json:"created_at"`
+	DaemonId    openapi_types.UUID    `json:"daemon_id"`
+	ExpiresAt   *time.Time            `json:"expires_at,omitempty"`
+	Fingerprint string                `json:"fingerprint"`
+	Id          openapi_types.UUID    `json:"id"`
+	LastUsedAt  *time.Time            `json:"last_used_at,omitempty"`
+	RevokedAt   *time.Time            `json:"revoked_at,omitempty"`
+	State       IssuedCredentialState `json:"state"`
+
+	// Token Returned once. Store in the operating system credential store.
+	Token     string    `json:"token"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// IssuedCredentialState defines model for IssuedCredential.State.
+type IssuedCredentialState string
+
+// Manifest defines model for Manifest.
+type Manifest struct {
+	Capabilities      []string           `json:"capabilities"`
+	DisplayName       string             `json:"display_name"`
+	InstallationId    openapi_types.UUID `json:"installation_id"`
+	LocalApiVersions  []string           `json:"local_api_versions"`
+	OperatingMode     string             `json:"operating_mode"`
+	Platform          Platform           `json:"platform"`
+	ProductVersion    string             `json:"product_version"`
+	RemoteApiVersions []string           `json:"remote_api_versions"`
+}
+
+// Occurrence defines model for Occurrence.
+type Occurrence struct {
+	Kind     OccurrenceKind      `json:"kind"`
+	Outcome  *string             `json:"outcome,omitempty"`
+	RunId    *openapi_types.UUID `json:"run_id,omitempty"`
+	TaskId   openapi_types.UUID  `json:"task_id"`
+	TaskName string              `json:"task_name"`
+	Time     time.Time           `json:"time"`
+}
+
+// OccurrenceKind defines model for Occurrence.Kind.
+type OccurrenceKind string
+
+// Platform defines model for Platform.
+type Platform struct {
+	Architecture string `json:"architecture"`
+	Os           string `json:"os"`
+}
+
+// Readiness defines model for Readiness.
+type Readiness struct {
+	ActivationReady  bool     `json:"activation_ready"`
+	AutomaticSources []string `json:"automatic_sources"`
+	CommandReady     bool     `json:"command_ready"`
+	Reason           string   `json:"reason"`
+	Status           string   `json:"status"`
+}
+
+// Run defines model for Run.
+type Run struct {
+	EndedAt         *time.Time          `json:"ended_at,omitempty"`
+	ExitCode        *int                `json:"exit_code,omitempty"`
+	Id              openapi_types.UUID  `json:"id"`
+	Outcome         string              `json:"outcome"`
+	Output          *string             `json:"output,omitempty"`
+	OutputTruncated *bool               `json:"output_truncated,omitempty"`
+	ScheduledFor    time.Time           `json:"scheduled_for"`
+	SourceRunId     *openapi_types.UUID `json:"source_run_id,omitempty"`
+	SourceTaskId    *openapi_types.UUID `json:"source_task_id,omitempty"`
+	SourceTriggerId *openapi_types.UUID `json:"source_trigger_id,omitempty"`
+	SourceWatcherId *openapi_types.UUID `json:"source_watcher_id,omitempty"`
+	StartedAt       *time.Time          `json:"started_at,omitempty"`
+	TaskId          openapi_types.UUID  `json:"task_id"`
+	Trigger         string              `json:"trigger"`
+}
+
+// RunList defines model for RunList.
+type RunList struct {
+	Runs []Run `json:"runs"`
+}
+
+// Schedule defines model for Schedule.
+type Schedule struct {
+	Anchor             *time.Time         `json:"anchor,omitempty"`
+	CalendarAdjustment *string            `json:"calendar_adjustment,omitempty"`
+	ElapsedEpoch       *time.Time         `json:"elapsed_epoch,omitempty"`
+	Expression         *string            `json:"expression,omitempty"`
+	HumanSummary       string             `json:"human_summary"`
+	Id                 openapi_types.UUID `json:"id"`
+	Kind               ScheduleKind       `json:"kind"`
+	Rrule              *string            `json:"rrule,omitempty"`
+	RunAt              *time.Time         `json:"run_at,omitempty"`
+	SourceSyntax       *string            `json:"source_syntax,omitempty"`
+	TriggerId          *string            `json:"trigger_id,omitempty"`
+}
+
+// ScheduleKind defines model for Schedule.Kind.
+type ScheduleKind string
+
+// Task defines model for Task.
+type Task struct {
+	Args              *[]string           `json:"args,omitempty"`
+	CatchupPolicy     string              `json:"catchup_policy"`
+	Command           string              `json:"command"`
+	CreatedAt         time.Time           `json:"created_at"`
+	DstGapPolicy      string              `json:"dst_gap_policy"`
+	DstOverlapPolicy  string              `json:"dst_overlap_policy"`
+	Enabled           bool                `json:"enabled"`
+	Env               *map[string]string  `json:"env,omitempty"`
+	GroupId           *openapi_types.UUID `json:"group_id,omitempty"`
+	Id                openapi_types.UUID  `json:"id"`
+	MissingDatePolicy string              `json:"missing_date_policy"`
+	Name              string              `json:"name"`
+	OverlapPolicy     string              `json:"overlap_policy"`
+	RunAs             *string             `json:"run_as,omitempty"`
+	ScheduleId        string              `json:"schedule_id"`
+	State             string              `json:"state"`
+	Stdin             *string             `json:"stdin,omitempty"`
+	TimeBasis         string              `json:"time_basis"`
+	Timezone          string              `json:"timezone"`
+	UpdatedAt         time.Time           `json:"updated_at"`
+	WorkingDir        *string             `json:"working_dir,omitempty"`
+}
+
+// TaskCreateRequest defines model for TaskCreateRequest.
+type TaskCreateRequest struct {
+	Args              *[]string                           `json:"args,omitempty"`
+	At                *time.Time                          `json:"at,omitempty"`
+	CatchupPolicy     *TaskCreateRequestCatchupPolicy     `json:"catchup_policy,omitempty"`
+	Command           *string                             `json:"command,omitempty"`
+	DstGapPolicy      *TaskCreateRequestDstGapPolicy      `json:"dst_gap_policy,omitempty"`
+	DstOverlapPolicy  *TaskCreateRequestDstOverlapPolicy  `json:"dst_overlap_policy,omitempty"`
+	Enabled           *bool                               `json:"enabled,omitempty"`
+	Env               *map[string]string                  `json:"env,omitempty"`
+	GroupId           *openapi_types.UUID                 `json:"group_id,omitempty"`
+	MissingDatePolicy *TaskCreateRequestMissingDatePolicy `json:"missing_date_policy,omitempty"`
+	Name              *string                             `json:"name,omitempty"`
+	OverlapPolicy     *TaskCreateRequestOverlapPolicy     `json:"overlap_policy,omitempty"`
+	RunAs             *string                             `json:"run_as,omitempty"`
+	Schedule          *string                             `json:"schedule,omitempty"`
+	ScheduleSyntax    *string                             `json:"schedule_syntax,omitempty"`
+	Stdin             *string                             `json:"stdin,omitempty"`
+	TimeBasis         *TaskCreateRequestTimeBasis         `json:"time_basis,omitempty"`
+	Timezone          *string                             `json:"timezone,omitempty"`
+	WorkingDir        *string                             `json:"working_dir,omitempty"`
+}
+
+// TaskCreateRequestCatchupPolicy defines model for TaskCreateRequest.CatchupPolicy.
+type TaskCreateRequestCatchupPolicy string
+
+// TaskCreateRequestDstGapPolicy defines model for TaskCreateRequest.DstGapPolicy.
+type TaskCreateRequestDstGapPolicy string
+
+// TaskCreateRequestDstOverlapPolicy defines model for TaskCreateRequest.DstOverlapPolicy.
+type TaskCreateRequestDstOverlapPolicy string
+
+// TaskCreateRequestMissingDatePolicy defines model for TaskCreateRequest.MissingDatePolicy.
+type TaskCreateRequestMissingDatePolicy string
+
+// TaskCreateRequestOverlapPolicy defines model for TaskCreateRequest.OverlapPolicy.
+type TaskCreateRequestOverlapPolicy string
+
+// TaskCreateRequestTimeBasis defines model for TaskCreateRequest.TimeBasis.
+type TaskCreateRequestTimeBasis string
+
+// TaskDetail defines model for TaskDetail.
+type TaskDetail struct {
+	NextRuns      []time.Time `json:"next_runs"`
+	PolicySummary string      `json:"policy_summary"`
+	Readiness     Readiness   `json:"readiness"`
+	Schedule      *Schedule   `json:"schedule"`
+	Task          Task        `json:"task"`
+}
+
+// TaskList defines model for TaskList.
+type TaskList struct {
+	Tasks []TaskListItem `json:"tasks"`
+}
+
+// TaskListItem defines model for TaskListItem.
+type TaskListItem struct {
+	union json.RawMessage
+}
+
+// TaskObservation defines model for TaskObservation.
+type TaskObservation struct {
+	Enabled                  bool                `json:"enabled"`
+	GroupId                  *openapi_types.UUID `json:"group_id,omitempty"`
+	HasSchedule              bool                `json:"has_schedule"`
+	Id                       openapi_types.UUID  `json:"id"`
+	Name                     string              `json:"name"`
+	NameTruncated            *bool               `json:"name_truncated,omitempty"`
+	NextRuns                 []time.Time         `json:"next_runs"`
+	PolicySummary            *string             `json:"policy_summary,omitempty"`
+	PolicySummaryTruncated   *bool               `json:"policy_summary_truncated,omitempty"`
+	Readiness                string              `json:"readiness"`
+	ReadinessReason          *string             `json:"readiness_reason,omitempty"`
+	ReadinessReasonTruncated *bool               `json:"readiness_reason_truncated,omitempty"`
+	ScheduleSummary          *string             `json:"schedule_summary,omitempty"`
+	ScheduleSummaryTruncated *bool               `json:"schedule_summary_truncated,omitempty"`
+	State                    string              `json:"state"`
+	Timezone                 string              `json:"timezone"`
+	UpdatedAt                time.Time           `json:"updated_at"`
+}
+
+// TaskUpdateRequest defines model for TaskUpdateRequest.
+type TaskUpdateRequest struct {
+	Args              *[]string                           `json:"args,omitempty"`
+	At                *time.Time                          `json:"at,omitempty"`
+	CatchupPolicy     *TaskUpdateRequestCatchupPolicy     `json:"catchup_policy,omitempty"`
+	ClearCommand      *bool                               `json:"clear_command,omitempty"`
+	ClearName         *bool                               `json:"clear_name,omitempty"`
+	ClearRunAs        *bool                               `json:"clear_run_as,omitempty"`
+	ClearSchedule     *bool                               `json:"clear_schedule,omitempty"`
+	ClearWorkingDir   *bool                               `json:"clear_working_dir,omitempty"`
+	Command           *string                             `json:"command,omitempty"`
+	DstGapPolicy      *TaskUpdateRequestDstGapPolicy      `json:"dst_gap_policy,omitempty"`
+	DstOverlapPolicy  *TaskUpdateRequestDstOverlapPolicy  `json:"dst_overlap_policy,omitempty"`
+	Env               *map[string]string                  `json:"env,omitempty"`
+	GroupId           *openapi_types.UUID                 `json:"group_id,omitempty"`
+	MissingDatePolicy *TaskUpdateRequestMissingDatePolicy `json:"missing_date_policy,omitempty"`
+	Name              *string                             `json:"name,omitempty"`
+	OverlapPolicy     *TaskUpdateRequestOverlapPolicy     `json:"overlap_policy,omitempty"`
+	RunAs             *string                             `json:"run_as,omitempty"`
+	Schedule          *string                             `json:"schedule,omitempty"`
+	ScheduleSyntax    *string                             `json:"schedule_syntax,omitempty"`
+	Stdin             *string                             `json:"stdin,omitempty"`
+	TimeBasis         *TaskUpdateRequestTimeBasis         `json:"time_basis,omitempty"`
+	Timezone          *string                             `json:"timezone,omitempty"`
+	WorkingDir        *string                             `json:"working_dir,omitempty"`
+}
+
+// TaskUpdateRequestCatchupPolicy defines model for TaskUpdateRequest.CatchupPolicy.
+type TaskUpdateRequestCatchupPolicy string
+
+// TaskUpdateRequestDstGapPolicy defines model for TaskUpdateRequest.DstGapPolicy.
+type TaskUpdateRequestDstGapPolicy string
+
+// TaskUpdateRequestDstOverlapPolicy defines model for TaskUpdateRequest.DstOverlapPolicy.
+type TaskUpdateRequestDstOverlapPolicy string
+
+// TaskUpdateRequestMissingDatePolicy defines model for TaskUpdateRequest.MissingDatePolicy.
+type TaskUpdateRequestMissingDatePolicy string
+
+// TaskUpdateRequestOverlapPolicy defines model for TaskUpdateRequest.OverlapPolicy.
+type TaskUpdateRequestOverlapPolicy string
+
+// TaskUpdateRequestTimeBasis defines model for TaskUpdateRequest.TimeBasis.
+type TaskUpdateRequestTimeBasis string
 
 // ID defines model for ID.
 type ID = openapi_types.UUID
 
-// JSONSuccess defines model for JSONSuccess.
-type JSONSuccess = map[string]interface{}
-
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorEnvelope
 
-// JSONBody defines model for JSONBody.
-type JSONBody = map[string]interface{}
+// Enrollment defines model for Enrollment.
+type Enrollment = EnrollmentRequest
 
-// TasksCreateJSONBody defines parameters for TasksCreate.
-type TasksCreateJSONBody = map[string]interface{}
+// TaskCreate defines model for TaskCreate.
+type TaskCreate = TaskCreateRequest
 
-// TasksUpdateJSONBody defines parameters for TasksUpdate.
-type TasksUpdateJSONBody = map[string]interface{}
+// TaskUpdate defines model for TaskUpdate.
+type TaskUpdate = TaskUpdateRequest
+
+// AlertsListParams defines parameters for AlertsList.
+type AlertsListParams struct {
+	Unacked      *bool `form:"unacked,omitempty" json:"unacked,omitempty"`
+	Offset       *int  `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit        *int  `form:"limit,omitempty" json:"limit,omitempty"`
+	MessageLimit *int  `form:"message_limit,omitempty" json:"message_limit,omitempty"`
+}
+
+// AuditListParams defines parameters for AuditList.
+type AuditListParams struct {
+	ActorId   *openapi_types.UUID    `form:"actor_id,omitempty" json:"actor_id,omitempty"`
+	Operation *string                `form:"operation,omitempty" json:"operation,omitempty"`
+	Result    *AuditListParamsResult `form:"result,omitempty" json:"result,omitempty"`
+	Since     *time.Time             `form:"since,omitempty" json:"since,omitempty"`
+	Until     *time.Time             `form:"until,omitempty" json:"until,omitempty"`
+	Limit     *int                   `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// AuditListParamsResult defines parameters for AuditList.
+type AuditListParamsResult string
+
+// CalendarReadParams defines parameters for CalendarRead.
+type CalendarReadParams struct {
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To   *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// GroupsListParams defines parameters for GroupsList.
+type GroupsListParams struct {
+	Tree *bool `form:"tree,omitempty" json:"tree,omitempty"`
+}
+
+// RunsListParams defines parameters for RunsList.
+type RunsListParams struct {
+	Task        *openapi_types.UUID `form:"task,omitempty" json:"task,omitempty"`
+	Offset      *int                `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit       *int                `form:"limit,omitempty" json:"limit,omitempty"`
+	OutputLimit *int                `form:"output_limit,omitempty" json:"output_limit,omitempty"`
+}
+
+// TasksListParams defines parameters for TasksList.
+type TasksListParams struct {
+	Group       *openapi_types.UUID `form:"group,omitempty" json:"group,omitempty"`
+	State       *string             `form:"state,omitempty" json:"state,omitempty"`
+	Details     *bool               `form:"details,omitempty" json:"details,omitempty"`
+	Observation *bool               `form:"observation,omitempty" json:"observation,omitempty"`
+	Scheduled   *bool               `form:"scheduled,omitempty" json:"scheduled,omitempty"`
+	Offset      *int                `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit       *int                `form:"limit,omitempty" json:"limit,omitempty"`
+	TextLimit   *int                `form:"text_limit,omitempty" json:"text_limit,omitempty"`
+}
 
 // EnrollmentExchangeJSONRequestBody defines body for EnrollmentExchange for application/json ContentType.
 type EnrollmentExchangeJSONRequestBody = EnrollmentRequest
 
 // TasksCreateJSONRequestBody defines body for TasksCreate for application/json ContentType.
-type TasksCreateJSONRequestBody = TasksCreateJSONBody
+type TasksCreateJSONRequestBody = TaskCreateRequest
 
 // TasksUpdateJSONRequestBody defines body for TasksUpdate for application/json ContentType.
-type TasksUpdateJSONRequestBody = TasksUpdateJSONBody
+type TasksUpdateJSONRequestBody = TaskUpdateRequest
+
+// AsTask returns the union data inside the TaskListItem as a Task
+func (t TaskListItem) AsTask() (Task, error) {
+	var body Task
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTask overwrites any union data inside the TaskListItem as the provided Task
+func (t *TaskListItem) FromTask(v Task) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTask performs a merge with any union data inside the TaskListItem, using the provided Task
+func (t *TaskListItem) MergeTask(v Task) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTaskDetail returns the union data inside the TaskListItem as a TaskDetail
+func (t TaskListItem) AsTaskDetail() (TaskDetail, error) {
+	var body TaskDetail
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTaskDetail overwrites any union data inside the TaskListItem as the provided TaskDetail
+func (t *TaskListItem) FromTaskDetail(v TaskDetail) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTaskDetail performs a merge with any union data inside the TaskListItem, using the provided TaskDetail
+func (t *TaskListItem) MergeTaskDetail(v TaskDetail) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsTaskObservation returns the union data inside the TaskListItem as a TaskObservation
+func (t TaskListItem) AsTaskObservation() (TaskObservation, error) {
+	var body TaskObservation
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromTaskObservation overwrites any union data inside the TaskListItem as the provided TaskObservation
+func (t *TaskListItem) FromTaskObservation(v TaskObservation) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeTaskObservation performs a merge with any union data inside the TaskListItem, using the provided TaskObservation
+func (t *TaskListItem) MergeTaskObservation(v TaskObservation) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t TaskListItem) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *TaskListItem) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -194,16 +1093,16 @@ type ClientInterface interface {
 	ActorsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AlertsList performs a GET /alerts (the `AlertsList` operationId) request.
-	AlertsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AlertsList(ctx context.Context, params *AlertsListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AlertsAcknowledge performs a POST /alerts/{id}/ack (the `AlertsAcknowledge` operationId) request.
 	AlertsAcknowledge(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AuditList performs a GET /audit (the `AuditList` operationId) request.
-	AuditList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	AuditList(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CalendarRead performs a GET /calendar (the `CalendarRead` operationId) request.
-	CalendarRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CalendarRead(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// EnrollmentExchangeWithBody performs a POST /enroll (the `EnrollmentExchange` operationId) request,
 	// with any type of body and a specified content type.
@@ -215,11 +1114,11 @@ type ClientInterface interface {
 
 	// EventsStream performs a GET /events (the `EventsStream` operationId) request.
 	//
-	// Reconnect safe read stream. Mutations are never automatically replayed.
+	// Reconnect-safe read stream. Mutations are never automatically replayed.
 	EventsStream(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GroupsList performs a GET /groups (the `GroupsList` operationId) request.
-	GroupsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GroupsList(ctx context.Context, params *GroupsListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GroupsRead performs a GET /groups/{id} (the `GroupsRead` operationId) request.
 	GroupsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -231,7 +1130,7 @@ type ClientInterface interface {
 	ManifestRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RunsList performs a GET /runs (the `RunsList` operationId) request.
-	RunsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RunsList(ctx context.Context, params *RunsListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RunsActiveList performs a GET /runs/active (the `RunsActiveList` operationId) request.
 	RunsActiveList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -240,7 +1139,7 @@ type ClientInterface interface {
 	RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TasksList performs a GET /tasks (the `TasksList` operationId) request.
-	TasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	TasksList(ctx context.Context, params *TasksListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TasksCreateWithBody performs a POST /tasks (the `TasksCreate` operationId) request,
 	// with any type of body and a specified content type.
@@ -288,8 +1187,8 @@ func (c *Client) ActorsList(ctx context.Context, reqEditors ...RequestEditorFn) 
 }
 
 // AlertsList performs a GET /alerts (the `AlertsList` operationId) request.
-func (c *Client) AlertsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAlertsListRequest(c.Server)
+func (c *Client) AlertsList(ctx context.Context, params *AlertsListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAlertsListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -314,8 +1213,8 @@ func (c *Client) AlertsAcknowledge(ctx context.Context, id ID, reqEditors ...Req
 }
 
 // AuditList performs a GET /audit (the `AuditList` operationId) request.
-func (c *Client) AuditList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAuditListRequest(c.Server)
+func (c *Client) AuditList(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAuditListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -327,8 +1226,8 @@ func (c *Client) AuditList(ctx context.Context, reqEditors ...RequestEditorFn) (
 }
 
 // CalendarRead performs a GET /calendar (the `CalendarRead` operationId) request.
-func (c *Client) CalendarRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCalendarReadRequest(c.Server)
+func (c *Client) CalendarRead(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCalendarReadRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +1268,7 @@ func (c *Client) EnrollmentExchange(ctx context.Context, body EnrollmentExchange
 
 // EventsStream performs a GET /events (the `EventsStream` operationId) request.
 //
-// Reconnect safe read stream. Mutations are never automatically replayed.
+// Reconnect-safe read stream. Mutations are never automatically replayed.
 func (c *Client) EventsStream(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewEventsStreamRequest(c.Server)
 	if err != nil {
@@ -383,8 +1282,8 @@ func (c *Client) EventsStream(ctx context.Context, reqEditors ...RequestEditorFn
 }
 
 // GroupsList performs a GET /groups (the `GroupsList` operationId) request.
-func (c *Client) GroupsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGroupsListRequest(c.Server)
+func (c *Client) GroupsList(ctx context.Context, params *GroupsListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGroupsListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -435,8 +1334,8 @@ func (c *Client) ManifestRead(ctx context.Context, reqEditors ...RequestEditorFn
 }
 
 // RunsList performs a GET /runs (the `RunsList` operationId) request.
-func (c *Client) RunsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRunsListRequest(c.Server)
+func (c *Client) RunsList(ctx context.Context, params *RunsListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRunsListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -474,8 +1373,8 @@ func (c *Client) RunsRead(ctx context.Context, id ID, reqEditors ...RequestEdito
 }
 
 // TasksList performs a GET /tasks (the `TasksList` operationId) request.
-func (c *Client) TasksList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewTasksListRequest(c.Server)
+func (c *Client) TasksList(ctx context.Context, params *TasksListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTasksListRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -635,7 +1534,7 @@ func NewActorsListRequest(server string) (*http.Request, error) {
 }
 
 // NewAlertsListRequest constructs an http.Request for the AlertsList method
-func NewAlertsListRequest(server string) (*http.Request, error) {
+func NewAlertsListRequest(server string, params *AlertsListParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -651,6 +1550,69 @@ func NewAlertsListRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Unacked != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "unacked", *params.Unacked, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.MessageLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "message_limit", *params.MessageLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -696,7 +1658,7 @@ func NewAlertsAcknowledgeRequest(server string, id ID) (*http.Request, error) {
 }
 
 // NewAuditListRequest constructs an http.Request for the AuditList method
-func NewAuditListRequest(server string) (*http.Request, error) {
+func NewAuditListRequest(server string, params *AuditListParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -714,6 +1676,93 @@ func NewAuditListRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.ActorId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "actor_id", *params.ActorId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Operation != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "operation", *params.Operation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Result != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "result", *params.Result, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Since != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "since", *params.Since, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Until != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "until", *params.Until, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -723,7 +1772,7 @@ func NewAuditListRequest(server string) (*http.Request, error) {
 }
 
 // NewCalendarReadRequest constructs an http.Request for the CalendarRead method
-func NewCalendarReadRequest(server string) (*http.Request, error) {
+func NewCalendarReadRequest(server string, params *CalendarReadParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -739,6 +1788,45 @@ func NewCalendarReadRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -817,7 +1905,7 @@ func NewEventsStreamRequest(server string) (*http.Request, error) {
 }
 
 // NewGroupsListRequest constructs an http.Request for the GroupsList method
-func NewGroupsListRequest(server string) (*http.Request, error) {
+func NewGroupsListRequest(server string, params *GroupsListParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -833,6 +1921,33 @@ func NewGroupsListRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Tree != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "tree", *params.Tree, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -932,7 +2047,7 @@ func NewManifestReadRequest(server string) (*http.Request, error) {
 }
 
 // NewRunsListRequest constructs an http.Request for the RunsList method
-func NewRunsListRequest(server string) (*http.Request, error) {
+func NewRunsListRequest(server string, params *RunsListParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -948,6 +2063,69 @@ func NewRunsListRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Task != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "task", *params.Task, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.OutputLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "output_limit", *params.OutputLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -1020,7 +2198,7 @@ func NewRunsReadRequest(server string, id ID) (*http.Request, error) {
 }
 
 // NewTasksListRequest constructs an http.Request for the TasksList method
-func NewTasksListRequest(server string) (*http.Request, error) {
+func NewTasksListRequest(server string, params *TasksListParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1036,6 +2214,117 @@ func NewTasksListRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Group != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "group", *params.Group, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Details != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "details", *params.Details, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Observation != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "observation", *params.Observation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Scheduled != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "scheduled", *params.Scheduled, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TextLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "text_limit", *params.TextLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -1355,7 +2644,7 @@ type ClientWithResponsesInterface interface {
 	// AlertsListWithResponse performs a GET /alerts (the `AlertsList` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	AlertsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*AlertsListResponse, error)
+	AlertsListWithResponse(ctx context.Context, params *AlertsListParams, reqEditors ...RequestEditorFn) (*AlertsListResponse, error)
 
 	// AlertsAcknowledgeWithResponse performs a POST /alerts/{id}/ack (the `AlertsAcknowledge` operationId) request.
 	//
@@ -1365,12 +2654,12 @@ type ClientWithResponsesInterface interface {
 	// AuditListWithResponse performs a GET /audit (the `AuditList` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	AuditListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*AuditListResponse, error)
+	AuditListWithResponse(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*AuditListResponse, error)
 
 	// CalendarReadWithResponse performs a GET /calendar (the `CalendarRead` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	CalendarReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CalendarReadResponse, error)
+	CalendarReadWithResponse(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*CalendarReadResponse, error)
 
 	// EnrollmentExchangeWithBodyWithResponse performs a POST /enroll (the `EnrollmentExchange` operationId) request,
 	// with any type of body and a specified content type.
@@ -1384,7 +2673,7 @@ type ClientWithResponsesInterface interface {
 
 	// EventsStreamWithResponse performs a GET /events (the `EventsStream` operationId) request.
 	//
-	// Reconnect safe read stream. Mutations are never automatically replayed.
+	// Reconnect-safe read stream. Mutations are never automatically replayed.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	EventsStreamWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*EventsStreamResponse, error)
@@ -1392,7 +2681,7 @@ type ClientWithResponsesInterface interface {
 	// GroupsListWithResponse performs a GET /groups (the `GroupsList` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	GroupsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GroupsListResponse, error)
+	GroupsListWithResponse(ctx context.Context, params *GroupsListParams, reqEditors ...RequestEditorFn) (*GroupsListResponse, error)
 
 	// GroupsReadWithResponse performs a GET /groups/{id} (the `GroupsRead` operationId) request.
 	//
@@ -1412,7 +2701,7 @@ type ClientWithResponsesInterface interface {
 	// RunsListWithResponse performs a GET /runs (the `RunsList` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	RunsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*RunsListResponse, error)
+	RunsListWithResponse(ctx context.Context, params *RunsListParams, reqEditors ...RequestEditorFn) (*RunsListResponse, error)
 
 	// RunsActiveListWithResponse performs a GET /runs/active (the `RunsActiveList` operationId) request.
 	//
@@ -1427,7 +2716,7 @@ type ClientWithResponsesInterface interface {
 	// TasksListWithResponse performs a GET /tasks (the `TasksList` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
-	TasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*TasksListResponse, error)
+	TasksListWithResponse(ctx context.Context, params *TasksListParams, reqEditors ...RequestEditorFn) (*TasksListResponse, error)
 
 	// TasksCreateWithBodyWithResponse performs a POST /tasks (the `TasksCreate` operationId) request,
 	// with any type of body and a specified content type.
@@ -1475,16 +2764,30 @@ type ClientWithResponsesInterface interface {
 	TasksRunNowWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*TasksRunNowResponse, error)
 }
 
+// ActorsListResponse401Headers the declared response headers of an HTTP 401 response for ActorsList
+type ActorsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type ActorsListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *ActorList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ActorsListResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ActorsListResponse) GetJSON200() *JSONSuccess {
+func (r ActorsListResponse) GetJSON200() *ActorList {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ActorsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1516,16 +2819,30 @@ func (r ActorsListResponse) ContentType() string {
 	return ""
 }
 
+// AlertsListResponse401Headers the declared response headers of an HTTP 401 response for AlertsList
+type AlertsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type AlertsListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *AlertList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *AlertsListResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r AlertsListResponse) GetJSON200() *JSONSuccess {
+func (r AlertsListResponse) GetJSON200() *AlertList {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AlertsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1557,16 +2874,23 @@ func (r AlertsListResponse) ContentType() string {
 	return ""
 }
 
+// AlertsAcknowledgeResponse401Headers the declared response headers of an HTTP 401 response for AlertsAcknowledge
+type AlertsAcknowledgeResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type AlertsAcknowledgeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *AlertsAcknowledgeResponse401Headers
 }
 
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r AlertsAcknowledgeResponse) GetJSON200() *JSONSuccess {
-	return r.JSON200
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AlertsAcknowledgeResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1598,16 +2922,30 @@ func (r AlertsAcknowledgeResponse) ContentType() string {
 	return ""
 }
 
+// AuditListResponse401Headers the declared response headers of an HTTP 401 response for AuditList
+type AuditListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type AuditListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *AuditList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *AuditListResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r AuditListResponse) GetJSON200() *JSONSuccess {
+func (r AuditListResponse) GetJSON200() *AuditList {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AuditListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1639,16 +2977,30 @@ func (r AuditListResponse) ContentType() string {
 	return ""
 }
 
+// CalendarReadResponse401Headers the declared response headers of an HTTP 401 response for CalendarRead
+type CalendarReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type CalendarReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *Calendar
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *CalendarReadResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r CalendarReadResponse) GetJSON200() *JSONSuccess {
+func (r CalendarReadResponse) GetJSON200() *Calendar {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CalendarReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1689,7 +3041,7 @@ type EnrollmentExchangeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *JSONSuccess
+	JSON201 *IssuedCredential
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 	// Headers401 the parsed response headers for an HTTP 401 response
@@ -1697,7 +3049,7 @@ type EnrollmentExchangeResponse struct {
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r EnrollmentExchangeResponse) GetJSON201() *JSONSuccess {
+func (r EnrollmentExchangeResponse) GetJSON201() *IssuedCredential {
 	return r.JSON201
 }
 
@@ -1735,9 +3087,23 @@ func (r EnrollmentExchangeResponse) ContentType() string {
 	return ""
 }
 
+// EventsStreamResponse401Headers the declared response headers of an HTTP 401 response for EventsStream
+type EventsStreamResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type EventsStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *EventsStreamResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r EventsStreamResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1769,16 +3135,30 @@ func (r EventsStreamResponse) ContentType() string {
 	return ""
 }
 
+// GroupsListResponse401Headers the declared response headers of an HTTP 401 response for GroupsList
+type GroupsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type GroupsListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *GroupList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *GroupsListResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GroupsListResponse) GetJSON200() *JSONSuccess {
+func (r GroupsListResponse) GetJSON200() *GroupList {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GroupsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1810,16 +3190,30 @@ func (r GroupsListResponse) ContentType() string {
 	return ""
 }
 
+// GroupsReadResponse401Headers the declared response headers of an HTTP 401 response for GroupsRead
+type GroupsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type GroupsReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *Group
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *GroupsReadResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GroupsReadResponse) GetJSON200() *JSONSuccess {
+func (r GroupsReadResponse) GetJSON200() *Group {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GroupsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1855,11 +3249,11 @@ type HealthReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *Health
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r HealthReadResponse) GetJSON200() *JSONSuccess {
+func (r HealthReadResponse) GetJSON200() *Health {
 	return r.JSON200
 }
 
@@ -1896,11 +3290,11 @@ type ManifestReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *Manifest
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ManifestReadResponse) GetJSON200() *JSONSuccess {
+func (r ManifestReadResponse) GetJSON200() *Manifest {
 	return r.JSON200
 }
 
@@ -1933,16 +3327,30 @@ func (r ManifestReadResponse) ContentType() string {
 	return ""
 }
 
+// RunsListResponse401Headers the declared response headers of an HTTP 401 response for RunsList
+type RunsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type RunsListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *RunList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *RunsListResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RunsListResponse) GetJSON200() *JSONSuccess {
+func (r RunsListResponse) GetJSON200() *RunList {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RunsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -1974,16 +3382,30 @@ func (r RunsListResponse) ContentType() string {
 	return ""
 }
 
+// RunsActiveListResponse401Headers the declared response headers of an HTTP 401 response for RunsActiveList
+type RunsActiveListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type RunsActiveListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *RunList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *RunsActiveListResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RunsActiveListResponse) GetJSON200() *JSONSuccess {
+func (r RunsActiveListResponse) GetJSON200() *RunList {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RunsActiveListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2015,16 +3437,30 @@ func (r RunsActiveListResponse) ContentType() string {
 	return ""
 }
 
+// RunsReadResponse401Headers the declared response headers of an HTTP 401 response for RunsRead
+type RunsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type RunsReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *Run
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *RunsReadResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RunsReadResponse) GetJSON200() *JSONSuccess {
+func (r RunsReadResponse) GetJSON200() *Run {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RunsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2065,7 +3501,7 @@ type TasksListResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *TaskList
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 	// Headers401 the parsed response headers for an HTTP 401 response
@@ -2073,7 +3509,7 @@ type TasksListResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksListResponse) GetJSON200() *JSONSuccess {
+func (r TasksListResponse) GetJSON200() *TaskList {
 	return r.JSON200
 }
 
@@ -2120,7 +3556,7 @@ type TasksCreateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *JSONSuccess
+	JSON201 *TaskDetail
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 	// Headers401 the parsed response headers for an HTTP 401 response
@@ -2128,7 +3564,7 @@ type TasksCreateResponse struct {
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r TasksCreateResponse) GetJSON201() *JSONSuccess {
+func (r TasksCreateResponse) GetJSON201() *TaskDetail {
 	return r.JSON201
 }
 
@@ -2166,16 +3602,23 @@ func (r TasksCreateResponse) ContentType() string {
 	return ""
 }
 
+// TasksDeleteResponse401Headers the declared response headers of an HTTP 401 response for TasksDelete
+type TasksDeleteResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type TasksDeleteResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksDeleteResponse401Headers
 }
 
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksDeleteResponse) GetJSON200() *JSONSuccess {
-	return r.JSON200
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksDeleteResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2207,16 +3650,30 @@ func (r TasksDeleteResponse) ContentType() string {
 	return ""
 }
 
+// TasksReadResponse401Headers the declared response headers of an HTTP 401 response for TasksRead
+type TasksReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type TasksReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *TaskDetail
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksReadResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksReadResponse) GetJSON200() *JSONSuccess {
+func (r TasksReadResponse) GetJSON200() *TaskDetail {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2248,16 +3705,30 @@ func (r TasksReadResponse) ContentType() string {
 	return ""
 }
 
+// TasksUpdateResponse401Headers the declared response headers of an HTTP 401 response for TasksUpdate
+type TasksUpdateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type TasksUpdateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	JSON200 *TaskDetail
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksUpdateResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksUpdateResponse) GetJSON200() *JSONSuccess {
+func (r TasksUpdateResponse) GetJSON200() *TaskDetail {
 	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksUpdateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2289,16 +3760,23 @@ func (r TasksUpdateResponse) ContentType() string {
 	return ""
 }
 
+// TasksDisableResponse401Headers the declared response headers of an HTTP 401 response for TasksDisable
+type TasksDisableResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type TasksDisableResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksDisableResponse401Headers
 }
 
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksDisableResponse) GetJSON200() *JSONSuccess {
-	return r.JSON200
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksDisableResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2330,16 +3808,23 @@ func (r TasksDisableResponse) ContentType() string {
 	return ""
 }
 
+// TasksEnableResponse401Headers the declared response headers of an HTTP 401 response for TasksEnable
+type TasksEnableResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type TasksEnableResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *JSONSuccess
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksEnableResponse401Headers
 }
 
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksEnableResponse) GetJSON200() *JSONSuccess {
-	return r.JSON200
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksEnableResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2371,16 +3856,23 @@ func (r TasksEnableResponse) ContentType() string {
 	return ""
 }
 
+// TasksRunNowResponse401Headers the declared response headers of an HTTP 401 response for TasksRunNow
+type TasksRunNowResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
 type TasksRunNowResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	// JSON202 the response for an HTTP 202 `application/json` response
-	JSON202 *JSONSuccess
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksRunNowResponse401Headers
 }
 
-// GetJSON202 returns the response for an HTTP 202 `application/json` response
-func (r TasksRunNowResponse) GetJSON202() *JSONSuccess {
-	return r.JSON202
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksRunNowResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
 }
 
 // GetBody returns the raw response body bytes
@@ -2426,8 +3918,8 @@ func (c *ClientWithResponses) ActorsListWithResponse(ctx context.Context, reqEdi
 // AlertsListWithResponse performs a GET /alerts (the `AlertsList` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) AlertsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*AlertsListResponse, error) {
-	rsp, err := c.AlertsList(ctx, reqEditors...)
+func (c *ClientWithResponses) AlertsListWithResponse(ctx context.Context, params *AlertsListParams, reqEditors ...RequestEditorFn) (*AlertsListResponse, error) {
+	rsp, err := c.AlertsList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2448,8 +3940,8 @@ func (c *ClientWithResponses) AlertsAcknowledgeWithResponse(ctx context.Context,
 // AuditListWithResponse performs a GET /audit (the `AuditList` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) AuditListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*AuditListResponse, error) {
-	rsp, err := c.AuditList(ctx, reqEditors...)
+func (c *ClientWithResponses) AuditListWithResponse(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*AuditListResponse, error) {
+	rsp, err := c.AuditList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2459,8 +3951,8 @@ func (c *ClientWithResponses) AuditListWithResponse(ctx context.Context, reqEdit
 // CalendarReadWithResponse performs a GET /calendar (the `CalendarRead` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) CalendarReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CalendarReadResponse, error) {
-	rsp, err := c.CalendarRead(ctx, reqEditors...)
+func (c *ClientWithResponses) CalendarReadWithResponse(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*CalendarReadResponse, error) {
+	rsp, err := c.CalendarRead(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2491,7 +3983,7 @@ func (c *ClientWithResponses) EnrollmentExchangeWithResponse(ctx context.Context
 
 // EventsStreamWithResponse performs a GET /events (the `EventsStream` operationId) request.
 //
-// Reconnect safe read stream. Mutations are never automatically replayed.
+// Reconnect-safe read stream. Mutations are never automatically replayed.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) EventsStreamWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*EventsStreamResponse, error) {
@@ -2505,8 +3997,8 @@ func (c *ClientWithResponses) EventsStreamWithResponse(ctx context.Context, reqE
 // GroupsListWithResponse performs a GET /groups (the `GroupsList` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) GroupsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GroupsListResponse, error) {
-	rsp, err := c.GroupsList(ctx, reqEditors...)
+func (c *ClientWithResponses) GroupsListWithResponse(ctx context.Context, params *GroupsListParams, reqEditors ...RequestEditorFn) (*GroupsListResponse, error) {
+	rsp, err := c.GroupsList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2549,8 +4041,8 @@ func (c *ClientWithResponses) ManifestReadWithResponse(ctx context.Context, reqE
 // RunsListWithResponse performs a GET /runs (the `RunsList` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) RunsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*RunsListResponse, error) {
-	rsp, err := c.RunsList(ctx, reqEditors...)
+func (c *ClientWithResponses) RunsListWithResponse(ctx context.Context, params *RunsListParams, reqEditors ...RequestEditorFn) (*RunsListResponse, error) {
+	rsp, err := c.RunsList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2582,8 +4074,8 @@ func (c *ClientWithResponses) RunsReadWithResponse(ctx context.Context, id ID, r
 // TasksListWithResponse performs a GET /tasks (the `TasksList` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
-func (c *ClientWithResponses) TasksListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*TasksListResponse, error) {
-	rsp, err := c.TasksList(ctx, reqEditors...)
+func (c *ClientWithResponses) TasksListWithResponse(ctx context.Context, params *TasksListParams, reqEditors ...RequestEditorFn) (*TasksListResponse, error) {
+	rsp, err := c.TasksList(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -2704,12 +4196,32 @@ func ParseActorsListResponse(rsp *http.Response) (*ActorsListResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest ActorList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ActorsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2730,12 +4242,32 @@ func ParseAlertsListResponse(rsp *http.Response) (*AlertsListResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest AlertList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers AlertsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2755,13 +4287,29 @@ func ParseAlertsAcknowledgeResponse(rsp *http.Response) (*AlertsAcknowledgeRespo
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON401 = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers AlertsAcknowledgeResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2782,12 +4330,32 @@ func ParseAuditListResponse(rsp *http.Response) (*AuditListResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest AuditList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers AuditListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2808,12 +4376,32 @@ func ParseCalendarReadResponse(rsp *http.Response) (*CalendarReadResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest Calendar
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers CalendarReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2834,7 +4422,7 @@ func ParseEnrollmentExchangeResponse(rsp *http.Response) (*EnrollmentExchangeRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest JSONSuccess
+		var dest IssuedCredential
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2878,6 +4466,29 @@ func ParseEventsStreamResponse(rsp *http.Response) (*EventsStreamResponse, error
 		HTTPResponse: rsp,
 	}
 
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers EventsStreamResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
 	return response, nil
 }
 
@@ -2896,12 +4507,32 @@ func ParseGroupsListResponse(rsp *http.Response) (*GroupsListResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest GroupList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers GroupsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2922,12 +4553,32 @@ func ParseGroupsReadResponse(rsp *http.Response) (*GroupsReadResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest Group
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers GroupsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -2948,7 +4599,7 @@ func ParseHealthReadResponse(rsp *http.Response) (*HealthReadResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest Health
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2974,7 +4625,7 @@ func ParseManifestReadResponse(rsp *http.Response) (*ManifestReadResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest Manifest
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -3000,12 +4651,32 @@ func ParseRunsListResponse(rsp *http.Response) (*RunsListResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest RunList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers RunsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3026,12 +4697,32 @@ func ParseRunsActiveListResponse(rsp *http.Response) (*RunsActiveListResponse, e
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest RunList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers RunsActiveListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3052,12 +4743,32 @@ func ParseRunsReadResponse(rsp *http.Response) (*RunsReadResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest Run
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers RunsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3078,7 +4789,7 @@ func ParseTasksListResponse(rsp *http.Response) (*TasksListResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest TaskList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -3124,7 +4835,7 @@ func ParseTasksCreateResponse(rsp *http.Response) (*TasksCreateResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest JSONSuccess
+		var dest TaskDetail
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -3169,13 +4880,29 @@ func ParseTasksDeleteResponse(rsp *http.Response) (*TasksDeleteResponse, error) 
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON401 = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksDeleteResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3196,12 +4923,32 @@ func ParseTasksReadResponse(rsp *http.Response) (*TasksReadResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest TaskDetail
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3222,12 +4969,32 @@ func ParseTasksUpdateResponse(rsp *http.Response) (*TasksUpdateResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+		var dest TaskDetail
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3247,13 +5014,29 @@ func ParseTasksDisableResponse(rsp *http.Response) (*TasksDisableResponse, error
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON401 = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksDisableResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3273,13 +5056,29 @@ func ParseTasksEnableResponse(rsp *http.Response) (*TasksEnableResponse, error) 
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest JSONSuccess
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON200 = &dest
+		response.JSON401 = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksEnableResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -3299,13 +5098,29 @@ func ParseTasksRunNowResponse(rsp *http.Response) (*TasksRunNowResponse, error) 
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
-		var dest JSONSuccess
+	case rsp.StatusCode == 202:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON202 = &dest
+		response.JSON401 = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksRunNowResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil

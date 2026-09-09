@@ -6,8 +6,7 @@ info:
 servers:
   - url: https://{daemon}/api/v1
     variables:
-      daemon:
-        default: 127.0.0.1:8443
+      daemon: {default: 127.0.0.1:8443}
 security:
   - bearerAuth: []
 paths:
@@ -15,86 +14,184 @@ paths:
     get:
       operationId: health.read
       security: []
-      responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}
+      responses: {"200": {$ref: "#/components/responses/Health"}}
   /manifest:
     get:
       operationId: manifest.read
       security: []
-      responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}
+      responses: {"200": {$ref: "#/components/responses/Manifest"}}
   /enroll:
     post:
       operationId: enrollment.exchange
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: {$ref: "#/components/schemas/EnrollmentRequest"}
-      responses:
-        "201": {$ref: "#/components/responses/JSONSuccess"}
-        "401": {$ref: "#/components/responses/Unauthorized"}
+      requestBody: {$ref: "#/components/requestBodies/Enrollment"}
+      responses: {"201": {$ref: "#/components/responses/IssuedCredential"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /tasks:
-    get: {operationId: tasks.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}, "401": {$ref: "#/components/responses/Unauthorized"}}}
-    post: {operationId: tasks.create, requestBody: {$ref: "#/components/requestBodies/JSONBody"}, responses: {"201": {$ref: "#/components/responses/JSONSuccess"}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get:
+      operationId: tasks.list
+      parameters:
+        - {name: group, in: query, schema: {type: string, format: uuid}}
+        - {name: state, in: query, schema: {type: string}}
+        - {name: details, in: query, schema: {type: boolean}}
+        - {name: observation, in: query, schema: {type: boolean}}
+        - {name: scheduled, in: query, schema: {type: boolean}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 0, maximum: 101}}
+        - {name: text_limit, in: query, schema: {type: integer, minimum: 0, maximum: 2048}}
+      responses: {"200": {$ref: "#/components/responses/TaskList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    post:
+      operationId: tasks.create
+      requestBody: {$ref: "#/components/requestBodies/TaskCreate"}
+      responses: {"201": {$ref: "#/components/responses/TaskDetail"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /tasks/{id}:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    get: {operationId: tasks.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
-    patch: {operationId: tasks.update, requestBody: {$ref: "#/components/requestBodies/JSONBody"}, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
-    delete: {operationId: tasks.delete, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: tasks.read
+      responses: {"200": {$ref: "#/components/responses/TaskDetail"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    patch:
+      operationId: tasks.update
+      requestBody: {$ref: "#/components/requestBodies/TaskUpdate"}
+      responses: {"200": {$ref: "#/components/responses/TaskDetail"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    delete:
+      operationId: tasks.delete
+      responses: {"204": {$ref: "#/components/responses/NoContent"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /tasks/{id}/enable:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    post: {operationId: tasks.enable, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    post:
+      operationId: tasks.enable
+      responses: {"204": {$ref: "#/components/responses/NoContent"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /tasks/{id}/disable:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    post: {operationId: tasks.disable, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    post:
+      operationId: tasks.disable
+      responses: {"204": {$ref: "#/components/responses/NoContent"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /tasks/{id}/run-now:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    post: {operationId: tasks.run_now, responses: {"202": {$ref: "#/components/responses/JSONSuccess"}}}
+    post:
+      operationId: tasks.run_now
+      responses: {"202": {$ref: "#/components/responses/Accepted"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /groups:
-    get: {operationId: groups.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: groups.list
+      parameters:
+        - {name: tree, in: query, schema: {type: boolean}}
+      responses: {"200": {$ref: "#/components/responses/GroupList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /groups/{id}:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    get: {operationId: groups.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: groups.read
+      responses: {"200": {$ref: "#/components/responses/Group"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /runs:
-    get: {operationId: runs.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: runs.list
+      parameters:
+        - {name: task, in: query, schema: {type: string, format: uuid}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 0}}
+        - {name: output_limit, in: query, schema: {type: integer, minimum: 0}}
+      responses: {"200": {$ref: "#/components/responses/RunList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /runs/active:
-    get: {operationId: runs.active.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: runs.active.list
+      responses: {"200": {$ref: "#/components/responses/RunList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /runs/{id}:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    get: {operationId: runs.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: runs.read
+      responses: {"200": {$ref: "#/components/responses/Run"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /alerts:
-    get: {operationId: alerts.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: alerts.list
+      parameters:
+        - {name: unacked, in: query, schema: {type: boolean}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 0}}
+        - {name: message_limit, in: query, schema: {type: integer, minimum: 0}}
+      responses: {"200": {$ref: "#/components/responses/AlertList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /alerts/{id}/ack:
     parameters: [{$ref: "#/components/parameters/ID"}]
-    post: {operationId: alerts.acknowledge, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    post:
+      operationId: alerts.acknowledge
+      responses: {"204": {$ref: "#/components/responses/NoContent"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /calendar:
-    get: {operationId: calendar.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: calendar.read
+      parameters:
+        - {name: from, in: query, schema: {type: string, format: date-time}}
+        - {name: to, in: query, schema: {type: string, format: date-time}}
+      responses: {"200": {$ref: "#/components/responses/Calendar"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /events:
     get:
       operationId: events.stream
-      description: Reconnect safe read stream. Mutations are never automatically replayed.
+      description: Reconnect-safe read stream. Mutations are never automatically replayed.
       responses:
         "200": {description: Server-sent event stream, content: {text/event-stream: {schema: {type: string}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
   /access/actors:
-    get: {operationId: actors.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: actors.list
+      responses: {"200": {$ref: "#/components/responses/ActorList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /audit:
-    get: {operationId: audit.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    get:
+      operationId: audit.list
+      parameters:
+        - {name: actor_id, in: query, schema: {type: string, format: uuid}}
+        - {name: operation, in: query, schema: {type: string}}
+        - {name: result, in: query, schema: {type: string, enum: [uncertain, succeeded, failed, denied]}}
+        - {name: since, in: query, schema: {type: string, format: date-time}}
+        - {name: until, in: query, schema: {type: string, format: date-time}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 0, maximum: 1000}}
+      responses: {"200": {$ref: "#/components/responses/AuditList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
 components:
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      description: A 256-bit opaque base64url credential issued once during enrollment or rotation.
+    bearerAuth: {type: http, scheme: bearer, description: A 256-bit opaque base64url credential issued once during enrollment or rotation.}
   parameters:
     ID: {name: id, in: path, required: true, schema: {type: string, format: uuid}}
   requestBodies:
-    JSONBody:
-      required: true
-      content: {application/json: {schema: {type: object, maxProperties: 128}}}
+    Enrollment: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EnrollmentRequest"}}}}
+    TaskCreate: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/TaskCreateRequest"}}}}
+    TaskUpdate: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/TaskUpdateRequest"}}}}
   responses:
-    JSONSuccess: {description: Successful JSON response, content: {application/json: {schema: {type: object}}}}
+    Health: {description: Daemon health, content: {application/json: {schema: {$ref: "#/components/schemas/Health"}}}}
+    Manifest: {description: Daemon identity and compatibility manifest, content: {application/json: {schema: {$ref: "#/components/schemas/Manifest"}}}}
+    IssuedCredential: {description: One-time enrollment credential, content: {application/json: {schema: {$ref: "#/components/schemas/IssuedCredential"}}}}
+    TaskList: {description: Task collection, content: {application/json: {schema: {$ref: "#/components/schemas/TaskList"}}}}
+    TaskDetail: {description: Task detail, content: {application/json: {schema: {$ref: "#/components/schemas/TaskDetail"}}}}
+    GroupList: {description: Group collection or tree, content: {application/json: {schema: {$ref: "#/components/schemas/GroupList"}}}}
+    Group: {description: Group detail, content: {application/json: {schema: {$ref: "#/components/schemas/Group"}}}}
+    RunList: {description: Run collection, content: {application/json: {schema: {$ref: "#/components/schemas/RunList"}}}}
+    Run: {description: Run detail, content: {application/json: {schema: {$ref: "#/components/schemas/Run"}}}}
+    AlertList: {description: Alert collection, content: {application/json: {schema: {$ref: "#/components/schemas/AlertList"}}}}
+    Calendar: {description: Calendar window, content: {application/json: {schema: {$ref: "#/components/schemas/Calendar"}}}}
+    ActorList: {description: Authorized actors, content: {application/json: {schema: {$ref: "#/components/schemas/ActorList"}}}}
+    AuditList: {description: Management audit events, content: {application/json: {schema: {$ref: "#/components/schemas/AuditList"}}}}
+    Accepted: {description: Operation accepted for asynchronous execution}
+    NoContent: {description: Operation completed without a response body}
     Unauthorized: {description: Generic authentication failure, headers: {WWW-Authenticate: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
   schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status, version]
+      properties: {status: {type: string, const: ok}, version: {type: string}}
+    Manifest:
+      type: object
+      additionalProperties: false
+      required: [installation_id, display_name, product_version, local_api_versions, remote_api_versions, operating_mode, capabilities, platform]
+      properties:
+        installation_id: {type: string, format: uuid}
+        display_name: {type: string}
+        product_version: {type: string}
+        local_api_versions: {type: array, items: {type: string}}
+        remote_api_versions: {type: array, items: {type: string}}
+        operating_mode: {type: string}
+        capabilities: {type: array, items: {type: string}}
+        platform: {$ref: "#/components/schemas/Platform"}
+    Platform:
+      type: object
+      additionalProperties: false
+      required: [os, architecture]
+      properties: {os: {type: string}, architecture: {type: string}}
     EnrollmentRequest:
       type: object
       additionalProperties: false
@@ -104,15 +201,306 @@ components:
         phrase: {type: string, minLength: 1, maxLength: 256}
         daemon_id: {type: string, format: uuid}
         display_name: {type: string, minLength: 1, maxLength: 80}
-        kind: {type: string, enum: [desktop, cli, json, mcp]}
-        capability: {type: string, enum: [observe, operate, manage, enroll]}
+        kind: {$ref: "#/components/schemas/ActorKind"}
+        capability: {$ref: "#/components/schemas/Capability"}
+    IssuedCredential:
+      type: object
+      additionalProperties: false
+      required: [id, actor_id, fingerprint, state, created_at, updated_at, actor, token, daemon_id]
+      properties:
+        id: {type: string, format: uuid}
+        actor_id: {type: string, format: uuid}
+        fingerprint: {type: string}
+        state: {type: string, enum: [active, revoked]}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        last_used_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        revoked_at: {type: string, format: date-time}
+        actor: {$ref: "#/components/schemas/Actor"}
+        token: {type: string, description: Returned once. Store in the operating system credential store.}
+        daemon_id: {type: string, format: uuid}
+    TaskCreateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        group_id: {type: string, format: uuid}
+        command: {type: string}
+        args: {type: array, items: {type: string}}
+        working_dir: {type: string}
+        env: {type: object, additionalProperties: {type: string}}
+        stdin: {type: string}
+        run_as: {type: string}
+        timezone: {type: string}
+        schedule: {type: string}
+        schedule_syntax: {type: string}
+        at: {type: string, format: date-time}
+        overlap_policy: {type: string, enum: [queue_one, skip, allow_concurrent]}
+        catchup_policy: {type: string, enum: [one, none]}
+        missing_date_policy: {type: string, enum: [skip, last_valid, next_valid]}
+        time_basis: {type: string, enum: [wall_clock, elapsed, utc]}
+        dst_gap_policy: {type: string, enum: [next_valid, skip]}
+        dst_overlap_policy: {type: string, enum: [first, both, last]}
+        enabled: {type: boolean}
+    TaskUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: {type: string}
+        group_id: {type: string, format: uuid}
+        command: {type: string}
+        args: {type: array, items: {type: string}}
+        working_dir: {type: string}
+        env: {type: object, additionalProperties: {type: string}}
+        stdin: {type: string}
+        run_as: {type: string}
+        timezone: {type: string}
+        schedule: {type: string}
+        schedule_syntax: {type: string}
+        at: {type: string, format: date-time}
+        overlap_policy: {type: string, enum: [queue_one, skip, allow_concurrent]}
+        catchup_policy: {type: string, enum: [one, none]}
+        missing_date_policy: {type: string, enum: [skip, last_valid, next_valid]}
+        time_basis: {type: string, enum: [wall_clock, elapsed, utc]}
+        dst_gap_policy: {type: string, enum: [next_valid, skip]}
+        dst_overlap_policy: {type: string, enum: [first, both, last]}
+        clear_name: {type: boolean}
+        clear_command: {type: boolean}
+        clear_working_dir: {type: boolean}
+        clear_run_as: {type: boolean}
+        clear_schedule: {type: boolean}
+    TaskList:
+      type: object
+      additionalProperties: false
+      required: [tasks]
+      properties: {tasks: {type: array, items: {$ref: "#/components/schemas/TaskListItem"}}}
+    TaskListItem:
+      oneOf:
+        - {$ref: "#/components/schemas/Task"}
+        - {$ref: "#/components/schemas/TaskDetail"}
+        - {$ref: "#/components/schemas/TaskObservation"}
+    TaskDetail:
+      type: object
+      additionalProperties: false
+      required: [task, schedule, readiness, policy_summary, next_runs]
+      properties:
+        task: {$ref: "#/components/schemas/Task"}
+        schedule: {oneOf: [{$ref: "#/components/schemas/Schedule"}, {type: "null"}]}
+        readiness: {$ref: "#/components/schemas/Readiness"}
+        policy_summary: {type: string}
+        next_runs: {type: array, items: {type: string, format: date-time}}
+    Task:
+      type: object
+      additionalProperties: false
+      required: [id, name, command, enabled, timezone, schedule_id, overlap_policy, catchup_policy, missing_date_policy, time_basis, dst_gap_policy, dst_overlap_policy, state, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        group_id: {type: string, format: uuid}
+        command: {type: string}
+        args: {type: array, items: {type: string}}
+        working_dir: {type: string}
+        env: {type: object, additionalProperties: {type: string}}
+        stdin: {type: string}
+        run_as: {type: string}
+        enabled: {type: boolean}
+        timezone: {type: string}
+        schedule_id: {type: string}
+        overlap_policy: {type: string}
+        catchup_policy: {type: string}
+        missing_date_policy: {type: string}
+        time_basis: {type: string}
+        dst_gap_policy: {type: string}
+        dst_overlap_policy: {type: string}
+        state: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    TaskObservation:
+      type: object
+      additionalProperties: false
+      required: [id, name, enabled, state, timezone, readiness, has_schedule, next_runs, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        group_id: {type: string, format: uuid}
+        enabled: {type: boolean}
+        state: {type: string}
+        timezone: {type: string}
+        readiness: {type: string}
+        readiness_reason: {type: string}
+        has_schedule: {type: boolean}
+        schedule_summary: {type: string}
+        policy_summary: {type: string}
+        next_runs: {type: array, items: {type: string, format: date-time}}
+        updated_at: {type: string, format: date-time}
+        name_truncated: {type: boolean}
+        readiness_reason_truncated: {type: boolean}
+        schedule_summary_truncated: {type: boolean}
+        policy_summary_truncated: {type: boolean}
+    Schedule:
+      type: object
+      additionalProperties: false
+      required: [id, kind, human_summary]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string, enum: [one_off, recurring, event]}
+        rrule: {type: string}
+        calendar_adjustment: {type: string}
+        anchor: {type: string, format: date-time}
+        elapsed_epoch: {type: string, format: date-time}
+        run_at: {type: string, format: date-time}
+        trigger_id: {type: string}
+        human_summary: {type: string}
+        expression: {type: string}
+        source_syntax: {type: string}
+    Readiness:
+      type: object
+      additionalProperties: false
+      required: [command_ready, activation_ready, automatic_sources, status, reason]
+      properties:
+        command_ready: {type: boolean}
+        activation_ready: {type: boolean}
+        automatic_sources: {type: array, items: {type: string}}
+        status: {type: string}
+        reason: {type: string}
+    GroupList:
+      type: object
+      additionalProperties: false
+      properties:
+        groups: {type: array, items: {$ref: "#/components/schemas/Group"}}
+        tree: {type: array, items: {$ref: "#/components/schemas/GroupTreeNode"}}
+    GroupTreeNode:
+      type: object
+      required: [id, name, enabled, children]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        parent_id: {type: string, format: uuid}
+        enabled: {type: boolean}
+        children: {type: array, items: {$ref: "#/components/schemas/GroupTreeNode"}}
+    Group:
+      type: object
+      additionalProperties: false
+      required: [id, name, enabled, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        parent_id: {type: string, format: uuid}
+        enabled: {type: boolean}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    RunList:
+      type: object
+      additionalProperties: false
+      required: [runs]
+      properties: {runs: {type: array, items: {$ref: "#/components/schemas/Run"}}}
+    Run:
+      type: object
+      additionalProperties: false
+      required: [id, task_id, scheduled_for, outcome, trigger]
+      properties:
+        id: {type: string, format: uuid}
+        task_id: {type: string, format: uuid}
+        scheduled_for: {type: string, format: date-time}
+        started_at: {type: string, format: date-time}
+        ended_at: {type: string, format: date-time}
+        outcome: {type: string}
+        exit_code: {type: integer}
+        output: {type: string}
+        output_truncated: {type: boolean}
+        trigger: {type: string}
+        source_task_id: {type: string, format: uuid}
+        source_run_id: {type: string, format: uuid}
+        source_trigger_id: {type: string, format: uuid}
+        source_watcher_id: {type: string, format: uuid}
+    AlertList:
+      type: object
+      additionalProperties: false
+      required: [alerts]
+      properties: {alerts: {type: array, items: {$ref: "#/components/schemas/Alert"}}}
+    Alert:
+      type: object
+      additionalProperties: false
+      required: [id, severity, kind, message, created_at, acknowledged]
+      properties:
+        id: {type: string, format: uuid}
+        task_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        severity: {type: string, enum: [info, warning, error]}
+        kind: {type: string}
+        message: {type: string}
+        message_truncated: {type: boolean}
+        created_at: {type: string, format: date-time}
+        acknowledged: {type: boolean}
+    Calendar:
+      type: object
+      additionalProperties: false
+      required: [from, to, occurrences]
+      properties:
+        from: {type: string, format: date-time}
+        to: {type: string, format: date-time}
+        occurrences: {type: array, items: {$ref: "#/components/schemas/Occurrence"}}
+    Occurrence:
+      type: object
+      additionalProperties: false
+      required: [task_id, task_name, time, kind]
+      properties:
+        task_id: {type: string, format: uuid}
+        task_name: {type: string}
+        run_id: {type: string, format: uuid}
+        time: {type: string, format: date-time}
+        kind: {type: string, enum: [past, scheduled]}
+        outcome: {type: string}
+    ActorList:
+      type: object
+      additionalProperties: false
+      required: [actors]
+      properties: {actors: {type: array, items: {$ref: "#/components/schemas/Actor"}}}
+    Actor:
+      type: object
+      additionalProperties: false
+      required: [id, kind, display_name, capability, state, builtin, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {$ref: "#/components/schemas/ActorKind"}
+        display_name: {type: string}
+        capability: {$ref: "#/components/schemas/Capability"}
+        state: {type: string, enum: [active, expired, revoked]}
+        builtin: {type: boolean}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+    AuditList:
+      type: object
+      additionalProperties: false
+      required: [events]
+      properties: {events: {type: array, items: {$ref: "#/components/schemas/AuditEvent"}}}
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required: [id, daemon_id, operation, target_kind, result, correlation_id, occurred_at]
+      properties:
+        id: {type: string, format: uuid}
+        actor_id: {type: string, format: uuid}
+        daemon_id: {type: string, format: uuid}
+        operation: {type: string}
+        target_kind: {type: string}
+        target_id: {type: string, format: uuid}
+        result: {type: string, enum: [uncertain, succeeded, failed, denied]}
+        correlation_id: {type: string, format: uuid}
+        occurred_at: {type: string, format: date-time}
+        completed_at: {type: string, format: date-time}
+    ActorKind: {type: string, enum: [desktop, cli, json, mcp]}
+    Capability: {type: string, enum: [observe, operate, manage, enroll]}
     ErrorEnvelope:
       type: object
+      additionalProperties: false
       required: [error]
       properties:
         error:
           type: object
+          additionalProperties: false
           required: [code, message]
-          properties:
-            code: {type: string}
-            message: {type: string}
+          properties: {code: {type: string}, field: {type: string}, message: {type: string}}

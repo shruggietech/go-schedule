@@ -38,6 +38,12 @@
 
 The canonical eight-gate run passed after three gate-driven corrections: an unsupported `json` fence label was changed to `text`, implemented delivery evidence was rewritten in the lifecycle check's established review-branch form, and direct remote-storage failure tests restored the core persistence coverage floor after final fail-closed branches were added. Format, vet, lint, race, GUI, coverage, documentation, and automation are green. Final coverage measured engine 82.9 percent, schedule 89.1 percent, timezone 91.3 percent, store 80.2 percent, catchup 88.9 percent, and logbus 91.1 percent.
 
+## First-round review remediation
+
+- Source limiter entries now expire after ten minutes without traffic when capacity pressure requires reclamation. A deterministic clock test proves that a full limiter admits a new source after stale eviction while preserving active-source rejection.
+- Desktop enrollment rejects every HTTP redirect so a 307 or 308 response cannot replay the one-time pairing phrase to another trusted certificate endpoint. The regression test trusts both test certificates and proves the redirect target receives no request.
+- The OpenAPI source now assigns concrete request and success-response schemas to every JSON operation, including the one-time issued credential, and records the actual bodyless statuses for delete, enable, disable, run-now, and alert acknowledgement. The generated client now exposes typed operation payloads instead of arbitrary maps.
+
 ## Dependency and integrity review
 
 - Direct runtime dependencies are `golang.org/x/crypto` v0.55.0, `golang.org/x/time` v0.15.0, `github.com/zalando/go-keyring` v0.2.8, and `github.com/oapi-codegen/runtime` v1.7.0. The generator is pinned as the Go tool `github.com/oapi-codegen/oapi-codegen/v2` v2.8.0.

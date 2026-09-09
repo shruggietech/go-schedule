@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +51,26 @@ func TestPairDoesNotConsumePhraseWhenNativeStoreUnavailable(t *testing.T) {
 	result := NewWithStore(&fakeSecrets{probeErr: testError("unavailable")}).Pair(context.Background(), Draft{Address: server.URL, DaemonID: "daemon", PairingID: "pair", Phrase: "phrase", CertificatePEM: "invalid"})
 	if result.Outcome != "rejected" || calls != 0 {
 		t.Fatalf("result=%+v calls=%d", result, calls)
+	}
+}
+
+func TestPairDoesNotForwardEnrollmentSecretsAcrossRedirects(t *testing.T) {
+	receiverCalls := 0
+	receiver := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { receiverCalls++ }))
+	defer receiver.Close()
+	redirectorCalls := 0
+	redirector := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		redirectorCalls++
+		http.Redirect(w, &http.Request{}, receiver.URL+"/api/v1/enroll", http.StatusTemporaryRedirect)
+	}))
+	defer redirector.Close()
+	certificates := strings.Join([]string{
+		string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: redirector.Certificate().Raw})),
+		string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: receiver.Certificate().Raw})),
+	}, "")
+
+	result := NewWithStore(&fakeSecrets{}).Pair(context.Background(), Draft{Address: redirector.URL, DaemonID: "daemon-id", PairingID: "pairing-id", Phrase: "one-time", CertificatePEM: certificates, DisplayName: "Desktop", Capability: "observe"})
+	if result.Outcome != "rejected" || redirectorCalls != 1 || receiverCalls != 0 {
+		t.Fatalf("result=%+v redirectorCalls=%d receiverCalls=%d", result, redirectorCalls, receiverCalls)
 	}
 }
