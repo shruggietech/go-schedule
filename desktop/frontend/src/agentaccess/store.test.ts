@@ -31,4 +31,26 @@ describe('useAgentAccess', () => {
     act(() => release())
     await waitFor(() => expect(result.current.pending).toBe(false))
   })
+
+  it('turns a rejected initial call into a bounded unavailable result', async () => {
+    const api = bridge()
+    api.workspace = vi.fn().mockRejectedValue(new Error('native detail'))
+    const { result } = renderHook(() => useAgentAccess(api, true, 1))
+    await waitFor(() => expect(result.current.message).toMatch(/unavailable/i))
+    expect(result.current.message).not.toContain('native detail')
+  })
+
+  it('refreshes evidence while localhost access is active', async () => {
+    vi.useFakeTimers()
+    const active = { ...workspace, http: { ...workspace.http, enabled: true } }
+    const api = bridge()
+    api.workspace = vi.fn().mockResolvedValue({ action: 'load_agent_access', outcome: 'accepted', message: '', workspace: active })
+    const { result } = renderHook(() => useAgentAccess(api, true, 1))
+    await act(async () => { await vi.runOnlyPendingTimersAsync() })
+    expect(result.current.workspace?.http.enabled).toBe(true)
+    const calls = vi.mocked(api.workspace).mock.calls.length
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+    expect(api.workspace).toHaveBeenCalledTimes(calls + 1)
+    vi.useRealTimers()
+  })
 })

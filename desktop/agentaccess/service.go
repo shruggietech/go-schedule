@@ -96,7 +96,13 @@ func (s *Service) status(ctx context.Context) (server.MCPHTTPStatusResponse, err
 func (s *Service) handoff(ctx context.Context, action, message string, result server.MCPHTTPCredentialResponse) Result {
 	credential := result.Credential
 	result.Credential = ""
-	if s.native == nil || s.native.ClipboardSetText(ctx, credential) != nil {
+	copyCtx, copyCancel := context.WithTimeout(ctx, operationTimeout)
+	copyErr := context.Canceled
+	if s.native != nil {
+		copyErr = s.native.ClipboardSetText(copyCtx, credential)
+	}
+	copyCancel()
+	if copyErr != nil {
 		rollbackCtx, cancel := context.WithTimeout(context.Background(), operationTimeout)
 		status, err := s.backend.DisableMCPHTTP(rollbackCtx)
 		cancel()

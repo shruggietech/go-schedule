@@ -39,13 +39,18 @@ func (b *fakeBackend) DisableMCPHTTP(context.Context) (server.MCPHTTPStatusRespo
 }
 
 type fakeNative struct {
-	copied  string
-	opened  string
-	copyErr error
+	copied         string
+	opened         string
+	copyErr        error
+	waitForContext bool
 }
 
-func (n *fakeNative) ClipboardSetText(_ context.Context, value string) error {
+func (n *fakeNative) ClipboardSetText(ctx context.Context, value string) error {
 	n.copied = value
+	if n.waitForContext {
+		<-ctx.Done()
+		return ctx.Err()
+	}
 	return n.copyErr
 }
 func (n *fakeNative) BrowserOpenURL(_ context.Context, value string) error {
@@ -95,5 +100,15 @@ func TestEnableValidatesNameAndGuideIsFixed(t *testing.T) {
 	}
 	if result := service.OpenGuide(context.Background()); result.Outcome != "accepted" || native.opened != guideURL {
 		t.Fatalf("guide = %+v url=%q", result, native.opened)
+	}
+}
+
+func TestClipboardHandoffCancellationStillRollsBack(t *testing.T) {
+	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{Enabled: true, AllowedOrigins: []string{}}, secret: "one-time"}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	result := NewService(backend, &fakeNative{waitForContext: true}).Rotate(ctx)
+	if result.Workspace == nil || result.Workspace.HTTP.Enabled || backend.disabled != 1 {
+		t.Fatalf("deadline rollback = %+v disabled=%d", result, backend.disabled)
 	}
 }
