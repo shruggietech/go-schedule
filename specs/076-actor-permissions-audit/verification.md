@@ -44,4 +44,5 @@
 
 ## Review remediation
 
-Pending publication.
+- The first CI run and two failed-job retries reproduced an external Google Chrome apt index hash mismatch before Linux desktop or Playwright project commands ran. The affected ephemeral jobs now remove that unused hosted-runner source before resolving Ubuntu and Playwright prerequisites, preserving package-integrity checks without blind retries.
+- The automatic first Codex review failed to execute without findings. The one authorized manual second review was requested with `@codex review`; no further review round will be triggered.
