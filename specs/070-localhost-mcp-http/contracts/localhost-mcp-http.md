@@ -22,7 +22,7 @@ Revokes the credential and stops the listener. Repetition succeeds and returns d
 
 ## Public Streamable HTTP endpoint
 
-The only route is `POST http://127.0.0.1:<port>/mcp`. The handler requires exact Host, an optional exact allowed Origin, exactly one `Authorization: Bearer <credential>` value, MCP `Content-Type` and `Accept` headers, and a body no larger than 1 MiB. Host or Origin rejection uses `403`; authorization rejection uses `401` and `WWW-Authenticate: Bearer`; protocol and media errors remain official SDK responses. Responses use `Cache-Control: no-store` and do not grant wildcard CORS.
+The only route is `http://127.0.0.1:<port>/mcp`. POST requires exact Host, an optional exact allowed Origin, exactly one `Authorization: Bearer <credential>` value, MCP `Content-Type` and `Accept` headers, and a body no larger than 1 MiB. An OPTIONS preflight requires exact Host, an exact allowed Origin, POST as its requested method, and only Authorization, Content-Type, Accept, or MCP-Protocol-Version as requested headers; success returns the exact allowed origin and never a wildcard. Matched browser POST responses return the same exact origin. Host or Origin rejection uses `403`; authorization rejection uses `401` and `WWW-Authenticate: Bearer`; protocol and media errors remain official SDK responses. Responses use `Cache-Control: no-store`.
 
 The SDK handler is stateless and creates the existing Observe server for each request. The transport advertises resources and templates only, and its resource payloads follow [S069's Observe contract](../../069-local-mcp-observe/contracts/observe-resources.md).
 

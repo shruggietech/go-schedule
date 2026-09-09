@@ -159,10 +159,11 @@ func TestSecurityMatricesRejectBeforeMCP(t *testing.T) {
 		origins []string
 		auth    []string
 		forward string
+		cors    string
 		status  int
 	}{
 		{name: "valid native", host: host, auth: []string{"Bearer " + result.Credential}, status: http.StatusOK},
-		{name: "valid browser", host: host, origins: []string{"http://127.0.0.1:3000"}, auth: []string{"Bearer " + result.Credential}, status: http.StatusOK},
+		{name: "valid browser", host: host, origins: []string{"http://127.0.0.1:3000"}, auth: []string{"Bearer " + result.Credential}, cors: "http://127.0.0.1:3000", status: http.StatusOK},
 		{name: "localhost host", host: "localhost:" + strings.Split(host, ":")[1], auth: []string{"Bearer " + result.Credential}, status: http.StatusForbidden},
 		{name: "alternate loopback", host: "127.0.0.2:" + strings.Split(host, ":")[1], auth: []string{"Bearer " + result.Credential}, status: http.StatusForbidden},
 		{name: "host trailing dot", host: "127.0.0.1.:" + strings.Split(host, ":")[1], auth: []string{"Bearer " + result.Credential}, status: http.StatusForbidden},
@@ -205,10 +206,40 @@ func TestSecurityMatricesRejectBeforeMCP(t *testing.T) {
 			if resp.StatusCode != tc.status {
 				t.Fatalf("status=%d body=%s", resp.StatusCode, body)
 			}
-			if resp.Header.Get("Access-Control-Allow-Origin") != "" || strings.Contains(string(body), result.Credential) {
+			if resp.Header.Get("Access-Control-Allow-Origin") != tc.cors || strings.Contains(string(body), result.Credential) {
 				t.Fatalf("unsafe response headers=%v body=%q", resp.Header, body)
 			}
 		})
+	}
+	preflight, err := http.NewRequest(http.MethodOptions, result.Endpoint, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preflight.Header.Set("Origin", "http://127.0.0.1:3000")
+	preflight.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	preflight.Header.Set("Access-Control-Request-Headers", "authorization, content-type, mcp-protocol-version")
+	preflightResponse, err := http.DefaultClient.Do(preflight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preflightResponse.Body.Close()
+	if preflightResponse.StatusCode != http.StatusNoContent || preflightResponse.Header.Get("Access-Control-Allow-Origin") != "http://127.0.0.1:3000" || strings.Contains(preflightResponse.Header.Get("Access-Control-Allow-Origin"), "*") {
+		t.Fatalf("preflight status=%d headers=%v", preflightResponse.StatusCode, preflightResponse.Header)
+	}
+	deniedPreflight, err := http.NewRequest(http.MethodOptions, result.Endpoint, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deniedPreflight.Header.Set("Origin", "http://127.0.0.1:3000")
+	deniedPreflight.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	deniedPreflight.Header.Set("Access-Control-Request-Headers", "authorization, x-unapproved")
+	deniedResponse, err := http.DefaultClient.Do(deniedPreflight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deniedResponse.Body.Close()
+	if deniedResponse.StatusCode != http.StatusForbidden || deniedResponse.Header.Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("denied preflight status=%d headers=%v", deniedResponse.StatusCode, deniedResponse.Header)
 	}
 	old := result.Credential
 	rotated, err := manager.Rotate(context.Background())

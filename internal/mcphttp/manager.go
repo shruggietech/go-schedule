@@ -158,7 +158,7 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 	}
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()
-	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+	if err := httpServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, net.ErrClosed) {
 		_ = httpServer.Close()
 		return disabledStatus(), fmt.Errorf("stop localhost MCP listener: %w", err)
 	}
@@ -177,16 +177,6 @@ func (m *Manager) clearLocked() {
 	m.digest = [sha256.Size]byte{}
 	m.http = nil
 	m.listen = nil
-}
-
-func (m *Manager) requestPolicy() (string, []string, [sha256.Size]byte, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	host := ""
-	if m.status.Endpoint != "" {
-		host = m.status.Endpoint[len("http://") : len(m.status.Endpoint)-len("/mcp")]
-	}
-	return host, append([]string(nil), m.status.AllowedOrigins...), m.digest, m.status.Enabled
 }
 
 func (m *Manager) newObserveServer() *mcp.Server {
