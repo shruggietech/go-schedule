@@ -57,10 +57,12 @@ for mode in \
   fi
 done
 
-threat_count=$(grep -Ec '^\| T[0-9][0-9] \|' "$DOC" || true)
-if [ "$threat_count" -lt 12 ]; then
-  report "missing threat coverage: expected at least 12 threat-to-test rows, found $threat_count"
-fi
+for threat in T01 T02 T03 T04 T05 T06 T07 T08 T09 T10 T11 T12; do
+  threat_count=$(grep -Ec "^\\| $threat \\|" "$DOC" || true)
+  if [ "$threat_count" -ne 1 ]; then
+    report "invalid threat coverage: expected exactly one $threat threat-to-test row, found $threat_count"
+  fi
+done
 
 awk '
   /^## Required implementation order$/ { inside = 1; next }

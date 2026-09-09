@@ -51,4 +51,4 @@ The foreground `scripts/verify.sh all` aggregate passed on 2026-09-09 with Node 
 
 ## Review Evidence
 
-Pending publication and external review.
+The first automatic Codex review on commit `b2280e0` raised two P2 findings. Both were accepted: the architecture guard now requires exactly one row for every threat identifier `T01` through `T12`, with a fixture that replaces `T12` with duplicate `T11`; and reverse-proxy deployment now assigns public and backend certificate issuance, renewal, hostname trust, and key permissions to the operator while go-schedule owns application TLS configuration validation. Focused architecture, fixture, documentation, lifecycle, and publication-format checks passed after the fix; hosted final-head checks will run after publication.

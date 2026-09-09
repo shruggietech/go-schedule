@@ -130,8 +130,8 @@ run_expect_fail missing-owner 'operator ownership' "$missing_owner"
 
 missing_threat="$TMP/missing-threat"
 cp -R "$GOOD" "$missing_threat"
-grep -Fv '| T12 |' "$GOOD/docs/remote-access.md" > "$missing_threat/docs/remote-access.md"
-run_expect_fail missing-threat '12 threat-to-test rows' "$missing_threat"
+sed 's/| T12 |/| T11 |/' "$GOOD/docs/remote-access.md" > "$missing_threat/docs/remote-access.md"
+run_expect_fail missing-threat 'expected exactly one T12 threat-to-test row' "$missing_threat"
 
 missing_non_goal="$TMP/missing-non-goal"
 cp -R "$GOOD" "$missing_non_goal"
