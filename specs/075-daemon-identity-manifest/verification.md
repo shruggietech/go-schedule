@@ -38,3 +38,4 @@
 ## Review remediation
 
 - First-round Codex review identified that the clone instructions needed to account for SQLite WAL state. The guide now requires stopping the daemon before a raw database-file copy or using a WAL-aware SQLite backup operation while it runs.
+- Second-round Codex review identified that trimming occurred before control-character validation. Validation now inspects the original UTF-8 input first, rejecting leading and trailing control characters without mutation while retaining normalization for non-control Unicode space.

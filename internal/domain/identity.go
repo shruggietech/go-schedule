@@ -25,14 +25,17 @@ type DaemonIdentity struct {
 
 // NormalizeDaemonDisplayName applies the display contract used by every write path.
 func NormalizeDaemonDisplayName(name string) (string, error) {
-	name = strings.TrimSpace(name)
-	if !utf8.ValidString(name) || name == "" || utf8.RuneCountInString(name) > MaxDaemonDisplayNameRunes {
+	if !utf8.ValidString(name) {
 		return "", ErrInvalidDaemonDisplayName
 	}
 	for _, r := range name {
 		if unicode.IsControl(r) {
 			return "", ErrInvalidDaemonDisplayName
 		}
+	}
+	name = strings.TrimSpace(name)
+	if name == "" || utf8.RuneCountInString(name) > MaxDaemonDisplayNameRunes {
+		return "", ErrInvalidDaemonDisplayName
 	}
 	return name, nil
 }
