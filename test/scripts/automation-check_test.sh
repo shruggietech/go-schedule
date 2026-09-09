@@ -89,6 +89,16 @@ jobs:
   wails-desktop-browser-contract:
     steps:
       - run: npm run test:e2e
+  v13-release-qualification:
+    name: v1.3 release qualification (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - run: go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1
+      - run: go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
+      - run: go test -race ./internal/store
 EOF
   cat > "$fixture/.github/dependabot.yml" <<'EOF'
 version: 2
@@ -610,6 +620,13 @@ run_automation_cases() {
     "$good/.github/workflows/ci.yml" > "$missing_production_desktop/.github/workflows/ci.yml"
   run_expect_fail missing-production-desktop 'production Wails desktop job' \
     sh "$CHECK" "$missing_production_desktop"
+
+  missing_v13_qualification="$tmp/missing-v13-qualification"
+  cp -R "$good" "$missing_v13_qualification"
+  sed '/^  v13-release-qualification:$/,$d' \
+    "$good/.github/workflows/ci.yml" > "$missing_v13_qualification/.github/workflows/ci.yml"
+  run_expect_fail missing-v13-qualification 'named v1.3 release qualification job' \
+    sh "$CHECK" "$missing_v13_qualification"
 
   old_codeql="$tmp/old-codeql"
   cp -R "$good" "$old_codeql"

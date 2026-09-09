@@ -7,6 +7,8 @@ nav_order: 8
 
 go-schedule can send a versioned JSON webhook after selected task successes or failures. Webhook delivery is durable and asynchronous: a receiver outage cannot change a task result or occupy a scheduler task worker.
 
+Webhook is the only shipped notification transport. SMTP email and native desktop notifications are future work; this release does not claim or emulate either one.
+
 ## Create and assign a channel
 
 Create one reusable channel, then assign it to a task or group. HTTPS is required except for loopback HTTP receivers used in local development.

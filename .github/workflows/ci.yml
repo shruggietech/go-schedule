@@ -54,6 +54,35 @@ jobs:
           CGO_ENABLED: "1"
         run: sh scripts/verify.sh race
 
+  v13-release-qualification:
+    name: v1.3 release qualification (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Exercise package-shaped notification and MCP boundaries
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+        run: go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1
+      - name: Qualify detailed notification and MCP behavior
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+        run: go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
+      - name: Qualify notification storage and migration preservation
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+        run: go test -race ./internal/store
+
   windows-service-core:
     name: Windows LocalSystem execution
     runs-on: windows-latest

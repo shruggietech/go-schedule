@@ -104,6 +104,16 @@ else
     'three-platform stable desktop identity inspection'
   require_ci_text 'build/bin/go-schedule.app/Contents/MacOS/gosched-gui' \
     'macOS Wails display-name bundle and stable executable inspection'
+  require_ci_text '  v13-release-qualification:' \
+    'named v1.3 release qualification job'
+  require_ci_text 'name: v1.3 release qualification (${{ matrix.os }})' \
+    'visible v1.3 platform result'
+  require_ci_text "go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1" \
+    'package-shaped v1.3 integration qualification'
+  require_ci_text 'go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli' \
+    'focused v1.3 notification and MCP qualification'
+  require_ci_text 'go test -race ./internal/store' \
+    'v1.3 notification storage and migration qualification'
   if grep -Eq 'wails-proof:|wails-browser-contract:|Install Fyne|GUI build & test \(cgo\)' "$CI"; then
     report "$CI: retired or parallel desktop validation remains"
   fi
