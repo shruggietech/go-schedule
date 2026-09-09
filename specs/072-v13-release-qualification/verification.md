@@ -55,6 +55,8 @@ The first hosted run passed the S072 matrix on Windows and Linux but failed on m
 
 First-round Codex review identified that the automation fragments were searched across the complete workflow rather than within the S072 job, allowing another matrix or job to mask qualification erosion. The checker now extracts only the `v13-release-qualification` block and requires its visible name, fail-fast setting, three-platform matrix, integration command, detailed notification and MCP command, and store command. A regression fixture narrows only the S072 matrix while retaining the Wails matrix and must fail.
 
+Second-round Codex review identified that an empty `admin_group` made the package-shaped test exercise broad compatibility IPC despite the qualification's protected-local-access claim. The harness now resolves the current primary group on Unix and uses the built-in Users group on hosted Windows, creates a short daemon-managed Unix socket directory, and requires each daemon launch to emit `access_mode=restricted`. Existing installer qualification separately retains the exact `goschedadmin` creation and membership contract. No third review was requested.
+
 ## Publication audit
 
 All 19 changed files passed strict UTF-8 decoding without BOM or mojibake markers, `git diff --check`, the GitHub publication formatter, and specification lifecycle validation. ShellCheck at warning severity passed every repository test script; its three informational findings are unchanged from `origin/main`. The branch contains only issue #190 qualification, documentation, workflow, automation-contract, and Spec Kit artifacts. Every S072 task is complete, and no tag, release workflow, issue closure, or public artifact was created.

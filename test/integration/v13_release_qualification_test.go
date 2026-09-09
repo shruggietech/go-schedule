@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -42,12 +43,13 @@ func TestV13PackageDefaultsRemainOptIn(t *testing.T) {
 	stateDir := filepath.Join(t.TempDir(), "retained state")
 	cfg := config.Default()
 	cfg.DataDir = stateDir
-	cfg.AdminGroup = ""
-	cfg.IPCPath = filepath.Join("/tmp", fmt.Sprintf("goschedd-s072-%d-%d.sock", os.Getpid(), time.Now().UnixNano()))
+	cfg.AdminGroup = v13AccessibleAdminGroup(t)
+	ipcDir := filepath.Join("/tmp", fmt.Sprintf("s072-%d-%d", os.Getpid(), time.Now().UnixNano()))
+	cfg.IPCPath = filepath.Join(ipcDir, "goschedd.sock")
 	if runtime.GOOS == "windows" {
 		cfg.IPCPath = fmt.Sprintf(`\\.\pipe\goschedd-s072-%d-%d`, os.Getpid(), time.Now().UnixNano())
 	} else {
-		t.Cleanup(func() { _ = os.Remove(cfg.IPCPath) })
+		t.Cleanup(func() { _ = os.RemoveAll(ipcDir) })
 	}
 	configPath := filepath.Join(stateDir, "config.json")
 	if err := os.MkdirAll(stateDir, 0o700); err != nil {
@@ -64,6 +66,25 @@ func TestV13PackageDefaultsRemainOptIn(t *testing.T) {
 	for start := 1; start <= 2; start++ {
 		runV13CandidateAndInspect(t, binary, configPath, cfg.IPCPath, start)
 	}
+}
+
+func v13AccessibleAdminGroup(t *testing.T) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		return "Users"
+	}
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Fatalf("resolve current user for restricted IPC: %v", err)
+	}
+	group, err := user.LookupGroupId(currentUser.Gid)
+	if err != nil {
+		t.Fatalf("resolve current group for restricted IPC: %v", err)
+	}
+	if group.Name == "" {
+		t.Fatal("current group has no name for restricted IPC")
+	}
+	return group.Name
 }
 
 func runV13CandidateAndInspect(t *testing.T, binary, configPath, endpoint string, start int) {
@@ -131,6 +152,9 @@ func runV13CandidateAndInspect(t *testing.T, binary, configPath, endpoint string
 		t.Fatalf("launch %d unexpectedly reported a clean exit after forced stop", start)
 	}
 	stopped = true
+	if !bytes.Contains(output.Bytes(), []byte(`"access_mode":"restricted"`)) {
+		t.Fatalf("launch %d did not report restricted IPC: %s", start, output.String())
+	}
 }
 
 func waitForV13Health(ctx context.Context, api *client.Client) error {
