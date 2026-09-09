@@ -36,6 +36,7 @@ type Server struct {
 	runtime RuntimeInfoResponse
 	log     *slog.Logger
 	notify  NotificationDispatcher
+	mcpHTTP MCPHTTPManager
 	mux     *http.ServeMux
 }
 
@@ -71,9 +72,16 @@ func (s *Server) Handler() http.Handler { return s.mux }
 // to the outbound runtime without making handlers perform network requests.
 func (s *Server) SetNotificationDispatcher(dispatcher NotificationDispatcher) { s.notify = dispatcher }
 
+// SetMCPHTTPManager connects runtime-only localhost MCP lifecycle control.
+func (s *Server) SetMCPHTTPManager(manager MCPHTTPManager) { s.mcpHTTP = manager }
+
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/health", s.handleHealth)
 	s.mux.HandleFunc("GET /v1/runtime-info", s.handleRuntimeInfo)
+	s.mux.HandleFunc("GET /v1/mcp/http", s.handleMCPHTTPStatus)
+	s.mux.HandleFunc("POST /v1/mcp/http/enable", s.handleMCPHTTPEnable)
+	s.mux.HandleFunc("POST /v1/mcp/http/rotate", s.handleMCPHTTPRotate)
+	s.mux.HandleFunc("POST /v1/mcp/http/disable", s.handleMCPHTTPDisable)
 
 	s.mux.HandleFunc("GET /v1/tasks", s.handleListTasks)
 	s.mux.HandleFunc("POST /v1/tasks", s.handleCreateTask)
