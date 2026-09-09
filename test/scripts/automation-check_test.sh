@@ -66,7 +66,7 @@ jobs:
       - uses: actions/setup-go@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       - uses: actions/upload-artifact@v7
       - uses: softprops/action-gh-release@v3
   wails-desktop:
@@ -78,7 +78,7 @@ jobs:
         working-directory: desktop
     steps:
       - run: go test -race ./...
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build
       - run: npm audit --audit-level=high && npm test && npm run build
       - run: echo cache-dependency-path: desktop/go.sum
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
@@ -233,9 +233,12 @@ jobs:
   binaries:
     needs: release-state
     steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
       - run: echo go-version-file: desktop/go.mod
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
       - run: cp -R desktop/build/bin/go-schedule.app "$app"
       - run: app="$stage/gosched-gui.app"
@@ -606,6 +609,25 @@ run_automation_cases() {
   sed 's#actions/setup-node@v7#actions/setup-node@v6#' \
     "$good/.github/workflows/ci.yml" > "$old_node/.github/workflows/ci.yml"
   run_expect_fail obsolete-node 'actions/setup-node@v6' sh "$CHECK" "$old_node"
+
+  old_node_runtime="$tmp/old-node-runtime"
+  cp -R "$good" "$old_node_runtime"
+  awk '
+    !changed && /node-version: 26/ { sub(/node-version: 26/, "node-version: 24"); changed = 1 }
+    { print }
+  ' "$good/.github/workflows/ci.yml" > "$old_node_runtime/.github/workflows/ci.yml"
+  run_expect_fail old-node-runtime 'every CI Node runtime pin must use Node 26; found 24' \
+    sh "$CHECK" "$old_node_runtime"
+
+  old_release_node_runtime="$tmp/old-release-node-runtime"
+  cp -R "$good" "$old_release_node_runtime"
+  awk '
+    !changed && /node-version: 26/ { sub(/node-version: 26/, "node-version: 24"); changed = 1 }
+    { print }
+  ' "$good/.github/workflows/release.yml" > \
+    "$old_release_node_runtime/.github/workflows/release.yml"
+  run_expect_fail old-release-node-runtime 'every release Node runtime pin must use Node 26; found 24' \
+    sh "$CHECK" "$old_release_node_runtime"
 
   incomplete_wails_matrix="$tmp/incomplete-wails-matrix"
   cp -R "$good" "$incomplete_wails_matrix"

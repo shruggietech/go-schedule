@@ -77,6 +77,24 @@ require_ci_text() {
   fi
 }
 
+require_node_26_pins() {
+  file=$1
+  description=$2
+  awk '
+    /^[[:space:]]*node-version:[[:space:]]*/ {
+      value = $0
+      sub(/^[[:space:]]*node-version:[[:space:]]*/, "", value)
+      sub(/[[:space:]]*#.*/, "", value)
+      gsub(/[[:space:]"]/, "", value)
+      if (value != "26") {
+        print FNR "|" value
+      }
+    }
+  ' "$file" | while IFS='|' read -r line value; do
+    report "$file:$line: $description must use Node 26; found $value"
+  done
+}
+
 require_v13_text() {
   text=$1
   description=$2
@@ -91,9 +109,10 @@ else
   require_ci_text 'os: [ubuntu-latest, macos-latest, windows-latest]' \
     'three-platform production Wails matrix'
   require_ci_text 'uses: actions/setup-node@v7' 'approved Node setup action'
-  require_ci_text 'node-version: 24' 'Node 24 desktop baseline'
+  require_ci_text 'node-version: 26' 'Node 26 desktop baseline'
+  require_node_26_pins "$CI" 'every CI Node runtime pin'
   require_ci_text 'go test -race ./...' 'desktop Go race gate'
-  require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build' \
+  require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build' \
     'exact production Wails build version'
   require_ci_text '  wails-desktop:' 'production Wails desktop job'
   require_ci_text 'working-directory: desktop' 'production Wails desktop boundary'
@@ -410,7 +429,10 @@ else
     'production desktop Go module'
   require_release_text 'cache-dependency-path: desktop/frontend/package-lock.json' \
     'production frontend lockfile'
-  require_release_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build' \
+  require_release_text 'node-version: 26' \
+    'Node 26 release desktop baseline'
+  require_node_26_pins "$RELEASE" 'every release Node runtime pin'
+  require_release_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build' \
     'pinned native Wails release build'
   require_release_text 'desktop/build/bin/gosched-gui.exe' \
     'stable Windows Wails payload'

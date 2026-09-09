@@ -127,7 +127,7 @@ jobs:
             desktop/go.sum
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: desktop/frontend/package-lock.json
       - name: Install exact frontend dependencies
@@ -141,7 +141,7 @@ jobs:
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           Push-Location desktop
           try {
-            go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean
           } finally {
             Pop-Location
           }
@@ -256,7 +256,7 @@ jobs:
           cache-dependency-path: desktop/go.sum
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: desktop/frontend/package-lock.json
       - name: Install Linux WebKitGTK prerequisites
@@ -277,10 +277,10 @@ jobs:
         run: go test ./test/integration -run TestGuidedPlatformExampleCreatesRunsAndRecordsRecognizableActivity -count=1
       - name: Build Linux desktop
         if: runner.os == 'Linux'
-        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -tags webkit2_41
+        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -tags webkit2_41
       - name: Build native desktop
         if: runner.os != 'Linux'
-        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean
       - name: Inspect stable desktop identity
         shell: bash
         run: |
@@ -306,7 +306,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: desktop/frontend/package-lock.json
       - name: Install exact frontend dependencies
