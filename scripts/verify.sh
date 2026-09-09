@@ -49,7 +49,7 @@ run_gate() {
       (
         cd desktop
         "$GO" test -race ./...
-        "$GO" run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+        "$GO" run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean
       )
       (
         cd desktop/frontend

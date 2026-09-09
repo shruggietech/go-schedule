@@ -17,7 +17,7 @@ npm run test:e2e
 
 cd ..
 go test -race ./...
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean
+go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean
 ```
 
 Linux native builds also use the `webkit2_41` build tag and require GTK 3 plus WebKitGTK 4.1 development packages. Generated frontend bindings, dependency directories, browser reports, and native build outputs are ignored.

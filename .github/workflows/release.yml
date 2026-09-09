@@ -212,7 +212,7 @@ jobs:
             desktop/go.sum
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: desktop/frontend/package-lock.json
       - name: Install Wails build dependencies (Linux)
@@ -250,10 +250,10 @@ jobs:
           stage="go-schedule-desktop_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p "$stage"
           if [ "${{ matrix.goos }}" = "linux" ]; then
-            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -tags webkit2_41 -ldflags "$BASE")
+            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -tags webkit2_41 -ldflags "$BASE")
             cp desktop/build/bin/gosched-gui "$stage/gosched-gui"
           else
-            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -ldflags "$BASE ${{ matrix.ldflags }}")
+            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -ldflags "$BASE ${{ matrix.ldflags }}")
           fi
           if [ "${{ matrix.goos }}" = "windows" ]; then
             cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"

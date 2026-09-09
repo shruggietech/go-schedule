@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **The pending dependency updates now resolve as one coherent runtime and build baseline (Closes #215; Refs #201, #202, #203, #204, #205, #206, #207, #208).** Root storage and watcher dependencies, Wails, React, frontend test infrastructure, and Node type definitions advance together with the Vite 8 and Node 26 companions required by their declared peer and engine ranges. Both Go modules and the frontend lockfile are regenerated from current `main`, while existing scheduling, desktop, accessibility, installer, and local-access behavior remains under the complete verification contract.
+
 ### Added
 
 - **v1.3 notification and local Observe qualification is now a named three-platform release gate (Closes #190).** Windows, macOS, and Linux jobs build and start a package-shaped daemon twice against retained state, prove protected local scheduling remains available, and verify that notification records and localhost MCP stay empty and disabled until explicit setup. The same matrix binds the existing webhook isolation, migration, official-SDK stdio, Observe conformance, localhost authorization, lifecycle, redaction, and hostile-content suites into one visible pull-request result without creating a release tag or public artifact.
@@ -39,6 +43,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-09: align the supported frontend runtime on Node 26 for the consolidated dependency baseline.** The requested jsdom 30 and Node 26 type updates make the earlier Node 24 runtime declaration internally inconsistent, so S073 moves the frontend engine, pull-request workflows, and release packaging workflow to Node 26 as one pinned baseline. The requested Vite React plugin 6.1.1 declares Vite 8 as its supported peer, so Vite advances to 8.2.2 rather than bypassing peer resolution; no unrelated runtime or dependency-policy modernization is included.
 
 - **2026-09-09: qualify v1.3 at the reviewed commit before release publication.** S072 adds a pinned, fail-fast-disabled Windows, macOS, and Linux pull-request matrix that composes a package-shaped fresh-and-retained daemon journey with the detailed notification and MCP race suites. This supplies explicit platform evidence for issue #190 while keeping tags, GitHub releases, and public artifacts under the separate maintainer release ritual.
 
