@@ -23,7 +23,11 @@ const (
 // Target is the stable, non-sensitive identity shown by feature screens.
 type Target struct {
 	ID           string   `json:"id"`
+	ProfileID    string   `json:"profileId,omitempty"`
+	Kind         string   `json:"kind"`
 	DisplayName  string   `json:"displayName"`
+	Endpoint     string   `json:"endpoint,omitempty"`
+	Fingerprint  string   `json:"fingerprint,omitempty"`
 	Platform     string   `json:"platform"`
 	Architecture string   `json:"architecture,omitempty"`
 	Version      string   `json:"version,omitempty"`
@@ -92,6 +96,14 @@ type Failure struct {
 	Message string
 	Action  string
 	Cause   error
+}
+
+// LocalTarget returns the stable desktop identity for the bundled IPC daemon.
+func LocalTarget() Target { return localTarget() }
+
+// RemoteTarget returns the safe preflight identity for one persisted remote profile.
+func RemoteTarget(profileID, daemonID, label, endpoint, fingerprint, platform, architecture, version string) Target {
+	return Target{ID: daemonID, ProfileID: profileID, Kind: "remote", DisplayName: label, Endpoint: endpoint, Fingerprint: fingerprint, Platform: platform, Architecture: architecture, Version: version}
 }
 
 func (f *Failure) Error() string { return f.Message }

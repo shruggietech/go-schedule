@@ -113,11 +113,12 @@ func (c *Client) ListAudit(ctx context.Context, query domain.AuditQuery) ([]doma
 
 func (c *Client) ExportAudit(ctx context.Context, query domain.AuditQuery) ([]byte, error) {
 	path := withQuery("/v1/audit/export", auditQueryValues(query))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+path, nil)
+	target := c.target()
+	req, err := target.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.http.Do(req)
+	resp, err := target.http.Do(req)
 	if err != nil {
 		return nil, NewConnectionError("GET "+path, err)
 	}

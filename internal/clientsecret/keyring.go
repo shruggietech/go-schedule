@@ -58,5 +58,9 @@ func (s *Store) Load(daemonID, credentialID string) (string, error) {
 	return s.backend.Get(servicePrefix+daemonID, credentialID)
 }
 func (s *Store) Delete(daemonID, credentialID string) error {
-	return s.backend.Delete(servicePrefix+daemonID, credentialID)
+	err := s.backend.Delete(servicePrefix+daemonID, credentialID)
+	if errors.Is(err, keyring.ErrNotFound) {
+		return nil
+	}
+	return err
 }

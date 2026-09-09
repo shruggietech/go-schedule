@@ -3,15 +3,33 @@ title: Local API
 nav_order: 5.5
 ---
 
-# Local API
+# Local and remote JSON API
 
 **Audience:** client and integration authors\
 **Applies to:** the current unreleased local API contract\
-**Transport:** local Unix socket or Windows named pipe; the current daemon opens no remote API port
+**Transport:** protected local IPC by default; optional authenticated TLS 1.3 HTTPS on the reviewed `/api/v1` allowlist
 
-The CLI and desktop app use the same versioned JSON API hosted by `goschedd`. Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.
+The CLI and desktop app use the same versioned JSON handlers hosted by `goschedd`. Local IPC paths begin at `/v1`; the opt-in remote adapter exposes only reviewed operations below `/api/v1`. Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.
 
-The reviewed [remote access architecture](remote-access.md) defines a future opt-in `/api/v1` HTTPS allowlist around shared daemon operations. It does not expose this local mux, enable a listener, or change current client behavior.
+The [remote access guide](remote-access.md) defines listener setup, deployment modes, pairing, profiles, revocation, and trust ownership. Installing or upgrading never enables a listener.
+
+## Direct JSON client workflow
+
+A direct client must retain the operator-provided certificate, expected daemon installation ID, credential ID, and bearer value in protected storage. First exchange a one-time phrase without following redirects, then compare both the response `daemon_id` and `GET /api/v1/manifest` `installation_id` to the expected value before retaining or using the credential. Never disable TLS verification or accept an identity change automatically.
+
+Read the phrase and bearer from protected input rather than a URL, source file, or command argument. This shell sketch intentionally keeps both values out of command history:
+
+```sh
+read -rs PAIRING_PHRASE
+printf '{"daemon_id":"%s","pairing_id":"%s","phrase":"%s","display_name":"JSON client","kind":"json","capability":"observe"}' "$DAEMON_ID" "$PAIRING_ID" "$PAIRING_PHRASE" | curl --fail --proto =https --tlsv1.3 --max-redirs 0 --cacert daemon.pem --json @- "$ENDPOINT/api/v1/enroll"
+read -rs BEARER
+printf 'header = "Authorization: Bearer %s"\n' "$BEARER" | curl --fail --proto =https --tlsv1.3 --max-redirs 0 --cacert daemon.pem --config - "$ENDPOINT/api/v1/tasks?limit=100"
+unset PAIRING_PHRASE BEARER
+```
+
+Collection responses use bounded limits and continuation parameters where documented by the generated OpenAPI contract in `api/openapi/remote-v1.yaml`. Classify stable error envelope codes before considering HTTP text. Treat `401` as missing or invalid authentication, `403` as insufficient or revoked authority, `409` as identity or compatibility conflict, `429` as rate limiting, and `5xx` as server failure. Use bounded timeouts for every request.
+
+GET and other retry-safe operations may be retried deliberately. If a mutation response is lost, do not replay it automatically: refresh the authoritative resource, determine whether the first mutation committed, then require a deliberate retry if needed. Server-Sent Events may reconnect using the last accepted event identity, but must discard duplicates.
 
 ## Daemon identity and capability manifest
 

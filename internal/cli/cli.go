@@ -26,6 +26,8 @@ import (
 var errUsage = errors.New("usage")
 
 var jsonOut bool
+var selectedClient *client.Client
+var targetFlags remoteTargetFlags
 
 // Execute runs the root command and returns a process exit code.
 func Execute() int {
@@ -66,6 +68,10 @@ func isReported(err error) bool {
 func fmtUsage(message string) error { return fmt.Errorf("%w: %s", errUsage, message) }
 
 func newRoot() *cobra.Command {
+	jsonOut = false
+	cfg, _ := config.Load("")
+	selectedClient = client.NewSwitchable(client.New(ipc.Endpoint(cfg)))
+	targetFlags = remoteTargetFlags{}
 	root := &cobra.Command{
 		Use:           "gosched",
 		Short:         "Cross-platform scheduler with readable schedules and supported cron",
@@ -73,7 +79,23 @@ func newRoot() *cobra.Command {
 		SilenceErrors: true,
 		Version:       buildinfo.Version,
 	}
+	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+		resolved, description, err := resolveTarget(cmd.Context(), targetFlags)
+		if err != nil {
+			return err
+		}
+		selectedClient.Use(resolved)
+		if description != "" && !jsonOut {
+			fmt.Fprintln(cmd.ErrOrStderr(), description)
+		}
+		return nil
+	}
 	root.PersistentFlags().BoolVar(&jsonOut, "json", false, "machine-readable JSON output")
+	root.PersistentFlags().StringVar(&targetFlags.Profile, "profile", "", "saved remote profile ID or unambiguous label")
+	root.PersistentFlags().StringVar(&targetFlags.Endpoint, "endpoint", "", "explicit remote HTTPS origin")
+	root.PersistentFlags().StringVar(&targetFlags.DaemonID, "daemon-id", "", "expected daemon installation ID for an explicit target")
+	root.PersistentFlags().StringVar(&targetFlags.CredentialID, "credential-id", "", "native credential reference for an explicit target")
+	root.PersistentFlags().StringVar(&targetFlags.CertificateFile, "certificate-file", "", "trusted PEM certificate file for an explicit target")
 	root.AddCommand(
 		newTaskCmd(),
 		newChainCmd(),
@@ -94,11 +116,15 @@ func newRoot() *cobra.Command {
 		newAuditCmd(),
 		newPairingCmd(),
 		newCredentialCmd(),
+		newProfileCmd(),
 	)
 	return root
 }
 
 func newClient() *client.Client {
+	if selectedClient != nil {
+		return selectedClient
+	}
 	cfg, _ := config.Load("")
 	return client.New(ipc.Endpoint(cfg))
 }

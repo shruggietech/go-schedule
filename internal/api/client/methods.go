@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -402,22 +401,12 @@ func withQuery(path string, q url.Values) string {
 // do performs a request with an optional JSON body and decodes an optional JSON
 // response, surfacing the API error envelope.
 func (c *Client) do(ctx context.Context, method, path string, body, out any) error {
-	var rdr *bytes.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return err
-		}
-		rdr = bytes.NewReader(b)
-	} else {
-		rdr = bytes.NewReader(nil)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, baseURL+path, rdr)
+	target := c.target()
+	req, err := target.newRequest(ctx, method, path, body)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.http.Do(req)
+	resp, err := target.http.Do(req)
 	if err != nil {
 		return NewConnectionError(method+" "+path, err)
 	}

@@ -4,7 +4,7 @@ import type { GroupDraft, GroupSummary, OperationResult, TaskBridge } from './mo
 
 type ConfirmedAction = { group: GroupSummary; kind: 'toggle' | 'delete'; invoker: HTMLElement }
 
-export function GroupsPanel({ groups, bridge, available = true, onResult }: { groups: GroupSummary[]; bridge: TaskBridge; available?: boolean; onResult(result: OperationResult): void }) {
+export function GroupsPanel({ groups, bridge, available = true, targetName = 'This computer', onResult }: { groups: GroupSummary[]; bridge: TaskBridge; available?: boolean; targetName?: string; onResult(result: OperationResult): void }) {
   const empty: GroupDraft = { id: '', name: '', parentId: '', enabled: false, isNew: true, originalUpdatedAt: '', overwriteStale: false }
   const [draft, setDraft] = useState<GroupDraft | null>(null)
   const [confirmedAction, setConfirmedAction] = useState<ConfirmedAction | null>(null)
@@ -50,7 +50,7 @@ export function GroupsPanel({ groups, bridge, available = true, onResult }: { gr
       <div className="actions"><Button disabled={!available || pending} onClick={() => void save()}>Save group</Button><Button variant="quiet" onClick={() => setDraft(null)}>Cancel</Button></div>
     </div>}
     <Dialog open={confirmedAction !== null} title={confirmedAction?.kind === 'delete' ? `Delete ${confirmedAction.group.name}?` : `${confirmedAction?.group.declaredEnabled ? 'Disable' : 'Enable'} ${confirmedAction?.group.name}?`} invoker={confirmedAction?.invoker ?? null} onClose={() => setConfirmedAction(null)}>
-      <p>{confirmedAction?.kind === 'delete' ? `On This computer, this removes ${confirmedAction.group.descendantCount} descendant groups and leaves assigned tasks ungrouped.` : `On This computer, this changes effective scheduling for ${confirmedAction?.group.descendantCount ?? 0} descendant groups and their assigned tasks while preserving each declared setting.`}</p>
+      <p>{confirmedAction?.kind === 'delete' ? `On ${targetName}, this removes ${confirmedAction.group.descendantCount} descendant groups and leaves assigned tasks ungrouped.` : `On ${targetName}, this changes effective scheduling for ${confirmedAction?.group.descendantCount ?? 0} descendant groups and their assigned tasks while preserving each declared setting.`}</p>
       <Button variant={confirmedAction?.kind === 'delete' ? 'danger' : 'primary'} onClick={() => void confirm()}>Confirm {confirmedAction?.kind === 'delete' ? 'delete' : confirmedAction?.group.declaredEnabled ? 'disable' : 'enable'}</Button>
     </Dialog>
   </aside>

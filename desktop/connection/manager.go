@@ -32,6 +32,7 @@ type Manager struct {
 	now       func() time.Time
 
 	mu              sync.RWMutex
+	target          Target
 	snapshot        Snapshot
 	cancel          context.CancelFunc
 	done            chan struct{}
@@ -49,7 +50,32 @@ func NewManager(backend Backend, observer Observer) *Manager {
 }
 
 func newManager(backend Backend, observer Observer, scheduler Scheduler, now func() time.Time) *Manager {
-	return &Manager{backend: backend, observer: observer, scheduler: scheduler, now: now, retry: make(chan struct{}, 1), done: make(chan struct{}), snapshot: Snapshot{State: StateConnecting, Target: localTarget(), Message: "Connecting to the local scheduler service."}}
+	target := localTarget()
+	return &Manager{backend: backend, target: target, observer: observer, scheduler: scheduler, now: now, retry: make(chan struct{}, 1), done: make(chan struct{}), snapshot: Snapshot{State: StateConnecting, Target: target, Message: connectingMessage(target)}}
+}
+
+// Switch cancels the active generation and selects an immutable backend for future work.
+func (m *Manager) Switch(backend Backend, target Target) bool {
+	if backend == nil || target.ID == "" || target.DisplayName == "" {
+		return false
+	}
+	m.mu.Lock()
+	if m.stopped {
+		m.mu.Unlock()
+		return false
+	}
+	m.backend = backend
+	m.target = cloneTarget(target)
+	started := m.started
+	m.snapshot = Snapshot{Generation: m.snapshot.Generation, Revision: m.snapshot.Revision + 1, State: StateConnecting, Target: cloneTarget(target), Message: connectingMessage(target)}
+	snapshot := cloneSnapshot(m.snapshot)
+	if started && !m.retryQueued {
+		m.retryQueued = true
+		m.retry <- struct{}{}
+	}
+	m.mu.Unlock()
+	m.emitSnapshot(snapshot)
+	return true
 }
 
 // Start begins the single-owner loop. Repeated calls are harmless.
@@ -139,11 +165,12 @@ func (m *Manager) run(ctx context.Context) {
 connectionLoop:
 	for {
 		generation++
+		backend, target := m.selected()
 		state := StateConnecting
 		if generation > 1 {
 			state = StateRecovering
 		}
-		m.publishSnapshot(generation, state, "Connecting to the local scheduler service.", "")
+		m.publishSelectedSnapshot(generation, state, target, connectingMessage(target), "")
 		attemptCtx, cancelAttempt := context.WithTimeout(ctx, attemptTimeout)
 		type healthResult struct {
 			health Health
@@ -151,7 +178,7 @@ connectionLoop:
 		}
 		result := make(chan healthResult, 1)
 		go func() {
-			health, err := m.backend.Health(attemptCtx)
+			health, err := backend.Health(attemptCtx)
 			result <- healthResult{health: health, err: err}
 		}()
 		m.completeRetry()
@@ -178,7 +205,7 @@ connectionLoop:
 		if err != nil {
 			failure := failureOf(err)
 			m.publishSnapshot(generation, failure.State, failure.Message, failure.Action)
-			if failure.State == StateAccessDenied || failure.State == StateIncompatible {
+			if failure.State == StateAccessDenied || failure.State == StateIncompatible || !autoRetry(backend) {
 				if !m.waitManual(ctx) {
 					return
 				}
@@ -199,13 +226,13 @@ connectionLoop:
 			continue
 		}
 
-		m.publishConnected(generation, health)
+		m.publishConnected(generation, target, health)
 		streamCtx, cancelStream := context.WithCancel(ctx)
 		streamDone := make(chan error, 1)
 		streamActivity := make(chan struct{}, 1)
 		var streamHadActivity atomic.Bool
 		go func(active uint64) {
-			streamDone <- m.backend.StreamEvents(streamCtx, func(event DomainEvent) {
+			streamDone <- backend.StreamEvents(streamCtx, func(event DomainEvent) {
 				if m.publishDomain(active, event) {
 					streamHadActivity.Store(true)
 					select {
@@ -235,6 +262,13 @@ connectionLoop:
 					return
 				}
 				m.publishSnapshot(generation, StateDegraded, "Live updates are temporarily unavailable.", "Try again.")
+				if !autoRetry(backend) {
+					if !m.waitManual(ctx) {
+						return
+					}
+					retryIndex = 0
+					continue connectionLoop
+				}
 				if streamHadActivity.Load() {
 					retryIndex = 0
 				}
@@ -253,6 +287,11 @@ connectionLoop:
 			}
 		}
 	}
+}
+
+func autoRetry(backend Backend) bool {
+	policy, ok := backend.(interface{ AutoRetry() bool })
+	return !ok || policy.AutoRetry()
 }
 
 func (m *Manager) waitManual(ctx context.Context) bool {
@@ -279,13 +318,12 @@ func (m *Manager) waitRetry(ctx context.Context, delay time.Duration) (bool, boo
 	}
 }
 
-func (m *Manager) publishConnected(generation uint64, health Health) {
+func (m *Manager) publishConnected(generation uint64, target Target, health Health) {
 	m.mu.Lock()
 	if generation < m.snapshot.Generation {
 		m.mu.Unlock()
 		return
 	}
-	target := localTarget()
 	target.ID = health.ID
 	target.DisplayName = health.DisplayName
 	target.Platform = health.Platform
@@ -293,10 +331,35 @@ func (m *Manager) publishConnected(generation uint64, health Health) {
 	target.Version = health.Version
 	target.Capabilities = append([]string(nil), health.Capabilities...)
 	target.Permissions = append([]string(nil), health.Permissions...)
-	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: StateConnected, Target: target, Message: "Scheduler service is available.", LastSuccessfulAt: m.now().UTC().Format(time.RFC3339)}
+	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: StateConnected, Target: target, Message: target.DisplayName + " is available.", LastSuccessfulAt: m.now().UTC().Format(time.RFC3339)}
 	snapshot := cloneSnapshot(m.snapshot)
 	m.mu.Unlock()
 	m.emitSnapshot(snapshot)
+}
+
+func (m *Manager) publishSelectedSnapshot(generation uint64, state State, target Target, message, action string) {
+	m.mu.Lock()
+	if generation < m.snapshot.Generation {
+		m.mu.Unlock()
+		return
+	}
+	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: state, Target: cloneTarget(target), Message: message, Action: action, LastSuccessfulAt: m.snapshot.LastSuccessfulAt}
+	snapshot := cloneSnapshot(m.snapshot)
+	m.mu.Unlock()
+	m.emitSnapshot(snapshot)
+}
+
+func (m *Manager) selected() (Backend, Target) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.backend, cloneTarget(m.target)
+}
+
+func connectingMessage(target Target) string {
+	if target.Kind == "remote" {
+		return "Connecting to " + target.DisplayName + "."
+	}
+	return "Connecting to the local scheduler service."
 }
 
 func (m *Manager) publishSnapshot(generation uint64, state State, message, action string) {

@@ -83,6 +83,26 @@ Each client installation receives an independent credential and safe fingerprint
 
 The daemon revalidates actor and credential state periodically during a live stream. Revocation, expiry, or actor disablement terminates authority for new requests immediately and closes existing streams within the documented revalidation bound defined by #167 and #168.
 
+## Client connection profiles
+
+The desktop and CLI share one versioned user-scoped `profiles.json` document under the go-schedule desktop configuration directory. Each record contains a random profile ID, local label, canonical HTTPS origin, pinned daemon installation ID, native credential reference, trusted certificate PEM and SHA-256 fingerprint, client kind, granted capability, safe daemon display and platform facts, and timestamps. The document contains no bearer value or pairing phrase and is replaced atomically under an exclusive cross-process lock.
+
+The desktop retains one active profile ID and restores only that exact target after restart. This computer always remains available through protected local IPC. Selection loads the bearer from native operating-system credential storage, constructs one immutable TLS client, verifies the manifest installation ID, then switches the request router and event generation together. A failed lookup, credential read, certificate check, or identity comparison never falls back to a different remote target.
+
+The Connections workspace lists same-named profiles with their endpoint and shortened daemon ID, supports local rename, accepts fresh pairing material for same-identity repair, and requires confirmation before removal. Repair replaces the profile only after the new identity and credential are valid, then deletes the superseded native credential. Removing the active profile switches to This computer first; any credential deletion failure keeps the profile metadata visible.
+
+The CLI deliberately has no persistent active remote target. `--profile` selects one saved profile by exact ID or unambiguous label for one invocation. Alternatively, `--endpoint`, `--daemon-id`, `--credential-id`, and `--certificate-file` must all be supplied together. The bearer and one-time phrase are never command arguments. Human mode identifies the selected endpoint on stderr, while JSON stdout retains its existing machine-readable contract.
+
+Private-network HTTPS is the preferred direct mode. For an SSH tunnel, keep application TLS enabled, forward a local port to the configured daemon listener, and create a profile whose HTTPS origin and certificate hostname match the tunneled endpoint. Do not add an insecure verification flag. If the certificate or daemon identity changes, stop and repair the profile from newly authenticated operator material.
+
+For a daemon bound to loopback with a certificate containing the IP SAN `127.0.0.1`, a clean client can establish the tunnel and pair a CLI profile as follows:
+
+```sh
+ssh -N -L 127.0.0.1:8443:127.0.0.1:8443 operator@daemon-host
+gosched profile pair production-tunnel --address https://127.0.0.1:8443 --expected-daemon-id DAEMON_ID --pairing-id PAIRING_ID --trusted-certificate daemon.pem --client-name "Tunnel CLI" --capability observe
+gosched --profile production-tunnel health
+```
+
 ## API compatibility and live updates
 
 OpenAPI 3.1 is the source of truth for the remote contract. Issue #168 will pin `github.com/oapi-codegen/oapi-codegen/v2` as a Go tool and generate strict standard-library HTTP server and client boundaries. Authentication and authorization stay explicit middleware because generated routing does not implement product security policy. Generated files are committed, and a clean regeneration check prevents source, server, and client drift.
