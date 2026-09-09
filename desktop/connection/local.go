@@ -13,11 +13,11 @@ import (
 	"github.com/shruggietech/go-schedule/internal/events"
 )
 
-var localCapabilities = []string{"tasks", "groups", "chains", "triggers", "watchers", "schedule", "activity", "notifications"}
 var localPermissions = []string{"read", "manage"}
 
 type daemonClient interface {
 	Health(context.Context) (server.HealthResponse, error)
+	Manifest(context.Context) (server.ManifestResponse, error)
 	StreamEvents(context.Context, func(events.Event)) error
 }
 
@@ -35,7 +35,14 @@ func (b *LocalBackend) Health(ctx context.Context) (Health, error) {
 	if value.Status != "ok" || !compatibleVersion(value.Version) {
 		return Health{}, &Failure{State: StateIncompatible, Message: "This scheduler version is not compatible with the desktop app.", Action: "Update the scheduler service."}
 	}
-	return Health{Version: value.Version, Capabilities: append([]string(nil), localCapabilities...), Permissions: append([]string(nil), localPermissions...)}, nil
+	manifest, err := b.daemon.Manifest(ctx)
+	if err != nil {
+		return Health{}, safeFailure(err)
+	}
+	if manifest.InstallationID == "" || manifest.DisplayName == "" || manifest.ProductVersion != value.Version {
+		return Health{}, &Failure{State: StateIncompatible, Message: "This scheduler identity manifest is not compatible with the desktop app.", Action: "Update the scheduler service."}
+	}
+	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: append([]string(nil), localPermissions...)}, nil
 }
 
 func (b *LocalBackend) StreamEvents(ctx context.Context, publish func(DomainEvent)) error {

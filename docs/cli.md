@@ -19,6 +19,7 @@ nav_order: 3
 - [Global flags](#global-flags)
 - [Exit codes](#exit-codes)
 - [`health`](#health)
+- [`daemon`](#daemon)
 - [`mcp`](#mcp)
 - [`task`](#task)
 - [`cron`](#cron)
@@ -70,6 +71,19 @@ daemon ok (version 0.6.0)
 ```
 
 Worth knowing: the version printed here is the **daemon's**, which can differ from `gosched --version` after a partial upgrade. If you are filing a bug report, both are asked for, and that is why.
+
+## `daemon`
+
+Inspect the connected daemon's stable identity, compatibility facts, operating mode, and capabilities:
+
+```sh
+gosched daemon manifest
+gosched daemon manifest --json
+```
+
+Change only its operator-facing label with `gosched daemon rename "Workshop scheduler"`. Names are trimmed, contain 1 through 80 Unicode characters, and cannot contain control characters.
+
+After copying a daemon database for independent concurrent use, replace the clone's copied identity with `gosched daemon reset-identity --confirm <current-installation-id>`. The exact current identifier is required. Reset preserves the display name and every scheduler record. See [Daemon identity](daemon-identity.md) for clean-install, upgrade, restore, clone, and reset semantics.
 
 ## `mcp`
 

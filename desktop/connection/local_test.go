@@ -13,13 +13,17 @@ import (
 )
 
 type localDaemonFake struct {
-	health server.HealthResponse
-	err    error
-	event  events.Event
+	health   server.HealthResponse
+	manifest server.ManifestResponse
+	err      error
+	event    events.Event
 }
 
 func (f localDaemonFake) Health(context.Context) (server.HealthResponse, error) {
 	return f.health, f.err
+}
+func (f localDaemonFake) Manifest(context.Context) (server.ManifestResponse, error) {
+	return f.manifest, f.err
 }
 func (f localDaemonFake) StreamEvents(ctx context.Context, publish func(events.Event)) error {
 	if f.event.Kind != "" {
@@ -30,20 +34,16 @@ func (f localDaemonFake) StreamEvents(ctx context.Context, publish func(events.E
 }
 
 func TestLocalBackendNegotiatesSafeThisComputerContract(t *testing.T) {
-	backend := NewLocalBackend(localDaemonFake{health: server.HealthResponse{Status: "ok", Version: "1.2.0"}})
+	backend := NewLocalBackend(localDaemonFake{health: server.HealthResponse{Status: "ok", Version: "1.2.0"}, manifest: server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "Workshop", ProductVersion: "1.2.0", Capabilities: []string{"notifications", "tasks"}, Platform: server.ManifestPlatform{OS: "windows", Architecture: "amd64"}}})
 	health, err := backend.Health(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if health.Version != "1.2.0" || len(health.Capabilities) == 0 || len(health.Permissions) == 0 {
+	if health.ID != "daemon-1" || health.DisplayName != "Workshop" || health.Platform != "windows" || health.Architecture != "amd64" || health.Version != "1.2.0" || len(health.Capabilities) == 0 || len(health.Permissions) == 0 {
 		t.Fatalf("health=%+v", health)
 	}
 	if !contains(health.Capabilities, "notifications") {
 		t.Fatalf("notifications capability missing: %+v", health.Capabilities)
-	}
-	target := localTarget()
-	if target.ID != "local" || target.DisplayName != "This computer" {
-		t.Fatalf("target=%+v", target)
 	}
 }
 

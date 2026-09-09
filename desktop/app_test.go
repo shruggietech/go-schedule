@@ -20,7 +20,7 @@ import (
 type appBackend struct{}
 
 func (appBackend) Health(context.Context) (connection.Health, error) {
-	return connection.Health{Version: "1.2.0", Capabilities: []string{"tasks"}, Permissions: []string{"read"}}, nil
+	return connection.Health{ID: "daemon-1", DisplayName: "Workshop", Platform: "windows", Architecture: "amd64", Version: "1.2.0", Capabilities: []string{"tasks"}, Permissions: []string{"read"}}, nil
 }
 func (appBackend) StreamEvents(ctx context.Context, publish func(connection.DomainEvent)) error {
 	<-ctx.Done()
@@ -139,7 +139,7 @@ func TestAppFacadeStartsSnapshotsRetriesAndQuits(t *testing.T) {
 		}
 	}
 	snapshot := app.Snapshot()
-	if snapshot.Target.DisplayName != "This computer" || snapshot.Target.Version != "1.2.0" {
+	if snapshot.Target.ID != "daemon-1" || snapshot.Target.DisplayName != "Workshop" || snapshot.Target.Platform != "windows" || snapshot.Target.Architecture != "amd64" || snapshot.Target.Version != "1.2.0" {
 		t.Fatalf("snapshot=%+v", snapshot)
 	}
 	if result := app.RetryConnection(); result.Outcome != "accepted" {

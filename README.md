@@ -83,11 +83,14 @@ Install, register the service, then confirm the daemon is answering:
 sudo gosched service install
 sudo gosched service start
 gosched health
+gosched daemon manifest
 ```
 
 ```text
 daemon ok (version 1.1.1)
 ```
+
+The manifest reports the daemon's stable installation ID, editable display name, version, local-only mode, safe platform facts, and supported feature surfaces. See [Daemon identity](docs/daemon-identity.md) for rename, backup restore, database clone, and deliberate identity reset behavior.
 
 Create a weekday report with a readable phrase:
 

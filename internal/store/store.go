@@ -42,6 +42,10 @@ func Open(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if err := s.initializeDaemonIdentity(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -430,6 +434,20 @@ CREATE INDEX idx_notification_deliveries_pending ON notification_deliveries(stat
 CREATE INDEX idx_notification_deliveries_channel ON notification_deliveries(channel_id,created_at);
 CREATE INDEX idx_notification_deliveries_task ON notification_deliveries(task_id,created_at);
 CREATE INDEX idx_notification_deliveries_run ON notification_deliveries(run_id);
+`,
+	},
+	{
+		// v16: persist one privacy-safe identity for the logical daemon. The row
+		// is initialized after migration so random generation failures abort open.
+		version: 16,
+		stmts: `
+CREATE TABLE daemon_identity (
+	singleton       INTEGER PRIMARY KEY CHECK(singleton = 1),
+	installation_id TEXT NOT NULL UNIQUE,
+	display_name    TEXT NOT NULL,
+	created_at      TEXT NOT NULL,
+	updated_at      TEXT NOT NULL
+);
 `,
 	},
 }

@@ -286,6 +286,10 @@ func (m *Manager) publishConnected(generation uint64, health Health) {
 		return
 	}
 	target := localTarget()
+	target.ID = health.ID
+	target.DisplayName = health.DisplayName
+	target.Platform = health.Platform
+	target.Architecture = health.Architecture
 	target.Version = health.Version
 	target.Capabilities = append([]string(nil), health.Capabilities...)
 	target.Permissions = append([]string(nil), health.Permissions...)

@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Desktop target context now comes from the connected daemon (Closes #166; Refs #18).** The local connection consumes the daemon-owned installation ID, display name, product version, platform, and deterministic capability list while retaining the existing protected IPC transport, health compatibility, and local permission experience.
+
 - **The pending dependency updates now resolve as one coherent runtime and build baseline (Closes #215; Refs #201, #202, #203, #204, #205, #206, #207, #208).** Root storage and watcher dependencies, Wails, React, frontend test infrastructure, and Node type definitions advance together with the Vite 8 and Node 26 companions required by their declared peer and engine ranges. Both Go modules and the frontend lockfile are regenerated from current `main`, while existing scheduling, desktop, accessibility, installer, and local-access behavior remains under the complete verification contract.
 
 ### Added
+
+- **Every daemon now has a stable identity and privacy-bounded capability manifest (Closes #166; Refs #18, #165).** Schema v16 persists one random installation ID and editable generic display name with the logical daemon database. Protected local API, shared-client, and CLI operations support discovery, validated rename, and atomic exact-confirmation reset while preserving scheduler data. Documented install, upgrade, restore, and clone behavior prevents accidental duplicate target identities without fingerprinting a machine or advertising remote access.
 
 - **Remote daemon access now has a bounded architecture and executable review gate (Closes #165; Refs #18, #166, #167, #168, #169, #170, #171, #172, #173).** The v1.4 design preserves protected local IPC and offline defaults while specifying a separate opt-in HTTPS allowlist, four server-owned capability classes, isolated phrase enrollment and opaque bearer lifecycles, five deployment modes, versioned OpenAPI and Server-Sent Events contracts, threat-linked acceptance tests, and explicit product, operator, dependency, and downstream-issue ownership. No remote listener or runtime dependency is added by this architecture slice.
 
@@ -45,6 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-09: bind stable daemon identity to the logical SQLite store and require explicit clone reset.** S075 keeps one random UUID and editable generic name in a singleton schema v16 row, so restart, upgrade, and backup restore preserve the same target without deriving identity from machine data. A copied database remains the same logical daemon until an operator atomically resets one copy by confirming its exact current identifier. The bounded local manifest advertises current product capabilities and safe OS/architecture facts, while actor authority, credentials, audit, remote protocols, and listeners remain assigned to #167 onward.
 
 - **2026-09-09: make authenticated HTTPS the single remote boundary while preserving local IPC as a separate adapter.** S074 requires TLS 1.3 even inside private, SSH-tunneled, and reverse-proxied deployments so every network mode has one application security contract. Future remote routes are admitted individually through an OpenAPI 3.1 allowlist after source and actor rate limits, opaque bearer authentication, current server-owned capability checks, request bounds, and audit classification. Go's standard HTTP and crypto packages own the core boundary; narrowly scoped maintained libraries own rate limiting, Argon2id phrase verification, OpenAPI generation, and native client keyrings in their downstream implementation slices. JWTs, plaintext exceptions, product-owned certificate automation, general policy language, offline mutation replay, and remote MCP mutation remain out of scope.
 
