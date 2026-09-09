@@ -85,6 +85,10 @@ Change only its operator-facing label with `gosched daemon rename "Workshop sche
 
 After copying a daemon database for independent concurrent use, replace the clone's copied identity with `gosched daemon reset-identity --confirm <current-installation-id>`. The exact current identifier is required. Reset preserves the display name and every scheduler record. See [Daemon identity](daemon-identity.md) for clean-install, upgrade, restore, clone, and reset semantics.
 
+## Actors and management audit
+
+Use `gosched actor list`, `create`, `update`, and `revoke` to administer credential-independent client identities. Use `gosched audit list` and `export` to inspect deterministic, redacted management evidence. See [Actor Permissions and Management Audit](access-control.md) for the capability matrix, lifecycle rules, retention limits, filters, and examples.
+
 ## `mcp`
 
 Serve the scheduler's observe-only Model Context Protocol resources over standard input and standard output for a local host:

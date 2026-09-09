@@ -25,6 +25,21 @@ The [daemon identity lifecycle](daemon-identity.md) defines stable installation 
 
 The current manifest reports local API `v1`, no remote API version, and `local_only` operating mode. It excludes hostnames, network addresses, storage paths, accounts, environment values, commands, credentials, trigger keys, scheduler records, and lifecycle timestamps. A stale reset confirmation returns `409 conflict`; invalid names and malformed requests return `400 validation_failed`; neither failure mutates state. `GET /v1/health` remains unchanged.
 
+## Actor permissions and management audit
+
+The [actor permissions and management audit contract](access-control.md) applies one Observe, Operate, Manage, and Enroll hierarchy to every registered management operation. Protected local IPC resolves to the built-in local actor without new authentication input.
+
+| Method | Path | Minimum capability | Result |
+|---|---|---|---|
+| `GET` | `/v1/access/actors` | Enroll | List credential-independent actors |
+| `POST` | `/v1/access/actors` | Enroll | Create a non-built-in actor |
+| `PATCH` | `/v1/access/actors/{id}` | Enroll | Update name, capability, state, or expiration |
+| `POST` | `/v1/access/actors/{id}/revoke` | Enroll | Irreversibly revoke an actor |
+| `GET` | `/v1/audit` | Enroll | List filtered retained audit events |
+| `GET` | `/v1/audit/export` | Enroll | Export filtered events as newline-delimited JSON |
+
+Audit filters are `actor_id`, `operation`, `result`, `since`, `until`, and `limit`. The default limit is 100 and the maximum is 1,000. Invalid filters return `400 validation_failed`. Authorization denial returns `403 forbidden`; failure to persist mandatory audit evidence returns `503 audit_unavailable`.
+
 ## External triggers
 
 An ordinary trigger representation contains `id`, `name`, optional `set_id`, optional `set_name`, optional `set_position`, `target_task_id`, `target_task_name`, `enabled`, `readiness`, `reason`, `created_at`, and `updated_at`. It never contains the raw key. A set member cannot be retargeted individually; use the set endpoint so every member retains the shared target invariant.

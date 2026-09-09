@@ -28,16 +28,17 @@ type NotificationDispatcher interface {
 
 // Server holds dependencies and the route mux.
 type Server struct {
-	store   *store.Store
-	sched   Scheduler
-	broker  *events.Broker
-	logs    *logbus.Ring
-	logPath string
-	runtime RuntimeInfoResponse
-	log     *slog.Logger
-	notify  NotificationDispatcher
-	mcpHTTP MCPHTTPManager
-	mux     *http.ServeMux
+	store        *store.Store
+	sched        Scheduler
+	broker       *events.Broker
+	logs         *logbus.Ring
+	logPath      string
+	runtime      RuntimeInfoResponse
+	log          *slog.Logger
+	notify       NotificationDispatcher
+	mcpHTTP      MCPHTTPManager
+	mux          *http.ServeMux
+	resolveActor func(*http.Request) (string, error)
 }
 
 // RuntimeInfoResponse identifies the daemon's effective local storage paths.
@@ -61,12 +62,24 @@ func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.R
 // metadata for GET /v1/runtime-info.
 func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, runtime RuntimeInfoResponse, log *slog.Logger) *Server {
 	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux()}
+	s.resolveActor = func(*http.Request) (string, error) {
+		actor, err := st.LocalActor()
+		return actor.ID, err
+	}
 	s.routes()
 	return s
 }
 
 // Handler returns the HTTP handler for the API.
-func (s *Server) Handler() http.Handler { return s.mux }
+func (s *Server) Handler() http.Handler { return http.HandlerFunc(s.authorizeAndAudit) }
+
+// SetActorResolver supplies authenticated actor identity for a transport. The
+// local transport uses the built-in operating-system actor by default.
+func (s *Server) SetActorResolver(resolver func(*http.Request) (string, error)) {
+	if resolver != nil {
+		s.resolveActor = resolver
+	}
+}
 
 // SetNotificationDispatcher connects channel tests and committed policy work
 // to the outbound runtime without making handlers perform network requests.
@@ -163,6 +176,12 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /v1/calendar", s.handleCalendar)
 	s.mux.HandleFunc("GET /v1/events", s.handleEvents)
+	s.mux.HandleFunc("GET /v1/access/actors", s.handleListActors)
+	s.mux.HandleFunc("POST /v1/access/actors", s.handleCreateActor)
+	s.mux.HandleFunc("PATCH /v1/access/actors/{id}", s.handleUpdateActor)
+	s.mux.HandleFunc("POST /v1/access/actors/{id}/revoke", s.handleRevokeActor)
+	s.mux.HandleFunc("GET /v1/audit", s.handleListAudit)
+	s.mux.HandleFunc("GET /v1/audit/export", s.handleExportAudit)
 
 	// Fallback: unmatched routes return the consistent error envelope.
 	s.mux.HandleFunc("/", s.handleNotFound)
@@ -202,10 +221,12 @@ type ErrorBody struct {
 
 // Error codes used across the API.
 const (
-	CodeValidation = "validation_failed"
-	CodeNotFound   = "not_found"
-	CodeConflict   = "conflict"
-	CodeInternal   = "internal"
+	CodeValidation       = "validation_failed"
+	CodeNotFound         = "not_found"
+	CodeConflict         = "conflict"
+	CodeInternal         = "internal"
+	CodeForbidden        = "forbidden"
+	CodeAuditUnavailable = "audit_unavailable"
 )
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
