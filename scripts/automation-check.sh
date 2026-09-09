@@ -77,6 +77,14 @@ require_ci_text() {
   fi
 }
 
+require_v13_text() {
+  text=$1
+  description=$2
+  if ! printf '%s\n' "$V13_JOB" | grep -Fq -- "$text"; then
+    report "$CI: v13-release-qualification job missing $description"
+  fi
+}
+
 if [ ! -f "$CI" ]; then
   report "$CI: canonical CI workflow not found"
 else
@@ -104,6 +112,26 @@ else
     'three-platform stable desktop identity inspection'
   require_ci_text 'build/bin/go-schedule.app/Contents/MacOS/gosched-gui' \
     'macOS Wails display-name bundle and stable executable inspection'
+  V13_JOB=$(awk '
+    $0 == "  v13-release-qualification:" { inside = 1 }
+    inside && seen && /^  [[:alnum:]_-]+:$/ { exit }
+    inside { print; seen = 1 }
+  ' "$CI")
+  if [ -z "$V13_JOB" ]; then
+    report "$CI: missing named v1.3 release qualification job"
+  fi
+  require_v13_text 'name: v1.3 release qualification (${{ matrix.os }})' \
+    'visible v1.3 platform result'
+  require_v13_text 'fail-fast: false' \
+    'fail-fast-disabled strategy'
+  require_v13_text 'os: [ubuntu-latest, macos-latest, windows-latest]' \
+    'three-platform matrix'
+  require_v13_text "go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1" \
+    'package-shaped v1.3 integration qualification'
+  require_v13_text 'go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli' \
+    'focused v1.3 notification and MCP qualification'
+  require_v13_text 'go test -race ./internal/store' \
+    'v1.3 notification storage and migration qualification'
   if grep -Eq 'wails-proof:|wails-browser-contract:|Install Fyne|GUI build & test \(cgo\)' "$CI"; then
     report "$CI: retired or parallel desktop validation remains"
   fi
