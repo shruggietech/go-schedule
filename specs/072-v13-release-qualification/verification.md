@@ -51,7 +51,7 @@ The package-shaped notification and MCP integration command passed under the rac
 
 ## Hosted evidence
 
-The pull request's named `v1.3 release qualification` matrix supplies Windows, macOS, and Linux results for the exact reviewed commit. Those hosted checks must be green before maintainer review. S072 itself creates no release tag or public artifact.
+The first hosted run passed the S072 matrix on Windows and Linux but failed on macOS because its long per-test temporary directory exceeded the Unix-domain socket path limit. The standard macOS race job reproduced the same new-test failure. The harness now keeps candidate data isolated while assigning Unix IPC a unique short `/tmp` endpoint with cleanup. The pull request's named `v1.3 release qualification` matrix supplies the final Windows, macOS, and Linux results for the exact reviewed commit. Those hosted checks must be green before maintainer review. S072 itself creates no release tag or public artifact.
 
 ## Publication audit
 

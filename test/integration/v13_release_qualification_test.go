@@ -43,9 +43,11 @@ func TestV13PackageDefaultsRemainOptIn(t *testing.T) {
 	cfg := config.Default()
 	cfg.DataDir = stateDir
 	cfg.AdminGroup = ""
-	cfg.IPCPath = filepath.Join(stateDir, "goschedd.sock")
+	cfg.IPCPath = filepath.Join("/tmp", fmt.Sprintf("goschedd-s072-%d-%d.sock", os.Getpid(), time.Now().UnixNano()))
 	if runtime.GOOS == "windows" {
 		cfg.IPCPath = fmt.Sprintf(`\\.\pipe\goschedd-s072-%d-%d`, os.Getpid(), time.Now().UnixNano())
+	} else {
+		t.Cleanup(func() { _ = os.Remove(cfg.IPCPath) })
 	}
 	configPath := filepath.Join(stateDir, "config.json")
 	if err := os.MkdirAll(stateDir, 0o700); err != nil {
