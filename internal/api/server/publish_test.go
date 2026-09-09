@@ -3,10 +3,12 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/events"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
@@ -21,6 +23,21 @@ func newBrokerServer(t *testing.T) (*Server, *events.Broker) {
 	broker := events.NewBroker()
 	s := New(st, nil, broker, nil, "", config.NewLogger(config.Default(), discard{}))
 	return s, broker
+}
+
+func TestRemoteEventProjectionCarriesIdentityWithoutPayload(t *testing.T) {
+	taskEvent := events.Event{Kind: events.KindTask, Task: &events.TaskEvent{Verb: events.VerbUpdated, ID: "task-id", Task: &domain.Task{Command: "secret-command", Stdin: "secret-stdin"}}}
+	projected, visible := remoteEventProjection(taskEvent)
+	encoded, err := json.Marshal(projected)
+	if err != nil || !visible || projected.ResourceID != "task-id" || projected.Verb != events.VerbUpdated {
+		t.Fatalf("projection=%+v visible=%v err=%v", projected, visible, err)
+	}
+	if strings.Contains(string(encoded), "secret") {
+		t.Fatalf("remote projection leaked task payload: %s", encoded)
+	}
+	if _, visible := remoteEventProjection(events.Event{Kind: events.KindLog, Log: &domain.LogRecord{Message: "secret-log"}}); visible {
+		t.Fatal("log event was exposed to the remote stream")
+	}
 }
 
 // nextEvent waits briefly for an event of the given kind, draining others.

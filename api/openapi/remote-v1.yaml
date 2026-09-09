@@ -25,15 +25,13 @@ paths:
       operationId: enrollment.exchange
       security: []
       requestBody: {$ref: "#/components/requestBodies/Enrollment"}
-      responses: {"201": {$ref: "#/components/responses/IssuedCredential"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+      responses: {"201": {$ref: "#/components/responses/IssuedCredential"}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
   /tasks:
     get:
       operationId: tasks.list
       parameters:
         - {name: group, in: query, schema: {type: string, format: uuid}}
         - {name: state, in: query, schema: {type: string}}
-        - {name: details, in: query, schema: {type: boolean}}
-        - {name: observation, in: query, schema: {type: boolean}}
         - {name: scheduled, in: query, schema: {type: boolean}}
         - {name: offset, in: query, schema: {type: integer, minimum: 0}}
         - {name: limit, in: query, schema: {type: integer, minimum: 0, maximum: 101}}
@@ -42,16 +40,16 @@ paths:
     post:
       operationId: tasks.create
       requestBody: {$ref: "#/components/requestBodies/TaskCreate"}
-      responses: {"201": {$ref: "#/components/responses/TaskDetail"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+      responses: {"201": {$ref: "#/components/responses/TaskObservation"}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
   /tasks/{id}:
     parameters: [{$ref: "#/components/parameters/ID"}]
     get:
       operationId: tasks.read
-      responses: {"200": {$ref: "#/components/responses/TaskDetail"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+      responses: {"200": {$ref: "#/components/responses/TaskObservation"}, "401": {$ref: "#/components/responses/Unauthorized"}}
     patch:
       operationId: tasks.update
       requestBody: {$ref: "#/components/requestBodies/TaskUpdate"}
-      responses: {"200": {$ref: "#/components/responses/TaskDetail"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+      responses: {"200": {$ref: "#/components/responses/TaskObservation"}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
     delete:
       operationId: tasks.delete
       responses: {"204": {$ref: "#/components/responses/NoContent"}, "401": {$ref: "#/components/responses/Unauthorized"}}
@@ -157,6 +155,7 @@ components:
     IssuedCredential: {description: One-time enrollment credential, content: {application/json: {schema: {$ref: "#/components/schemas/IssuedCredential"}}}}
     TaskList: {description: Task collection, content: {application/json: {schema: {$ref: "#/components/schemas/TaskList"}}}}
     TaskDetail: {description: Task detail, content: {application/json: {schema: {$ref: "#/components/schemas/TaskDetail"}}}}
+    TaskObservation: {description: Secret-free task observation, content: {application/json: {schema: {$ref: "#/components/schemas/TaskObservation"}}}}
     GroupList: {description: Group collection or tree, content: {application/json: {schema: {$ref: "#/components/schemas/GroupList"}}}}
     Group: {description: Group detail, content: {application/json: {schema: {$ref: "#/components/schemas/Group"}}}}
     RunList: {description: Run collection, content: {application/json: {schema: {$ref: "#/components/schemas/RunList"}}}}
@@ -168,6 +167,7 @@ components:
     Accepted: {description: Operation accepted for asynchronous execution}
     NoContent: {description: Operation completed without a response body}
     Unauthorized: {description: Generic authentication failure, headers: {WWW-Authenticate: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
+    RequestTooLarge: {description: Request body exceeds the operation limit, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
   schemas:
     Health:
       type: object
@@ -275,12 +275,7 @@ components:
       type: object
       additionalProperties: false
       required: [tasks]
-      properties: {tasks: {type: array, items: {$ref: "#/components/schemas/TaskListItem"}}}
-    TaskListItem:
-      oneOf:
-        - {$ref: "#/components/schemas/Task"}
-        - {$ref: "#/components/schemas/TaskDetail"}
-        - {$ref: "#/components/schemas/TaskObservation"}
+      properties: {tasks: {type: array, items: {$ref: "#/components/schemas/TaskObservation"}}}
     TaskDetail:
       type: object
       additionalProperties: false

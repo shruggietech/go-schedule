@@ -193,6 +193,10 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	s.reload()
 	s.publishTaskCreated(*task)
+	if r.URL.Query().Get("observation") == "true" {
+		writeJSON(w, http.StatusCreated, taskObservationResponse(store.TaskObservation{Task: *task, Schedule: sch}, now, 2*1024))
+		return
+	}
 	writeJSON(w, http.StatusCreated, s.taskDetail(*task, sch, now))
 }
 
@@ -277,6 +281,10 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		sch = &stored
+	}
+	if r.URL.Query().Get("observation") == "true" {
+		writeJSON(w, http.StatusOK, taskObservationResponse(store.TaskObservation{Task: task, Schedule: sch}, time.Now().UTC(), 2*1024))
+		return
 	}
 	writeJSON(w, http.StatusOK, s.taskDetail(task, sch, time.Now().UTC()))
 }

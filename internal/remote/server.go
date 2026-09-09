@@ -1,10 +1,12 @@
 package remote
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"mime"
 	"net"
@@ -34,11 +36,12 @@ type Handler struct {
 	sources     *limiterSet
 	actors      *limiterSet
 	concurrent  chan struct{}
+	streams     *streamSet
 	publicActor string
 }
 
 func NewHandler(next http.Handler, enrollmentService *enrollment.Service, publicActorID string) *Handler {
-	return &Handler{next: next, enrollment: enrollmentService, sources: newLimiterSet(10, 20, 4096), actors: newLimiterSet(20, 40, 4096), concurrent: make(chan struct{}, 64), publicActor: publicActorID}
+	return &Handler{next: next, enrollment: enrollmentService, sources: newLimiterSet(10, 20, 4096), actors: newLimiterSet(20, 40, 4096), concurrent: make(chan struct{}, 64), streams: newStreamSet(16, 2), publicActor: publicActorID}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -47,12 +50,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		remoteError(w, http.StatusForbidden, "origin_rejected", "browser-origin requests are not supported")
 		return
 	}
-	select {
-	case h.concurrent <- struct{}{}:
-		defer func() { <-h.concurrent }()
-	default:
-		remoteError(w, http.StatusServiceUnavailable, "busy", "remote request capacity is exhausted")
+	operation, ok := lookup(r.Method, r.URL.Path)
+	if !ok {
+		remoteError(w, http.StatusNotFound, "not_found", "remote endpoint not found")
 		return
+	}
+	if operation.Retry != RetryReconnect {
+		select {
+		case h.concurrent <- struct{}{}:
+			defer func() { <-h.concurrent }()
+		default:
+			remoteError(w, http.StatusServiceUnavailable, "busy", "remote request capacity is exhausted")
+			return
+		}
 	}
 	source, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if source == "" {
@@ -62,18 +72,22 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		limited(w)
 		return
 	}
-	operation, ok := lookup(r.Method, r.URL.Path)
-	if !ok {
-		remoteError(w, http.StatusNotFound, "not_found", "remote endpoint not found")
-		return
-	}
 	if operation.BodyLimit > 0 {
-		r.Body = http.MaxBytesReader(w, r.Body, operation.BodyLimit)
 		mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil || mediaType != "application/json" {
 			remoteError(w, http.StatusUnsupportedMediaType, "unsupported_media_type", "application/json is required")
 			return
 		}
+		body, err := io.ReadAll(io.LimitReader(r.Body, operation.BodyLimit+1))
+		if err != nil {
+			remoteError(w, http.StatusBadRequest, "invalid_body", "request body could not be read")
+			return
+		}
+		if int64(len(body)) > operation.BodyLimit {
+			remoteError(w, http.StatusRequestEntityTooLarge, "request_too_large", "request body exceeds the operation limit")
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
 	}
 	if operation.ID == "enrollment.exchange" {
 		h.exchange(w, r)
@@ -98,6 +112,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if operation.Retry == RetryReconnect {
+		if !h.streams.acquire(credential.ID) {
+			limited(w)
+			return
+		}
+		defer h.streams.release(credential.ID)
 		ctx, cancel := context.WithCancel(r.Context())
 		done := make(chan struct{})
 		go func() {
@@ -150,6 +169,12 @@ func (h *Handler) exchange(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) forward(w http.ResponseWriter, r *http.Request, operation Operation, actorID string) {
 	clone := r.Clone(context.WithValue(r.Context(), actorContextKey{}, actorID))
 	clone.URL.Path = localPath(operation, r.URL.Path)
+	if operation.ID == "tasks.list" || operation.ID == "tasks.create" || operation.ID == "tasks.read" || operation.ID == "tasks.update" || operation.ID == "events.stream" {
+		query := clone.URL.Query()
+		query.Set("observation", "true")
+		query.Del("details")
+		clone.URL.RawQuery = query.Encode()
+	}
 	clone.Header.Set("X-Go-Schedule-Transport", "remote")
 	h.next.ServeHTTP(w, clone)
 }

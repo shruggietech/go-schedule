@@ -44,6 +44,15 @@ The canonical eight-gate run passed after three gate-driven corrections: an unsu
 - Desktop enrollment rejects every HTTP redirect so a 307 or 308 response cannot replay the one-time pairing phrase to another trusted certificate endpoint. The regression test trusts both test certificates and proves the redirect target receives no request.
 - The OpenAPI source now assigns concrete request and success-response schemas to every JSON operation, including the one-time issued credential, and records the actual bodyless statuses for delete, enable, disable, run-now, and alert acknowledgement. The generated client now exposes typed operation payloads instead of arbitrary maps.
 
+## Second-round review remediation
+
+- The remote adapter now forces the existing secret-free observation projection for task list, detail, create, and update responses. Structural canary tests prove command, argument-adjacent environment, stdin, working directory, and run-as values do not cross the remote boundary.
+- Remote event streams now carry only event kind, resource identity, and lifecycle verb. Log events are omitted, and task, run, alert, and other shared-broker payloads are not serialized remotely.
+- Streams use a dedicated capacity pool limited to sixteen total connections and two per credential, leaving all sixty-four finite-request slots available. Unit coverage proves both bounds and slot reuse.
+- Bounded bodies are read at the remote boundary before dispatch. An over-limit body now receives the documented stable `413 request_too_large` response instead of a downstream validation or authentication response.
+
+The canonical eight-gate suite passed again after these changes. One initial hosted macOS race job missed an unrelated filesystem-watcher atomic-replacement notification; its failed-job retry passed without a code change, while Linux and Windows race jobs passed on their first attempts.
+
 ## Dependency and integrity review
 
 - Direct runtime dependencies are `golang.org/x/crypto` v0.55.0, `golang.org/x/time` v0.15.0, `github.com/zalando/go-keyring` v0.2.8, and `github.com/oapi-codegen/runtime` v1.7.0. The generator is pinned as the Go tool `github.com/oapi-codegen/oapi-codegen/v2` v2.8.0.

@@ -183,27 +183,6 @@ func (e OccurrenceKind) Valid() bool {
 	}
 }
 
-// Defines values for ScheduleKind.
-const (
-	Event     ScheduleKind = "event"
-	OneOff    ScheduleKind = "one_off"
-	Recurring ScheduleKind = "recurring"
-)
-
-// Valid indicates whether the value is a known member of the ScheduleKind enum.
-func (e ScheduleKind) Valid() bool {
-	switch e {
-	case Event:
-		return true
-	case OneOff:
-		return true
-	case Recurring:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for TaskCreateRequestCatchupPolicy.
 const (
 	TaskCreateRequestCatchupPolicyNone TaskCreateRequestCatchupPolicy = "none"
@@ -650,15 +629,6 @@ type Platform struct {
 	Os           string `json:"os"`
 }
 
-// Readiness defines model for Readiness.
-type Readiness struct {
-	ActivationReady  bool     `json:"activation_ready"`
-	AutomaticSources []string `json:"automatic_sources"`
-	CommandReady     bool     `json:"command_ready"`
-	Reason           string   `json:"reason"`
-	Status           string   `json:"status"`
-}
-
 // Run defines model for Run.
 type Run struct {
 	EndedAt         *time.Time          `json:"ended_at,omitempty"`
@@ -680,49 +650,6 @@ type Run struct {
 // RunList defines model for RunList.
 type RunList struct {
 	Runs []Run `json:"runs"`
-}
-
-// Schedule defines model for Schedule.
-type Schedule struct {
-	Anchor             *time.Time         `json:"anchor,omitempty"`
-	CalendarAdjustment *string            `json:"calendar_adjustment,omitempty"`
-	ElapsedEpoch       *time.Time         `json:"elapsed_epoch,omitempty"`
-	Expression         *string            `json:"expression,omitempty"`
-	HumanSummary       string             `json:"human_summary"`
-	Id                 openapi_types.UUID `json:"id"`
-	Kind               ScheduleKind       `json:"kind"`
-	Rrule              *string            `json:"rrule,omitempty"`
-	RunAt              *time.Time         `json:"run_at,omitempty"`
-	SourceSyntax       *string            `json:"source_syntax,omitempty"`
-	TriggerId          *string            `json:"trigger_id,omitempty"`
-}
-
-// ScheduleKind defines model for Schedule.Kind.
-type ScheduleKind string
-
-// Task defines model for Task.
-type Task struct {
-	Args              *[]string           `json:"args,omitempty"`
-	CatchupPolicy     string              `json:"catchup_policy"`
-	Command           string              `json:"command"`
-	CreatedAt         time.Time           `json:"created_at"`
-	DstGapPolicy      string              `json:"dst_gap_policy"`
-	DstOverlapPolicy  string              `json:"dst_overlap_policy"`
-	Enabled           bool                `json:"enabled"`
-	Env               *map[string]string  `json:"env,omitempty"`
-	GroupId           *openapi_types.UUID `json:"group_id,omitempty"`
-	Id                openapi_types.UUID  `json:"id"`
-	MissingDatePolicy string              `json:"missing_date_policy"`
-	Name              string              `json:"name"`
-	OverlapPolicy     string              `json:"overlap_policy"`
-	RunAs             *string             `json:"run_as,omitempty"`
-	ScheduleId        string              `json:"schedule_id"`
-	State             string              `json:"state"`
-	Stdin             *string             `json:"stdin,omitempty"`
-	TimeBasis         string              `json:"time_basis"`
-	Timezone          string              `json:"timezone"`
-	UpdatedAt         time.Time           `json:"updated_at"`
-	WorkingDir        *string             `json:"working_dir,omitempty"`
 }
 
 // TaskCreateRequest defines model for TaskCreateRequest.
@@ -766,23 +693,9 @@ type TaskCreateRequestOverlapPolicy string
 // TaskCreateRequestTimeBasis defines model for TaskCreateRequest.TimeBasis.
 type TaskCreateRequestTimeBasis string
 
-// TaskDetail defines model for TaskDetail.
-type TaskDetail struct {
-	NextRuns      []time.Time `json:"next_runs"`
-	PolicySummary string      `json:"policy_summary"`
-	Readiness     Readiness   `json:"readiness"`
-	Schedule      *Schedule   `json:"schedule"`
-	Task          Task        `json:"task"`
-}
-
 // TaskList defines model for TaskList.
 type TaskList struct {
-	Tasks []TaskListItem `json:"tasks"`
-}
-
-// TaskListItem defines model for TaskListItem.
-type TaskListItem struct {
-	union json.RawMessage
+	Tasks []TaskObservation `json:"tasks"`
 }
 
 // TaskObservation defines model for TaskObservation.
@@ -854,6 +767,9 @@ type TaskUpdateRequestTimeBasis string
 // ID defines model for ID.
 type ID = openapi_types.UUID
 
+// RequestTooLarge defines model for RequestTooLarge.
+type RequestTooLarge = ErrorEnvelope
+
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorEnvelope
 
@@ -908,14 +824,12 @@ type RunsListParams struct {
 
 // TasksListParams defines parameters for TasksList.
 type TasksListParams struct {
-	Group       *openapi_types.UUID `form:"group,omitempty" json:"group,omitempty"`
-	State       *string             `form:"state,omitempty" json:"state,omitempty"`
-	Details     *bool               `form:"details,omitempty" json:"details,omitempty"`
-	Observation *bool               `form:"observation,omitempty" json:"observation,omitempty"`
-	Scheduled   *bool               `form:"scheduled,omitempty" json:"scheduled,omitempty"`
-	Offset      *int                `form:"offset,omitempty" json:"offset,omitempty"`
-	Limit       *int                `form:"limit,omitempty" json:"limit,omitempty"`
-	TextLimit   *int                `form:"text_limit,omitempty" json:"text_limit,omitempty"`
+	Group     *openapi_types.UUID `form:"group,omitempty" json:"group,omitempty"`
+	State     *string             `form:"state,omitempty" json:"state,omitempty"`
+	Scheduled *bool               `form:"scheduled,omitempty" json:"scheduled,omitempty"`
+	Offset    *int                `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit     *int                `form:"limit,omitempty" json:"limit,omitempty"`
+	TextLimit *int                `form:"text_limit,omitempty" json:"text_limit,omitempty"`
 }
 
 // EnrollmentExchangeJSONRequestBody defines body for EnrollmentExchange for application/json ContentType.
@@ -926,94 +840,6 @@ type TasksCreateJSONRequestBody = TaskCreateRequest
 
 // TasksUpdateJSONRequestBody defines body for TasksUpdate for application/json ContentType.
 type TasksUpdateJSONRequestBody = TaskUpdateRequest
-
-// AsTask returns the union data inside the TaskListItem as a Task
-func (t TaskListItem) AsTask() (Task, error) {
-	var body Task
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromTask overwrites any union data inside the TaskListItem as the provided Task
-func (t *TaskListItem) FromTask(v Task) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeTask performs a merge with any union data inside the TaskListItem, using the provided Task
-func (t *TaskListItem) MergeTask(v Task) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsTaskDetail returns the union data inside the TaskListItem as a TaskDetail
-func (t TaskListItem) AsTaskDetail() (TaskDetail, error) {
-	var body TaskDetail
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromTaskDetail overwrites any union data inside the TaskListItem as the provided TaskDetail
-func (t *TaskListItem) FromTaskDetail(v TaskDetail) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeTaskDetail performs a merge with any union data inside the TaskListItem, using the provided TaskDetail
-func (t *TaskListItem) MergeTaskDetail(v TaskDetail) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsTaskObservation returns the union data inside the TaskListItem as a TaskObservation
-func (t TaskListItem) AsTaskObservation() (TaskObservation, error) {
-	var body TaskObservation
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromTaskObservation overwrites any union data inside the TaskListItem as the provided TaskObservation
-func (t *TaskListItem) FromTaskObservation(v TaskObservation) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeTaskObservation performs a merge with any union data inside the TaskListItem, using the provided TaskObservation
-func (t *TaskListItem) MergeTaskObservation(v TaskObservation) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-func (t TaskListItem) MarshalJSON() ([]byte, error) {
-	b, err := t.union.MarshalJSON()
-	return b, err
-}
-
-func (t *TaskListItem) UnmarshalJSON(b []byte) error {
-	err := t.union.UnmarshalJSON(b)
-	return err
-}
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -2249,30 +2075,6 @@ func NewTasksListRequest(server string, params *TasksListParams) (*http.Request,
 
 		}
 
-		if params.Details != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "details", *params.Details, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.Observation != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "observation", *params.Observation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
 		if params.Scheduled != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "scheduled", *params.Scheduled, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
@@ -3044,6 +2846,8 @@ type EnrollmentExchangeResponse struct {
 	JSON201 *IssuedCredential
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
 	// Headers401 the parsed response headers for an HTTP 401 response
 	Headers401 *EnrollmentExchangeResponse401Headers
 }
@@ -3056,6 +2860,11 @@ func (r EnrollmentExchangeResponse) GetJSON201() *IssuedCredential {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r EnrollmentExchangeResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r EnrollmentExchangeResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -3556,21 +3365,28 @@ type TasksCreateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *TaskDetail
+	JSON201 *TaskObservation
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
 	// Headers401 the parsed response headers for an HTTP 401 response
 	Headers401 *TasksCreateResponse401Headers
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r TasksCreateResponse) GetJSON201() *TaskDetail {
+func (r TasksCreateResponse) GetJSON201() *TaskObservation {
 	return r.JSON201
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r TasksCreateResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r TasksCreateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -3659,7 +3475,7 @@ type TasksReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *TaskDetail
+	JSON200 *TaskObservation
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 	// Headers401 the parsed response headers for an HTTP 401 response
@@ -3667,7 +3483,7 @@ type TasksReadResponse struct {
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksReadResponse) GetJSON200() *TaskDetail {
+func (r TasksReadResponse) GetJSON200() *TaskObservation {
 	return r.JSON200
 }
 
@@ -3714,21 +3530,28 @@ type TasksUpdateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *TaskDetail
+	JSON200 *TaskObservation
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
 	// Headers401 the parsed response headers for an HTTP 401 response
 	Headers401 *TasksUpdateResponse401Headers
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r TasksUpdateResponse) GetJSON200() *TaskDetail {
+func (r TasksUpdateResponse) GetJSON200() *TaskObservation {
 	return r.JSON200
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r TasksUpdateResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r TasksUpdateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -4435,6 +4258,13 @@ func ParseEnrollmentExchangeResponse(rsp *http.Response) (*EnrollmentExchangeRes
 		}
 		response.JSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	}
 
 	switch {
@@ -4835,7 +4665,7 @@ func ParseTasksCreateResponse(rsp *http.Response) (*TasksCreateResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest TaskDetail
+		var dest TaskObservation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4847,6 +4677,13 @@ func ParseTasksCreateResponse(rsp *http.Response) (*TasksCreateResponse, error) 
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	}
 
@@ -4923,7 +4760,7 @@ func ParseTasksReadResponse(rsp *http.Response) (*TasksReadResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest TaskDetail
+		var dest TaskObservation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4969,7 +4806,7 @@ func ParseTasksUpdateResponse(rsp *http.Response) (*TasksUpdateResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest TaskDetail
+		var dest TaskObservation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -4981,6 +4818,13 @@ func ParseTasksUpdateResponse(rsp *http.Response) (*TasksUpdateResponse, error) 
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	}
 
