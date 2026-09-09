@@ -46,6 +46,10 @@ func Open(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if err := s.initializeLocalActor(); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -448,6 +452,44 @@ CREATE TABLE daemon_identity (
 	created_at      TEXT NOT NULL,
 	updated_at      TEXT NOT NULL
 );
+`,
+	},
+	{
+		// v17: establish credential-independent actors and bounded management
+		// audit storage. Initialization creates the protected local actor after
+		// migration so random generation failures abort open.
+		version: 17,
+		stmts: `
+CREATE TABLE actors (
+	id           TEXT PRIMARY KEY,
+	kind         TEXT NOT NULL CHECK(kind IN ('local_os','desktop','cli','json','mcp')),
+	display_name TEXT NOT NULL,
+	capability   TEXT NOT NULL CHECK(capability IN ('observe','operate','manage','enroll')),
+	state        TEXT NOT NULL CHECK(state IN ('active','expired','revoked')),
+	builtin      INTEGER NOT NULL DEFAULT 0 CHECK(builtin IN (0,1)),
+	created_at   TEXT NOT NULL,
+	updated_at   TEXT NOT NULL,
+	expires_at   TEXT
+);
+CREATE UNIQUE INDEX idx_actors_builtin ON actors(builtin) WHERE builtin=1;
+CREATE INDEX idx_actors_state ON actors(state,created_at,id);
+
+CREATE TABLE audit_events (
+	id             TEXT PRIMARY KEY,
+	actor_id       TEXT,
+	daemon_id      TEXT NOT NULL,
+	operation      TEXT NOT NULL,
+	target_kind    TEXT NOT NULL,
+	target_id      TEXT NOT NULL DEFAULT '',
+	result         TEXT NOT NULL CHECK(result IN ('uncertain','succeeded','failed','denied')),
+	correlation_id TEXT NOT NULL,
+	occurred_at    TEXT NOT NULL,
+	completed_at   TEXT
+);
+CREATE INDEX idx_audit_events_order ON audit_events(occurred_at,id);
+CREATE INDEX idx_audit_events_actor ON audit_events(actor_id,occurred_at,id);
+CREATE INDEX idx_audit_events_operation ON audit_events(operation,occurred_at,id);
+CREATE INDEX idx_audit_events_result ON audit_events(result,occurred_at,id);
 `,
 	},
 }

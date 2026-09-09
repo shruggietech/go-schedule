@@ -20,7 +20,7 @@ func TestManifestReportsBoundedDeterministicDaemonFacts(t *testing.T) {
 	if !reflect.DeepEqual(first.LocalAPIVersions, []string{"v1"}) || first.RemoteAPIVersions == nil || len(first.RemoteAPIVersions) != 0 || first.OperatingMode != "local_only" {
 		t.Fatalf("protocol contract = %+v", first)
 	}
-	if !sort.StringsAreSorted(first.Capabilities) || len(first.Capabilities) != 9 || first.Platform.OS == "" || first.Platform.Architecture == "" {
+	if !sort.StringsAreSorted(first.Capabilities) || len(first.Capabilities) != 11 || !contains(first.Capabilities, "actor-authorization") || !contains(first.Capabilities, "management-audit") || first.Platform.OS == "" || first.Platform.Architecture == "" {
 		t.Fatalf("capability/platform contract = %+v", first)
 	}
 	rec := httptest.NewRecorder()
@@ -38,6 +38,15 @@ func TestManifestReportsBoundedDeterministicDaemonFacts(t *testing.T) {
 	if !reflect.DeepEqual(gotKeys, wantKeys) {
 		t.Fatalf("manifest keys = %v, want %v", gotKeys, wantKeys)
 	}
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 func TestManifestRenameAndResetLifecycle(t *testing.T) {

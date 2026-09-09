@@ -15,6 +15,10 @@ Schema v16 stores one opaque installation identifier and editable display name w
 
 The [remote access architecture](remote-access.md) defines the reviewed v1.4 trust, transport, deployment, compatibility, credential, dependency, and verification boundary. It is a future implementation contract, not a shipped network feature. The current daemon still exposes its management API only through protected local IPC.
 
+## Actor authorization and management audit
+
+The [actor permissions and management audit contract](access-control.md) adds the shared authorization substrate required by future transports. Schema v17 persists credential-independent actors and bounded redacted audit events. One operation catalog classifies every current route under Observe, Operate, Manage, or Enroll and marks mutations or privileged reads for intent-first audit. Local IPC resolves to one protected Enroll actor without changing authentication; remote credentials and transport identity resolution remain future work in #168 and #169.
+
 ## Local MCP observation
 
 `gosched mcp serve` is an optional process-launched adapter over the existing protected local IPC client. It uses the official MCP Go SDK and stdio transport, opens no network listener, advertises no tools, and exits with its host. Protocol registration, continuation cursors, bounded error mapping, and dedicated allowlisted response types live in `internal/mcpobserve`; scheduler policy, persistence, execution, and authorization remain daemon-owned.

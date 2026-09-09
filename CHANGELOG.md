@@ -8,11 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Pull-request Linux jobs no longer depend on unrelated hosted-runner Chrome apt sources.** Desktop and Playwright prerequisite installation removes both supported source-file forms before refreshing Ubuntu package metadata, preventing a stale Google repository mirror from causing reproducible hash-mismatch failures before project tests can run.
+
 - **Desktop target context now comes from the connected daemon (Closes #166; Refs #18).** The local connection consumes the daemon-owned installation ID, display name, product version, platform, and deterministic capability list while retaining the existing protected IPC transport, health compatibility, and local permission experience.
 
 - **The pending dependency updates now resolve as one coherent runtime and build baseline (Closes #215; Refs #201, #202, #203, #204, #205, #206, #207, #208).** Root storage and watcher dependencies, Wails, React, frontend test infrastructure, and Node type definitions advance together with the Vite 8 and Node 26 companions required by their declared peer and engine ranges. Both Go modules and the frontend lockfile are regenerated from current `main`, while existing scheduling, desktop, accessibility, installer, and local-access behavior remains under the complete verification contract.
 
 ### Added
+
+- **Actor permissions and durable management audit now govern the local API and future transport contract (Closes #167; Refs #18, #165, #168, #169).** Schema v17 adds credential-independent actors, one protected local operating-system actor, the closed Observe, Operate, Manage, and Enroll hierarchy, complete fail-closed operation classification, per-request revocation enforcement, and secret-free intent-first audit records bounded to 10,000 events and 90 days. Local API, typed-client, and CLI commands administer actors and provide filtered deterministic audit listing and newline-delimited JSON export without adding remote listeners, pairing, credentials, or local login.
 
 - **Every daemon now has a stable identity and privacy-bounded capability manifest (Closes #166; Refs #18, #165).** Schema v16 persists one random installation ID and editable generic display name with the logical daemon database. Protected local API, shared-client, and CLI operations support discovery, validated rename, and atomic exact-confirmation reset while preserving scheduler data. Documented install, upgrade, restore, and clone behavior prevents accidental duplicate target identities without fingerprinting a machine or advertising remote access.
 
@@ -49,6 +53,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-09: isolate Linux CI prerequisite installation from the hosted runner's Google Chrome apt sources.** The sources are not used by go-schedule, Chromium is installed by Playwright, and repeated S076 runs failed before project code executed because a source served package metadata inconsistent with its signed release index. Removing both the legacy `.list` and deb822 `.sources` forms in the affected ephemeral jobs preserves Ubuntu package verification and avoids weakening apt integrity checks or adding blind retries.
 
 - **2026-09-09: bind stable daemon identity to the logical SQLite store and require explicit clone reset.** S075 keeps one random UUID and editable generic name in a singleton schema v16 row, so restart, upgrade, and backup restore preserve the same target without deriving identity from machine data. A copied database remains the same logical daemon until an operator atomically resets one copy by confirming its exact current identifier. The bounded local manifest advertises current product capabilities and safe OS/architecture facts, while actor authority, credentials, audit, remote protocols, and listeners remain assigned to #167 onward.
 

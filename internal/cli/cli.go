@@ -90,6 +90,8 @@ func newRoot() *cobra.Command {
 		newHealthCmd(),
 		newDaemonCmd(),
 		newMCPCmd(),
+		newActorCmd(),
+		newAuditCmd(),
 	)
 	return root
 }
