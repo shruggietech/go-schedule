@@ -150,8 +150,12 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 		return disabledStatus(), nil
 	}
 	httpServer := m.http
+	listener := m.listen
 	m.clearLocked()
 	m.mu.Unlock()
+	if listener != nil {
+		_ = listener.Close()
+	}
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
