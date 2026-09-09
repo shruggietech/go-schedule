@@ -119,6 +119,66 @@ func TestManagerLifecycleIsRuntimeOnlyAndCredentialsRotate(t *testing.T) {
 	}
 }
 
+func TestClientNameAndAccessEvidenceLifecycle(t *testing.T) {
+	manager := New(fakeReader{}, "test", nil)
+	firstTime := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
+	manager.now = func() time.Time { return firstTime }
+	result, err := manager.Enable(context.Background(), server.MCPHTTPEnableRequest{Port: freePort(t), ClientName: "  Codex desktop  "})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = manager.Shutdown(context.Background()) })
+	if result.ClientName != "Codex desktop" || result.RequestCount != 0 || result.LastAccessedAt != nil {
+		t.Fatalf("enable status = %+v", result.MCPHTTPStatusResponse)
+	}
+	accessTime := firstTime.Add(time.Minute)
+	manager.now = func() time.Time { return accessTime }
+	host := endpointHost(result.Endpoint)
+	if allowed, _, _ := manager.authorizeRequest(host, nil, []string{"Bearer " + result.Credential}); !allowed {
+		t.Fatal("valid request rejected")
+	}
+	status := manager.Status()
+	if status.RequestCount != 1 || status.LastAccessedAt == nil || !status.LastAccessedAt.Equal(accessTime) {
+		t.Fatalf("access evidence = %+v", status)
+	}
+	_, _, _ = manager.authorizeRequest(host, nil, []string{"Bearer wrong"})
+	if manager.Status().RequestCount != 1 {
+		t.Fatal("rejected request changed access evidence")
+	}
+	manager.mu.Lock()
+	manager.status.RequestCount = ^uint64(0)
+	manager.mu.Unlock()
+	if allowed, _, _ := manager.authorizeRequest(host, nil, []string{"Bearer " + result.Credential}); !allowed || manager.Status().RequestCount != ^uint64(0) {
+		t.Fatal("request counter did not saturate")
+	}
+	rotated, err := manager.Rotate(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rotated.ClientName != "Codex desktop" || rotated.RequestCount != 0 || rotated.LastAccessedAt != nil {
+		t.Fatalf("rotation did not preserve identity and clear evidence: %+v", rotated.MCPHTTPStatusResponse)
+	}
+}
+
+func TestClientNameValidationAndCompatibilityDefault(t *testing.T) {
+	manager := New(fakeReader{}, "test", nil)
+	result, err := manager.Enable(context.Background(), server.MCPHTTPEnableRequest{Port: freePort(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ClientName != defaultClientName {
+		t.Fatalf("default name = %q", result.ClientName)
+	}
+	if _, err := manager.Disable(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{strings.Repeat("x", maxClientNameBytes+1), "line\nbreak", string([]byte{0xff})} {
+		if _, err := manager.Enable(context.Background(), server.MCPHTTPEnableRequest{Port: freePort(t), ClientName: name}); err == nil {
+			t.Fatalf("invalid client name %q succeeded", name)
+		}
+	}
+}
+
 func TestEnableValidationAndPortConflictAreAtomic(t *testing.T) {
 	manager := New(fakeReader{}, "test", nil)
 	invalid := []server.MCPHTTPEnableRequest{

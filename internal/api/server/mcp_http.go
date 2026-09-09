@@ -16,12 +16,16 @@ type MCPHTTPStatusResponse struct {
 	AllowedOrigins        []string   `json:"allowed_origins"`
 	CredentialFingerprint string     `json:"credential_fingerprint,omitempty"`
 	EnabledAt             *time.Time `json:"enabled_at,omitempty"`
+	ClientName            string     `json:"client_name,omitempty"`
+	LastAccessedAt        *time.Time `json:"last_accessed_at,omitempty"`
+	RequestCount          uint64     `json:"request_count"`
 }
 
 // MCPHTTPEnableRequest contains the only caller-selectable listener settings.
 type MCPHTTPEnableRequest struct {
 	Port           int      `json:"port"`
 	AllowedOrigins []string `json:"allowed_origins"`
+	ClientName     string   `json:"client_name,omitempty"`
 }
 
 // MCPHTTPCredentialResponse returns a newly issued credential once.

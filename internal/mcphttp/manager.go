@@ -11,8 +11,11 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -21,7 +24,11 @@ import (
 	"github.com/shruggietech/go-schedule/internal/mcpobserve"
 )
 
-const shutdownTimeout = 5 * time.Second
+const (
+	shutdownTimeout    = 5 * time.Second
+	defaultClientName  = "Local MCP client"
+	maxClientNameBytes = 64
+)
 
 type observeReader interface {
 	Health(context.Context) (server.HealthResponse, error)
@@ -41,6 +48,7 @@ type Manager struct {
 	digest  [sha256.Size]byte
 	http    *http.Server
 	listen  net.Listener
+	now     func() time.Time
 }
 
 // New constructs a disabled manager.
@@ -48,7 +56,7 @@ func New(reader observeReader, version string, log *slog.Logger) *Manager {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
-	return &Manager{reader: reader, version: version, log: log, status: disabledStatus()}
+	return &Manager{reader: reader, version: version, log: log, status: disabledStatus(), now: time.Now}
 }
 
 func disabledStatus() server.MCPHTTPStatusResponse {
@@ -73,6 +81,10 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 	if err != nil {
 		return server.MCPHTTPCredentialResponse{}, err
 	}
+	clientName, err := normalizeClientName(req.ClientName)
+	if err != nil {
+		return server.MCPHTTPCredentialResponse{}, err
+	}
 	m.mu.RLock()
 	enabled := m.status.Enabled
 	m.mu.RUnlock()
@@ -88,13 +100,14 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 	if err != nil {
 		return server.MCPHTTPCredentialResponse{}, conflictError("cannot enable localhost MCP because the selected port is unavailable")
 	}
-	enabledAt := time.Now().UTC()
+	enabledAt := m.now().UTC()
 	status := server.MCPHTTPStatusResponse{
 		Enabled:               true,
 		Endpoint:              "http://" + host + "/mcp",
 		AllowedOrigins:        origins,
 		CredentialFingerprint: fingerprint,
 		EnabledAt:             &enabledAt,
+		ClientName:            clientName,
 	}
 	httpServer := &http.Server{Handler: streamableHandler(m), ReadHeaderTimeout: 5 * time.Second}
 	m.mu.Lock()
@@ -135,6 +148,8 @@ func (m *Manager) Rotate(_ context.Context) (server.MCPHTTPCredentialResponse, e
 	}
 	m.digest = digest
 	m.status.CredentialFingerprint = fingerprint
+	m.status.LastAccessedAt = nil
+	m.status.RequestCount = 0
 	status := cloneStatus(m.status)
 	m.log.Info("localhost MCP credential rotated", "credential_fingerprint", fingerprint)
 	return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: status, Credential: credential}, nil
@@ -196,7 +211,33 @@ func newCredential() (string, [sha256.Size]byte, string, error) {
 
 func cloneStatus(status server.MCPHTTPStatusResponse) server.MCPHTTPStatusResponse {
 	status.AllowedOrigins = append([]string{}, status.AllowedOrigins...)
+	status.EnabledAt = cloneTime(status.EnabledAt)
+	status.LastAccessedAt = cloneTime(status.LastAccessedAt)
 	return status
+}
+
+func cloneTime(value *time.Time) *time.Time {
+	if value == nil {
+		return nil
+	}
+	copy := *value
+	return &copy
+}
+
+func normalizeClientName(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return defaultClientName, nil
+	}
+	if !utf8.ValidString(value) || len(value) > maxClientNameBytes {
+		return "", validationError("client_name", "client name must be valid UTF-8 and no more than 64 bytes")
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return "", validationError("client_name", "client name must not contain control characters")
+		}
+	}
+	return value, nil
 }
 
 func validationError(field, message string) error {

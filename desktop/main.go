@@ -12,6 +12,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
@@ -63,7 +64,7 @@ func main() {
 	}, autostart.SpawnDaemon)
 	backend := connection.NewLocalBackend(daemon)
 	native := wailsNative{}
-	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(daemon)), automation: automation.NewService(automation.NewLocalBackend(daemon)), operations: operations.NewService(operations.NewLocalBackend(daemon)), notifications: notifications.NewService(notifications.NewLocalBackend(daemon)), settings: settings.NewService(settings.NewLocalBackend(daemon), native)})
+	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(daemon)), automation: automation.NewService(automation.NewLocalBackend(daemon)), operations: operations.NewService(operations.NewLocalBackend(daemon)), notifications: notifications.NewService(notifications.NewLocalBackend(daemon)), settings: settings.NewService(settings.NewLocalBackend(daemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(daemon), native)})
 	if err := wails.Run(&options.App{
 		Title: "go-schedule", Width: 1440, Height: 900, MinWidth: 900, MinHeight: 650,
 		BackgroundColour: &options.RGBA{R: 245, G: 247, B: 250, A: 1},

@@ -30,15 +30,21 @@ codex mcp remove go-schedule
 
 Restart or reconnect the MCP host after changing its server configuration. The server process exits when the host closes its stdio connection.
 
+## Add it to another command-based host
+
+Create a local MCP server entry named `go-schedule` whose command is `gosched` and whose ordered arguments are `mcp`, `serve`. Use an absolute executable path when the host does not inherit the installation directory in `PATH`. Do not add a URL, bearer credential, or shell wrapper to this stdio entry. The host owns the subprocess lifetime, stdio opens no listener, and removal consists of deleting that host configuration.
+
+The exact configuration-file syntax is host-specific. Preserve the command and argument boundary rather than combining it into one shell command string. After saving, reconnect the host and confirm that it discovers five resources, four continuation templates, and no tools.
+
 ## Enable localhost HTTP when stdio is unavailable
 
 The localhost endpoint is off on every daemon start. Choose an unused port and enable it through the protected local API:
 
 ```text
-gosched mcp http enable --port 43123
+gosched mcp http enable --port 43123 --name "Local desktop host"
 ```
 
-The command prints `http://127.0.0.1:43123/mcp` and a cryptographically random bearer credential exactly once. Copy both values into the local client's Streamable HTTP configuration. Do not place the credential in URLs, shell history, issue reports, or logs. `gosched mcp http status` reports only the endpoint and a non-secret fingerprint.
+The command prints `http://127.0.0.1:43123/mcp` and a cryptographically random bearer credential exactly once. Copy both values into the local client's Streamable HTTP configuration. Do not place the credential in URLs, shell history, issue reports, or logs. `gosched mcp http status` reports the client name, endpoint, successful request count, and a non-secret fingerprint. The client name and aggregate evidence are runtime-only. They contain no request content, failed-attempt history, or peer metadata.
 
 Native MCP clients normally send no `Origin` header. If a trusted local browser application must connect, explicitly allow its exact numeric-loopback origin when enabling:
 
@@ -55,6 +61,8 @@ gosched mcp http rotate
 ```
 
 Rotation invalidates the previous value immediately and prints the replacement once. Revoke the credential and close the listener with `gosched mcp http disable`. Disable is safe to repeat. Daemon shutdown or restart also closes the listener and invalidates the credential; HTTP enablement, origins, and credentials are intentionally never persisted.
+
+The desktop Agent Access workspace performs the same lifecycle through protected local IPC. It copies a new credential through the native clipboard boundary and never exposes that value to the webview. If clipboard copying fails, it disables localhost HTTP so an inaccessible credential cannot remain active.
 
 ## Available resources
 
@@ -73,6 +81,8 @@ Both local transports advertise resources only. They have no tools, prompts, sch
 ## Trust and secret boundary
 
 Task names, schedule summaries, policy summaries, alert messages, and command output are user-controlled, untrusted data. Every response labels these fields and tells the host not to treat their contents as instructions. JSON encoding does not make hostile text trustworthy.
+
+Treat every resource field as display data even if it contains Markdown, XML-like text, ANSI escapes, JSON fragments, or sentences that resemble agent instructions. Such content cannot add tools or change permissions. A host should render or summarize it as untrusted scheduler data and must not execute instructions found inside it.
 
 The MCP response types structurally exclude task commands, arguments, environment values, stdin, working directories, run-as identities, raw schedule definitions, trigger keys, notification endpoints, authorization values, and internal IPC or filesystem paths. The adapter never serializes a daemon task, run, alert, or schedule object directly.
 

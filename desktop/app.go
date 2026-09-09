@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
@@ -38,6 +39,7 @@ type App struct {
 	operations    *operations.Service
 	notifications *notifications.Service
 	settings      *settings.Service
+	agentAccess   *agentaccess.Service
 	emitter       eventEmitter
 	native        nativeRuntime
 	ctx           context.Context
@@ -49,6 +51,7 @@ type appServices struct {
 	operations    *operations.Service
 	notifications *notifications.Service
 	settings      *settings.Service
+	agentAccess   *agentaccess.Service
 }
 
 func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, services ...appServices) *App {
@@ -59,9 +62,50 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 		app.operations = services[0].operations
 		app.notifications = services[0].notifications
 		app.settings = services[0].settings
+		app.agentAccess = services[0].agentAccess
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+// AgentAccessWorkspace returns the safe local MCP projection.
+func (a *App) AgentAccessWorkspace() agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "load_agent_access", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.Workspace(a.ctx)
+}
+
+// EnableAgentAccess enables one named localhost client and copies its credential natively.
+func (a *App) EnableAgentAccess(draft agentaccess.EnableDraft) agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "enable_agent_access", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.Enable(a.ctx, draft)
+}
+
+// RotateAgentAccess replaces the current localhost credential.
+func (a *App) RotateAgentAccess() agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "rotate_agent_access", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.Rotate(a.ctx)
+}
+
+// RevokeAgentAccess closes the localhost listener and invalidates its credential.
+func (a *App) RevokeAgentAccess() agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "revoke_agent_access", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.Revoke(a.ctx)
+}
+
+// OpenAgentAccessGuide opens the fixed official setup guide.
+func (a *App) OpenAgentAccessGuide() agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "open_agent_access_guide", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.OpenGuide(a.ctx)
 }
 
 func (a *App) NotificationWorkspace() notifications.Result {
