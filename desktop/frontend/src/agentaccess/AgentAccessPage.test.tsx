@@ -26,4 +26,13 @@ describe('Agent Access page', () => {
     expect(screen.getByRole('button', { name: /Rotate credential/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Revoke access/i })).toBeInTheDocument()
   })
+  it('shows an actionable initial load failure instead of indefinite loading', async () => {
+    const api = bridge()
+    api.workspace = vi.fn().mockResolvedValue({ action: 'load_agent_access', outcome: 'unavailable', message: 'Check the local scheduler connection.' })
+    render(<AgentAccessPage bridge={api} available refreshToken={1} />)
+    expect(await screen.findByRole('heading', { name: 'Agent Access unavailable' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await waitFor(() => expect(api.workspace).toHaveBeenCalledTimes(2))
+  })
 })

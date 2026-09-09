@@ -98,9 +98,13 @@ func (s *Service) handoff(ctx context.Context, action, message string, result se
 	result.Credential = ""
 	if s.native == nil || s.native.ClipboardSetText(ctx, credential) != nil {
 		rollbackCtx, cancel := context.WithTimeout(context.Background(), operationTimeout)
-		_, _ = s.backend.DisableMCPHTTP(rollbackCtx)
+		status, err := s.backend.DisableMCPHTTP(rollbackCtx)
 		cancel()
-		return Result{Action: action, Outcome: "unavailable", Message: "The credential could not be copied, so localhost access was disabled."}
+		if err != nil || status.Enabled {
+			return Result{Action: action, Outcome: "unavailable", Message: "The credential could not be copied and revocation could not be confirmed. Run `gosched mcp http disable` now, then refresh Agent Access."}
+		}
+		workspace := project(status)
+		return Result{Action: action, Outcome: "unavailable", Message: "The credential could not be copied, so localhost access was disabled.", Workspace: &workspace}
 	}
 	workspace := project(result.MCPHTTPStatusResponse)
 	return Result{Action: action, Outcome: "accepted", Message: message, Workspace: &workspace}

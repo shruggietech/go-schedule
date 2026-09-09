@@ -11,10 +11,11 @@ import (
 )
 
 type fakeBackend struct {
-	status   server.MCPHTTPStatusResponse
-	secret   string
-	err      error
-	disabled int
+	status     server.MCPHTTPStatusResponse
+	secret     string
+	err        error
+	disableErr error
+	disabled   int
 }
 
 func (b *fakeBackend) MCPHTTPStatus(context.Context) (server.MCPHTTPStatusResponse, error) {
@@ -30,8 +31,11 @@ func (b *fakeBackend) RotateMCPHTTPCredential(context.Context) (server.MCPHTTPCr
 }
 func (b *fakeBackend) DisableMCPHTTP(context.Context) (server.MCPHTTPStatusResponse, error) {
 	b.disabled++
+	if b.disableErr != nil {
+		return b.status, b.disableErr
+	}
 	b.status = server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}
-	return b.status, b.err
+	return b.status, nil
 }
 
 type fakeNative struct {
@@ -71,8 +75,14 @@ func TestEnableCopiesCredentialAndClipboardFailureRevokes(t *testing.T) {
 	}
 	failing := &fakeNative{copyErr: errors.New("denied")}
 	result = NewService(backend, failing).Rotate(context.Background())
-	if result.Outcome != "unavailable" || backend.disabled != 1 || backend.status.Enabled {
+	if result.Outcome != "unavailable" || result.Workspace == nil || backend.disabled != 1 || backend.status.Enabled {
 		t.Fatalf("rollback = %+v disabled=%d", result, backend.disabled)
+	}
+	backend.status.Enabled = true
+	backend.disableErr = errors.New("timeout")
+	result = NewService(backend, failing).Rotate(context.Background())
+	if result.Workspace != nil || !strings.Contains(result.Message, "could not be confirmed") || !backend.status.Enabled {
+		t.Fatalf("unconfirmed rollback = %+v status=%+v", result, backend.status)
 	}
 }
 

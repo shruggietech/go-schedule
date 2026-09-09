@@ -9,6 +9,7 @@ export function AgentAccessPage({ bridge, available, refreshToken }: { bridge: A
   const [port, setPort] = useState('43123')
   const [origins, setOrigins] = useState('')
   if (!available) return <StatePanel title="Agent Access unavailable" detail="Reconnect to the local scheduler service to inspect or control agent access." />
+  if (!access.workspace && access.message) return <StatePanel title="Agent Access unavailable" detail={access.message} action="Try again" onAction={() => void access.load()} />
   if (!access.workspace) return <StatePanel title="Loading Agent Access" detail="Reading the local MCP access boundary." busy />
   const http = access.workspace.http
   return <section aria-labelledby="agent-access-title">
