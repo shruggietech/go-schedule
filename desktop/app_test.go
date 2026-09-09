@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
@@ -62,6 +63,23 @@ type facadeOperationsBackend struct{ operations.Backend }
 type facadeNotificationsBackend struct{ notifications.Backend }
 
 type facadeSettingsBackend struct{}
+
+type facadeAgentAccessBackend struct{ status server.MCPHTTPStatusResponse }
+
+func (b *facadeAgentAccessBackend) MCPHTTPStatus(context.Context) (server.MCPHTTPStatusResponse, error) {
+	return b.status, nil
+}
+func (b *facadeAgentAccessBackend) EnableMCPHTTP(_ context.Context, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
+	b.status = server.MCPHTTPStatusResponse{Enabled: true, ClientName: req.ClientName, AllowedOrigins: []string{}}
+	return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: b.status, Credential: "one-time"}, nil
+}
+func (b *facadeAgentAccessBackend) RotateMCPHTTPCredential(context.Context) (server.MCPHTTPCredentialResponse, error) {
+	return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: b.status, Credential: "replacement"}, nil
+}
+func (b *facadeAgentAccessBackend) DisableMCPHTTP(context.Context) (server.MCPHTTPStatusResponse, error) {
+	b.status = server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}
+	return b.status, nil
+}
 
 func (facadeSettingsBackend) RuntimeInfo(context.Context) (server.RuntimeInfoResponse, error) {
 	return server.RuntimeInfoResponse{}, nil
@@ -208,6 +226,29 @@ func TestAppFacadeExposesDesktopSettings(t *testing.T) {
 	}
 	if result := app.OpenProductLink("documentation"); result.Outcome != "accepted" || native.opened != "https://shruggietech.github.io/go-schedule/" {
 		t.Fatalf("open=%+v opened=%q", result, native.opened)
+	}
+	app.shutdown(context.Background())
+}
+
+func TestAppFacadeExposesAgentAccessWithoutCredential(t *testing.T) {
+	native := &appNative{}
+	backend := &facadeAgentAccessBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}}
+	service := agentaccess.NewService(backend, native)
+	app := newApp(appBackend{}, nil, native, appServices{agentAccess: service})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.startup(ctx)
+	if result := app.AgentAccessWorkspace(); result.Outcome != "accepted" || result.Workspace == nil {
+		t.Fatalf("workspace=%+v", result)
+	}
+	if result := app.EnableAgentAccess(agentaccess.EnableDraft{ClientName: "Codex", Port: 43123}); result.Outcome != "accepted" || native.copied != "one-time" || result.Workspace == nil {
+		t.Fatalf("enable=%+v copied=%q", result, native.copied)
+	}
+	if result := app.RotateAgentAccess(); result.Outcome != "accepted" || native.copied != "replacement" {
+		t.Fatalf("rotate=%+v copied=%q", result, native.copied)
+	}
+	if result := app.RevokeAgentAccess(); result.Outcome != "accepted" || result.Workspace == nil || result.Workspace.HTTP.Enabled {
+		t.Fatalf("revoke=%+v", result)
 	}
 	app.shutdown(context.Background())
 }

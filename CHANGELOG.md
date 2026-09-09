@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Agent Access completes the local Observe release with understandable controls and deterministic release gates (Closes #164; Refs #148).** The Wails desktop now distinguishes on-demand stdio from optional localhost HTTP, names and revokes the single runtime client, copies credentials only through the native boundary, and reports bounded successful-access evidence without request content. Codex and generic-host guidance, hostile-content checks, and a real package-shaped official-SDK command smoke keep the five-resource, four-template, zero-tool contract reviewable across supported platforms.
+
 - **Optional authenticated localhost MCP serves the existing Observe surface to clients that cannot launch stdio (Closes #163; Refs #148).** A protected local API and CLI can enable one runtime-only `127.0.0.1` Streamable HTTP endpoint, issue or rotate a one-time bearer credential, inspect non-secret status, and revoke access. Exact Host and explicit browser Origin policy, digest-only credential retention, SDK DNS-rebinding protection, bounded request bodies, stateless sessions, and restart-default-off lifecycle keep this transport independent from GUI, CLI, stdio, remote JSON, and future remote MCP authority.
 
 - **Local observe-only MCP access exposes bounded scheduler context without adding mutation authority (Closes #161, #162; Refs #148).** Codex and other local hosts can launch `gosched mcp serve` over stdio to read daemon health, active tasks, upcoming schedules, recent alerts, and recent runs through the official MCP Go SDK. Dedicated allowlisted response types exclude executable configuration and secrets, deterministic continuation bounds collections, hostile display text and output remain explicitly untrusted, and existing Unix-socket or Windows-named-pipe authorization remains final.
@@ -35,6 +37,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-09: label the single ephemeral localhost credential instead of introducing durable grants.** S071 preserves S070's one-listener and one-credential authority, adds a validated runtime-only display name plus saturating successful-request evidence, resets evidence on rotation, and treats disable as revocation. The desktop copies a newly issued credential natively and disables the endpoint if that handoff fails; durable multi-client grants remain assigned to #181.
 
 - **2026-09-08: make localhost MCP an ephemeral daemon-owned capability.** S070 accepts only an operator-selected port and binds numeric IPv4 loopback, while endpoint state, allowed origins, and credential material remain memory-only. Protected IPC controls enable, status, rotation, and idempotent disablement; public requests pass exact Host, optional exact loopback Origin, and current Bearer digest checks before the official SDK's stateless Streamable HTTP handler constructs the same S069 Observe server. Restart, shutdown, disablement, and rotation fail closed without changing any other authorization surface.
 

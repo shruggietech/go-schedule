@@ -11,6 +11,8 @@ The daemon owns scheduling, persistence, execution, and completion delivery. The
 
 `gosched mcp serve` is an optional process-launched adapter over the existing protected local IPC client. It uses the official MCP Go SDK and stdio transport, opens no network listener, advertises no tools, and exits with its host. Protocol registration, continuation cursors, bounded error mapping, and dedicated allowlisted response types live in `internal/mcpobserve`; scheduler policy, persistence, execution, and authorization remain daemon-owned.
 
+The optional localhost Streamable HTTP manager owns one runtime listener, one current credential digest, one validated client label, and aggregate successful-access evidence. The desktop `agentaccess` service projects safe status and authority, serializes lifecycle actions, copies newly issued credentials through the native clipboard, and fails closed by disabling the listener if copying fails. React receives no credential field. Durable grants, simultaneous clients, remote listeners, request-content history, and mutation authority are separate future designs.
+
 The enabled permission class is Observe. Responses exclude executable configuration and protected values, cap collections and untrusted text, and label user-controlled names, summaries, messages, and output as data rather than instructions. Future Operate and Manage classes remain disabled until authenticated identity, per-action authorization, attributable audit records, explicit arguments, and appropriate confirmation are implemented.
 
 ## Completion delivery

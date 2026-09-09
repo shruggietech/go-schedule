@@ -81,6 +81,8 @@ gosched mcp serve
 
 This command is meant to be launched by Codex or another MCP host. It opens no network listener, advertises no mutation tools, exits when the host disconnects, and reaches the daemon only through the existing protected local IPC endpoint. Protocol messages are the only stdout content; diagnostics use stderr. See [Local MCP access](mcp.md) for setup, resources, bounds, and the untrusted-content boundary.
 
+`gosched mcp http enable --port PORT [--name NAME] [--origin ORIGIN...]` creates one runtime-only named localhost client and prints its bearer credential once. Omitted names retain the compatibility label `Local MCP client`; the desktop requires an explicit name. Status adds only non-secret identity and aggregate successful-access evidence. Rotation preserves the name and listener policy while clearing evidence, and disable revokes the client by closing the listener.
+
 ## `task`
 
 Create and manage tasks. A task is a command, a schedule, and the policies that decide what happens when runs collide or are missed.

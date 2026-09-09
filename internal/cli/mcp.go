@@ -67,7 +67,7 @@ func newMCPHTTPCmd() *cobra.Command {
 				fmt.Fprintln(os.Stdout, "localhost MCP disabled")
 				return nil
 			}
-			fmt.Fprintf(os.Stdout, "localhost MCP enabled at %s (credential %s)\n", status.Endpoint, status.CredentialFingerprint)
+			fmt.Fprintf(os.Stdout, "localhost MCP enabled for %s at %s (credential %s, successful requests %d)\n", status.ClientName, status.Endpoint, status.CredentialFingerprint, status.RequestCount)
 			return nil
 		}},
 		newMCPHTTPEnableCmd(),
@@ -96,11 +96,12 @@ func newMCPHTTPCmd() *cobra.Command {
 func newMCPHTTPEnableCmd() *cobra.Command {
 	var port int
 	var origins []string
+	var clientName string
 	cmd := &cobra.Command{Use: "enable", Short: "Start authenticated MCP on numeric IPv4 loopback", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if port < 1 || port > 65535 {
 			return fmtUsage("--port must be between 1 and 65535")
 		}
-		result, err := mcpHTTPEnable(cmd, server.MCPHTTPEnableRequest{Port: port, AllowedOrigins: origins})
+		result, err := mcpHTTPEnable(cmd, server.MCPHTTPEnableRequest{Port: port, AllowedOrigins: origins, ClientName: clientName})
 		if err != nil {
 			return err
 		}
@@ -108,6 +109,7 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 	}}
 	cmd.Flags().IntVar(&port, "port", 0, "loopback TCP port (required)")
 	cmd.Flags().StringSliceVar(&origins, "origin", nil, "allowed loopback browser origin (repeatable)")
+	cmd.Flags().StringVar(&clientName, "name", "", "display name for the active local client")
 	_ = cmd.MarkFlagRequired("port")
 	return cmd
 }
@@ -116,7 +118,7 @@ func printMCPHTTPCredential(result server.MCPHTTPCredentialResponse, heading str
 	if jsonOut {
 		return printJSON(result)
 	}
-	fmt.Fprintf(os.Stdout, "%s at %s\n", heading, result.Endpoint)
+	fmt.Fprintf(os.Stdout, "%s for %s at %s\n", heading, result.ClientName, result.Endpoint)
 	fmt.Fprintf(os.Stdout, "credential (shown once): %s\n", result.Credential)
 	return nil
 }

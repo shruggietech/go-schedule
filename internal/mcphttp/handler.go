@@ -4,6 +4,7 @@ package mcphttp
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"math"
 	"net/http"
 	"net/url"
 	"sort"
@@ -90,14 +91,19 @@ func streamableHandler(manager *Manager) http.Handler {
 }
 
 func (m *Manager) authorizeRequest(host string, origins, authorizations []string) (allowed bool, origin string, unauthorized bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	if !m.status.Enabled || host != endpointHost(m.status.Endpoint) || len(origins) > 1 || len(origins) == 1 && !contains(m.status.AllowedOrigins, origins[0]) {
 		return false, "", false
 	}
 	if len(authorizations) != 1 || !validBearer(authorizations[0], m.digest) {
 		return false, "", true
 	}
+	if m.status.RequestCount < math.MaxUint64 {
+		m.status.RequestCount++
+	}
+	accessedAt := m.now().UTC()
+	m.status.LastAccessedAt = &accessedAt
 	if len(origins) == 1 {
 		origin = origins[0]
 	}
