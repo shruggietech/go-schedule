@@ -40,8 +40,8 @@ type manifestResetRequest struct {
 
 var daemonCapabilities = []string{"activity", "actor-authorization", "agent-access", "chains", "groups", "management-audit", "notifications", "schedule", "tasks", "triggers", "watchers"}
 
-func (s *Server) handleManifest(w http.ResponseWriter, _ *http.Request) {
-	s.writeManifest(w)
+func (s *Server) handleManifest(w http.ResponseWriter, r *http.Request) {
+	s.writeManifest(w, r)
 }
 
 func (s *Server) handleRenameManifest(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +58,7 @@ func (s *Server) handleRenameManifest(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
-	s.writeManifest(w)
+	s.writeManifest(w, r)
 }
 
 func (s *Server) handleResetManifest(w http.ResponseWriter, r *http.Request) {
@@ -79,10 +79,10 @@ func (s *Server) handleResetManifest(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, err)
 		return
 	}
-	s.writeManifest(w)
+	s.writeManifest(w, r)
 }
 
-func (s *Server) writeManifest(w http.ResponseWriter) {
+func (s *Server) writeManifest(w http.ResponseWriter, r *http.Request) {
 	identity, err := s.store.DaemonIdentity()
 	if err != nil {
 		s.internal(w, err)
@@ -92,14 +92,20 @@ func (s *Server) writeManifest(w http.ResponseWriter) {
 	if platform == "darwin" {
 		platform = "macos"
 	}
+	remoteVersions := []string{}
+	capabilities := append([]string(nil), daemonCapabilities...)
+	if r.Header.Get("X-Go-Schedule-Transport") == "remote" {
+		remoteVersions = []string{"v1"}
+		capabilities = append(capabilities, "remote-json")
+	}
 	writeJSON(w, http.StatusOK, ManifestResponse{
 		InstallationID:    identity.InstallationID,
 		DisplayName:       identity.DisplayName,
 		ProductVersion:    buildinfo.Version,
 		LocalAPIVersions:  []string{"v1"},
-		RemoteAPIVersions: []string{},
+		RemoteAPIVersions: remoteVersions,
 		OperatingMode:     "local_only",
-		Capabilities:      append([]string(nil), daemonCapabilities...),
+		Capabilities:      capabilities,
 		Platform:          ManifestPlatform{OS: platform, Architecture: runtime.GOARCH},
 	})
 }

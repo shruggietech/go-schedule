@@ -1,0 +1,118 @@
+openapi: 3.1.0
+info:
+  title: go-schedule Remote API
+  version: 1.0.0
+  description: Opt-in authenticated HTTPS access to a bounded subset of daemon operations.
+servers:
+  - url: https://{daemon}/api/v1
+    variables:
+      daemon:
+        default: 127.0.0.1:8443
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      operationId: health.read
+      security: []
+      responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}
+  /manifest:
+    get:
+      operationId: manifest.read
+      security: []
+      responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}
+  /enroll:
+    post:
+      operationId: enrollment.exchange
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/EnrollmentRequest"}
+      responses:
+        "201": {$ref: "#/components/responses/JSONSuccess"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /tasks:
+    get: {operationId: tasks.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    post: {operationId: tasks.create, requestBody: {$ref: "#/components/requestBodies/JSONBody"}, responses: {"201": {$ref: "#/components/responses/JSONSuccess"}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+  /tasks/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get: {operationId: tasks.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    patch: {operationId: tasks.update, requestBody: {$ref: "#/components/requestBodies/JSONBody"}, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+    delete: {operationId: tasks.delete, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /tasks/{id}/enable:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post: {operationId: tasks.enable, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /tasks/{id}/disable:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post: {operationId: tasks.disable, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /tasks/{id}/run-now:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post: {operationId: tasks.run_now, responses: {"202": {$ref: "#/components/responses/JSONSuccess"}}}
+  /groups:
+    get: {operationId: groups.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /groups/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get: {operationId: groups.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /runs:
+    get: {operationId: runs.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /runs/active:
+    get: {operationId: runs.active.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /runs/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get: {operationId: runs.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /alerts:
+    get: {operationId: alerts.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /alerts/{id}/ack:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post: {operationId: alerts.acknowledge, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /calendar:
+    get: {operationId: calendar.read, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /events:
+    get:
+      operationId: events.stream
+      description: Reconnect safe read stream. Mutations are never automatically replayed.
+      responses:
+        "200": {description: Server-sent event stream, content: {text/event-stream: {schema: {type: string}}}}
+  /access/actors:
+    get: {operationId: actors.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+  /audit:
+    get: {operationId: audit.list, responses: {"200": {$ref: "#/components/responses/JSONSuccess"}}}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: A 256-bit opaque base64url credential issued once during enrollment or rotation.
+  parameters:
+    ID: {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+  requestBodies:
+    JSONBody:
+      required: true
+      content: {application/json: {schema: {type: object, maxProperties: 128}}}
+  responses:
+    JSONSuccess: {description: Successful JSON response, content: {application/json: {schema: {type: object}}}}
+    Unauthorized: {description: Generic authentication failure, headers: {WWW-Authenticate: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
+  schemas:
+    EnrollmentRequest:
+      type: object
+      additionalProperties: false
+      required: [pairing_id, phrase, daemon_id, display_name, kind, capability]
+      properties:
+        pairing_id: {type: string, format: uuid}
+        phrase: {type: string, minLength: 1, maxLength: 256}
+        daemon_id: {type: string, format: uuid}
+        display_name: {type: string, minLength: 1, maxLength: 80}
+        kind: {type: string, enum: [desktop, cli, json, mcp]}
+        capability: {type: string, enum: [observe, operate, manage, enroll]}
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}

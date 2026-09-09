@@ -509,3 +509,9 @@ The GUI must be present next to the `gosched` binary. If it is not, a server-onl
 ## Deprecated: `alerts`
 
 `gosched alerts` and `gosched alerts ack <id>` still work but are deprecated and hidden from `--help`. Alerts were folded into the unified Activity view; use [`logs`](#logs) instead. They will be removed in a future release.
+
+## Remote pairing and credentials
+
+`gosched pairing create <display-name>` creates a ten-minute one-time phrase through protected local IPC. Select `--kind desktop|cli|json|mcp` and `--capability observe|operate|manage|enroll`. The command displays the phrase once together with the pairing ID, daemon ID, and expiration; do not place those values in scripts or ordinary shell history.
+
+`gosched pairing list` shows metadata without phrases, and `gosched pairing cancel <pairing-id>` invalidates an active request. `gosched credential list` shows safe fingerprints and lifecycle metadata. `gosched credential rotate <credential-id>` displays one replacement token and immediately invalidates the old value. `gosched credential revoke <credential-id>` revokes both the credential and its actor relationship. Named remote CLI profiles and remote command targeting remain assigned to #171.

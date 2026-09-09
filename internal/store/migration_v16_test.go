@@ -44,7 +44,7 @@ func TestMigrationV16PreservesExistingStateAndAddsIdentity(t *testing.T) {
 	if err := st.db.QueryRow(`SELECT COUNT(*) FROM daemon_identity`).Scan(&identities); err != nil {
 		t.Fatal(err)
 	}
-	if version != 17 || groups != 1 || tasks != 1 || identities != 1 {
+	if version != 18 || groups != 1 || tasks != 1 || identities != 1 {
 		t.Fatalf("version=%d groups=%d tasks=%d identities=%d", version, groups, tasks, identities)
 	}
 }

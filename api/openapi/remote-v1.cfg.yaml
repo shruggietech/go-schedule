@@ -1,0 +1,5 @@
+package: remote
+output: internal/remote/openapi.gen.go
+generate:
+  models: true
+  client: true

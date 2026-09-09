@@ -38,6 +38,46 @@ func (c *Client) RevokeActor(ctx context.Context, id string) (domain.Actor, erro
 	return out, err
 }
 
+func (c *Client) CreatePairing(ctx context.Context, request server.PairingCreateRequest) (domain.PairingSecret, error) {
+	var out domain.PairingSecret
+	err := c.do(ctx, http.MethodPost, "/v1/access/pairings", request, &out)
+	return out, err
+}
+
+func (c *Client) ListPairings(ctx context.Context) ([]domain.PairingSession, error) {
+	var out struct {
+		Pairings []domain.PairingSession `json:"pairings"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/access/pairings", nil, &out)
+	return out.Pairings, err
+}
+
+func (c *Client) CancelPairing(ctx context.Context, id string) (domain.PairingSession, error) {
+	var out domain.PairingSession
+	err := c.do(ctx, http.MethodPost, "/v1/access/pairings/"+url.PathEscape(id)+"/cancel", nil, &out)
+	return out, err
+}
+
+func (c *Client) ListCredentials(ctx context.Context) ([]domain.ClientCredential, error) {
+	var out struct {
+		Credentials []domain.ClientCredential `json:"credentials"`
+	}
+	err := c.do(ctx, http.MethodGet, "/v1/access/credentials", nil, &out)
+	return out.Credentials, err
+}
+
+func (c *Client) RotateCredential(ctx context.Context, id string) (domain.IssuedCredential, error) {
+	var out domain.IssuedCredential
+	err := c.do(ctx, http.MethodPost, "/v1/access/credentials/"+url.PathEscape(id)+"/rotate", nil, &out)
+	return out, err
+}
+
+func (c *Client) RevokeCredential(ctx context.Context, id string) (domain.ClientCredential, error) {
+	var out domain.ClientCredential
+	err := c.do(ctx, http.MethodPost, "/v1/access/credentials/"+url.PathEscape(id)+"/revoke", nil, &out)
+	return out, err
+}
+
 func auditQueryValues(query domain.AuditQuery) url.Values {
 	values := url.Values{}
 	if query.ActorID != "" {

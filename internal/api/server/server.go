@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/internal/enrollment"
 	"github.com/shruggietech/go-schedule/internal/events"
 	"github.com/shruggietech/go-schedule/internal/logbus"
 	"github.com/shruggietech/go-schedule/internal/store"
@@ -39,6 +40,7 @@ type Server struct {
 	mcpHTTP      MCPHTTPManager
 	mux          *http.ServeMux
 	resolveActor func(*http.Request) (string, error)
+	enrollment   *enrollment.Service
 }
 
 // RuntimeInfoResponse identifies the daemon's effective local storage paths.
@@ -61,7 +63,7 @@ func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.R
 // NewWithRuntimeInfo constructs a Server with authoritative daemon storage
 // metadata for GET /v1/runtime-info.
 func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, runtime RuntimeInfoResponse, log *slog.Logger) *Server {
-	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux()}
+	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux(), enrollment: enrollment.New(st)}
 	s.resolveActor = func(*http.Request) (string, error) {
 		actor, err := st.LocalActor()
 		return actor.ID, err
@@ -180,6 +182,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/access/actors", s.handleCreateActor)
 	s.mux.HandleFunc("PATCH /v1/access/actors/{id}", s.handleUpdateActor)
 	s.mux.HandleFunc("POST /v1/access/actors/{id}/revoke", s.handleRevokeActor)
+	s.mux.HandleFunc("GET /v1/access/pairings", s.handleListPairings)
+	s.mux.HandleFunc("POST /v1/access/pairings", s.handleCreatePairing)
+	s.mux.HandleFunc("POST /v1/access/pairings/{id}/cancel", s.handleCancelPairing)
+	s.mux.HandleFunc("GET /v1/access/credentials", s.handleListCredentials)
+	s.mux.HandleFunc("POST /v1/access/credentials/{id}/rotate", s.handleRotateCredential)
+	s.mux.HandleFunc("POST /v1/access/credentials/{id}/revoke", s.handleRevokeCredential)
 	s.mux.HandleFunc("GET /v1/audit", s.handleListAudit)
 	s.mux.HandleFunc("GET /v1/audit/export", s.handleExportAudit)
 

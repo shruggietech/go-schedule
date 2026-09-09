@@ -177,3 +177,36 @@ The boundary also excludes federation, teams, multi-tenancy, OAuth authorization
 7. #173 qualifies the release.
 
 No network implementation begins until S074 and [issue #165](https://github.com/shruggietech/go-schedule/issues/165) are reviewed and merged. Each downstream issue remains open until its own acceptance criteria and verification are complete.
+
+## Implemented HTTPS and enrollment operations
+
+The daemon now implements the S074 transport and enrollment core. Remote access remains disabled unless `remote.enabled` is true and an exact numeric `remote.bind_address`, `remote.certificate_file`, and `remote.private_key_file` are configured. A wildcard or public address additionally requires `remote.acknowledge_public_exposure: true`. Certificate loading succeeds before the TCP bind, and the listener accepts TLS 1.3 only.
+
+```text
+{
+  "remote": {
+    "enabled": true,
+    "bind_address": "10.0.0.20:8443",
+    "certificate_file": "/etc/go-schedule/server.crt",
+    "private_key_file": "/etc/go-schedule/server.key",
+    "acknowledge_public_exposure": false
+  }
+}
+```
+
+Use a private address or an SSH tunnel for the normal deployment. Direct public and reverse-proxy deployments retain application TLS, require explicit exposure acknowledgement where applicable, and leave certificate issuance, renewal, DNS, routing, and firewall ownership with the operator. Disabling the setting removes the TCP listener on the next daemon start without changing local IPC or stored client relationships.
+
+Create a desktop phrase from a protected local shell, then move the displayed pairing ID, daemon ID, phrase, HTTPS address, and trusted certificate into Connections in the desktop application. The phrase is displayed once, expires after ten minutes, permits five failed attempts, and cannot be used as an API credential.
+
+```text
+gosched pairing create "Admin laptop" --kind desktop --capability manage
+gosched pairing list
+gosched pairing cancel <pairing-id>
+gosched credential list
+gosched credential rotate <credential-id>
+gosched credential revoke <credential-id>
+```
+
+Rotation prints the new bearer value once and invalidates the former value immediately. Revocation also revokes its actor. Treat terminal output containing a phrase or newly rotated credential as sensitive and follow protected shell-output practices. There is no credential export or recovery path.
+
+Remote clients use `Authorization: Bearer <credential>` against the documented `/api/v1` operations. Missing, malformed, unknown, expired, and revoked values all receive the same `401` envelope. Browser-origin requests are rejected, rate limits return `429` with `Retry-After`, and unsupported local-only routes return `404`. See `api/openapi/remote-v1.yaml` for the machine-readable contract.

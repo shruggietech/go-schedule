@@ -18,7 +18,7 @@ func TestMigrationV17AddsOneLocalActorAndAuditStorage(t *testing.T) {
 	if err := st.db.QueryRow(`SELECT COUNT(*) FROM audit_events`).Scan(&audit); err != nil {
 		t.Fatal(err)
 	}
-	if version != 17 || actors != 1 || audit != 0 {
+	if version != 18 || actors != 1 || audit != 0 {
 		t.Fatalf("version=%d actors=%d audit=%d", version, actors, audit)
 	}
 }
