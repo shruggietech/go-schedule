@@ -152,3 +152,9 @@ Notification channels are reusable write-only webhook destinations. Ordinary cha
 | `GET` | `/v1/notification-deliveries` | List redacted evidence with optional `channel`, `task`, `run`, `state`, and `limit` filters |
 
 An assignment contains `channel_id`, `on_success`, and `on_failure`; at least one outcome must be true and one channel may occur only once per scope. The nearest non-empty task or group scope replaces all more distant assignments. Delivery responses remain distinct from run responses and include a safe parsed `event`, attempts, timestamps, last status, and bounded diagnostic without protected endpoint or authorization fields.
+
+## Remote HTTPS API
+
+The optional network API is a separate allowlisted adapter under `/api/v1`; it does not expose the complete local `/v1` mux. Its canonical OpenAPI 3.1 description is `api/openapi/remote-v1.yaml`. Health, manifest discovery, and one-time enrollment are public within the trusted TLS boundary. Every other listed operation requires one strict `Authorization: Bearer` header and is authorized against the credential's current actor capability before the existing local handler runs.
+
+The enrollment request is `POST /api/v1/enroll` with JSON fields `pairing_id`, `phrase`, and `daemon_id`. Successful exchange returns the bearer token exactly once. Authentication failures use `401 unauthorized`, browser-origin requests use `403 origin_rejected`, unknown or deliberately excluded routes use `404 not_found`, and rate limits use `429 rate_limited` with `Retry-After: 1`.

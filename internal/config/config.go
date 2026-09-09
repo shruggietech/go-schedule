@@ -7,8 +7,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,6 +46,18 @@ type Config struct {
 	LogMaxFiles int `json:"log_max_files"`
 	// LogRingSize is the number of recent records kept in memory for GET /v1/logs.
 	LogRingSize int `json:"log_ring_size"`
+	// Remote controls the optional authenticated HTTPS listener. It is disabled
+	// by default and never changes the local IPC transport.
+	Remote RemoteConfig `json:"remote"`
+}
+
+// RemoteConfig describes the explicitly enabled HTTPS listener.
+type RemoteConfig struct {
+	Enabled                   bool   `json:"enabled"`
+	BindAddress               string `json:"bind_address"`
+	CertificateFile           string `json:"certificate_file"`
+	PrivateKeyFile            string `json:"private_key_file"`
+	AcknowledgePublicExposure bool   `json:"acknowledge_public_exposure"`
 }
 
 // Default returns the built-in configuration.
@@ -112,6 +126,41 @@ func (c Config) Validate() error {
 	}
 	if err := validateTimezone(c.DefaultTimezone); err != nil {
 		return err
+	}
+	if err := c.Remote.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Validate rejects incomplete or accidentally broad remote exposure.
+func (c RemoteConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(c.BindAddress) != c.BindAddress || c.BindAddress == "" {
+		return fmt.Errorf("config: remote.bind_address must be an exact IP address and port")
+	}
+	host, port, err := net.SplitHostPort(c.BindAddress)
+	if err != nil || port == "" {
+		return fmt.Errorf("config: remote.bind_address %q must include an exact IP address and port", c.BindAddress)
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return fmt.Errorf("config: remote.bind_address %q must use an IP address, not a hostname", c.BindAddress)
+	}
+	portNumber, err := strconv.Atoi(port)
+	if err != nil || portNumber < 1 || portNumber > 65535 {
+		return fmt.Errorf("config: remote.bind_address %q must use a numeric port from 1 through 65535", c.BindAddress)
+	}
+	if c.CertificateFile == "" {
+		return fmt.Errorf("config: remote.certificate_file must not be empty when remote access is enabled")
+	}
+	if c.PrivateKeyFile == "" {
+		return fmt.Errorf("config: remote.private_key_file must not be empty when remote access is enabled")
+	}
+	if (ip.IsUnspecified() || (!ip.IsLoopback() && !ip.IsPrivate())) && !c.AcknowledgePublicExposure {
+		return fmt.Errorf("config: remote.acknowledge_public_exposure must be true for wildcard or public bind address %q", c.BindAddress)
 	}
 	return nil
 }

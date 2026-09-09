@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
+	"github.com/shruggietech/go-schedule/desktop/remotepairing"
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 )
@@ -40,6 +41,7 @@ type App struct {
 	notifications *notifications.Service
 	settings      *settings.Service
 	agentAccess   *agentaccess.Service
+	remotePairing *remotepairing.Service
 	emitter       eventEmitter
 	native        nativeRuntime
 	ctx           context.Context
@@ -52,6 +54,7 @@ type appServices struct {
 	notifications *notifications.Service
 	settings      *settings.Service
 	agentAccess   *agentaccess.Service
+	remotePairing *remotepairing.Service
 }
 
 func newApp(backend connection.Backend, emitter eventEmitter, native nativeRuntime, services ...appServices) *App {
@@ -63,9 +66,17 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 		app.notifications = services[0].notifications
 		app.settings = services[0].settings
 		app.agentAccess = services[0].agentAccess
+		app.remotePairing = services[0].remotePairing
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+func (a *App) PairRemote(draft remotepairing.Draft) remotepairing.Result {
+	if a.remotePairing == nil || a.ctx == nil {
+		return remotepairing.Result{Action: "pair_remote", Outcome: "unavailable", Message: "Remote pairing is unavailable."}
+	}
+	return a.remotePairing.Pair(a.ctx, draft)
 }
 
 // AgentAccessWorkspace returns the safe local MCP projection.

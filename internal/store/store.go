@@ -492,6 +492,42 @@ CREATE INDEX idx_audit_events_operation ON audit_events(operation,occurred_at,id
 CREATE INDEX idx_audit_events_result ON audit_events(result,occurred_at,id);
 `,
 	},
+	{
+		// v18: add one-time pairing verifiers and digest-only durable client
+		// credentials. Existing installations gain no remote listener, session,
+		// credential, or actor as a side effect of migration.
+		version: 18,
+		stmts: `
+CREATE TABLE pairing_sessions (
+	id                 TEXT PRIMARY KEY,
+	display_name       TEXT NOT NULL,
+	kind               TEXT NOT NULL CHECK(kind IN ('desktop','cli','json','mcp')),
+	capability         TEXT NOT NULL CHECK(capability IN ('observe','operate','manage','enroll')),
+	salt               BLOB NOT NULL,
+	verifier           BLOB NOT NULL,
+	attempts_remaining INTEGER NOT NULL CHECK(attempts_remaining >= 0),
+	state              TEXT NOT NULL CHECK(state IN ('active','consumed','cancelled','expired','exhausted')),
+	created_at         TEXT NOT NULL,
+	expires_at         TEXT NOT NULL,
+	completed_at       TEXT
+);
+CREATE INDEX idx_pairing_sessions_state ON pairing_sessions(state,expires_at,id);
+
+CREATE TABLE client_credentials (
+	id          TEXT PRIMARY KEY,
+	actor_id    TEXT NOT NULL UNIQUE REFERENCES actors(id) ON DELETE CASCADE,
+	digest      BLOB NOT NULL UNIQUE,
+	fingerprint TEXT NOT NULL,
+	state       TEXT NOT NULL CHECK(state IN ('active','revoked')),
+	created_at  TEXT NOT NULL,
+	updated_at  TEXT NOT NULL,
+	last_used_at TEXT,
+	expires_at  TEXT,
+	revoked_at  TEXT
+);
+CREATE INDEX idx_client_credentials_state ON client_credentials(state,actor_id);
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

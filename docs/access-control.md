@@ -24,7 +24,7 @@ Every registered management route has a stable operation identifier, minimum cap
 
 Schema v17 creates exactly one built-in `local_os` actor with Enroll capability. Existing Unix-socket or Windows named-pipe ownership and permissions continue to authenticate local clients, and the API resolves those requests to the built-in actor without a new header, token, or login. The actor cannot be revoked, expired, deleted, or reduced. Local CLI and desktop workflows therefore remain compatible while their management actions gain attribution at the operating-system boundary.
 
-Non-built-in actors may use the `desktop`, `cli`, `json`, or `mcp` kind and one capability. Their records contain no credential. Creating an actor prepares identity and authority for issues #168 and #169 but grants no network access by itself. Actor state is reloaded for every request, so a committed revocation denies the next request even when a transport connection is reused.
+Non-built-in actors may use the `desktop`, `cli`, `json`, or `mcp` kind and one capability. Actor records contain no credential material. A remote pairing transaction creates one actor and one separate digest-only credential; creating an actor directly grants no network access by itself. Actor and credential state are reloaded for every remote request, so a committed revocation denies the next request even when a transport connection is reused.
 
 ## Management audit
 
@@ -62,4 +62,4 @@ The export file is created with owner-only permissions. Treat it as administrati
 
 ## Upgrade and future integration
 
-Opening an older database applies forward-only schema v17, preserves scheduler and daemon identity data, creates the two new tables and indexes, and initializes one built-in local actor. Reopening is idempotent. Future remote JSON and MCP adapters must authenticate a credential to an actor, then call this same operation catalog and authorizer. Credential issuance, pairing, TLS, remote routes, connection-level stream revalidation, and remote rate limits remain owned by #168 and #169.
+Opening an older database applies forward-only schema v18, preserves scheduler and daemon identity data, creates actor, audit, pairing, and credential storage as needed, and initializes one built-in local actor. Reopening is idempotent. The remote HTTPS adapter authenticates the presented credential to its current actor on every request, then calls this same operation catalog and authorizer. Pairing creation and credential lifecycle remain local Enroll operations with intent-first audit; bearer values, phrase verifiers, request bodies, and certificate keys never enter audit records.

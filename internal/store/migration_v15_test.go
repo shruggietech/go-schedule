@@ -33,8 +33,8 @@ func TestMigrationV15PreservesExistingStateAndAddsNotifications(t *testing.T) {
 	}
 	defer st.Close()
 	var version int
-	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 17 {
-		t.Fatalf("schema version=%d err=%v, want 17", version, err)
+	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 18 {
+		t.Fatalf("schema version=%d err=%v, want 18", version, err)
 	}
 	for _, table := range []string{"notification_channels", "notification_assignments", "notification_deliveries"} {
 		var name string

@@ -113,6 +113,12 @@ var catalog = []Operation{
 	op("POST", "/v1/access/actors", "actors.create", domain.CapabilityEnroll, "actor", AuditMutation),
 	op("PATCH", "/v1/access/actors/{id}", "actors.update", domain.CapabilityEnroll, "actor", AuditMutation),
 	op("POST", "/v1/access/actors/{id}/revoke", "actors.revoke", domain.CapabilityEnroll, "actor", AuditMutation),
+	op("GET", "/v1/access/pairings", "pairings.list", domain.CapabilityEnroll, "pairing", AuditPrivilegedRead),
+	op("POST", "/v1/access/pairings", "pairings.create", domain.CapabilityEnroll, "pairing", AuditMutation),
+	op("POST", "/v1/access/pairings/{id}/cancel", "pairings.cancel", domain.CapabilityEnroll, "pairing", AuditMutation),
+	op("GET", "/v1/access/credentials", "credentials.list", domain.CapabilityEnroll, "credential", AuditPrivilegedRead),
+	op("POST", "/v1/access/credentials/{id}/rotate", "credentials.rotate", domain.CapabilityEnroll, "credential", AuditMutation),
+	op("POST", "/v1/access/credentials/{id}/revoke", "credentials.revoke", domain.CapabilityEnroll, "credential", AuditMutation),
 	op("GET", "/v1/audit", "audit.list", domain.CapabilityEnroll, "audit", AuditPrivilegedRead),
 	op("GET", "/v1/audit/export", "audit.export", domain.CapabilityEnroll, "audit", AuditPrivilegedRead),
 }

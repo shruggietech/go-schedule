@@ -264,5 +264,9 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	s.reload()
 	s.publishTaskUpdated(task.ID)
+	if r.URL.Query().Get("observation") == "true" {
+		writeJSON(w, http.StatusOK, taskObservationResponse(store.TaskObservation{Task: task, Schedule: sch}, now, 2*1024))
+		return
+	}
 	writeJSON(w, http.StatusOK, s.taskDetail(task, sch, now))
 }

@@ -27,6 +27,23 @@ func doJSON(t *testing.T, s *Server, method, path string, body any) *httptest.Re
 	return rec
 }
 
+func TestTaskObservationMutationResponsesExcludeExecutionInputs(t *testing.T) {
+	s := newTestServer(t)
+	secret := "task-secret-canary"
+	created := doJSON(t, s, http.MethodPost, "/v1/tasks?observation=true", TaskCreateRequest{Name: "visible", Command: secret, Env: map[string]string{"TOKEN": secret}, Stdin: secret, WorkingDir: secret})
+	if created.Code != http.StatusCreated || strings.Contains(created.Body.String(), secret) {
+		t.Fatalf("create status=%d body=%s", created.Code, created.Body.String())
+	}
+	var observation TaskObservationResponse
+	if err := json.Unmarshal(created.Body.Bytes(), &observation); err != nil || observation.ID == "" {
+		t.Fatalf("create observation=%+v err=%v", observation, err)
+	}
+	updated := doJSON(t, s, http.MethodPatch, "/v1/tasks/"+observation.ID+"?observation=true", TaskUpdateRequest{Command: secret + "-updated"})
+	if updated.Code != http.StatusOK || strings.Contains(updated.Body.String(), secret) {
+		t.Fatalf("update status=%d body=%s", updated.Code, updated.Body.String())
+	}
+}
+
 func TestCreateTask_Recurring(t *testing.T) {
 	s := newTestServer(t)
 	rec := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{

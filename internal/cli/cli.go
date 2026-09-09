@@ -92,6 +92,8 @@ func newRoot() *cobra.Command {
 		newMCPCmd(),
 		newActorCmd(),
 		newAuditCmd(),
+		newPairingCmd(),
+		newCredentialCmd(),
 	)
 	return root
 }

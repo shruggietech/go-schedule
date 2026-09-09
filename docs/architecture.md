@@ -13,11 +13,11 @@ Schema v16 stores one opaque installation identifier and editable display name w
 
 ## Remote access boundary
 
-The [remote access architecture](remote-access.md) defines the reviewed v1.4 trust, transport, deployment, compatibility, credential, dependency, and verification boundary. It is a future implementation contract, not a shipped network feature. The current daemon still exposes its management API only through protected local IPC.
+The [remote access architecture](remote-access.md) defines and now governs the first implemented v1.4 network boundary. The daemon retains protected local IPC and adds no TCP listener by default. Explicit configuration may add one TLS 1.3 listener whose static `/api/v1` operation table adapts only reviewed local handlers. One-time Argon2id phrase verification issues digest-only opaque credentials bound to server-owned actors; local administrators own creation, cancellation, rotation, and revocation. Persistent remote profiles, named CLI targets, broader resilience, and release qualification remain downstream work.
 
 ## Actor authorization and management audit
 
-The [actor permissions and management audit contract](access-control.md) adds the shared authorization substrate required by future transports. Schema v17 persists credential-independent actors and bounded redacted audit events. One operation catalog classifies every current route under Observe, Operate, Manage, or Enroll and marks mutations or privileged reads for intent-first audit. Local IPC resolves to one protected Enroll actor without changing authentication; remote credentials and transport identity resolution remain future work in #168 and #169.
+The [actor permissions and management audit contract](access-control.md) supplies the shared authorization substrate for local and remote transports. Schema v17 persists credential-independent actors and bounded redacted audit events. One operation catalog classifies every current route under Observe, Operate, Manage, or Enroll and marks mutations or privileged reads for intent-first audit. Local IPC resolves to one protected Enroll actor without login, while the opt-in remote adapter resolves each durable credential to its current actor before the same authorization boundary.
 
 ## Local MCP observation
 

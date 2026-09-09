@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/shruggietech/go-schedule/internal/events"
 )
 
 // handleEvents streams run-state changes and new alerts to the client as
@@ -39,7 +41,15 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 			if !ok {
 				return
 			}
-			data, err := json.Marshal(ev)
+			payload := any(ev)
+			if r.URL.Query().Get("observation") == "true" {
+				projected, visible := remoteEventProjection(ev)
+				if !visible {
+					continue
+				}
+				payload = projected
+			}
+			data, err := json.Marshal(payload)
 			if err != nil {
 				continue
 			}
@@ -55,4 +65,35 @@ func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+type remoteEvent struct {
+	Kind       events.Kind `json:"kind"`
+	ResourceID string      `json:"resource_id"`
+	Verb       events.Verb `json:"verb,omitempty"`
+}
+
+func remoteEventProjection(event events.Event) (remoteEvent, bool) {
+	projected := remoteEvent{Kind: event.Kind}
+	switch {
+	case event.Run != nil:
+		projected.ResourceID = event.Run.ID
+	case event.Alert != nil:
+		projected.ResourceID = event.Alert.ID
+	case event.Task != nil:
+		projected.ResourceID, projected.Verb = event.Task.ID, event.Task.Verb
+	case event.Group != nil:
+		projected.ResourceID, projected.Verb = event.Group.ID, event.Group.Verb
+	case event.Chain != nil:
+		projected.ResourceID, projected.Verb = event.Chain.ID, event.Chain.Verb
+	case event.Trigger != nil:
+		projected.ResourceID, projected.Verb = event.Trigger.ID, event.Trigger.Verb
+	case event.TriggerSet != nil:
+		projected.ResourceID, projected.Verb = event.TriggerSet.ID, event.TriggerSet.Verb
+	case event.Watcher != nil:
+		projected.ResourceID, projected.Verb = event.Watcher.ID, event.Watcher.Verb
+	default:
+		return remoteEvent{}, false
+	}
+	return projected, projected.ResourceID != ""
 }

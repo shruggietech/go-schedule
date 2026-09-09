@@ -23,6 +23,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/engine"
+	"github.com/shruggietech/go-schedule/internal/enrollment"
 	"github.com/shruggietech/go-schedule/internal/events"
 	"github.com/shruggietech/go-schedule/internal/executor"
 	"github.com/shruggietech/go-schedule/internal/ipc"
@@ -30,6 +31,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/logbus"
 	"github.com/shruggietech/go-schedule/internal/mcphttp"
 	"github.com/shruggietech/go-schedule/internal/notification"
+	"github.com/shruggietech/go-schedule/internal/remote"
 	"github.com/shruggietech/go-schedule/internal/service"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
@@ -138,6 +140,18 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 	api.SetNotificationDispatcher(dispatcher)
 	mcpHTTP := mcphttp.New(client.New(endpoint), buildinfo.Version, log)
 	api.SetMCPHTTPManager(mcpHTTP)
+	localActor, err := st.LocalActor()
+	if err != nil {
+		return err
+	}
+	remoteAPI := server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log)
+	remoteAPI.SetNotificationDispatcher(dispatcher)
+	remoteAPI.SetActorResolver(remote.ActorID)
+	remoteErr := make(chan error, 1)
+	if cfg.Remote.Enabled {
+		remoteHandler := remote.NewHandler(remoteAPI.Handler(), enrollment.New(st), localActor.ID)
+		go func() { remoteErr <- remote.Serve(ctx, cfg.Remote, remoteHandler, log) }()
+	}
 	srv := &http.Server{
 		Handler:           api.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
@@ -174,6 +188,11 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 		_ = mcpHTTP.Shutdown(shutdownCtx)
 		return err
 	case err := <-notifyErr:
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mcpHTTP.Shutdown(shutdownCtx)
+		return err
+	case err := <-remoteErr:
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = mcpHTTP.Shutdown(shutdownCtx)
