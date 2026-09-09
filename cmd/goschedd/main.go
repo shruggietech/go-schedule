@@ -16,7 +16,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/clock"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/domain"
@@ -26,6 +28,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/ipc"
 	"github.com/shruggietech/go-schedule/internal/lock"
 	"github.com/shruggietech/go-schedule/internal/logbus"
+	"github.com/shruggietech/go-schedule/internal/mcphttp"
 	"github.com/shruggietech/go-schedule/internal/notification"
 	"github.com/shruggietech/go-schedule/internal/service"
 	"github.com/shruggietech/go-schedule/internal/store"
@@ -133,6 +136,8 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 
 	api := server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log)
 	api.SetNotificationDispatcher(dispatcher)
+	mcpHTTP := mcphttp.New(client.New(endpoint), buildinfo.Version, log)
+	api.SetMCPHTTPManager(mcpHTTP)
 	srv := &http.Server{
 		Handler:           api.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
@@ -153,15 +158,25 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 		log.Info("shutting down")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
+		mcpErr := mcpHTTP.Shutdown(shutdownCtx)
 		err := srv.Shutdown(shutdownCtx)
 		<-engErr // wait for engine to drain in-flight runs
 		<-notifyErr
-		return err
+		return errors.Join(mcpErr, err)
 	case err := <-serveErr:
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mcpHTTP.Shutdown(shutdownCtx)
 		return err
 	case err := <-engErr:
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mcpHTTP.Shutdown(shutdownCtx)
 		return err
 	case err := <-notifyErr:
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = mcpHTTP.Shutdown(shutdownCtx)
 		return err
 	}
 }
