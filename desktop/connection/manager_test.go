@@ -90,13 +90,13 @@ func firstStream(t *testing.T, backend *backendFake) (chan DomainEvent, chan err
 }
 
 func TestManagerConnectsPublishesEventsAndRejectsStaleGeneration(t *testing.T) {
-	backend := &backendFake{results: []backendResult{{health: Health{Version: "1.0.0", Capabilities: []string{"tasks"}, Permissions: []string{"read"}}}}}
+	backend := &backendFake{results: []backendResult{{health: Health{ID: "daemon-1", DisplayName: "Workshop", Platform: "linux", Architecture: "amd64", Version: "1.0.0", Capabilities: []string{"tasks"}, Permissions: []string{"read"}}}}}
 	observer := observerFake{events: make(chan Event, 16)}
 	manager := newManager(backend, observer, timerScheduler{}, func() time.Time { return time.Unix(1, 0) })
 	ctx, cancel := context.WithCancel(context.Background())
 	manager.Start(ctx)
 	connected := nextState(t, observer.events, StateConnected)
-	if connected.Snapshot.Target.Version != "1.0.0" || connected.Generation != 1 {
+	if connected.Snapshot.Target.ID != "daemon-1" || connected.Snapshot.Target.DisplayName != "Workshop" || connected.Snapshot.Target.Platform != "linux" || connected.Snapshot.Target.Architecture != "amd64" || connected.Snapshot.Target.Version != "1.0.0" || connected.Generation != 1 {
 		t.Fatalf("event=%+v", connected)
 	}
 	stream, _ := firstStream(t, backend)

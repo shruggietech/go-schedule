@@ -13,6 +13,18 @@ The CLI and desktop app use the same versioned JSON API hosted by `goschedd`. Er
 
 The reviewed [remote access architecture](remote-access.md) defines a future opt-in `/api/v1` HTTPS allowlist around shared daemon operations. It does not expose this local mux, enable a listener, or change current client behavior.
 
+## Daemon identity and capability manifest
+
+The [daemon identity lifecycle](daemon-identity.md) defines stable installation identity, editable names, restore and clone behavior, and reset safety. The manifest is deliberately separate from health so existing liveness clients remain compatible.
+
+| Method | Path | Result |
+|---|---|---|
+| `GET` | `/v1/manifest` | Stable identity, display name, product version, protocol versions, operating mode, sorted capabilities, and safe platform facts |
+| `PATCH` | `/v1/manifest` | Rename from `{"display_name":"Workshop scheduler"}` and return the resulting manifest |
+| `POST` | `/v1/manifest/reset` | Compare and replace identity from `{"confirm_installation_id":"<current-id>"}` and return the resulting manifest |
+
+The current manifest reports local API `v1`, no remote API version, and `local_only` operating mode. It excludes hostnames, network addresses, storage paths, accounts, environment values, commands, credentials, trigger keys, scheduler records, and lifecycle timestamps. A stale reset confirmation returns `409 conflict`; invalid names and malformed requests return `400 validation_failed`; neither failure mutates state. `GET /v1/health` remains unchanged.
+
 ## External triggers
 
 An ordinary trigger representation contains `id`, `name`, optional `set_id`, optional `set_name`, optional `set_position`, `target_task_id`, `target_task_name`, `enabled`, `readiness`, `reason`, `created_at`, and `updated_at`. It never contains the raw key. A set member cannot be retargeted individually; use the set endpoint so every member retains the shared target invariant.

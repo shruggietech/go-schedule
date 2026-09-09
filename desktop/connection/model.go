@@ -25,6 +25,7 @@ type Target struct {
 	ID           string   `json:"id"`
 	DisplayName  string   `json:"displayName"`
 	Platform     string   `json:"platform"`
+	Architecture string   `json:"architecture,omitempty"`
 	Version      string   `json:"version,omitempty"`
 	Capabilities []string `json:"capabilities"`
 	Permissions  []string `json:"permissions"`
@@ -54,6 +55,10 @@ type Event struct {
 
 // Health is the transport-independent result of daemon negotiation.
 type Health struct {
+	ID           string
+	DisplayName  string
+	Platform     string
+	Architecture string
 	Version      string
 	Capabilities []string
 	Permissions  []string

@@ -7,6 +7,10 @@ nav_order: 8.5
 
 The daemon owns scheduling, persistence, execution, and completion delivery. The CLI and production Wails desktop remain thin local clients.
 
+## Daemon identity
+
+Schema v16 stores one opaque installation identifier and editable display name with the logical daemon database. The local [capability manifest and identity lifecycle](daemon-identity.md) let CLI and desktop clients use daemon-owned target facts without machine fingerprinting or host-data disclosure. Restore preserves logical identity; an independently operated database clone requires an explicit compare-and-confirm reset.
+
 ## Remote access boundary
 
 The [remote access architecture](remote-access.md) defines the reviewed v1.4 trust, transport, deployment, compatibility, credential, dependency, and verification boundary. It is a future implementation contract, not a shipped network feature. The current daemon still exposes its management API only through protected local IPC.

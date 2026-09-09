@@ -6,6 +6,7 @@ export interface Target {
   id: string
   displayName: string
   platform: string
+  architecture?: string
   version?: string
   capabilities: string[]
   permissions: string[]
