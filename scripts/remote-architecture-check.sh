@@ -40,7 +40,7 @@ require_fixed 'zalando/go-keyring' 'native credential-store owner'
 require_fixed 'Server-Sent Events' 'one-way live transport'
 require_fixed 'no automatic replay' 'uncertain mutation replay prohibition'
 require_fixed 'TLS 1.3' 'minimum TLS policy'
-require_fixed 'Origin' 'cross-origin default-deny control'
+require_fixed '| T12 | A hostile web origin drives a credentialed browser request | Reject `Origin` by default and emit no permissive CORS policy | Cross-origin preflight, simple-request, and trusted-native-client tests |' 'cross-origin default-deny threat and verification contract'
 require_fixed 'Product ownership' 'product ownership'
 require_fixed 'Operator ownership' 'operator ownership'
 require_fixed 'offline mutation queue' 'offline mutation queue non-goal'
@@ -52,8 +52,32 @@ for mode in \
   'SSH-tunneled HTTPS' \
   'Reverse-proxied HTTPS' \
   'Direct HTTPS'; do
-  if ! grep -Fq -- "| $mode |" "$DOC"; then
-    report "missing deployment mode: $mode"
+  mode_count=$(grep -Fc -- "| $mode |" "$DOC" || true)
+  if [ "$mode_count" -ne 1 ]; then
+    report "invalid deployment coverage: expected exactly one $mode row, found $mode_count"
+    continue
+  fi
+  if ! awk -F '|' -v required_mode="$mode" '
+    function trim(value) {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      return value
+    }
+    trim($2) == "Mode" {
+      for (column = 1; column <= NF; column++) {
+        if (trim($column) == "Operator ownership") {
+          operator_column = column
+        }
+      }
+    }
+    trim($2) == required_mode {
+      found = 1
+      if (operator_column == 0 || trim($operator_column) == "") {
+        invalid = 1
+      }
+    }
+    END { exit !(found && !invalid) }
+  ' "$DOC"; then
+    report "missing operator ownership for deployment mode: $mode"
   fi
 done
 

@@ -64,7 +64,7 @@ OpenAPI 3.1 is the source of truth. Remote paths use `/api/v1`. Server-Sent Even
 | T09 | Stale authority | Stream revalidation | Revocation test |
 | T10 | Wrong target | Stable daemon identity | Identity test |
 | T11 | Version skew | Capability negotiation | Compatibility test |
-| T12 | Cross-origin misuse | Reject Origin by default | Origin test |
+| T12 | A hostile web origin drives a credentialed browser request | Reject `Origin` by default and emit no permissive CORS policy | Cross-origin preflight, simple-request, and trusted-native-client tests |
 
 ## Dependency ownership
 
@@ -120,7 +120,7 @@ for mode in 'Local IPC' 'Private-network HTTPS' 'SSH-tunneled HTTPS' 'Reverse-pr
   dest="$TMP/missing-$slug"
   cp -R "$GOOD" "$dest"
   grep -Fv "| $mode |" "$GOOD/docs/remote-access.md" > "$dest/docs/remote-access.md"
-  run_expect_fail "missing-$slug" "deployment mode: $mode" "$dest"
+  run_expect_fail "missing-$slug" "expected exactly one $mode row" "$dest"
 done
 
 missing_owner="$TMP/missing-owner"
@@ -128,10 +128,20 @@ cp -R "$GOOD" "$missing_owner"
 sed 's/Operator ownership/External responsibility/' "$GOOD/docs/remote-access.md" > "$missing_owner/docs/remote-access.md"
 run_expect_fail missing-owner 'operator ownership' "$missing_owner"
 
+missing_mode_owner="$TMP/missing-mode-owner"
+cp -R "$GOOD" "$missing_mode_owner"
+sed 's/| Reverse-proxied HTTPS | Application controls | Proxy and public TLS | Supported |/| Reverse-proxied HTTPS | Application controls |  | Supported |/' "$GOOD/docs/remote-access.md" > "$missing_mode_owner/docs/remote-access.md"
+run_expect_fail missing-mode-owner 'operator ownership for deployment mode: Reverse-proxied HTTPS' "$missing_mode_owner"
+
 missing_threat="$TMP/missing-threat"
 cp -R "$GOOD" "$missing_threat"
 sed 's/| T12 |/| T11 |/' "$GOOD/docs/remote-access.md" > "$missing_threat/docs/remote-access.md"
 run_expect_fail missing-threat 'expected exactly one T12 threat-to-test row' "$missing_threat"
+
+permissive_origin="$TMP/permissive-origin"
+cp -R "$GOOD" "$permissive_origin"
+sed 's/Reject `Origin` by default and emit no permissive CORS policy/Allow credentialed browser origins/' "$GOOD/docs/remote-access.md" > "$permissive_origin/docs/remote-access.md"
+run_expect_fail permissive-origin 'cross-origin default-deny threat and verification contract' "$permissive_origin"
 
 missing_non_goal="$TMP/missing-non-goal"
 cp -R "$GOOD" "$missing_non_goal"
