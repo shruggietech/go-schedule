@@ -19,6 +19,34 @@ func openMem(t *testing.T) *Store {
 	return st
 }
 
+func TestListTaskObservationsPagesAllowlistedFields(t *testing.T) {
+	st := openMem(t)
+	schedule := domain.Schedule{Kind: domain.ScheduleEvent, TriggerID: domain.StartupEventID, HumanSummary: "secret cached summary", Expression: "secret expression"}
+	if err := st.CreateSchedule(&schedule); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"task-b", "task-a"} {
+		task := domain.Task{ID: id, Name: "long-name", Command: "secret-command", Args: []string{"secret-arg"}, Env: map[string]string{"TOKEN": "secret-env"}, Stdin: "secret-stdin", WorkingDir: "secret-dir", RunAs: "secret-user", Enabled: true, Timezone: "UTC", ScheduleID: schedule.ID, State: domain.TaskActive}
+		if err := st.CreateTask(&task); err != nil {
+			t.Fatal(err)
+		}
+	}
+	observations, err := st.ListTaskObservations("", string(domain.TaskActive), true, 1, 1, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(observations) != 1 || observations[0].Task.ID != "task-b" || observations[0].Task.Name != "long" || !observations[0].NameTruncated {
+		t.Fatalf("observations = %+v", observations)
+	}
+	observed := observations[0]
+	if observed.Task.Command != "configured" || observed.Task.Args != nil || observed.Task.Env != nil || observed.Task.Stdin != "" || observed.Task.WorkingDir != "" || observed.Task.RunAs != "" {
+		t.Fatalf("execution inputs entered observation projection: %+v", observed.Task)
+	}
+	if observed.Schedule == nil || observed.Schedule.Expression != "" || observed.Schedule.HumanSummary != "" {
+		t.Fatalf("schedule projection = %+v", observed.Schedule)
+	}
+}
+
 // TestMigration_V3RemovesTriggers verifies migration v3 drops the triggers
 // feature tables and the store opens cleanly (the v1/v2 migrations create the
 // tables; v3 drops them, so a freshly opened DB must not have them).
@@ -217,6 +245,33 @@ func TestSchedule_GetNotFoundAndRunsLimit(t *testing.T) {
 	all, _ := st.ListRuns("", 0)
 	if len(all) != 5 {
 		t.Fatalf("ListRuns all: got %d, want 5", len(all))
+	}
+}
+
+func TestRunAndAlertPagesBoundTextAtDatabaseBoundary(t *testing.T) {
+	st := openMem(t)
+	now := time.Date(2026, 9, 8, 12, 0, 0, 0, time.UTC)
+	task := &domain.Task{Name: "bounded", Timezone: "UTC", State: domain.TaskActive}
+	if err := st.CreateTask(task); err != nil {
+		t.Fatal(err)
+	}
+	for index := 0; index < 3; index++ {
+		run := &domain.Run{TaskID: task.ID, ScheduledFor: now.Add(time.Duration(index) * time.Second), Output: "123456789", Trigger: domain.TriggerManual}
+		if err := st.CreateRun(run); err != nil {
+			t.Fatal(err)
+		}
+		alert := &domain.Alert{CreatedAt: now.Add(time.Duration(index) * time.Second), Message: "abcdefghi"}
+		if err := st.CreateAlert(alert); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runs, err := st.ListRunsPage("", 1, 1, 4)
+	if err != nil || len(runs) != 1 || runs[0].Output != "1234" || !runs[0].OutputTruncated {
+		t.Fatalf("run page = %+v, %v", runs, err)
+	}
+	alerts, err := st.ListAlertsPage(false, 1, 1, 4)
+	if err != nil || len(alerts) != 1 || alerts[0].Message != "abcd" || !alerts[0].MessageTruncated {
+		t.Fatalf("alert page = %+v, %v", alerts, err)
 	}
 }
 

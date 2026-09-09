@@ -334,6 +334,101 @@ func (s *Store) ListTasks(groupID, state string) ([]domain.Task, error) {
 	return out, rows.Err()
 }
 
+// TaskObservation is the bounded subset needed to render observe-only task
+// and schedule summaries. Execution inputs are deliberately absent.
+type TaskObservation struct {
+	Task          domain.Task
+	Schedule      *domain.Schedule
+	NameTruncated bool
+	HasCompletion bool
+	HasTrigger    bool
+	HasWatcher    bool
+}
+
+// ListTaskObservations returns a stable, page-sized task projection without
+// loading command arguments, environment values, stdin, or other execution
+// inputs into daemon memory.
+func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, offset, limit, nameLimit int) ([]TaskObservation, error) {
+	q := `SELECT t.id,CAST(substr(CAST(t.name AS BLOB),1,?) AS TEXT),
+	 CASE WHEN length(CAST(t.name AS BLOB))>? THEN 1 ELSE 0 END,
+	 COALESCE(t.group_id,''),t.enabled,t.timezone,COALESCE(t.schedule_id,''),
+	 t.overlap_policy,t.catchup_policy,t.missing_date_policy,t.time_basis,t.dst_gap_policy,t.dst_overlap_policy,
+	 t.state,t.updated_at,CASE WHEN length(trim(t.command))>0 THEN 1 ELSE 0 END,
+	 EXISTS(SELECT 1 FROM completion_chains c WHERE c.target_task_id=t.id),
+	 EXISTS(SELECT 1 FROM external_triggers e WHERE e.target_task_id=t.id AND e.enabled=1),
+	 EXISTS(SELECT 1 FROM filesystem_watchers w WHERE w.target_task_id=t.id AND w.enabled=1),
+	 s.id,s.kind,s.rrule,s.anchor,s.elapsed_epoch,s.run_at,s.trigger_id,s.calendar_adjustment
+	 FROM tasks t LEFT JOIN schedules s ON s.id=t.schedule_id WHERE 1=1`
+	args := []any{nameLimit, nameLimit}
+	if groupID != "" {
+		q += ` AND t.group_id=?`
+		args = append(args, groupID)
+	}
+	if state != "" {
+		q += ` AND t.state=?`
+		args = append(args, state)
+	}
+	if scheduledOnly {
+		q += ` AND t.schedule_id IS NOT NULL`
+	}
+	q += ` ORDER BY t.id LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
+	rows, err := s.db.Query(q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("store: list task observations: %w", err)
+	}
+	defer rows.Close()
+	observations := make([]TaskObservation, 0, limit)
+	for rows.Next() {
+		var observation TaskObservation
+		var enabled, nameTruncated, commandReady, hasCompletion, hasTrigger, hasWatcher int
+		var overlap, catchup, missingDate, timeBasis, dstGap, dstOverlap, stateValue, updated string
+		var scheduleID, scheduleKind, rrule, anchor, elapsedEpoch, runAt, triggerID, adjustment sql.NullString
+		if err := rows.Scan(&observation.Task.ID, &observation.Task.Name, &nameTruncated,
+			&observation.Task.GroupID, &enabled, &observation.Task.Timezone, &observation.Task.ScheduleID,
+			&overlap, &catchup, &missingDate, &timeBasis, &dstGap, &dstOverlap, &stateValue, &updated, &commandReady,
+			&hasCompletion, &hasTrigger, &hasWatcher, &scheduleID, &scheduleKind, &rrule, &anchor, &elapsedEpoch, &runAt, &triggerID, &adjustment); err != nil {
+			return nil, fmt.Errorf("store: scan task observation: %w", err)
+		}
+		observation.Task.Enabled = enabled != 0
+		if commandReady != 0 {
+			observation.Task.Command = "configured"
+		}
+		observation.Task.OverlapPolicy = domain.OverlapPolicy(overlap)
+		observation.Task.CatchupPolicy = domain.CatchupPolicy(catchup)
+		observation.Task.MissingDatePolicy = missingDateOrDefault(domain.MissingDatePolicy(missingDate))
+		observation.Task.TimeBasis = domain.TimeBasis(timeBasis)
+		observation.Task.DSTGapPolicy = domain.DSTGapPolicy(dstGap)
+		observation.Task.DSTOverlapPolicy = domain.DSTOverlapPolicy(dstOverlap)
+		normalizeTaskSchedulePolicy(&observation.Task)
+		observation.Task.State = domain.TaskState(stateValue)
+		observation.Task.UpdatedAt, _ = parseTime(updated)
+		observation.NameTruncated = nameTruncated != 0
+		observation.HasCompletion = hasCompletion != 0
+		observation.HasTrigger = hasTrigger != 0
+		observation.HasWatcher = hasWatcher != 0
+		if scheduleID.Valid {
+			sch := domain.Schedule{ID: scheduleID.String, Kind: domain.ScheduleKind(scheduleKind.String), RRULE: rrule.String, TriggerID: triggerID.String, CalendarAdjustment: domain.CalendarAdjustment(adjustment.String)}
+			var parseErr error
+			if sch.Anchor, parseErr = parseTimePtr(anchor); parseErr != nil {
+				return nil, fmt.Errorf("store: task observation schedule anchor: %w", parseErr)
+			}
+			if sch.ElapsedEpoch, parseErr = parseTimePtr(elapsedEpoch); parseErr != nil {
+				return nil, fmt.Errorf("store: task observation schedule elapsed_epoch: %w", parseErr)
+			}
+			if sch.RunAt, parseErr = parseTimePtr(runAt); parseErr != nil {
+				return nil, fmt.Errorf("store: task observation schedule run_at: %w", parseErr)
+			}
+			observation.Schedule = &sch
+		}
+		observations = append(observations, observation)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("store: list task observations: %w", err)
+	}
+	return observations, nil
+}
+
 // SetTaskState updates a task's lifecycle state.
 func (s *Store) SetTaskState(id string, state domain.TaskState) error {
 	res, err := s.db.Exec(`UPDATE tasks SET state=?, updated_at=? WHERE id=?`,
@@ -554,16 +649,35 @@ func (s *Store) GetRun(id string) (domain.Run, error) {
 // ListRuns returns runs for a task (or all when taskID is empty), newest first,
 // up to limit (0 = no limit).
 func (s *Store) ListRuns(taskID string, limit int) ([]domain.Run, error) {
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id FROM runs`
+	return s.ListRunsPage(taskID, 0, limit, 0)
+}
+
+// ListRunsPage returns a stable newest-first page. A positive outputLimit
+// bounds output bytes in SQLite before they enter daemon memory and marks
+// either source-side or projection-side truncation.
+func (s *Store) ListRunsPage(taskID string, offset, limit, outputLimit int) ([]domain.Run, error) {
+	outputExpr := `output,output_truncated`
 	var args []any
+	if outputLimit > 0 {
+		outputExpr = `CAST(substr(CAST(output AS BLOB),1,?) AS TEXT),CASE WHEN output_truncated=1 OR length(CAST(output AS BLOB))>? THEN 1 ELSE 0 END`
+		args = append(args, outputLimit, outputLimit)
+	}
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id FROM runs`
 	if taskID != "" {
 		q += ` WHERE task_id=?`
 		args = append(args, taskID)
 	}
-	q += ` ORDER BY scheduled_for DESC`
+	q += ` ORDER BY scheduled_for DESC,id DESC`
 	if limit > 0 {
 		q += ` LIMIT ?`
 		args = append(args, limit)
+	}
+	if offset > 0 {
+		if limit <= 0 {
+			q += ` LIMIT -1`
+		}
+		q += ` OFFSET ?`
+		args = append(args, offset)
 	}
 	rows, err := s.db.Query(q, args...)
 	if err != nil {
@@ -637,18 +751,35 @@ func (s *Store) ListAlerts(unackedOnly bool) ([]domain.Alert, error) {
 // ListAlertsLimited returns alerts newest first and applies a positive maximum
 // at the database boundary. A non-positive limit preserves the full query.
 func (s *Store) ListAlertsLimited(unackedOnly bool, limit int) ([]domain.Alert, error) {
-	q := `SELECT id,task_id,run_id,severity,kind,message,created_at,acknowledged FROM alerts`
+	return s.ListAlertsPage(unackedOnly, 0, limit, 0)
+}
+
+// ListAlertsPage returns a stable newest-first page. A positive messageLimit
+// bounds message bytes in SQLite before they enter daemon memory.
+func (s *Store) ListAlertsPage(unackedOnly bool, offset, limit, messageLimit int) ([]domain.Alert, error) {
+	messageExpr := `message,0`
+	var args []any
+	if messageLimit > 0 {
+		messageExpr = `CAST(substr(CAST(message AS BLOB),1,?) AS TEXT),CASE WHEN length(CAST(message AS BLOB))>? THEN 1 ELSE 0 END`
+		args = append(args, messageLimit, messageLimit)
+	}
+	q := `SELECT id,task_id,run_id,severity,kind,` + messageExpr + `,created_at,acknowledged FROM alerts`
 	if unackedOnly {
 		q += ` WHERE acknowledged=0`
 	}
-	q += ` ORDER BY created_at DESC`
-	var rows *sql.Rows
-	var err error
+	q += ` ORDER BY created_at DESC,id DESC`
 	if limit > 0 {
-		rows, err = s.db.Query(q+` LIMIT ?`, limit)
-	} else {
-		rows, err = s.db.Query(q)
+		q += ` LIMIT ?`
+		args = append(args, limit)
 	}
+	if offset > 0 {
+		if limit <= 0 {
+			q += ` LIMIT -1`
+		}
+		q += ` OFFSET ?`
+		args = append(args, offset)
+	}
+	rows, err := s.db.Query(q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list alerts: %w", err)
 	}
@@ -657,15 +788,16 @@ func (s *Store) ListAlertsLimited(unackedOnly bool, limit int) ([]domain.Alert, 
 	for rows.Next() {
 		var a domain.Alert
 		var task, run sql.NullString
-		var ack int
+		var truncated, ack int
 		var severity, kind, created string
-		if err := rows.Scan(&a.ID, &task, &run, &severity, &kind, &a.Message, &created, &ack); err != nil {
+		if err := rows.Scan(&a.ID, &task, &run, &severity, &kind, &a.Message, &truncated, &created, &ack); err != nil {
 			return nil, fmt.Errorf("store: scan alert: %w", err)
 		}
 		a.TaskID = task.String
 		a.RunID = run.String
 		a.Severity = domain.AlertSeverity(severity)
 		a.Kind = domain.AlertKind(kind)
+		a.MessageTruncated = truncated != 0
 		a.CreatedAt, _ = parseTime(created)
 		a.Acknowledged = ack != 0
 		out = append(out, a)

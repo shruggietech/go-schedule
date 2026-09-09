@@ -88,6 +88,7 @@ func newRoot() *cobra.Command {
 		newServiceCmd(),
 		newGUICmd(),
 		newHealthCmd(),
+		newMCPCmd(),
 	)
 	return root
 }

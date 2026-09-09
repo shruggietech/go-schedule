@@ -8,13 +8,19 @@ import (
 )
 
 func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
-	limit := 100
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			limit = n
-		}
+	limit, ok := nonNegativeQuery(w, r, "limit", 100)
+	if !ok {
+		return
 	}
-	runs, err := s.store.ListRuns(r.URL.Query().Get("task"), limit)
+	offset, ok := nonNegativeQuery(w, r, "offset", 0)
+	if !ok {
+		return
+	}
+	outputLimit, ok := nonNegativeQuery(w, r, "output_limit", 0)
+	if !ok {
+		return
+	}
+	runs, err := s.store.ListRunsPage(r.URL.Query().Get("task"), offset, limit, outputLimit)
 	if err != nil {
 		s.internal(w, err)
 		return
@@ -46,16 +52,19 @@ func (s *Server) handleListActiveRuns(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleListAlerts(w http.ResponseWriter, r *http.Request) {
 	unacked := r.URL.Query().Get("unacked") == "true" || r.URL.Query().Get("unacked") == "1"
-	limit := 0
-	if value := r.URL.Query().Get("limit"); value != "" {
-		parsed, err := strconv.Atoi(value)
-		if err != nil || parsed < 0 {
-			writeError(w, http.StatusBadRequest, CodeValidation, "limit", "limit must be a non-negative integer")
-			return
-		}
-		limit = parsed
+	limit, ok := nonNegativeQuery(w, r, "limit", 0)
+	if !ok {
+		return
 	}
-	alerts, err := s.store.ListAlertsLimited(unacked, limit)
+	offset, ok := nonNegativeQuery(w, r, "offset", 0)
+	if !ok {
+		return
+	}
+	messageLimit, ok := nonNegativeQuery(w, r, "message_limit", 0)
+	if !ok {
+		return
+	}
+	alerts, err := s.store.ListAlertsPage(unacked, offset, limit, messageLimit)
 	if err != nil {
 		s.internal(w, err)
 		return
@@ -64,6 +73,19 @@ func (s *Server) handleListAlerts(w http.ResponseWriter, r *http.Request) {
 		alerts = []domain.Alert{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"alerts": alerts})
+}
+
+func nonNegativeQuery(w http.ResponseWriter, r *http.Request, name string, fallback int) (int, bool) {
+	value := r.URL.Query().Get(name)
+	if value == "" {
+		return fallback, true
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed < 0 {
+		writeError(w, http.StatusBadRequest, CodeValidation, name, name+" must be a non-negative integer")
+		return 0, false
+	}
+	return parsed, true
 }
 
 func (s *Server) handleAckAlert(w http.ResponseWriter, r *http.Request) {

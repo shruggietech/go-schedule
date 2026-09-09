@@ -22,6 +22,7 @@ An index of what is here and who each document is for. If you are installing, st
 | [`gosched` command reference](cli.md) | Every command and flag the CLI exposes, with exit codes and elevation requirements. |
 | [Local API](api.md) | Versioned completion-chain endpoints, error shape, correlated history, and live events. |
 | [Webhook notifications](notifications.md) | Safe receiver payloads, reusable channels, task and group policies, retries, duplicate handling, and delivery evidence. |
+| [Local MCP access](mcp.md) | Observe-only Codex setup, resource inventory, trust boundaries, bounds, and local IPC authorization. |
 | [GUI field reference](gui-fields.md) | What every field in the desktop task editor accepts and means. |
 | [Cron interoperability](cron.md) | The documented five- and six-field subset, task authoring, operational crontab import, export, and named fidelity refusals. |
 | [Brand system](brand.md) | Approved identity, asset selection, accessibility, attribution, misuse rules, and downloads. |

@@ -121,3 +121,37 @@ func TestActiveRunsAndBoundedAlertsAPI(t *testing.T) {
 		t.Fatalf("invalid status=%d body=%s", invalid.Code, invalid.Body.String())
 	}
 }
+
+func TestRunAndAlertAPIPagingBoundsPayloadBeforeEncoding(t *testing.T) {
+	s := newTestServer(t)
+	now := time.Now().UTC()
+	task := apiTask(t, s, "bounded")
+	for index := 0; index < 3; index++ {
+		run := domain.Run{TaskID: task.ID, ScheduledFor: now.Add(time.Duration(index) * time.Second), Output: "123456789", Trigger: domain.TriggerManual}
+		if err := s.store.CreateRun(&run); err != nil {
+			t.Fatal(err)
+		}
+		alert := domain.Alert{CreatedAt: now.Add(time.Duration(index) * time.Second), Message: "abcdefghi"}
+		if err := s.store.CreateAlert(&alert); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runsResponse := doJSON(t, s, http.MethodGet, "/v1/runs?limit=1&offset=1&output_limit=4", nil)
+	var runs struct {
+		Runs []domain.Run `json:"runs"`
+	}
+	if err := json.Unmarshal(runsResponse.Body.Bytes(), &runs); err != nil || len(runs.Runs) != 1 || runs.Runs[0].Output != "1234" || !runs.Runs[0].OutputTruncated {
+		t.Fatalf("runs status=%d body=%s err=%v", runsResponse.Code, runsResponse.Body.String(), err)
+	}
+	alertsResponse := doJSON(t, s, http.MethodGet, "/v1/alerts?limit=1&offset=1&message_limit=4", nil)
+	var alerts struct {
+		Alerts []domain.Alert `json:"alerts"`
+	}
+	if err := json.Unmarshal(alertsResponse.Body.Bytes(), &alerts); err != nil || len(alerts.Alerts) != 1 || alerts.Alerts[0].Message != "abcd" || !alerts.Alerts[0].MessageTruncated {
+		t.Fatalf("alerts status=%d body=%s err=%v", alertsResponse.Code, alertsResponse.Body.String(), err)
+	}
+	invalid := doJSON(t, s, http.MethodGet, "/v1/runs?offset=-1", nil)
+	if invalid.Code != http.StatusBadRequest {
+		t.Fatalf("invalid status=%d body=%s", invalid.Code, invalid.Body.String())
+	}
+}

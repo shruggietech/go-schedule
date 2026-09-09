@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/executor"
@@ -51,6 +53,28 @@ type TaskResponse struct {
 	Readiness     tasklogic.Readiness `json:"readiness"`
 	PolicySummary string              `json:"policy_summary"`
 	NextRuns      []time.Time         `json:"next_runs"`
+}
+
+// TaskObservationResponse is the allowlisted daemon projection used by
+// observe-only integrations. It cannot carry task execution inputs.
+type TaskObservationResponse struct {
+	ID                       string                    `json:"id"`
+	Name                     string                    `json:"name"`
+	GroupID                  string                    `json:"group_id,omitempty"`
+	Enabled                  bool                      `json:"enabled"`
+	State                    domain.TaskState          `json:"state"`
+	Timezone                 string                    `json:"timezone"`
+	Readiness                tasklogic.ReadinessStatus `json:"readiness"`
+	ReadinessReason          string                    `json:"readiness_reason,omitempty"`
+	HasSchedule              bool                      `json:"has_schedule"`
+	ScheduleSummary          string                    `json:"schedule_summary,omitempty"`
+	PolicySummary            string                    `json:"policy_summary,omitempty"`
+	NextRuns                 []time.Time               `json:"next_runs"`
+	UpdatedAt                time.Time                 `json:"updated_at"`
+	NameTruncated            bool                      `json:"name_truncated,omitempty"`
+	ReadinessReasonTruncated bool                      `json:"readiness_reason_truncated,omitempty"`
+	ScheduleSummaryTruncated bool                      `json:"schedule_summary_truncated,omitempty"`
+	PolicySummaryTruncated   bool                      `json:"policy_summary_truncated,omitempty"`
 }
 
 func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
@@ -173,6 +197,10 @@ func (s *Server) handleCreateTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("observation") == "true" {
+		s.handleListTaskObservations(w, r)
+		return
+	}
 	tasks, err := s.store.ListTasks(r.URL.Query().Get("group"), r.URL.Query().Get("state"))
 	if err != nil {
 		s.internal(w, err)
@@ -197,6 +225,42 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		details = append(details, s.taskDetail(task, sch, now))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tasks": details})
+}
+
+func (s *Server) handleListTaskObservations(w http.ResponseWriter, r *http.Request) {
+	const maximumPage = 101
+	const maximumText = 2 * 1024
+	limit, ok := nonNegativeQuery(w, r, "limit", maximumPage)
+	if !ok {
+		return
+	}
+	if limit > maximumPage {
+		writeError(w, http.StatusBadRequest, CodeValidation, "limit", "must be between 0 and 101")
+		return
+	}
+	offset, ok := nonNegativeQuery(w, r, "offset", 0)
+	if !ok {
+		return
+	}
+	textLimit, ok := nonNegativeQuery(w, r, "text_limit", maximumText)
+	if !ok {
+		return
+	}
+	if textLimit > maximumText {
+		writeError(w, http.StatusBadRequest, CodeValidation, "text_limit", "must be between 0 and 2048")
+		return
+	}
+	observations, err := s.store.ListTaskObservations(r.URL.Query().Get("group"), r.URL.Query().Get("state"), r.URL.Query().Get("scheduled") == "true", offset, limit, textLimit)
+	if err != nil {
+		s.internal(w, err)
+		return
+	}
+	responses := make([]TaskObservationResponse, 0, len(observations))
+	now := time.Now().UTC()
+	for _, observation := range observations {
+		responses = append(responses, taskObservationResponse(observation, now, textLimit))
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tasks": responses})
 }
 
 func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
@@ -384,6 +448,39 @@ func (s *Server) taskDetail(task domain.Task, sch *domain.Schedule, now time.Tim
 	hasTrigger, _ := s.store.TaskHasEnabledTrigger(task.ID)
 	hasWatcher, _ := s.store.TaskHasEnabledWatcher(task.ID)
 	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger, hasWatcher), PolicySummary: policySummary, NextRuns: runs}
+}
+
+func taskObservationResponse(observation store.TaskObservation, now time.Time, textLimit int) TaskObservationResponse {
+	task := observation.Task
+	readiness := tasklogic.EvaluateReadiness(task, observation.HasCompletion, observation.HasTrigger, observation.HasWatcher)
+	response := TaskObservationResponse{ID: task.ID, GroupID: task.GroupID, Enabled: task.Enabled, State: task.State, Timezone: task.Timezone, Readiness: readiness.Status, HasSchedule: observation.Schedule != nil, UpdatedAt: task.UpdatedAt}
+	response.Name, response.NameTruncated = boundObservationText(task.Name, textLimit)
+	response.NameTruncated = response.NameTruncated || observation.NameTruncated
+	response.ReadinessReason, response.ReadinessReasonTruncated = boundObservationText(readiness.Reason, textLimit)
+	if observation.Schedule != nil {
+		response.NextRuns, _ = schedule.UpcomingRunsWithPolicy(*observation.Schedule, task.Timezone, task.SchedulePolicy(), now, 5)
+		response.ScheduleSummary, response.ScheduleSummaryTruncated = boundObservationText(schedule.Describe(*observation.Schedule, task.MissingDatePolicy), textLimit)
+		if !schedule.IsStartup(*observation.Schedule) {
+			response.PolicySummary, response.PolicySummaryTruncated = boundObservationText(schedule.DescribePolicy(task.SchedulePolicy()), textLimit)
+		}
+	}
+	if response.NextRuns == nil {
+		response.NextRuns = []time.Time{}
+	}
+	return response
+}
+
+func boundObservationText(value string, maximum int) (string, bool) {
+	valid := strings.ToValidUTF8(value, "\uFFFD")
+	changed := valid != value
+	if len(valid) <= maximum {
+		return valid, changed
+	}
+	cut := maximum
+	for cut > 0 && !utf8.RuneStart(valid[cut]) {
+		cut--
+	}
+	return valid[:cut], true
 }
 
 func (s *Server) reload() {

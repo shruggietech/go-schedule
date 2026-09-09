@@ -19,6 +19,7 @@ nav_order: 3
 - [Global flags](#global-flags)
 - [Exit codes](#exit-codes)
 - [`health`](#health)
+- [`mcp`](#mcp)
 - [`task`](#task)
 - [`cron`](#cron)
 - [`group`](#group)
@@ -69,6 +70,16 @@ daemon ok (version 0.6.0)
 ```
 
 Worth knowing: the version printed here is the **daemon's**, which can differ from `gosched --version` after a partial upgrade. If you are filing a bug report, both are asked for, and that is why.
+
+## `mcp`
+
+Serve the scheduler's observe-only Model Context Protocol resources over standard input and standard output for a local host:
+
+```sh
+gosched mcp serve
+```
+
+This command is meant to be launched by Codex or another MCP host. It opens no network listener, advertises no mutation tools, exits when the host disconnects, and reaches the daemon only through the existing protected local IPC endpoint. Protocol messages are the only stdout content; diagnostics use stderr. See [Local MCP access](mcp.md) for setup, resources, bounds, and the untrusted-content boundary.
 
 ## `task`
 

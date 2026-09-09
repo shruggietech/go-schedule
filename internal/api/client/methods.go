@@ -51,6 +51,35 @@ func (c *Client) ListTaskDetails(ctx context.Context, group, state string) ([]se
 	return out.Tasks, err
 }
 
+// ListTaskObservations returns a stable, allowlisted page that excludes task
+// execution inputs from the daemon response.
+func (c *Client) ListTaskObservations(ctx context.Context, group, state string, scheduledOnly bool, offset, limit, textLimit int) ([]server.TaskObservationResponse, error) {
+	q := url.Values{"observation": {"true"}}
+	if group != "" {
+		q.Set("group", group)
+	}
+	if state != "" {
+		q.Set("state", state)
+	}
+	if scheduledOnly {
+		q.Set("scheduled", "true")
+	}
+	if offset > 0 {
+		q.Set("offset", fmt.Sprintf("%d", offset))
+	}
+	if limit > 0 {
+		q.Set("limit", fmt.Sprintf("%d", limit))
+	}
+	if textLimit > 0 {
+		q.Set("text_limit", fmt.Sprintf("%d", textLimit))
+	}
+	var out struct {
+		Tasks []server.TaskObservationResponse `json:"tasks"`
+	}
+	err := c.do(ctx, http.MethodGet, withQuery("/v1/tasks", q), nil, &out)
+	return out.Tasks, err
+}
+
 // GetTask returns a task's detail.
 func (c *Client) GetTask(ctx context.Context, id string) (server.TaskResponse, error) {
 	var out server.TaskResponse
@@ -284,12 +313,23 @@ func (c *Client) Preview(ctx context.Context, req server.PreviewRequest) (server
 
 // ListRuns returns run history (optionally for one task).
 func (c *Client) ListRuns(ctx context.Context, taskID string, limit int) ([]domain.Run, error) {
+	return c.ListRunsPage(ctx, taskID, 0, limit, 0)
+}
+
+// ListRunsPage returns a stable page and can request store-bound output.
+func (c *Client) ListRunsPage(ctx context.Context, taskID string, offset, limit, outputLimit int) ([]domain.Run, error) {
 	q := url.Values{}
 	if taskID != "" {
 		q.Set("task", taskID)
 	}
 	if limit > 0 {
 		q.Set("limit", fmt.Sprintf("%d", limit))
+	}
+	if offset > 0 {
+		q.Set("offset", fmt.Sprintf("%d", offset))
+	}
+	if outputLimit > 0 {
+		q.Set("output_limit", fmt.Sprintf("%d", outputLimit))
 	}
 	var out struct {
 		Runs []domain.Run `json:"runs"`
@@ -322,12 +362,23 @@ func (c *Client) ListAlerts(ctx context.Context, unacked bool) ([]domain.Alert, 
 
 // ListAlertsLimited returns alerts with an optional server-side maximum.
 func (c *Client) ListAlertsLimited(ctx context.Context, unacked bool, limit int) ([]domain.Alert, error) {
+	return c.ListAlertsPage(ctx, unacked, 0, limit, 0)
+}
+
+// ListAlertsPage returns a stable page and can request store-bound messages.
+func (c *Client) ListAlertsPage(ctx context.Context, unacked bool, offset, limit, messageLimit int) ([]domain.Alert, error) {
 	q := url.Values{}
 	if unacked {
 		q.Set("unacked", "true")
 	}
 	if limit > 0 {
 		q.Set("limit", fmt.Sprintf("%d", limit))
+	}
+	if offset > 0 {
+		q.Set("offset", fmt.Sprintf("%d", offset))
+	}
+	if messageLimit > 0 {
+		q.Set("message_limit", fmt.Sprintf("%d", messageLimit))
 	}
 	var out struct {
 		Alerts []domain.Alert `json:"alerts"`
