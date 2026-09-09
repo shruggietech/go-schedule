@@ -29,7 +29,7 @@ Two coverage findings were remediated before implementation. A high-severity tas
 
 ## Clean Restoration Evidence
 
-Root and desktop `go mod tidy` plus `go mod verify` completed successfully. A Node 26 and npm 11.6.1 `npm ci` and high-severity audit restored 138 packages with zero vulnerabilities. SHA-256 comparisons before and after restoration confirmed that all six manifests and integrity files were unchanged.
+Root and desktop `go mod tidy` plus `go mod verify` completed successfully. Node 26 clean installs passed with both local npm 11.6.1 and the hosted runner's npm 11.19.0, followed by a high-severity audit with zero vulnerabilities. The lockfile was regenerated with npm 11.19.0 after the first hosted run exposed an npm 11.6.1 platform-placeholder entry that the newer installer rejected; the final lockfile restores with both versions and contains complete package records. SHA-256 comparisons before the initial publication confirmed that all six manifests and integrity files were stable, and the post-CI lockfile correction was revalidated independently with both npm versions.
 
 ## Focused Compatibility Evidence
 
