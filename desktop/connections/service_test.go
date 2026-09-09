@@ -1,7 +1,11 @@
 package connections
 
 import (
+	"context"
+	"encoding/pem"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -35,9 +39,15 @@ func (f *fakeProfileStore) Remove(id string) (clientprofile.Profile, error) {
 type fakeSecretStore struct {
 	deleted   string
 	deleteErr error
+	token     string
 }
 
-func (*fakeSecretStore) Load(string, string) (string, error) { return "", errors.New("missing") }
+func (f *fakeSecretStore) Load(string, string) (string, error) {
+	if f.token == "" {
+		return "", errors.New("missing")
+	}
+	return f.token, nil
+}
 func (f *fakeSecretStore) Delete(daemon, credential string) error {
 	f.deleted = daemon + ":" + credential
 	return f.deleteErr
@@ -88,5 +98,22 @@ func TestRemovalKeepsMetadataWhenCredentialDeletionFails(t *testing.T) {
 	result := New(profiles, secrets, client.New("local"), client.NewSwitchable(client.New("local")), &fakeManager{}).Remove("profile-id")
 	if result.Outcome != "rejected" || profiles.removed != "" {
 		t.Fatalf("result=%+v removed=%q", result, profiles.removed)
+	}
+}
+
+func TestRestorePreservesSelectedRemoteBeforeConnectionAttempt(t *testing.T) {
+	tlsServer := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	tlsServer.StartTLS()
+	defer tlsServer.Close()
+	profile := profileFixture()
+	profile.Endpoint = tlsServer.URL
+	profile.CertificatePEM = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: tlsServer.Certificate().Raw}))
+	profiles := &fakeProfileStore{collection: clientprofile.Collection{Version: clientprofile.CurrentVersion, ActiveDesktopProfileID: profile.ID, Profiles: []clientprofile.Profile{profile}}}
+	manager := &fakeManager{}
+	local := client.New("local")
+	router := client.NewSwitchable(local)
+	result := New(profiles, &fakeSecretStore{token: "bearer-canary"}, local, router, manager).RestoreSelection(context.Background())
+	if result.Outcome != "accepted" || manager.target.ProfileID != profile.ID || manager.target.Kind != "remote" || !router.Remote() {
+		t.Fatalf("result=%+v manager=%+v remote=%v", result, manager, router.Remote())
 	}
 }

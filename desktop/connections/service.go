@@ -92,9 +92,6 @@ func (s *Service) selectProfile(ctx context.Context, id string, persist bool) Re
 	if err != nil {
 		return rejected("select_connection", "The selected connection profile is invalid.")
 	}
-	if _, err := remote.VerifyIdentity(ctx); err != nil {
-		return rejected("select_connection", "The selected daemon identity could not be verified.")
-	}
 	if persist {
 		if err := s.profiles.SetActive(profile.ID); err != nil {
 			return rejected("select_connection", "The selected connection could not be saved.")

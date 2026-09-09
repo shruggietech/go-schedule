@@ -73,3 +73,21 @@ func TestStoreBusyLeavesDocumentIntact(t *testing.T) {
 		t.Fatal("busy write changed document")
 	}
 }
+
+func TestRenameChangesOnlyPresentationFields(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "profiles.json")
+	store := NewStore(path)
+	profile := validProfile(t)
+	profile.CredentialID = "repaired-credential"
+	stored, err := store.Add(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed, err := store.Rename(profile.ID, "Renamed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if renamed.Label != "Renamed" || renamed.CertificateFingerprint != stored.CertificateFingerprint || renamed.CredentialID != "repaired-credential" {
+		t.Fatalf("renamed profile = %#v", renamed)
+	}
+}

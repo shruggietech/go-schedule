@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func serverCertificatePEM(t *testing.T, server *httptest.Server) string {
@@ -125,5 +126,61 @@ func TestRemoteClientRejectsIdentityMismatchAndRedirect(t *testing.T) {
 	}
 	if _, err := remote.VerifyIdentity(context.Background()); err == nil || !strings.Contains(err.Error(), "does not match") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRemoteTaskResponsesDecodeObservationProjection(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch request.URL.Path {
+		case "/api/v1/manifest":
+			_, _ = w.Write([]byte(`{"installation_id":"daemon-1","display_name":"Remote","product_version":"v1.0.0","remote_api_versions":["v1"],"capabilities":["tasks"],"platform":{"os":"linux","architecture":"amd64"}}`))
+		case "/api/v1/tasks":
+			_, _ = w.Write([]byte(`{"tasks":[{"id":"task-1","name":"Backup","enabled":true,"state":"active","timezone":"UTC","readiness":"ready","readiness_reason":"Ready.","has_schedule":true,"schedule_summary":"Every day","policy_summary":"Queue one","next_runs":[],"updated_at":"2026-09-09T12:00:00Z"}]}`))
+		case "/api/v1/tasks/task-1":
+			_, _ = w.Write([]byte(`{"id":"task-1","name":"Backup","enabled":true,"state":"active","timezone":"UTC","readiness":"ready","readiness_reason":"Ready.","has_schedule":true,"schedule_summary":"Every day","policy_summary":"Queue one","next_runs":[],"updated_at":"2026-09-09T12:00:00Z"}`))
+		default:
+			http.NotFound(w, request)
+		}
+	}))
+	server.TLS = server.Config.TLSConfig
+	server.StartTLS()
+	defer server.Close()
+	remote, err := NewRemote(server.URL, serverCertificatePEM(t, server), "bearer-canary", "daemon-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := remote.VerifyIdentity(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	details, err := remote.ListTaskDetails(context.Background(), "", "")
+	if err != nil || len(details) != 1 || details[0].Task.ID != "task-1" || details[0].Task.Name != "Backup" || details[0].Schedule == nil || details[0].Schedule.HumanSummary != "Every day" || !details[0].Readiness.CommandReady {
+		t.Fatalf("details=%+v err=%v", details, err)
+	}
+	detail, err := remote.GetTask(context.Background(), "task-1")
+	if err != nil || detail.Task.ID != "task-1" || detail.PolicySummary != "Queue one" {
+		t.Fatalf("detail=%+v err=%v", detail, err)
+	}
+}
+
+func TestRemoteIdentityVerificationHasTransportAndOperationBounds(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+		<-request.Context().Done()
+	}))
+	server.TLS = server.Config.TLSConfig
+	server.StartTLS()
+	defer server.Close()
+	remote, err := NewRemote(server.URL, serverCertificatePEM(t, server), "bearer-canary", "daemon-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transport := remote.http.Transport.(*http.Transport)
+	if transport.TLSHandshakeTimeout <= 0 || transport.ResponseHeaderTimeout <= 0 {
+		t.Fatalf("transport timeouts are incomplete: %#v", transport)
+	}
+	remote.identityTimeout = 25 * time.Millisecond
+	started := time.Now()
+	if _, err := remote.VerifyIdentity(context.Background()); err == nil || time.Since(started) > time.Second {
+		t.Fatalf("verification err=%v elapsed=%s", err, time.Since(started))
 	}
 }

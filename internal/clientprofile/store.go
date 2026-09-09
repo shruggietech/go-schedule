@@ -104,17 +104,26 @@ func (s *Store) Replace(profile Profile) (Profile, error) {
 
 // Rename changes only one profile's local presentation label.
 func (s *Store) Rename(id, label string) (Profile, error) {
-	collection, err := s.Load()
-	if err != nil {
-		return Profile{}, err
-	}
-	profile, err := collection.Find(id)
-	if err != nil {
-		return Profile{}, err
-	}
-	profile.Label = label
-	profile.UpdatedAt = s.now().UTC()
-	return s.Replace(profile)
+	var result Profile
+	err := s.update(func(collection *Collection) error {
+		for i := range collection.Profiles {
+			if collection.Profiles[i].ID != id {
+				continue
+			}
+			profile := collection.Profiles[i]
+			profile.Label = label
+			profile.UpdatedAt = s.now().UTC()
+			normalized, err := Normalize(profile)
+			if err != nil {
+				return err
+			}
+			collection.Profiles[i] = normalized
+			result = normalized
+			return nil
+		}
+		return ErrNotFound
+	})
+	return result, err
 }
 
 // SetActive selects one remote profile or This computer when id is empty.

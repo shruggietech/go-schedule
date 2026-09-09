@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
@@ -31,7 +32,10 @@ type Client struct {
 	remote           bool
 	verified         atomic.Bool
 	selected         atomic.Pointer[Client]
+	identityTimeout  time.Duration
 }
+
+const defaultIdentityTimeout = 10 * time.Second
 
 // New returns a client bound to the given IPC endpoint (socket path / pipe name).
 func New(endpoint string) *Client {
@@ -79,8 +83,9 @@ func NewRemote(endpoint, certificatePEM, bearer, expectedDaemonID string) (*Clie
 	if !pool.AppendCertsFromPEM([]byte(certificatePEM)) {
 		return nil, errors.New("remote target certificate is invalid")
 	}
-	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: pool}}
-	return &Client{http: &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, endpoint: canonical, baseURL: canonical, pathPrefix: "/api", bearer: bearer, expectedDaemonID: strings.TrimSpace(expectedDaemonID), remote: true}, nil
+	dialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DialContext: dialer.DialContext, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 10 * time.Second, ExpectContinueTimeout: time.Second, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: pool}}
+	return &Client{http: &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, endpoint: canonical, baseURL: canonical, pathPrefix: "/api", bearer: bearer, expectedDaemonID: strings.TrimSpace(expectedDaemonID), remote: true, identityTimeout: defaultIdentityTimeout}, nil
 }
 
 // Remote reports whether this client uses authenticated HTTPS.
@@ -94,6 +99,13 @@ func (c *Client) VerifyIdentity(ctx context.Context) (server.ManifestResponse, e
 	target := c.target()
 	if target.remote {
 		target.verified.Store(false)
+		timeout := target.identityTimeout
+		if timeout <= 0 {
+			timeout = defaultIdentityTimeout
+		}
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
 	}
 	manifest, err := target.Manifest(ctx)
 	if err != nil {

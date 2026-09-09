@@ -9,12 +9,19 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
 // CreateTask creates a task and returns its detail.
 func (c *Client) CreateTask(ctx context.Context, req server.TaskCreateRequest) (server.TaskResponse, error) {
+	target := c.target()
+	if target.remote {
+		var observation server.TaskObservationResponse
+		err := target.do(ctx, http.MethodPost, "/v1/tasks", req, &observation)
+		return taskResponseFromObservation(observation), err
+	}
 	var out server.TaskResponse
-	err := c.do(ctx, http.MethodPost, "/v1/tasks", req, &out)
+	err := target.do(ctx, http.MethodPost, "/v1/tasks", req, &out)
 	return out, err
 }
 
@@ -36,6 +43,15 @@ func (c *Client) ListTasks(ctx context.Context, group, state string) ([]domain.T
 
 // ListTaskDetails lists task details, including schedule previews and readiness.
 func (c *Client) ListTaskDetails(ctx context.Context, group, state string) ([]server.TaskResponse, error) {
+	target := c.target()
+	if target.remote {
+		observations, err := target.ListTaskObservations(ctx, group, state, false, 0, 0, 0)
+		responses := make([]server.TaskResponse, 0, len(observations))
+		for _, observation := range observations {
+			responses = append(responses, taskResponseFromObservation(observation))
+		}
+		return responses, err
+	}
 	q := url.Values{"details": {"true"}}
 	if group != "" {
 		q.Set("group", group)
@@ -46,7 +62,7 @@ func (c *Client) ListTaskDetails(ctx context.Context, group, state string) ([]se
 	var out struct {
 		Tasks []server.TaskResponse `json:"tasks"`
 	}
-	err := c.do(ctx, http.MethodGet, withQuery("/v1/tasks", q), nil, &out)
+	err := target.do(ctx, http.MethodGet, withQuery("/v1/tasks", q), nil, &out)
 	return out.Tasks, err
 }
 
@@ -81,16 +97,39 @@ func (c *Client) ListTaskObservations(ctx context.Context, group, state string, 
 
 // GetTask returns a task's detail.
 func (c *Client) GetTask(ctx context.Context, id string) (server.TaskResponse, error) {
+	target := c.target()
+	if target.remote {
+		var observation server.TaskObservationResponse
+		err := target.do(ctx, http.MethodGet, "/v1/tasks/"+url.PathEscape(id), nil, &observation)
+		return taskResponseFromObservation(observation), err
+	}
 	var out server.TaskResponse
-	err := c.do(ctx, http.MethodGet, "/v1/tasks/"+id, nil, &out)
+	err := target.do(ctx, http.MethodGet, "/v1/tasks/"+id, nil, &out)
 	return out, err
 }
 
 // UpdateTask applies partial changes to a task.
 func (c *Client) UpdateTask(ctx context.Context, id string, req server.TaskUpdateRequest) (server.TaskResponse, error) {
+	target := c.target()
+	if target.remote {
+		var observation server.TaskObservationResponse
+		err := target.do(ctx, http.MethodPatch, "/v1/tasks/"+url.PathEscape(id), req, &observation)
+		return taskResponseFromObservation(observation), err
+	}
 	var out server.TaskResponse
-	err := c.do(ctx, http.MethodPatch, "/v1/tasks/"+id, req, &out)
+	err := target.do(ctx, http.MethodPatch, "/v1/tasks/"+id, req, &out)
 	return out, err
+}
+
+func taskResponseFromObservation(observation server.TaskObservationResponse) server.TaskResponse {
+	readiness := tasklogic.Readiness{Status: observation.Readiness, Reason: observation.ReadinessReason}
+	readiness.CommandReady = observation.Readiness != tasklogic.StatusNotRunnable
+	readiness.ActivationReady = observation.Readiness == tasklogic.StatusReady || observation.Readiness == tasklogic.StatusDisabled
+	response := server.TaskResponse{Task: domain.Task{ID: observation.ID, Name: observation.Name, GroupID: observation.GroupID, Enabled: observation.Enabled, State: observation.State, Timezone: observation.Timezone, UpdatedAt: observation.UpdatedAt}, Readiness: readiness, PolicySummary: observation.PolicySummary, NextRuns: observation.NextRuns}
+	if observation.HasSchedule {
+		response.Schedule = &domain.Schedule{HumanSummary: observation.ScheduleSummary}
+	}
+	return response
 }
 
 // DeleteTask deletes a task.
