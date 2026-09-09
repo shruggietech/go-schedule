@@ -30,7 +30,12 @@ func normalizeOrigins(values []string) ([]string, error) {
 		if err != nil || port < 1 || port > 65535 {
 			return nil, validationError("allowed_origins", "origin ports must be between 1 and 65535")
 		}
-		unique[scheme+"://127.0.0.1:"+strconv.Itoa(port)] = struct{}{}
+		origin := scheme + "://127.0.0.1"
+		isDefaultPort := (scheme == "http" && port == 80) || (scheme == "https" && port == 443)
+		if !isDefaultPort {
+			origin += ":" + strconv.Itoa(port)
+		}
+		unique[origin] = struct{}{}
 	}
 	origins := make([]string, 0, len(unique))
 	for origin := range unique {

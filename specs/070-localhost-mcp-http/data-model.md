@@ -40,4 +40,4 @@ Only one lifecycle mutation holds the manager lock at a time. Status returns an 
 
 ## Origin Policy
 
-Each configured origin is parsed as an absolute `http` or `https` URL with no user information, query, fragment, or non-root path. Its hostname must be exactly `127.0.0.1`, and its port must be explicit and valid. Canonical origins are deduplicated and sorted. An absent request Origin is allowed; any present value must equal one canonical configured string.
+Each configured origin is parsed as an absolute `http` or `https` URL with no user information, query, fragment, or non-root path. Its hostname must be exactly `127.0.0.1`, and its port must be explicit and valid. Canonical origins use browser serialization, which omits port 80 for HTTP and port 443 for HTTPS, then are deduplicated and sorted. An absent request Origin is allowed; any present value must equal one canonical configured string.

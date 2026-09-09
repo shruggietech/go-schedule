@@ -46,7 +46,7 @@ Native MCP clients normally send no `Origin` header. If a trusted local browser 
 gosched mcp http enable --port 43123 --origin http://127.0.0.1:3000
 ```
 
-Origins must use `http` or `https`, numeric `127.0.0.1`, and an explicit port. Hostnames, wildcards, public addresses, paths, opaque origins, and implicit ports are rejected. Every request still needs the bearer credential and must address the exact active `127.0.0.1:<port>` Host.
+Origins must use `http` or `https`, numeric `127.0.0.1`, and an explicit port. Explicit default ports are stored in browser-serialized form (`http://127.0.0.1` for port 80 and `https://127.0.0.1` for port 443) so exact matching agrees with the browser `Origin` header. Hostnames, wildcards, public addresses, paths, opaque origins, and implicit ports are rejected. Every request still needs the bearer credential and must address the exact active `127.0.0.1:<port>` Host.
 
 Replace a copied credential without changing the endpoint or origins:
 

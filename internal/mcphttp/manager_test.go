@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -146,6 +148,38 @@ func TestEnableValidationAndPortConflictAreAtomic(t *testing.T) {
 	}
 	if manager.Status().Enabled {
 		t.Fatal("port conflict published enabled state")
+	}
+}
+
+func TestNormalizeOriginsUsesBrowserDefaultPortSerialization(t *testing.T) {
+	origins, err := normalizeOrigins([]string{
+		"http://127.0.0.1:80",
+		"https://127.0.0.1:443/",
+		"http://127.0.0.1:8080",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"http://127.0.0.1", "http://127.0.0.1:8080", "https://127.0.0.1"}
+	if strings.Join(origins, "|") != strings.Join(want, "|") {
+		t.Fatalf("origins=%v want=%v", origins, want)
+	}
+}
+
+type closedListener struct{}
+
+func (closedListener) Accept() (net.Conn, error) {
+	return nil, errors.Join(errors.New("listener closed"), net.ErrClosed)
+}
+func (closedListener) Close() error   { return nil }
+func (closedListener) Addr() net.Addr { return &net.TCPAddr{} }
+
+func TestServeTreatsClosedListenerAsExpectedShutdown(t *testing.T) {
+	var logs bytes.Buffer
+	manager := New(fakeReader{}, "test", slog.New(slog.NewTextHandler(&logs, nil)))
+	manager.serve(&http.Server{Handler: http.NotFoundHandler()}, closedListener{})
+	if strings.Contains(logs.String(), "stopped unexpectedly") {
+		t.Fatalf("expected listener closure was logged as an error: %s", logs.String())
 	}
 }
 

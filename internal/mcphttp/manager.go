@@ -110,7 +110,7 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 
 func (m *Manager) serve(httpServer *http.Server, listener net.Listener) {
 	err := httpServer.Serve(listener)
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
 		m.log.Error("localhost MCP listener stopped unexpectedly", "error", err)
 	}
 	m.mu.Lock()
