@@ -75,11 +75,11 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 		{"desktop needs image", func(e *Evidence) {
 			findObservation(e, "desktop.interaction-states").AttachmentPaths = []string{"attachments/fixture.txt"}
 		}, "supported raster image"},
-		{"appearance palettes", func(e *Evidence) {
-			findObservation(e, "desktop.appearance-standard").Metrics["palettes"] = "dark"
-		}, "palettes"},
+		{"appearance themes", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-standard").Metrics["themes"] = "dark"
+		}, "themes"},
 		{"duplicate exact set", func(e *Evidence) {
-			findObservation(e, "desktop.appearance-standard").Metrics["palettes"] = "dark,light,dark"
+			findObservation(e, "desktop.appearance-standard").Metrics["themes"] = "system,light,dark,dark"
 		}, "duplicate"},
 		{"standard appearance dpi", func(e *Evidence) {
 			findObservation(e, "desktop.appearance-standard").Metrics["effective_dpi"] = 120
@@ -111,9 +111,9 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 		{"navigation horizontal scrollbar", func(e *Evidence) {
 			findObservation(e, "desktop.navigation-options").Metrics["horizontal_scrollbar_present"] = true
 		}, "horizontal_scrollbar_present"},
-		{"scroll sensitivities", func(e *Evidence) {
-			findObservation(e, "desktop.scroll-input").Metrics["sensitivities"] = "1x,2x"
-		}, "sensitivities"},
+		{"scroll surfaces", func(e *Evidence) {
+			findObservation(e, "desktop.scroll-input").Metrics["surfaces"] = "tasks,settings"
+		}, "surfaces"},
 		{"touchpad unavailable reason", func(e *Evidence) {
 			findObservation(e, "desktop.scroll-input").Metrics["touchpad_unavailable_reason"] = ""
 		}, "touchpad_unavailable_reason"},
@@ -132,7 +132,7 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 			findObservation(e, "desktop.schedule-activity-tables").Metrics["schedule_row_count"] = 99
 		}, "schedule_row_count"},
 		{"activity severity casing", func(e *Evidence) {
-			findObservation(e, "desktop.schedule-activity-tables").Metrics["severities"] = "info,warning,error"
+			findObservation(e, "desktop.schedule-activity-tables").Metrics["severities"] = "INFO,WARNING,ERROR"
 		}, "severities"},
 	}
 
@@ -248,7 +248,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			metrics := findObservation(e, "window.clean-standard").Metrics
 			metrics["logical_work_area_width"] = 1800
 			metrics["logical_work_area_height"] = 800
-			metrics["fyne_content_width"] = 1700
+			metrics["content_width"] = 1700
 		}, "90 percent"},
 		{"unsafe attachment", func(e *Evidence) { e.Attachments[0].Path = "../outside.txt" }, "unsafe"},
 		{"attachment digest", func(e *Evidence) { e.Attachments[0].SHA256 = strings.Repeat("e", 64) }, "attachments[0] SHA-256"},
@@ -562,7 +562,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		Environments: []Environment{
 			environment("standard", "intended-user", "medium", "standard-dpi", "clean", 96),
 			environment("high", "intended-user", "medium", "high-dpi", "clean", 144),
-			environment("retained", "intended-user", "medium", "standard-dpi", "retained-v0.9.1", 96),
+			environment("retained", "intended-user", "medium", "standard-dpi", "retained-release", 96),
 			environment("unrelated", "unrelated-user", "medium", "not-applicable", "not-applicable", 0),
 			environment("admin", "administrator", "high", "not-applicable", "not-applicable", 0),
 		},
@@ -634,8 +634,16 @@ func addNativeWindowFixtures(t *testing.T, root string, evidence *Evidence) {
 			ClientRect: nativeRect{110, 130, 1390, 930}, MonitorRect: nativeRect{0, 0, 2560, 1440},
 			WorkAreaRect: nativeRect{0, 0, 2560, 1400}, MonitorID: "fixture-monitor", EffectiveDPI: int(dpi),
 			ShowCommand: 1, Visible: true, Restored: true,
-			Fyne: fyneWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1280, ContentHeight: 800, CanvasScale: dpi / 96},
+			Desktop: &desktopWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1280, ContentHeight: 800, DisplayScale: dpi / 96},
 		}
+		record.SchemaVersion = 2
+		record.Kind = "native-window-v2"
+		delete(o.Metrics, "fyne_content_width")
+		delete(o.Metrics, "fyne_content_height")
+		delete(o.Metrics, "fyne_scale")
+		o.Metrics["content_width"] = 1280.0
+		o.Metrics["content_height"] = 800.0
+		o.Metrics["display_scale"] = dpi / 96
 		data, err := json.MarshalIndent(record, "", "  ")
 		if err != nil {
 			t.Fatal(err)
@@ -723,13 +731,12 @@ func passingMetrics(id string) map[string]any {
 			dpi = 144
 		}
 		m = map[string]any{
-			"palettes": "dark,light", "effective_dpi": dpi,
-			"system_font_default": true, "system_font_restored": true,
-			"font_persistence_verified": true, "info_text_sharp": true,
+			"themes": "system,light,dark", "effective_dpi": dpi,
+			"system_theme_default": true, "system_theme_restored": true,
+			"theme_persistence_verified": true, "brand_typography_sharp": true,
 			"body_text_sharp": true, "labels_centered": true,
 			"labels_unclipped": true, "resize_verified": true,
 			"minimize_restore_verified": true, "reopen_verified": true,
-			"fonts_exercised": "system,geist,inter,ubuntu,monospace",
 		}
 	case "desktop.interaction-states", "desktop.interaction-states-scaled":
 		m = map[string]any{
@@ -744,8 +751,9 @@ func passingMetrics(id string) map[string]any {
 	case "desktop.navigation-options", "desktop.navigation-options-scaled":
 		m = map[string]any{
 			"palettes": "dark,light", "content_sizes": "1280x800,800x600",
-			"destination_order":     "tasks,groups,chains,schedule,activity,options,info",
-			"rail_spacing_balanced": true, "labels_unclipped": true,
+			"destination_order":      "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings",
+			"target_context_visible": true,
+			"rail_spacing_balanced":  true, "labels_unclipped": true,
 			"boundary_full_height": true, "boundary_subtle": true,
 			"exit_bottom_right": true, "exit_never_selected": true,
 			"exit_semantic_glyph": true, "storage_rows_compact": true,
@@ -754,11 +762,10 @@ func passingMetrics(id string) map[string]any {
 		}
 	case "desktop.scroll-input":
 		m = map[string]any{
-			"sensitivities":            "1x,2x,4x",
-			"surfaces":                 "options,info,editor-command,editor-schedule,editor-help",
-			"wheel_detents_responsive": true, "immediate_apply": true,
-			"persistence_verified": true, "nested_multiplier_absent": true,
-			"keyboard_scroll_preserved": true, "touchpad_available": false,
+			"surfaces":                 "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings,task-editor",
+			"wheel_detents_responsive": true, "browser_native": true,
+			"nested_multiplier_absent": true, "keyboard_scroll_preserved": true,
+			"focus_preserved": true, "touchpad_available": false,
 			"touchpad_fine_deltas_preserved": false,
 			"touchpad_unavailable_reason":    "fixture has no physical input hardware",
 		}
@@ -766,9 +773,9 @@ func passingMetrics(id string) map[string]any {
 		m = map[string]any{
 			"row_count": 100, "palettes": "dark,light",
 			"content_sizes":  "1280x800,800x600",
-			"headers":        "task,enabled,lifecycle,time-zone,group",
+			"headers":        "task,group,state,schedule",
 			"row_states":     "odd,even,hover,focus,selected",
-			"headers_frozen": true, "status_dimensions_distinct": true,
+			"headers_frozen": true, "state_reason_discoverable": true,
 			"bracket_decoration_absent": true, "full_values_discoverable": true,
 			"horizontal_scrollbar_present": false, "refresh_identity_stable": true,
 			"removed_selection_clears": true, "toolbar_actions_work": true,
@@ -778,10 +785,11 @@ func passingMetrics(id string) map[string]any {
 		m = map[string]any{
 			"schedule_row_count": 100, "activity_row_count": 100,
 			"palettes": "dark,light", "content_sizes": "1280x800,800x600",
-			"schedule_headers": "when,task,event,outcome",
-			"activity_headers": "when,severity,source,summary",
-			"schedule_states":  "scheduled,success,failure,skipped,caught-up,queued,missing,unknown",
-			"severities":       "INFO,WARNING,ERROR",
+			"schedule_headers": "when,task,record,state",
+			"activity_headers": "when,record,state,source,summary",
+			"schedule_states":  "upcoming,running,success,failure,skipped,caught-up,queued,unavailable",
+			"severities":       "info,warning,error",
+			"record_types":     "run,daemon-log,alert",
 			"row_states":       "odd,even,hover,focus,selected",
 			"headers_frozen":   true, "semantic_text_glyphs_match": true,
 			"non_color_cues_present": true, "full_values_discoverable": true,

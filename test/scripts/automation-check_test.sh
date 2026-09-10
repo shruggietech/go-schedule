@@ -222,9 +222,17 @@ jobs:
   readme-version:
     steps:
       - run: |
+          VERSION="${GITHUB_REF_NAME}"
+          PLAIN="${VERSION#v}"
           BADGE='<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>'
           BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
           test "$BADGE_LINE_COUNT" -eq 1
+          CHANGELOG_HEADING="## [${PLAIN}] - "
+          test "$(grep -Fc -- "$CHANGELOG_HEADING" CHANGELOG.md)" -eq 1
+          RELEASE_NOTES=".github/release-notes/${VERSION}.md"
+          test -f "$RELEASE_NOTES"
+          CHANGELOG_PREFIX="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#"
+          test "$(grep -Fc -- "$CHANGELOG_PREFIX" "$RELEASE_NOTES")" -eq 1
   release-state:
     needs: [readme-version, ci-success]
     steps:
@@ -317,6 +325,24 @@ run_automation_cases() {
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
   run_expect_pass approved sh "$CHECK" "$good"
+
+  no_changelog_preflight="$tmp/no-changelog-preflight"
+  cp -R "$good" "$no_changelog_preflight"
+  sed '/CHANGELOG_HEADING/d; /grep -Fc --.*CHANGELOG.md/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$no_changelog_preflight/.github/workflows/release.yml"
+  run_expect_fail no-changelog-preflight \
+    'tag-specific changelog section preflight' \
+    sh "$CHECK" "$no_changelog_preflight"
+
+  no_release_note_preflight="$tmp/no-release-note-preflight"
+  cp -R "$good" "$no_release_note_preflight"
+  sed '/RELEASE_NOTES=/d; /test -f.*RELEASE_NOTES/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$no_release_note_preflight/.github/workflows/release.yml"
+  run_expect_fail no-release-note-preflight \
+    'tag-specific release-note file preflight' \
+    sh "$CHECK" "$no_release_note_preflight"
 
   stale_tag_boundary="$tmp/stale-tag-boundary"
   cp -R "$good" "$stale_tag_boundary"

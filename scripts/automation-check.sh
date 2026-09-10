@@ -420,6 +420,14 @@ else
     'dynamic tag-specific release-note body path'
   require_release_text 'grep -Fxc -- "$BADGE"' \
     'SIGPIPE-safe README badge count'
+  require_release_text 'CHANGELOG_HEADING="## [${PLAIN}] - "' \
+    'tag-specific changelog section preflight'
+  require_release_text 'RELEASE_NOTES=".github/release-notes/${VERSION}.md"' \
+    'tag-specific release-note file preflight'
+  require_release_text 'test -f "$RELEASE_NOTES"' \
+    'release-note existence guard'
+  require_release_text 'CHANGELOG_PREFIX="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#"' \
+    'tagged release-note changelog link preflight'
   require_release_text \
     'https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF' \
     'published-release badge source'

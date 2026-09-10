@@ -6,7 +6,7 @@ nav_order: 5.5
 # Local and remote JSON API
 
 **Audience:** client and integration authors\
-**Applies to:** the current unreleased local API contract\
+**Applies to:** the v1.4.0 local and remote API contract and later\
 **Transport:** protected local IPC by default; optional authenticated TLS 1.3 HTTPS on the reviewed `/api/v1` allowlist
 
 The CLI and desktop app use the same versioned JSON handlers hosted by `goschedd`. Local IPC paths begin at `/v1`; the opt-in remote adapter exposes only reviewed operations below `/api/v1`. Errors use `{"error":{"code":"...","field":"...","message":"..."}}`.

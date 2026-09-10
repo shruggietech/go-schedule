@@ -55,11 +55,11 @@ jobs:
           done
 
   # The badge follows the latest published GitHub release, while release
-  # preparation updates the static health example through review. Verify both
-  # in the tagged checkout without trying to push directly to main. This
-  # preflight gates every draft-release staging job.
+  # preparation updates the static health example, changelog boundary, and
+  # tag-specific notes through review. Verify every source-owned identity in
+  # the tagged checkout before any draft-release staging job can run.
   readme-version:
-    name: Verify README release metadata for this tag
+    name: Verify release source metadata for this tag
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -91,6 +91,23 @@ jobs:
             echo "::error file=README.md::Health example does not match ${VERSION}. Update it in the release-preparation pull request."
             exit 1
           }
+          CHANGELOG_HEADING="## [${PLAIN}] - "
+          CHANGELOG_HEADING_COUNT=$(grep -Fc -- "$CHANGELOG_HEADING" CHANGELOG.md || true)
+          if [ "$CHANGELOG_HEADING_COUNT" -ne 1 ]; then
+            echo "::error file=CHANGELOG.md::Expected exactly one dated ${VERSION} section; found ${CHANGELOG_HEADING_COUNT}."
+            exit 1
+          fi
+          RELEASE_NOTES=".github/release-notes/${VERSION}.md"
+          if ! test -f "$RELEASE_NOTES"; then
+            echo "::error file=${RELEASE_NOTES}::Tag-specific release notes are missing."
+            exit 1
+          fi
+          CHANGELOG_PREFIX="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#"
+          CHANGELOG_LINK_COUNT=$(grep -Fc -- "$CHANGELOG_PREFIX" "$RELEASE_NOTES" || true)
+          if [ "$CHANGELOG_LINK_COUNT" -ne 1 ]; then
+            echo "::error file=${RELEASE_NOTES}::Expected exactly one changelog link for ${VERSION}; found ${CHANGELOG_LINK_COUNT}."
+            exit 1
+          fi
 
   release-state:
     name: Require absent or draft release state

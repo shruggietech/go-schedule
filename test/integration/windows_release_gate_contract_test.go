@@ -87,7 +87,10 @@ func TestAttendedCollectorUsesCanonicalScenariosAndHiddenChildren(t *testing.T) 
 		"OpenProcessToken",
 		"ProcessUserSid",
 		"Fullscreen",
-		"FyneEvidencePath",
+		"kind = 'native-window-v2'",
+		"desktop = $desktop",
+		"content_width = $contentWidth",
+		"display_scale = $dpiScale",
 		"Refusing to overwrite",
 		"evidence_class = 'attended-windows'",
 		"attachments/tasks",
@@ -95,6 +98,9 @@ func TestAttendedCollectorUsesCanonicalScenariosAndHiddenChildren(t *testing.T) 
 		if !strings.Contains(script, required) {
 			t.Fatalf("attended collector missing %q", required)
 		}
+	}
+	if strings.Contains(script, "FyneEvidencePath") {
+		t.Fatal("attended collector still requires retired Fyne-only evidence")
 	}
 	for _, metric := range []string{"prior_config_available", "prior_logs_available"} {
 		if strings.Count(script, metric) != 2 {

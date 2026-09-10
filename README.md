@@ -60,7 +60,7 @@ go-schedule is built around that. Schedules can be written in plain language or 
 
 ## Install
 
-Every [release](https://github.com/shruggietech/go-schedule/releases/latest) ships installers and archives per platform. Verify downloads against `SHA256SUMS.txt`; the artifacts are not signed. The Wails desktop formats below describe the v1.2 candidate and later; the latest public release remains v1.1.1 until the separately authorized release ritual completes.
+Every [release](https://github.com/shruggietech/go-schedule/releases/latest) ships installers and archives per platform. Verify downloads against `SHA256SUMS.txt`; the artifacts are not signed. Beginning with v1.4.0, the desktop downloads contain the Wails control center described below. The latest-release page remains authoritative while a candidate is staged and qualified.
 
 | Platform | Download | Guide |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ gosched daemon manifest
 ```
 
 ```text
-daemon ok (version 1.1.1)
+daemon ok (version 1.4.0)
 ```
 
 The manifest reports the daemon's stable installation ID, editable display name, version, local-only mode, safe platform facts, and supported feature surfaces. See [Daemon identity](docs/daemon-identity.md) for rename, backup restore, database clone, and deliberate identity reset behavior.

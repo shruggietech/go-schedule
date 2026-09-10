@@ -7,14 +7,14 @@ nav_order: 1
 # Installing go-schedule on Windows
 
 **Audience:** Windows users installing go-schedule\
-**Applies to:** MSI-based releases from 0.6.0 onward; Wails desktop guidance applies to the v1.2 candidate and later\
+**Applies to:** MSI-based releases from 0.6.0 onward; Wails desktop guidance applies beginning with v1.4.0\
 **See also:** [`gosched` command reference](cli.md) · [Linux](INSTALL-linux.md) · [macOS](INSTALL-macos.md)
 
-> **Release status:** The Wails package described below is the v1.2 candidate and is not part of the latest public v1.1.1 release. Tagging and publishing v1.2 require the separate post-merge release ritual.
+> **Release status:** This guide describes the v1.4.0 package boundary. The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) is authoritative for whether that version has completed draft staging, attended qualification, and promotion.
 
 go-schedule installs as a formal Windows application via an `.msi` package. It puts the program in *Program Files*, runs the scheduler as an auto-starting **Windows service**, adds the install directory to `PATH`, and lets you choose Start Menu and desktop shortcuts. There is no "extract a zip and run an exe from Downloads" step.
 
-The v1.2 candidate installs the Wails desktop at the established `gosched-gui.exe` path. Upgrading a Fyne-era MSI replaces that executable in place, preserves daemon-owned tasks and run history, and migrates a valid System, Light, or Dark appearance preference on first Wails start. Framework-specific font and scroll settings are intentionally retired.
+The v1.4.0 package installs the Wails desktop at the established `gosched-gui.exe` path. Upgrading a Fyne-era MSI replaces that executable in place, preserves daemon-owned tasks and run history, and migrates a valid System, Light, or Dark appearance preference on first Wails start. Framework-specific font and scroll settings are intentionally retired.
 
 The Windows service automatically loads `C:\ProgramData\goschedule\config.json` when that file exists. Follow [Remote access](remote-access.md#operator-runbook) to create and validate that file before restarting the service. MSI installation and upgrade never create a remote configuration or open a network listener.
 
@@ -161,11 +161,11 @@ Only `0` and `1` are valid values for `GOSCHEDULE_REMOVE_DATA`. The choice is no
 
 ## Release-candidate safety
 
-Starting with the next release after S040, a version tag stages a draft release instead of immediately publishing it. The Windows installer, its candidate manifest, the other platform assets, and the attended evidence stay non-public until a maintainer completes the Windows 11 gate.
+A version tag stages a draft release instead of immediately publishing it. The Windows installer, its candidate manifest, the other platform assets, and the attended evidence stay non-public until a maintainer completes the Windows 11 gate.
 
 The gate binds the installed MSI to its repository, tag commit, staging workflow run and attempt, ProductVersion, ProductCode, filename, byte size, and SHA-256. It requires normal-user access, native window and DPI measurements, two-minute connection-error observations, real manual and scheduled task runs, and the attended setup and uninstall matrix. Missing, failed, unavailable, skipped, timed-out, partial, stale, or altered evidence leaves the release in draft state.
 
-Promotion downloads and revalidates the same MSI bytes. It does not rebuild a nominally equivalent installer after testing. Final checksums are created only after the attended evidence archive joins the complete asset set. See `test/windows/README.md` and `specs/040-windows-release-candidate-gate/quickstart.md` for the maintainer procedure. Creating a tag, promoting a draft, or publishing a release remains a separately authorized maintainer action.
+Promotion downloads and revalidates the same MSI bytes. It does not rebuild a nominally equivalent installer after testing. Final checksums are created only after the attended evidence archive joins the complete asset set. See `test/windows/README.md` and `specs/081-v140-release-preparation/quickstart.md` for the current maintainer procedure. Creating a tag, promoting a draft, or publishing a release remains a separately authorized maintainer action.
 
 ## Troubleshooting
 

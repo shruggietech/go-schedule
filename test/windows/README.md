@@ -2,7 +2,7 @@
 
 These tools separate compiled-MSI evidence from native lifecycle evidence. They are maintainer procedures and never count a missing prerequisite as a pass.
 
-Use `-ArtifactClass local-demo` for a pre-publication exploratory build. This keeps its report distinct from a workflow-staged `candidate` and a release- downloaded `published` artifact. Local-demo inspection proves compiled authoring only and cannot produce a candidate manifest or satisfy the attended gate.
+Use `-ArtifactClass local-demo` for a pre-publication exploratory build. This keeps its report distinct from a workflow-staged `candidate` and a release-downloaded `published` artifact. Local-demo inspection proves compiled authoring only and cannot produce a candidate manifest or satisfy the attended gate.
 
 ## Inspect an MSI without installing it
 
@@ -49,17 +49,17 @@ pwsh .\Invoke-InstallerLifecycle.ps1 `
 
 The script installs, repairs, reinstalls, and uninstalls. It records exit codes, verbose-log paths/hashes, diagnostics, group SID/members, service state, product state, install directory, and PATH. Uninstall must preserve group membership.
 
-## Run the v0.9.0 upgrade lifecycle
+## Run the v1.1.1 upgrade lifecycle
 
-Revert to a separate clean snapshot. The script preprovisions `goschedadmin` and the current account so v0.9.0 can establish an upgrade baseline:
+Revert to a separate clean snapshot. Install the public v1.1.1 MSI and create representative tasks, history, and appearance state before applying the exact v1.4.0 candidate:
 
 ```powershell
 pwsh .\Invoke-InstallerLifecycle.ps1 `
   -Scenario upgrade -MsiPath C:\verify\candidate.msi `
-  -PriorMsiPath C:\verify\v0.9.0.msi `
+  -PriorMsiPath C:\verify\go-schedule_v1.1.1_windows_amd64.msi `
   -EvidencePath C:\verify\upgrade.md -ArtifactClass candidate `
   -ArtifactOrigin 'local build from commit <full-commit-id>' `
-  -PriorArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/v0.9.0/go-schedule_v0.9.0_windows_amd64.msi' `
+  -PriorArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi' `
   -Confirm:$false
 ```
 
@@ -105,74 +105,73 @@ Initialize a new workspace from a normal, non-elevated PowerShell 7 session:
 $commit = '0123456789abcdef0123456789abcdef01234567'
 pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
   -Action Initialize `
-  -MsiPath C:\verify\go-schedule_v1.0.0_windows_amd64.msi `
-  -WorkspacePath C:\verify\v1.0.0-attended `
-  -Tag v1.0.0 -Commit $commit -RunId 123456789 -RunAttempt 1
+  -MsiPath C:\verify\go-schedule_v1.4.0_windows_amd64.msi `
+  -WorkspacePath C:\verify\v1.4.0-attended `
+  -Tag v1.4.0 -Commit $commit -RunId 123456789 -RunAttempt 1
 ```
 
-Initialization reads ProductVersion and ProductCode from the compiled MSI and records repository, tag, commit, staging run and attempt, filename, byte size, and SHA-256. It creates all 36 required observations as explicit `unavailable` placeholders plus fail-closed setup/removal templates under `fragments`. Those templates enumerate required process/session, option, target, inventory, fingerprint, unaffected-control, security-state, and reinstall fields. The collector refuses an existing workspace so an interrupted run cannot silently erase evidence.
+Initialization reads ProductVersion and ProductCode from the compiled MSI and records repository, tag, commit, staging run and attempt, filename, byte size, and SHA-256. It creates all 47 required observations as explicit `unavailable` placeholders plus fail-closed setup, removal, and desktop templates under `fragments`. Those templates enumerate required process/session, option, target, inventory, fingerprint, unaffected-control, security-state, reinstall, and current Wails workspace fields. The collector refuses an existing workspace so an interrupted run cannot silently erase evidence.
 
 Each operator-reviewed fragment contains one environment and one observation. Use genuine registered local profiles and identify accounts by role plus SID, not by personal name. Record the token integrity RID (8192 for medium, 12288 for high, or 16384 for system). `RecordObservation` replaces one unused placeholder and refuses later overwrite. Every status is explicit: `pass`, `fail`, `unavailable`, `skipped`, `timed-out`, or `partial`. Only `pass` can satisfy promotion.
 
 ### Native window capture
 
-Launch the exact installed GUI with `GOSCHEDULE_WINDOW_EVIDENCE_PATH` set to a new JSON file beneath the evidence workspace's `attachments` directory. The opt-in file records literal Fyne canvas width, height, and scale. Then capture the exact process and visible HWND:
+Launch the exact installed Wails GUI, capture its process ID and a native raster screenshot, then measure the exact visible HWND. The collector derives logical content dimensions and display scale from the Win32 client rectangle and effective DPI, so no toolkit-specific instrumentation file is required:
 
 ```powershell
 pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
   -Action CaptureWindow `
-  -WorkspacePath C:\verify\v1.0.0-attended `
+  -WorkspacePath C:\verify\v1.4.0-attended `
   -ProcessId 1234 `
   -ObservationId window.clean-standard `
   -EnvironmentPath C:\verify\standard-environment.json `
-  -FyneEvidencePath C:\verify\v1.0.0-attended\attachments\windows\fyne.json `
-  -ScreenshotPath C:\verify\v1.0.0-attended\attachments\windows\screen.png
+  -ScreenshotPath C:\verify\v1.4.0-attended\attachments\windows\screen.png
 ```
 
-Capture requires a screenshot and records the executable path and hash, process session, user SID and token-integrity RID, single visible top-level HWND, outer and client rectangles, monitor and work-area rectangles, effective DPI, measured restored/maximized/minimized/fullscreen state, and Fyne metrics. It rejects a supplied environment whose account SID or integrity RID does not match the live process token. Review the generated fragment before changing its status to `pass`. In particular, record monitor identity and confirm visible margins, title bar, resize borders, and taskbar. The same exact MSI needs separate clean standard-DPI, clean high-DPI or mixed-DPI, retained v0.9.1 profile, state-transition, and subsequent-launch observations.
+Capture requires a screenshot and records the executable path and hash, process session, user SID and token-integrity RID, single visible top-level HWND, outer and client rectangles, monitor and work-area rectangles, effective DPI, measured restored/maximized/minimized/fullscreen state, and generic desktop content metrics. It rejects a supplied environment whose account SID or integrity RID does not match the live process token. Review the generated fragment before changing its status to `pass`. In particular, record monitor identity and confirm visible margins, title bar, resize borders, and taskbar. The same exact MSI needs separate clean standard-DPI, clean high-DPI or mixed-DPI, retained v1.1.1 profile, state-transition, and subsequent-launch observations. Use `retained-release` as the profile state for the retained observation.
 
 ### Required attended matrix
 
 - Prove normal-user service access and GUI task listing, LocalSystem service identity, unrelated-user pipe denial, new-process PATH resolution, and PATH absence after uninstall.
 - Exercise daemon unavailable, access denied, timeout, stream disconnect, repeated refresh or reconnect, manual Retry, and recovery. Retain at least 120 seconds of timestamped samples for each repetition-sensitive condition.
-- Record one in-frame incident, zero modal overlays, and zero additional top-level error windows. HWND enumeration cannot see Fyne canvas overlays, so screenshots and attended visible-surface counts are both required.
+- Record one in-frame incident, zero modal overlays, and zero additional top-level error windows. HWND enumeration cannot prove WebView content state, so screenshots and attended visible-surface counts are both required.
 - Use distinct production run identities for manual success, scheduled success, exit-code 7, and process-start failure, while binding every result to the same candidate identity. Retain one `attachments/tasks/task-runs.json` document with schema version `1`, kind `task-run-evidence-v1`, and exactly one record per task observation. Each record preserves the task definition, captured output, completion marker, history result, production-run flag, expected/actual result, and diagnostic category. Reference that attachment from all four task observations; the gate independently hashes the retained values and compares them with the observation metrics.
 - Exercise shortcut defaults and all selections, four independent completion combinations, medium-integrity Finish launch, cancel, maintenance, upgrade, invalid-input rejection, transactional rollback, preserve, wipe, locked partial cleanup, at least two genuine profiles, and reinstall after both removal modes.
 
-### S047 desktop release-qualification matrix
+### Current Wails desktop release-qualification matrix
 
 Use the exact installed release candidate. Every row is a required `pass` observation from the intended user at medium integrity with the installed LocalSystem service and at least one native raster screenshot whose bytes are validated independently of its declared media type or extension. The collector generates the metric fields and expected set values, so do not collapse or rename them.
 
 | Scenario | Issues | Native outcome |
 | --- | --- | --- |
-| `desktop.appearance-standard` | #101, #106 | At 96 DPI, exercise Dark and Light plus System, Geist, Inter, Ubuntu, and Monospace. System is the clean-profile and restored default; text remains sharp, centered, and unclipped after resize, minimize/restore, and reopen. |
-| `desktop.appearance-scaled` | #101, #106 | Repeat the complete appearance observation above 96 DPI, recording the environment's exact effective DPI. |
-| `desktop.interaction-states` | #109 | In both palettes, exercise navigation, selector, ordinary, primary, danger, dialog, and table-row controls at rest, hover, focus, pressed, selected, and disabled. Text contrast is at least 4.5:1, non-text contrast is at least 3:1, and state meaning is not color-only. |
-| `desktop.interaction-states-scaled` | #109 | Repeat the complete interaction-state observation above 96 DPI. |
-| `desktop.navigation-options` | #104, #105, #106 | At 1280x800 and 800x600, prove destination order, spacing, full-height boundary, separate bottom-right Exit, compact storage rows, exact Copy behavior, muted unavailable rows, current-option omission, and no horizontal scrollbar. |
-| `desktop.navigation-options-scaled` | #104, #105, #106 | Repeat the complete navigation and Options observation above 96 DPI. |
-| `desktop.scroll-input` | #111 | At 1x, 2x, and 4x, exercise Options, Info, command, schedule, and Help surfaces. Prove immediate persisted wheel scaling, no nested multiplication, preserved keyboard input, and either physical touchpad precision or a specific unavailability reason. |
-| `desktop.tasks-table` | #112 | With at least 100 rows in both palettes and sizes, prove fixed labeled headers, distinct Enabled/Lifecycle fields, stable whole-row states and refresh identity, complete-value disclosure, safe removal, working toolbar/double-click actions, and no horizontal scrollbar. |
-| `desktop.tasks-table-scaled` | #112 | Repeat the complete Tasks table observation above 96 DPI. |
-| `desktop.schedule-activity-tables` | #113 | With at least 100 rows per view in both palettes and sizes, prove fixed labeled headers, exact schedule-state and uppercase severity sets, matching text/glyph semantics, stable row identity, accurate detail/range/calendar/filter/clear/acknowledge behavior, and no horizontal scrollbar. |
-| `desktop.schedule-activity-tables-scaled` | #113 | Repeat the complete Schedule and Activity observation above 96 DPI. |
+| `desktop.appearance-standard` | #226 | At 96 DPI, exercise System, Light, and Dark. System is the clean-profile and restored default; bundled brand typography and body text remain sharp, centered, and unclipped after resize, minimize/restore, and reopen. |
+| `desktop.appearance-scaled` | #226 | Repeat the complete current-theme and typography observation above 96 DPI, recording the environment's exact effective DPI. |
+| `desktop.interaction-states` | #226 | In both palettes, exercise navigation, selector, ordinary, primary, danger, dialog, and table-row controls at rest, hover, focus, pressed, selected, and disabled. Text contrast is at least 4.5:1, non-text contrast is at least 3:1, and state meaning is not color-only. |
+| `desktop.interaction-states-scaled` | #226 | Repeat the complete interaction-state observation above 96 DPI. |
+| `desktop.navigation-options` | #226 | At 1280x800 and 800x600, prove the Tasks, Automation Sources, Schedule, Activity, Notifications, Agent Access, Connections, and Settings order, persistent target context, separate Exit, compact storage rows, exact Copy behavior, muted unavailable rows, current-option omission, and no horizontal scrollbar. |
+| `desktop.navigation-options-scaled` | #226 | Repeat the complete current navigation and Settings observation above 96 DPI. |
+| `desktop.scroll-input` | #226 | Exercise Tasks, Automation Sources, Schedule, Activity, Notifications, Agent Access, Connections, Settings, and the task editor. Prove responsive browser-native wheel input, no nested multiplication, preserved keyboard and focus behavior, and either physical touchpad precision or a specific unavailability reason. |
+| `desktop.tasks-table` | #226 | With at least 100 rows in both palettes and sizes, prove Task, Group, State, and Schedule headers, discoverable state reasons, stable whole-row states and refresh identity, complete-value disclosure, safe removal, working toolbar and double-click actions, and no horizontal scrollbar. |
+| `desktop.tasks-table-scaled` | #226 | Repeat the complete current Tasks table observation above 96 DPI. |
+| `desktop.schedule-activity-tables` | #226 | With at least 100 rows per view in both palettes and sizes, prove current Schedule and Activity headers, upcoming through unavailable schedule states, run, daemon-log, and alert record types, info through error severity, stable row identity, accurate detail, range, calendar, filter, clear, and acknowledge behavior, and no horizontal scrollbar. |
+| `desktop.schedule-activity-tables-scaled` | #226 | Repeat the complete current Schedule and Activity observation above 96 DPI. |
 
-Native evidence is required because headless layout, contrast, mapping, and scroll tests cannot prove Windows text rasterization, physical input, display scaling, or interaction-state readability. Keep each issue open until its own acceptance criteria and formal exact-candidate evidence have been reviewed.
+Native evidence is required because headless layout, contrast, mapping, and scroll tests cannot prove Windows text rasterization, physical input, display scaling, or interaction-state readability. Keep release issue #226 open until its acceptance criteria and formal exact-candidate evidence have been reviewed.
 
 Finalize after all fragments are reviewed and recorded:
 
 ```powershell
 pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
   -Action Finalize `
-  -MsiPath C:\verify\go-schedule_v1.0.0_windows_amd64.msi `
-  -WorkspacePath C:\verify\v1.0.0-attended
+  -MsiPath C:\verify\go-schedule_v1.4.0_windows_amd64.msi `
+  -WorkspacePath C:\verify\v1.4.0-attended
 ```
 
 Finalize hashes every referenced attachment and invokes the shared Go gate. It produces the canonical ZIP only if all identity, environment, scenario, timing, measurement, and attachment rules pass. Upload that archive to the same draft release. The manual Promote Release workflow revalidates the draft, staging run, last-observed remote tag commit, exact allowlisted asset set, manifest, archive, and exact MSI; creates the final all-asset checksum file; and only then makes the release public.
 
-### Generate the issue disposition packet
+### Historical v1.0.0 issue disposition packet
 
-After the formal archive passes independent verification, generate the offline review packet from the same archive, manifest, MSI, and reviewed S049 commit:
+The following retained procedure documents how the public v1.0.0 evidence was reconciled against its historical issues after independent verification. It is not part of the v1.4.0 release path:
 
 ```powershell
 go run ./scripts/windows-release-gate render-dispositions `
