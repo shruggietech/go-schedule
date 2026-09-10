@@ -207,6 +207,9 @@ func load(path string, required bool) (Config, error) {
 			if err := json.Unmarshal(data, &cfg); err != nil {
 				return Config{}, fmt.Errorf("config: parsing %s: %w", path, err)
 			}
+			if err := resolveFilePaths(&cfg, path); err != nil {
+				return Config{}, err
+			}
 		case os.IsNotExist(err) && !required:
 			// fall through to validated defaults
 		default:
@@ -217,4 +220,24 @@ func load(path string, required bool) (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+func resolveFilePaths(cfg *Config, configPath string) error {
+	base, err := filepath.Abs(filepath.Dir(configPath))
+	if err != nil {
+		return fmt.Errorf("config: resolving directory for %s: %w", configPath, err)
+	}
+	paths := []*string{
+		&cfg.DataDir,
+		&cfg.IPCPath,
+		&cfg.LogFilePath,
+		&cfg.Remote.CertificateFile,
+		&cfg.Remote.PrivateKeyFile,
+	}
+	for _, path := range paths {
+		if *path != "" && !filepath.IsAbs(*path) {
+			*path = filepath.Join(base, *path)
+		}
+	}
+	return nil
 }

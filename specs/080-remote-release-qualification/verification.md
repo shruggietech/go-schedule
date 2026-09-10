@@ -22,3 +22,7 @@
 ## Release Boundary
 
 This evidence qualifies the reviewed source tree and its hosted platform matrix. S080 does not create a v1.4.0 tag, publish immutable binaries or packages, modify release notes as shipped behavior, or claim public artifact verification. Those actions remain part of a separately authorized final release ritual after merge.
+
+## First-Round Review Remediation
+
+The initial Codex review identified that relative paths inside a validated service configuration could resolve against the service manager's working directory. File-backed configuration now resolves relative data, IPC, log, TLS certificate, and TLS private-key paths against the configuration file's directory before validation, while preserving already-absolute values. Cross-platform regression coverage proves every supported relative path receives the stable base.

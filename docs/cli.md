@@ -514,7 +514,7 @@ sudo gosched service start
 gosched service status
 ```
 
-A flag-free installation loads `config.json` from the platform data directory when that file exists and otherwise uses safe built-in defaults. Use `--config` when the service must retain another file. The command verifies that the file exists and that its complete schema is valid, resolves it to an absolute path, and records exactly `--config <absolute-path>` in the service definition before registration.
+A flag-free installation loads `config.json` from the platform data directory when that file exists and otherwise uses safe built-in defaults. Use `--config` when the service must retain another file. The command verifies that the file exists and that its complete schema is valid, resolves it to an absolute path, and records exactly `--config <absolute-path>` in the service definition before registration. Relative data, IPC, log, certificate, and private-key paths inside a file-backed configuration resolve from that configuration file's directory, not from the service manager's working directory.
 
 ```sh
 sudo gosched service install --config /etc/goschedule/daemon.json
