@@ -28,4 +28,24 @@ describe('task workspace authority', () => {
     await act(async () => { resolveSecond?.(result(['new'])); await Promise.resolve() }); expect(hook.current.selected).toBe('new')
     await act(async () => { resolveFirst?.(result(['old'])); await Promise.resolve() }); expect(hook.current.selected).toBe('new')
   })
+
+  it('retains the last complete workspace while unavailable and refreshes after recovery', async () => {
+    const workspace = vi.fn().mockResolvedValueOnce(result(['known'])).mockResolvedValueOnce(result(['current']))
+    const bridge = { workspace } as unknown as TaskBridge
+    const { result: hook, rerender } = renderHook(({ available, token }) => useTaskWorkspace(bridge, available, token), { initialProps: { available: true, token: 1 } })
+    await waitFor(() => expect(hook.current.selected).toBe('known'))
+    rerender({ available: false, token: 0 })
+    expect(hook.current.workspace?.tasks[0].id).toBe('known')
+    rerender({ available: true, token: 2 })
+    await waitFor(() => expect(hook.current.selected).toBe('current'))
+    expect(workspace).toHaveBeenCalledTimes(2)
+  })
+
+  it('reports unavailable instead of loading forever when the initial read is blocked', async () => {
+    const bridge = { workspace: vi.fn() } as unknown as TaskBridge
+    const { result: hook } = renderHook(() => useTaskWorkspace(bridge, false, 0))
+    await waitFor(() => expect(hook.current.status?.outcome).toBe('unavailable'))
+    expect(hook.current.workspace).toBeUndefined()
+    expect(bridge.workspace).not.toHaveBeenCalled()
+  })
 })

@@ -18,6 +18,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
@@ -182,6 +183,15 @@ func (c *Client) RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, e
 		return server.RuntimeInfoResponse{}, err
 	}
 	return out, nil
+}
+
+// VerifyAccess returns current server-owned authority through a bounded protected read.
+func (c *Client) VerifyAccess(ctx context.Context) (domain.Capability, error) {
+	var actor domain.Actor
+	if err := c.get(ctx, "/v1/access/current", &actor); err != nil {
+		return "", err
+	}
+	return actor.Capability, nil
 }
 
 // get performs a GET and decodes a JSON body, surfacing the API error envelope.

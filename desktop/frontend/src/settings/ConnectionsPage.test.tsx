@@ -18,13 +18,21 @@ describe('ConnectionsPage', () => {
     expect(selectConnection).toHaveBeenCalledWith('two')
   })
 
-  for (const state of ['connected', 'unavailable', 'timed_out', 'access_denied', 'incompatible', 'recovering'] satisfies ConnectionState[]) {
+  for (const state of ['connected', 'unavailable', 'timed_out', 'access_denied', 'unauthorized', 'revoked', 'forbidden', 'incompatible', 'trust_changed', 'identity_changed', 'recovering'] satisfies ConnectionState[]) {
     it(`renders explicit ${state} diagnosis`, () => {
       render(<ConnectionsPage snapshot={{ ...base, state, action: state === 'connected' ? undefined : 'Try again.' }} retryPending={false} onRetry={vi.fn()} />)
-      expect(screen.getByText(state === 'access_denied' ? 'Access denied' : state === 'timed_out' ? 'Timed out' : state[0].toUpperCase() + state.slice(1))).toBeVisible()
+      const labels: Partial<Record<ConnectionState, string>> = { access_denied: 'Access denied', timed_out: 'Timed out', unauthorized: 'Unauthorized', revoked: 'Credential revoked', forbidden: 'Forbidden', trust_changed: 'Trust changed', identity_changed: 'Identity changed' }
+      expect(screen.getByText(labels[state] ?? state[0].toUpperCase() + state.slice(1))).toBeVisible()
       expect(screen.getByRole('heading', { name: 'This computer' })).toBeVisible()
     })
   }
+
+  it('shows stale data and bounded automatic retry metadata without relying on color', () => {
+    render(<ConnectionsPage snapshot={{ ...base, state: 'recovering', stale: true, recovery: 'automatic', retryAttempt: 3, nextRetryAt: '2026-09-07T12:00:10Z' }} retryPending={false} onRetry={vi.fn()} />)
+    expect(screen.getByText('Data may be stale')).toBeVisible()
+    expect(screen.getByText('Automatic retry')).toBeVisible()
+    expect(screen.getByText('2026-09-07T12:00:10Z')).toBeVisible()
+  })
 
   it('offers one disabled retry while pending', async () => {
     const user = userEvent.setup(); const retry = vi.fn()

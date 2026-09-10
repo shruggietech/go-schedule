@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStoreLifecycleExcludesBearerCanary(t *testing.T) {
@@ -38,6 +39,26 @@ func TestStoreLifecycleExcludesBearerCanary(t *testing.T) {
 	collection, err = store.Load()
 	if err != nil || collection.ActiveDesktopProfileID != "" || len(collection.Profiles) != 0 {
 		t.Fatalf("collection = %#v, err = %v", collection, err)
+	}
+}
+
+func TestStoreMarksSuccessfulContactAtomically(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "profiles.json")
+	store := NewStore(path)
+	profile := validProfile(t)
+	if _, err := store.Add(profile); err != nil {
+		t.Fatal(err)
+	}
+	want := time.Date(2026, 9, 10, 1, 2, 3, 0, time.FixedZone("offset", 3600))
+	if err := store.MarkSuccessful(profile.ID, want); err != nil {
+		t.Fatal(err)
+	}
+	collection, err := store.Load()
+	if err != nil || !collection.Profiles[0].LastSuccessfulAt.Equal(want.UTC()) {
+		t.Fatalf("collection=%+v err=%v", collection, err)
+	}
+	if err := store.MarkSuccessful(profile.ID, time.Time{}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("zero timestamp err=%v", err)
 	}
 }
 

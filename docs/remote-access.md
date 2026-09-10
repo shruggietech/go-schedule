@@ -5,11 +5,11 @@ nav_order: 8.6
 
 # Remote access architecture
 
-**Current status:** Architecture contract only. No remote listener is implemented.
+**Current status:** Implemented behind explicit daemon configuration. Remote access remains disabled by default.
 
 **Primary remote transport:** HTTPS with versioned HTTP/JSON.
 
-This page is the reviewed implementation boundary for the v1.4 remote-access milestone. It does not advertise a shipped network feature. The current daemon still serves its [local API](api.md) through a protected Unix socket or Windows named pipe, opens no remote API port, and remains fully usable offline.
+This page defines the v1.4 remote-access boundary and its operator contract. The daemon always retains its protected local Unix socket or Windows named pipe and remains fully usable offline. It opens the separate network listener only when an operator supplies complete remote configuration and explicitly enables it.
 
 ## Design posture
 
@@ -52,11 +52,11 @@ Every remotely exposed operation must declare all of these properties in or besi
 | Capability | Exactly Observe, Operate, Manage, or Enroll |
 | Input bound | Header and body bytes plus collection, pagination, and duration limits |
 | Audit class | None, protected read, mutation, or enrollment |
-| Retry class | Safe read, resumable stream, or no automatic replay |
+| Retry class | Safe read, refreshable stream, or no automatic replay |
 | Secret contract | Protected request fields and excluded response, log, event, and audit fields |
 | Verification | Authentication, authorization, schema, bounds, equivalence, and failure tests |
 
-The initial allowlist is defined only when [issue #168](https://github.com/shruggietech/go-schedule/issues/168) implements the machine-readable contract. No prose statement on this page exposes an endpoint by itself.
+The implemented initial allowlist is defined by `api/openapi/remote-v1.yaml`. No prose statement on this page exposes an endpoint by itself.
 
 ## Capability model
 
@@ -111,13 +111,14 @@ Local IPC retains `/v1`. Remote paths use `/api/v1` so network compatibility can
 
 The capability manifest reports stable daemon identity, product version, supported API majors, features, and safe compatibility facts before clients present actions. A new major overlaps the prior supported major for a documented migration interval defined by its delivery issue. Deprecation appears in OpenAPI, client diagnostics, documentation, and release notes before removal. This architecture invents no calendar deadline.
 
-Server-Sent Events provide authenticated one-way live activity over HTTPS. Each event has stable resumable identity, and clients reconnect with `Last-Event-ID`. Duplicate event delivery is tolerated because events do not mutate daemon state. Safe reads and streams may retry within documented bounds. Mutations have no automatic replay when a disconnect leaves their outcome uncertain; the client refreshes authoritative state and requires a deliberate resubmission.
+Server-Sent Events provide authenticated one-way live activity over HTTPS. Desktop clients treat each event as an invalidation hint, not a durable event log. After a disconnect they revalidate TLS trust, daemon identity, compatibility, and current credential authority through `/api/v1/access/current`, refresh mounted workspaces from authoritative reads, and then open a new stream. Mutations have no automatic replay when a disconnect leaves their outcome uncertain; the client immediately enters reconciliation, preserves user input, keeps mutation controls blocked until the authoritative refresh completes, and then requires a deliberate resubmission.
 
 ## Failure behavior
 
 | Condition | Remote result | Required evidence |
 | --- | --- | --- |
-| Missing, malformed, unknown, expired, or revoked bearer credential | `401`, one generic stable error code, and `WWW-Authenticate: Bearer` | Bounded secret-free security evidence, aggregated where necessary |
+| Missing, malformed, unknown, or expired bearer credential | `401 unauthorized` and `WWW-Authenticate: Bearer` | Bounded secret-free security evidence, aggregated where necessary |
+| Revoked bearer credential | `401 credential_revoked` and `WWW-Authenticate: Bearer` | Bounded secret-free security evidence that lets a holder repair the selected profile |
 | Authenticated actor lacks capability | `403` and stable denial code | Actor-attributed audit denial |
 | Unsupported API path or negotiated incompatibility | `404` for an unknown path or `409` for known incompatibility | Safe compatibility diagnostic |
 | Invalid content type or schema | `400` or `415` with bounded field detail | Actor-attributed failed request without protected input |
@@ -125,7 +126,7 @@ Server-Sent Events provide authenticated one-way live activity over HTTPS. Each 
 | Source or actor rate is exceeded | `429` with bounded `Retry-After` | Aggregate limiter evidence without credential disclosure |
 | Daemon conflict or domain validation fails | Existing stable JSON error envelope | Actor, operation, result, and target identity |
 | Client loses a mutation response | No automatic replay | Authoritative refresh before explicit retry |
-| Event stream disconnects | Resume after the last accepted event identity | Duplicate-safe event delivery without mutation |
+| Event stream disconnects | Revalidate, refresh authoritative state, and open a new stream | No state depends on complete event replay |
 
 HTTP server configuration includes finite read-header, read, idle, and operation-aware write behavior, bounded maximum headers, bounded request bodies, graceful shutdown, and connection-lifecycle ownership. Streaming endpoints use heartbeat and maximum-idle rules instead of an ordinary fixed response timeout. Shutdown stops accepting connections, allows bounded in-flight operations to finish, terminates streams, and leaves local IPC lifecycle independently available until daemon shutdown.
 
@@ -229,4 +230,4 @@ gosched credential revoke <credential-id>
 
 Rotation prints the new bearer value once and invalidates the former value immediately. Revocation also revokes its actor. Treat terminal output containing a phrase or newly rotated credential as sensitive and follow protected shell-output practices. There is no credential export or recovery path.
 
-Remote clients use `Authorization: Bearer <credential>` against the documented `/api/v1` operations. Missing, malformed, unknown, expired, and revoked values all receive the same `401` envelope. Browser-origin requests are rejected, rate limits return `429` with `Retry-After`, and unsupported local-only routes return `404`. See `api/openapi/remote-v1.yaml` for the machine-readable contract.
+Remote clients use `Authorization: Bearer <credential>` against the documented `/api/v1` operations. Missing, malformed, unknown, and expired values receive `401 unauthorized`; a credential that matches a revoked record receives `401 credential_revoked` so an authenticated profile holder can distinguish repair from a transient outage. Browser-origin requests are rejected, rate limits return `429` with `Retry-After`, and unsupported local-only routes return `404`. See `api/openapi/remote-v1.yaml` for the machine-readable contract.

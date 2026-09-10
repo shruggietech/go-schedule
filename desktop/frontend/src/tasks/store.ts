@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { OperationResult, TaskBridge, Workspace } from './model'
 
-export function useTaskWorkspace(bridge: TaskBridge) {
+export function useTaskWorkspace(bridge: TaskBridge, available = true, refreshToken = 0) {
   const [workspace, setWorkspace] = useState<Workspace>()
   const [status, setStatus] = useState<OperationResult>()
   const [selected, setSelected] = useState('')
@@ -14,10 +14,16 @@ export function useTaskWorkspace(bridge: TaskBridge) {
   }, [])
   const accept = useCallback((result: OperationResult) => { requestSequence.current++; apply(result) }, [apply])
   const load = useCallback(async () => {
+	if (!available) return
     const request = ++requestSequence.current
     const result = await bridge.workspace()
     if (request === requestSequence.current) apply(result)
-  }, [apply, bridge])
+  }, [apply, available, bridge])
+  useEffect(() => {
+    if (available) return
+    requestSequence.current++
+    setStatus({ action: 'load', outcome: 'unavailable', message: 'Tasks are unavailable until the selected scheduler reconnects.' })
+  }, [available])
   useEffect(() => {
     void load()
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -28,6 +34,6 @@ export function useTaskWorkspace(bridge: TaskBridge) {
       }
     })
     return () => { clearTimeout(timer); unsubscribe?.() }
-  }, [bridge, load])
+  }, [bridge, load, refreshToken])
   return { workspace, status, selected, setSelected, load, accept, setStatus }
 }

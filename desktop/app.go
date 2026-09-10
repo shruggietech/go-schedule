@@ -265,14 +265,18 @@ func (a *App) AcknowledgeAlert(id string) operations.OperationResult {
 	if a.operations == nil || a.ctx == nil {
 		return operations.OperationResult{Action: "acknowledge_alerts", Outcome: "unavailable", Message: "Activity is unavailable."}
 	}
-	return a.operations.AcknowledgeAlert(a.ctx, id)
+	result := a.operations.AcknowledgeAlert(a.ctx, id)
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 
 func (a *App) AcknowledgeAlerts(ids []string) operations.OperationResult {
 	if a.operations == nil || a.ctx == nil {
 		return operations.OperationResult{Action: "acknowledge_alerts", Outcome: "unavailable", Message: "Activity is unavailable."}
 	}
-	return a.operations.AcknowledgeAlerts(a.ctx, ids)
+	result := a.operations.AcknowledgeAlerts(a.ctx, ids)
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 
 func (a *App) AutomationWorkspace() automation.OperationResult {
@@ -408,25 +412,39 @@ func (a *App) SaveTask(draft taskgroup.TaskDraft) taskgroup.OperationResult {
 	if a.tasks == nil || a.ctx == nil {
 		return taskgroup.OperationResult{Action: "save_task", Outcome: "unavailable", Message: "Task authoring is unavailable."}
 	}
-	return a.tasks.SaveTask(a.ctx, draft)
+	result := a.tasks.SaveTask(a.ctx, draft)
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 func (a *App) RunTask(id string) taskgroup.OperationResult {
 	if a.tasks == nil || a.ctx == nil {
 		return taskgroup.OperationResult{Action: "run_task", Outcome: "unavailable", Message: "Task authoring is unavailable."}
 	}
-	return a.tasks.RunTask(a.ctx, id)
+	result := a.tasks.RunTask(a.ctx, id)
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 func (a *App) SetTaskEnabled(id string, enabled bool) taskgroup.OperationResult {
 	if a.tasks == nil || a.ctx == nil {
 		return taskgroup.OperationResult{Action: "toggle_task", Outcome: "unavailable", Message: "Task authoring is unavailable."}
 	}
-	return a.tasks.SetTaskEnabled(a.ctx, id, enabled)
+	result := a.tasks.SetTaskEnabled(a.ctx, id, enabled)
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 func (a *App) DeleteTask(id string) taskgroup.OperationResult {
 	if a.tasks == nil || a.ctx == nil {
 		return taskgroup.OperationResult{Action: "delete_task", Outcome: "unavailable", Message: "Task authoring is unavailable."}
 	}
-	return a.tasks.DeleteTask(a.ctx, id)
+	result := a.tasks.DeleteTask(a.ctx, id)
+	a.reconcileUncertain(result.Outcome)
+	return result
+}
+
+func (a *App) reconcileUncertain(outcome string) {
+	if outcome == "uncertain" && a.manager != nil {
+		a.manager.ReconcileMutation()
+	}
 }
 func (a *App) SaveGroup(draft taskgroup.GroupDraft) taskgroup.OperationResult {
 	if a.tasks == nil || a.ctx == nil {
@@ -450,6 +468,11 @@ func (a *App) DeleteGroup(id string) taskgroup.OperationResult {
 type appObserver struct{ app *App }
 
 func (o appObserver) Publish(event connection.Event) {
+	if event.Snapshot != nil && event.Snapshot.State == connection.StateConnected && event.Snapshot.Target.Kind == "remote" && event.Snapshot.Target.ProfileID != "" && o.app.connections != nil {
+		if at, err := time.Parse(time.RFC3339, event.Snapshot.LastSuccessfulAt); err == nil {
+			_ = o.app.connections.MarkSuccessful(event.Snapshot.Target.ProfileID, at)
+		}
+	}
 	if o.app.emitter != nil && o.app.ctx != nil {
 		o.app.emitter.Emit(o.app.ctx, desktopEventName, event)
 	}

@@ -97,6 +97,16 @@ func TestRemoteAllowlistAndBearerLifecycle(t *testing.T) {
 	if denied.Code != http.StatusForbidden {
 		t.Fatalf("underprivileged mutation=%d %s", denied.Code, denied.Body.String())
 	}
+	if _, err := service.Revoke(issued.ID); err != nil {
+		t.Fatal(err)
+	}
+	revokedRequest := httptest.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
+	revokedRequest.Header.Set("Authorization", "Bearer "+issued.Token)
+	revokedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(revokedResponse, revokedRequest)
+	if revokedResponse.Code != http.StatusUnauthorized || !bytes.Contains(revokedResponse.Body.Bytes(), []byte(`"credential_revoked"`)) {
+		t.Fatalf("revoked=%d %s", revokedResponse.Code, revokedResponse.Body.String())
+	}
 	origin := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	origin.Header.Set("Origin", "https://example.test")
 	blocked := httptest.NewRecorder()

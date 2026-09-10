@@ -1,5 +1,5 @@
 #!/bin/sh
-# Enforce the reviewed remote-access architecture before network implementation.
+# Enforce the reviewed remote-access architecture and implemented security boundary.
 set -eu
 
 ROOT=${1:-.}
@@ -25,7 +25,7 @@ if [ ! -f "$DOC" ]; then
   exit 1
 fi
 
-require_fixed 'Architecture contract only. No remote listener is implemented.' 'current-state boundary'
+require_fixed 'Implemented behind explicit daemon configuration. Remote access remains disabled by default.' 'current-state boundary'
 require_fixed 'HTTPS with versioned HTTP/JSON' 'primary HTTPS transport'
 require_fixed 'local IPC mux and remote operation allowlist are separate adapters' 'separate local and remote adapters'
 require_fixed 'Authentication and capability authorization run before daemon application behavior.' 'authorization-before-operation order'

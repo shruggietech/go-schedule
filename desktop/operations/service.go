@@ -181,6 +181,10 @@ func attributeDetail(attrs map[string]any) string {
 	return strings.Join(lines, "\n")
 }
 func failure(action string, err error) OperationResult {
+	var uncertain *client.MutationUncertainError
+	if errors.As(err, &uncertain) {
+		return OperationResult{Action: action, Outcome: "uncertain", Message: "The remote request may have completed. Refresh the selected scheduler before deciding whether to try again."}
+	}
 	var status *client.StatusError
 	if errors.As(err, &status) && status.Code == server.CodeValidation {
 		return OperationResult{Action: action, Outcome: "rejected", Message: "The request was rejected. Review the selected filters and try again."}

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -56,6 +57,9 @@ func (s *stubBackend) ListAlertsLimited(context.Context, bool, int) ([]domain.Al
 }
 func (s *stubBackend) AckAlert(_ context.Context, id string) error {
 	s.acked = append(s.acked, id)
+	if s.errAt == "ack" {
+		return &client.MutationUncertainError{Operation: "acknowledge alert", Cause: errors.New("secret transport detail")}
+	}
 	return nil
 }
 
@@ -154,5 +158,12 @@ func TestAcknowledgeAlertsDeduplicatesAndRefreshes(t *testing.T) {
 	}
 	if !reflect.DeepEqual(backend.acked, []string{"alert-1", "alert-2"}) {
 		t.Fatalf("acked=%v", backend.acked)
+	}
+}
+
+func TestAcknowledgeAlertReportsUncertainRemoteMutationSafely(t *testing.T) {
+	result := NewService(&stubBackend{errAt: "ack"}).AcknowledgeAlert(context.Background(), "alert-1")
+	if result.Outcome != "uncertain" || result.Message != "The remote request may have completed. Refresh the selected scheduler before deciding whether to try again." {
+		t.Fatalf("result=%+v", result)
 	}
 }

@@ -544,6 +544,10 @@ func rejected(action, field, message string) OperationResult {
 	return OperationResult{Action: action, Outcome: "rejected", Message: message, Field: field}
 }
 func failure(action string, err error) OperationResult {
+	var uncertain *client.MutationUncertainError
+	if errors.As(err, &uncertain) {
+		return OperationResult{Action: action, Outcome: "uncertain", Message: "The remote request may have completed. Refresh the selected scheduler before deciding whether to try again."}
+	}
 	var status *client.StatusError
 	if errors.As(err, &status) {
 		field := status.Field

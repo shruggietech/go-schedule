@@ -22,7 +22,10 @@ const (
 	PairingAttempts = 5
 )
 
-var ErrRejected = errors.New("enrollment rejected")
+var (
+	ErrRejected = errors.New("enrollment rejected")
+	ErrRevoked  = errors.New("credential revoked")
+)
 
 var words = [...]string{
 	"amber", "anchor", "apple", "april", "arrow", "atlas", "baker", "beacon",
@@ -137,6 +140,9 @@ func (s *Service) Authenticate(token string) (domain.ClientCredential, domain.Ac
 	digest := sha256.Sum256(raw)
 	credential, actor, err := s.store.AuthenticateCredential(digest[:], s.now())
 	if err != nil {
+		if errors.Is(err, store.ErrCredentialRevoked) {
+			return domain.ClientCredential{}, domain.Actor{}, ErrRevoked
+		}
 		return domain.ClientCredential{}, domain.Actor{}, ErrRejected
 	}
 	return credential, actor, nil

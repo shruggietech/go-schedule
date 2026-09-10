@@ -5,14 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
+
+const remoteStageTimeout = 2 * time.Second
+const remoteAttemptTimeout = 7 * time.Second
 
 type remoteDaemon interface {
 	Health(context.Context) (server.HealthResponse, error)
 	VerifyIdentity(context.Context) (server.ManifestResponse, error)
+	VerifyAccess(context.Context) (domain.Capability, error)
 	StreamRemoteEvents(context.Context, func(client.RemoteEvent)) error
 }
 
@@ -40,7 +46,8 @@ func (backend *unavailableRemoteBackend) StreamEvents(context.Context, func(Doma
 	return &Failure{State: StateUnavailable, Message: backend.message, Action: backend.action}
 }
 
-func (*RemoteBackend) AutoRetry() bool { return false }
+func (*RemoteBackend) AutoRetry() bool               { return true }
+func (*RemoteBackend) AttemptTimeout() time.Duration { return remoteAttemptTimeout }
 
 // NewRemoteBackend creates a backend for one immutable remote selection.
 func NewRemoteBackend(daemon remoteDaemon, capability string) *RemoteBackend {
@@ -48,25 +55,39 @@ func NewRemoteBackend(daemon remoteDaemon, capability string) *RemoteBackend {
 }
 
 func (backend *RemoteBackend) Health(ctx context.Context) (Health, error) {
-	health, err := backend.daemon.Health(ctx)
+	healthCtx, cancelHealth := context.WithTimeout(ctx, remoteStageTimeout)
+	health, err := backend.daemon.Health(healthCtx)
+	cancelHealth()
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
 	if health.Status != "ok" || !compatibleVersion(health.Version) {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected remote scheduler version is incompatible.", Action: "Update the remote scheduler or select another connection."}
 	}
-	manifest, err := backend.daemon.VerifyIdentity(ctx)
+	identityCtx, cancelIdentity := context.WithTimeout(ctx, remoteStageTimeout)
+	manifest, err := backend.daemon.VerifyIdentity(identityCtx)
+	cancelIdentity()
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
 	if manifest.ProductVersion != health.Version || len(manifest.RemoteAPIVersions) == 0 {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected daemon does not advertise a compatible remote API.", Action: "Update the remote scheduler."}
 	}
-	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: permissionsFor(backend.capability)}, nil
+	accessCtx, cancelAccess := context.WithTimeout(ctx, remoteStageTimeout)
+	capability, err := backend.daemon.VerifyAccess(accessCtx)
+	cancelAccess()
+	if err != nil {
+		return Health{}, remoteFailure(err)
+	}
+	expected := domain.Capability(backend.capability)
+	if !capability.Valid() || !capability.Allows(expected) {
+		return Health{}, &Failure{State: StateForbidden, Message: "The selected remote credential no longer has its expected authority.", Action: "Ask an administrator to restore its grant or repair this connection."}
+	}
+	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: permissionsFor(string(capability))}, nil
 }
 
 func (backend *RemoteBackend) StreamEvents(ctx context.Context, publish func(DomainEvent)) error {
-	return backend.daemon.StreamRemoteEvents(ctx, func(event client.RemoteEvent) {
+	err := backend.daemon.StreamRemoteEvents(ctx, func(event client.RemoteEvent) {
 		kind := string(event.Kind)
 		if event.Verb != "" {
 			kind += "." + event.Verb
@@ -75,6 +96,10 @@ func (backend *RemoteBackend) StreamEvents(ctx context.Context, publish func(Dom
 		}
 		publish(DomainEvent{Kind: kind, EntityID: event.ResourceID})
 	})
+	if err != nil && !errors.Is(err, context.Canceled) {
+		return remoteFailure(err)
+	}
+	return err
 }
 
 func permissionsFor(capability string) []string {
@@ -94,10 +119,14 @@ func remoteFailure(err error) error {
 	var status *client.StatusError
 	if errors.As(err, &status) {
 		switch status.Code {
-		case "authentication_failed", server.CodeForbidden:
-			return &Failure{State: StateAccessDenied, Message: "The selected remote credential was rejected or lacks authority.", Action: "Repair the connection or ask an administrator to update its grant.", Cause: err}
+		case "credential_revoked":
+			return &Failure{State: StateRevoked, Message: "The selected remote credential was revoked.", Action: "Repair the connection with a new pairing phrase.", Cause: err}
+		case "unauthorized", "authentication_failed":
+			return &Failure{State: StateUnauthorized, Message: "The selected remote credential was rejected.", Action: "Repair the connection or verify its credential.", Cause: err}
+		case server.CodeForbidden:
+			return &Failure{State: StateForbidden, Message: "The selected remote credential lacks authority for this operation.", Action: "Ask an administrator to update its grant.", Cause: err}
 		case server.CodeConflict:
-			return &Failure{State: StateIncompatible, Message: "The selected remote daemon identity changed.", Action: "Do not continue until the target is verified.", Cause: err}
+			return &Failure{State: StateIdentityChanged, Message: "The selected remote daemon identity changed.", Action: "Do not continue until the target is verified.", Cause: err}
 		}
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
@@ -105,6 +134,9 @@ func remoteFailure(err error) error {
 	}
 	var connectionErr *client.ConnectionError
 	if errors.As(err, &connectionErr) {
+		if connectionErr.Kind == client.ConnectionTrustFailure {
+			return &Failure{State: StateTrustChanged, Message: "The selected remote certificate is no longer trusted.", Action: "Inspect the certificate change, then repair this connection explicitly.", Cause: err}
+		}
 		return &Failure{State: StateUnavailable, Message: "The selected remote scheduler is unavailable.", Action: "Check the endpoint and network, then try again.", Cause: err}
 	}
 	return &Failure{State: StateUnavailable, Message: "The selected remote scheduler could not be reached.", Action: "Check the connection profile and try again.", Cause: fmt.Errorf("remote connection: %w", err)}

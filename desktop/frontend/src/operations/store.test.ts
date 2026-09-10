@@ -19,4 +19,15 @@ describe('operations stores', () => {
     const bridge = { activityWorkspace: vi.fn().mockResolvedValueOnce(activity('complete')).mockResolvedValueOnce({ action: 'load_activity', outcome: 'unavailable', message: 'Unavailable.' }), subscribe: () => () => undefined } as unknown as OperationsBridge
     const { result } = renderHook(() => useActivity(bridge, true, 1)); await waitFor(() => expect(result.current.workspace?.loadedAt).toBe('complete')); await act(async () => { await result.current.load() }); expect(result.current.workspace?.loadedAt).toBe('complete'); expect(result.current.status?.outcome).toBe('unavailable')
   })
+
+  it('retains schedule data while unavailable and refreshes on the recovered generation', async () => {
+    const bridge = { scheduleWindow: vi.fn().mockResolvedValueOnce(schedule('known')).mockResolvedValueOnce(schedule('current')), subscribe: () => () => undefined } as unknown as OperationsBridge
+    const { result, rerender } = renderHook(({ available, token }) => useSchedule(bridge, 7, available, token), { initialProps: { available: true, token: 1 } })
+    await waitFor(() => expect(result.current.snapshot?.loadedAt).toBe('known'))
+    rerender({ available: false, token: 0 })
+    expect(result.current.snapshot?.loadedAt).toBe('known')
+    rerender({ available: true, token: 2 })
+    await waitFor(() => expect(result.current.snapshot?.loadedAt).toBe('current'))
+    expect(bridge.scheduleWindow).toHaveBeenCalledTimes(2)
+  })
 })

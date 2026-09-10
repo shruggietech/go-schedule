@@ -15,6 +15,7 @@ type profileStore interface {
 	Load() (clientprofile.Collection, error)
 	Rename(string, string) (clientprofile.Profile, error)
 	SetActive(string) error
+	MarkSuccessful(string, time.Time) error
 	RemoveWith(string, func(clientprofile.Profile) error) (clientprofile.Profile, error)
 }
 type secretStore interface {
@@ -44,6 +45,14 @@ func (s *Service) Workspace() Result {
 	}
 	workspace := workspaceOf(collection)
 	return Result{Action: "load_connections", Outcome: "accepted", Message: "Connection profiles loaded.", Workspace: &workspace}
+}
+
+// MarkSuccessful persists validated contact for the active remote profile.
+func (s *Service) MarkSuccessful(profileID string, at time.Time) error {
+	if strings.TrimSpace(profileID) == "" || at.IsZero() {
+		return clientprofile.ErrInvalid
+	}
+	return s.profiles.MarkSuccessful(profileID, at.UTC())
 }
 
 func (s *Service) RestoreSelection(ctx context.Context) Result {
@@ -89,7 +98,11 @@ func (s *Service) selectProfile(ctx context.Context, id string, persist bool) Re
 			return rejected("select_connection", "The selected connection could not be saved.")
 		}
 	}
-	target := connection.RemoteTarget(profile.ID, profile.DaemonID, profile.Label, profile.Endpoint, profile.CertificateFingerprint, profile.Platform, profile.Architecture, profile.ProductVersion)
+	lastSuccessfulAt := ""
+	if !profile.LastSuccessfulAt.IsZero() {
+		lastSuccessfulAt = profile.LastSuccessfulAt.UTC().Format(time.RFC3339)
+	}
+	target := connection.RemoteTarget(profile.ID, profile.DaemonID, profile.Label, profile.Endpoint, profile.CertificateFingerprint, profile.Platform, profile.Architecture, profile.ProductVersion, lastSuccessfulAt)
 	if !s.manager.Switch(connection.NewUnavailableRemoteBackend("The selected remote connection cannot be used until its credential and trust settings are available.", "Repair the connection or select another target."), target) {
 		return rejected("select_connection", "The connection manager is closing.")
 	}

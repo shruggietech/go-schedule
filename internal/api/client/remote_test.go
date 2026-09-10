@@ -2,8 +2,11 @@ package client
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -13,7 +16,12 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(request *http.Request) (*http.Response, error) { return f(request) }
 
 func serverCertificatePEM(t *testing.T, server *httptest.Server) string {
 	t.Helper()
@@ -91,6 +99,34 @@ func TestRemoteClientPinsIdentityMapsPathAndAddsBearer(t *testing.T) {
 	}
 	if taskAuthorization != "Bearer bearer-canary" {
 		t.Fatalf("authorization = %q", taskAuthorization)
+	}
+}
+
+func TestRemoteVerifyAccessReturnsCurrentServerAuthority(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch request.URL.Path {
+		case "/api/v1/manifest":
+			_, _ = w.Write([]byte(`{"installation_id":"daemon-1","display_name":"Remote","product_version":"v1.0.0","remote_api_versions":["v1"],"capabilities":["tasks"],"platform":{"os":"linux","architecture":"amd64"}}`))
+		case "/api/v1/access/current":
+			_, _ = w.Write([]byte(`{"id":"actor-1","kind":"desktop","display_name":"Remote desktop","capability":"observe","state":"active","builtin":false,"created_at":"2026-09-09T12:00:00Z","updated_at":"2026-09-09T12:00:00Z"}`))
+		default:
+			http.NotFound(w, request)
+		}
+	}))
+	server.TLS = server.Config.TLSConfig
+	server.StartTLS()
+	defer server.Close()
+	remote, err := NewRemote(server.URL, serverCertificatePEM(t, server), "bearer-canary", "daemon-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := remote.VerifyIdentity(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	capability, err := remote.VerifyAccess(context.Background())
+	if err != nil || capability != domain.CapabilityObserve {
+		t.Fatalf("capability=%q err=%v", capability, err)
 	}
 }
 
@@ -222,5 +258,51 @@ func TestRemoteTaskDetailsReadEveryObservationPage(t *testing.T) {
 	}
 	if details[0].Task.ID != "task-0" || details[taskCount-1].Task.ID != "task-204" {
 		t.Fatalf("first=%+v last=%+v", details[0].Task, details[taskCount-1].Task)
+	}
+}
+
+func TestRemoteMutationTransportFailureIsUncertainAndSingleAttempt(t *testing.T) {
+	attempts := 0
+	remote := &Client{http: &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		attempts++
+		return nil, errors.New("private bearer-canary transport detail")
+	})}, baseURL: "https://example.test", pathPrefix: "/api", remote: true, bearer: "bearer-canary"}
+	remote.verified.Store(true)
+	err := remote.RunNow(context.Background(), "task-1")
+	var uncertain *MutationUncertainError
+	if !errors.As(err, &uncertain) || attempts != 1 {
+		t.Fatalf("err=%T %v attempts=%d", err, err, attempts)
+	}
+	if strings.Contains(err.Error(), "bearer-canary") || !strings.Contains(err.Error(), "may have completed") {
+		t.Fatalf("unsafe or unactionable error=%q", err)
+	}
+}
+
+func TestRemoteMutationAmbiguousServerResponseIsUncertain(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		status int
+		body   string
+	}{{name: "invalid success body", status: http.StatusOK, body: "{"}, {name: "server failure", status: http.StatusInternalServerError, body: "not-json"}} {
+		t.Run(test.name, func(t *testing.T) {
+			attempts := 0
+			remote := &Client{http: &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+				attempts++
+				return &http.Response{StatusCode: test.status, Body: io.NopCloser(strings.NewReader(test.body)), Header: make(http.Header)}, nil
+			})}, baseURL: "https://example.test", pathPrefix: "/api", remote: true}
+			remote.verified.Store(true)
+			_, err := remote.CreateTask(context.Background(), server.TaskCreateRequest{Name: "task"})
+			var uncertain *MutationUncertainError
+			if !errors.As(err, &uncertain) || attempts != 1 {
+				t.Fatalf("err=%T %v attempts=%d", err, err, attempts)
+			}
+		})
+	}
+}
+
+func TestConnectionErrorClassifiesTrustFailureWithoutCauseDisclosure(t *testing.T) {
+	err := NewConnectionError("GET /v1/manifest", x509.UnknownAuthorityError{})
+	if err.Kind != ConnectionTrustFailure || strings.Contains(err.Error(), "certificate signed") {
+		t.Fatalf("error=%+v message=%q", err, err.Error())
 	}
 }

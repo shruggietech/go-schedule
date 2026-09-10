@@ -31,4 +31,14 @@ describe('task editor', () => {
     expect(previewTask).toHaveBeenCalledWith(expect.objectContaining({ at: '2030-01-16T10:30', timezone: 'America/New_York' }))
     expect(screen.getByText('Interpreted in America/New_York.')).toBeVisible()
   })
+
+  it('retains the draft after an uncertain remote save', async () => {
+    const user = userEvent.setup(); const saveTask = vi.fn().mockResolvedValue({ action: 'save_task', outcome: 'uncertain', message: 'The remote request may have completed. Refresh before retrying.' }); const onSaved = vi.fn(); const bridge = { saveTask } as unknown as TaskBridge
+    render(<TaskEditor initial={{ ...blankTask(), commandLine: 'echo' }} groups={[]} platform="linux" bridge={bridge} onSaved={onSaved} onCancel={() => undefined} />)
+    await user.type(screen.getByLabelText('Name'), 'Remote draft')
+    await user.click(screen.getByRole('button', { name: 'Save inactive task' }))
+    expect(await screen.findByText('The remote request may have completed. Refresh before retrying.')).toBeVisible()
+    expect(screen.getByLabelText('Name')).toHaveValue('Remote draft')
+    expect(onSaved).not.toHaveBeenCalled()
+  })
 })

@@ -10,40 +10,59 @@ import (
 type State string
 
 const (
-	StateConnecting   State = "connecting"
-	StateConnected    State = "connected"
-	StateDegraded     State = "degraded"
-	StateRecovering   State = "recovering"
-	StateUnavailable  State = "unavailable"
-	StateAccessDenied State = "access_denied"
-	StateIncompatible State = "incompatible"
-	StateTimedOut     State = "timed_out"
+	StateConnecting      State = "connecting"
+	StateConnected       State = "connected"
+	StateDegraded        State = "degraded"
+	StateRecovering      State = "recovering"
+	StateUnavailable     State = "unavailable"
+	StateAccessDenied    State = "access_denied"
+	StateUnauthorized    State = "unauthorized"
+	StateRevoked         State = "revoked"
+	StateForbidden       State = "forbidden"
+	StateIncompatible    State = "incompatible"
+	StateTrustChanged    State = "trust_changed"
+	StateIdentityChanged State = "identity_changed"
+	StateTimedOut        State = "timed_out"
+)
+
+// RecoveryMode states whether connection recovery is active or requires intervention.
+type RecoveryMode string
+
+const (
+	RecoveryNone      RecoveryMode = "none"
+	RecoveryAutomatic RecoveryMode = "automatic"
+	RecoveryManual    RecoveryMode = "manual"
 )
 
 // Target is the stable, non-sensitive identity shown by feature screens.
 type Target struct {
-	ID           string   `json:"id"`
-	ProfileID    string   `json:"profileId,omitempty"`
-	Kind         string   `json:"kind"`
-	DisplayName  string   `json:"displayName"`
-	Endpoint     string   `json:"endpoint,omitempty"`
-	Fingerprint  string   `json:"fingerprint,omitempty"`
-	Platform     string   `json:"platform"`
-	Architecture string   `json:"architecture,omitempty"`
-	Version      string   `json:"version,omitempty"`
-	Capabilities []string `json:"capabilities"`
-	Permissions  []string `json:"permissions"`
+	ID               string   `json:"id"`
+	ProfileID        string   `json:"profileId,omitempty"`
+	Kind             string   `json:"kind"`
+	DisplayName      string   `json:"displayName"`
+	Endpoint         string   `json:"endpoint,omitempty"`
+	Fingerprint      string   `json:"fingerprint,omitempty"`
+	Platform         string   `json:"platform"`
+	Architecture     string   `json:"architecture,omitempty"`
+	Version          string   `json:"version,omitempty"`
+	Capabilities     []string `json:"capabilities"`
+	Permissions      []string `json:"permissions"`
+	lastSuccessfulAt string
 }
 
 // Snapshot is an immutable generation-stamped view of the active connection.
 type Snapshot struct {
-	Generation       uint64 `json:"generation"`
-	Revision         uint64 `json:"revision"`
-	State            State  `json:"state"`
-	Target           Target `json:"target"`
-	Message          string `json:"message"`
-	Action           string `json:"action,omitempty"`
-	LastSuccessfulAt string `json:"lastSuccessfulAt,omitempty"`
+	Generation       uint64       `json:"generation"`
+	Revision         uint64       `json:"revision"`
+	State            State        `json:"state"`
+	Target           Target       `json:"target"`
+	Message          string       `json:"message"`
+	Action           string       `json:"action,omitempty"`
+	LastSuccessfulAt string       `json:"lastSuccessfulAt,omitempty"`
+	Stale            bool         `json:"stale"`
+	RetryAttempt     int          `json:"retryAttempt,omitempty"`
+	NextRetryAt      string       `json:"nextRetryAt,omitempty"`
+	Recovery         RecoveryMode `json:"recovery"`
 }
 
 // Event is the only payload published to the frontend event channel.
@@ -102,8 +121,8 @@ type Failure struct {
 func LocalTarget() Target { return localTarget() }
 
 // RemoteTarget returns the safe preflight identity for one persisted remote profile.
-func RemoteTarget(profileID, daemonID, label, endpoint, fingerprint, platform, architecture, version string) Target {
-	return Target{ID: daemonID, ProfileID: profileID, Kind: "remote", DisplayName: label, Endpoint: endpoint, Fingerprint: fingerprint, Platform: platform, Architecture: architecture, Version: version}
+func RemoteTarget(profileID, daemonID, label, endpoint, fingerprint, platform, architecture, version, lastSuccessfulAt string) Target {
+	return Target{ID: daemonID, ProfileID: profileID, Kind: "remote", DisplayName: label, Endpoint: endpoint, Fingerprint: fingerprint, Platform: platform, Architecture: architecture, Version: version, lastSuccessfulAt: lastSuccessfulAt}
 }
 
 func (f *Failure) Error() string { return f.Message }

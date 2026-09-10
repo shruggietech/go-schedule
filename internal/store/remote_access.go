@@ -13,6 +13,7 @@ import (
 var (
 	ErrEnrollmentRejected = errors.New("store: enrollment rejected")
 	ErrCredentialRejected = errors.New("store: credential rejected")
+	ErrCredentialRevoked  = errors.New("store: credential revoked")
 )
 
 func (s *Store) CreatePairing(session domain.PairingSession, salt, verifier []byte) error {
@@ -229,7 +230,13 @@ func (s *Store) AuthenticateCredential(digest []byte, now time.Time) (domain.Cli
 	if err := row.Scan(&credential.ID, &credential.ActorID, &credential.Fingerprint, &credential.State, &cCreated, &cUpdated, &cLast, &cExpires, &cRevoked, &stored, &actor.ID, &actor.Kind, &actor.DisplayName, &actor.Capability, &actor.State, &builtin, &aCreated, &aUpdated, &aExpires); err != nil {
 		return credential, actor, ErrCredentialRejected
 	}
-	if len(stored) != len(digest) || subtle.ConstantTimeCompare(stored, digest) != 1 || credential.State != domain.CredentialActive {
+	if len(stored) != len(digest) || subtle.ConstantTimeCompare(stored, digest) != 1 {
+		return credential, actor, ErrCredentialRejected
+	}
+	if credential.State == domain.CredentialRevoked {
+		return credential, actor, ErrCredentialRevoked
+	}
+	if credential.State != domain.CredentialActive {
 		return credential, actor, ErrCredentialRejected
 	}
 	var err error

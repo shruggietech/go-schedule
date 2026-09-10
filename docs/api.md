@@ -27,9 +27,9 @@ printf 'header = "Authorization: Bearer %s"\n' "$BEARER" | curl --fail --proto =
 unset PAIRING_PHRASE BEARER
 ```
 
-Collection responses use bounded limits and continuation parameters where documented by the generated OpenAPI contract in `api/openapi/remote-v1.yaml`. Classify stable error envelope codes before considering HTTP text. Treat `401` as missing or invalid authentication, `403` as insufficient or revoked authority, `409` as identity or compatibility conflict, `429` as rate limiting, and `5xx` as server failure. Use bounded timeouts for every request.
+Collection responses use bounded limits and continuation parameters where documented by the generated OpenAPI contract in `api/openapi/remote-v1.yaml`. Classify stable error envelope codes before considering HTTP text. Treat `401 unauthorized` as missing or invalid authentication, `401 credential_revoked` as a profile that requires new enrollment material, `403` as insufficient actor authority, `409` as identity or compatibility conflict, `429` as rate limiting, and `5xx` as server failure. Use bounded timeouts for every request.
 
-GET and other retry-safe operations may be retried deliberately. If a mutation response is lost, do not replay it automatically: refresh the authoritative resource, determine whether the first mutation committed, then require a deliberate retry if needed. Server-Sent Events may reconnect using the last accepted event identity, but must discard duplicates.
+GET and other retry-safe operations may be retried deliberately. The desktop connection owner retries transient health and subscription failures with jittered delays that begin below one second and cap at thirty seconds. It stops for authentication, revocation, authorization, compatibility, certificate-trust, and daemon-identity failures. If a mutation response is lost or otherwise ambiguous, do not replay it automatically: report the outcome as uncertain, refresh the authoritative resource, determine whether the first mutation committed, then require a deliberate retry if needed. Server-Sent Events are invalidation hints; reconnecting clients refresh authoritative state rather than depending on replay.
 
 ## Daemon identity and capability manifest
 
@@ -174,5 +174,7 @@ An assignment contains `channel_id`, `on_success`, and `on_failure`; at least on
 ## Remote HTTPS API
 
 The optional network API is a separate allowlisted adapter under `/api/v1`; it does not expose the complete local `/v1` mux. Its canonical OpenAPI 3.1 description is `api/openapi/remote-v1.yaml`. Health, manifest discovery, and one-time enrollment are public within the trusted TLS boundary. Every other listed operation requires one strict `Authorization: Bearer` header and is authorized against the credential's current actor capability before the existing local handler runs.
+
+`GET /api/v1/access/current` returns the authenticated actor's current server-owned capability without requiring Enroll authority. Clients use this protected read during connection negotiation, compare it with the selected profile's expected grant, and fail closed when an administrator has reduced that grant.
 
 The enrollment request is `POST /api/v1/enroll` with JSON fields `pairing_id`, `phrase`, and `daemon_id`. Successful exchange returns the bearer token exactly once. Authentication failures use `401 unauthorized`, browser-origin requests use `403 origin_rejected`, unknown or deliberately excluded routes use `404 not_found`, and rate limits use `429 rate_limited` with `Retry-After: 1`.
