@@ -93,6 +93,13 @@ func TestLoad_MissingFileReturnsDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadRequired_MissingFileReturnsError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.json")
+	if _, err := LoadRequired(path); err == nil || !strings.Contains(err.Error(), "config: reading") {
+		t.Fatalf("required missing file error = %v", err)
+	}
+}
+
 func TestLoad_OverlaysAndValidates(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")

@@ -1,6 +1,11 @@
 package config
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+
+	"github.com/shruggietech/go-schedule/internal/platform"
+)
 
 func TestRemoteDefaultsDisabledAndRequiresSafeExplicitConfiguration(t *testing.T) {
 	if Default().Remote.Enabled {
@@ -24,5 +29,12 @@ func TestRemoteDefaultsDisabledAndRequiresSafeExplicitConfiguration(t *testing.T
 				t.Fatalf("valid=%v, want %v", got, test.valid)
 			}
 		})
+	}
+}
+
+func TestDefaultPathLivesUnderPlatformDataDirectory(t *testing.T) {
+	path := DefaultPath()
+	if !filepath.IsAbs(path) || filepath.Base(path) != "config.json" || filepath.Dir(path) != platform.DataDir() {
+		t.Fatalf("default path=%q", path)
 	}
 }

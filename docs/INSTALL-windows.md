@@ -16,6 +16,8 @@ go-schedule installs as a formal Windows application via an `.msi` package. It p
 
 The v1.2 candidate installs the Wails desktop at the established `gosched-gui.exe` path. Upgrading a Fyne-era MSI replaces that executable in place, preserves daemon-owned tasks and run history, and migrates a valid System, Light, or Dark appearance preference on first Wails start. Framework-specific font and scroll settings are intentionally retired.
 
+The Windows service automatically loads `C:\ProgramData\goschedule\config.json` when that file exists. Follow [Remote access](remote-access.md#operator-runbook) to create and validate that file before restarting the service. MSI installation and upgrade never create a remote configuration or open a network listener.
+
 ## Contents
 
 - [Install](#install)
@@ -98,6 +100,8 @@ If you would rather not open a new window, the full path works in the shell you 
 ## Upgrading
 
 Download the newer `.msi` and run it. It performs an in-place major upgrade: the old version is removed and the new one installed, your `PATH` entry is replaced rather than duplicated, and your data under `C:\ProgramData\goschedule\` is preserved. Upgrades between installers that expose the shortcut choices retain the installed feature state unless an administrator explicitly changes it. The first upgrade from an older installer uses the new defaults because the older package did not contain matching shortcut-feature identities.
+
+The default service configuration, daemon identity, client relationships, and audit records live in the preserved data directory. An upgrade does not enable remote access or replace certificate state. If an administrator deliberately registered the service outside the MSI with `gosched service install --config`, repeat that explicit registration after an MSI repair or upgrade because Windows Installer owns the packaged service definition.
 
 ## Uninstalling
 

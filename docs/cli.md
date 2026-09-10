@@ -501,7 +501,7 @@ Manage the system-wide background service, so the scheduler starts on boot and r
 
 | Subcommand | Effect | Elevation |
 | --- | --- | --- |
-| `install` | Register the daemon with the system service manager. | **Required** |
+| `install [--config FILE]` | Register the daemon with the system service manager, optionally retaining one validated configuration path. | **Required** |
 | `uninstall` | Remove the registration. | **Required** |
 | `start` | Start the service. | **Required** |
 | `stop` | Stop the service. | **Required** |
@@ -513,6 +513,14 @@ sudo gosched service install
 sudo gosched service start
 gosched service status
 ```
+
+A flag-free installation loads `config.json` from the platform data directory when that file exists and otherwise uses safe built-in defaults. Use `--config` when the service must retain another file. The command verifies that the file exists and that its complete schema is valid, resolves it to an absolute path, and records exactly `--config <absolute-path>` in the service definition before registration.
+
+```sh
+sudo gosched service install --config /etc/goschedule/daemon.json
+```
+
+The configuration contains paths and policy, not pairing phrases or bearer credentials. Ensure the service identity can read the configuration, certificate, and private key after installation. A missing or invalid retained file makes daemon startup fail closed; it never falls back to a network-enabled or partially parsed default.
 
 `status` is deliberately the one subcommand an ordinary user can run. It asks the operating system for no more access than a read needs, so it answers for an unprivileged caller wherever the service's own permissions allow a status query which, for a service installed by go-schedule, they do. Before 0.6.0 it requested start and stop rights it never used and failed with `Access is denied` for anyone not elevated, which reported that permission was withheld when in fact it was granted.
 
@@ -536,4 +544,4 @@ The GUI must be present next to the `gosched` binary. If it is not, a server-onl
 
 `gosched pairing create <display-name>` creates a ten-minute one-time phrase through protected local IPC. Select `--kind desktop|cli|json|mcp` and `--capability observe|operate|manage|enroll`. The command displays the phrase once together with the pairing ID, daemon ID, and expiration; do not place those values in scripts or ordinary shell history.
 
-`gosched pairing list` shows metadata without phrases, and `gosched pairing cancel <pairing-id>` invalidates an active request. `gosched credential list` shows safe fingerprints and lifecycle metadata. `gosched credential rotate <credential-id>` displays one replacement token and immediately invalidates the old value. `gosched credential revoke <credential-id>` revokes both the credential and its actor relationship. Named remote CLI profiles and remote command targeting remain assigned to #171.
+`gosched pairing list` shows metadata without phrases, and `gosched pairing cancel <pairing-id>` invalidates an active request. `gosched credential list` shows safe fingerprints and lifecycle metadata. `gosched credential rotate <credential-id>` displays one replacement token and immediately invalidates the old value. `gosched credential revoke <credential-id>` revokes both the credential and its actor relationship. Named CLI profiles use `gosched profile pair`, and one invocation selects a saved target with `gosched --profile <id-or-label> <command>`. See [Remote access](remote-access.md) for the complete operator sequence.

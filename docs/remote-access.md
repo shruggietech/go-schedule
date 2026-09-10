@@ -105,7 +105,7 @@ gosched --profile production-tunnel health
 
 ## API compatibility and live updates
 
-OpenAPI 3.1 is the source of truth for the remote contract. Issue #168 will pin `github.com/oapi-codegen/oapi-codegen/v2` as a Go tool and generate strict standard-library HTTP server and client boundaries. Authentication and authorization stay explicit middleware because generated routing does not implement product security policy. Generated files are committed, and a clean regeneration check prevents source, server, and client drift.
+OpenAPI 3.1 is the source of truth for the remote contract. The repository pins `github.com/oapi-codegen/oapi-codegen/v2` as a Go tool and generates strict standard-library HTTP server and client boundaries. Authentication and authorization stay explicit middleware because generated routing does not implement product security policy. Generated files are committed, and a clean regeneration check prevents source, server, and client drift.
 
 Local IPC retains `/v1`. Remote paths use `/api/v1` so network compatibility can evolve without silently changing local transport assumptions. Additive optional response fields, new operations, and new manifest capabilities are compatible within a major. Removing or renaming fields, changing their meaning, tightening previously accepted values, or changing success semantics requires a new path major.
 
@@ -146,6 +146,97 @@ Forwarded headers are ignored unless trusted-proxy configuration explicitly matc
 
 Disabling remote access stops acceptance, drains bounded in-flight operations, closes streams, clears ephemeral limiter state, and preserves local IPC. Installation, upgrade, restore, and ordinary daemon restart never enable a listener implicitly.
 
+## Operator runbook
+
+### 1. Prepare configuration and TLS
+
+Remote access is supported only with a complete JSON configuration and TLS certificate. A daemon started without `--config` checks the platform data directory for `config.json`: `C:\ProgramData\goschedule\config.json` on Windows, `/var/lib/goschedule/config.json` on Linux, or `/Library/Application Support/goschedule/config.json` on macOS. If the file is absent, built-in defaults apply and remote access stays disabled. Unix operators may instead retain another absolute path with `gosched service install --config <file>`; Windows MSI operators should use the default file because Windows Installer owns the packaged service definition.
+
+The following configuration is an illustrative private-network example. Replace every address and path with values owned by the deployment. `remote.bind_address` must contain a numeric IP and port. The certificate must be valid for the hostname or IP used by clients, the daemon identity must be able to read both files, and the private key must be restricted to administrators and the daemon identity.
+
+```text
+{
+  "remote": {
+    "enabled": true,
+    "bind_address": "10.0.0.20:8443",
+    "certificate_file": "/etc/goschedule/tls/server.crt",
+    "private_key_file": "/etc/goschedule/tls/server.key",
+    "acknowledge_public_exposure": false
+  }
+}
+```
+
+Use a certificate issued by an organization-trusted or publicly trusted authority when possible. A private self-signed certificate is suitable only when the operator distributes and verifies that exact certificate through an authenticated channel. Certificate issuance, renewal, DNS, routing, firewall policy, key backup, and monitoring are operator-owned infrastructure; go-schedule does not automate them.
+
+Validate the configuration before changing the service definition, then install or restart:
+
+```sh
+goschedd --config /etc/goschedule/daemon.json
+sudo gosched service install --config /etc/goschedule/daemon.json
+sudo gosched service start
+gosched health
+```
+
+The foreground validation command is illustrative and occupies its terminal until stopped. On Windows, place the validated file at `C:\ProgramData\goschedule\config.json`, then use an elevated PowerShell session to run `gosched service restart`.
+
+### 2. Choose a deployment mode
+
+Private-network HTTPS is the recommended direct deployment. Bind the daemon to its private address, restrict the port to approved client networks, and use a certificate valid for the client-facing name or address.
+
+SSH-tunneled HTTPS is the recommended path for occasional headless administration. Bind go-schedule to loopback or a private address, retain application TLS, and forward a client port through an independently authenticated SSH connection. The certificate must still match the HTTPS endpoint selected by the client. There is no insecure verification flag.
+
+Reverse-proxied HTTPS is an advanced supported deployment. The proxy must connect to the go-schedule backend over TLS, validate the backend certificate, preserve request bounds, and be the only immediate peer allowed by firewall policy. The operator owns both public and backend certificate lifecycles, proxy hardening, routing, forwarding policy, and monitoring. Forwarded headers do not confer actor identity or bypass bearer authorization.
+
+Direct public HTTPS is an advanced supported deployment, never a zero-configuration recommendation. Before setting `acknowledge_public_exposure` to `true`, the operator must provide a publicly trusted certificate with automated renewal outside go-schedule, stable DNS, least-access firewall rules, exposure and certificate-expiry monitoring, protected local administrative access, and a tested credential-revocation response. Do not expose the listener merely to avoid configuring a VPN, SSH tunnel, or reverse proxy.
+
+### 3. Pair one client
+
+From a protected local shell on the daemon host, create the least-capable relationship the client needs:
+
+```sh
+gosched pairing create "Operations laptop" --kind desktop --capability operate
+```
+
+The output contains a daemon ID, pairing ID, one-time phrase, and expiration. Move those values and the trusted certificate through authenticated channels. Do not capture them in screenshots, tickets, shell scripts, process arguments, or committed files.
+
+For the desktop, open **Settings**, then **Connections**, choose **Pair connection**, enter the HTTPS address and expected daemon ID, select the trusted certificate file, enter the pairing ID and phrase, and confirm the requested capability. The desktop verifies certificate trust and daemon identity before saving secret-free profile metadata and placing the bearer in native operating-system credential storage.
+
+For the CLI, read the phrase through the command's protected prompt:
+
+```sh
+gosched profile pair production --address https://scheduler.example.internal:8443 --expected-daemon-id DAEMON_ID --pairing-id PAIRING_ID --trusted-certificate daemon.pem --client-name "Operations CLI" --capability operate
+gosched --profile production health
+gosched --profile production task list
+```
+
+Direct JSON clients perform `POST /api/v1/enroll` once, store the returned bearer in an operating-system or application secret store, verify `GET /api/v1/manifest`, and send `Authorization: Bearer <opaque-value>` only in request headers. The [OpenAPI document](https://github.com/shruggietech/go-schedule/blob/main/api/openapi/remote-v1.yaml) is authoritative. Browser origins, credential query parameters, credential cookies, redirects, and plaintext HTTP are unsupported.
+
+Choose Observe for read-only state and history, Operate for deliberate runs and acknowledgements, Manage for scheduler-object configuration, and Enroll only for administrators who must manage actors and credentials. Create separate relationships for separate client installations.
+
+### 4. Rotate, revoke, disable, and upgrade
+
+List safe credential metadata locally, then rotate or revoke by ID:
+
+```sh
+gosched credential list
+gosched credential rotate CREDENTIAL_ID
+gosched credential revoke CREDENTIAL_ID
+```
+
+Rotation prints a new bearer once and immediately invalidates the old bearer. Update the intended client's native secret store without placing the value in a command argument. Revocation disables the credential and its actor relationship immediately; live streams are closed at their bounded revalidation interval.
+
+To disable network access, set `remote.enabled` to `false` or remove the `remote` object, validate the file, and restart the service. Confirm `gosched health` succeeds locally and use an operating-system socket inventory to confirm the configured TCP port is absent. Do not treat a client connection failure alone as proof that the listener is gone.
+
+For an upgrade, stop the service, replace the daemon and CLI through the platform install guide, and start it again. The database, daemon identity, remote configuration, actors, credentials, and audit records remain in their existing locations. Confirm the local manifest identity, local health, expected listener state, one least-privilege remote read, and one revocation check after the upgrade. Installation and upgrade do not create or enable a remote listener.
+
+### 5. Back up and recover
+
+Back up the daemon database, configuration, certificate, and private key under the platform's protected administrative procedure. Backing up user profile metadata does not back up native credential-store values. A database restore preserves daemon identity and client relationships; a deliberate clone must reset one copy's daemon identity and re-pair its clients before remote use.
+
+If a bearer may be exposed, revoke its credential locally and create a new pairing. If a private key may be exposed, disable or firewall the listener, replace the certificate and key, restart, and deliberately repair every client profile after independently verifying the new certificate and daemon identity. If the address changes, update the operator-owned DNS, routing, tunnel, or profile through an authenticated workflow; clients never rewrite endpoints automatically. If the daemon identity changes unexpectedly, stop and investigate the data restore or clone rather than accepting the new identity.
+
+Network loss and daemon restart use bounded automatic recovery. Credential rejection, capability reduction, certificate change, daemon identity mismatch, and incompatible API versions stop automatic recovery and require the targeted repair shown by the client. A mutation that loses its response is never replayed automatically; refresh authoritative state before deciding whether to submit it again.
+
 ## Threats and verification
 
 The threat boundary covers individually administered daemons and their approved clients. It does not claim defense against an administrator who controls the daemon process, database, executable, or host operating system.
@@ -179,7 +270,7 @@ Go standard library owns HTTP, TLS, randomness, digests, and constant-time compa
 | `golang.org/x/crypto/argon2` | #169 | Pin directly, use Argon2id parameters benchmarked and recorded on supported platforms, review Go security releases | Supported guidance changes or resource bounds cannot be met |
 | `zalando/go-keyring` | #169 | Permit native Keychain, Credential Manager, and Secret Service only; run native tests; review releases, license, and advisories | Maintenance failure, interactive or plaintext fallback, or supported-platform contract failure |
 
-S074 adds none of these as a new direct dependency. The owning issue selects and pins a then-current reviewed version, proves clean restoration and supported-platform behavior, and records any deviation. Unsupported native credential storage fails closed; there is no application-file fallback.
+The owning implementation issues pin each reviewed version, prove clean restoration and supported-platform behavior, and record any deviation. Unsupported native credential storage fails closed; there is no application-file fallback.
 
 ## Non-goals
 
