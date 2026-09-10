@@ -40,6 +40,13 @@ var validStatuses = map[string]bool{
 	"pass": true, "fail": true, "unavailable": true, "skipped": true, "timed-out": true, "partial": true,
 }
 
+const (
+	v111WindowsMSIVersion  = "1.1.1"
+	v111WindowsMSIFilename = "go-schedule_v1.1.1_windows_amd64.msi"
+	v111WindowsMSIURL      = "https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi"
+	v111WindowsMSISHA256   = "f7ac8f56f28330b016eb6e505e424b19e9bfbe435591cfbc54a723c91ac8e567"
+)
+
 // RequiredScenarioIDs returns a copy of the canonical scenario identifiers.
 func RequiredScenarioIDs() []string {
 	result := make([]string, len(requiredScenarios))
@@ -234,7 +241,7 @@ func (v *validator) validateEnvironments() {
 		if !oneOf(environment.DisplayClass, "standard-dpi", "high-dpi", "mixed-dpi", "not-applicable") {
 			v.add("%s.display_class %q is invalid", prefix, environment.DisplayClass)
 		}
-		if !oneOf(environment.ProfileState, "clean", "retained-release", "retained-v0.9.1", "not-applicable") {
+		if !oneOf(environment.ProfileState, "clean", "retained-v1.1.1", "retained-v0.9.1", "not-applicable") {
 			v.add("%s.profile_state %q is invalid", prefix, environment.ProfileState)
 		}
 		if environment.DisplayClass != "not-applicable" && environment.EffectiveDPI <= 0 {
@@ -653,9 +660,13 @@ func (v *validator) validateWindow(prefix string, o *Observation, env Environmen
 	if !widthOK || !heightOK || !workWidthOK || !workHeightOK || width <= 0 || height <= 0 || workWidth <= 0 || workHeight <= 0 {
 		v.add("%s %s and logical work-area dimensions must be positive", prefix, measurementName)
 	} else if strings.HasPrefix(o.ID, "window.clean-") || o.ID == "window.retained-profile" {
-		if workWidth >= 1280.0/0.9 && workHeight >= 800.0/0.9 {
-			if width != 1280 || height != 800 {
-				v.add("%s sufficiently large work area requires 1280 by 800 desktop content", prefix)
+		expectedWidth, expectedHeight := 1440.0, 900.0
+		if measurementName == "historical Fyne content" {
+			expectedWidth, expectedHeight = 1280, 800
+		}
+		if workWidth >= expectedWidth/0.9 && workHeight >= expectedHeight/0.9 {
+			if width != expectedWidth || height != expectedHeight {
+				v.add("%s sufficiently large work area requires %.0f by %.0f %s", prefix, expectedWidth, expectedHeight, measurementName)
 			}
 		} else if width > workWidth*0.9+0.01 || height > workHeight*0.9+0.01 {
 			v.add("%s desktop content exceeds 90 percent of the logical work area", prefix)
@@ -678,7 +689,7 @@ func (v *validator) validateWindow(prefix string, o *Observation, env Environmen
 		v.add("%s clean launch must use clean profile state", prefix)
 	}
 	if o.ID == "window.retained-profile" {
-		expectedProfile := "retained-release"
+		expectedProfile := "retained-v1.1.1"
 		if measurementName == "historical Fyne content" {
 			expectedProfile = "retained-v0.9.1"
 		}
@@ -1100,6 +1111,20 @@ func (v *validator) validateSetup(prefix string, o *Observation, env Environment
 	case "setup.upgrade":
 		v.requireTrue(prefix, o.Metrics, "choices_preserved", "completion_actions_absent")
 		v.requireFalse(prefix, o.Metrics, "owned_data_cleanup_invoked")
+		currentV14Evidence := false
+		for _, environment := range v.evidence.Environments {
+			if environment.ProfileState == "retained-v1.1.1" {
+				currentV14Evidence = true
+				break
+			}
+		}
+		if currentV14Evidence {
+			v.requireString(prefix, o.Metrics, "baseline_version", v111WindowsMSIVersion)
+			v.requireString(prefix, o.Metrics, "baseline_filename", v111WindowsMSIFilename)
+			v.requireString(prefix, o.Metrics, "baseline_download_url", v111WindowsMSIURL)
+			v.requireString(prefix, o.Metrics, "baseline_sha256", v111WindowsMSISHA256)
+			v.requireFalse(prefix, o.Metrics, "notifications_enabled", "localhost_mcp_enabled", "remote_https_enabled")
+		}
 	case "setup.invalid-input":
 		v.requireTrue(prefix, o.Metrics, "input_rejected", "state_unchanged")
 		v.requireFalse(prefix, o.Metrics, "owned_data_cleanup_invoked")

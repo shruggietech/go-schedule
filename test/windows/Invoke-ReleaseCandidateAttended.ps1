@@ -766,6 +766,13 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics.choices_preserved = $false
                 $metrics.completion_actions_absent = $false
                 $metrics.owned_data_cleanup_invoked = $false
+                $metrics.baseline_version = ''
+                $metrics.baseline_filename = ''
+                $metrics.baseline_download_url = ''
+                $metrics.baseline_sha256 = ''
+                $metrics.notifications_enabled = $true
+                $metrics.localhost_mcp_enabled = $true
+                $metrics.remote_https_enabled = $true
             }
             'setup.invalid-input' {
                 $metrics.input_rejected = $false

@@ -426,7 +426,11 @@ else
     'tag-specific release-note file preflight'
   require_release_text 'test -f "$RELEASE_NOTES"' \
     'release-note existence guard'
-  require_release_text 'CHANGELOG_PREFIX="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#"' \
+  require_release_text 'CHANGELOG_HEADING_LINE=$(grep -F -- "$CHANGELOG_HEADING" CHANGELOG.md)' \
+    'exact changelog heading extraction'
+  require_release_text 'CHANGELOG_ANCHOR=$(printf' \
+    'tagged changelog anchor derivation'
+  require_release_text 'CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"' \
     'tagged release-note changelog link preflight'
   require_release_text \
     'https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF' \

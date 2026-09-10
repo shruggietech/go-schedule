@@ -26,3 +26,7 @@
 ## Release Boundary
 
 S081 prepares reviewed source metadata, release automation, current Wails attended-evidence collection, and the later publication contract. It does not create the v1.4.0 tag, stage or publish a GitHub release, install a candidate, claim attended qualification, promote assets, or close issue #226. Those chronological operations require post-merge authorization and evidence.
+
+## First-Round Review Remediation
+
+The initial Codex review identified four release-gate gaps. Current native-window-v2 evidence now validates the Wails 1440 by 900 logical startup size on sufficiently large work areas while retaining the historical 1280 by 800 Fyne rule. Retained profile state and the upgrade observation now bind to the exact public v1.1.1 version, filename, canonical download URL, and published SHA-256. The upgrade observation also machine-validates that notifications, localhost MCP, and remote HTTPS remain disabled. Release preflight now derives the exact GitHub anchor from the dated changelog heading and requires that complete tagged URL in the release note. Focused Go, integration, automation-mutation, formatting, PowerShell syntax, and diff-integrity checks passed after these corrections, followed by all eight canonical gates.

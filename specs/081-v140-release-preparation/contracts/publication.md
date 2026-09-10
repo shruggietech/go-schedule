@@ -18,7 +18,7 @@ Accept only the successful tag-push Release workflow whose head SHA matches v1.4
 
 ## Qualification
 
-Download the exact staged MSI and candidate manifest. On one clean Windows 11 snapshot, complete the fresh-install path and the established attended matrix. On a separate snapshot, install the public v1.1.1 MSI, create representative tasks and preferences, capture its identity and service state, then apply the exact staged v1.4.0 MSI. Prove state retention, Wails desktop usability, service and local CLI operation, and default-off notification, localhost MCP, and remote HTTPS behavior. All 47 attended observations and their attachments must bind to the staged candidate. Never substitute a local build or manufacture a result.
+Download the exact staged MSI and candidate manifest. On one clean Windows 11 snapshot, complete the fresh-install path and the established attended matrix. On a separate snapshot, download the public v1.1.1 MSI from its canonical GitHub release URL, require SHA-256 `f7ac8f56f28330b016eb6e505e424b19e9bfbe435591cfbc54a723c91ac8e567`, install it, create representative tasks and preferences, capture its identity and service state, then apply the exact staged v1.4.0 MSI. Prove state retention, Wails desktop usability, service and local CLI operation, and machine-validated disabled notification, localhost MCP, and remote HTTPS states. All 47 attended observations and their attachments must bind to the staged candidate. Never substitute a local build or manufacture a result.
 
 ## Promotion
 

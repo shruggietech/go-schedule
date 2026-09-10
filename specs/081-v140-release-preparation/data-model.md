@@ -28,11 +28,12 @@ The draft contains four daemon and CLI archives, two Wails desktop archives, one
 
 | Field | Rule |
 | --- | --- |
-| Baseline artifact | Public `go-schedule_v1.1.1_windows_amd64.msi` |
+| Baseline artifact | Public `go-schedule_v1.1.1_windows_amd64.msi` from its exact GitHub release URL, SHA-256 `f7ac8f56f28330b016eb6e505e424b19e9bfbe435591cfbc54a723c91ac8e567` |
 | Candidate artifact | Draft `go-schedule_v1.4.0_windows_amd64.msi` |
 | Preserved state | Tasks, run history, supported appearance intent, daemon identity, actor and credential records, notification configuration, remote configuration |
 | Default-off proof | No notification channel, localhost MCP listener, or remote HTTPS listener enabled by upgrade alone |
 | Native observations | All 47 established attended scenario identities pass against the exact candidate |
+| Current window contract | Wails 1440 by 900 logical content on a sufficiently large work area, otherwise clamped within 90 percent of the logical work area |
 
 ## Publication lifecycle
 

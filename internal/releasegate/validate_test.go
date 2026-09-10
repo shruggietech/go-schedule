@@ -279,6 +279,14 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			findObservation(e, "setup.finish-launch-integrity").Metrics["process_integrity"] = "high"
 		}, "process_integrity"},
 		{"missing setup fingerprint", func(e *Evidence) { delete(findObservation(e, "setup.upgrade").Metrics, "before_fingerprint") }, "before_fingerprint"},
+		{"generic retained profile", func(e *Evidence) { e.Environments[2].ProfileState = "retained-release" }, "profile_state"},
+		{"wrong upgrade baseline", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["baseline_version"] = "1.0.0" }, "baseline_version"},
+		{"wrong upgrade MSI digest", func(e *Evidence) {
+			findObservation(e, "setup.upgrade").Metrics["baseline_sha256"] = strings.Repeat("0", 64)
+		}, "baseline_sha256"},
+		{"upgrade notifications enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["notifications_enabled"] = true }, "notifications_enabled"},
+		{"upgrade localhost MCP enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["localhost_mcp_enabled"] = true }, "localhost_mcp_enabled"},
+		{"upgrade remote HTTPS enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["remote_https_enabled"] = true }, "remote_https_enabled"},
 		{"preserve bytes", func(e *Evidence) { findObservation(e, "remove.preserve").Metrics["owned_bytes_preserved"] = false }, "owned_bytes_preserved"},
 		{"wipe controls", func(e *Evidence) { findObservation(e, "remove.wipe").Metrics["controls_unchanged"] = false }, "controls_unchanged"},
 		{"changed control fingerprint", func(e *Evidence) {
@@ -562,7 +570,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		Environments: []Environment{
 			environment("standard", "intended-user", "medium", "standard-dpi", "clean", 96),
 			environment("high", "intended-user", "medium", "high-dpi", "clean", 144),
-			environment("retained", "intended-user", "medium", "standard-dpi", "retained-release", 96),
+			environment("retained", "intended-user", "medium", "standard-dpi", "retained-v1.1.1", 96),
 			environment("unrelated", "unrelated-user", "medium", "not-applicable", "not-applicable", 0),
 			environment("admin", "administrator", "high", "not-applicable", "not-applicable", 0),
 		},
@@ -624,26 +632,36 @@ func addNativeWindowFixtures(t *testing.T, root string, evidence *Evidence) {
 		pid, _ := numberMetric(o.Metrics, "pid")
 		session, _ := numberMetric(o.Metrics, "process_session_id")
 		rid, _ := numberMetric(o.Metrics, "process_integrity_rid")
+		contentHeight := 900.0
+		outerRect := nativeRect{100, 100, 1560, 1040}
+		clientRect := nativeRect{110, 130, 1550, 1030}
+		if dpi > 96 {
+			contentHeight = 800
+			outerRect = nativeRect{100, 100, 2280, 1340}
+			clientRect = nativeRect{110, 130, 2270, 1330}
+		}
 		record := nativeWindowEvidence{
 			SchemaVersion: 1, Kind: "native-window-v1", ObservationID: o.ID,
 			CapturedAt: evidence.StartedAt.Add(time.Minute), ProcessID: int(pid),
 			ProcessPath:   `C:\Program Files\go-schedule\gosched-gui.exe`,
 			ProcessSHA256: strings.Repeat("b", 64), ProcessSessionID: int(session),
 			ProcessUserSID: "S-1-5-21-1000", ProcessIntegrityRID: int(rid),
-			HWND: "0x00000001", OuterRect: nativeRect{100, 100, 1400, 940},
-			ClientRect: nativeRect{110, 130, 1390, 930}, MonitorRect: nativeRect{0, 0, 2560, 1440},
+			HWND: "0x00000001", OuterRect: outerRect,
+			ClientRect: clientRect, MonitorRect: nativeRect{0, 0, 2560, 1440},
 			WorkAreaRect: nativeRect{0, 0, 2560, 1400}, MonitorID: "fixture-monitor", EffectiveDPI: int(dpi),
 			ShowCommand: 1, Visible: true, Restored: true,
-			Desktop: &desktopWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1280, ContentHeight: 800, DisplayScale: dpi / 96},
+			Desktop: &desktopWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1440, ContentHeight: contentHeight, DisplayScale: dpi / 96},
 		}
 		record.SchemaVersion = 2
 		record.Kind = "native-window-v2"
 		delete(o.Metrics, "fyne_content_width")
 		delete(o.Metrics, "fyne_content_height")
 		delete(o.Metrics, "fyne_scale")
-		o.Metrics["content_width"] = 1280.0
-		o.Metrics["content_height"] = 800.0
+		o.Metrics["content_width"] = 1440.0
+		o.Metrics["content_height"] = contentHeight
 		o.Metrics["display_scale"] = dpi / 96
+		o.Metrics["outer_rect"] = rect(outerRect.Left, outerRect.Top, outerRect.Right, outerRect.Bottom)
+		o.Metrics["client_rect"] = rect(clientRect.Left, clientRect.Top, clientRect.Right, clientRect.Bottom)
 		data, err := json.MarshalIndent(record, "", "  ")
 		if err != nil {
 			t.Fatal(err)
@@ -818,7 +836,12 @@ func passingMetrics(id string) map[string]any {
 	case "setup.maintenance":
 		m = map[string]any{"transitions_verified": true, "repair_verified": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false}
 	case "setup.upgrade":
-		m = map[string]any{"choices_preserved": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false}
+		m = map[string]any{
+			"choices_preserved": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false,
+			"baseline_version": v111WindowsMSIVersion, "baseline_filename": v111WindowsMSIFilename,
+			"baseline_download_url": v111WindowsMSIURL, "baseline_sha256": v111WindowsMSISHA256,
+			"notifications_enabled": false, "localhost_mcp_enabled": false, "remote_https_enabled": false,
+		}
 	case "setup.invalid-input":
 		m = map[string]any{"input_rejected": true, "state_unchanged": true, "owned_data_cleanup_invoked": false}
 	case "setup.rollback":

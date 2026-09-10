@@ -229,10 +229,12 @@ jobs:
           test "$BADGE_LINE_COUNT" -eq 1
           CHANGELOG_HEADING="## [${PLAIN}] - "
           test "$(grep -Fc -- "$CHANGELOG_HEADING" CHANGELOG.md)" -eq 1
+          CHANGELOG_HEADING_LINE=$(grep -F -- "$CHANGELOG_HEADING" CHANGELOG.md)
+          CHANGELOG_ANCHOR=$(printf '%s\n' "$CHANGELOG_HEADING_LINE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9 -]//g; s/[ ]/-/g; s/^-+|-+$//g')
           RELEASE_NOTES=".github/release-notes/${VERSION}.md"
           test -f "$RELEASE_NOTES"
-          CHANGELOG_PREFIX="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#"
-          test "$(grep -Fc -- "$CHANGELOG_PREFIX" "$RELEASE_NOTES")" -eq 1
+          CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"
+          test "$(grep -Fc -- "$CHANGELOG_URL" "$RELEASE_NOTES")" -eq 1
   release-state:
     needs: [readme-version, ci-success]
     steps:
@@ -343,6 +345,15 @@ run_automation_cases() {
   run_expect_fail no-release-note-preflight \
     'tag-specific release-note file preflight' \
     sh "$CHECK" "$no_release_note_preflight"
+
+  no_exact_changelog_link="$tmp/no-exact-changelog-link"
+  cp -R "$good" "$no_exact_changelog_link"
+  sed '/CHANGELOG_HEADING_LINE=/d; /CHANGELOG_ANCHOR=/d; /CHANGELOG_URL=/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$no_exact_changelog_link/.github/workflows/release.yml"
+  run_expect_fail no-exact-changelog-link \
+    'exact changelog heading extraction' \
+    sh "$CHECK" "$no_exact_changelog_link"
 
   stale_tag_boundary="$tmp/stale-tag-boundary"
   cp -R "$good" "$stale_tag_boundary"
