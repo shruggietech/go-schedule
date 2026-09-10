@@ -495,3 +495,21 @@ func TestManagerRetainsRemoteLastContactAsStaleDuringRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestManagerBlocksRemoteMutationUntilFreshGenerationStarts(t *testing.T) {
+	backend := &backendFake{}
+	observer := observerFake{events: make(chan Event, 4)}
+	manager := newManager(backend, observer, timerScheduler{}, time.Now)
+	manager.Switch(backend, RemoteTarget("profile-id", "daemon-id", "Remote", "https://example.test", "fingerprint", "linux", "amd64", "1.4.0", "2026-09-10T01:02:03Z"))
+	<-observer.events
+	if !manager.ReconcileMutation() {
+		t.Fatal("remote reconciliation was rejected")
+	}
+	snapshot := manager.Snapshot()
+	if snapshot.State != StateRecovering || !snapshot.Stale || snapshot.Recovery != RecoveryAutomatic || snapshot.Action == "" {
+		t.Fatalf("snapshot=%+v", snapshot)
+	}
+	if NewManager(backend, nil).ReconcileMutation() {
+		t.Fatal("local target entered remote reconciliation")
+	}
+}

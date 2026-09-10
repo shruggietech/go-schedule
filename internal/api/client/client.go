@@ -18,6 +18,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
@@ -184,13 +185,13 @@ func (c *Client) RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, e
 	return out, nil
 }
 
-// VerifyAccess performs one bounded protected read so connection negotiation
-// proves that the stored remote credential is still active.
-func (c *Client) VerifyAccess(ctx context.Context) error {
-	var out struct {
-		Tasks []json.RawMessage `json:"tasks"`
+// VerifyAccess returns current server-owned authority through a bounded protected read.
+func (c *Client) VerifyAccess(ctx context.Context) (domain.Capability, error) {
+	var actor domain.Actor
+	if err := c.get(ctx, "/v1/access/current", &actor); err != nil {
+		return "", err
 	}
-	return c.get(ctx, "/v1/tasks?observation=true&limit=1&text_limit=1", &out)
+	return actor.Capability, nil
 }
 
 // get performs a GET and decodes a JSON body, surfacing the API error envelope.

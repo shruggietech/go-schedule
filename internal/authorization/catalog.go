@@ -109,6 +109,7 @@ var catalog = []Operation{
 	op("GET", "/v1/logs", "logs.list", domain.CapabilityObserve, "log", AuditNone),
 	op("GET", "/v1/calendar", "calendar.read", domain.CapabilityObserve, "calendar", AuditNone),
 	op("GET", "/v1/events", "events.stream", domain.CapabilityObserve, "event_stream", AuditNone),
+	op("GET", "/v1/access/current", "actors.current", domain.CapabilityObserve, "actor", AuditNone),
 	op("GET", "/v1/access/actors", "actors.list", domain.CapabilityEnroll, "actor", AuditPrivilegedRead),
 	op("POST", "/v1/access/actors", "actors.create", domain.CapabilityEnroll, "actor", AuditMutation),
 	op("PATCH", "/v1/access/actors/{id}", "actors.update", domain.CapabilityEnroll, "actor", AuditMutation),

@@ -116,6 +116,20 @@ func (s *Server) handleListActors(w http.ResponseWriter, _ *http.Request) {
 	}{Actors: actors})
 }
 
+func (s *Server) handleCurrentActor(w http.ResponseWriter, r *http.Request) {
+	actorID, err := s.resolveActor(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "", "actor identity is unavailable")
+		return
+	}
+	actor, err := s.store.GetActor(actorID)
+	if err != nil {
+		s.internal(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, actor)
+}
+
 func (s *Server) handleCreateActor(w http.ResponseWriter, r *http.Request) {
 	var request ActorCreateRequest
 	if err := decodeSingleJSON(r, &request); err != nil {

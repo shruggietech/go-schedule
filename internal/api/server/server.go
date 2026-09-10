@@ -178,6 +178,7 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /v1/calendar", s.handleCalendar)
 	s.mux.HandleFunc("GET /v1/events", s.handleEvents)
+	s.mux.HandleFunc("GET /v1/access/current", s.handleCurrentActor)
 	s.mux.HandleFunc("GET /v1/access/actors", s.handleListActors)
 	s.mux.HandleFunc("POST /v1/access/actors", s.handleCreateActor)
 	s.mux.HandleFunc("PATCH /v1/access/actors/{id}", s.handleUpdateActor)

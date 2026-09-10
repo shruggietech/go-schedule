@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -57,6 +59,12 @@ func (n *appNative) BrowserOpenURL(_ context.Context, value string) error {
 }
 
 type facadeTaskBackend struct{ taskgroup.Backend }
+
+type uncertainTaskBackend struct{ facadeTaskBackend }
+
+func (uncertainTaskBackend) RunNow(context.Context, string) error {
+	return &client.MutationUncertainError{Operation: "run task", Cause: errors.New("transport failed")}
+}
 
 type facadeOperationsBackend struct{ operations.Backend }
 
@@ -169,6 +177,19 @@ func TestAppFacadeExposesSafeTaskWorkspace(t *testing.T) {
 		t.Fatalf("workspace=%+v", result)
 	}
 	app.shutdown(context.Background())
+}
+
+func TestAppFacadeForcesAuthoritativeReconciliationAfterUncertainMutation(t *testing.T) {
+	app := newApp(appBackend{}, nil, nil, appServices{tasks: taskgroup.NewService(uncertainTaskBackend{})})
+	app.ctx = context.Background()
+	app.manager.Switch(appBackend{}, connection.RemoteTarget("profile-id", "daemon-id", "Remote", "https://example.test", "fingerprint", "linux", "amd64", "1.4.0", "2026-09-10T01:02:03Z"))
+	result := app.RunTask("task-1")
+	if result.Outcome != "uncertain" {
+		t.Fatalf("result=%+v", result)
+	}
+	if snapshot := app.manager.Snapshot(); snapshot.State != connection.StateRecovering || !snapshot.Stale {
+		t.Fatalf("snapshot=%+v", snapshot)
+	}
 }
 
 func TestAppFacadeExposesScheduleActivityAndAcknowledgement(t *testing.T) {

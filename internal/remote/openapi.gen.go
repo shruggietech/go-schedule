@@ -918,6 +918,11 @@ type ClientInterface interface {
 	// ActorsList performs a GET /access/actors (the `ActorsList` operationId) request.
 	ActorsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ActorsCurrent performs a GET /access/current (the `ActorsCurrent` operationId) request.
+	//
+	// Returns the authenticated actor and its current server-owned capability.
+	ActorsCurrent(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AlertsList performs a GET /alerts (the `AlertsList` operationId) request.
 	AlertsList(ctx context.Context, params *AlertsListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1002,6 +1007,21 @@ type ClientInterface interface {
 // ActorsList performs a GET /access/actors (the `ActorsList` operationId) request.
 func (c *Client) ActorsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewActorsListRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ActorsCurrent performs a GET /access/current (the `ActorsCurrent` operationId) request.
+//
+// Returns the authenticated actor and its current server-owned capability.
+func (c *Client) ActorsCurrent(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewActorsCurrentRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1342,6 +1362,33 @@ func NewActorsListRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/access/actors")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewActorsCurrentRequest constructs an http.Request for the ActorsCurrent method
+func NewActorsCurrentRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/access/current")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2443,6 +2490,13 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	ActorsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ActorsListResponse, error)
 
+	// ActorsCurrentWithResponse performs a GET /access/current (the `ActorsCurrent` operationId) request.
+	//
+	// Returns the authenticated actor and its current server-owned capability.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ActorsCurrentWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ActorsCurrentResponse, error)
+
 	// AlertsListWithResponse performs a GET /alerts (the `AlertsList` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -2615,6 +2669,61 @@ func (r ActorsListResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ActorsListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ActorsCurrentResponse401Headers the declared response headers of an HTTP 401 response for ActorsCurrent
+type ActorsCurrentResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type ActorsCurrentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Actor
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ActorsCurrentResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ActorsCurrentResponse) GetJSON200() *Actor {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ActorsCurrentResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ActorsCurrentResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ActorsCurrentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ActorsCurrentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ActorsCurrentResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -3738,6 +3847,19 @@ func (c *ClientWithResponses) ActorsListWithResponse(ctx context.Context, reqEdi
 	return ParseActorsListResponse(rsp)
 }
 
+// ActorsCurrentWithResponse performs a GET /access/current (the `ActorsCurrent` operationId) request.
+//
+// Returns the authenticated actor and its current server-owned capability.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ActorsCurrentWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ActorsCurrentResponse, error) {
+	rsp, err := c.ActorsCurrent(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseActorsCurrentResponse(rsp)
+}
+
 // AlertsListWithResponse performs a GET /alerts (the `AlertsList` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -4037,6 +4159,52 @@ func ParseActorsListResponse(rsp *http.Response) (*ActorsListResponse, error) {
 	switch {
 	case rsp.StatusCode == 401:
 		var headers ActorsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseActorsCurrentResponse parses an HTTP response from a ActorsCurrentWithResponse call
+func ParseActorsCurrentResponse(rsp *http.Response) (*ActorsCurrentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ActorsCurrentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Actor
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ActorsCurrentResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {

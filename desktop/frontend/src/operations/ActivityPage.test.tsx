@@ -31,4 +31,12 @@ describe('ActivityPage', () => {
     const many = { ...workspace, runs: Array.from({ length: 105 }, (_, index) => ({ ...workspace.runs[0], id: `run-${index}`, taskId: `task-${index}`, state: index === 104 ? 'success' : 'failure', output: `output ${index}` })) }; const api = bridge(); api.activityWorkspace = vi.fn().mockResolvedValue({ ...accepted, activity: many }); const user = userEvent.setup()
     render(<ActivityPage bridge={api} available refreshToken={1} />); expect(await screen.findByText('107 matching records')).toBeVisible(); const search = screen.getByLabelText('Search'); await user.type(search, 'task-104'); expect(screen.getByText('1 matching records')).toBeVisible(); expect(search).toHaveFocus()
   })
+
+  it('blocks alert mutation after an uncertain outcome until authoritative refresh', async () => {
+    const api = bridge(); api.acknowledgeAlert = vi.fn().mockResolvedValue({ action: 'acknowledge_alerts', outcome: 'uncertain', message: 'The remote request may have completed. Refresh before trying again.' })
+    const user = userEvent.setup(); render(<ActivityPage bridge={api} available refreshToken={1} />); await screen.findByText('3 matching records')
+    await user.selectOptions(screen.getByLabelText('Record type'), 'alert'); await user.click(screen.getByRole('button', { name: /9\/7\/2026/ })); await user.click(screen.getByRole('button', { name: 'Acknowledge alert' }))
+    await waitFor(() => expect(screen.getByText(/may have completed/)).toBeVisible())
+    expect(screen.getByRole('button', { name: 'Acknowledge alert' })).toBeDisabled()
+  })
 })

@@ -9,6 +9,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 const remoteStageTimeout = 2 * time.Second
@@ -17,7 +18,7 @@ const remoteAttemptTimeout = 7 * time.Second
 type remoteDaemon interface {
 	Health(context.Context) (server.HealthResponse, error)
 	VerifyIdentity(context.Context) (server.ManifestResponse, error)
-	VerifyAccess(context.Context) error
+	VerifyAccess(context.Context) (domain.Capability, error)
 	StreamRemoteEvents(context.Context, func(client.RemoteEvent)) error
 }
 
@@ -73,12 +74,16 @@ func (backend *RemoteBackend) Health(ctx context.Context) (Health, error) {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected daemon does not advertise a compatible remote API.", Action: "Update the remote scheduler."}
 	}
 	accessCtx, cancelAccess := context.WithTimeout(ctx, remoteStageTimeout)
-	err = backend.daemon.VerifyAccess(accessCtx)
+	capability, err := backend.daemon.VerifyAccess(accessCtx)
 	cancelAccess()
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
-	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: permissionsFor(backend.capability)}, nil
+	expected := domain.Capability(backend.capability)
+	if !capability.Valid() || !capability.Allows(expected) {
+		return Health{}, &Failure{State: StateForbidden, Message: "The selected remote credential no longer has its expected authority.", Action: "Ask an administrator to restore its grant or repair this connection."}
+	}
+	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: permissionsFor(string(capability))}, nil
 }
 
 func (backend *RemoteBackend) StreamEvents(ctx context.Context, publish func(DomainEvent)) error {

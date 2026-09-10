@@ -145,6 +145,25 @@ func (m *Manager) Retry() bool {
 	return true
 }
 
+// ReconcileMutation blocks further remote work immediately and starts a fresh
+// generation whose authoritative reads can settle an uncertain mutation.
+func (m *Manager) ReconcileMutation() bool {
+	m.mu.Lock()
+	if m.stopped || m.target.Kind != "remote" {
+		m.mu.Unlock()
+		return false
+	}
+	m.snapshot = Snapshot{Generation: m.snapshot.Generation, Revision: m.snapshot.Revision + 1, State: StateRecovering, Target: cloneTarget(m.snapshot.Target), Message: "Refreshing authoritative remote state before another change.", Action: "Wait for reconnection to complete.", LastSuccessfulAt: m.snapshot.LastSuccessfulAt, Stale: true, Recovery: RecoveryAutomatic}
+	snapshot := cloneSnapshot(m.snapshot)
+	if !m.retryQueued {
+		m.retryQueued = true
+		m.retry <- struct{}{}
+	}
+	m.mu.Unlock()
+	m.emitSnapshot(snapshot)
+	return true
+}
+
 func (m *Manager) beginRetry() {
 	m.mu.Lock()
 	m.retryProcessing = true

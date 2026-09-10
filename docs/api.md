@@ -175,4 +175,6 @@ An assignment contains `channel_id`, `on_success`, and `on_failure`; at least on
 
 The optional network API is a separate allowlisted adapter under `/api/v1`; it does not expose the complete local `/v1` mux. Its canonical OpenAPI 3.1 description is `api/openapi/remote-v1.yaml`. Health, manifest discovery, and one-time enrollment are public within the trusted TLS boundary. Every other listed operation requires one strict `Authorization: Bearer` header and is authorized against the credential's current actor capability before the existing local handler runs.
 
+`GET /api/v1/access/current` returns the authenticated actor's current server-owned capability without requiring Enroll authority. Clients use this protected read during connection negotiation, compare it with the selected profile's expected grant, and fail closed when an administrator has reduced that grant.
+
 The enrollment request is `POST /api/v1/enroll` with JSON fields `pairing_id`, `phrase`, and `daemon_id`. Successful exchange returns the bearer token exactly once. Authentication failures use `401 unauthorized`, browser-origin requests use `403 origin_rejected`, unknown or deliberately excluded routes use `404 not_found`, and rate limits use `429 rate_limited` with `Retry-After: 1`.

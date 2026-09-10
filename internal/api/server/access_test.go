@@ -95,6 +95,24 @@ func TestActorAPIUsesIntentFirstAuditAndProtectsLocalActor(t *testing.T) {
 	}
 }
 
+func TestCurrentActorReportsServerOwnedAuthorityToObserveClients(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindDesktop, "Remote desktop", domain.CapabilityOperate, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetActorResolver(func(*http.Request) (string, error) { return actor.ID, nil })
+	response := httptest.NewRecorder()
+	s.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/access/current", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var current domain.Actor
+	if err := json.Unmarshal(response.Body.Bytes(), &current); err != nil || current.ID != actor.ID || current.Capability != domain.CapabilityOperate {
+		t.Fatalf("actor=%+v err=%v", current, err)
+	}
+}
+
 func TestAuditExportIsNDJSONAndDoesNotExposePayloads(t *testing.T) {
 	s := newTestServer(t)
 	response := httptest.NewRecorder()

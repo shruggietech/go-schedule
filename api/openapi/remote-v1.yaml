@@ -129,6 +129,11 @@ paths:
     get:
       operationId: actors.list
       responses: {"200": {$ref: "#/components/responses/ActorList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /access/current:
+    get:
+      operationId: actors.current
+      description: Returns the authenticated actor and its current server-owned capability.
+      responses: {"200": {$ref: "#/components/responses/Actor"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /audit:
     get:
       operationId: audit.list
@@ -163,6 +168,7 @@ components:
     AlertList: {description: Alert collection, content: {application/json: {schema: {$ref: "#/components/schemas/AlertList"}}}}
     Calendar: {description: Calendar window, content: {application/json: {schema: {$ref: "#/components/schemas/Calendar"}}}}
     ActorList: {description: Authorized actors, content: {application/json: {schema: {$ref: "#/components/schemas/ActorList"}}}}
+    Actor: {description: Current authenticated actor, content: {application/json: {schema: {$ref: "#/components/schemas/Actor"}}}}
     AuditList: {description: Management audit events, content: {application/json: {schema: {$ref: "#/components/schemas/AuditList"}}}}
     Accepted: {description: Operation accepted for asynchronous execution}
     NoContent: {description: Operation completed without a response body}

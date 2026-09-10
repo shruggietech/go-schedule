@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)
@@ -98,6 +99,34 @@ func TestRemoteClientPinsIdentityMapsPathAndAddsBearer(t *testing.T) {
 	}
 	if taskAuthorization != "Bearer bearer-canary" {
 		t.Fatalf("authorization = %q", taskAuthorization)
+	}
+}
+
+func TestRemoteVerifyAccessReturnsCurrentServerAuthority(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch request.URL.Path {
+		case "/api/v1/manifest":
+			_, _ = w.Write([]byte(`{"installation_id":"daemon-1","display_name":"Remote","product_version":"v1.0.0","remote_api_versions":["v1"],"capabilities":["tasks"],"platform":{"os":"linux","architecture":"amd64"}}`))
+		case "/api/v1/access/current":
+			_, _ = w.Write([]byte(`{"id":"actor-1","kind":"desktop","display_name":"Remote desktop","capability":"observe","state":"active","builtin":false,"created_at":"2026-09-09T12:00:00Z","updated_at":"2026-09-09T12:00:00Z"}`))
+		default:
+			http.NotFound(w, request)
+		}
+	}))
+	server.TLS = server.Config.TLSConfig
+	server.StartTLS()
+	defer server.Close()
+	remote, err := NewRemote(server.URL, serverCertificatePEM(t, server), "bearer-canary", "daemon-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := remote.VerifyIdentity(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	capability, err := remote.VerifyAccess(context.Background())
+	if err != nil || capability != domain.CapabilityObserve {
+		t.Fatalf("capability=%q err=%v", capability, err)
 	}
 }
 

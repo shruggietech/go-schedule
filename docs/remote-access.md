@@ -111,7 +111,7 @@ Local IPC retains `/v1`. Remote paths use `/api/v1` so network compatibility can
 
 The capability manifest reports stable daemon identity, product version, supported API majors, features, and safe compatibility facts before clients present actions. A new major overlaps the prior supported major for a documented migration interval defined by its delivery issue. Deprecation appears in OpenAPI, client diagnostics, documentation, and release notes before removal. This architecture invents no calendar deadline.
 
-Server-Sent Events provide authenticated one-way live activity over HTTPS. Desktop clients treat each event as an invalidation hint, not a durable event log. After a disconnect they revalidate TLS trust, daemon identity, compatibility, and current credential authority, refresh mounted workspaces from authoritative reads, and then open a new stream. Mutations have no automatic replay when a disconnect leaves their outcome uncertain; the client preserves user input, refreshes authoritative state, and requires a deliberate resubmission.
+Server-Sent Events provide authenticated one-way live activity over HTTPS. Desktop clients treat each event as an invalidation hint, not a durable event log. After a disconnect they revalidate TLS trust, daemon identity, compatibility, and current credential authority through `/api/v1/access/current`, refresh mounted workspaces from authoritative reads, and then open a new stream. Mutations have no automatic replay when a disconnect leaves their outcome uncertain; the client immediately enters reconciliation, preserves user input, keeps mutation controls blocked until the authoritative refresh completes, and then requires a deliberate resubmission.
 
 ## Failure behavior
 

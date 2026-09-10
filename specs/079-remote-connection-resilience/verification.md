@@ -8,7 +8,7 @@
 
 - `go test -race ./internal/api/client ./internal/clientprofile ./internal/store ./internal/enrollment ./internal/remote` passed.
 - `go test -race ./connection ./connections ./operations ./taskgroup .` passed from `desktop/`.
-- `npm test -- --run` passed all 99 frontend tests.
+- `npm test -- --run` passed all 101 frontend tests.
 - `npm run build` passed TypeScript validation and the production Vite build.
 - `npm run test:e2e` passed all 23 Chromium accessibility, keyboard, responsive, and recovery tests.
 - Deterministic connection tests prove the first retry begins within one second, growth caps at thirty seconds, jitter remains bounded, stream activity resets backoff, manual retry cancels the wait, target switches reject stale work, and one hundred lifecycle repetitions terminate cleanly.
@@ -21,4 +21,6 @@
 
 ## Review Evidence
 
-The initial Codex review on PR #224 identified three recovery-policy defects. The remediation restores the historical 250 millisecond, one second, and five second local IPC cadence while applying bounded jitter only to remote targets; gives each remote health, identity, and authority check its own two-second stage budget within a seven-second negotiation attempt; and records an unavailable task-workspace result when an initial read is blocked so the desktop cannot display an endless loading state. Focused regressions and the complete eight-gate verifier pass after all three corrections. One authorized second review remains available for the corrected commit.
+The initial Codex review on PR #224 identified three recovery-policy defects. The remediation restores the historical 250 millisecond, one second, and five second local IPC cadence while applying bounded jitter only to remote targets; gives each remote health, identity, and authority check its own two-second stage budget within a seven-second negotiation attempt; and records an unavailable task-workspace result when an initial read is blocked so the desktop cannot display an endless loading state.
+
+The one authorized second Codex review identified two remaining fail-closed gaps. The final remediation introduces an Observe-safe `/api/v1/access/current` negotiation read, rejects a server-side grant below the selected profile's expected capability, immediately enters a stale recovering state after any uncertain task or alert mutation, and keeps the affected mutation controls disabled until a successful authoritative workspace refresh. Focused Go race, API, remote-boundary, frontend unit, and production frontend build checks pass after both corrections. No further automated review round is permitted.
