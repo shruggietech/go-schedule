@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/connections"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
@@ -42,9 +43,46 @@ type App struct {
 	settings      *settings.Service
 	agentAccess   *agentaccess.Service
 	remotePairing *remotepairing.Service
+	connections   *connections.Service
 	emitter       eventEmitter
 	native        nativeRuntime
 	ctx           context.Context
+}
+
+func (a *App) ConnectionProfiles() connections.Result {
+	if a.connections == nil {
+		return connections.Result{Action: "load_connections", Outcome: "unavailable", Message: "Connection profiles are unavailable."}
+	}
+	return a.connections.Workspace()
+}
+
+func (a *App) SelectConnection(id string) connections.Result {
+	if a.connections == nil || a.ctx == nil {
+		return connections.Result{Action: "select_connection", Outcome: "unavailable", Message: "Connection selection is unavailable."}
+	}
+	return a.connections.Select(a.ctx, id)
+}
+
+func (a *App) RenameConnection(id, label string) connections.Result {
+	if a.connections == nil {
+		return connections.Result{Action: "rename_connection", Outcome: "unavailable", Message: "Connection profiles are unavailable."}
+	}
+	result := a.connections.Rename(id, label)
+	if result.Outcome == "accepted" && a.ctx != nil && a.manager.Snapshot().Target.ProfileID == id {
+		selected := a.connections.Select(a.ctx, id)
+		if selected.Outcome == "accepted" {
+			return selected
+		}
+		result.Message += " The active connection label will refresh after reselection."
+	}
+	return result
+}
+
+func (a *App) RemoveConnection(id string) connections.Result {
+	if a.connections == nil {
+		return connections.Result{Action: "remove_connection", Outcome: "unavailable", Message: "Connection profiles are unavailable."}
+	}
+	return a.connections.Remove(id)
 }
 
 type appServices struct {
@@ -76,7 +114,14 @@ func (a *App) PairRemote(draft remotepairing.Draft) remotepairing.Result {
 	if a.remotePairing == nil || a.ctx == nil {
 		return remotepairing.Result{Action: "pair_remote", Outcome: "unavailable", Message: "Remote pairing is unavailable."}
 	}
-	return a.remotePairing.Pair(a.ctx, draft)
+	result := a.remotePairing.Pair(a.ctx, draft)
+	if result.Outcome == "accepted" && draft.RepairProfileID != "" && a.connections != nil {
+		selected := a.connections.Select(a.ctx, result.ProfileID)
+		if selected.Outcome != "accepted" {
+			result.Message += " The repaired profile was saved but could not be selected."
+		}
+	}
+	return result
 }
 
 // AgentAccessWorkspace returns the safe local MCP projection.
@@ -410,7 +455,13 @@ func (o appObserver) Publish(event connection.Event) {
 	}
 }
 
-func (a *App) startup(ctx context.Context) { a.ctx = ctx; a.manager.Start(ctx) }
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+	if a.connections != nil {
+		_ = a.connections.RestoreSelection(ctx)
+	}
+	a.manager.Start(ctx)
+}
 
 func (a *App) shutdown(context.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -426,7 +477,7 @@ func (a *App) RetryConnection() ActionResult {
 	if !a.manager.Retry() {
 		return ActionResult{Action: "retry", Outcome: "rejected", Message: "The application is closing."}
 	}
-	return ActionResult{Action: "retry", Outcome: "accepted", Message: "Trying the local scheduler service again."}
+	return ActionResult{Action: "retry", Outcome: "accepted", Message: "Trying the selected scheduler connection again."}
 }
 
 // Quit performs the native application exit action.

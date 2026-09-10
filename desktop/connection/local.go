@@ -24,6 +24,8 @@ type daemonClient interface {
 // LocalBackend adapts the existing protected local IPC client.
 type LocalBackend struct{ daemon daemonClient }
 
+func (*LocalBackend) AutoRetry() bool { return true }
+
 // NewLocalBackend creates the This computer adapter without opening a network listener.
 func NewLocalBackend(daemon daemonClient) *LocalBackend { return &LocalBackend{daemon: daemon} }
 
@@ -115,7 +117,7 @@ func localTarget() Target {
 	if platform == "darwin" {
 		platform = "macos"
 	}
-	return Target{ID: "local", DisplayName: "This computer", Platform: platform, Capabilities: []string{}, Permissions: []string{}}
+	return Target{ID: "local", Kind: "local", DisplayName: "This computer", Platform: platform, Capabilities: []string{}, Permissions: []string{}}
 }
 
 func eventMessage(kind string) string {

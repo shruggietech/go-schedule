@@ -4,7 +4,11 @@ export type Route = 'tasks' | 'automation' | 'schedule' | 'activity' | 'notifica
 
 export interface Target {
   id: string
+  profileId?: string
+  kind?: 'local' | 'remote'
   displayName: string
+  endpoint?: string
+  fingerprint?: string
   platform: string
   architecture?: string
   version?: string
@@ -33,10 +37,17 @@ export interface DesktopEvent {
 }
 
 export interface ActionResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable'; message: string }
+export interface ConnectionProfile { id: string; label: string; endpoint: string; daemonId: string; shortDaemonId: string; fingerprint: string; capability: string; platform: string; architecture?: string; productVersion?: string; lastSuccessfulAt?: string; active: boolean }
+export interface ConnectionWorkspace { activeProfileId?: string; profiles: ConnectionProfile[] }
+export interface ConnectionResult extends ActionResult { workspace?: ConnectionWorkspace }
 
 export interface DesktopBridge {
   snapshot(): Promise<ConnectionSnapshot>
   retry(): Promise<ActionResult>
+  connectionProfiles?(): Promise<ConnectionResult>
+  selectConnection?(id: string): Promise<ConnectionResult>
+  renameConnection?(id: string, label: string): Promise<ConnectionResult>
+  removeConnection?(id: string): Promise<ConnectionResult>
   quit(): Promise<ActionResult>
   subscribe(listener: (event: DesktopEvent) => void): () => void
 }

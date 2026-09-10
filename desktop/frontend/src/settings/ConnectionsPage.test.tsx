@@ -2,11 +2,22 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ConnectionsPage } from './ConnectionsPage'
-import type { ConnectionSnapshot, ConnectionState } from '../connection/model'
+import type { ConnectionSnapshot, ConnectionState, DesktopBridge } from '../connection/model'
 
 const base: ConnectionSnapshot = { generation: 1, revision: 1, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'windows', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.', lastSuccessfulAt: '2026-09-07T12:00:00Z' }
 
 describe('ConnectionsPage', () => {
+  it('lists and selects same-named profiles by stable identity', async () => {
+    const user = userEvent.setup()
+    const selectConnection = vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted' as const, message: 'Selected.', workspace: { activeProfileId: 'two', profiles: [] } })
+    const bridge = { snapshot: vi.fn(), retry: vi.fn(), quit: vi.fn(), subscribe: () => () => undefined, connectionProfiles: vi.fn().mockResolvedValue({ action: 'load_connections', outcome: 'accepted' as const, message: 'Loaded.', workspace: { profiles: [{ id: 'one', label: 'Workshop', endpoint: 'https://one.test', daemonId: 'daemon-one', shortDaemonId: 'daemon-o', fingerprint: 'aa', capability: 'observe', platform: 'linux', active: false }, { id: 'two', label: 'Workshop', endpoint: 'https://two.test', daemonId: 'daemon-two', shortDaemonId: 'daemon-t', fingerprint: 'bb', capability: 'operate', platform: 'linux', active: false }] } }), selectConnection } satisfies DesktopBridge
+    render(<ConnectionsPage snapshot={base} retryPending={false} onRetry={vi.fn()} bridge={bridge} />)
+    expect(await screen.findByText('https://one.test · daemon-o')).toBeVisible()
+    expect(screen.getByText('https://two.test · daemon-t')).toBeVisible()
+    await user.click(screen.getAllByRole('button', { name: 'Select' })[1])
+    expect(selectConnection).toHaveBeenCalledWith('two')
+  })
+
   for (const state of ['connected', 'unavailable', 'timed_out', 'access_denied', 'incompatible', 'recovering'] satisfies ConnectionState[]) {
     it(`renders explicit ${state} diagnosis`, () => {
       render(<ConnectionsPage snapshot={{ ...base, state, action: state === 'connected' ? undefined : 'Try again.' }} retryPending={false} onRetry={vi.fn()} />)

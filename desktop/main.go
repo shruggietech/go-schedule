@@ -15,6 +15,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/automation"
 	"github.com/shruggietech/go-schedule/desktop/connection"
+	"github.com/shruggietech/go-schedule/desktop/connections"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
@@ -22,6 +23,8 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/autostart"
+	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
@@ -58,14 +61,18 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	daemon := client.New(ipc.Endpoint(cfg))
+	localDaemon := client.New(ipc.Endpoint(cfg))
 	_ = ensureBundledDaemon(func(ctx context.Context) error {
-		_, err := daemon.Health(ctx)
+		_, err := localDaemon.Health(ctx)
 		return err
 	}, autostart.SpawnDaemon)
-	backend := connection.NewLocalBackend(daemon)
+	router := client.NewSwitchable(localDaemon)
+	backend := connection.NewLocalBackend(localDaemon)
+	profileStore := clientprofile.NewStore("")
+	secretStore := clientsecret.New()
 	native := wailsNative{}
-	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(daemon)), automation: automation.NewService(automation.NewLocalBackend(daemon)), operations: operations.NewService(operations.NewLocalBackend(daemon)), notifications: notifications.NewService(notifications.NewLocalBackend(daemon)), settings: settings.NewService(settings.NewLocalBackend(daemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(daemon), native), remotePairing: remotepairing.New()})
+	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(router)), automation: automation.NewService(automation.NewLocalBackend(router)), operations: operations.NewService(operations.NewLocalBackend(router)), notifications: notifications.NewService(notifications.NewLocalBackend(router)), settings: settings.NewService(settings.NewLocalBackend(localDaemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(router), native), remotePairing: remotepairing.NewWithStores(secretStore, profileStore)})
+	app.connections = connections.New(profileStore, secretStore, localDaemon, router, app.manager)
 	if err := wails.Run(&options.App{
 		Title: "go-schedule", Width: 1440, Height: 900, MinWidth: 900, MinHeight: 650,
 		BackgroundColour: &options.RGBA{R: 245, G: 247, B: 250, A: 1},

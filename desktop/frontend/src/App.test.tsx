@@ -18,6 +18,27 @@ const settings: SettingsBridge = { workspace: vi.fn().mockResolvedValue({ action
 const notifications: NotificationBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_notifications', outcome: 'accepted', message: 'Loaded.', workspace: { channels: [], tasks: [], groups: [], deliveries: [], loadedAt: '2026-09-07T00:00:00Z' } }), saveChannel: vi.fn(), setChannelEnabled: vi.fn(), testChannel: vi.fn(), deleteChannel: vi.fn(), policy: vi.fn(), savePolicy: vi.fn() }
 
 describe('production shell', () => {
+  it('keeps remote identity visible and fails closed for unsupported or observe-only actions', async () => {
+    const user = userEvent.setup()
+    const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks', 'schedule', 'activity'], permissions: ['read'] } }
+    const remoteBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(remote) }
+    render(<App bridge={remoteBridge} tasks={tasks} settings={settings} />)
+    expect(await screen.findByText('Observe-only connection')).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'Create task' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Automation Sources' }))
+    expect(screen.getByRole('heading', { name: 'Automation Sources is unavailable for remote targets' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Connection details' }))
+    expect(screen.getByRole('dialog', { name: 'Production connection' })).toHaveTextContent('https://example.test')
+  })
+
+  it('keeps manage-only task configuration disabled for operate credentials', async () => {
+    const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks'], permissions: ['read', 'operate'] } }
+    const remoteBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(remote) }
+    render(<App bridge={remoteBridge} tasks={tasks} settings={settings} />)
+    expect(await screen.findByText('Operate-only connection')).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'Create task' })).toBeDisabled()
+  })
+
   it('keeps target and page identity visible across operational routes', async () => {
     const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} operations={operations} settings={settings} />)
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Tasks' })).toBeVisible())

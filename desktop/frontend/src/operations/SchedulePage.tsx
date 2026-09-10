@@ -15,7 +15,7 @@ function OccurrenceDetail({ item, missing }: { item?: ScheduleOccurrence; missin
   return <aside className="panel operation-detail"><h2>{item.taskName}</h2><dl><dt>Record</dt><dd>{kindLabel(item.kind)}</dd><dt>State</dt><dd><span className={`operation-state state-${item.state}`}>{stateLabel(item.state)}</span></dd><dt>Time</dt><dd>{localTime(item.time)}</dd><dt>Task ID</dt><dd><code>{item.taskId || 'Unavailable'}</code></dd><dt>Run ID</dt><dd><code>{item.runId || 'Not recorded'}</code></dd></dl></aside>
 }
 
-export function SchedulePage({ bridge, available, refreshToken }: { bridge: OperationsBridge; available: boolean; refreshToken: number }) {
+export function SchedulePage({ bridge, available, refreshToken, targetName = 'This computer' }: { bridge: OperationsBridge; available: boolean; refreshToken: number; targetName?: string }) {
   const [days, setDays] = useState(7)
   const [view, setView] = useState<'agenda' | 'calendar'>('agenda')
   const [selectedID, setSelectedID] = useState('')
@@ -32,7 +32,7 @@ export function SchedulePage({ bridge, available, refreshToken }: { bridge: Oper
   const calendarMonth = useMemo(() => { const value = month ?? new Date(snapshot?.occurrences[0]?.time ?? snapshot?.from ?? Date.now()); return new Date(value.getFullYear(), value.getMonth(), 1) }, [month, snapshot])
   const calendarDays = useMemo(() => { const lead = (calendarMonth.getDay() + 6) % 7; const count = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate(); return [...Array.from({ length: lead }, () => null), ...Array.from({ length: count }, (_, index) => new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), index + 1))] }, [calendarMonth])
   return <>
-    <header className="page-header"><div><p className="eyebrow">This computer</p><h1>Schedule</h1><p>See predicted work and recorded runs without confusing one for the other.</p></div><Button variant="secondary" onClick={() => void load()} disabled={!available}>Refresh</Button></header>
+    <header className="page-header"><div><p className="eyebrow">{targetName}</p><h1>Schedule</h1><p>See predicted work and recorded runs without confusing one for the other.</p></div><Button variant="secondary" onClick={() => void load()} disabled={!available}>Refresh</Button></header>
     {!available && <Notice title="Read-only schedule" tone="warning">The last complete schedule remains visible while the scheduler reconnects.</Notice>}
     {status?.outcome !== 'accepted' && status && <Notice title="Schedule could not refresh" tone="error">{status.message}</Notice>}
     <section className="panel operation-filters" aria-label="Schedule controls"><label>View<select value={view} onChange={(event) => setView(event.target.value as 'agenda' | 'calendar')}><option value="agenda">Agenda</option><option value="calendar">Calendar</option></select></label><label>Window<select value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>{snapshot && <p role="status">{snapshot.occurrences.length} occurrences from {localTime(snapshot.from)} through {localTime(snapshot.to)}</p>}</section>

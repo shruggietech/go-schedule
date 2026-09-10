@@ -18,7 +18,7 @@ export function Shell({ route, onRoute, appearance, onAppearance, appearancePend
       <main id="main-content" ref={mainRef} tabIndex={-1}>{children}</main>
       <footer className="preferences"><label>Appearance<select value={appearance} disabled={appearancePending} onChange={(event) => onAppearance(event.target.value as Appearance)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label>{connection.action && <Button variant="secondary" onClick={onRetry}>Try again</Button>}</footer>
     </div>
-    <Dialog open={dialogOpen} title="This computer connection" invoker={invoker} onClose={() => setDialogOpen(false)}><p>{connection.message}</p><dl><dt>Platform</dt><dd>{connection.target.platform}{connection.target.architecture ? `/${connection.target.architecture}` : ''}</dd><dt>Capabilities</dt><dd>{connection.target.capabilities.length ? connection.target.capabilities.join(', ') : 'Unavailable'}</dd></dl></Dialog>
+    <Dialog open={dialogOpen} title={`${connection.target.displayName} connection`} invoker={invoker} onClose={() => setDialogOpen(false)}><p>{connection.message}</p><dl>{connection.target.endpoint && <><dt>Endpoint</dt><dd>{connection.target.endpoint}</dd></>}<dt>Platform</dt><dd>{connection.target.platform}{connection.target.architecture ? `/${connection.target.architecture}` : ''}</dd><dt>Capabilities</dt><dd>{connection.target.capabilities.length ? connection.target.capabilities.join(', ') : 'Unavailable'}</dd></dl></Dialog>
     <ToastRegion message={announcement} />
   </div>
 }

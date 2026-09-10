@@ -5,7 +5,7 @@ nav_order: 5.7
 
 # Actor Permissions and Management Audit
 
-go-schedule uses one server-owned authorization vocabulary for the current local management API and the future remote transports defined by the [remote access architecture](remote-access.md). The current release still listens only on protected local IPC. It adds no network listener, login, pairing flow, bearer credential, or general policy configuration.
+go-schedule uses one server-owned authorization vocabulary for protected local management and the opt-in remote transport defined by the [remote access architecture](remote-access.md). Local IPC remains the default and authenticates the operating-system boundary. An explicitly configured HTTPS listener authenticates each opaque bearer credential to its current actor and applies the same operation catalog without adding a general policy language.
 
 ## Capability hierarchy
 

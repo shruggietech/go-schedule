@@ -5,20 +5,43 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
+	"sync/atomic"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/clientprofile"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
 // Client talks to the daemon over the IPC endpoint.
 type Client struct {
-	http     *http.Client
-	endpoint string
+	http             *http.Client
+	endpoint         string
+	baseURL          string
+	pathPrefix       string
+	bearer           string
+	expectedDaemonID string
+	remote           bool
+	verified         atomic.Bool
+	selected         atomic.Pointer[Client]
+	identityTimeout  time.Duration
 }
+
+type unavailableTransport struct{}
+
+func (unavailableTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("remote target is unavailable")
+}
+
+const defaultIdentityTimeout = 10 * time.Second
 
 // New returns a client bound to the given IPC endpoint (socket path / pipe name).
 func New(endpoint string) *Client {
@@ -27,12 +50,84 @@ func New(endpoint string) *Client {
 			return ipc.DialContext(ctx, endpoint)
 		},
 	}
-	return &Client{http: &http.Client{Transport: transport}, endpoint: endpoint}
+	client := &Client{http: &http.Client{Transport: transport}, endpoint: endpoint, baseURL: "http://ipc"}
+	client.verified.Store(true)
+	return client
+}
+
+// NewSwitchable returns a stable client facade whose selected immutable target can change safely.
+func NewSwitchable(initial *Client) *Client {
+	client := &Client{}
+	client.selected.Store(initial)
+	return client
+}
+
+// NewUnavailableRemote returns a fail-closed placeholder for a selected profile whose credential or trust configuration cannot be loaded.
+func NewUnavailableRemote(endpoint string) *Client {
+	return &Client{http: &http.Client{Transport: unavailableTransport{}}, endpoint: endpoint, baseURL: "https://unavailable.invalid", pathPrefix: "/api", remote: true}
+}
+
+// Use changes future requests to next without altering requests already constructed for the prior target.
+func (c *Client) Use(next *Client) {
+	if next == nil {
+		return
+	}
+	c.selected.Store(next)
+}
+
+func (c *Client) target() *Client {
+	if selected := c.selected.Load(); selected != nil {
+		return selected
+	}
+	return c
 }
 
 // baseURL uses a fixed dummy host; the transport ignores it and dials the IPC
 // endpoint instead.
-const baseURL = "http://ipc"
+// NewRemote returns a client pinned to one HTTPS origin, trust bundle, bearer credential, and daemon identity.
+func NewRemote(endpoint, certificatePEM, bearer, expectedDaemonID string) (*Client, error) {
+	canonical, err := clientprofile.NormalizeEndpoint(endpoint)
+	if err != nil || strings.TrimSpace(bearer) == "" || strings.TrimSpace(expectedDaemonID) == "" {
+		return nil, errors.New("remote target configuration is incomplete")
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM([]byte(certificatePEM)) {
+		return nil, errors.New("remote target certificate is invalid")
+	}
+	dialer := &net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, DialContext: dialer.DialContext, TLSHandshakeTimeout: 5 * time.Second, ResponseHeaderTimeout: 10 * time.Second, ExpectContinueTimeout: time.Second, TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS13, RootCAs: pool}}
+	return &Client{http: &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, endpoint: canonical, baseURL: canonical, pathPrefix: "/api", bearer: bearer, expectedDaemonID: strings.TrimSpace(expectedDaemonID), remote: true, identityTimeout: defaultIdentityTimeout}, nil
+}
+
+// Remote reports whether this client uses authenticated HTTPS.
+func (c *Client) Remote() bool { return c.target().remote }
+
+// Endpoint returns the safe selected endpoint.
+func (c *Client) Endpoint() string { return c.target().endpoint }
+
+// VerifyIdentity pins a remote client to its expected installation manifest before feature operations.
+func (c *Client) VerifyIdentity(ctx context.Context) (server.ManifestResponse, error) {
+	target := c.target()
+	if target.remote {
+		target.verified.Store(false)
+		timeout := target.identityTimeout
+		if timeout <= 0 {
+			timeout = defaultIdentityTimeout
+		}
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+	manifest, err := target.Manifest(ctx)
+	if err != nil {
+		return server.ManifestResponse{}, err
+	}
+	if target.remote && manifest.InstallationID != target.expectedDaemonID {
+		return server.ManifestResponse{}, &StatusError{Code: server.CodeConflict, Message: "remote daemon identity does not match the selected target"}
+	}
+	target.verified.Store(true)
+	return manifest, nil
+}
 
 // StatusError is returned for non-2xx API responses, carrying the API error
 // envelope's code and field so callers (e.g. the CLI) can map them to exit codes.
@@ -43,6 +138,32 @@ type StatusError struct {
 }
 
 func (e *StatusError) Error() string { return e.Message }
+
+func (c *Client) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
+	target := c.target()
+	if target.remote && !target.verified.Load() && path != "/v1/health" && path != "/v1/manifest" {
+		return nil, &StatusError{Code: server.CodeConflict, Message: "remote daemon identity has not been verified"}
+	}
+	var encoded []byte
+	if body != nil {
+		var err error
+		encoded, err = json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
+	}
+	request, err := http.NewRequestWithContext(ctx, method, target.baseURL+target.pathPrefix+path, strings.NewReader(string(encoded)))
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	if target.remote && target.bearer != "" && path != "/v1/health" && path != "/v1/manifest" {
+		request.Header.Set("Authorization", "Bearer "+target.bearer)
+	}
+	return request, nil
+}
 
 // Health calls GET /v1/health.
 func (c *Client) Health(ctx context.Context) (server.HealthResponse, error) {
@@ -65,11 +186,12 @@ func (c *Client) RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, e
 
 // get performs a GET and decodes a JSON body, surfacing the API error envelope.
 func (c *Client) get(ctx context.Context, path string, out any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+path, nil)
+	target := c.target()
+	req, err := target.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return err
 	}
-	resp, err := c.http.Do(req)
+	resp, err := target.http.Do(req)
 	if err != nil {
 		return NewConnectionError("GET "+path, err)
 	}
@@ -77,7 +199,7 @@ func (c *Client) get(ctx context.Context, path string, out any) error {
 	if resp.StatusCode >= 300 {
 		var apiErr server.APIError
 		if decErr := json.NewDecoder(resp.Body).Decode(&apiErr); decErr == nil && apiErr.Error.Message != "" {
-			return fmt.Errorf("api: %s: %s", apiErr.Error.Code, apiErr.Error.Message)
+			return &StatusError{Code: apiErr.Error.Code, Field: apiErr.Error.Field, Message: apiErr.Error.Message}
 		}
 		return fmt.Errorf("api: %s: unexpected status %d", path, resp.StatusCode)
 	}

@@ -11,12 +11,13 @@ nav_order: 3
 
 > **Release status:** dual-syntax `task add` / `task edit` input and `cron convert` are currently unreleased changes planned for the first release after 0.8.0. Existing import, explain, and export workflows remain applicable from 0.7.0.
 
-`gosched` is a thin client. Every command below talks to the `goschedd` daemon over local IPC, a Unix socket on Linux and macOS, a named pipe on Windows, so the CLI and the desktop GUI act on identical state, and the schedule keeps running whether or not either is open.
+`gosched` is a thin client. With no target flags it talks to `goschedd` over protected local IPC, so existing scripts remain local and unchanged. A deliberate `--profile` or complete explicit remote selection uses the same command surface through the authenticated HTTPS allowlist.
 
 ## Contents
 
 - [Conventions](#conventions)
 - [Global flags](#global-flags)
+- [Remote profiles](#remote-profiles)
 - [Exit codes](#exit-codes)
 - [`health`](#health)
 - [`daemon`](#daemon)
@@ -45,8 +46,29 @@ Times you supply are RFC 3339 (`2026-08-04T09:00:00Z`). Times printed back are R
 | Flag | Effect |
 | --- | --- |
 | `--json` | Emit machine-readable JSON instead of the table or summary. Available on every command that produces output. |
+| `--profile ID_OR_LABEL` | Use one saved remote profile for this invocation. Labels must be unambiguous. |
+| `--endpoint`, `--daemon-id`, `--credential-id`, `--certificate-file` | Select one explicit remote target. All four are required together and cannot be combined with `--profile`. |
 | `-v`, `--version` | Print the CLI version. This is the *client* version; see [`health`](#health) for the daemon's. |
 | `-h`, `--help` | Help for any command or subcommand. |
+
+Remote human-mode commands identify the profile, endpoint, and shortened daemon ID on stderr. JSON stdout remains valid command JSON without a diagnostic prefix. Bearer values and pairing phrases are never accepted as target flags.
+
+## Remote profiles
+
+Pair a CLI identity by piping or interactively entering the one-time phrase on standard input. The phrase and issued bearer value are not printed or stored in the profile document:
+
+```sh
+gosched profile pair production --address https://10.0.0.8:8443 --expected-daemon-id DAEMON_ID --pairing-id PAIRING_ID --trusted-certificate daemon.pem --client-name "Operations CLI" --capability operate
+```
+
+Administer saved profiles with `gosched profile list`, `gosched profile show PROFILE`, `gosched profile rename PROFILE LABEL`, and `gosched profile remove PROFILE --confirm PROFILE_ID`. List and show expose the certificate fingerprint and credential reference, never the certificate body or bearer value. Removal requires the exact stable profile ID and deletes the native credential before metadata.
+
+Use a saved target for exactly one command:
+
+```sh
+gosched --profile production task list
+gosched --profile PROFILE_ID --json runs list
+```
 
 ## Exit codes
 

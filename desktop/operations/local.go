@@ -31,6 +31,9 @@ func (b *LocalBackend) ListActiveRuns(ctx context.Context) ([]domain.Run, error)
 	return b.daemon.ListActiveRuns(ctx)
 }
 func (b *LocalBackend) ListLogs(ctx context.Context, severity string, limit int) (server.LogsResponse, error) {
+	if remote, ok := b.daemon.(interface{ Remote() bool }); ok && remote.Remote() {
+		return server.LogsResponse{Logs: []domain.LogRecord{}}, nil
+	}
 	return b.daemon.ListLogs(ctx, severity, limit)
 }
 func (b *LocalBackend) ListAlertsLimited(ctx context.Context, unacked bool, limit int) ([]domain.Alert, error) {

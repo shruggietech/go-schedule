@@ -13,6 +13,10 @@ type cancelableHealthBackend struct {
 	count atomic.Int32
 }
 
+type manualRetryBackend struct{ *backendFake }
+
+func (*manualRetryBackend) AutoRetry() bool { return false }
+
 type joiningHealthBackend struct {
 	calls    chan int32
 	canceled chan struct{}
@@ -152,6 +156,35 @@ func TestManagerCoalescesQueuedRetryRequests(t *testing.T) {
 	}
 }
 
+func TestManagerSwitchCancelsPriorGenerationAndPublishesSelectedTarget(t *testing.T) {
+	prior := &joiningHealthBackend{calls: make(chan int32, 2), canceled: make(chan struct{}), release: make(chan struct{})}
+	next := &backendFake{results: []backendResult{{health: Health{ID: "remote-daemon", DisplayName: "Remote", Platform: "linux", Version: "1.4.0"}}}}
+	observer := observerFake{events: make(chan Event, 12)}
+	manager := newManager(prior, observer, timerScheduler{}, time.Now)
+	manager.Start(context.Background())
+	<-prior.calls
+	nextState(t, observer.events, StateConnecting)
+	target := RemoteTarget("profile-id", "remote-daemon", "Remote", "https://example.test", "fingerprint", "linux", "amd64", "1.4.0")
+	if !manager.Switch(next, target) {
+		t.Fatal("switch rejected")
+	}
+	selected := nextState(t, observer.events, StateConnecting)
+	if selected.Snapshot.Target.ProfileID != "profile-id" {
+		t.Fatalf("selected snapshot=%+v", selected.Snapshot)
+	}
+	<-prior.canceled
+	close(prior.release)
+	connected := nextState(t, observer.events, StateConnected)
+	if connected.Snapshot.Target.ProfileID != "profile-id" || connected.Snapshot.Target.Kind != "remote" || connected.Generation != 2 {
+		t.Fatalf("snapshot=%+v", connected.Snapshot)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := manager.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestManagerManualRetryCancelsActiveHealthAttempt(t *testing.T) {
 	backend := &cancelableHealthBackend{calls: make(chan int32, 2)}
 	observer := observerFake{events: make(chan Event, 8)}
@@ -227,6 +260,30 @@ func TestManagerTerminalFailureWaitsForManualRetry(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	_ = manager.Stop(ctx)
+}
+
+func TestManagerRemoteFailureNeverStartsAutomaticRetry(t *testing.T) {
+	failure := &Failure{State: StateUnavailable, Message: "Remote unavailable.", Action: "Try again."}
+	backend := &manualRetryBackend{backendFake: &backendFake{results: []backendResult{{err: failure}, {health: Health{Version: "1.4.0"}}}}}
+	observer := observerFake{events: make(chan Event, 8)}
+	scheduler := schedulerFake{delays: make(chan time.Duration, 1), releases: make(chan func(), 1)}
+	manager := newManager(backend, observer, scheduler, time.Now)
+	manager.Start(context.Background())
+	nextState(t, observer.events, StateUnavailable)
+	select {
+	case delay := <-scheduler.delays:
+		t.Fatalf("automatic retry scheduled after %s", delay)
+	case <-time.After(100 * time.Millisecond):
+	}
+	if !manager.Retry() {
+		t.Fatal("manual retry rejected")
+	}
+	nextState(t, observer.events, StateConnected)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := manager.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestManagerPublishesEveryConnectionState(t *testing.T) {

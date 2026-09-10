@@ -1,10 +1,15 @@
 package clientsecret
 
-import "testing"
+import (
+	"testing"
+
+	keyring "github.com/zalando/go-keyring"
+)
 
 type fakeBackend struct {
-	values map[string]string
-	fail   bool
+	values        map[string]string
+	fail          bool
+	missingDelete bool
 }
 
 func (f *fakeBackend) Set(s, u, p string) error {
@@ -21,7 +26,13 @@ func (f *fakeBackend) Get(s, u string) (string, error) {
 	}
 	return v, nil
 }
-func (f *fakeBackend) Delete(s, u string) error { delete(f.values, s+u); return nil }
+func (f *fakeBackend) Delete(s, u string) error {
+	if f.missingDelete {
+		return keyring.ErrNotFound
+	}
+	delete(f.values, s+u)
+	return nil
+}
 
 type fakeError string
 
@@ -46,5 +57,11 @@ func TestStoreUsesDaemonScopedNativeCredentialEntry(t *testing.T) {
 func TestProbeFailsClosed(t *testing.T) {
 	if NewWithBackend(&fakeBackend{values: map[string]string{}, fail: true}).Probe() == nil {
 		t.Fatal("expected unavailable keyring")
+	}
+}
+
+func TestDeleteTreatsMissingCredentialAsAlreadyRemoved(t *testing.T) {
+	if err := NewWithBackend(&fakeBackend{values: map[string]string{}, missingDelete: true}).Delete("daemon", "credential"); err != nil {
+		t.Fatal(err)
 	}
 }
