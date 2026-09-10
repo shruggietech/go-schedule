@@ -10,9 +10,10 @@ import (
 	"time"
 )
 
-const attemptTimeout = 2 * time.Second
+const localAttemptTimeout = 2 * time.Second
 
-var retryDelays = [...]time.Duration{500 * time.Millisecond, 2 * time.Second, 10 * time.Second, 30 * time.Second}
+var localRetryDelays = [...]time.Duration{250 * time.Millisecond, time.Second, 5 * time.Second}
+var remoteRetryDelays = [...]time.Duration{500 * time.Millisecond, 2 * time.Second, 10 * time.Second, 30 * time.Second}
 
 type timerScheduler struct{}
 
@@ -31,7 +32,7 @@ type Manager struct {
 	scheduler  Scheduler
 	observer   Observer
 	now        func() time.Time
-	retryDelay func(int) time.Duration
+	retryDelay func(Target, int) time.Duration
 
 	mu              sync.RWMutex
 	target          Target
@@ -58,18 +59,32 @@ func newManager(backend Backend, observer Observer, scheduler Scheduler, now fun
 	return &Manager{backend: backend, target: target, observer: observer, scheduler: scheduler, now: now, retryDelay: baseRetryDelay, retry: make(chan struct{}, 1), done: make(chan struct{}), snapshot: Snapshot{State: StateConnecting, Target: target, Message: connectingMessage(target), Recovery: RecoveryNone}}
 }
 
-func baseRetryDelay(attempt int) time.Duration {
-	return retryDelays[min(max(attempt-1, 0), len(retryDelays)-1)]
+func baseRetryDelay(target Target, attempt int) time.Duration {
+	delays := localRetryDelays[:]
+	if target.Kind == "remote" {
+		delays = remoteRetryDelays[:]
+	}
+	return delays[min(max(attempt-1, 0), len(delays)-1)]
 }
 
-func jitteredRetryDelay(attempt int) time.Duration {
-	base := baseRetryDelay(attempt)
+func jitteredRetryDelay(target Target, attempt int) time.Duration {
+	base := baseRetryDelay(target, attempt)
+	if target.Kind != "remote" {
+		return base
+	}
 	window := base / 4
 	if window <= 0 {
 		return base
 	}
 	delay := base - window + time.Duration(rand.Int64N(int64(2*window)+1))
-	return min(delay, retryDelays[len(retryDelays)-1])
+	return min(delay, remoteRetryDelays[len(remoteRetryDelays)-1])
+}
+
+func attemptTimeoutFor(backend Backend) time.Duration {
+	if policy, ok := backend.(interface{ AttemptTimeout() time.Duration }); ok && policy.AttemptTimeout() > 0 {
+		return policy.AttemptTimeout()
+	}
+	return localAttemptTimeout
 }
 
 // Switch cancels the active generation and selects an immutable backend for future work.
@@ -189,7 +204,7 @@ connectionLoop:
 			state = StateRecovering
 		}
 		m.publishSelectedSnapshot(generation, state, target, connectingMessage(target), "", retryAttempt)
-		attemptCtx, cancelAttempt := context.WithTimeout(ctx, attemptTimeout)
+		attemptCtx, cancelAttempt := context.WithTimeout(ctx, attemptTimeoutFor(backend))
 		type healthResult struct {
 			health Health
 			err    error
@@ -231,7 +246,7 @@ connectionLoop:
 				continue
 			}
 			retryAttempt++
-			delay := m.retryDelay(retryAttempt)
+			delay := m.retryDelay(target, retryAttempt)
 			m.publishAutomaticFailure(generation, failure.State, failure.Message, failure.Action, retryAttempt, delay)
 			proceed, manual := m.waitRetry(ctx, delay)
 			if !proceed {
@@ -291,7 +306,7 @@ connectionLoop:
 					retryAttempt = 0
 				}
 				retryAttempt++
-				delay := m.retryDelay(retryAttempt)
+				delay := m.retryDelay(target, retryAttempt)
 				m.publishAutomaticFailure(generation, StateDegraded, "Live updates are temporarily unavailable.", "Retry now.", retryAttempt, delay)
 				proceed, manual := m.waitRetry(ctx, delay)
 				if !proceed {

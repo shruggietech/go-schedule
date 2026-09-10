@@ -40,4 +40,12 @@ describe('task workspace authority', () => {
     await waitFor(() => expect(hook.current.selected).toBe('current'))
     expect(workspace).toHaveBeenCalledTimes(2)
   })
+
+  it('reports unavailable instead of loading forever when the initial read is blocked', async () => {
+    const bridge = { workspace: vi.fn() } as unknown as TaskBridge
+    const { result: hook } = renderHook(() => useTaskWorkspace(bridge, false, 0))
+    await waitFor(() => expect(hook.current.status?.outcome).toBe('unavailable'))
+    expect(hook.current.workspace).toBeUndefined()
+    expect(bridge.workspace).not.toHaveBeenCalled()
+  })
 })

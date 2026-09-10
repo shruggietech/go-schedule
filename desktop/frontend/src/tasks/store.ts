@@ -19,7 +19,11 @@ export function useTaskWorkspace(bridge: TaskBridge, available = true, refreshTo
     const result = await bridge.workspace()
     if (request === requestSequence.current) apply(result)
   }, [apply, available, bridge])
-  useEffect(() => { if (!available) requestSequence.current++ }, [available])
+  useEffect(() => {
+    if (available) return
+    requestSequence.current++
+    setStatus({ action: 'load', outcome: 'unavailable', message: 'Tasks are unavailable until the selected scheduler reconnects.' })
+  }, [available])
   useEffect(() => {
     void load()
     let timer: ReturnType<typeof setTimeout> | undefined

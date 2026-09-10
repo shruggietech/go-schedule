@@ -122,14 +122,14 @@ func TestManagerConnectsPublishesEventsAndRejectsStaleGeneration(t *testing.T) {
 	stream <- DomainEvent{Kind: "task.updated", EntityID: "stale"}
 }
 
-func TestManagerExactRetryCadence(t *testing.T) {
+func TestManagerPreservesExactLocalRetryCadence(t *testing.T) {
 	failure := &Failure{State: StateUnavailable, Message: "Unavailable.", Action: "Retry."}
 	backend := &backendFake{results: []backendResult{{err: failure}, {err: failure}, {err: failure}, {health: Health{Version: "1.0.0"}}}}
 	observer := observerFake{events: make(chan Event, 32)}
 	scheduler := schedulerFake{delays: make(chan time.Duration, 4), releases: make(chan func(), 4)}
 	manager := newManager(backend, observer, scheduler, time.Now)
 	manager.Start(context.Background())
-	wants := []time.Duration{500 * time.Millisecond, 2 * time.Second, 10 * time.Second}
+	wants := []time.Duration{250 * time.Millisecond, time.Second, 5 * time.Second}
 	for index, want := range wants {
 		event := nextState(t, observer.events, StateUnavailable)
 		if event.Snapshot.Recovery != RecoveryAutomatic || event.Snapshot.RetryAttempt != index+1 || event.Snapshot.NextRetryAt == "" {
@@ -140,6 +140,32 @@ func TestManagerExactRetryCadence(t *testing.T) {
 		}
 		release := <-scheduler.releases
 		release()
+	}
+	nextState(t, observer.events, StateConnected)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := manager.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestManagerUsesExactRemoteRetryCadenceWithoutJitter(t *testing.T) {
+	failure := &Failure{State: StateUnavailable, Message: "Unavailable.", Action: "Retry."}
+	backend := &backendFake{results: []backendResult{{err: failure}, {err: failure}, {err: failure}, {health: Health{Version: "1.4.0"}}}}
+	observer := observerFake{events: make(chan Event, 32)}
+	scheduler := schedulerFake{delays: make(chan time.Duration, 4), releases: make(chan func(), 4)}
+	manager := newManager(backend, observer, scheduler, time.Now)
+	manager.Switch(backend, RemoteTarget("profile-id", "daemon-id", "Remote", "https://example.test", "fingerprint", "linux", "amd64", "1.4.0", ""))
+	manager.Start(context.Background())
+	for index, want := range []time.Duration{500 * time.Millisecond, 2 * time.Second, 10 * time.Second} {
+		event := nextState(t, observer.events, StateUnavailable)
+		if event.Snapshot.RetryAttempt != index+1 {
+			t.Fatalf("retry metadata %d=%+v", index, event.Snapshot)
+		}
+		if got := <-scheduler.delays; got != want {
+			t.Fatalf("delay %d=%s want %s", index, got, want)
+		}
+		(<-scheduler.releases)()
 	}
 	nextState(t, observer.events, StateConnected)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -359,7 +385,7 @@ func TestManagerDegradesAndRecoversAfterEventFailure(t *testing.T) {
 	if event.Message != "Live updates are temporarily unavailable." {
 		t.Fatalf("event=%+v", event)
 	}
-	if got := <-scheduler.delays; got != 500*time.Millisecond {
+	if got := <-scheduler.delays; got != 250*time.Millisecond {
 		t.Fatalf("delay=%s", got)
 	}
 	(<-scheduler.releases)()
@@ -377,7 +403,7 @@ func TestManagerBacksOffRepeatedEventFailuresAndResetsAfterActivity(t *testing.T
 	manager.Start(context.Background())
 	nextState(t, observer.events, StateConnected)
 
-	for index, want := range []time.Duration{500 * time.Millisecond, 2 * time.Second, 10 * time.Second} {
+	for index, want := range []time.Duration{250 * time.Millisecond, time.Second, 5 * time.Second} {
 		_, errorsCh := streamAt(t, backend, index)
 		errorsCh <- errors.New("event endpoint unavailable")
 		nextState(t, observer.events, StateDegraded)
@@ -400,7 +426,7 @@ func TestManagerBacksOffRepeatedEventFailuresAndResetsAfterActivity(t *testing.T
 	}
 	errorsCh <- errors.New("event endpoint unavailable again")
 	nextState(t, observer.events, StateDegraded)
-	if got := <-scheduler.delays; got != 500*time.Millisecond {
+	if got := <-scheduler.delays; got != 250*time.Millisecond {
 		t.Fatalf("retry after stream activity=%s", got)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -429,19 +455,23 @@ func TestManagerLifecycleOneHundredCycles(t *testing.T) {
 }
 
 func TestRetryDelayIsBoundedAndJittered(t *testing.T) {
+	remote := RemoteTarget("profile-id", "daemon-id", "Remote", "https://example.test", "fingerprint", "linux", "amd64", "1.4.0", "")
 	seen := map[time.Duration]bool{}
 	for index := 0; index < 100; index++ {
-		delay := jitteredRetryDelay(1)
+		delay := jitteredRetryDelay(remote, 1)
 		if delay < 375*time.Millisecond || delay > 625*time.Millisecond {
 			t.Fatalf("first retry delay=%s", delay)
 		}
 		seen[delay] = true
-		if capped := jitteredRetryDelay(99); capped > 30*time.Second {
+		if capped := jitteredRetryDelay(remote, 99); capped > 30*time.Second {
 			t.Fatalf("capped retry delay=%s", capped)
 		}
 	}
 	if len(seen) < 2 {
 		t.Fatal("retry delay did not vary")
+	}
+	if local := jitteredRetryDelay(LocalTarget(), 99); local != 5*time.Second {
+		t.Fatalf("local retry delay=%s", local)
 	}
 }
 

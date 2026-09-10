@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
@@ -14,6 +15,36 @@ type remoteDaemonStub struct {
 	manifest server.ManifestResponse
 	err      error
 	events   []client.RemoteEvent
+}
+
+type delayedRemoteDaemon struct{ remoteDaemonStub }
+
+func waitStage(ctx context.Context) error {
+	select {
+	case <-time.After(700 * time.Millisecond):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (stub delayedRemoteDaemon) Health(ctx context.Context) (server.HealthResponse, error) {
+	if err := waitStage(ctx); err != nil {
+		return server.HealthResponse{}, err
+	}
+	return stub.remoteDaemonStub.Health(ctx)
+}
+func (stub delayedRemoteDaemon) VerifyIdentity(ctx context.Context) (server.ManifestResponse, error) {
+	if err := waitStage(ctx); err != nil {
+		return server.ManifestResponse{}, err
+	}
+	return stub.remoteDaemonStub.VerifyIdentity(ctx)
+}
+func (stub delayedRemoteDaemon) VerifyAccess(ctx context.Context) error {
+	if err := waitStage(ctx); err != nil {
+		return err
+	}
+	return stub.remoteDaemonStub.VerifyAccess(ctx)
 }
 
 func (stub remoteDaemonStub) Health(context.Context) (server.HealthResponse, error) {
@@ -44,6 +75,21 @@ func TestRemoteBackendNegotiatesIdentityAuthorityAndEvents(t *testing.T) {
 	_ = backend.StreamEvents(context.Background(), func(value DomainEvent) { event = value })
 	if event.Kind != "task.updated" || event.EntityID != "task-1" {
 		t.Fatalf("event = %#v", event)
+	}
+}
+
+func TestRemoteBackendGivesEachNegotiationStageItsOwnTimeout(t *testing.T) {
+	stub := remoteDaemonStub{health: server.HealthResponse{Status: "ok", Version: "v1.4.0"}, manifest: server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "Remote", ProductVersion: "v1.4.0", RemoteAPIVersions: []string{"v1"}, Platform: server.ManifestPlatform{OS: "linux"}}}
+	backend := NewRemoteBackend(delayedRemoteDaemon{remoteDaemonStub: stub}, "observe")
+	started := time.Now()
+	if _, err := backend.Health(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(started); elapsed < 2*time.Second || elapsed >= remoteAttemptTimeout {
+		t.Fatalf("negotiation elapsed=%s", elapsed)
+	}
+	if got := attemptTimeoutFor(backend); got != remoteAttemptTimeout {
+		t.Fatalf("attempt timeout=%s", got)
 	}
 }
 

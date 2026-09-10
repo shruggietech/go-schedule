@@ -5,10 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 )
+
+const remoteStageTimeout = 2 * time.Second
+const remoteAttemptTimeout = 7 * time.Second
 
 type remoteDaemon interface {
 	Health(context.Context) (server.HealthResponse, error)
@@ -41,7 +45,8 @@ func (backend *unavailableRemoteBackend) StreamEvents(context.Context, func(Doma
 	return &Failure{State: StateUnavailable, Message: backend.message, Action: backend.action}
 }
 
-func (*RemoteBackend) AutoRetry() bool { return true }
+func (*RemoteBackend) AutoRetry() bool               { return true }
+func (*RemoteBackend) AttemptTimeout() time.Duration { return remoteAttemptTimeout }
 
 // NewRemoteBackend creates a backend for one immutable remote selection.
 func NewRemoteBackend(daemon remoteDaemon, capability string) *RemoteBackend {
@@ -49,21 +54,28 @@ func NewRemoteBackend(daemon remoteDaemon, capability string) *RemoteBackend {
 }
 
 func (backend *RemoteBackend) Health(ctx context.Context) (Health, error) {
-	health, err := backend.daemon.Health(ctx)
+	healthCtx, cancelHealth := context.WithTimeout(ctx, remoteStageTimeout)
+	health, err := backend.daemon.Health(healthCtx)
+	cancelHealth()
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
 	if health.Status != "ok" || !compatibleVersion(health.Version) {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected remote scheduler version is incompatible.", Action: "Update the remote scheduler or select another connection."}
 	}
-	manifest, err := backend.daemon.VerifyIdentity(ctx)
+	identityCtx, cancelIdentity := context.WithTimeout(ctx, remoteStageTimeout)
+	manifest, err := backend.daemon.VerifyIdentity(identityCtx)
+	cancelIdentity()
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
 	if manifest.ProductVersion != health.Version || len(manifest.RemoteAPIVersions) == 0 {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected daemon does not advertise a compatible remote API.", Action: "Update the remote scheduler."}
 	}
-	if err := backend.daemon.VerifyAccess(ctx); err != nil {
+	accessCtx, cancelAccess := context.WithTimeout(ctx, remoteStageTimeout)
+	err = backend.daemon.VerifyAccess(accessCtx)
+	cancelAccess()
+	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
 	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: permissionsFor(backend.capability)}, nil
