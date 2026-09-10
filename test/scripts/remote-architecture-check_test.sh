@@ -17,7 +17,7 @@ write_good() {
   cat > "$dest/docs/remote-access.md" <<'EOF'
 # Remote access architecture
 
-**Current status:** Architecture contract only. No remote listener is implemented.
+**Current status:** Implemented behind explicit daemon configuration. Remote access remains disabled by default.
 
 **Primary remote transport:** HTTPS with versioned HTTP/JSON.
 

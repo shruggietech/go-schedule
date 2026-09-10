@@ -22,6 +22,7 @@ func (stub remoteDaemonStub) Health(context.Context) (server.HealthResponse, err
 func (stub remoteDaemonStub) VerifyIdentity(context.Context) (server.ManifestResponse, error) {
 	return stub.manifest, stub.err
 }
+func (stub remoteDaemonStub) VerifyAccess(context.Context) error { return stub.err }
 func (stub remoteDaemonStub) StreamRemoteEvents(_ context.Context, publish func(client.RemoteEvent)) error {
 	for _, event := range stub.events {
 		publish(event)
@@ -50,7 +51,7 @@ func TestRemoteBackendClassifiesIdentityAndAuthorityFailures(t *testing.T) {
 	for _, test := range []struct {
 		code  string
 		state State
-	}{{"authentication_failed", StateAccessDenied}, {server.CodeForbidden, StateAccessDenied}, {server.CodeConflict, StateIncompatible}} {
+	}{{"authentication_failed", StateUnauthorized}, {"credential_revoked", StateRevoked}, {server.CodeForbidden, StateForbidden}, {server.CodeConflict, StateIdentityChanged}} {
 		backend := NewRemoteBackend(remoteDaemonStub{err: &client.StatusError{Code: test.code, Message: "secret-canary"}}, "observe")
 		_, err := backend.Health(context.Background())
 		var failure *Failure

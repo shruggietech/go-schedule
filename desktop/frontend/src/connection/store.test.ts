@@ -26,8 +26,9 @@ describe('connection store', () => {
     const fake = fakeBridge()
     const { result } = renderHook(() => useConnection(fake.bridge))
     await waitFor(() => expect(result.current.snapshot.state).toBe('connected'))
-    act(() => fake.emit({ id: '3', kind: 'connection.changed', message: 'Recovering.', generation: 3, occurredAt: 'now', snapshot: { ...connected, generation: 3, revision: 5, state: 'recovering' } }))
+    act(() => fake.emit({ id: '3', kind: 'connection.changed', message: 'Recovering.', generation: 3, occurredAt: 'now', snapshot: { ...connected, generation: 3, revision: 5, state: 'recovering', stale: true, recovery: 'automatic', retryAttempt: 2, nextRetryAt: 'later' } }))
     expect(result.current.snapshot.state).toBe('recovering')
+    expect(result.current.snapshot).toMatchObject({ stale: true, recovery: 'automatic', retryAttempt: 2, nextRetryAt: 'later' })
     expect(result.current.announcement).toBe('Recovering.')
   })
 

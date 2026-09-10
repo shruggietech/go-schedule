@@ -2,8 +2,11 @@ package client
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -14,6 +17,10 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 )
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(request *http.Request) (*http.Response, error) { return f(request) }
 
 func serverCertificatePEM(t *testing.T, server *httptest.Server) string {
 	t.Helper()
@@ -222,5 +229,51 @@ func TestRemoteTaskDetailsReadEveryObservationPage(t *testing.T) {
 	}
 	if details[0].Task.ID != "task-0" || details[taskCount-1].Task.ID != "task-204" {
 		t.Fatalf("first=%+v last=%+v", details[0].Task, details[taskCount-1].Task)
+	}
+}
+
+func TestRemoteMutationTransportFailureIsUncertainAndSingleAttempt(t *testing.T) {
+	attempts := 0
+	remote := &Client{http: &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+		attempts++
+		return nil, errors.New("private bearer-canary transport detail")
+	})}, baseURL: "https://example.test", pathPrefix: "/api", remote: true, bearer: "bearer-canary"}
+	remote.verified.Store(true)
+	err := remote.RunNow(context.Background(), "task-1")
+	var uncertain *MutationUncertainError
+	if !errors.As(err, &uncertain) || attempts != 1 {
+		t.Fatalf("err=%T %v attempts=%d", err, err, attempts)
+	}
+	if strings.Contains(err.Error(), "bearer-canary") || !strings.Contains(err.Error(), "may have completed") {
+		t.Fatalf("unsafe or unactionable error=%q", err)
+	}
+}
+
+func TestRemoteMutationAmbiguousServerResponseIsUncertain(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		status int
+		body   string
+	}{{name: "invalid success body", status: http.StatusOK, body: "{"}, {name: "server failure", status: http.StatusInternalServerError, body: "not-json"}} {
+		t.Run(test.name, func(t *testing.T) {
+			attempts := 0
+			remote := &Client{http: &http.Client{Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
+				attempts++
+				return &http.Response{StatusCode: test.status, Body: io.NopCloser(strings.NewReader(test.body)), Header: make(http.Header)}, nil
+			})}, baseURL: "https://example.test", pathPrefix: "/api", remote: true}
+			remote.verified.Store(true)
+			_, err := remote.CreateTask(context.Background(), server.TaskCreateRequest{Name: "task"})
+			var uncertain *MutationUncertainError
+			if !errors.As(err, &uncertain) || attempts != 1 {
+				t.Fatalf("err=%T %v attempts=%d", err, err, attempts)
+			}
+		})
+	}
+}
+
+func TestConnectionErrorClassifiesTrustFailureWithoutCauseDisclosure(t *testing.T) {
+	err := NewConnectionError("GET /v1/manifest", x509.UnknownAuthorityError{})
+	if err.Kind != ConnectionTrustFailure || strings.Contains(err.Error(), "certificate signed") {
+		t.Fatalf("error=%+v message=%q", err, err.Error())
 	}
 }

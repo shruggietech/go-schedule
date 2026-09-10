@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button, Notice, StatePanel } from '../components'
 import { GroupsPanel } from './GroupsPanel'
 import { TaskActions } from './TaskActions'
 import { TaskEditor } from './TaskEditor'
 import { blankTask, type OperationResult, type TaskBridge, type TaskDraft } from './model'
 import { useTaskWorkspace } from './store'
-export function TasksPage({ bridge, platform, available = true, manageAvailable = available, editAvailable = manageAvailable, groupAvailable = manageAvailable, previewAvailable = manageAvailable, targetName = 'This computer', refreshToken = 0, onActivity }: { bridge: TaskBridge; platform: string; available?: boolean; manageAvailable?: boolean; editAvailable?: boolean; groupAvailable?: boolean; previewAvailable?: boolean; targetName?: string; refreshToken?: number; onActivity(): void }) {
-  const { workspace, status, selected, setSelected, load, accept, setStatus } = useTaskWorkspace(bridge); const [editor, setEditor] = useState<TaskDraft>(); const [query, setQuery] = useState(''); const [state, setState] = useState('all')
-  const lastRefresh = useRef(refreshToken)
-  useEffect(() => { if (refreshToken !== lastRefresh.current) { lastRefresh.current = refreshToken; void load() } }, [load, refreshToken])
+export function TasksPage({ bridge, platform, available = true, workspaceAvailable = true, manageAvailable = available, editAvailable = manageAvailable, groupAvailable = manageAvailable, previewAvailable = manageAvailable, targetName = 'This computer', refreshToken = 0, onActivity }: { bridge: TaskBridge; platform: string; available?: boolean; workspaceAvailable?: boolean; manageAvailable?: boolean; editAvailable?: boolean; groupAvailable?: boolean; previewAvailable?: boolean; targetName?: string; refreshToken?: number; onActivity(): void }) {
+  const { workspace, status, selected, setSelected, load, accept, setStatus } = useTaskWorkspace(bridge, workspaceAvailable, refreshToken); const [editor, setEditor] = useState<TaskDraft>(); const [query, setQuery] = useState(''); const [state, setState] = useState('all')
   const tasks = useMemo(() => workspace?.tasks.filter((task) => (state === 'all' || task.effectiveState === state) && `${task.name} ${task.groupPath} ${task.scheduleSummary}`.toLowerCase().includes(query.toLowerCase())) ?? [], [workspace, query, state]); const task = workspace?.tasks.find((value) => value.id === selected)
   const handle = (result: OperationResult) => { accept(result); if (result.action === 'run_task' && result.outcome === 'accepted') onActivity() }
   const edit = async () => { if (!task) return; const result = await bridge.task(task.id); setStatus(result); if (result.task) setEditor({ ...result.task, isNew: false, originalUpdatedAt: result.task.updatedAt, overwriteStale: false }) }

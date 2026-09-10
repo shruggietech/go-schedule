@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	tasklogic "github.com/shruggietech/go-schedule/internal/task"
@@ -176,5 +177,13 @@ func TestOneHundredRepeatedMutationsAndCancellationsStayBounded(t *testing.T) {
 		if result := service.Workspace(ctx); result.Outcome != "accepted" {
 			t.Fatalf("cancellation=%+v", result)
 		}
+	}
+}
+
+func TestRunTaskReportsUncertainRemoteMutationSafely(t *testing.T) {
+	backend := &fakeBackend{err: &client.MutationUncertainError{Operation: "run task", Cause: errors.New("secret transport detail")}}
+	result := NewService(backend).RunTask(context.Background(), "task")
+	if result.Outcome != "uncertain" || result.Message != "The remote request may have completed. Refresh the selected scheduler before deciding whether to try again." {
+		t.Fatalf("result=%+v", result)
 	}
 }

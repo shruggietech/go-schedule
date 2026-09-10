@@ -450,24 +450,39 @@ func withQuery(path string, q url.Values) string {
 // response, surfacing the API error envelope.
 func (c *Client) do(ctx context.Context, method, path string, body, out any) error {
 	target := c.target()
+	remoteMutation := target.remote && method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions
 	req, err := target.newRequest(ctx, method, path, body)
 	if err != nil {
 		return err
 	}
 	resp, err := target.http.Do(req)
 	if err != nil {
+		if remoteMutation {
+			return &MutationUncertainError{Operation: method + " " + path, Cause: err}
+		}
 		return NewConnectionError(method+" "+path, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		var apiErr server.APIError
 		if decErr := json.NewDecoder(resp.Body).Decode(&apiErr); decErr == nil && apiErr.Error.Message != "" {
-			return &StatusError{Code: apiErr.Error.Code, Field: apiErr.Error.Field, Message: apiErr.Error.Message}
+			statusErr := &StatusError{Code: apiErr.Error.Code, Field: apiErr.Error.Field, Message: apiErr.Error.Message}
+			if remoteMutation && resp.StatusCode >= http.StatusInternalServerError {
+				return &MutationUncertainError{Operation: method + " " + path, Cause: statusErr}
+			}
+			return statusErr
 		}
-		return &StatusError{Code: server.CodeInternal, Message: fmt.Sprintf("%s %s: status %d", method, path, resp.StatusCode)}
+		statusErr := &StatusError{Code: server.CodeInternal, Message: fmt.Sprintf("%s %s: status %d", method, path, resp.StatusCode)}
+		if remoteMutation && resp.StatusCode >= http.StatusInternalServerError {
+			return &MutationUncertainError{Operation: method + " " + path, Cause: statusErr}
+		}
+		return statusErr
 	}
 	if out != nil {
 		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+			if remoteMutation {
+				return &MutationUncertainError{Operation: method + " " + path, Cause: err}
+			}
 			return fmt.Errorf("api: decode %s: %w", path, err)
 		}
 	}

@@ -27,9 +27,9 @@ printf 'header = "Authorization: Bearer %s"\n' "$BEARER" | curl --fail --proto =
 unset PAIRING_PHRASE BEARER
 ```
 
-Collection responses use bounded limits and continuation parameters where documented by the generated OpenAPI contract in `api/openapi/remote-v1.yaml`. Classify stable error envelope codes before considering HTTP text. Treat `401` as missing or invalid authentication, `403` as insufficient or revoked authority, `409` as identity or compatibility conflict, `429` as rate limiting, and `5xx` as server failure. Use bounded timeouts for every request.
+Collection responses use bounded limits and continuation parameters where documented by the generated OpenAPI contract in `api/openapi/remote-v1.yaml`. Classify stable error envelope codes before considering HTTP text. Treat `401 unauthorized` as missing or invalid authentication, `401 credential_revoked` as a profile that requires new enrollment material, `403` as insufficient actor authority, `409` as identity or compatibility conflict, `429` as rate limiting, and `5xx` as server failure. Use bounded timeouts for every request.
 
-GET and other retry-safe operations may be retried deliberately. If a mutation response is lost, do not replay it automatically: refresh the authoritative resource, determine whether the first mutation committed, then require a deliberate retry if needed. Server-Sent Events may reconnect using the last accepted event identity, but must discard duplicates.
+GET and other retry-safe operations may be retried deliberately. The desktop connection owner retries transient health and subscription failures with jittered delays that begin below one second and cap at thirty seconds. It stops for authentication, revocation, authorization, compatibility, certificate-trust, and daemon-identity failures. If a mutation response is lost or otherwise ambiguous, do not replay it automatically: report the outcome as uncertain, refresh the authoritative resource, determine whether the first mutation committed, then require a deliberate retry if needed. Server-Sent Events are invalidation hints; reconnecting clients refresh authoritative state rather than depending on replay.
 
 ## Daemon identity and capability manifest
 

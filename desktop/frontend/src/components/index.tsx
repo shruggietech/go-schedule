@@ -8,7 +8,7 @@ export function Button({ variant = 'primary', ...props }: ButtonHTMLAttributes<H
 export function Link({ href, children }: { href: string; children: ReactNode }) { return <a className="link" href={href}>{children}</a> }
 
 export function StatusBadge({ state }: { state: ConnectionState }) {
-  const labels: Record<ConnectionState, string> = { connecting: 'Connecting', connected: 'Connected', degraded: 'Degraded', recovering: 'Recovering', unavailable: 'Unavailable', access_denied: 'Access denied', incompatible: 'Incompatible', timed_out: 'Timed out' }
+  const labels: Record<ConnectionState, string> = { connecting: 'Connecting', connected: 'Connected', degraded: 'Degraded', recovering: 'Recovering', unavailable: 'Unavailable', access_denied: 'Access denied', unauthorized: 'Unauthorized', revoked: 'Credential revoked', forbidden: 'Forbidden', incompatible: 'Incompatible', trust_changed: 'Trust changed', identity_changed: 'Identity changed', timed_out: 'Timed out' }
   return <span className={`status status-${state}`}><span className="status-shape" aria-hidden="true" />{labels[state]}</span>
 }
 

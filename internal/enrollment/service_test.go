@@ -51,7 +51,7 @@ func TestPairingIsSingleUseAndCredentialCanRotateAndRevoke(t *testing.T) {
 	if _, err := service.Revoke(issued.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := service.Authenticate(rotated.Token); !errors.Is(err, ErrRejected) {
+	if _, _, err := service.Authenticate(rotated.Token); !errors.Is(err, ErrRevoked) {
 		t.Fatalf("revoked token err=%v", err)
 	}
 }

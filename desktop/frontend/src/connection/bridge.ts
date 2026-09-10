@@ -12,6 +12,8 @@ export const unavailableSnapshot: ConnectionSnapshot = {
   target: { id: 'local', displayName: 'This computer', platform: 'unknown', capabilities: [], permissions: [] },
   message: 'The native desktop connection is unavailable in this browser.',
   action: 'Open the installed desktop application.',
+  stale: false,
+  recovery: 'manual',
 }
 
 export function createBridge(nativeWindow: NativeWindow = window): DesktopBridge {

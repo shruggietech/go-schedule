@@ -39,6 +39,14 @@ describe('production shell', () => {
     expect(await screen.findByRole('button', { name: 'Create task' })).toBeDisabled()
   })
 
+  it('marks retained remote data stale and exposes recovery details accessibly', async () => {
+    const recovering: ConnectionSnapshot = { ...connected, state: 'recovering', stale: true, recovery: 'automatic', retryAttempt: 2, nextRetryAt: '2026-09-07T12:00:10Z', lastSuccessfulAt: '2026-09-07T12:00:00Z', message: 'The remote scheduler is temporarily unreachable.', target: { ...connected.target, id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test' } }
+    render(<App bridge={{ ...bridge, snapshot: vi.fn().mockResolvedValue(recovering) }} tasks={tasks} settings={settings} />)
+    expect(await screen.findByText('Data may be stale')).toBeVisible()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Connection details' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Attempt 2 scheduled for 2026-09-07T12:00:10Z')
+  })
+
   it('keeps target and page identity visible across operational routes', async () => {
     const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} operations={operations} settings={settings} />)
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Tasks' })).toBeVisible())

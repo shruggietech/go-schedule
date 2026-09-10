@@ -103,6 +103,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	credential, actor, err := h.enrollment.Authenticate(token)
+	if errors.Is(err, enrollment.ErrRevoked) {
+		revoked(w)
+		return
+	}
 	if err != nil || !h.actors.allow(credential.ID) {
 		if err == nil {
 			limited(w)
@@ -195,6 +199,10 @@ func bearer(values []string) (string, bool) {
 func unauthorized(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", "Bearer")
 	remoteError(w, http.StatusUnauthorized, "unauthorized", "authentication failed")
+}
+func revoked(w http.ResponseWriter) {
+	w.Header().Set("WWW-Authenticate", "Bearer")
+	remoteError(w, http.StatusUnauthorized, "credential_revoked", "credential revoked")
 }
 func limited(w http.ResponseWriter) {
 	w.Header().Set("Retry-After", "1")

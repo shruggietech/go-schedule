@@ -18,6 +18,8 @@ import (
 type fakeProfileStore struct {
 	collection               clientprofile.Collection
 	renamed, active, removed string
+	marked                   string
+	markedAt                 time.Time
 }
 
 func (f *fakeProfileStore) Load() (clientprofile.Collection, error) { return f.collection, nil }
@@ -29,6 +31,16 @@ func (f *fakeProfileStore) SetActive(id string) error {
 	f.active = id
 	f.collection.ActiveDesktopProfileID = id
 	return nil
+}
+func (f *fakeProfileStore) MarkSuccessful(id string, at time.Time) error {
+	f.marked, f.markedAt = id, at
+	for index := range f.collection.Profiles {
+		if f.collection.Profiles[index].ID == id {
+			f.collection.Profiles[index].LastSuccessfulAt = at
+			return nil
+		}
+	}
+	return clientprofile.ErrNotFound
 }
 func (f *fakeProfileStore) RemoveWith(id string, beforeDelete func(clientprofile.Profile) error) (clientprofile.Profile, error) {
 	f.removed = id
@@ -83,6 +95,15 @@ func TestWorkspaceExcludesTrustMaterialAndDisambiguatesProfiles(t *testing.T) {
 	profile := result.Workspace.Profiles[0]
 	if profile.ShortDaemonID != "daemon-i" || !profile.Active || profile.LastSuccessfulAt != "2026-09-09T01:02:03Z" {
 		t.Fatalf("profile=%+v", profile)
+	}
+}
+
+func TestMarkSuccessfulPersistsSelectedProfileContact(t *testing.T) {
+	profiles := &fakeProfileStore{collection: clientprofile.Collection{Version: clientprofile.CurrentVersion, Profiles: []clientprofile.Profile{profileFixture()}}}
+	service := New(profiles, &fakeSecretStore{}, client.New("local"), client.NewSwitchable(client.New("local")), &fakeManager{})
+	at := time.Date(2026, 9, 10, 4, 5, 6, 0, time.UTC)
+	if err := service.MarkSuccessful("profile-id", at); err != nil || profiles.marked != "profile-id" || !profiles.markedAt.Equal(at) {
+		t.Fatalf("marked=%q at=%s err=%v", profiles.marked, profiles.markedAt, err)
 	}
 }
 

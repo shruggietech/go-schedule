@@ -184,6 +184,15 @@ func (c *Client) RuntimeInfo(ctx context.Context) (server.RuntimeInfoResponse, e
 	return out, nil
 }
 
+// VerifyAccess performs one bounded protected read so connection negotiation
+// proves that the stored remote credential is still active.
+func (c *Client) VerifyAccess(ctx context.Context) error {
+	var out struct {
+		Tasks []json.RawMessage `json:"tasks"`
+	}
+	return c.get(ctx, "/v1/tasks?observation=true&limit=1&text_limit=1", &out)
+}
+
 // get performs a GET and decodes a JSON body, surfacing the API error envelope.
 func (c *Client) get(ctx context.Context, path string, out any) error {
 	target := c.target()

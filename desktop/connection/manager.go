@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,7 +12,7 @@ import (
 
 const attemptTimeout = 2 * time.Second
 
-var retryDelays = [...]time.Duration{250 * time.Millisecond, time.Second, 5 * time.Second}
+var retryDelays = [...]time.Duration{500 * time.Millisecond, 2 * time.Second, 10 * time.Second, 30 * time.Second}
 
 type timerScheduler struct{}
 
@@ -26,10 +27,11 @@ func (timerScheduler) After(ctx context.Context, delay time.Duration) <-chan str
 
 // Manager owns exactly one connection generation and event stream at a time.
 type Manager struct {
-	backend   Backend
-	scheduler Scheduler
-	observer  Observer
-	now       func() time.Time
+	backend    Backend
+	scheduler  Scheduler
+	observer   Observer
+	now        func() time.Time
+	retryDelay func(int) time.Duration
 
 	mu              sync.RWMutex
 	target          Target
@@ -46,12 +48,28 @@ type Manager struct {
 
 // NewManager creates an idle manager with an honest initial snapshot.
 func NewManager(backend Backend, observer Observer) *Manager {
-	return newManager(backend, observer, timerScheduler{}, time.Now)
+	manager := newManager(backend, observer, timerScheduler{}, time.Now)
+	manager.retryDelay = jitteredRetryDelay
+	return manager
 }
 
 func newManager(backend Backend, observer Observer, scheduler Scheduler, now func() time.Time) *Manager {
 	target := localTarget()
-	return &Manager{backend: backend, target: target, observer: observer, scheduler: scheduler, now: now, retry: make(chan struct{}, 1), done: make(chan struct{}), snapshot: Snapshot{State: StateConnecting, Target: target, Message: connectingMessage(target)}}
+	return &Manager{backend: backend, target: target, observer: observer, scheduler: scheduler, now: now, retryDelay: baseRetryDelay, retry: make(chan struct{}, 1), done: make(chan struct{}), snapshot: Snapshot{State: StateConnecting, Target: target, Message: connectingMessage(target), Recovery: RecoveryNone}}
+}
+
+func baseRetryDelay(attempt int) time.Duration {
+	return retryDelays[min(max(attempt-1, 0), len(retryDelays)-1)]
+}
+
+func jitteredRetryDelay(attempt int) time.Duration {
+	base := baseRetryDelay(attempt)
+	window := base / 4
+	if window <= 0 {
+		return base
+	}
+	delay := base - window + time.Duration(rand.Int64N(int64(2*window)+1))
+	return min(delay, retryDelays[len(retryDelays)-1])
 }
 
 // Switch cancels the active generation and selects an immutable backend for future work.
@@ -67,7 +85,7 @@ func (m *Manager) Switch(backend Backend, target Target) bool {
 	m.backend = backend
 	m.target = cloneTarget(target)
 	started := m.started
-	m.snapshot = Snapshot{Generation: m.snapshot.Generation, Revision: m.snapshot.Revision + 1, State: StateConnecting, Target: cloneTarget(target), Message: connectingMessage(target)}
+	m.snapshot = Snapshot{Generation: m.snapshot.Generation, Revision: m.snapshot.Revision + 1, State: StateConnecting, Target: cloneTarget(target), Message: connectingMessage(target), LastSuccessfulAt: target.lastSuccessfulAt, Stale: target.Kind == "remote" && target.lastSuccessfulAt != "", Recovery: RecoveryNone}
 	snapshot := cloneSnapshot(m.snapshot)
 	if started && !m.retryQueued {
 		m.retryQueued = true
@@ -160,7 +178,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 func (m *Manager) run(ctx context.Context) {
 	defer close(m.done)
 	var generation uint64
-	retryIndex := 0
+	retryAttempt := 0
 
 connectionLoop:
 	for {
@@ -170,7 +188,7 @@ connectionLoop:
 		if generation > 1 {
 			state = StateRecovering
 		}
-		m.publishSelectedSnapshot(generation, state, target, connectingMessage(target), "")
+		m.publishSelectedSnapshot(generation, state, target, connectingMessage(target), "", retryAttempt)
 		attemptCtx, cancelAttempt := context.WithTimeout(ctx, attemptTimeout)
 		type healthResult struct {
 			health Health
@@ -196,7 +214,7 @@ connectionLoop:
 			m.beginRetry()
 			cancelAttempt()
 			<-result
-			retryIndex = 0
+			retryAttempt = 0
 			continue connectionLoop
 		}
 		if ctx.Err() != nil {
@@ -204,24 +222,23 @@ connectionLoop:
 		}
 		if err != nil {
 			failure := failureOf(err)
-			m.publishSnapshot(generation, failure.State, failure.Message, failure.Action)
-			if failure.State == StateAccessDenied || failure.State == StateIncompatible || !autoRetry(backend) {
+			if terminalState(failure.State) || !autoRetry(backend) {
+				m.publishManualFailure(generation, failure)
 				if !m.waitManual(ctx) {
 					return
 				}
-				retryIndex = 0
+				retryAttempt = 0
 				continue
 			}
-			delay := retryDelays[min(retryIndex, len(retryDelays)-1)]
-			if retryIndex < len(retryDelays)-1 {
-				retryIndex++
-			}
+			retryAttempt++
+			delay := m.retryDelay(retryAttempt)
+			m.publishAutomaticFailure(generation, failure.State, failure.Message, failure.Action, retryAttempt, delay)
 			proceed, manual := m.waitRetry(ctx, delay)
 			if !proceed {
 				return
 			}
 			if manual {
-				retryIndex = 0
+				retryAttempt = 0
 			}
 			continue
 		}
@@ -252,40 +269,49 @@ connectionLoop:
 				m.beginRetry()
 				cancelStream()
 				<-streamDone
-				retryIndex = 0
+				retryAttempt = 0
 				continue connectionLoop
 			case <-streamActivity:
-				retryIndex = 0
-			case <-streamDone:
+				retryAttempt = 0
+			case streamErr := <-streamDone:
 				cancelStream()
 				if ctx.Err() != nil {
 					return
 				}
-				m.publishSnapshot(generation, StateDegraded, "Live updates are temporarily unavailable.", "Try again.")
-				if !autoRetry(backend) {
+				failure := failureOf(streamErr)
+				if terminalState(failure.State) || !autoRetry(backend) {
+					m.publishManualFailure(generation, failure)
 					if !m.waitManual(ctx) {
 						return
 					}
-					retryIndex = 0
+					retryAttempt = 0
 					continue connectionLoop
 				}
 				if streamHadActivity.Load() {
-					retryIndex = 0
+					retryAttempt = 0
 				}
-				delay := retryDelays[min(retryIndex, len(retryDelays)-1)]
-				if retryIndex < len(retryDelays)-1 {
-					retryIndex++
-				}
+				retryAttempt++
+				delay := m.retryDelay(retryAttempt)
+				m.publishAutomaticFailure(generation, StateDegraded, "Live updates are temporarily unavailable.", "Retry now.", retryAttempt, delay)
 				proceed, manual := m.waitRetry(ctx, delay)
 				if !proceed {
 					return
 				}
 				if manual {
-					retryIndex = 0
+					retryAttempt = 0
 				}
 				continue connectionLoop
 			}
 		}
+	}
+}
+
+func terminalState(state State) bool {
+	switch state {
+	case StateAccessDenied, StateUnauthorized, StateRevoked, StateForbidden, StateIncompatible, StateTrustChanged, StateIdentityChanged:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -331,19 +357,29 @@ func (m *Manager) publishConnected(generation uint64, target Target, health Heal
 	target.Version = health.Version
 	target.Capabilities = append([]string(nil), health.Capabilities...)
 	target.Permissions = append([]string(nil), health.Permissions...)
-	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: StateConnected, Target: target, Message: target.DisplayName + " is available.", LastSuccessfulAt: m.now().UTC().Format(time.RFC3339)}
+	contact := m.now().UTC().Format(time.RFC3339)
+	target.lastSuccessfulAt = contact
+	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: StateConnected, Target: target, Message: target.DisplayName + " is available.", LastSuccessfulAt: contact, Recovery: RecoveryNone}
 	snapshot := cloneSnapshot(m.snapshot)
 	m.mu.Unlock()
 	m.emitSnapshot(snapshot)
 }
 
-func (m *Manager) publishSelectedSnapshot(generation uint64, state State, target Target, message, action string) {
+func (m *Manager) publishSelectedSnapshot(generation uint64, state State, target Target, message, action string, retryAttempt int) {
 	m.mu.Lock()
 	if generation < m.snapshot.Generation {
 		m.mu.Unlock()
 		return
 	}
-	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: state, Target: cloneTarget(target), Message: message, Action: action, LastSuccessfulAt: m.snapshot.LastSuccessfulAt}
+	lastSuccessfulAt := m.snapshot.LastSuccessfulAt
+	if lastSuccessfulAt == "" {
+		lastSuccessfulAt = target.lastSuccessfulAt
+	}
+	recovery := RecoveryNone
+	if retryAttempt > 0 {
+		recovery = RecoveryAutomatic
+	}
+	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: state, Target: cloneTarget(target), Message: message, Action: action, LastSuccessfulAt: lastSuccessfulAt, Stale: target.Kind == "remote" && lastSuccessfulAt != "", RetryAttempt: retryAttempt, Recovery: recovery}
 	snapshot := cloneSnapshot(m.snapshot)
 	m.mu.Unlock()
 	m.emitSnapshot(snapshot)
@@ -362,14 +398,27 @@ func connectingMessage(target Target) string {
 	return "Connecting to the local scheduler service."
 }
 
-func (m *Manager) publishSnapshot(generation uint64, state State, message, action string) {
+func (m *Manager) publishManualFailure(generation uint64, failure *Failure) {
 	m.mu.Lock()
 	if generation < m.snapshot.Generation {
 		m.mu.Unlock()
 		return
 	}
 	target := cloneTarget(m.snapshot.Target)
-	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: state, Target: target, Message: message, Action: action, LastSuccessfulAt: m.snapshot.LastSuccessfulAt}
+	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: failure.State, Target: target, Message: failure.Message, Action: failure.Action, LastSuccessfulAt: m.snapshot.LastSuccessfulAt, Stale: target.Kind == "remote" && m.snapshot.LastSuccessfulAt != "", Recovery: RecoveryManual}
+	snapshot := cloneSnapshot(m.snapshot)
+	m.mu.Unlock()
+	m.emitSnapshot(snapshot)
+}
+
+func (m *Manager) publishAutomaticFailure(generation uint64, state State, message, action string, attempt int, delay time.Duration) {
+	m.mu.Lock()
+	if generation < m.snapshot.Generation {
+		m.mu.Unlock()
+		return
+	}
+	target := cloneTarget(m.snapshot.Target)
+	m.snapshot = Snapshot{Generation: generation, Revision: m.snapshot.Revision + 1, State: state, Target: target, Message: message, Action: action, LastSuccessfulAt: m.snapshot.LastSuccessfulAt, Stale: target.Kind == "remote" && m.snapshot.LastSuccessfulAt != "", RetryAttempt: attempt, NextRetryAt: m.now().UTC().Add(delay).Format(time.RFC3339Nano), Recovery: RecoveryAutomatic}
 	snapshot := cloneSnapshot(m.snapshot)
 	m.mu.Unlock()
 	m.emitSnapshot(snapshot)

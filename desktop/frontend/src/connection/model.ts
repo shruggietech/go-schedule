@@ -1,4 +1,4 @@
-export type ConnectionState = 'connecting' | 'connected' | 'degraded' | 'recovering' | 'unavailable' | 'access_denied' | 'incompatible' | 'timed_out'
+export type ConnectionState = 'connecting' | 'connected' | 'degraded' | 'recovering' | 'unavailable' | 'access_denied' | 'unauthorized' | 'revoked' | 'forbidden' | 'incompatible' | 'trust_changed' | 'identity_changed' | 'timed_out'
 export type Appearance = 'system' | 'light' | 'dark'
 export type Route = 'tasks' | 'automation' | 'schedule' | 'activity' | 'notifications' | 'agentAccess' | 'connections' | 'settings'
 
@@ -24,6 +24,10 @@ export interface ConnectionSnapshot {
   message: string
   action?: string
   lastSuccessfulAt?: string
+  stale?: boolean
+  retryAttempt?: number
+  nextRetryAt?: string
+  recovery?: 'none' | 'automatic' | 'manual'
 }
 
 export interface DesktopEvent {
@@ -36,7 +40,7 @@ export interface DesktopEvent {
   snapshot?: ConnectionSnapshot
 }
 
-export interface ActionResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable'; message: string }
+export interface ActionResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable' | 'uncertain'; message: string }
 export interface ConnectionProfile { id: string; label: string; endpoint: string; daemonId: string; shortDaemonId: string; fingerprint: string; capability: string; platform: string; architecture?: string; productVersion?: string; lastSuccessfulAt?: string; active: boolean }
 export interface ConnectionWorkspace { activeProfileId?: string; profiles: ConnectionProfile[] }
 export interface ConnectionResult extends ActionResult { workspace?: ConnectionWorkspace }

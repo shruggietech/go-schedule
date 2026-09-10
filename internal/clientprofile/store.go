@@ -139,6 +139,24 @@ func (s *Store) SetActive(id string) error {
 	})
 }
 
+// MarkSuccessful records a validated successful contact for one profile.
+func (s *Store) MarkSuccessful(id string, at time.Time) error {
+	if at.IsZero() {
+		return ErrInvalid
+	}
+	return s.update(func(collection *Collection) error {
+		for i := range collection.Profiles {
+			if collection.Profiles[i].ID != id {
+				continue
+			}
+			collection.Profiles[i].LastSuccessfulAt = at.UTC()
+			collection.Profiles[i].UpdatedAt = s.now().UTC()
+			return nil
+		}
+		return ErrNotFound
+	})
+}
+
 // Remove deletes profile metadata. Credential deletion must occur before this call.
 func (s *Store) Remove(id string) (Profile, error) {
 	return s.RemoveWith(id, nil)

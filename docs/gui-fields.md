@@ -9,6 +9,12 @@ nav_order: 4
 
 This page explains every field in the Wails desktop's **New Task** / **Edit Task** dialog: what it accepts, what's required, and what each option means. It's the desktop counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
+## Remote connection recovery
+
+The desktop automatically reconnects a selected remote scheduler after ordinary network loss, daemon restart, or sleep and resume. Retry delays use jitter, begin below one second, and stop growing at thirty seconds. The global target bar marks retained information as **Data may be stale**, and Connection details reports the last successful contact, retry attempt, next retry, and whether recovery is automatic or requires manual action.
+
+Authentication rejection, credential revocation, insufficient authority, incompatible versions, certificate changes, and daemon identity changes stop automatic retry and provide distinct repair guidance in Connections. Daemon-backed mutation controls stay disabled until the selected target is fully connected and current, while desktop-local Settings and connection repair remain available. If a remote mutation loses an authoritative response, the desktop reports an uncertain outcome, keeps the editor or last complete workspace, and requires a refresh before the user decides whether to submit again.
+
 Task fields may be left incomplete and saved for later. A blank name displays as `unnamed`, a blank command makes the task not runnable, and **Manual only** removes automatic timing while preserving Run now once a valid command exists. Incomplete tasks remain disabled until their command and an automatic source are both ready.
 
 ## Data view tables

@@ -450,6 +450,11 @@ func (a *App) DeleteGroup(id string) taskgroup.OperationResult {
 type appObserver struct{ app *App }
 
 func (o appObserver) Publish(event connection.Event) {
+	if event.Snapshot != nil && event.Snapshot.State == connection.StateConnected && event.Snapshot.Target.Kind == "remote" && event.Snapshot.Target.ProfileID != "" && o.app.connections != nil {
+		if at, err := time.Parse(time.RFC3339, event.Snapshot.LastSuccessfulAt); err == nil {
+			_ = o.app.connections.MarkSuccessful(event.Snapshot.Target.ProfileID, at)
+		}
+	}
 	if o.app.emitter != nil && o.app.ctx != nil {
 		o.app.emitter.Emit(o.app.ctx, desktopEventName, event)
 	}
