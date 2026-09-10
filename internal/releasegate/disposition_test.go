@@ -114,7 +114,7 @@ func TestRenderDispositionPacketIsCompleteDeterministicAndSafe(t *testing.T) {
 
 	issue96 := string(byName["issue-096.md"])
 	for _, required := range []string{
-		"Formal v1.0.0 candidate evidence for #96",
+		"Formal " + evidence.Candidate.Tag + " candidate evidence for #96",
 		"https://github.com/shruggietech/go-schedule/actions/runs/1234/attempts/1",
 		evidence.Candidate.SHA256,
 		"production candidate, archive, attachment, and manifest validation passed",

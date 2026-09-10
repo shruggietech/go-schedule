@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-09-10
+
 ### Changed
+
+- **Release staging now validates the complete source-owned version boundary before artifact mutation (Refs #226).** The tag workflow requires matching README health output, one dated changelog section, one tag-specific release-note file, its exact tagged changelog link, and successful main CI for the tagged commit before it can create or update a draft. The cumulative v1.4.0 boundary follows public v1.1.1 directly; completed v1.2.0 and v1.3.0 milestones remain delivery history rather than synthetic releases.
+
+- **Windows attended evidence now measures the production Wails desktop without retired toolkit instrumentation (Refs #226).** Version-two native-window attachments derive toolkit-neutral content dimensions and display scale from the captured Win32 client rectangle and effective DPI. The validator retains version-one Fyne attachment compatibility for historical audits, while the current eleven desktop scenarios cover the actual themes, navigation, workspaces, tables, and browser-native input model.
 
 - **Pull-request Linux jobs no longer depend on unrelated hosted-runner Chrome apt sources.** Desktop and Playwright prerequisite installation removes both supported source-file forms before refreshing Ubuntu package metadata, preventing a stale Google repository mirror from causing reproducible hash-mismatch failures before project tests can run.
 
@@ -672,7 +678,8 @@ Upgrading is a normal install; the store migrates forward automatically. Note th
   - `internal/autostart`, the GUI now starts the background daemon automatically (detached, windowless) if none is reachable, and reuses an already-running one (e.g. the installed service); the daemon's single-instance lock prevents duplicates.
   - Releases now publish a self-contained `go-scheduler-desktop_<os>_<arch>` archive bundling the GUI + daemon + CLI, so desktop users download one file and just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/shruggietech/go-schedule/compare/v1.1.1...v1.4.0
 [1.1.1]: https://github.com/shruggietech/go-schedule/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/shruggietech/go-schedule/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/shruggietech/go-schedule/compare/v0.9.1...v1.0.0

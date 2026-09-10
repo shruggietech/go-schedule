@@ -17,7 +17,7 @@ func TestValidateAcceptsCompleteEvidence(t *testing.T) {
 	root, artifact, evidence := passingEvidence(t)
 	if failures := Validate(evidence, root, artifact, ExpectedIdentity{
 		Repository: "shruggietech/go-schedule",
-		Tag:        "v1.0.0",
+		Tag:        "v1.4.0",
 		Commit:     strings.Repeat("a", 40),
 	}); len(failures) != 0 {
 		t.Fatalf("Validate() failures = %v", failures)
@@ -75,11 +75,11 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 		{"desktop needs image", func(e *Evidence) {
 			findObservation(e, "desktop.interaction-states").AttachmentPaths = []string{"attachments/fixture.txt"}
 		}, "supported raster image"},
-		{"appearance palettes", func(e *Evidence) {
-			findObservation(e, "desktop.appearance-standard").Metrics["palettes"] = "dark"
-		}, "palettes"},
+		{"appearance themes", func(e *Evidence) {
+			findObservation(e, "desktop.appearance-standard").Metrics["themes"] = "dark"
+		}, "themes"},
 		{"duplicate exact set", func(e *Evidence) {
-			findObservation(e, "desktop.appearance-standard").Metrics["palettes"] = "dark,light,dark"
+			findObservation(e, "desktop.appearance-standard").Metrics["themes"] = "system,light,dark,dark"
 		}, "duplicate"},
 		{"standard appearance dpi", func(e *Evidence) {
 			findObservation(e, "desktop.appearance-standard").Metrics["effective_dpi"] = 120
@@ -108,12 +108,17 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 		{"navigation order", func(e *Evidence) {
 			findObservation(e, "desktop.navigation-options").Metrics["destination_order"] = "tasks,options,info"
 		}, "destination_order"},
+		{"current navigation cannot select legacy contract", func(e *Evidence) {
+			metrics := findObservation(e, "desktop.navigation-options").Metrics
+			delete(metrics, "target_context_visible")
+			metrics["destination_order"] = "tasks,groups,chains,schedule,activity,options,info"
+		}, "destination_order"},
 		{"navigation horizontal scrollbar", func(e *Evidence) {
 			findObservation(e, "desktop.navigation-options").Metrics["horizontal_scrollbar_present"] = true
 		}, "horizontal_scrollbar_present"},
-		{"scroll sensitivities", func(e *Evidence) {
-			findObservation(e, "desktop.scroll-input").Metrics["sensitivities"] = "1x,2x"
-		}, "sensitivities"},
+		{"scroll surfaces", func(e *Evidence) {
+			findObservation(e, "desktop.scroll-input").Metrics["surfaces"] = "tasks,settings"
+		}, "surfaces"},
 		{"touchpad unavailable reason", func(e *Evidence) {
 			findObservation(e, "desktop.scroll-input").Metrics["touchpad_unavailable_reason"] = ""
 		}, "touchpad_unavailable_reason"},
@@ -132,7 +137,7 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 			findObservation(e, "desktop.schedule-activity-tables").Metrics["schedule_row_count"] = 99
 		}, "schedule_row_count"},
 		{"activity severity casing", func(e *Evidence) {
-			findObservation(e, "desktop.schedule-activity-tables").Metrics["severities"] = "info,warning,error"
+			findObservation(e, "desktop.schedule-activity-tables").Metrics["severities"] = "INFO,WARNING,ERROR"
 		}, "severities"},
 	}
 
@@ -248,7 +253,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			metrics := findObservation(e, "window.clean-standard").Metrics
 			metrics["logical_work_area_width"] = 1800
 			metrics["logical_work_area_height"] = 800
-			metrics["fyne_content_width"] = 1700
+			metrics["content_width"] = 1700
 		}, "90 percent"},
 		{"unsafe attachment", func(e *Evidence) { e.Attachments[0].Path = "../outside.txt" }, "unsafe"},
 		{"attachment digest", func(e *Evidence) { e.Attachments[0].SHA256 = strings.Repeat("e", 64) }, "attachments[0] SHA-256"},
@@ -279,6 +284,20 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			findObservation(e, "setup.finish-launch-integrity").Metrics["process_integrity"] = "high"
 		}, "process_integrity"},
 		{"missing setup fingerprint", func(e *Evidence) { delete(findObservation(e, "setup.upgrade").Metrics, "before_fingerprint") }, "before_fingerprint"},
+		{"generic retained profile", func(e *Evidence) { e.Environments[2].ProfileState = "retained-release" }, "profile_state"},
+		{"wrong upgrade baseline", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["baseline_version"] = "1.0.0" }, "baseline_version"},
+		{"wrong upgrade MSI digest", func(e *Evidence) {
+			findObservation(e, "setup.upgrade").Metrics["baseline_sha256"] = strings.Repeat("0", 64)
+		}, "baseline_sha256"},
+		{"upgrade notifications enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["notifications_enabled"] = true }, "notifications_enabled"},
+		{"upgrade localhost MCP enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["localhost_mcp_enabled"] = true }, "localhost_mcp_enabled"},
+		{"upgrade remote HTTPS enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["remote_https_enabled"] = true }, "remote_https_enabled"},
+		{"upgrade tasks lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["tasks_preserved"] = false }, "tasks_preserved"},
+		{"upgrade run history lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["run_history_preserved"] = false }, "run_history_preserved"},
+		{"upgrade appearance lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["appearance_intent_preserved"] = false }, "appearance_intent_preserved"},
+		{"upgrade daemon identity lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["daemon_identity_preserved"] = false }, "daemon_identity_preserved"},
+		{"upgrade service unavailable", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["service_operational"] = false }, "service_operational"},
+		{"upgrade local access unavailable", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["local_access_operational"] = false }, "local_access_operational"},
 		{"preserve bytes", func(e *Evidence) { findObservation(e, "remove.preserve").Metrics["owned_bytes_preserved"] = false }, "owned_bytes_preserved"},
 		{"wipe controls", func(e *Evidence) { findObservation(e, "remove.wipe").Metrics["controls_unchanged"] = false }, "controls_unchanged"},
 		{"changed control fingerprint", func(e *Evidence) {
@@ -300,7 +319,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			tt.mutate(&evidence)
 			failures := Validate(evidence, root, artifact, ExpectedIdentity{
 				Repository: "shruggietech/go-schedule",
-				Tag:        "v1.0.0",
+				Tag:        "v1.4.0",
 				Commit:     strings.Repeat("a", 40),
 			})
 			if !containsFailure(failures, tt.want) {
@@ -495,7 +514,7 @@ func TestValidateCandidateIsIndependentOfAttendedEvidence(t *testing.T) {
 	_, artifact, evidence := passingEvidence(t)
 	if failures := ValidateCandidate(evidence.Candidate, artifact, ExpectedIdentity{
 		Repository: "shruggietech/go-schedule",
-		Tag:        "v1.0.0",
+		Tag:        "v1.4.0",
 		Commit:     strings.Repeat("a", 40),
 	}); len(failures) != 0 {
 		t.Fatalf("ValidateCandidate() failures = %v", failures)
@@ -510,7 +529,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 	t.Helper()
 
 	root := t.TempDir()
-	artifact := filepath.Join(root, "go-schedule_v1.0.0_windows_amd64.msi")
+	artifact := filepath.Join(root, "go-schedule_v1.4.0_windows_amd64.msi")
 	artifactBytes := []byte("inert fixture; not a native MSI")
 	if err := os.WriteFile(artifact, artifactBytes, 0o600); err != nil {
 		t.Fatal(err)
@@ -541,7 +560,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		EvidenceClass: "attended-windows",
 		Candidate: Candidate{
 			Repository:     "shruggietech/go-schedule",
-			Tag:            "v1.0.0",
+			Tag:            "v1.4.0",
 			Commit:         strings.Repeat("a", 40),
 			Workflow:       "Release",
 			RunID:          1234,
@@ -549,7 +568,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 			Filename:       filepath.Base(artifact),
 			Bytes:          int64(len(artifactBytes)),
 			SHA256:         digest(artifactBytes),
-			ProductVersion: "1.0.0",
+			ProductVersion: "1.4.0",
 			ProductCode:    "{11111111-2222-3333-4444-555555555555}",
 		},
 		Operator: Operator{
@@ -562,7 +581,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		Environments: []Environment{
 			environment("standard", "intended-user", "medium", "standard-dpi", "clean", 96),
 			environment("high", "intended-user", "medium", "high-dpi", "clean", 144),
-			environment("retained", "intended-user", "medium", "standard-dpi", "retained-v0.9.1", 96),
+			environment("retained", "intended-user", "medium", "standard-dpi", "retained-v1.1.1", 96),
 			environment("unrelated", "unrelated-user", "medium", "not-applicable", "not-applicable", 0),
 			environment("admin", "administrator", "high", "not-applicable", "not-applicable", 0),
 		},
@@ -624,18 +643,36 @@ func addNativeWindowFixtures(t *testing.T, root string, evidence *Evidence) {
 		pid, _ := numberMetric(o.Metrics, "pid")
 		session, _ := numberMetric(o.Metrics, "process_session_id")
 		rid, _ := numberMetric(o.Metrics, "process_integrity_rid")
+		contentHeight := 900.0
+		outerRect := nativeRect{100, 100, 1560, 1040}
+		clientRect := nativeRect{110, 130, 1550, 1030}
+		if dpi > 96 {
+			contentHeight = 800
+			outerRect = nativeRect{100, 100, 2280, 1340}
+			clientRect = nativeRect{110, 130, 2270, 1330}
+		}
 		record := nativeWindowEvidence{
 			SchemaVersion: 1, Kind: "native-window-v1", ObservationID: o.ID,
 			CapturedAt: evidence.StartedAt.Add(time.Minute), ProcessID: int(pid),
 			ProcessPath:   `C:\Program Files\go-schedule\gosched-gui.exe`,
 			ProcessSHA256: strings.Repeat("b", 64), ProcessSessionID: int(session),
 			ProcessUserSID: "S-1-5-21-1000", ProcessIntegrityRID: int(rid),
-			HWND: "0x00000001", OuterRect: nativeRect{100, 100, 1400, 940},
-			ClientRect: nativeRect{110, 130, 1390, 930}, MonitorRect: nativeRect{0, 0, 2560, 1440},
+			HWND: "0x00000001", OuterRect: outerRect,
+			ClientRect: clientRect, MonitorRect: nativeRect{0, 0, 2560, 1440},
 			WorkAreaRect: nativeRect{0, 0, 2560, 1400}, MonitorID: "fixture-monitor", EffectiveDPI: int(dpi),
 			ShowCommand: 1, Visible: true, Restored: true,
-			Fyne: fyneWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1280, ContentHeight: 800, CanvasScale: dpi / 96},
+			Desktop: &desktopWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1440, ContentHeight: contentHeight, DisplayScale: dpi / 96},
 		}
+		record.SchemaVersion = 2
+		record.Kind = "native-window-v2"
+		delete(o.Metrics, "fyne_content_width")
+		delete(o.Metrics, "fyne_content_height")
+		delete(o.Metrics, "fyne_scale")
+		o.Metrics["content_width"] = 1440.0
+		o.Metrics["content_height"] = contentHeight
+		o.Metrics["display_scale"] = dpi / 96
+		o.Metrics["outer_rect"] = rect(outerRect.Left, outerRect.Top, outerRect.Right, outerRect.Bottom)
+		o.Metrics["client_rect"] = rect(clientRect.Left, clientRect.Top, clientRect.Right, clientRect.Bottom)
 		data, err := json.MarshalIndent(record, "", "  ")
 		if err != nil {
 			t.Fatal(err)
@@ -723,13 +760,12 @@ func passingMetrics(id string) map[string]any {
 			dpi = 144
 		}
 		m = map[string]any{
-			"palettes": "dark,light", "effective_dpi": dpi,
-			"system_font_default": true, "system_font_restored": true,
-			"font_persistence_verified": true, "info_text_sharp": true,
+			"themes": "system,light,dark", "effective_dpi": dpi,
+			"system_theme_default": true, "system_theme_restored": true,
+			"theme_persistence_verified": true, "brand_typography_sharp": true,
 			"body_text_sharp": true, "labels_centered": true,
 			"labels_unclipped": true, "resize_verified": true,
 			"minimize_restore_verified": true, "reopen_verified": true,
-			"fonts_exercised": "system,geist,inter,ubuntu,monospace",
 		}
 	case "desktop.interaction-states", "desktop.interaction-states-scaled":
 		m = map[string]any{
@@ -744,8 +780,9 @@ func passingMetrics(id string) map[string]any {
 	case "desktop.navigation-options", "desktop.navigation-options-scaled":
 		m = map[string]any{
 			"palettes": "dark,light", "content_sizes": "1280x800,800x600",
-			"destination_order":     "tasks,groups,chains,schedule,activity,options,info",
-			"rail_spacing_balanced": true, "labels_unclipped": true,
+			"destination_order":      "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings",
+			"target_context_visible": true,
+			"rail_spacing_balanced":  true, "labels_unclipped": true,
 			"boundary_full_height": true, "boundary_subtle": true,
 			"exit_bottom_right": true, "exit_never_selected": true,
 			"exit_semantic_glyph": true, "storage_rows_compact": true,
@@ -754,11 +791,10 @@ func passingMetrics(id string) map[string]any {
 		}
 	case "desktop.scroll-input":
 		m = map[string]any{
-			"sensitivities":            "1x,2x,4x",
-			"surfaces":                 "options,info,editor-command,editor-schedule,editor-help",
-			"wheel_detents_responsive": true, "immediate_apply": true,
-			"persistence_verified": true, "nested_multiplier_absent": true,
-			"keyboard_scroll_preserved": true, "touchpad_available": false,
+			"surfaces":                 "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings,task-editor",
+			"wheel_detents_responsive": true, "browser_native": true,
+			"nested_multiplier_absent": true, "keyboard_scroll_preserved": true,
+			"focus_preserved": true, "touchpad_available": false,
 			"touchpad_fine_deltas_preserved": false,
 			"touchpad_unavailable_reason":    "fixture has no physical input hardware",
 		}
@@ -766,9 +802,9 @@ func passingMetrics(id string) map[string]any {
 		m = map[string]any{
 			"row_count": 100, "palettes": "dark,light",
 			"content_sizes":  "1280x800,800x600",
-			"headers":        "task,enabled,lifecycle,time-zone,group",
+			"headers":        "task,group,state,schedule",
 			"row_states":     "odd,even,hover,focus,selected",
-			"headers_frozen": true, "status_dimensions_distinct": true,
+			"headers_frozen": true, "state_reason_discoverable": true,
 			"bracket_decoration_absent": true, "full_values_discoverable": true,
 			"horizontal_scrollbar_present": false, "refresh_identity_stable": true,
 			"removed_selection_clears": true, "toolbar_actions_work": true,
@@ -778,10 +814,11 @@ func passingMetrics(id string) map[string]any {
 		m = map[string]any{
 			"schedule_row_count": 100, "activity_row_count": 100,
 			"palettes": "dark,light", "content_sizes": "1280x800,800x600",
-			"schedule_headers": "when,task,event,outcome",
-			"activity_headers": "when,severity,source,summary",
-			"schedule_states":  "scheduled,success,failure,skipped,caught-up,queued,missing,unknown",
-			"severities":       "INFO,WARNING,ERROR",
+			"schedule_headers": "when,task,record,state",
+			"activity_headers": "when,record,state,source,summary",
+			"schedule_states":  "upcoming,running,success,failure,skipped,caught-up,queued,unavailable",
+			"severities":       "info,warning,error",
+			"record_types":     "run,daemon-log,alert",
 			"row_states":       "odd,even,hover,focus,selected",
 			"headers_frozen":   true, "semantic_text_glyphs_match": true,
 			"non_color_cues_present": true, "full_values_discoverable": true,
@@ -810,7 +847,14 @@ func passingMetrics(id string) map[string]any {
 	case "setup.maintenance":
 		m = map[string]any{"transitions_verified": true, "repair_verified": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false}
 	case "setup.upgrade":
-		m = map[string]any{"choices_preserved": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false}
+		m = map[string]any{
+			"choices_preserved": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false,
+			"baseline_version": v111WindowsMSIVersion, "baseline_filename": v111WindowsMSIFilename,
+			"baseline_download_url": v111WindowsMSIURL, "baseline_sha256": v111WindowsMSISHA256,
+			"tasks_preserved": true, "run_history_preserved": true, "appearance_intent_preserved": true,
+			"daemon_identity_preserved": true, "service_operational": true, "local_access_operational": true,
+			"notifications_enabled": false, "localhost_mcp_enabled": false, "remote_https_enabled": false,
+		}
 	case "setup.invalid-input":
 		m = map[string]any{"input_rejected": true, "state_unchanged": true, "owned_data_cleanup_invoked": false}
 	case "setup.rollback":

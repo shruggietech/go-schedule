@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Creates a resumable evidence workspace for one exact go-schedule MSI,
-    captures native HWND and Fyne canvas measurements, imports explicit
+    captures native HWND and toolkit-neutral desktop measurements, imports explicit
     operator-reviewed observation fragments, and produces an evidence archive
     only after the shared release gate accepts every required scenario.
 
@@ -58,10 +58,6 @@
 .PARAMETER EnvironmentPath
     JSON environment record used by CaptureWindow.
     Alias: e
-
-.PARAMETER FyneEvidencePath
-    Opt-in JSON evidence emitted by the installed GUI process.
-    Alias: f
 
 .PARAMETER ScreenshotPath
     Existing screenshot beneath the workspace attachments directory.
@@ -149,10 +145,6 @@ Param(
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias('e')]
     [string]$EnvironmentPath,
-
-    [Parameter(Mandatory=$false,ParameterSetName='Default')]
-    [Alias('f')]
-    [string]$FyneEvidencePath,
 
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias('s')]
@@ -774,6 +766,19 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics.choices_preserved = $false
                 $metrics.completion_actions_absent = $false
                 $metrics.owned_data_cleanup_invoked = $false
+                $metrics.baseline_version = ''
+                $metrics.baseline_filename = ''
+                $metrics.baseline_download_url = ''
+                $metrics.baseline_sha256 = ''
+                $metrics.tasks_preserved = $false
+                $metrics.run_history_preserved = $false
+                $metrics.appearance_intent_preserved = $false
+                $metrics.daemon_identity_preserved = $false
+                $metrics.service_operational = $false
+                $metrics.local_access_operational = $false
+                $metrics.notifications_enabled = $true
+                $metrics.localhost_mcp_enabled = $true
+                $metrics.remote_https_enabled = $true
             }
             'setup.invalid-input' {
                 $metrics.input_rejected = $false
@@ -832,36 +837,34 @@ namespace GoSchedule.ReleaseEvidence {
             }
             'desktop.appearance-standard' {
                 $metrics = [ordered]@{
-                    palettes = 'dark,light'
+                    themes = 'system,light,dark'
                     effective_dpi = 96
-                    system_font_default = $false
-                    system_font_restored = $false
-                    font_persistence_verified = $false
-                    info_text_sharp = $false
+                    system_theme_default = $false
+                    system_theme_restored = $false
+                    theme_persistence_verified = $false
+                    brand_typography_sharp = $false
                     body_text_sharp = $false
                     labels_centered = $false
                     labels_unclipped = $false
                     resize_verified = $false
                     minimize_restore_verified = $false
                     reopen_verified = $false
-                    fonts_exercised = 'system,geist,inter,ubuntu,monospace'
                 }
             }
             'desktop.appearance-scaled' {
                 $metrics = [ordered]@{
-                    palettes = 'dark,light'
+                    themes = 'system,light,dark'
                     effective_dpi = 0
-                    system_font_default = $false
-                    system_font_restored = $false
-                    font_persistence_verified = $false
-                    info_text_sharp = $false
+                    system_theme_default = $false
+                    system_theme_restored = $false
+                    theme_persistence_verified = $false
+                    brand_typography_sharp = $false
                     body_text_sharp = $false
                     labels_centered = $false
                     labels_unclipped = $false
                     resize_verified = $false
                     minimize_restore_verified = $false
                     reopen_verified = $false
-                    fonts_exercised = 'system,geist,inter,ubuntu,monospace'
                 }
             }
             'desktop.interaction-states' {
@@ -882,7 +885,8 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics = [ordered]@{
                     palettes = 'dark,light'
                     content_sizes = '1280x800,800x600'
-                    destination_order = 'tasks,groups,chains,schedule,activity,options,info'
+                    destination_order = 'tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings'
+                    target_context_visible = $false
                     rail_spacing_balanced = $false
                     labels_unclipped = $false
                     boundary_full_height = $false
@@ -899,13 +903,12 @@ namespace GoSchedule.ReleaseEvidence {
             }
             'desktop.scroll-input' {
                 $metrics = [ordered]@{
-                    sensitivities = '1x,2x,4x'
-                    surfaces = 'options,info,editor-command,editor-schedule,editor-help'
+                    surfaces = 'tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings,task-editor'
                     wheel_detents_responsive = $false
-                    immediate_apply = $false
-                    persistence_verified = $false
+                    browser_native = $false
                     nested_multiplier_absent = $false
                     keyboard_scroll_preserved = $false
+                    focus_preserved = $false
                     touchpad_available = $false
                     touchpad_fine_deltas_preserved = $false
                     touchpad_unavailable_reason = ''
@@ -916,10 +919,10 @@ namespace GoSchedule.ReleaseEvidence {
                     row_count = 0
                     palettes = 'dark,light'
                     content_sizes = '1280x800,800x600'
-                    headers = 'task,enabled,lifecycle,time-zone,group'
+                    headers = 'task,group,state,schedule'
                     row_states = 'odd,even,hover,focus,selected'
                     headers_frozen = $false
-                    status_dimensions_distinct = $false
+                    state_reason_discoverable = $false
                     bracket_decoration_absent = $false
                     full_values_discoverable = $false
                     horizontal_scrollbar_present = $true
@@ -935,10 +938,11 @@ namespace GoSchedule.ReleaseEvidence {
                     activity_row_count = 0
                     palettes = 'dark,light'
                     content_sizes = '1280x800,800x600'
-                    schedule_headers = 'when,task,event,outcome'
-                    activity_headers = 'when,severity,source,summary'
-                    schedule_states = 'scheduled,success,failure,skipped,caught-up,queued,missing,unknown'
-                    severities = 'INFO,WARNING,ERROR'
+                    schedule_headers = 'when,task,record,state'
+                    activity_headers = 'when,record,state,source,summary'
+                    schedule_states = 'upcoming,running,success,failure,skipped,caught-up,queued,unavailable'
+                    severities = 'info,warning,error'
+                    record_types = 'run,daemon-log,alert'
                     row_states = 'odd,even,hover,focus,selected'
                     headers_frozen = $false
                     semantic_text_glyphs_match = $false
@@ -1154,20 +1158,14 @@ namespace GoSchedule.ReleaseEvidence {
     function Invoke-CaptureWindow {
         if (-not $WorkspacePath -or $ProcessId -le 0 -or
             -not $ObservationId -or -not $EnvironmentPath -or
-            -not $FyneEvidencePath -or -not $ScreenshotPath) {
+            -not $ScreenshotPath) {
             throw ('CaptureWindow requires workspace, process ID, ' +
-                'observation ID, environment JSON, Fyne evidence JSON, ' +
-                'and a screenshot.')
+                'observation ID, environment JSON, and a screenshot.')
         }
         Assert-AbsolutePath -Name 'WorkspacePath' -Value $WorkspacePath
         $workspace = (Resolve-Path -LiteralPath $WorkspacePath).Path
         $environment = Get-Content -LiteralPath $EnvironmentPath -Raw |
             ConvertFrom-Json
-        $fyne = Get-Content -LiteralPath $FyneEvidencePath -Raw |
-            ConvertFrom-Json
-        if ($fyne.process_id -ne $ProcessId) {
-            throw 'Fyne evidence process ID does not match ProcessId.'
-        }
         $process = Get-Process -Id $ProcessId -ErrorAction Stop
         Add-NativeWindowType
         $native = [GoSchedule.ReleaseEvidence.NativeWindow]::Capture(
@@ -1190,16 +1188,29 @@ namespace GoSchedule.ReleaseEvidence {
         }
         $snapshotRelative = Get-RelativeAttachmentPath `
             -Workspace $workspace -Path $snapshotPath
-        $fyneRelative = Get-RelativeAttachmentPath `
-            -Workspace $workspace -Path $FyneEvidencePath
         $screenshotRelative = $null
         if ($ScreenshotPath) {
             $screenshotRelative = Get-RelativeAttachmentPath `
                 -Workspace $workspace -Path $ScreenshotPath
         }
-        $snapshot = [ordered]@{
+        $dpiScale = [double]$native.Dpi / 96.0
+        $contentWidth = (
+            $native.Client.Right - $native.Client.Left
+        ) / $dpiScale
+        $contentHeight = (
+            $native.Client.Bottom - $native.Client.Top
+        ) / $dpiScale
+        $desktop = [ordered]@{
             schema_version = 1
-            kind = 'native-window-v1'
+            process_id = $ProcessId
+            captured_at = [datetime]::UtcNow.ToString('o')
+            content_width = $contentWidth
+            content_height = $contentHeight
+            display_scale = $dpiScale
+        }
+        $snapshot = [ordered]@{
+            schema_version = 2
+            kind = 'native-window-v2'
             observation_id = $ObservationId
             captured_at = [datetime]::UtcNow.ToString('o')
             process_id = $ProcessId
@@ -1223,21 +1234,17 @@ namespace GoSchedule.ReleaseEvidence {
             minimized = $native.Minimized
             fullscreen = $native.Fullscreen
             restored = $native.Restored
-            fyne = $fyne
+            desktop = $desktop
         }
         if (-not $PSCmdlet.ShouldProcess(
             $snapshotPath,
             'Write native window measurement attachment')) {
             return
         }
-        $attachmentPaths = @(
-            $snapshotRelative
-            $fyneRelative
-        )
+        $attachmentPaths = @($snapshotRelative)
         if ($screenshotRelative) {
             $attachmentPaths += $screenshotRelative
         }
-        $dpiScale = [double]$native.Dpi / 96.0
         $logicalWorkWidth = (
             $native.WorkArea.Right - $native.WorkArea.Left
         ) / $dpiScale
@@ -1264,9 +1271,9 @@ namespace GoSchedule.ReleaseEvidence {
                     client_rect = $snapshot.client_rect
                     monitor_rect = $snapshot.monitor_rect
                     work_area_rect = $snapshot.work_area_rect
-                    fyne_content_width = $fyne.content_width
-                    fyne_content_height = $fyne.content_height
-                    fyne_scale = $fyne.canvas_scale
+                    content_width = $contentWidth
+                    content_height = $contentHeight
+                    display_scale = $dpiScale
                     logical_work_area_width = $logicalWorkWidth
                     logical_work_area_height = $logicalWorkHeight
                     effective_dpi = $native.Dpi

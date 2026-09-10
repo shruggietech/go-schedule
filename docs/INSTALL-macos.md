@@ -12,7 +12,7 @@ nav_order: 3
 
 macOS has two downloads, and which one you want depends on whether you want a desktop app or a background scheduler on a machine you mostly reach over SSH. The difference that matters is not the GUI, it is **what starts on boot**.
 
-The Wails bundle below describes the v1.2 candidate and later. It is not part of the latest public v1.1.1 release until the separately authorized release ritual completes.
+Beginning with v1.4.0, the desktop archive contains the Wails bundle described below. The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) is authoritative while a candidate is staged and qualified.
 
 ## Contents
 

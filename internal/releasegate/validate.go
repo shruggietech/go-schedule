@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,6 +40,13 @@ var requiredScenarios = []string{
 var validStatuses = map[string]bool{
 	"pass": true, "fail": true, "unavailable": true, "skipped": true, "timed-out": true, "partial": true,
 }
+
+const (
+	v111WindowsMSIVersion  = "1.1.1"
+	v111WindowsMSIFilename = "go-schedule_v1.1.1_windows_amd64.msi"
+	v111WindowsMSIURL      = "https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi"
+	v111WindowsMSISHA256   = "f7ac8f56f28330b016eb6e505e424b19e9bfbe435591cfbc54a723c91ac8e567"
+)
 
 // RequiredScenarioIDs returns a copy of the canonical scenario identifiers.
 func RequiredScenarioIDs() []string {
@@ -121,6 +129,19 @@ type validator struct {
 
 func (v *validator) add(format string, args ...any) {
 	v.failures = append(v.failures, fmt.Sprintf(format, args...))
+}
+
+func (v *validator) usesCurrentDesktopContract() bool {
+	parts := tagPattern.FindStringSubmatch(v.evidence.Candidate.Tag)
+	if len(parts) != 4 {
+		return true
+	}
+	major, majorErr := strconv.Atoi(parts[1])
+	minor, minorErr := strconv.Atoi(parts[2])
+	if majorErr != nil || minorErr != nil {
+		return true
+	}
+	return major > 1 || major == 1 && minor >= 4
 }
 
 func (v *validator) validateRoot(requiredClass string) {
@@ -234,7 +255,7 @@ func (v *validator) validateEnvironments() {
 		if !oneOf(environment.DisplayClass, "standard-dpi", "high-dpi", "mixed-dpi", "not-applicable") {
 			v.add("%s.display_class %q is invalid", prefix, environment.DisplayClass)
 		}
-		if !oneOf(environment.ProfileState, "clean", "retained-v0.9.1", "not-applicable") {
+		if !oneOf(environment.ProfileState, "clean", "retained-v1.1.1", "retained-v0.9.1", "not-applicable") {
 			v.add("%s.profile_state %q is invalid", prefix, environment.ProfileState)
 		}
 		if environment.DisplayClass != "not-applicable" && environment.EffectiveDPI <= 0 {
@@ -481,6 +502,7 @@ func (v *validator) validateScenario(prefix string, o *Observation, env Environm
 func (v *validator) validateDesktop(prefix string, o *Observation, env Environment) {
 	v.requireRoutine(prefix, env)
 	v.validateDesktopDPI(prefix, o.ID, env)
+	current := v.usesCurrentDesktopContract()
 	switch o.ID {
 	case "desktop.appearance-standard", "desktop.appearance-scaled":
 		v.validateDesktopAppearance(prefix, o, env)
@@ -494,13 +516,23 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 	case "desktop.navigation-options", "desktop.navigation-options-scaled":
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
-		v.requireString(prefix, o.Metrics, "destination_order", "tasks,groups,chains,schedule,activity,options,info")
+		if current {
+			v.requireString(prefix, o.Metrics, "destination_order", "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings")
+			v.requireTrue(prefix, o.Metrics, "target_context_visible")
+		} else {
+			v.requireString(prefix, o.Metrics, "destination_order", "tasks,groups,chains,schedule,activity,options,info")
+		}
 		v.requireTrue(prefix, o.Metrics, "rail_spacing_balanced", "labels_unclipped", "boundary_full_height", "boundary_subtle", "exit_bottom_right", "exit_never_selected", "exit_semantic_glyph", "storage_rows_compact", "unavailable_rows_muted", "copy_exact", "selector_current_omitted")
 		v.requireFalse(prefix, o.Metrics, "horizontal_scrollbar_present")
 	case "desktop.scroll-input":
-		v.requireExactSet(prefix, o.Metrics, "sensitivities", "1x", "2x", "4x")
-		v.requireExactSet(prefix, o.Metrics, "surfaces", "options", "info", "editor-command", "editor-schedule", "editor-help")
-		v.requireTrue(prefix, o.Metrics, "wheel_detents_responsive", "immediate_apply", "persistence_verified", "nested_multiplier_absent", "keyboard_scroll_preserved")
+		if current {
+			v.requireExactSet(prefix, o.Metrics, "surfaces", "tasks", "automation-sources", "schedule", "activity", "notifications", "agent-access", "connections", "settings", "task-editor")
+			v.requireTrue(prefix, o.Metrics, "wheel_detents_responsive", "browser_native", "nested_multiplier_absent", "keyboard_scroll_preserved", "focus_preserved")
+		} else {
+			v.requireExactSet(prefix, o.Metrics, "sensitivities", "1x", "2x", "4x")
+			v.requireExactSet(prefix, o.Metrics, "surfaces", "options", "info", "editor-command", "editor-schedule", "editor-help")
+			v.requireTrue(prefix, o.Metrics, "wheel_detents_responsive", "immediate_apply", "persistence_verified", "nested_multiplier_absent", "keyboard_scroll_preserved")
+		}
 		available, ok := boolMetric(o.Metrics, "touchpad_available")
 		if !ok {
 			v.add("%s metric touchpad_available must be a boolean", prefix)
@@ -513,19 +545,33 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		v.requireInteger(prefix, o.Metrics, "row_count", 100, math.MaxInt32)
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
-		v.requireExactSet(prefix, o.Metrics, "headers", "task", "enabled", "lifecycle", "time-zone", "group")
+		if current {
+			v.requireExactSet(prefix, o.Metrics, "headers", "task", "group", "state", "schedule")
+			v.requireTrue(prefix, o.Metrics, "state_reason_discoverable")
+		} else {
+			v.requireExactSet(prefix, o.Metrics, "headers", "task", "enabled", "lifecycle", "time-zone", "group")
+			v.requireTrue(prefix, o.Metrics, "status_dimensions_distinct")
+		}
 		v.requireExactSet(prefix, o.Metrics, "row_states", "odd", "even", "hover", "focus", "selected")
-		v.requireTrue(prefix, o.Metrics, "headers_frozen", "status_dimensions_distinct", "bracket_decoration_absent", "full_values_discoverable", "refresh_identity_stable", "removed_selection_clears", "toolbar_actions_work", "double_click_edits")
+		v.requireTrue(prefix, o.Metrics, "headers_frozen", "bracket_decoration_absent", "full_values_discoverable", "refresh_identity_stable", "removed_selection_clears", "toolbar_actions_work", "double_click_edits")
 		v.requireFalse(prefix, o.Metrics, "horizontal_scrollbar_present")
 	case "desktop.schedule-activity-tables", "desktop.schedule-activity-tables-scaled":
 		v.requireInteger(prefix, o.Metrics, "schedule_row_count", 100, math.MaxInt32)
 		v.requireInteger(prefix, o.Metrics, "activity_row_count", 100, math.MaxInt32)
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
-		v.requireExactSet(prefix, o.Metrics, "schedule_headers", "when", "task", "event", "outcome")
-		v.requireExactSet(prefix, o.Metrics, "activity_headers", "when", "severity", "source", "summary")
-		v.requireExactSet(prefix, o.Metrics, "schedule_states", "scheduled", "success", "failure", "skipped", "caught-up", "queued", "missing", "unknown")
-		v.requireExactSet(prefix, o.Metrics, "severities", "INFO", "WARNING", "ERROR")
+		if current {
+			v.requireExactSet(prefix, o.Metrics, "schedule_headers", "when", "task", "record", "state")
+			v.requireExactSet(prefix, o.Metrics, "activity_headers", "when", "record", "state", "source", "summary")
+			v.requireExactSet(prefix, o.Metrics, "schedule_states", "upcoming", "running", "success", "failure", "skipped", "caught-up", "queued", "unavailable")
+			v.requireExactSet(prefix, o.Metrics, "severities", "info", "warning", "error")
+			v.requireExactSet(prefix, o.Metrics, "record_types", "run", "daemon-log", "alert")
+		} else {
+			v.requireExactSet(prefix, o.Metrics, "schedule_headers", "when", "task", "event", "outcome")
+			v.requireExactSet(prefix, o.Metrics, "activity_headers", "when", "severity", "source", "summary")
+			v.requireExactSet(prefix, o.Metrics, "schedule_states", "scheduled", "success", "failure", "skipped", "caught-up", "queued", "missing", "unknown")
+			v.requireExactSet(prefix, o.Metrics, "severities", "INFO", "WARNING", "ERROR")
+		}
 		v.requireExactSet(prefix, o.Metrics, "row_states", "odd", "even", "hover", "focus", "selected")
 		v.requireTrue(prefix, o.Metrics, "headers_frozen", "semantic_text_glyphs_match", "non_color_cues_present", "full_values_discoverable", "refresh_identity_stable", "removed_selection_clears", "detail_activation_accurate", "range_calendar_switching", "filter_clear_acknowledge")
 		v.requireFalse(prefix, o.Metrics, "horizontal_scrollbar_present")
@@ -543,9 +589,14 @@ func (v *validator) validateDesktopDPI(prefix, id string, env Environment) {
 }
 
 func (v *validator) validateDesktopAppearance(prefix string, o *Observation, env Environment) {
-	v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
-	v.requireExactSet(prefix, o.Metrics, "fonts_exercised", "system", "geist", "inter", "ubuntu", "monospace")
-	v.requireTrue(prefix, o.Metrics, "system_font_default", "system_font_restored", "font_persistence_verified", "info_text_sharp", "body_text_sharp", "labels_centered", "labels_unclipped", "resize_verified", "minimize_restore_verified", "reopen_verified")
+	if v.usesCurrentDesktopContract() {
+		v.requireExactSet(prefix, o.Metrics, "themes", "system", "light", "dark")
+		v.requireTrue(prefix, o.Metrics, "system_theme_default", "system_theme_restored", "theme_persistence_verified", "brand_typography_sharp", "body_text_sharp", "labels_centered", "labels_unclipped", "resize_verified", "minimize_restore_verified", "reopen_verified")
+	} else {
+		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
+		v.requireExactSet(prefix, o.Metrics, "fonts_exercised", "system", "geist", "inter", "ubuntu", "monospace")
+		v.requireTrue(prefix, o.Metrics, "system_font_default", "system_font_restored", "font_persistence_verified", "info_text_sharp", "body_text_sharp", "labels_centered", "labels_unclipped", "resize_verified", "minimize_restore_verified", "reopen_verified")
+	}
 	dpi, ok := numberMetric(o.Metrics, "effective_dpi")
 	if !ok || dpi != math.Trunc(dpi) || int(dpi) != env.EffectiveDPI {
 		v.add("%s metric effective_dpi must be an integer matching its environment", prefix)
@@ -610,20 +661,30 @@ func (v *validator) validateWindow(prefix string, o *Observation, env Environmen
 	if observedDPI, ok := numberMetric(o.Metrics, "effective_dpi"); ok && int(observedDPI) != env.EffectiveDPI {
 		v.add("%s effective_dpi does not match its environment", prefix)
 	}
-	v.requireNumber(prefix, o.Metrics, "fyne_scale", 0.01, 100)
-	width, widthOK := numberMetric(o.Metrics, "fyne_content_width")
-	height, heightOK := numberMetric(o.Metrics, "fyne_content_height")
+	widthKey, heightKey, scaleKey := "content_width", "content_height", "display_scale"
+	measurementName := "desktop content"
+	if !v.usesCurrentDesktopContract() {
+		widthKey, heightKey, scaleKey = "fyne_content_width", "fyne_content_height", "fyne_scale"
+		measurementName = "historical Fyne content"
+	}
+	v.requireNumber(prefix, o.Metrics, scaleKey, 0.01, 100)
+	width, widthOK := numberMetric(o.Metrics, widthKey)
+	height, heightOK := numberMetric(o.Metrics, heightKey)
 	workWidth, workWidthOK := numberMetric(o.Metrics, "logical_work_area_width")
 	workHeight, workHeightOK := numberMetric(o.Metrics, "logical_work_area_height")
 	if !widthOK || !heightOK || !workWidthOK || !workHeightOK || width <= 0 || height <= 0 || workWidth <= 0 || workHeight <= 0 {
-		v.add("%s Fyne content and logical work-area dimensions must be positive", prefix)
+		v.add("%s %s and logical work-area dimensions must be positive", prefix, measurementName)
 	} else if strings.HasPrefix(o.ID, "window.clean-") || o.ID == "window.retained-profile" {
-		if workWidth >= 1280.0/0.9 && workHeight >= 800.0/0.9 {
-			if width != 1280 || height != 800 {
-				v.add("%s sufficiently large work area requires 1280 by 800 Fyne content", prefix)
+		expectedWidth, expectedHeight := 1440.0, 900.0
+		if measurementName == "historical Fyne content" {
+			expectedWidth, expectedHeight = 1280, 800
+		}
+		if workWidth >= expectedWidth/0.9 && workHeight >= expectedHeight/0.9 {
+			if width != expectedWidth || height != expectedHeight {
+				v.add("%s sufficiently large work area requires %.0f by %.0f %s", prefix, expectedWidth, expectedHeight, measurementName)
 			}
 		} else if width > workWidth*0.9+0.01 || height > workHeight*0.9+0.01 {
-			v.add("%s Fyne content exceeds 90 percent of the logical work area", prefix)
+			v.add("%s desktop content exceeds 90 percent of the logical work area", prefix)
 		}
 	}
 	v.requireTrue(prefix, o.Metrics, "restored", "margins_visible", "title_bar_reachable", "resize_borders_reachable", "taskbar_reachable")
@@ -642,8 +703,14 @@ func (v *validator) validateWindow(prefix string, o *Observation, env Environmen
 	if strings.HasPrefix(o.ID, "window.clean-") && env.ProfileState != "clean" {
 		v.add("%s clean launch must use clean profile state", prefix)
 	}
-	if o.ID == "window.retained-profile" && env.ProfileState != "retained-v0.9.1" {
-		v.add("%s must use retained-v0.9.1 profile state", prefix)
+	if o.ID == "window.retained-profile" {
+		expectedProfile := "retained-v1.1.1"
+		if !v.usesCurrentDesktopContract() {
+			expectedProfile = "retained-v0.9.1"
+		}
+		if env.ProfileState != expectedProfile {
+			v.add("%s must use %s profile state", prefix, expectedProfile)
+		}
 	}
 	if o.ID == "window.state-transitions" {
 		v.requireTrue(prefix, o.Metrics, "maximize_worked", "restore_worked", "resize_worked", "minimize_worked", "close_worked")
@@ -675,31 +742,41 @@ type fyneWindowEvidence struct {
 	CanvasScale   float64   `json:"canvas_scale"`
 }
 
+type desktopWindowEvidence struct {
+	SchemaVersion int       `json:"schema_version"`
+	ProcessID     int       `json:"process_id"`
+	CapturedAt    time.Time `json:"captured_at"`
+	ContentWidth  float64   `json:"content_width"`
+	ContentHeight float64   `json:"content_height"`
+	DisplayScale  float64   `json:"display_scale"`
+}
+
 type nativeWindowEvidence struct {
-	SchemaVersion       int                `json:"schema_version"`
-	Kind                string             `json:"kind"`
-	ObservationID       string             `json:"observation_id"`
-	CapturedAt          time.Time          `json:"captured_at"`
-	ProcessID           int                `json:"process_id"`
-	ProcessPath         string             `json:"process_path"`
-	ProcessSHA256       string             `json:"process_sha256"`
-	ProcessSessionID    int                `json:"process_session_id"`
-	ProcessUserSID      string             `json:"process_user_sid"`
-	ProcessIntegrityRID int                `json:"process_integrity_rid"`
-	HWND                string             `json:"hwnd"`
-	OuterRect           nativeRect         `json:"outer_rect"`
-	ClientRect          nativeRect         `json:"client_rect"`
-	MonitorRect         nativeRect         `json:"monitor_rect"`
-	WorkAreaRect        nativeRect         `json:"work_area_rect"`
-	MonitorID           string             `json:"monitor_id"`
-	EffectiveDPI        int                `json:"effective_dpi"`
-	ShowCommand         int                `json:"show_command"`
-	Visible             bool               `json:"visible"`
-	Maximized           bool               `json:"maximized"`
-	Minimized           bool               `json:"minimized"`
-	Fullscreen          bool               `json:"fullscreen"`
-	Restored            bool               `json:"restored"`
-	Fyne                fyneWindowEvidence `json:"fyne"`
+	SchemaVersion       int                    `json:"schema_version"`
+	Kind                string                 `json:"kind"`
+	ObservationID       string                 `json:"observation_id"`
+	CapturedAt          time.Time              `json:"captured_at"`
+	ProcessID           int                    `json:"process_id"`
+	ProcessPath         string                 `json:"process_path"`
+	ProcessSHA256       string                 `json:"process_sha256"`
+	ProcessSessionID    int                    `json:"process_session_id"`
+	ProcessUserSID      string                 `json:"process_user_sid"`
+	ProcessIntegrityRID int                    `json:"process_integrity_rid"`
+	HWND                string                 `json:"hwnd"`
+	OuterRect           nativeRect             `json:"outer_rect"`
+	ClientRect          nativeRect             `json:"client_rect"`
+	MonitorRect         nativeRect             `json:"monitor_rect"`
+	WorkAreaRect        nativeRect             `json:"work_area_rect"`
+	MonitorID           string                 `json:"monitor_id"`
+	EffectiveDPI        int                    `json:"effective_dpi"`
+	ShowCommand         int                    `json:"show_command"`
+	Visible             bool                   `json:"visible"`
+	Maximized           bool                   `json:"maximized"`
+	Minimized           bool                   `json:"minimized"`
+	Fullscreen          bool                   `json:"fullscreen"`
+	Restored            bool                   `json:"restored"`
+	Fyne                *fyneWindowEvidence    `json:"fyne,omitempty"`
+	Desktop             *desktopWindowEvidence `json:"desktop,omitempty"`
 }
 
 func (v *validator) validateNativeWindow(prefix string, o *Observation, env Environment) {
@@ -733,30 +810,40 @@ func (v *validator) validateNativeWindow(prefix string, o *Observation, env Envi
 		v.add("%s native window attachment: %v", prefix, err)
 		return
 	}
-	if record.SchemaVersion != 1 || record.Kind != "native-window-v1" || record.ObservationID != o.ID {
+	if !oneOf(record.Kind, "native-window-v1", "native-window-v2") || record.ObservationID != o.ID ||
+		(record.SchemaVersion == 1) != (record.Kind == "native-window-v1") ||
+		(record.SchemaVersion == 2) != (record.Kind == "native-window-v2") {
 		v.add("%s native window schema, kind, or observation identity is invalid", prefix)
+	}
+	expectedSchema := 2
+	if !v.usesCurrentDesktopContract() {
+		expectedSchema = 1
+	}
+	if record.SchemaVersion != expectedSchema {
+		v.add("%s native window schema must be version %d for candidate %s", prefix, expectedSchema, v.evidence.Candidate.Tag)
 	}
 	if record.CapturedAt.Before(v.evidence.StartedAt) || record.CapturedAt.After(v.evidence.CompletedAt) {
 		v.add("%s native window capture timestamp is outside the evidence interval", prefix)
 	}
 	processBase := path.Base(strings.ReplaceAll(record.ProcessPath, `\`, "/"))
+	contentWidth, contentHeight, displayScale, contentCapturedAt, contentProcessID, contentValid := record.desktopMeasurements()
 	if strings.TrimSpace(record.ProcessPath) == "" || !strings.EqualFold(processBase, "gosched-gui.exe") ||
-		!record.Visible || record.Fyne.SchemaVersion != 1 || record.Fyne.ProcessID != record.ProcessID {
-		v.add("%s native window process/Fyne identity is invalid", prefix)
+		!record.Visible || !contentValid || contentProcessID != record.ProcessID {
+		v.add("%s native window process/desktop identity is invalid", prefix)
 	}
 	if !digestPattern.MatchString(record.ProcessSHA256) || strings.TrimSpace(record.ProcessUserSID) == "" ||
 		strings.TrimSpace(record.HWND) == "" || strings.TrimSpace(record.MonitorID) == "" ||
 		record.ProcessID <= 0 || record.ProcessSessionID < 0 || record.ProcessIntegrityRID <= 0 ||
-		record.EffectiveDPI <= 0 || record.ShowCommand <= 0 || record.Fyne.ContentWidth <= 0 ||
-		record.Fyne.ContentHeight <= 0 || record.Fyne.CanvasScale <= 0 {
+		record.EffectiveDPI <= 0 || record.ShowCommand <= 0 || contentWidth <= 0 ||
+		contentHeight <= 0 || displayScale <= 0 {
 		v.add("%s native window attachment contains invalid required measurements", prefix)
 	}
 	if !nativeRectValid(record.OuterRect) || !nativeRectValid(record.ClientRect) ||
 		!nativeRectValid(record.MonitorRect) || !nativeRectValid(record.WorkAreaRect) {
 		v.add("%s native window attachment contains an invalid rectangle", prefix)
 	}
-	if record.Fyne.CapturedAt.Before(v.evidence.StartedAt) || record.Fyne.CapturedAt.After(v.evidence.CompletedAt) {
-		v.add("%s Fyne capture timestamp is outside the evidence interval", prefix)
+	if contentCapturedAt.Before(v.evidence.StartedAt) || contentCapturedAt.After(v.evidence.CompletedAt) {
+		v.add("%s desktop capture timestamp is outside the evidence interval", prefix)
 	}
 	compareIntegerMetric(v, prefix, o.Metrics, "pid", record.ProcessID)
 	compareStringMetric(v, prefix, o.Metrics, "executable_sha256", record.ProcessSHA256)
@@ -774,9 +861,15 @@ func (v *validator) validateNativeWindow(prefix string, o *Observation, env Envi
 	compareRectMetric(v, prefix, o.Metrics, "client_rect", record.ClientRect)
 	compareRectMetric(v, prefix, o.Metrics, "monitor_rect", record.MonitorRect)
 	compareRectMetric(v, prefix, o.Metrics, "work_area_rect", record.WorkAreaRect)
-	compareNumberMetric(v, prefix, o.Metrics, "fyne_content_width", record.Fyne.ContentWidth)
-	compareNumberMetric(v, prefix, o.Metrics, "fyne_content_height", record.Fyne.ContentHeight)
-	compareNumberMetric(v, prefix, o.Metrics, "fyne_scale", record.Fyne.CanvasScale)
+	if record.SchemaVersion == 2 {
+		compareNumberMetric(v, prefix, o.Metrics, "content_width", contentWidth)
+		compareNumberMetric(v, prefix, o.Metrics, "content_height", contentHeight)
+		compareNumberMetric(v, prefix, o.Metrics, "display_scale", displayScale)
+	} else {
+		compareNumberMetric(v, prefix, o.Metrics, "fyne_content_width", contentWidth)
+		compareNumberMetric(v, prefix, o.Metrics, "fyne_content_height", contentHeight)
+		compareNumberMetric(v, prefix, o.Metrics, "fyne_scale", displayScale)
+	}
 	if record.ProcessUserSID != env.AccountSID || record.ProcessIntegrityRID != env.IntegrityRID {
 		v.add("%s native window token does not match environment", prefix)
 	}
@@ -784,6 +877,23 @@ func (v *validator) validateNativeWindow(prefix string, o *Observation, env Envi
 		scale := float64(record.EffectiveDPI) / 96
 		compareNumberMetric(v, prefix, o.Metrics, "logical_work_area_width", float64(record.WorkAreaRect.Right-record.WorkAreaRect.Left)/scale)
 		compareNumberMetric(v, prefix, o.Metrics, "logical_work_area_height", float64(record.WorkAreaRect.Bottom-record.WorkAreaRect.Top)/scale)
+	}
+}
+
+func (record nativeWindowEvidence) desktopMeasurements() (width, height, scale float64, capturedAt time.Time, processID int, valid bool) {
+	switch record.SchemaVersion {
+	case 1:
+		if record.Fyne == nil || record.Desktop != nil || record.Fyne.SchemaVersion != 1 {
+			return 0, 0, 0, time.Time{}, 0, false
+		}
+		return record.Fyne.ContentWidth, record.Fyne.ContentHeight, record.Fyne.CanvasScale, record.Fyne.CapturedAt, record.Fyne.ProcessID, true
+	case 2:
+		if record.Desktop == nil || record.Fyne != nil || record.Desktop.SchemaVersion != 1 {
+			return 0, 0, 0, time.Time{}, 0, false
+		}
+		return record.Desktop.ContentWidth, record.Desktop.ContentHeight, record.Desktop.DisplayScale, record.Desktop.CapturedAt, record.Desktop.ProcessID, true
+	default:
+		return 0, 0, 0, time.Time{}, 0, false
 	}
 }
 
@@ -1023,6 +1133,14 @@ func (v *validator) validateSetup(prefix string, o *Observation, env Environment
 	case "setup.upgrade":
 		v.requireTrue(prefix, o.Metrics, "choices_preserved", "completion_actions_absent")
 		v.requireFalse(prefix, o.Metrics, "owned_data_cleanup_invoked")
+		if v.usesCurrentDesktopContract() {
+			v.requireString(prefix, o.Metrics, "baseline_version", v111WindowsMSIVersion)
+			v.requireString(prefix, o.Metrics, "baseline_filename", v111WindowsMSIFilename)
+			v.requireString(prefix, o.Metrics, "baseline_download_url", v111WindowsMSIURL)
+			v.requireString(prefix, o.Metrics, "baseline_sha256", v111WindowsMSISHA256)
+			v.requireTrue(prefix, o.Metrics, "tasks_preserved", "run_history_preserved", "appearance_intent_preserved", "daemon_identity_preserved", "service_operational", "local_access_operational")
+			v.requireFalse(prefix, o.Metrics, "notifications_enabled", "localhost_mcp_enabled", "remote_https_enabled")
+		}
 	case "setup.invalid-input":
 		v.requireTrue(prefix, o.Metrics, "input_rejected", "state_unchanged")
 		v.requireFalse(prefix, o.Metrics, "owned_data_cleanup_invoked")

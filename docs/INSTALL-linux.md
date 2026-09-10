@@ -10,7 +10,7 @@ nav_order: 2
 **Applies to:** go-schedule 0.6.0 and later\
 **See also:** [`gosched` command reference](cli.md) · [macOS](INSTALL-macos.md) · [Windows](INSTALL-windows.md)
 
-The v1.2 candidate adds a Linux desktop archive beside the existing server archive. The server archive contains the cgo-free daemon and CLI. The desktop archive adds the native Wails application and freedesktop integration assets; it uses the system WebKitGTK runtime, while a headless server does not need desktop or WebView dependencies. The Wails archive is not part of the latest public v1.1.1 release.
+Beginning with v1.4.0, releases include a Linux desktop archive beside the existing server archive. The server archive contains the cgo-free daemon and CLI. The desktop archive adds the native Wails application and freedesktop integration assets; it uses the system WebKitGTK runtime, while a headless server does not need desktop or WebView dependencies. The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) is authoritative while a candidate is staged and qualified.
 
 ## Contents
 

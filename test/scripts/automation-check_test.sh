@@ -222,9 +222,20 @@ jobs:
   readme-version:
     steps:
       - run: |
+          VERSION="${GITHUB_REF_NAME}"
+          PLAIN="${VERSION#v}"
           BADGE='<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>'
           BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
           test "$BADGE_LINE_COUNT" -eq 1
+          CHANGELOG_HEADING="## [${PLAIN}] - "
+          test "$(grep -Fc -- "$CHANGELOG_HEADING" CHANGELOG.md)" -eq 1
+          CHANGELOG_HEADING_LINE=$(grep -F -- "$CHANGELOG_HEADING" CHANGELOG.md)
+          CHANGELOG_ANCHOR=$(printf '%s\n' "$CHANGELOG_HEADING_LINE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9 -]//g; s/[ ]/-/g; s/^-+|-+$//g')
+          RELEASE_NOTES=".github/release-notes/${VERSION}.md"
+          test -f "$RELEASE_NOTES"
+          CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"
+          CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."
+          test "$(grep -Fxc -- "$CHANGELOG_LINE" "$RELEASE_NOTES")" -eq 1
   release-state:
     needs: [readme-version, ci-success]
     steps:
@@ -317,6 +328,42 @@ run_automation_cases() {
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
   run_expect_pass approved sh "$CHECK" "$good"
+
+  no_changelog_preflight="$tmp/no-changelog-preflight"
+  cp -R "$good" "$no_changelog_preflight"
+  sed '/CHANGELOG_HEADING/d; /grep -Fc --.*CHANGELOG.md/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$no_changelog_preflight/.github/workflows/release.yml"
+  run_expect_fail no-changelog-preflight \
+    'tag-specific changelog section preflight' \
+    sh "$CHECK" "$no_changelog_preflight"
+
+  no_release_note_preflight="$tmp/no-release-note-preflight"
+  cp -R "$good" "$no_release_note_preflight"
+  sed '/RELEASE_NOTES=/d; /test -f.*RELEASE_NOTES/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$no_release_note_preflight/.github/workflows/release.yml"
+  run_expect_fail no-release-note-preflight \
+    'tag-specific release-note file preflight' \
+    sh "$CHECK" "$no_release_note_preflight"
+
+  no_exact_changelog_link="$tmp/no-exact-changelog-link"
+  cp -R "$good" "$no_exact_changelog_link"
+  sed '/CHANGELOG_HEADING_LINE=/d; /CHANGELOG_ANCHOR=/d; /CHANGELOG_URL=/d' \
+    "$good/.github/workflows/release.yml" > \
+    "$no_exact_changelog_link/.github/workflows/release.yml"
+  run_expect_fail no-exact-changelog-link \
+    'exact changelog heading extraction' \
+    sh "$CHECK" "$no_exact_changelog_link"
+
+  substring_changelog_link="$tmp/substring-changelog-link"
+  cp -R "$good" "$substring_changelog_link"
+  sed 's/grep -Fxc -- "$CHANGELOG_LINE"/grep -Fc -- "$CHANGELOG_URL"/' \
+    "$good/.github/workflows/release.yml" > \
+    "$substring_changelog_link/.github/workflows/release.yml"
+  run_expect_fail substring-changelog-link \
+    'whole-line release-note changelog guard' \
+    sh "$CHECK" "$substring_changelog_link"
 
   stale_tag_boundary="$tmp/stale-tag-boundary"
   cp -R "$good" "$stale_tag_boundary"
