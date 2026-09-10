@@ -770,6 +770,12 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics.baseline_filename = ''
                 $metrics.baseline_download_url = ''
                 $metrics.baseline_sha256 = ''
+                $metrics.tasks_preserved = $false
+                $metrics.run_history_preserved = $false
+                $metrics.appearance_intent_preserved = $false
+                $metrics.daemon_identity_preserved = $false
+                $metrics.service_operational = $false
+                $metrics.local_access_operational = $false
                 $metrics.notifications_enabled = $true
                 $metrics.localhost_mcp_enabled = $true
                 $metrics.remote_https_enabled = $true

@@ -432,6 +432,10 @@ else
     'tagged changelog anchor derivation'
   require_release_text 'CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"' \
     'tagged release-note changelog link preflight'
+  require_release_text 'CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."' \
+    'exact release-note changelog Markdown target'
+  require_release_text 'grep -Fxc -- "$CHANGELOG_LINE"' \
+    'whole-line release-note changelog guard'
   require_release_text \
     'https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF' \
     'published-release badge source'

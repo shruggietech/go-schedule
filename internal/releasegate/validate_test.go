@@ -17,7 +17,7 @@ func TestValidateAcceptsCompleteEvidence(t *testing.T) {
 	root, artifact, evidence := passingEvidence(t)
 	if failures := Validate(evidence, root, artifact, ExpectedIdentity{
 		Repository: "shruggietech/go-schedule",
-		Tag:        "v1.0.0",
+		Tag:        "v1.4.0",
 		Commit:     strings.Repeat("a", 40),
 	}); len(failures) != 0 {
 		t.Fatalf("Validate() failures = %v", failures)
@@ -107,6 +107,11 @@ func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 		}, "minimum_non_text_contrast"},
 		{"navigation order", func(e *Evidence) {
 			findObservation(e, "desktop.navigation-options").Metrics["destination_order"] = "tasks,options,info"
+		}, "destination_order"},
+		{"current navigation cannot select legacy contract", func(e *Evidence) {
+			metrics := findObservation(e, "desktop.navigation-options").Metrics
+			delete(metrics, "target_context_visible")
+			metrics["destination_order"] = "tasks,groups,chains,schedule,activity,options,info"
 		}, "destination_order"},
 		{"navigation horizontal scrollbar", func(e *Evidence) {
 			findObservation(e, "desktop.navigation-options").Metrics["horizontal_scrollbar_present"] = true
@@ -287,6 +292,12 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 		{"upgrade notifications enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["notifications_enabled"] = true }, "notifications_enabled"},
 		{"upgrade localhost MCP enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["localhost_mcp_enabled"] = true }, "localhost_mcp_enabled"},
 		{"upgrade remote HTTPS enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["remote_https_enabled"] = true }, "remote_https_enabled"},
+		{"upgrade tasks lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["tasks_preserved"] = false }, "tasks_preserved"},
+		{"upgrade run history lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["run_history_preserved"] = false }, "run_history_preserved"},
+		{"upgrade appearance lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["appearance_intent_preserved"] = false }, "appearance_intent_preserved"},
+		{"upgrade daemon identity lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["daemon_identity_preserved"] = false }, "daemon_identity_preserved"},
+		{"upgrade service unavailable", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["service_operational"] = false }, "service_operational"},
+		{"upgrade local access unavailable", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["local_access_operational"] = false }, "local_access_operational"},
 		{"preserve bytes", func(e *Evidence) { findObservation(e, "remove.preserve").Metrics["owned_bytes_preserved"] = false }, "owned_bytes_preserved"},
 		{"wipe controls", func(e *Evidence) { findObservation(e, "remove.wipe").Metrics["controls_unchanged"] = false }, "controls_unchanged"},
 		{"changed control fingerprint", func(e *Evidence) {
@@ -308,7 +319,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			tt.mutate(&evidence)
 			failures := Validate(evidence, root, artifact, ExpectedIdentity{
 				Repository: "shruggietech/go-schedule",
-				Tag:        "v1.0.0",
+				Tag:        "v1.4.0",
 				Commit:     strings.Repeat("a", 40),
 			})
 			if !containsFailure(failures, tt.want) {
@@ -503,7 +514,7 @@ func TestValidateCandidateIsIndependentOfAttendedEvidence(t *testing.T) {
 	_, artifact, evidence := passingEvidence(t)
 	if failures := ValidateCandidate(evidence.Candidate, artifact, ExpectedIdentity{
 		Repository: "shruggietech/go-schedule",
-		Tag:        "v1.0.0",
+		Tag:        "v1.4.0",
 		Commit:     strings.Repeat("a", 40),
 	}); len(failures) != 0 {
 		t.Fatalf("ValidateCandidate() failures = %v", failures)
@@ -518,7 +529,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 	t.Helper()
 
 	root := t.TempDir()
-	artifact := filepath.Join(root, "go-schedule_v1.0.0_windows_amd64.msi")
+	artifact := filepath.Join(root, "go-schedule_v1.4.0_windows_amd64.msi")
 	artifactBytes := []byte("inert fixture; not a native MSI")
 	if err := os.WriteFile(artifact, artifactBytes, 0o600); err != nil {
 		t.Fatal(err)
@@ -549,7 +560,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		EvidenceClass: "attended-windows",
 		Candidate: Candidate{
 			Repository:     "shruggietech/go-schedule",
-			Tag:            "v1.0.0",
+			Tag:            "v1.4.0",
 			Commit:         strings.Repeat("a", 40),
 			Workflow:       "Release",
 			RunID:          1234,
@@ -557,7 +568,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 			Filename:       filepath.Base(artifact),
 			Bytes:          int64(len(artifactBytes)),
 			SHA256:         digest(artifactBytes),
-			ProductVersion: "1.0.0",
+			ProductVersion: "1.4.0",
 			ProductCode:    "{11111111-2222-3333-4444-555555555555}",
 		},
 		Operator: Operator{
@@ -840,6 +851,8 @@ func passingMetrics(id string) map[string]any {
 			"choices_preserved": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false,
 			"baseline_version": v111WindowsMSIVersion, "baseline_filename": v111WindowsMSIFilename,
 			"baseline_download_url": v111WindowsMSIURL, "baseline_sha256": v111WindowsMSISHA256,
+			"tasks_preserved": true, "run_history_preserved": true, "appearance_intent_preserved": true,
+			"daemon_identity_preserved": true, "service_operational": true, "local_access_operational": true,
 			"notifications_enabled": false, "localhost_mcp_enabled": false, "remote_https_enabled": false,
 		}
 	case "setup.invalid-input":

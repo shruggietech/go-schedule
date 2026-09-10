@@ -234,7 +234,8 @@ jobs:
           RELEASE_NOTES=".github/release-notes/${VERSION}.md"
           test -f "$RELEASE_NOTES"
           CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"
-          test "$(grep -Fc -- "$CHANGELOG_URL" "$RELEASE_NOTES")" -eq 1
+          CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."
+          test "$(grep -Fxc -- "$CHANGELOG_LINE" "$RELEASE_NOTES")" -eq 1
   release-state:
     needs: [readme-version, ci-success]
     steps:
@@ -354,6 +355,15 @@ run_automation_cases() {
   run_expect_fail no-exact-changelog-link \
     'exact changelog heading extraction' \
     sh "$CHECK" "$no_exact_changelog_link"
+
+  substring_changelog_link="$tmp/substring-changelog-link"
+  cp -R "$good" "$substring_changelog_link"
+  sed 's/grep -Fxc -- "$CHANGELOG_LINE"/grep -Fc -- "$CHANGELOG_URL"/' \
+    "$good/.github/workflows/release.yml" > \
+    "$substring_changelog_link/.github/workflows/release.yml"
+  run_expect_fail substring-changelog-link \
+    'whole-line release-note changelog guard' \
+    sh "$CHECK" "$substring_changelog_link"
 
   stale_tag_boundary="$tmp/stale-tag-boundary"
   cp -R "$good" "$stale_tag_boundary"

@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -128,6 +129,19 @@ type validator struct {
 
 func (v *validator) add(format string, args ...any) {
 	v.failures = append(v.failures, fmt.Sprintf(format, args...))
+}
+
+func (v *validator) usesCurrentDesktopContract() bool {
+	parts := tagPattern.FindStringSubmatch(v.evidence.Candidate.Tag)
+	if len(parts) != 4 {
+		return true
+	}
+	major, majorErr := strconv.Atoi(parts[1])
+	minor, minorErr := strconv.Atoi(parts[2])
+	if majorErr != nil || minorErr != nil {
+		return true
+	}
+	return major > 1 || major == 1 && minor >= 4
 }
 
 func (v *validator) validateRoot(requiredClass string) {
@@ -488,6 +502,7 @@ func (v *validator) validateScenario(prefix string, o *Observation, env Environm
 func (v *validator) validateDesktop(prefix string, o *Observation, env Environment) {
 	v.requireRoutine(prefix, env)
 	v.validateDesktopDPI(prefix, o.ID, env)
+	current := v.usesCurrentDesktopContract()
 	switch o.ID {
 	case "desktop.appearance-standard", "desktop.appearance-scaled":
 		v.validateDesktopAppearance(prefix, o, env)
@@ -501,7 +516,7 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 	case "desktop.navigation-options", "desktop.navigation-options-scaled":
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
-		if _, current := o.Metrics["target_context_visible"]; current {
+		if current {
 			v.requireString(prefix, o.Metrics, "destination_order", "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings")
 			v.requireTrue(prefix, o.Metrics, "target_context_visible")
 		} else {
@@ -510,7 +525,7 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		v.requireTrue(prefix, o.Metrics, "rail_spacing_balanced", "labels_unclipped", "boundary_full_height", "boundary_subtle", "exit_bottom_right", "exit_never_selected", "exit_semantic_glyph", "storage_rows_compact", "unavailable_rows_muted", "copy_exact", "selector_current_omitted")
 		v.requireFalse(prefix, o.Metrics, "horizontal_scrollbar_present")
 	case "desktop.scroll-input":
-		if _, current := o.Metrics["browser_native"]; current {
+		if current {
 			v.requireExactSet(prefix, o.Metrics, "surfaces", "tasks", "automation-sources", "schedule", "activity", "notifications", "agent-access", "connections", "settings", "task-editor")
 			v.requireTrue(prefix, o.Metrics, "wheel_detents_responsive", "browser_native", "nested_multiplier_absent", "keyboard_scroll_preserved", "focus_preserved")
 		} else {
@@ -530,7 +545,7 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		v.requireInteger(prefix, o.Metrics, "row_count", 100, math.MaxInt32)
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
-		if _, current := o.Metrics["state_reason_discoverable"]; current {
+		if current {
 			v.requireExactSet(prefix, o.Metrics, "headers", "task", "group", "state", "schedule")
 			v.requireTrue(prefix, o.Metrics, "state_reason_discoverable")
 		} else {
@@ -545,7 +560,7 @@ func (v *validator) validateDesktop(prefix string, o *Observation, env Environme
 		v.requireInteger(prefix, o.Metrics, "activity_row_count", 100, math.MaxInt32)
 		v.requireExactSet(prefix, o.Metrics, "palettes", "dark", "light")
 		v.requireExactSet(prefix, o.Metrics, "content_sizes", "1280x800", "800x600")
-		if _, current := o.Metrics["record_types"]; current {
+		if current {
 			v.requireExactSet(prefix, o.Metrics, "schedule_headers", "when", "task", "record", "state")
 			v.requireExactSet(prefix, o.Metrics, "activity_headers", "when", "record", "state", "source", "summary")
 			v.requireExactSet(prefix, o.Metrics, "schedule_states", "upcoming", "running", "success", "failure", "skipped", "caught-up", "queued", "unavailable")
@@ -574,7 +589,7 @@ func (v *validator) validateDesktopDPI(prefix, id string, env Environment) {
 }
 
 func (v *validator) validateDesktopAppearance(prefix string, o *Observation, env Environment) {
-	if _, current := o.Metrics["themes"]; current {
+	if v.usesCurrentDesktopContract() {
 		v.requireExactSet(prefix, o.Metrics, "themes", "system", "light", "dark")
 		v.requireTrue(prefix, o.Metrics, "system_theme_default", "system_theme_restored", "theme_persistence_verified", "brand_typography_sharp", "body_text_sharp", "labels_centered", "labels_unclipped", "resize_verified", "minimize_restore_verified", "reopen_verified")
 	} else {
@@ -648,7 +663,7 @@ func (v *validator) validateWindow(prefix string, o *Observation, env Environmen
 	}
 	widthKey, heightKey, scaleKey := "content_width", "content_height", "display_scale"
 	measurementName := "desktop content"
-	if _, current := o.Metrics[widthKey]; !current {
+	if !v.usesCurrentDesktopContract() {
 		widthKey, heightKey, scaleKey = "fyne_content_width", "fyne_content_height", "fyne_scale"
 		measurementName = "historical Fyne content"
 	}
@@ -690,7 +705,7 @@ func (v *validator) validateWindow(prefix string, o *Observation, env Environmen
 	}
 	if o.ID == "window.retained-profile" {
 		expectedProfile := "retained-v1.1.1"
-		if measurementName == "historical Fyne content" {
+		if !v.usesCurrentDesktopContract() {
 			expectedProfile = "retained-v0.9.1"
 		}
 		if env.ProfileState != expectedProfile {
@@ -799,6 +814,13 @@ func (v *validator) validateNativeWindow(prefix string, o *Observation, env Envi
 		(record.SchemaVersion == 1) != (record.Kind == "native-window-v1") ||
 		(record.SchemaVersion == 2) != (record.Kind == "native-window-v2") {
 		v.add("%s native window schema, kind, or observation identity is invalid", prefix)
+	}
+	expectedSchema := 2
+	if !v.usesCurrentDesktopContract() {
+		expectedSchema = 1
+	}
+	if record.SchemaVersion != expectedSchema {
+		v.add("%s native window schema must be version %d for candidate %s", prefix, expectedSchema, v.evidence.Candidate.Tag)
 	}
 	if record.CapturedAt.Before(v.evidence.StartedAt) || record.CapturedAt.After(v.evidence.CompletedAt) {
 		v.add("%s native window capture timestamp is outside the evidence interval", prefix)
@@ -1111,18 +1133,12 @@ func (v *validator) validateSetup(prefix string, o *Observation, env Environment
 	case "setup.upgrade":
 		v.requireTrue(prefix, o.Metrics, "choices_preserved", "completion_actions_absent")
 		v.requireFalse(prefix, o.Metrics, "owned_data_cleanup_invoked")
-		currentV14Evidence := false
-		for _, environment := range v.evidence.Environments {
-			if environment.ProfileState == "retained-v1.1.1" {
-				currentV14Evidence = true
-				break
-			}
-		}
-		if currentV14Evidence {
+		if v.usesCurrentDesktopContract() {
 			v.requireString(prefix, o.Metrics, "baseline_version", v111WindowsMSIVersion)
 			v.requireString(prefix, o.Metrics, "baseline_filename", v111WindowsMSIFilename)
 			v.requireString(prefix, o.Metrics, "baseline_download_url", v111WindowsMSIURL)
 			v.requireString(prefix, o.Metrics, "baseline_sha256", v111WindowsMSISHA256)
+			v.requireTrue(prefix, o.Metrics, "tasks_preserved", "run_history_preserved", "appearance_intent_preserved", "daemon_identity_preserved", "service_operational", "local_access_operational")
 			v.requireFalse(prefix, o.Metrics, "notifications_enabled", "localhost_mcp_enabled", "remote_https_enabled")
 		}
 	case "setup.invalid-input":

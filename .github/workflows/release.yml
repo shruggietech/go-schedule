@@ -105,7 +105,8 @@ jobs:
             exit 1
           fi
           CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"
-          CHANGELOG_LINK_COUNT=$(grep -Fc -- "$CHANGELOG_URL" "$RELEASE_NOTES" || true)
+          CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."
+          CHANGELOG_LINK_COUNT=$(grep -Fxc -- "$CHANGELOG_LINE" "$RELEASE_NOTES" || true)
           if [ "$CHANGELOG_LINK_COUNT" -ne 1 ]; then
             echo "::error file=${RELEASE_NOTES}::Expected exactly one changelog link for ${VERSION}; found ${CHANGELOG_LINK_COUNT}."
             exit 1
