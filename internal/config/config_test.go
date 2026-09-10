@@ -93,6 +93,13 @@ func TestLoad_MissingFileReturnsDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadRequired_MissingFileReturnsError(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.json")
+	if _, err := LoadRequired(path); err == nil || !strings.Contains(err.Error(), "config: reading") {
+		t.Fatalf("required missing file error = %v", err)
+	}
+}
+
 func TestLoad_OverlaysAndValidates(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
@@ -109,6 +116,38 @@ func TestLoad_OverlaysAndValidates(t *testing.T) {
 	// Unspecified fields keep defaults.
 	if cfg.LogFormat != "json" {
 		t.Fatalf("expected default log_format json, got %q", cfg.LogFormat)
+	}
+}
+
+func TestLoad_ResolvesRelativeFilePathsFromConfigDirectory(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	content := `{"data_dir":"data","ipc_path":"run/goschedd.sock","log_file_path":"logs/events.log","remote":{"enabled":true,"bind_address":"127.0.0.1:8443","certificate_file":"tls/cert.pem","private_key_file":"tls/key.pem"}}`
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadRequired(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"data_dir":         filepath.Join(dir, "data"),
+		"ipc_path":         filepath.Join(dir, "run", "goschedd.sock"),
+		"log_file_path":    filepath.Join(dir, "logs", "events.log"),
+		"certificate_file": filepath.Join(dir, "tls", "cert.pem"),
+		"private_key_file": filepath.Join(dir, "tls", "key.pem"),
+	}
+	got := map[string]string{
+		"data_dir":         cfg.DataDir,
+		"ipc_path":         cfg.IPCPath,
+		"log_file_path":    cfg.LogFilePath,
+		"certificate_file": cfg.Remote.CertificateFile,
+		"private_key_file": cfg.Remote.PrivateKeyFile,
+	}
+	for name, wantPath := range want {
+		if got[name] != wantPath {
+			t.Errorf("%s = %q, want %q", name, got[name], wantPath)
+		}
 	}
 }
 

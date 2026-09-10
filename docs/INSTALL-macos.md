@@ -85,6 +85,8 @@ Sign out and back in after changing membership. The daemon fails closed if its c
 sudo gosched service install
 ```
 
+The service loads `/Library/Application Support/goschedule/config.json` automatically when it exists. For a different location, install it with `sudo gosched service install --config "/Library/Application Support/goschedule/daemon.json"`. The file and any referenced TLS private key must be readable by the service identity. Follow [Remote access](remote-access.md#operator-runbook) to enable the optional HTTPS listener; installation alone never opens one.
+
 ```sh
 sudo gosched service start
 ```
@@ -142,6 +144,8 @@ gosched health
 ```
 
 The database migrates forward automatically and non-destructively on first start.
+
+The service definition retains a custom `--config` argument, and the default configuration remains beside the preserved database. An upgrade does not enable remote access or replace certificate and credential state.
 
 ## Uninstalling
 

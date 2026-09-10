@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/shruggietech/go-schedule/internal/config"
@@ -10,6 +11,14 @@ import (
 	"github.com/shruggietech/go-schedule/internal/ipc"
 	"github.com/shruggietech/go-schedule/internal/logbus"
 )
+
+func TestLoadDaemonConfigRejectsDisappearedExplicitFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing.json")
+	_, _, err := loadDaemonConfig(path)
+	if err == nil || !strings.Contains(err.Error(), "config: reading") || !strings.Contains(err.Error(), filepath.Base(path)) {
+		t.Fatalf("err=%v", err)
+	}
+}
 
 func TestDaemonRuntimeInfoResolvesEffectivePaths(t *testing.T) {
 	cfg := config.Default()

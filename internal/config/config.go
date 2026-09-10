@@ -78,6 +78,11 @@ func Default() Config {
 	}
 }
 
+// DefaultPath returns the platform service configuration path. The file is
+// optional, but when present it is loaded by a daemon started without an
+// explicit --config argument.
+func DefaultPath() string { return filepath.Join(platform.DataDir(), "config.json") }
+
 // DBPath returns the database file path derived from DataDir.
 func (c Config) DBPath() string { return filepath.Join(c.DataDir, "goschedule.db") }
 
@@ -181,6 +186,19 @@ func validateTimezone(tz string) error {
 // A missing path returns the validated defaults (not an error), so the daemon
 // can run with zero configuration.
 func Load(path string) (Config, error) {
+	return load(path, false)
+}
+
+// LoadRequired reads and validates a JSON config file. Unlike Load, it returns
+// an error when the named file does not exist.
+func LoadRequired(path string) (Config, error) {
+	if path == "" {
+		return Config{}, fmt.Errorf("config: required path must not be empty")
+	}
+	return load(path, true)
+}
+
+func load(path string, required bool) (Config, error) {
 	cfg := Default()
 	if path != "" {
 		data, err := os.ReadFile(path)
@@ -189,7 +207,10 @@ func Load(path string) (Config, error) {
 			if err := json.Unmarshal(data, &cfg); err != nil {
 				return Config{}, fmt.Errorf("config: parsing %s: %w", path, err)
 			}
-		case os.IsNotExist(err):
+			if err := resolveFilePaths(&cfg, path); err != nil {
+				return Config{}, err
+			}
+		case os.IsNotExist(err) && !required:
 			// fall through to validated defaults
 		default:
 			return Config{}, fmt.Errorf("config: reading %s: %w", path, err)
@@ -199,4 +220,24 @@ func Load(path string) (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+func resolveFilePaths(cfg *Config, configPath string) error {
+	base, err := filepath.Abs(filepath.Dir(configPath))
+	if err != nil {
+		return fmt.Errorf("config: resolving directory for %s: %w", configPath, err)
+	}
+	paths := []*string{
+		&cfg.DataDir,
+		&cfg.IPCPath,
+		&cfg.LogFilePath,
+		&cfg.Remote.CertificateFile,
+		&cfg.Remote.PrivateKeyFile,
+	}
+	for _, path := range paths {
+		if *path != "" && !filepath.IsAbs(*path) {
+			*path = filepath.Join(base, *path)
+		}
+	}
+	return nil
 }

@@ -37,7 +37,7 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "", "path to config file (optional)")
+	configPath := flag.String("config", "", "path to config file (default: platform data directory/config.json when present)")
 	flag.Parse()
 
 	if err := mainErr(*configPath); err != nil {
@@ -47,7 +47,7 @@ func main() {
 }
 
 func mainErr(configPath string) error {
-	cfg, err := config.Load(configPath)
+	cfg, resolvedConfigPath, err := loadDaemonConfig(configPath)
 	if err != nil {
 		return err
 	}
@@ -57,14 +57,6 @@ func mainErr(configPath string) error {
 	if err := os.Chmod(cfg.DataDir, 0o700); err != nil {
 		return fmt.Errorf("protect data directory: %w", err)
 	}
-	resolvedConfigPath := ""
-	if configPath != "" {
-		resolvedConfigPath, err = filepath.Abs(configPath)
-		if err != nil {
-			return fmt.Errorf("resolve config path: %w", err)
-		}
-	}
-
 	// Single-instance guard, acquired before the service machinery so a second
 	// daemon fails fast (a second scheduler would double-execute every task).
 	lk, err := lock.Acquire(filepath.Join(cfg.DataDir, "goschedd.lock"))
@@ -78,6 +70,27 @@ func mainErr(configPath string) error {
 	return service.Run(func(ctx context.Context) error {
 		return runDaemon(ctx, cfg, resolvedConfigPath)
 	})
+}
+
+func loadDaemonConfig(configPath string) (config.Config, string, error) {
+	explicit := configPath != ""
+	if !explicit {
+		configPath = config.DefaultPath()
+	}
+	resolved, err := filepath.Abs(configPath)
+	if err != nil {
+		return config.Config{}, "", fmt.Errorf("resolve config path: %w", err)
+	}
+	var cfg config.Config
+	if explicit {
+		cfg, err = config.LoadRequired(resolved)
+	} else {
+		cfg, err = config.Load(resolved)
+	}
+	if err != nil {
+		return config.Config{}, "", err
+	}
+	return cfg, resolved, nil
 }
 
 func runDaemon(ctx context.Context, cfg config.Config, configPath string) error {
