@@ -31,6 +31,14 @@ describe('production shell', () => {
     expect(screen.getByRole('dialog', { name: 'Production connection' })).toHaveTextContent('https://example.test')
   })
 
+  it('keeps manage-only task configuration disabled for operate credentials', async () => {
+    const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks'], permissions: ['read', 'operate'] } }
+    const remoteBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(remote) }
+    render(<App bridge={remoteBridge} tasks={tasks} settings={settings} />)
+    expect(await screen.findByText('Operate-only connection')).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'Create task' })).toBeDisabled()
+  })
+
   it('keeps target and page identity visible across operational routes', async () => {
     const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} operations={operations} settings={settings} />)
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Tasks' })).toBeVisible())

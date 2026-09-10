@@ -22,6 +22,24 @@ type RemoteBackend struct {
 	capability string
 }
 
+type unavailableRemoteBackend struct {
+	message string
+	action  string
+}
+
+// NewUnavailableRemoteBackend preserves a selected remote target while failing closed until it is repaired.
+func NewUnavailableRemoteBackend(message, action string) Backend {
+	return &unavailableRemoteBackend{message: message, action: action}
+}
+
+func (*unavailableRemoteBackend) AutoRetry() bool { return false }
+func (backend *unavailableRemoteBackend) Health(context.Context) (Health, error) {
+	return Health{}, &Failure{State: StateUnavailable, Message: backend.message, Action: backend.action}
+}
+func (backend *unavailableRemoteBackend) StreamEvents(context.Context, func(DomainEvent)) error {
+	return &Failure{State: StateUnavailable, Message: backend.message, Action: backend.action}
+}
+
 func (*RemoteBackend) AutoRetry() bool { return false }
 
 // NewRemoteBackend creates a backend for one immutable remote selection.

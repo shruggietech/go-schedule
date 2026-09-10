@@ -8,7 +8,7 @@
 
 - `go test -race ./internal/api/client ./internal/clientprofile ./internal/clientsecret ./internal/cli ./internal/remoteenroll` passed.
 - `go test -race ./connection ./connections ./remotepairing` passed from `desktop/`.
-- `npm test -- --run` passed all 86 frontend tests.
+- `npm test -- --run` passed all 88 frontend tests.
 - `npm run build` passed TypeScript validation and the production Vite build.
 - `npm run test:e2e` passed all 21 Chromium accessibility, keyboard, scale, responsive, and connection-recovery tests.
 - Target-isolation tests prove in-flight requests stay on their original immutable client, stale connection generations are rejected, target selection precedes request-router changes, remote failure requires manual retry, and active removal switches to local before native credential deletion.
@@ -20,4 +20,4 @@
 
 ## Review Evidence
 
-The initial Codex review on PR #223 identified five target-boundary defects. The review remediation adds remote task-observation projection, forwards remote capability and target context through populated task views, bounds identity and transport waits without timing out event streams, makes profile rename atomic under the cross-process store lock, and restores an unavailable persisted remote target without silently routing feature requests to the local daemon. Focused regression tests cover each correction. Second-round review remains pending.
+The initial Codex review on PR #223 identified five target-boundary defects. The first remediation added remote task-observation projection, forwarded remote capability and target context through populated task views, bounded identity and transport waits without timing out event streams, made profile rename atomic under the cross-process store lock, and restored an offline persisted remote target without silently routing feature requests to the local daemon. The one authorized second review identified six remaining edge cases. The final remediation installs a fail-closed remote placeholder before credential loading, serializes current-credential deletion with metadata removal, excludes observation-only tasks from remote editing, separates operate and manage controls, retrieves every remote task page, and resolves unambiguous labels before CLI rename. Focused regression tests cover every correction; no further automated review round is permitted.

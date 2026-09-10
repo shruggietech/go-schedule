@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,9 +30,13 @@ func (f *fakeProfileStore) SetActive(id string) error {
 	f.collection.ActiveDesktopProfileID = id
 	return nil
 }
-func (f *fakeProfileStore) Remove(id string) (clientprofile.Profile, error) {
+func (f *fakeProfileStore) RemoveWith(id string, beforeDelete func(clientprofile.Profile) error) (clientprofile.Profile, error) {
 	f.removed = id
 	removed := f.collection.Profiles[0]
+	if err := beforeDelete(removed); err != nil {
+		f.removed = ""
+		return clientprofile.Profile{}, err
+	}
 	f.collection.Profiles = nil
 	return removed, nil
 }
@@ -115,5 +120,25 @@ func TestRestorePreservesSelectedRemoteBeforeConnectionAttempt(t *testing.T) {
 	result := New(profiles, &fakeSecretStore{token: "bearer-canary"}, local, router, manager).RestoreSelection(context.Background())
 	if result.Outcome != "accepted" || manager.target.ProfileID != profile.ID || manager.target.Kind != "remote" || !router.Remote() {
 		t.Fatalf("result=%+v manager=%+v remote=%v", result, manager, router.Remote())
+	}
+}
+
+func TestRestorePreservesSelectedRemoteWhenCredentialIsMissing(t *testing.T) {
+	tlsServer := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	tlsServer.StartTLS()
+	defer tlsServer.Close()
+	profile := profileFixture()
+	profile.Endpoint = tlsServer.URL
+	profile.CertificatePEM = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: tlsServer.Certificate().Raw}))
+	profiles := &fakeProfileStore{collection: clientprofile.Collection{Version: clientprofile.CurrentVersion, ActiveDesktopProfileID: profile.ID, Profiles: []clientprofile.Profile{profile}}}
+	manager := &fakeManager{}
+	local := client.New("local")
+	router := client.NewSwitchable(local)
+	result := New(profiles, &fakeSecretStore{}, local, router, manager).RestoreSelection(context.Background())
+	if result.Outcome != "rejected" || manager.target.ProfileID != profile.ID || manager.target.Kind != "remote" || !router.Remote() {
+		t.Fatalf("result=%+v manager=%+v remote=%v", result, manager, router.Remote())
+	}
+	if _, err := router.ListTaskDetails(context.Background(), "", ""); err == nil || !strings.Contains(err.Error(), "identity") {
+		t.Fatalf("blocked router err=%v", err)
 	}
 }

@@ -54,8 +54,8 @@ The workspace contains one synthetic local entry plus safe remote profiles. Resu
 | Surface | Required advertised capability | Minimum authority |
 | --- | --- | --- |
 | Tasks read | `tasks` | Observe |
-| Task run, enable, disable | `tasks` | Operate |
-| Task create, update, delete | `tasks` | Manage |
+| Task run | `tasks` | Operate |
+| Task create, update, delete, enable, disable | `tasks` | Manage |
 | Groups read | `groups` | Observe |
 | Schedule | `schedule` | Observe |
 | Activity | `activity` | Observe |

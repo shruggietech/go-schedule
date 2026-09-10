@@ -91,3 +91,30 @@ func TestRenameChangesOnlyPresentationFields(t *testing.T) {
 		t.Fatalf("renamed profile = %#v", renamed)
 	}
 }
+
+func TestRemoveWithUsesCurrentProfileAndKeepsMetadataOnCredentialFailure(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "profiles.json")
+	store := NewStore(path)
+	profile, err := store.Add(validProfile(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile.CredentialID = "replacement-credential"
+	if _, err := store.Replace(profile); err != nil {
+		t.Fatal(err)
+	}
+	credentialErr := errors.New("keyring unavailable")
+	_, err = store.RemoveWith(profile.ID, func(current Profile) error {
+		if current.CredentialID != "replacement-credential" {
+			t.Fatalf("callback profile = %#v", current)
+		}
+		return credentialErr
+	})
+	if !errors.Is(err, credentialErr) {
+		t.Fatalf("err = %v", err)
+	}
+	collection, err := store.Load()
+	if err != nil || len(collection.Profiles) != 1 || collection.Profiles[0].CredentialID != "replacement-credential" {
+		t.Fatalf("collection=%#v err=%v", collection, err)
+	}
+}

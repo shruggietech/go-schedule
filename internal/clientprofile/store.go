@@ -141,11 +141,21 @@ func (s *Store) SetActive(id string) error {
 
 // Remove deletes profile metadata. Credential deletion must occur before this call.
 func (s *Store) Remove(id string) (Profile, error) {
+	return s.RemoveWith(id, nil)
+}
+
+// RemoveWith resolves the current profile, runs beforeDelete, and removes the same metadata under one cross-process lock.
+func (s *Store) RemoveWith(id string, beforeDelete func(Profile) error) (Profile, error) {
 	var removed Profile
 	err := s.update(func(collection *Collection) error {
 		for i := range collection.Profiles {
 			if collection.Profiles[i].ID == id {
 				removed = collection.Profiles[i]
+				if beforeDelete != nil {
+					if err := beforeDelete(removed); err != nil {
+						return err
+					}
+				}
 				collection.Profiles = slices.Delete(collection.Profiles, i, i+1)
 				if collection.ActiveDesktopProfileID == id {
 					collection.ActiveDesktopProfileID = ""

@@ -35,6 +35,12 @@ type Client struct {
 	identityTimeout  time.Duration
 }
 
+type unavailableTransport struct{}
+
+func (unavailableTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, errors.New("remote target is unavailable")
+}
+
 const defaultIdentityTimeout = 10 * time.Second
 
 // New returns a client bound to the given IPC endpoint (socket path / pipe name).
@@ -54,6 +60,11 @@ func NewSwitchable(initial *Client) *Client {
 	client := &Client{}
 	client.selected.Store(initial)
 	return client
+}
+
+// NewUnavailableRemote returns a fail-closed placeholder for a selected profile whose credential or trust configuration cannot be loaded.
+func NewUnavailableRemote(endpoint string) *Client {
+	return &Client{http: &http.Client{Transport: unavailableTransport{}}, endpoint: endpoint, baseURL: "https://unavailable.invalid", pathPrefix: "/api", remote: true}
 }
 
 // Use changes future requests to next without altering requests already constructed for the prior target.

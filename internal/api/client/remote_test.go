@@ -2,13 +2,17 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/shruggietech/go-schedule/internal/api/server"
 )
 
 func serverCertificatePEM(t *testing.T, server *httptest.Server) string {
@@ -182,5 +186,41 @@ func TestRemoteIdentityVerificationHasTransportAndOperationBounds(t *testing.T) 
 	started := time.Now()
 	if _, err := remote.VerifyIdentity(context.Background()); err == nil || time.Since(started) > time.Second {
 		t.Fatalf("verification err=%v elapsed=%s", err, time.Since(started))
+	}
+}
+
+func TestRemoteTaskDetailsReadEveryObservationPage(t *testing.T) {
+	const taskCount = 205
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if request.URL.Path == "/api/v1/manifest" {
+			_, _ = w.Write([]byte(`{"installation_id":"daemon-1","display_name":"Remote","product_version":"v1.0.0","remote_api_versions":["v1"],"capabilities":["tasks"],"platform":{"os":"linux","architecture":"amd64"}}`))
+			return
+		}
+		offset, _ := strconv.Atoi(request.URL.Query().Get("offset"))
+		limit, _ := strconv.Atoi(request.URL.Query().Get("limit"))
+		end := min(offset+limit, taskCount)
+		observations := make([]server.TaskObservationResponse, 0, end-offset)
+		for i := offset; i < end; i++ {
+			observations = append(observations, server.TaskObservationResponse{ID: "task-" + strconv.Itoa(i), Name: "Task", Enabled: true, State: "active", Timezone: "UTC", Readiness: "ready", NextRuns: []time.Time{}})
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"tasks": observations})
+	}))
+	server.TLS = server.Config.TLSConfig
+	server.StartTLS()
+	defer server.Close()
+	remote, err := NewRemote(server.URL, serverCertificatePEM(t, server), "bearer-canary", "daemon-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := remote.VerifyIdentity(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	details, err := remote.ListTaskDetails(context.Background(), "", "")
+	if err != nil || len(details) != taskCount {
+		t.Fatalf("details=%d err=%v", len(details), err)
+	}
+	if details[0].Task.ID != "task-0" || details[taskCount-1].Task.ID != "task-204" {
+		t.Fatalf("first=%+v last=%+v", details[0].Task, details[taskCount-1].Task)
 	}
 }

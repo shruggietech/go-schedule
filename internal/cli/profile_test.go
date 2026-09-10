@@ -32,3 +32,23 @@ func TestSafeProfileJSONExcludesCertificateAndBearerFields(t *testing.T) {
 		t.Fatalf("unsafe profile JSON: %s", text)
 	}
 }
+
+type renameStoreFake struct {
+	collection clientprofile.Collection
+	id         string
+	label      string
+}
+
+func (f *renameStoreFake) Load() (clientprofile.Collection, error) { return f.collection, nil }
+func (f *renameStoreFake) Rename(id, label string) (clientprofile.Profile, error) {
+	f.id, f.label = id, label
+	return clientprofile.Profile{ID: id, Label: label}, nil
+}
+
+func TestRenameProfileResolvesUnambiguousLabel(t *testing.T) {
+	store := &renameStoreFake{collection: clientprofile.Collection{Version: clientprofile.CurrentVersion, Profiles: []clientprofile.Profile{{ID: "profile-id", Label: "Production"}}}}
+	profile, err := renameProfile(store, "Production", "Primary")
+	if err != nil || store.id != "profile-id" || store.label != "Primary" || profile.Label != "Primary" {
+		t.Fatalf("profile=%+v store=%+v err=%v", profile, store, err)
+	}
+}

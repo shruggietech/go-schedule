@@ -15,7 +15,7 @@ type profileStore interface {
 	Load() (clientprofile.Collection, error)
 	Rename(string, string) (clientprofile.Profile, error)
 	SetActive(string) error
-	Remove(string) (clientprofile.Profile, error)
+	RemoveWith(string, func(clientprofile.Profile) error) (clientprofile.Profile, error)
 }
 type secretStore interface {
 	Load(string, string) (string, error)
@@ -84,6 +84,16 @@ func (s *Service) selectProfile(ctx context.Context, id string, persist bool) Re
 	if err != nil {
 		return rejected("select_connection", "The selected connection profile does not exist or is ambiguous.")
 	}
+	if persist {
+		if err := s.profiles.SetActive(profile.ID); err != nil {
+			return rejected("select_connection", "The selected connection could not be saved.")
+		}
+	}
+	target := connection.RemoteTarget(profile.ID, profile.DaemonID, profile.Label, profile.Endpoint, profile.CertificateFingerprint, profile.Platform, profile.Architecture, profile.ProductVersion)
+	if !s.manager.Switch(connection.NewUnavailableRemoteBackend("The selected remote connection cannot be used until its credential and trust settings are available.", "Repair the connection or select another target."), target) {
+		return rejected("select_connection", "The connection manager is closing.")
+	}
+	s.router.Use(client.NewUnavailableRemote(profile.Endpoint))
 	token, err := s.secrets.Load(profile.DaemonID, profile.CredentialID)
 	if err != nil {
 		return rejected("select_connection", "The selected connection credential is unavailable. Repair the connection.")
@@ -92,12 +102,6 @@ func (s *Service) selectProfile(ctx context.Context, id string, persist bool) Re
 	if err != nil {
 		return rejected("select_connection", "The selected connection profile is invalid.")
 	}
-	if persist {
-		if err := s.profiles.SetActive(profile.ID); err != nil {
-			return rejected("select_connection", "The selected connection could not be saved.")
-		}
-	}
-	target := connection.RemoteTarget(profile.ID, profile.DaemonID, profile.Label, profile.Endpoint, profile.CertificateFingerprint, profile.Platform, profile.Architecture, profile.ProductVersion)
 	if !s.manager.Switch(connection.NewRemoteBackend(remote, profile.Capability), target) {
 		return rejected("select_connection", "The connection manager is closing.")
 	}
@@ -128,11 +132,10 @@ func (s *Service) Remove(id string) Result {
 			return rejected("remove_connection", "The active connection could not be changed to This computer.")
 		}
 	}
-	if err := s.secrets.Delete(profile.DaemonID, profile.CredentialID); err != nil {
-		return rejected("remove_connection", "The native credential could not be deleted, so the profile was kept.")
-	}
-	if _, err := s.profiles.Remove(profile.ID); err != nil {
-		return rejected("remove_connection", "The credential was deleted, but the profile metadata could not be removed. Remove it again.")
+	if _, err := s.profiles.RemoveWith(profile.ID, func(current clientprofile.Profile) error {
+		return s.secrets.Delete(current.DaemonID, current.CredentialID)
+	}); err != nil {
+		return rejected("remove_connection", "The native credential and profile could not be removed together. The profile was kept.")
 	}
 	workspace := s.Workspace()
 	return Result{Action: "remove_connection", Outcome: "accepted", Message: "Connection removed.", Workspace: workspace.Workspace}

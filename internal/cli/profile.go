@@ -84,7 +84,8 @@ func newProfileShowCmd() *cobra.Command {
 
 func newProfileRenameCmd() *cobra.Command {
 	return &cobra.Command{Use: "rename PROFILE LABEL", Short: "Rename one saved profile locally", Args: cobra.ExactArgs(2), RunE: func(cmd *cobra.Command, args []string) error {
-		profile, err := clientprofile.NewStore("").Rename(args[0], args[1])
+		store := clientprofile.NewStore("")
+		profile, err := renameProfile(store, args[0], args[1])
 		if err != nil {
 			return fmtUsage("profile could not be renamed")
 		}
@@ -95,6 +96,23 @@ func newProfileRenameCmd() *cobra.Command {
 		_, err = fmt.Fprintf(cmd.OutOrStdout(), "Profile %s renamed to %s.\n", safe.ID, safe.Label)
 		return err
 	}}
+}
+
+type profileRenamer interface {
+	Load() (clientprofile.Collection, error)
+	Rename(string, string) (clientprofile.Profile, error)
+}
+
+func renameProfile(store profileRenamer, reference, label string) (clientprofile.Profile, error) {
+	collection, err := store.Load()
+	if err != nil {
+		return clientprofile.Profile{}, err
+	}
+	current, err := collection.Find(reference)
+	if err != nil {
+		return clientprofile.Profile{}, fmtUsage("profile does not exist or its label is ambiguous")
+	}
+	return store.Rename(current.ID, label)
 }
 
 func newProfileRemoveCmd() *cobra.Command {
@@ -112,11 +130,10 @@ func newProfileRemoveCmd() *cobra.Command {
 		if confirm != profile.ID {
 			return fmtUsage("--confirm must exactly match the profile ID")
 		}
-		if err := clientsecret.New().Delete(profile.DaemonID, profile.CredentialID); err != nil {
-			return fmt.Errorf("delete native credential: %w", err)
-		}
-		if _, err := store.Remove(profile.ID); err != nil {
-			return fmt.Errorf("remove profile metadata after credential deletion: %w", err)
+		if _, err := store.RemoveWith(profile.ID, func(current clientprofile.Profile) error {
+			return clientsecret.New().Delete(current.DaemonID, current.CredentialID)
+		}); err != nil {
+			return fmt.Errorf("remove native credential and profile metadata: %w", err)
 		}
 		if jsonOut {
 			return printJSONTo(cmd.OutOrStdout(), map[string]string{"id": profile.ID, "outcome": "removed"})

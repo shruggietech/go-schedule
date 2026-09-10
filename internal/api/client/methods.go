@@ -45,12 +45,21 @@ func (c *Client) ListTasks(ctx context.Context, group, state string) ([]domain.T
 func (c *Client) ListTaskDetails(ctx context.Context, group, state string) ([]server.TaskResponse, error) {
 	target := c.target()
 	if target.remote {
-		observations, err := target.ListTaskObservations(ctx, group, state, false, 0, 0, 0)
-		responses := make([]server.TaskResponse, 0, len(observations))
-		for _, observation := range observations {
-			responses = append(responses, taskResponseFromObservation(observation))
+		const pageSize = 100
+		responses := []server.TaskResponse{}
+		for offset := 0; ; offset += pageSize {
+			observations, err := target.ListTaskObservations(ctx, group, state, false, offset, pageSize, 0)
+			if err != nil {
+				return nil, err
+			}
+			for _, observation := range observations {
+				responses = append(responses, taskResponseFromObservation(observation))
+			}
+			if len(observations) < pageSize {
+				break
+			}
 		}
-		return responses, err
+		return responses, nil
 	}
 	q := url.Values{"details": {"true"}}
 	if group != "" {
