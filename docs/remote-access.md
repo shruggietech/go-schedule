@@ -168,16 +168,15 @@ The following configuration is an illustrative private-network example. Replace 
 
 Use a certificate issued by an organization-trusted or publicly trusted authority when possible. A private self-signed certificate is suitable only when the operator distributes and verifies that exact certificate through an authenticated channel. Certificate issuance, renewal, DNS, routing, firewall policy, key backup, and monitoring are operator-owned infrastructure; go-schedule does not automate them.
 
-Validate the configuration before changing the service definition, then install or restart:
+For a new Unix service installation, use the install command's pre-registration validation and then start the service:
 
 ```sh
-goschedd --config /etc/goschedule/daemon.json
 sudo gosched service install --config /etc/goschedule/daemon.json
 sudo gosched service start
 gosched health
 ```
 
-The foreground validation command is illustrative and occupies its terminal until stopped. On Windows, place the validated file at `C:\ProgramData\goschedule\config.json`, then use an elevated PowerShell session to run `gosched service restart`.
+`service install --config` parses and validates the complete configuration before it changes the service definition. Do not use `goschedd --config` as a check-only command: it starts the scheduler, local IPC, and any configured remote listener. On Windows, place the reviewed file at `C:\ProgramData\goschedule\config.json`, then use an elevated PowerShell session to run `gosched service restart`; startup validation fails closed if that file is invalid.
 
 ### 2. Choose a deployment mode
 

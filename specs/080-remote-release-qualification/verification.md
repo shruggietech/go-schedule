@@ -26,3 +26,7 @@ This evidence qualifies the reviewed source tree and its hosted platform matrix.
 ## First-Round Review Remediation
 
 The initial Codex review identified that relative paths inside a validated service configuration could resolve against the service manager's working directory. File-backed configuration now resolves relative data, IPC, log, TLS certificate, and TLS private-key paths against the configuration file's directory before validation, while preserving already-absolute values. Cross-platform regression coverage proves every supported relative path receives the stable base.
+
+## Second-Round Review Remediation
+
+The one authorized second Codex review identified that the operator runbook incorrectly presented a normal daemon launch as configuration validation. The corrected first-install sequence relies on `service install --config`, which validates before registration, explicitly warns that `goschedd --config` starts the full scheduler and listeners, and states the Windows service's fail-closed startup behavior. No further automated review round is permitted.
