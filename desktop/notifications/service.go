@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
@@ -43,6 +44,7 @@ func (s *Service) Workspace(ctx context.Context) Result {
 		return failure("load_notifications", err)
 	}
 	workspace := buildWorkspace(channels, tasks, groups, deliveries, s.now())
+	workspace.Coverage, workspace.CoverageComplete = s.configuredCoverage(c, &workspace)
 	return Result{Action: "load_notifications", Outcome: "accepted", Message: "Notifications are up to date.", Workspace: &workspace}
 }
 
@@ -64,7 +66,7 @@ func buildWorkspace(channels []domain.NotificationChannel, tasks []server.TaskRe
 		}
 		return strings.Join(parts, " / ")
 	}
-	w := Workspace{Channels: make([]Channel, 0, len(channels)), Tasks: make([]Scope, 0, len(tasks)), Groups: make([]Scope, 0, len(groups)), Deliveries: make([]Delivery, 0, len(deliveries)), LoadedAt: timestamp(loadedAt)}
+	w := Workspace{Channels: make([]Channel, 0, len(channels)), Tasks: make([]Scope, 0, len(tasks)), Groups: make([]Scope, 0, len(groups)), Coverage: []ConfiguredScope{}, CoverageComplete: true, Deliveries: make([]Delivery, 0, len(deliveries)), LoadedAt: timestamp(loadedAt)}
 	for _, value := range channels {
 		w.Channels = append(w.Channels, Channel{ID: value.ID, Name: fallback(value.Name, "Unnamed channel"), Kind: string(value.Kind), EndpointSummary: value.EndpointSummary, HasAuthorization: value.HasAuthorization, Enabled: value.Enabled, UpdatedAt: timestamp(value.UpdatedAt)})
 	}
@@ -84,6 +86,97 @@ func buildWorkspace(channels []domain.NotificationChannel, tasks []server.TaskRe
 	sort.SliceStable(w.Tasks, func(i, j int) bool { return strings.ToLower(w.Tasks[i].Name) < strings.ToLower(w.Tasks[j].Name) })
 	sort.SliceStable(w.Deliveries, func(i, j int) bool { return w.Deliveries[i].CreatedAt > w.Deliveries[j].CreatedAt })
 	return w
+}
+
+func (s *Service) configuredCoverage(ctx context.Context, workspace *Workspace) ([]ConfiguredScope, bool) {
+	enabled := make(map[string]bool, len(workspace.Channels))
+	for _, channel := range workspace.Channels {
+		enabled[channel.ID] = channel.Enabled
+	}
+	coverage := make([]ConfiguredScope, 0, len(workspace.Tasks)+len(workspace.Groups))
+	complete := true
+	appendSummary := func(scope Scope, sourceType, sourceID string, values []domain.NotificationAssignment) {
+		if len(values) == 0 {
+			return
+		}
+		summary := ConfiguredScope{Type: scope.Type, ID: scope.ID, Name: scope.Name, Context: scope.Context, SourceType: sourceType, SourceName: sourceName(workspace, domain.NotificationScopeType(sourceType), sourceID, scope.Name)}
+		seen := map[string]bool{}
+		enabledSuccess := map[string]bool{}
+		enabledFailure := map[string]bool{}
+		for _, value := range values {
+			summary.OnSuccess = summary.OnSuccess || value.OnSuccess
+			summary.OnFailure = summary.OnFailure || value.OnFailure
+			if enabled[value.ChannelID] && value.OnSuccess && !enabledSuccess[value.ChannelID] {
+				enabledSuccess[value.ChannelID] = true
+				summary.EnabledSuccessCount++
+			}
+			if enabled[value.ChannelID] && value.OnFailure && !enabledFailure[value.ChannelID] {
+				enabledFailure[value.ChannelID] = true
+				summary.EnabledFailureCount++
+			}
+			if seen[value.ChannelID] {
+				continue
+			}
+			seen[value.ChannelID] = true
+			summary.DestinationCount++
+			if enabled[value.ChannelID] {
+				summary.EnabledDestinationCount++
+			}
+		}
+		coverage = append(coverage, summary)
+	}
+	type lookup struct {
+		scope      Scope
+		sourceType string
+		sourceID   string
+		values     []domain.NotificationAssignment
+		err        error
+	}
+	lookups := make([]lookup, 0, len(workspace.Groups)+len(workspace.Tasks))
+	for _, scope := range workspace.Groups {
+		lookups = append(lookups, lookup{scope: scope, sourceType: string(domain.NotificationScopeGroup), sourceID: scope.ID})
+	}
+	for _, scope := range workspace.Tasks {
+		lookups = append(lookups, lookup{scope: scope})
+	}
+	jobs := make(chan int)
+	var workers sync.WaitGroup
+	workerCount := min(8, len(lookups))
+	workers.Add(workerCount)
+	for range workerCount {
+		go func() {
+			defer workers.Done()
+			for index := range jobs {
+				item := &lookups[index]
+				if item.scope.Type == string(domain.NotificationScopeGroup) {
+					item.values, item.err = s.backend.ListGroupNotificationAssignments(ctx, item.scope.ID)
+					continue
+				}
+				var policy domain.EffectiveNotificationPolicy
+				policy, item.err = s.backend.EffectiveTaskNotificationPolicy(ctx, item.scope.ID)
+				item.sourceType, item.sourceID, item.values = string(policy.SourceScopeType), policy.SourceScopeID, policy.Assignments
+			}
+		}()
+	}
+	for index := range lookups {
+		jobs <- index
+	}
+	close(jobs)
+	workers.Wait()
+	for _, item := range lookups {
+		if item.err != nil {
+			complete = false
+			continue
+		}
+		appendSummary(item.scope, item.sourceType, item.sourceID, item.values)
+	}
+	sort.SliceStable(coverage, func(i, j int) bool {
+		if coverage[i].Type != coverage[j].Type {
+			return coverage[i].Type < coverage[j].Type
+		}
+		return strings.ToLower(coverage[i].Context+coverage[i].Name) < strings.ToLower(coverage[j].Context+coverage[j].Name)
+	})
+	return coverage, complete
 }
 
 func mapDelivery(value domain.NotificationDelivery) Delivery {

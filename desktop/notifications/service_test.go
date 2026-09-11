@@ -6,6 +6,7 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,17 +15,41 @@ import (
 )
 
 type fakeBackend struct {
-	channels   []domain.NotificationChannel
-	tasks      []server.TaskResponse
-	groups     []domain.Group
-	deliveries []domain.NotificationDelivery
-	direct     []domain.NotificationAssignment
-	effective  domain.EffectiveNotificationPolicy
-	err        error
-	created    server.NotificationChannelCreateRequest
-	updated    server.NotificationChannelUpdateRequest
-	rotated    *string
-	replaced   server.NotificationAssignmentsRequest
+	channels        []domain.NotificationChannel
+	tasks           []server.TaskResponse
+	groups          []domain.Group
+	deliveries      []domain.NotificationDelivery
+	direct          []domain.NotificationAssignment
+	effective       domain.EffectiveNotificationPolicy
+	err             error
+	created         server.NotificationChannelCreateRequest
+	updated         server.NotificationChannelUpdateRequest
+	rotated         *string
+	replaced        server.NotificationAssignmentsRequest
+	directByScope   map[string][]domain.NotificationAssignment
+	effectiveByTask map[string]domain.EffectiveNotificationPolicy
+	coverageErrors  map[string]error
+	coverageDelay   time.Duration
+	coverageActive  atomic.Int32
+	coverageMaximum atomic.Int32
+}
+
+func (f *fakeBackend) waitForCoverage(ctx context.Context) error {
+	if f.coverageDelay == 0 {
+		return nil
+	}
+	active := f.coverageActive.Add(1)
+	defer f.coverageActive.Add(-1)
+	for maximum := f.coverageMaximum.Load(); active > maximum && !f.coverageMaximum.CompareAndSwap(maximum, active); maximum = f.coverageMaximum.Load() {
+	}
+	timer := time.NewTimer(f.coverageDelay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func (f *fakeBackend) ListNotificationChannels(context.Context) ([]domain.NotificationChannel, error) {
@@ -59,13 +84,37 @@ func (f *fakeBackend) ListTaskDetails(context.Context, string, string) ([]server
 	return f.tasks, f.err
 }
 func (f *fakeBackend) ListGroups(context.Context) ([]domain.Group, error) { return f.groups, f.err }
-func (f *fakeBackend) ListTaskNotificationAssignments(context.Context, string) ([]domain.NotificationAssignment, error) {
+func (f *fakeBackend) ListTaskNotificationAssignments(_ context.Context, id string) ([]domain.NotificationAssignment, error) {
+	if err := f.coverageErrors["task:"+id]; err != nil {
+		return nil, err
+	}
+	if values, ok := f.directByScope["task:"+id]; ok {
+		return values, nil
+	}
 	return f.direct, f.err
 }
-func (f *fakeBackend) ListGroupNotificationAssignments(context.Context, string) ([]domain.NotificationAssignment, error) {
+func (f *fakeBackend) ListGroupNotificationAssignments(ctx context.Context, id string) ([]domain.NotificationAssignment, error) {
+	if err := f.waitForCoverage(ctx); err != nil {
+		return nil, err
+	}
+	if err := f.coverageErrors["group:"+id]; err != nil {
+		return nil, err
+	}
+	if values, ok := f.directByScope["group:"+id]; ok {
+		return values, nil
+	}
 	return f.direct, f.err
 }
-func (f *fakeBackend) EffectiveTaskNotificationPolicy(context.Context, string) (domain.EffectiveNotificationPolicy, error) {
+func (f *fakeBackend) EffectiveTaskNotificationPolicy(ctx context.Context, id string) (domain.EffectiveNotificationPolicy, error) {
+	if err := f.waitForCoverage(ctx); err != nil {
+		return domain.EffectiveNotificationPolicy{}, err
+	}
+	if err := f.coverageErrors["task:"+id]; err != nil {
+		return domain.EffectiveNotificationPolicy{}, err
+	}
+	if value, ok := f.effectiveByTask[id]; ok {
+		return value, nil
+	}
 	return f.effective, f.err
 }
 func (f *fakeBackend) ReplaceTaskNotificationAssignments(_ context.Context, _ string, r server.NotificationAssignmentsRequest) ([]domain.NotificationAssignment, error) {
@@ -136,6 +185,70 @@ func TestWorkspaceRejectsPartialFailure(t *testing.T) {
 	r := NewService(f).Workspace(context.Background())
 	if r.Outcome != "unavailable" || r.Workspace != nil || strings.Contains(r.Message, "private") {
 		t.Fatalf("result=%+v", r)
+	}
+}
+
+func TestWorkspaceIncludesOrderedSecretFreeConfiguredCoverage(t *testing.T) {
+	f := fixture()
+	f.channels = append(f.channels, domain.NotificationChannel{ID: "c2", Name: "Disabled", Kind: domain.NotificationChannelWebhook, Endpoint: "https://private.example/hook", Authorization: "Bearer private", Enabled: false})
+	f.directByScope = map[string][]domain.NotificationAssignment{
+		"group:g1": {{ChannelID: "c1", ScopeType: domain.NotificationScopeGroup, ScopeID: "g1", OnFailure: true}},
+		"group:g2": {},
+	}
+	f.effectiveByTask = map[string]domain.EffectiveNotificationPolicy{
+		"t1": {TaskID: "t1", SourceScopeType: domain.NotificationScopeGroup, SourceScopeID: "g1", Assignments: []domain.NotificationAssignment{{ChannelID: "c1", OnFailure: true}, {ChannelID: "c2", OnSuccess: true}}},
+	}
+	r := NewService(f).Workspace(context.Background())
+	if r.Outcome != "accepted" || r.Workspace == nil || !r.Workspace.CoverageComplete {
+		t.Fatalf("result=%+v", r)
+	}
+	want := []ConfiguredScope{
+		{Type: "group", ID: "g1", Name: "Parent", Context: "Parent", SourceType: "group", SourceName: "Parent", OnFailure: true, DestinationCount: 1, EnabledDestinationCount: 1, EnabledFailureCount: 1},
+		{Type: "task", ID: "t1", Name: "Backup", Context: "Parent / Child", SourceType: "group", SourceName: "Parent", OnSuccess: true, OnFailure: true, DestinationCount: 2, EnabledDestinationCount: 1, EnabledFailureCount: 1},
+	}
+	if !reflect.DeepEqual(r.Workspace.Coverage, want) {
+		t.Fatalf("coverage=%+v", r.Workspace.Coverage)
+	}
+	encoded, err := json.Marshal(r.Workspace.Coverage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dump := strings.ToLower(string(encoded))
+	if strings.Contains(dump, "private.example") || strings.Contains(dump, "bearer") {
+		t.Fatalf("secret leaked: %s", dump)
+	}
+}
+
+func TestWorkspacePreservesCoreSnapshotWhenCoverageIsIncomplete(t *testing.T) {
+	f := fixture()
+	f.coverageErrors = map[string]error{"task:t1": errors.New("private policy detail")}
+	r := NewService(f).Workspace(context.Background())
+	if r.Outcome != "accepted" || r.Workspace == nil || r.Workspace.CoverageComplete {
+		t.Fatalf("result=%+v", r)
+	}
+	if len(r.Workspace.Channels) != 1 || len(r.Workspace.Deliveries) != 5 {
+		t.Fatalf("workspace=%+v", r.Workspace)
+	}
+	encoded, _ := json.Marshal(r.Workspace)
+	if strings.Contains(strings.ToLower(string(encoded)), "private policy") {
+		t.Fatalf("private error leaked: %s", encoded)
+	}
+}
+
+func TestWorkspaceBoundsCoverageLookupConcurrency(t *testing.T) {
+	f := fixture()
+	f.coverageDelay = 25 * time.Millisecond
+	f.tasks = append(f.tasks,
+		server.TaskResponse{Task: domain.Task{ID: "t2", Name: "Second"}},
+		server.TaskResponse{Task: domain.Task{ID: "t3", Name: "Third"}},
+		server.TaskResponse{Task: domain.Task{ID: "t4", Name: "Fourth"}},
+	)
+	r := NewService(f).Workspace(context.Background())
+	if r.Outcome != "accepted" || r.Workspace == nil || !r.Workspace.CoverageComplete {
+		t.Fatalf("result=%+v", r)
+	}
+	if maximum := f.coverageMaximum.Load(); maximum < 2 || maximum > 8 {
+		t.Fatalf("coverage concurrency=%d, want 2..8", maximum)
 	}
 }
 

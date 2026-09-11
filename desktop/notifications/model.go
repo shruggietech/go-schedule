@@ -49,6 +49,21 @@ type Policy struct {
 	EffectiveAssignments []Assignment `json:"effectiveAssignments"`
 }
 
+type ConfiguredScope struct {
+	Type                    string `json:"type"`
+	ID                      string `json:"id"`
+	Name                    string `json:"name"`
+	Context                 string `json:"context"`
+	SourceType              string `json:"sourceType"`
+	SourceName              string `json:"sourceName"`
+	OnSuccess               bool   `json:"onSuccess"`
+	OnFailure               bool   `json:"onFailure"`
+	DestinationCount        int    `json:"destinationCount"`
+	EnabledDestinationCount int    `json:"enabledDestinationCount"`
+	EnabledSuccessCount     int    `json:"enabledSuccessDestinationCount"`
+	EnabledFailureCount     int    `json:"enabledFailureDestinationCount"`
+}
+
 type Delivery struct {
 	ID                 string `json:"id"`
 	ChannelID          string `json:"channelId,omitempty"`
@@ -71,11 +86,13 @@ type Delivery struct {
 }
 
 type Workspace struct {
-	Channels   []Channel  `json:"channels"`
-	Tasks      []Scope    `json:"tasks"`
-	Groups     []Scope    `json:"groups"`
-	Deliveries []Delivery `json:"deliveries"`
-	LoadedAt   string     `json:"loadedAt"`
+	Channels         []Channel         `json:"channels"`
+	Tasks            []Scope           `json:"tasks"`
+	Groups           []Scope           `json:"groups"`
+	Coverage         []ConfiguredScope `json:"coverage"`
+	CoverageComplete bool              `json:"coverageComplete"`
+	Deliveries       []Delivery        `json:"deliveries"`
+	LoadedAt         string            `json:"loadedAt"`
 }
 
 type Result struct {
