@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Notifications now leads with task-facing status, configured coverage, and recent outcomes (Closes #232; Refs #228).** The initial workspace explains whether notifications are active, paused, retrying, healthy, or need attention; summarizes configured task and group coverage without exposing secrets; and prioritizes five recent task outcomes with plain-language guidance. Destination administration, assignment rules, and full redacted delivery diagnostics remain complete behind three keyboard-accessible disclosures.
+
 ### Fixed
 
 - **Task authoring and desktop administration now remain focused and readable at constrained sizes (Closes #231, #233; Refs #228).** Create and Edit use one bounded task dialog with contained scrolling, collapsed advanced fields, exact invoker focus restoration, validation focus, and operation-scoped progress. Agent Access, Connections, remote pairing, and Settings now share responsive form, definition, status, section, and complete-value presentation, while path copy state is isolated by storage record.
@@ -13,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **The desktop now keeps its navigation and action feedback coherent at every supported viewport (Closes #229, #230; Refs #228).** Shared semantic controls use compact dimensions, visible hover, pressed, focus, disabled, affirmative, and destructive treatments, while cards and dialogs consume one spacing scale. The Wails title bar follows the operating-system theme, the application resolves follow-system presentation consistently, and one viewport-owned page scroller keeps navigation, Exit, target context, and Appearance available. Routine outcomes replace one another in a bounded five-second toast, while actionable warnings and errors remain explicitly dismissible without becoming permanent oversized interface content.
 
 ### Decisions
+
+- **2026-09-11: make Notifications an operational summary before presenting specialist configuration.** S085 derives secret-free coverage through existing notification contracts, keeps the first viewport bounded around status and recent task outcomes, and progressively discloses destinations, assignment rules, and diagnostics without changing webhook delivery, retry, policy, or credential behavior.
 
 - **2026-09-11: use one focused task dialog and composable administration primitives for the remaining desktop workflow repairs.** S084 preserves existing bridge and persistence contracts while moving task forms out of page flow, keeping specialist network configuration behind explicit disclosures, presenting complete operational values safely, and keying Settings feedback to the exact action. Notifications information architecture remains isolated in #232.
 
