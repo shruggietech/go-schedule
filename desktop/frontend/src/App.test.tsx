@@ -1,8 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
-import type { ConnectionSnapshot, DesktopBridge } from './connection/model'
+import type { ConnectionSnapshot, DesktopBridge, DesktopEvent } from './connection/model'
 import type { TaskBridge } from './tasks/model'
 import type { OperationsBridge } from './operations/model'
 import type { SettingsBridge, SettingsWorkspace } from './settings/model'
@@ -64,6 +64,60 @@ describe('production shell', () => {
     expect(screen.getByRole('dialog', { name: 'This computer connection' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Exit' }))
     expect(bridge.quit).toHaveBeenCalled()
+  })
+
+  it('keeps settings failures persistent until dismissed', async () => {
+    const user = userEvent.setup()
+    const rejectedSettings: SettingsBridge = { ...settings, saveAppearance: vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'rejected', message: 'The preference file is read-only.' }) }
+    render(<App bridge={bridge} tasks={tasks} settings={rejectedSettings} />)
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The preference file is read-only.')
+    await user.click(screen.getByRole('button', { name: 'Dismiss Settings action needs attention' }))
+    expect(screen.queryByText('The preference file is read-only.')).not.toBeInTheDocument()
+  })
+
+  it('keeps settings failures visible when a connection announcement arrives', async () => {
+    const user = userEvent.setup(); let publish!: (event: DesktopEvent) => void
+    const eventBridge: DesktopBridge = { ...bridge, subscribe: (listener) => { publish = listener; return () => undefined } }
+    const rejectedSettings: SettingsBridge = { ...settings, saveAppearance: vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'rejected', message: 'The preference file is read-only.' }) }
+    render(<App bridge={eventBridge} tasks={tasks} settings={rejectedSettings} />)
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
+    expect(await screen.findByText('The preference file is read-only.')).toBeVisible()
+    act(() => publish({ id: 'connection-restored', kind: 'connection', message: 'Connection restored.', generation: 1, occurredAt: '2026-09-11T09:00:00Z' }))
+    expect(await screen.findByText('Connection restored.')).toBeVisible()
+    expect(screen.getByText('The preference file is read-only.')).toBeVisible()
+  })
+
+  it('restores a dismissed connection warning when the snapshot changes', async () => {
+    const user = userEvent.setup(); let publish!: (event: DesktopEvent) => void
+    const recovering: ConnectionSnapshot = { ...connected, state: 'recovering', revision: 3, message: 'The scheduler is reconnecting.' }
+    const eventBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(recovering), subscribe: (listener) => { publish = listener; return () => undefined } }
+    render(<App bridge={eventBridge} tasks={tasks} settings={settings} />)
+    expect(await screen.findByText('The scheduler is reconnecting.')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Dismiss This computer needs attention' }))
+    act(() => publish({ id: 'retry-failed', kind: 'connection', message: 'Credentials must be repaired.', generation: 1, occurredAt: '2026-09-11T09:00:00Z', snapshot: { ...recovering, revision: 4, message: 'Credentials must be repaired.' } }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Credentials must be repaired.')
+  })
+
+  it('announces repeated identical settings outcomes', async () => {
+    const user = userEvent.setup()
+    const repeatedSettings: SettingsBridge = { ...settings, saveAppearance: vi.fn().mockImplementation(async (appearance) => ({ action: 'save_appearance', outcome: 'accepted', message: 'Appearance saved.', workspace: { ...settingsWorkspace, preferences: { ...settingsWorkspace.preferences, appearance } } })) }
+    render(<App bridge={bridge} tasks={tasks} settings={repeatedSettings} />)
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
+    expect(await screen.findByText('Appearance saved.')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Dismiss notification' }))
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'light')
+    expect(await screen.findByText('Appearance saved.')).toBeVisible()
+  })
+
+  it('resolves system appearance and does not concatenate routine announcements', async () => {
+    const listeners: Array<(event: MediaQueryListEvent) => void> = []
+    const matchMedia = vi.fn(() => ({ matches: true, media: '(prefers-color-scheme: dark)', onchange: null, addEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => listeners.push(listener as (event: MediaQueryListEvent) => void), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn() } as unknown as MediaQueryList))
+    vi.stubGlobal('matchMedia', matchMedia)
+    render(<App bridge={bridge} tasks={tasks} settings={settings} />)
+    await waitFor(() => expect(document.querySelector('.app')).toHaveAttribute('data-resolved-appearance', 'dark'))
+    expect(screen.getAllByRole('status').every((status) => !status.textContent?.includes('Available. Loaded.'))).toBe(true)
+    vi.unstubAllGlobals()
   })
 
   it('opens the complete Notifications workspace from primary navigation', async () => {

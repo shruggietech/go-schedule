@@ -28,6 +28,17 @@ describe('useSettings', () => {
     release(); await act(async () => { await first })
   })
 
+  it('publishes a distinct event for repeated identical outcomes', async () => {
+    const api = bridge(); api.saveAppearance = vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'accepted', message: 'Appearance saved.', workspace })
+    const { result } = renderHook(() => useSettings(api))
+    await waitFor(() => expect(result.current.workspace).toEqual(workspace))
+    await act(async () => { await result.current.saveAppearance('dark') })
+    const firstID = result.current.status?.id
+    await act(async () => { await result.current.saveAppearance('light') })
+    expect(result.current.status?.message).toBe('Appearance saved.')
+    expect(result.current.status?.id).toBeGreaterThan(firstID ?? 0)
+  })
+
   it('refreshes daemon-backed settings when connection identity changes', async () => {
     const api = bridge(); const { result, rerender } = renderHook(({ token }) => useSettings(api, token), { initialProps: { token: '0:unavailable' } })
     await waitFor(() => expect(api.workspace).toHaveBeenCalledOnce())

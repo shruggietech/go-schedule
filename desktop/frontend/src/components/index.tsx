@@ -1,8 +1,9 @@
-import { cloneElement, useEffect, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { cloneElement, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import type { ConnectionState } from '../connection/model'
 
-export function Button({ variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'quiet' | 'danger' }) {
-  return <button {...props} className={`button button-${variant} ${props.className ?? ''}`} />
+export function Button({ variant = 'primary', pending = false, disabled, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'subtle' | 'quiet' | 'affirmative' | 'danger'; pending?: boolean }) {
+  const resolvedVariant = variant === 'quiet' ? 'subtle' : variant
+  return <button {...props} aria-busy={pending || undefined} disabled={disabled || pending} className={`button button-${resolvedVariant} ${props.className ?? ''}`} />
 }
 
 export function Link({ href, children }: { href: string; children: ReactNode }) { return <a className="link" href={href}>{children}</a> }
@@ -12,8 +13,13 @@ export function StatusBadge({ state }: { state: ConnectionState }) {
   return <span className={`status status-${state}`}><span className="status-shape" aria-hidden="true" />{labels[state]}</span>
 }
 
-export function Notice({ title, children, tone = 'info' }: { title: string; children: ReactNode; tone?: 'info' | 'warning' | 'error' | 'success' }) {
-  return <section className={`notice notice-${tone}`} role={tone === 'error' ? 'alert' : 'status'}><strong>{title}</strong><div>{children}</div></section>
+export function Notice({ title, children, tone = 'info', dismissible = tone === 'warning' || tone === 'error', identity }: { title: string; children: ReactNode; tone?: 'info' | 'warning' | 'error' | 'success'; dismissible?: boolean; identity?: unknown }) {
+  const [dismissed, setDismissed] = useState(false)
+  const contentKey = `${title}:${tone}:${typeof children === 'string' ? children : ''}`
+  useEffect(() => setDismissed(false), [contentKey, identity])
+  if (tone === 'success') return <ToastRegion message={<>{title}: {children}</>} identity={identity ?? contentKey} />
+  if (dismissed) return null
+  return <section className={`notice notice-${tone}`} role={tone === 'error' || tone === 'warning' ? 'alert' : 'status'}><div className="notice-heading"><strong>{title}</strong>{dismissible && <Button variant="subtle" aria-label={`Dismiss ${title}`} onClick={() => setDismissed(true)}>Dismiss</Button>}</div><div>{children}</div></section>
 }
 
 export function StatePanel({ title, detail, busy = false, action, onAction }: { title: string; detail: string; busy?: boolean; action?: string; onAction?(): void }) {
@@ -37,7 +43,7 @@ export function DataTable({ caption, headings, rows }: { caption: string; headin
 
 export function Disclosure({ summary, children }: { summary: string; children: ReactNode }) { return <details><summary>{summary}</summary><div>{children}</div></details> }
 
-export function Dialog({ open, title, children, invoker, onClose }: { open: boolean; title: string; children: ReactNode; invoker: HTMLElement | null; onClose(): void }) {
+export function Dialog({ open, title, children, actions, invoker, onClose }: { open: boolean; title: string; children: ReactNode; actions?: ReactNode; invoker: HTMLElement | null; onClose(): void }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -56,7 +62,19 @@ export function Dialog({ open, title, children, invoker, onClose }: { open: bool
     return () => document.removeEventListener('keydown', handle)
   }, [invoker, onClose, open])
   if (!open) return null
-  return <div className="dialog-backdrop"><div aria-modal="true" className="dialog" ref={ref} role="dialog" aria-labelledby="dialog-title"><h2 id="dialog-title">{title}</h2>{children}<Button variant="secondary" onClick={() => { onClose(); invoker?.focus() }}>Close</Button></div></div>
+  return <div className="dialog-backdrop"><div aria-modal="true" className="dialog" ref={ref} role="dialog" aria-labelledby="dialog-title"><h2 id="dialog-title">{title}</h2><div className="dialog-content">{children}</div><div className="dialog-actions">{actions}<Button variant="secondary" onClick={() => { onClose(); invoker?.focus() }}>Close</Button></div></div></div>
 }
 
-export function ToastRegion({ message }: { message: string }) { return <div className="toast-region" aria-live="polite" aria-atomic="true">{message}</div> }
+export function ToastRegion({ message, duration = 5_000, identity = message }: { message: ReactNode; duration?: number; identity?: unknown }) {
+  const [dismissedIdentity, setDismissedIdentity] = useState<unknown>()
+  const [paused, setPaused] = useState(false)
+  const hasMessage = message !== '' && message !== null && message !== undefined && message !== false
+  const visible = hasMessage && dismissedIdentity !== identity
+  useEffect(() => {
+    if (!visible || paused) return
+    const timer = window.setTimeout(() => setDismissedIdentity(identity), duration)
+    return () => window.clearTimeout(timer)
+  }, [duration, identity, paused, visible])
+  if (!visible) return <div className="toast-live" role="status" aria-live="polite" aria-atomic="true" />
+  return <div className="toast-region" role="status" aria-live="polite" aria-atomic="true" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false) }}><span>{message}</span><Button variant="subtle" aria-label="Dismiss notification" onClick={() => setDismissedIdentity(identity)}>Dismiss</Button></div>
+}

@@ -43,7 +43,7 @@ export function GroupsPanel({ groups, bridge, available = true, targetName = 'Th
       <Button variant="quiet" disabled={!available} onClick={(event) => setConfirmedAction({ group, kind: 'delete', invoker: event.currentTarget })}>Delete</Button>
     </li>)}</ul>}
     {draft && <div className="group-editor"><h3>{draft.isNew ? 'Create group' : 'Edit group'}</h3>
-      {saveResult && saveResult.outcome !== 'accepted' && <Notice title={saveResult.outcome === 'stale' ? 'Newer changes found' : 'Could not save group'} tone="error">{saveResult.message}{saveResult.outcome === 'stale' && <Button variant="secondary" onClick={() => setDraft({ ...draft, overwriteStale: true })}>Overwrite newer version</Button>}</Notice>}
+      {saveResult && saveResult.outcome !== 'accepted' && <Notice title={saveResult.outcome === 'stale' ? 'Newer changes found' : 'Could not save group'} tone="error" identity={saveResult}>{saveResult.message}{saveResult.outcome === 'stale' && <Button variant="secondary" onClick={() => setDraft({ ...draft, overwriteStale: true })}>Overwrite newer version</Button>}</Notice>}
       <Field label="Group name"><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></Field>
       <Field label="Parent group"><select value={draft.parentId} onChange={(event) => setDraft({ ...draft, parentId: event.target.value })}><option value="">Root</option>{parents.map((group) => <option key={group.id} value={group.id}>{group.path}</option>)}</select></Field>
       <label><input type="checkbox" checked={draft.enabled} onChange={(event) => setDraft({ ...draft, enabled: event.target.checked })} /> Enabled</label>
