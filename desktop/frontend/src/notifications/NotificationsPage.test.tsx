@@ -52,6 +52,19 @@ describe('NotificationsPage', () => {
     expect(screen.getByText('Enable a destination to resume configured notifications.')).toBeInTheDocument()
   })
 
+  it('does not report healthy until an active destination is assigned', async () => {
+    const unassigned = { ...workspace, coverage: [], deliveries: [] }
+    const { rerender } = render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: unassigned }) })} available refreshToken={1} />)
+    expect(await screen.findByRole('heading', { name: 'Choose what should notify' })).toBeInTheDocument()
+    expect(screen.getByText('Add an assignment rule for the task or group outcomes you need.')).toBeInTheDocument()
+    const inactive = { ...workspace, coverage: workspace.coverage?.map((scope) => ({ ...scope, enabledDestinationCount: 0 })), deliveries: [] }
+    rerender(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: inactive }) })} available refreshToken={2} />)
+    expect(await screen.findByRole('heading', { name: 'Assigned notifications are paused' })).toBeInTheDocument()
+    const incomplete = { ...unassigned, coverageComplete: false }
+    rerender(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: incomplete }) })} available refreshToken={3} />)
+    expect(await screen.findByRole('heading', { name: 'Notification coverage is incomplete' })).toBeInTheDocument()
+  })
+
   it('never redisplays secrets and requires explicit replacement intent', async () => {
     const user = userEvent.setup(); const saveChannel = vi.fn(bridge().saveChannel)
     render(<NotificationsPage bridge={bridge({ saveChannel })} available refreshToken={1} />)

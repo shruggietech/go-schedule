@@ -52,6 +52,16 @@ describe('useNotifications', () => {
     saved.resolve({ action: 'save_notification_policy', outcome: 'accepted', message: 'saved', policy: policy('saved') }); await waitFor(() => expect(loadPolicy).toHaveBeenCalledTimes(2)); expect(hook.current.policy?.scope.id).toBe('selected')
   })
 
+  it('refreshes configured coverage after an assignment rule is saved', async () => {
+    const workspace = vi.fn().mockResolvedValueOnce(result(snapshot('before'))).mockResolvedValueOnce(result(snapshot('after')))
+    const testBridge = { ...base(), workspace }
+    const { result: hook } = renderHook(() => useNotifications(testBridge, true, 1))
+    await waitFor(() => expect(hook.current.workspace?.channels[0].name).toBe('before'))
+    await act(async () => { await hook.current.savePolicy({ scopeType: 'task', scopeId: 'selected', assignments: [] }) })
+    expect(workspace).toHaveBeenCalledTimes(2)
+    expect(hook.current.workspace?.channels[0].name).toBe('after')
+  })
+
   it('reloads the selected policy after channel removal cascades assignments', async () => {
     const before = policy('selected'); before.directAssignments = [{ channelId: 'removed', onFailure: true, onSuccess: false }]; const after = policy('selected'); const loadPolicy = vi.fn().mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'ok', policy: before }).mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'ok', policy: after }); const testBridge = { ...base(), policy: loadPolicy }; const { result: hook } = renderHook(() => useNotifications(testBridge, true, 1)); await waitFor(() => expect(hook.current.workspace).toBeDefined()); await act(async () => { await hook.current.selectPolicy('task', 'selected') })
     await act(async () => { await hook.current.deleteChannel('removed') }); expect(loadPolicy).toHaveBeenCalledTimes(2); expect(hook.current.policy?.directAssignments).toEqual([])

@@ -67,13 +67,16 @@ export function useNotifications(bridge: NotificationBridge, available: boolean,
     const request = ++policySequence.current
     try {
       const result = await bridge.savePolicy(draft)
-      if (request === policySequence.current) apply(result)
+      if (request === policySequence.current) {
+        apply(result)
+        if (result.outcome === 'accepted') await load()
+      }
     } finally {
       policyMutationPending.current = false
       if (request === policySequence.current) setPolicyPending(false)
       if (policyRefreshAfterMutation.current) { policyRefreshAfterMutation.current = false; const scope = selectedScope.current; if (scope) void selectPolicy(scope.type, scope.id) }
     }
-  }, [apply, available, bridge, selectPolicy])
+  }, [apply, available, bridge, load, selectPolicy])
   useEffect(() => { void load() }, [load, refreshToken])
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined

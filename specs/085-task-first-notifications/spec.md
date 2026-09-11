@@ -8,7 +8,7 @@
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: Implemented and verified in `verification.md`
+**Delivery**: Implemented on review branch `codex/085-task-first-notifications`; focused, native Windows, browser, and canonical evidence is recorded in `verification.md`.
 
 **Input**: Make Notifications immediately answer whether notifications are active and what recently happened, while moving webhook and policy administration behind clear progressive disclosure, completing issue #232.
 

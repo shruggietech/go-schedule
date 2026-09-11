@@ -35,6 +35,9 @@ test('explains every overview state without serious accessibility violations', a
   const scenarios = [
     { title: 'Set up notifications', changes: { channels: [], coverage: [], deliveries: [] } },
     { title: 'Notifications are paused', changes: { channels: [{ id: 'c1', name: 'Ops hook', kind: 'webhook', endpointSummary: 'https://example.test/...', hasAuthorization: true, enabled: false, updatedAt: '2026-09-07T00:00:00.000Z' }], coverage: [], deliveries: [] } },
+    { title: 'Choose what should notify', changes: { coverage: [], deliveries: [] } },
+    { title: 'Assigned notifications are paused', changes: { coverage: [{ type: 'task', id: 't1', name: 'Backup', context: 'Operations', sourceType: 'group', sourceName: 'Operations', onSuccess: false, onFailure: true, destinationCount: 1, enabledDestinationCount: 0 }], deliveries: [] } },
+    { title: 'Notification coverage is incomplete', changes: { coverage: [], coverageComplete: false, deliveries: [] } },
     { title: 'Notifications are active', changes: { deliveries: [{ id: 'healthy', channelId: 'c1', channelName: 'Ops hook', destinationSummary: 'https://example.test/...', kind: 'task_outcome', taskId: 't1', taskName: 'Backup', runId: 'r1', state: 'successful', attempts: 1, createdAt: '2026-09-07T00:01:00.000Z' }] } },
     { title: 'Notifications are working', changes: { deliveries: [{ id: 'queued', channelId: 'c1', channelName: 'Ops hook', destinationSummary: 'https://example.test/...', kind: 'task_outcome', taskId: 't1', taskName: 'Backup', runId: 'r1', state: 'queued', attempts: 0, createdAt: '2026-09-07T00:01:00.000Z' }] } },
     { title: 'A notification is retrying', changes: { deliveries: [{ id: 'retrying', channelId: 'c1', channelName: 'Ops hook', destinationSummary: 'https://example.test/...', kind: 'task_outcome', taskId: 't1', taskName: 'Backup', runId: 'r1', state: 'retrying', attempts: 1, createdAt: '2026-09-07T00:01:00.000Z' }] } },

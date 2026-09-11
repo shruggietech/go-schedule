@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
@@ -114,21 +115,50 @@ func (s *Service) configuredCoverage(ctx context.Context, workspace *Workspace) 
 		}
 		coverage = append(coverage, summary)
 	}
+	type lookup struct {
+		scope      Scope
+		sourceType string
+		sourceID   string
+		values     []domain.NotificationAssignment
+		err        error
+	}
+	lookups := make([]lookup, 0, len(workspace.Groups)+len(workspace.Tasks))
 	for _, scope := range workspace.Groups {
-		values, err := s.backend.ListGroupNotificationAssignments(ctx, scope.ID)
-		if err != nil {
-			complete = false
-			continue
-		}
-		appendSummary(scope, string(domain.NotificationScopeGroup), scope.ID, values)
+		lookups = append(lookups, lookup{scope: scope, sourceType: string(domain.NotificationScopeGroup), sourceID: scope.ID})
 	}
 	for _, scope := range workspace.Tasks {
-		policy, err := s.backend.EffectiveTaskNotificationPolicy(ctx, scope.ID)
-		if err != nil {
+		lookups = append(lookups, lookup{scope: scope})
+	}
+	jobs := make(chan int)
+	var workers sync.WaitGroup
+	workerCount := min(8, len(lookups))
+	workers.Add(workerCount)
+	for range workerCount {
+		go func() {
+			defer workers.Done()
+			for index := range jobs {
+				item := &lookups[index]
+				if item.scope.Type == string(domain.NotificationScopeGroup) {
+					item.values, item.err = s.backend.ListGroupNotificationAssignments(ctx, item.scope.ID)
+					continue
+				}
+				var policy domain.EffectiveNotificationPolicy
+				policy, item.err = s.backend.EffectiveTaskNotificationPolicy(ctx, item.scope.ID)
+				item.sourceType, item.sourceID, item.values = string(policy.SourceScopeType), policy.SourceScopeID, policy.Assignments
+			}
+		}()
+	}
+	for index := range lookups {
+		jobs <- index
+	}
+	close(jobs)
+	workers.Wait()
+	for _, item := range lookups {
+		if item.err != nil {
 			complete = false
 			continue
 		}
-		appendSummary(scope, string(policy.SourceScopeType), policy.SourceScopeID, policy.Assignments)
+		appendSummary(item.scope, item.sourceType, item.sourceID, item.values)
 	}
 	sort.SliceStable(coverage, func(i, j int) bool {
 		if coverage[i].Type != coverage[j].Type {

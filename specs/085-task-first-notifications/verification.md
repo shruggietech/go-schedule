@@ -18,8 +18,8 @@ The final specification contains 17 functional requirements and 9 measurable suc
 ## Focused Results
 
 - `cd desktop && go test -race ./notifications`: passed.
-- `cd desktop/frontend && npm test -- --run src/notifications/NotificationsPage.test.tsx src/notifications/store.test.ts`: 2 files and 14 tests passed.
-- `cd desktop/frontend && npm test -- --run`: 24 files and 125 tests passed.
+- `cd desktop/frontend && npm test -- --run src/notifications/NotificationsPage.test.tsx src/notifications/store.test.ts`: 2 files and 16 tests passed after first-round review fixes.
+- `cd desktop/frontend && npm test -- --run`: 24 files and 127 tests passed.
 - `cd desktop/frontend && npm run build`: TypeScript and Vite production build passed.
 - `cd desktop/frontend && npx playwright test e2e/notifications.spec.ts`: 2 Notifications browser journeys passed, including six overview states with axe checks.
 - `cd desktop/frontend && npx playwright test`: all 27 browser journeys passed.
@@ -30,7 +30,7 @@ The canonical GUI gate compiled the production Wails desktop for `windows/amd64`
 
 ## Canonical Results
 
-`C:\Program Files\Git\bin\bash.exe scripts/verify.sh all` passed on `codex/085-task-first-notifications` on 2026-09-11. The eight gates covered formatting, vet, lint, Go race tests, desktop Go race tests, native Wails build, 125 frontend tests, frontend production build, coverage thresholds, documentation and architecture policies, and automation plus negative-fixture contracts.
+`C:\Program Files\Git\bin\bash.exe scripts/verify.sh all` passed on `codex/085-task-first-notifications` on 2026-09-11, including the first-round review corrections. The eight gates covered formatting, vet, lint, Go race tests, desktop Go race tests, native Wails build, 127 frontend tests, frontend production build, coverage thresholds, documentation and architecture policies, and automation plus negative-fixture contracts.
 
 ## Requirement Evidence
 
@@ -40,6 +40,12 @@ The canonical GUI gate compiled the production Wails desktop for `windows/amd64`
 - Destination setup, assignment rules, and delivery diagnostics use native keyboard-accessible disclosures that begin collapsed.
 - Existing create, edit, test, enable, disable, remove, policy inheritance, direct override, filters, selected detail, stale snapshot, and write-only secret behaviors remain covered.
 - The browser journey covers 800 by 600, 100 through 200 percent zoom, keyboard disclosure use, long values, and axe validation without horizontal page overflow.
+
+## First-Round Review
+
+- Configured coverage now uses at most eight concurrent backend reads instead of one serial round trip per task or group. A race-enabled regression proves multiple reads overlap without exceeding the bound.
+- Successful assignment-rule saves refresh the workspace before returning, so configured coverage and counts immediately reflect the accepted policy mutation.
+- An enabled but unassigned destination, assignments that only target disabled destinations, and an incomplete coverage projection each receive honest non-healthy status and a specific next action.
 
 ## Release Boundary
 

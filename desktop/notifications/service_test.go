@@ -6,6 +6,7 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,6 +29,27 @@ type fakeBackend struct {
 	directByScope   map[string][]domain.NotificationAssignment
 	effectiveByTask map[string]domain.EffectiveNotificationPolicy
 	coverageErrors  map[string]error
+	coverageDelay   time.Duration
+	coverageActive  atomic.Int32
+	coverageMaximum atomic.Int32
+}
+
+func (f *fakeBackend) waitForCoverage(ctx context.Context) error {
+	if f.coverageDelay == 0 {
+		return nil
+	}
+	active := f.coverageActive.Add(1)
+	defer f.coverageActive.Add(-1)
+	for maximum := f.coverageMaximum.Load(); active > maximum && !f.coverageMaximum.CompareAndSwap(maximum, active); maximum = f.coverageMaximum.Load() {
+	}
+	timer := time.NewTimer(f.coverageDelay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
 }
 
 func (f *fakeBackend) ListNotificationChannels(context.Context) ([]domain.NotificationChannel, error) {
@@ -71,7 +93,10 @@ func (f *fakeBackend) ListTaskNotificationAssignments(_ context.Context, id stri
 	}
 	return f.direct, f.err
 }
-func (f *fakeBackend) ListGroupNotificationAssignments(_ context.Context, id string) ([]domain.NotificationAssignment, error) {
+func (f *fakeBackend) ListGroupNotificationAssignments(ctx context.Context, id string) ([]domain.NotificationAssignment, error) {
+	if err := f.waitForCoverage(ctx); err != nil {
+		return nil, err
+	}
 	if err := f.coverageErrors["group:"+id]; err != nil {
 		return nil, err
 	}
@@ -80,7 +105,10 @@ func (f *fakeBackend) ListGroupNotificationAssignments(_ context.Context, id str
 	}
 	return f.direct, f.err
 }
-func (f *fakeBackend) EffectiveTaskNotificationPolicy(_ context.Context, id string) (domain.EffectiveNotificationPolicy, error) {
+func (f *fakeBackend) EffectiveTaskNotificationPolicy(ctx context.Context, id string) (domain.EffectiveNotificationPolicy, error) {
+	if err := f.waitForCoverage(ctx); err != nil {
+		return domain.EffectiveNotificationPolicy{}, err
+	}
 	if err := f.coverageErrors["task:"+id]; err != nil {
 		return domain.EffectiveNotificationPolicy{}, err
 	}
@@ -204,6 +232,23 @@ func TestWorkspacePreservesCoreSnapshotWhenCoverageIsIncomplete(t *testing.T) {
 	encoded, _ := json.Marshal(r.Workspace)
 	if strings.Contains(strings.ToLower(string(encoded)), "private policy") {
 		t.Fatalf("private error leaked: %s", encoded)
+	}
+}
+
+func TestWorkspaceBoundsCoverageLookupConcurrency(t *testing.T) {
+	f := fixture()
+	f.coverageDelay = 25 * time.Millisecond
+	f.tasks = append(f.tasks,
+		server.TaskResponse{Task: domain.Task{ID: "t2", Name: "Second"}},
+		server.TaskResponse{Task: domain.Task{ID: "t3", Name: "Third"}},
+		server.TaskResponse{Task: domain.Task{ID: "t4", Name: "Fourth"}},
+	)
+	r := NewService(f).Workspace(context.Background())
+	if r.Outcome != "accepted" || r.Workspace == nil || !r.Workspace.CoverageComplete {
+		t.Fatalf("result=%+v", r)
+	}
+	if maximum := f.coverageMaximum.Load(); maximum < 2 || maximum > 8 {
+		t.Fatalf("coverage concurrency=%d, want 2..8", maximum)
 	}
 }
 
