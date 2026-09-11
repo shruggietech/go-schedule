@@ -8,11 +8,11 @@
 ## Test-first evidence
 
 - Shared component and dialog regressions were added before implementation. The focused run failed in the expected two places because the new administration primitives did not exist and Dialog did not yet support task-specific close labels or unmount focus restoration.
-- Domain regressions cover modal task creation and focus restoration, record-keyed overlapping copy operations, responsive browser geometry, disclosures, complete path presentation, and accessible names.
+- Domain regressions cover modal task creation and focus restoration, save-time dismissal protection, record-keyed overlapping copy operations, repair-target disclosure reopening, responsive browser geometry, disclosures, complete path presentation, and accessible names.
 
 ## Focused frontend evidence
 
-- `npm test -- --run`: 24 files and 121 tests passed after the first review round added collapsed-advanced-field and rejected-copy regressions.
+- `npm test -- --run`: 24 files and 123 tests passed after the two review rounds added collapsed-advanced-field, rejected-copy, save-time dismissal, and repair-target reopening regressions.
 - `npm run build`: TypeScript checking and the Vite production bundle passed.
 - `npm run test:e2e`: all 26 Playwright workflows passed, including 800 by 600, 200 percent zoom, keyboard navigation, complete-value containment, and axe scans with no serious or critical findings.
 
@@ -20,7 +20,7 @@
 
 - `go run ./scripts/github-format .`: passed with no em dashes or hard-wrapped Markdown prose.
 - `bash scripts/spec-lifecycle-check.sh .`: passed while the specification was In Progress. The first Implemented-state canonical run correctly rejected incomplete lifecycle evidence, which was repaired before the final run.
-- `bash scripts/verify.sh all`: the first run passed format, vet, lint, race, GUI, native Windows Wails build, frontend tests, production bundle, coverage, and documentation before identifying the lifecycle evidence defect in automation. After repairing that evidence, the complete implementation run passed through `automation-check-test` with zero exclusions. The final review-fix run covers 121 frontend tests.
+- `bash scripts/verify.sh all`: the first run passed format, vet, lint, race, GUI, native Windows Wails build, frontend tests, production bundle, coverage, and documentation before identifying the lifecycle evidence defect in automation. After repairing that evidence, the complete implementation run passed through `automation-check-test` with zero exclusions. The first review-fix run covered 121 frontend tests; the final second-review-fix run covers 123 frontend tests.
 
 ## Release boundary
 

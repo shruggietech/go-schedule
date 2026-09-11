@@ -57,6 +57,7 @@ export function ConnectionsPage({
   const [workspace, setWorkspace] = useState<ConnectionWorkspace>();
   const [message, setMessage] = useState("");
   const [repairProfileId, setRepairProfileId] = useState("");
+  const [pairingOpen, setPairingOpen] = useState(false);
   const load = useCallback(async () => {
     const result = await bridge.connectionProfiles?.();
     if (result?.workspace) setWorkspace(result.workspace);
@@ -245,7 +246,10 @@ export function ConnectionsPage({
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={() => setRepairProfileId(profile.id)}
+                    onClick={() => {
+                      setRepairProfileId(profile.id);
+                      setPairingOpen(true);
+                    }}
                   >
                     Repair
                   </Button>
@@ -267,12 +271,14 @@ export function ConnectionsPage({
                 ? "Repair remote connection"
                 : "Pair a remote daemon"
             }
-            open={Boolean(repairProfileId)}
+            open={pairingOpen}
+            onToggle={setPairingOpen}
           >
             <PairingForm
               repairProfileId={repairProfileId}
               onPaired={() => {
                 setRepairProfileId("");
+                setPairingOpen(false);
                 void load();
               }}
             />

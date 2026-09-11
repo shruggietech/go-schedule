@@ -98,6 +98,7 @@ export function TaskEditor({
       title={draft.isNew ? "Create task" : `Edit ${draft.name || "unnamed"}`}
       invoker={invoker}
       closeLabel="Cancel"
+      dismissDisabled={pendingAction === "save"}
       onClose={onCancel}
       actions={actions}
     >

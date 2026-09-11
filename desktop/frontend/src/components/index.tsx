@@ -334,6 +334,7 @@ export function Dialog({
   actions,
   invoker,
   closeLabel = "Close",
+  dismissDisabled = false,
   onClose,
 }: {
   open: boolean;
@@ -342,6 +343,7 @@ export function Dialog({
   actions?: ReactNode;
   invoker: HTMLElement | null;
   closeLabel?: string;
+  dismissDisabled?: boolean;
   onClose(): void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -366,6 +368,7 @@ export function Dialog({
     const handle = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        if (dismissDisabled) return;
         onCloseRef.current();
         invokerRef.current?.focus();
         return;
@@ -385,7 +388,7 @@ export function Dialog({
     };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);
-  }, [open]);
+  }, [dismissDisabled, open]);
   useEffect(() => {
     if (wasOpenRef.current && !open) invokerRef.current?.focus();
     wasOpenRef.current = open;
@@ -412,6 +415,7 @@ export function Dialog({
           {actions}
           <Button
             variant="secondary"
+            disabled={dismissDisabled}
             onClick={() => {
               onClose();
               invoker?.focus();

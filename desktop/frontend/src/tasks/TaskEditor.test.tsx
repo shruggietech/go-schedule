@@ -50,4 +50,15 @@ describe('task editor', () => {
     await waitFor(() => expect(field.closest('details')).toHaveAttribute('open'))
     await waitFor(() => expect(field).toHaveFocus())
   })
+
+  it('cannot be dismissed while a save is pending', async () => {
+    const user = userEvent.setup(); let finishSave: ((value: { action: string; outcome: 'accepted'; message: string }) => void) | undefined; const saveTask = vi.fn().mockReturnValue(new Promise((resolve) => { finishSave = resolve })); const onSaved = vi.fn(); const onCancel = vi.fn(); const bridge = { saveTask } as unknown as TaskBridge
+    render(<TaskEditor initial={{ ...blankTask(), commandLine: 'echo' }} groups={[]} platform="linux" bridge={bridge} onSaved={onSaved} onCancel={onCancel} />)
+    await user.click(screen.getByRole('button', { name: 'Save inactive task' }))
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    await user.keyboard('{Escape}')
+    expect(onCancel).not.toHaveBeenCalled()
+    finishSave?.({ action: 'save_task', outcome: 'accepted', message: 'Saved.' })
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
+  })
 })
