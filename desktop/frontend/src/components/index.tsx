@@ -17,7 +17,7 @@ export function Notice({ title, children, tone = 'info', dismissible = tone === 
   const [dismissed, setDismissed] = useState(false)
   const contentKey = `${title}:${tone}:${typeof children === 'string' ? children : ''}`
   useEffect(() => setDismissed(false), [contentKey, identity])
-  if (tone === 'success') return <ToastRegion message={`${title}: ${typeof children === 'string' ? children : ''}`} identity={identity} />
+  if (tone === 'success') return <ToastRegion message={<>{title}: {children}</>} identity={identity ?? contentKey} />
   if (dismissed) return null
   return <section className={`notice notice-${tone}`} role={tone === 'error' || tone === 'warning' ? 'alert' : 'status'}><div className="notice-heading"><strong>{title}</strong>{dismissible && <Button variant="subtle" aria-label={`Dismiss ${title}`} onClick={() => setDismissed(true)}>Dismiss</Button>}</div><div>{children}</div></section>
 }
@@ -65,15 +65,16 @@ export function Dialog({ open, title, children, actions, invoker, onClose }: { o
   return <div className="dialog-backdrop"><div aria-modal="true" className="dialog" ref={ref} role="dialog" aria-labelledby="dialog-title"><h2 id="dialog-title">{title}</h2><div className="dialog-content">{children}</div><div className="dialog-actions">{actions}<Button variant="secondary" onClick={() => { onClose(); invoker?.focus() }}>Close</Button></div></div></div>
 }
 
-export function ToastRegion({ message, duration = 5_000, identity = message }: { message: string; duration?: number; identity?: unknown }) {
-  const [visible, setVisible] = useState(message)
+export function ToastRegion({ message, duration = 5_000, identity = message }: { message: ReactNode; duration?: number; identity?: unknown }) {
+  const [dismissedIdentity, setDismissedIdentity] = useState<unknown>()
   const [paused, setPaused] = useState(false)
-  useEffect(() => { setVisible(message) }, [identity, message])
+  const hasMessage = message !== '' && message !== null && message !== undefined && message !== false
+  const visible = hasMessage && dismissedIdentity !== identity
   useEffect(() => {
     if (!visible || paused) return
-    const timer = window.setTimeout(() => setVisible(''), duration)
+    const timer = window.setTimeout(() => setDismissedIdentity(identity), duration)
     return () => window.clearTimeout(timer)
-  }, [duration, paused, visible])
+  }, [duration, identity, paused, visible])
   if (!visible) return <div className="toast-live" role="status" aria-live="polite" aria-atomic="true" />
-  return <div className="toast-region" role="status" aria-live="polite" aria-atomic="true" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false) }}><span>{visible}</span><Button variant="subtle" aria-label="Dismiss notification" onClick={() => setVisible('')}>Dismiss</Button></div>
+  return <div className="toast-region" role="status" aria-live="polite" aria-atomic="true" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocusCapture={() => setPaused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false) }}><span>{message}</span><Button variant="subtle" aria-label="Dismiss notification" onClick={() => setDismissedIdentity(identity)}>Dismiss</Button></div>
 }

@@ -10,7 +10,7 @@ The first focused component run failed seven new expectations before implementat
 
 ## Focused frontend evidence
 
-- `npm test -- --run` passed all 111 component, store, integration, and accessibility tests in 24 files after first-round review coverage added persistent settings failures, repeat-event identities, and dynamic JSX notice restoration.
+- `npm test -- --run` passed all 115 component, store, integration, and accessibility tests in 24 files after both review rounds added feedback lifecycle coverage.
 - `npm run build` passed TypeScript validation and the Vite production build.
 - `npx playwright test e2e/shell.spec.ts` passed nine Windows-hosted Chromium checks.
 - The browser contract covered 1440 by 900, 900 by 650, and 800 by 600 viewports; 200 percent zoom; one page scroll owner; retained navigation, Exit, target context, and Appearance; no document overflow; all five semantic action variants; compact 24 to 34 CSS-pixel dimensions; label contrast of at least 4.5:1; visible hover and focus changes; light and dark palettes; follow-system resolution; reduced motion; local assets; and zero serious or critical axe findings.
@@ -37,6 +37,10 @@ The canonical GUI gate ran on the Windows host and built `desktop/build/bin/gosc
 The initial Codex review identified three P2 feedback lifecycle gaps. Failing regression tests reproduced each gap before the corrections: unsuccessful settings actions now remain in dismissible persistent notices, every settings action emits a distinct identity so identical outcomes restart their announcement, and dynamic JSX notices accept caller event identities so later actionable failures restore after an earlier dismissal. The focused 22-test review suite, complete 111-test frontend suite, production bundle, nine Playwright shell checks, and all eight canonical gates passed after the corrections.
 
 The first CI run on the review fix exposed a macOS-only test scheduling race: the repeated-announcement assertion selected the intentionally empty live region before React populated the visible toast. The product behavior passed on Linux and Windows. The test now waits for the visible announcement text itself, preserving the behavioral assertion without depending on effect scheduling order.
+
+## Second-round review evidence
+
+The authorized second and final Codex review identified four additional P2 edge cases. Failing tests reproduced active-toast timeout reuse, discarded compound success content, a dismissed warning hiding a later connection snapshot, and a routine connection announcement replacing a persistent settings error. The corrections restart dismissal timers from event identity, preserve renderable success content, key dynamic connection warnings from snapshot state, and maintain independent stacked channels for transient announcements and persistent settings failures. The focused 22-test review suite, complete 115-test frontend suite, production bundle, and nine Playwright shell checks passed after the corrections. No third review round will be requested.
 
 ## Release boundary
 

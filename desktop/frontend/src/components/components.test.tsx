@@ -80,6 +80,22 @@ describe('shared component catalog', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Appearance saved.')
   })
 
+  it('restarts the full timeout for an identical event that arrives while visible', async () => {
+    vi.useFakeTimers()
+    const { rerender } = render(<ToastRegion message="Appearance saved." identity={1} />)
+    await act(async () => vi.advanceTimersByTimeAsync(4_900))
+    rerender(<ToastRegion message="Appearance saved." identity={2} />)
+    await act(async () => vi.advanceTimersByTimeAsync(200))
+    expect(screen.getByText('Appearance saved.')).toBeVisible()
+    await act(async () => vi.advanceTimersByTimeAsync(4_800))
+    expect(screen.queryByText('Appearance saved.')).not.toBeInTheDocument()
+  })
+
+  it('preserves compound success content in transient feedback', () => {
+    render(<Notice title="Ready" tone="success"><><span>Preview generated.</span><strong> Review the command.</strong></></Notice>)
+    expect(screen.getByRole('status')).toHaveTextContent('Ready: Preview generated. Review the command.')
+  })
+
   it('pauses transient dismissal while hovered', async () => {
     vi.useFakeTimers()
     render(<ToastRegion message="Saved" />)
