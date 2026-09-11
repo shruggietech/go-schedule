@@ -55,4 +55,19 @@ describe('ConnectionsPage', () => {
     expect(screen.getByRole('button', { name: 'No retry needed' })).toBe(button)
     expect(button).toHaveFocus()
   })
+
+  it('reopens pairing when the repair target changes', async () => {
+    const user = userEvent.setup()
+    const profiles = [{ id: 'one', label: 'Workshop one', endpoint: 'https://one.test', daemonId: 'daemon-one', shortDaemonId: 'daemon-o', fingerprint: 'aa', capability: 'observe', platform: 'linux', active: false }, { id: 'two', label: 'Workshop two', endpoint: 'https://two.test', daemonId: 'daemon-two', shortDaemonId: 'daemon-t', fingerprint: 'bb', capability: 'observe', platform: 'linux', active: false }]
+    const bridge = { snapshot: vi.fn(), retry: vi.fn(), quit: vi.fn(), subscribe: () => () => undefined, connectionProfiles: vi.fn().mockResolvedValue({ action: 'load_connections', outcome: 'accepted' as const, message: 'Loaded.', workspace: { profiles } }) } satisfies DesktopBridge
+    render(<ConnectionsPage snapshot={base} retryPending={false} onRetry={vi.fn()} bridge={bridge} />)
+    await screen.findByText('Workshop one')
+    await user.click(screen.getAllByRole('button', { name: 'Repair' })[0])
+    const summary = screen.getByText('Repair remote connection')
+    expect(summary.closest('details')).toHaveAttribute('open')
+    await user.click(summary)
+    expect(summary.closest('details')).not.toHaveAttribute('open')
+    await user.click(screen.getAllByRole('button', { name: 'Repair' })[1])
+    expect(summary.closest('details')).toHaveAttribute('open')
+  })
 })

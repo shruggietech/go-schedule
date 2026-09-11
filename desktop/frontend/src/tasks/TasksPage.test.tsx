@@ -22,6 +22,18 @@ it('forwards remote target and capability boundaries through the populated works
   expect(screen.getAllByText('Production (https://example.test, daemon-i)').length).toBeGreaterThan(0)
 })
 
+it('opens task creation in a modal and returns focus to its invoker', async () => {
+  const bridge = { workspace: vi.fn().mockResolvedValue({ action: 'load', outcome: 'accepted', message: 'Loaded.', workspace: { tasks: [], groups: [], loadedAt: 'now' } }) } as unknown as TaskBridge
+  const user = userEvent.setup(); render(<TasksPage bridge={bridge} platform="linux" onActivity={() => undefined} />)
+  const create = await screen.findByRole('button', { name: 'Create task' })
+  await user.click(create)
+  expect(screen.getByRole('dialog', { name: 'Create task' })).toBeVisible()
+  expect(screen.getByText('Advanced settings').closest('details')).not.toHaveAttribute('open')
+  await user.click(screen.getByRole('button', { name: 'Cancel' }))
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(create).toHaveFocus()
+})
+
 it('blocks another mutation until an uncertain result is reconciled by a fresh workspace', async () => {
   const tasks: TaskSummary[] = [{ id: 'one', name: 'Remote backup', groupId: '', groupPath: 'Not assigned', commandConfigured: true, declaredEnabled: true, effectiveState: 'runnable', effectiveReason: 'Ready to run.', lifecycle: 'active', timezone: 'UTC', scheduleSummary: 'Manual only', policySummary: '', nextRuns: [], updatedAt: 'now' }]
   const bridge = { workspace: vi.fn().mockResolvedValue({ action: 'load', outcome: 'accepted', message: 'Loaded.', workspace: { tasks, groups: [], loadedAt: 'now' } }), runTask: vi.fn().mockResolvedValue({ action: 'run_task', outcome: 'uncertain', message: 'The remote request may have completed. Refresh before trying again.' }) } as unknown as TaskBridge

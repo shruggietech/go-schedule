@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Task authoring and desktop administration now remain focused and readable at constrained sizes (Closes #231, #233; Refs #228).** Create and Edit use one bounded task dialog with contained scrolling, collapsed advanced fields, exact invoker focus restoration, validation focus, and operation-scoped progress. Agent Access, Connections, remote pairing, and Settings now share responsive form, definition, status, section, and complete-value presentation, while path copy state is isolated by storage record.
+
 - **The desktop now keeps its navigation and action feedback coherent at every supported viewport (Closes #229, #230; Refs #228).** Shared semantic controls use compact dimensions, visible hover, pressed, focus, disabled, affirmative, and destructive treatments, while cards and dialogs consume one spacing scale. The Wails title bar follows the operating-system theme, the application resolves follow-system presentation consistently, and one viewport-owned page scroller keeps navigation, Exit, target context, and Appearance available. Routine outcomes replace one another in a bounded five-second toast, while actionable warnings and errors remain explicitly dismissible without becoming permanent oversized interface content.
 
 ### Decisions
+
+- **2026-09-11: use one focused task dialog and composable administration primitives for the remaining desktop workflow repairs.** S084 preserves existing bridge and persistence contracts while moving task forms out of page flow, keeping specialist network configuration behind explicit disclosures, presenting complete operational values safely, and keying Settings feedback to the exact action. Notifications information architecture remains isolated in #232.
 
 - **2026-09-11: repair the desktop at its shared seams before redesigning individual workspaces.** S083 keeps the existing React and Wails stack, centralizes semantic design tokens and feedback lifetimes, assigns document overflow to one active-page region, and retains a compact horizontal navigation treatment at narrow widths. This closes the release-blocking cross-application defects in #229 and #230 without absorbing task authoring, Notifications information architecture, or administration-form composition from #231 through #233.
 

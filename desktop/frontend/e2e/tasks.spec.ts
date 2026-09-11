@@ -23,10 +23,15 @@ test('keeps one hundred tasks and twenty group levels searchable and accessible'
 
 test('inserts the Linux example once and remains usable at narrow width and zoom', async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 650 })
+  const initialHeight = await page.locator('#main-content').evaluate((element) => element.scrollHeight)
   await page.getByRole('button', { name: 'Create task' }).click()
+  await expect(page.getByRole('dialog', { name: 'Create task' })).toBeVisible()
+  expect(await page.locator('#main-content').evaluate((element) => element.scrollHeight)).toBe(initialHeight)
+  await expect(page.getByText('Advanced settings').locator('..')).not.toHaveAttribute('open')
   const command = page.getByLabel('Command line')
   await command.focus(); await page.keyboard.press('Tab'); await expect(command).toHaveValue('uname -a')
   await page.keyboard.press('Tab'); await expect(page.getByRole('button', { name: 'Insert example' })).toBeFocused()
   await page.evaluate(() => { document.documentElement.style.zoom = '2' })
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
+  expect(await page.getByRole('dialog').evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
 })

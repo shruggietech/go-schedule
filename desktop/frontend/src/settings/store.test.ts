@@ -28,6 +28,33 @@ describe('useSettings', () => {
     release(); await act(async () => { await first })
   })
 
+  it('isolates concurrent copy operations by storage record', async () => {
+    let releaseDatabase!: () => void
+    let releaseLogs!: () => void
+    const databasePending = new Promise<void>((resolve) => { releaseDatabase = resolve })
+    const logsPending = new Promise<void>((resolve) => { releaseLogs = resolve })
+    const api = bridge(); api.copyStoragePath = vi.fn().mockImplementation(async (id) => { await (id === 'database' ? databasePending : logsPending); return { action: 'copy_storage_path', outcome: 'accepted', message: `${id} copied.`, workspace } })
+    const { result } = renderHook(() => useSettings(api))
+    await waitFor(() => expect(result.current.workspace).toEqual(workspace))
+    let database!: Promise<unknown>; let logs!: Promise<unknown>
+    act(() => { database = result.current.copyStoragePath('database'); logs = result.current.copyStoragePath('logs') })
+    expect(api.copyStoragePath).toHaveBeenCalledTimes(2)
+    expect(result.current.pendingActions).toEqual(new Set(['copy:database', 'copy:logs']))
+    releaseLogs(); await act(async () => { await logs })
+    expect(result.current.pendingActions).toEqual(new Set(['copy:database']))
+    expect(result.current.copyResults.logs).toBe('copied')
+    releaseDatabase(); await act(async () => { await database })
+    expect(result.current.copyResults.database).toBe('copied')
+  })
+
+  it('records a rejected copy promise as a failure for its exact record', async () => {
+    const api = bridge(); api.copyStoragePath = vi.fn().mockRejectedValue(new Error('clipboard unavailable'))
+    const { result } = renderHook(() => useSettings(api))
+    await waitFor(() => expect(result.current.workspace).toEqual(workspace))
+    await act(async () => { await result.current.copyStoragePath('database') })
+    expect(result.current.copyResults.database).toBe('failed')
+  })
+
   it('publishes a distinct event for repeated identical outcomes', async () => {
     const api = bridge(); api.saveAppearance = vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'accepted', message: 'Appearance saved.', workspace })
     const { result } = renderHook(() => useSettings(api))
