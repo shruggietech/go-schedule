@@ -42,12 +42,14 @@ export function TaskEditor({
   const [draft, setDraft] = useState(initial);
   const [result, setResult] = useState<OperationResult>();
   const [pendingAction, setPendingAction] = useState<"preview" | "save">();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const update = (values: Partial<TaskDraft>) =>
     setDraft((current) => ({ ...current, ...values }));
   const finish = (next: OperationResult) => {
     setPendingAction(undefined);
     setResult(next);
+    if (["working_dir", "run_as", "stdin", "environment", "overlap_policy", "catchup_policy", "missing_date_policy", "time_basis", "dst_gap_policy", "dst_overlap_policy"].includes(next.field ?? "")) setAdvancedOpen(true);
     if (next.field)
       setTimeout(() => {
         const field = root.current?.querySelector<HTMLElement>(
@@ -196,7 +198,7 @@ export function TaskEditor({
             errorMessage={result?.message}
           />
         </FormGrid>
-        <Disclosure summary="Advanced settings">
+      <Disclosure summary="Advanced settings" open={advancedOpen} onToggle={setAdvancedOpen}>
           <FormGrid>
             <Field label="Working directory" error={error("working_dir")}>
               <input

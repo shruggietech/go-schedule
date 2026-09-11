@@ -312,13 +312,15 @@ export function Disclosure({
   summary,
   children,
   open,
+  onToggle,
 }: {
   summary: string;
   children: ReactNode;
   open?: boolean;
+  onToggle?(open: boolean): void;
 }) {
   return (
-    <details open={open || undefined}>
+    <details open={open || undefined} onToggle={(event) => onToggle?.(event.currentTarget.open)}>
       <summary>{summary}</summary>
       <div>{children}</div>
     </details>

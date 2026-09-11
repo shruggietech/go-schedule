@@ -47,6 +47,14 @@ describe('useSettings', () => {
     expect(result.current.copyResults.database).toBe('copied')
   })
 
+  it('records a rejected copy promise as a failure for its exact record', async () => {
+    const api = bridge(); api.copyStoragePath = vi.fn().mockRejectedValue(new Error('clipboard unavailable'))
+    const { result } = renderHook(() => useSettings(api))
+    await waitFor(() => expect(result.current.workspace).toEqual(workspace))
+    await act(async () => { await result.current.copyStoragePath('database') })
+    expect(result.current.copyResults.database).toBe('failed')
+  })
+
   it('publishes a distinct event for repeated identical outcomes', async () => {
     const api = bridge(); api.saveAppearance = vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'accepted', message: 'Appearance saved.', workspace })
     const { result } = renderHook(() => useSettings(api))

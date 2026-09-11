@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { blankTask, type TaskBridge } from './model'
@@ -40,5 +40,14 @@ describe('task editor', () => {
     expect(await screen.findByText('The remote request may have completed. Refresh before retrying.')).toBeVisible()
     expect(screen.getByLabelText('Name')).toHaveValue('Remote draft')
     expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('opens advanced settings before focusing an invalid advanced field', async () => {
+    const user = userEvent.setup(); const previewTask = vi.fn().mockResolvedValue({ action: 'preview', outcome: 'rejected', message: 'Working directory is invalid.', field: 'working_dir' }); const bridge = { previewTask } as unknown as TaskBridge
+    render(<TaskEditor initial={{ ...blankTask(), commandLine: 'echo' }} groups={[]} platform="linux" bridge={bridge} onSaved={() => undefined} onCancel={() => undefined} />)
+    await user.click(screen.getByRole('button', { name: 'Preview' }))
+    const field = await screen.findByLabelText('Working directory')
+    await waitFor(() => expect(field.closest('details')).toHaveAttribute('open'))
+    await waitFor(() => expect(field).toHaveFocus())
   })
 })

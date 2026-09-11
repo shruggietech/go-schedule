@@ -106,11 +106,10 @@ export function useSettings(
         return next;
       });
       const result = await run(`copy:${id}`, () => bridge.copyStoragePath(id));
-      if (result)
-        setCopyResults((current) => ({
-          ...current,
-          [id]: result.outcome === "accepted" ? "copied" : "failed",
-        }));
+      setCopyResults((current) => ({
+        ...current,
+        [id]: result?.outcome === "accepted" ? "copied" : "failed",
+      }));
       return result;
     },
     [bridge, run],

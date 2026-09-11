@@ -12,7 +12,7 @@
 
 ## Focused frontend evidence
 
-- `npm test -- --run`: 24 files and 119 tests passed.
+- `npm test -- --run`: 24 files and 121 tests passed after the first review round added collapsed-advanced-field and rejected-copy regressions.
 - `npm run build`: TypeScript checking and the Vite production bundle passed.
 - `npm run test:e2e`: all 26 Playwright workflows passed, including 800 by 600, 200 percent zoom, keyboard navigation, complete-value containment, and axe scans with no serious or critical findings.
 
@@ -20,7 +20,7 @@
 
 - `go run ./scripts/github-format .`: passed with no em dashes or hard-wrapped Markdown prose.
 - `bash scripts/spec-lifecycle-check.sh .`: passed while the specification was In Progress. The first Implemented-state canonical run correctly rejected incomplete lifecycle evidence, which was repaired before the final run.
-- `bash scripts/verify.sh all`: the first run passed format, vet, lint, race, GUI, native Windows Wails build, 119 frontend tests, production bundle, coverage, and documentation before identifying the lifecycle evidence defect in automation. After repairing that evidence, the complete final run passed through `automation-check-test` with zero exclusions.
+- `bash scripts/verify.sh all`: the first run passed format, vet, lint, race, GUI, native Windows Wails build, frontend tests, production bundle, coverage, and documentation before identifying the lifecycle evidence defect in automation. After repairing that evidence, the complete implementation run passed through `automation-check-test` with zero exclusions. The final review-fix run covers 121 frontend tests.
 
 ## Release boundary
 
