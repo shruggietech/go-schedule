@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Button, Dialog, StatusBadge, ToastRegion } from '.'
+import { Button, Dialog, Notice, StatusBadge, ToastRegion } from '.'
 import type { Appearance, ConnectionSnapshot, Route } from '../connection/model'
 
 const routes: Array<{ id: Route; label: string }> = [
   { id: 'tasks', label: 'Tasks' }, { id: 'automation', label: 'Automation Sources' }, { id: 'schedule', label: 'Schedule' }, { id: 'activity', label: 'Activity' }, { id: 'notifications', label: 'Notifications' }, { id: 'agentAccess', label: 'Agent Access' }, { id: 'connections', label: 'Connections' }, { id: 'settings', label: 'Settings' },
 ]
 
-export function Shell({ route, onRoute, appearance, onAppearance, appearancePending = false, connection, announcement, onRetry, onQuit, children }: { route: Route; onRoute(route: Route): void; appearance: Appearance; onAppearance(value: Appearance): void; appearancePending?: boolean; connection: ConnectionSnapshot; announcement: string; onRetry(): void; onQuit(): void; children: ReactNode }) {
+export type ShellFeedback = { identity: string | number; message: string; tone: 'success' | 'error' }
+
+export function Shell({ route, onRoute, appearance, onAppearance, appearancePending = false, connection, feedback, onRetry, onQuit, children }: { route: Route; onRoute(route: Route): void; appearance: Appearance; onAppearance(value: Appearance): void; appearancePending?: boolean; connection: ConnectionSnapshot; feedback?: ShellFeedback; onRetry(): void; onQuit(): void; children: ReactNode }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [invoker, setInvoker] = useState<HTMLElement | null>(null)
   const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false)
@@ -28,6 +30,6 @@ export function Shell({ route, onRoute, appearance, onAppearance, appearancePend
       <footer className="preferences"><label>Appearance<select value={appearance} disabled={appearancePending} onChange={(event) => onAppearance(event.target.value as Appearance)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label>{connection.action && <Button variant="secondary" onClick={onRetry}>Try again</Button>}</footer>
     </div>
     <Dialog open={dialogOpen} title={`${connection.target.displayName} connection`} invoker={invoker} onClose={() => setDialogOpen(false)}><p>{connection.message}</p><dl>{connection.target.endpoint && <><dt>Endpoint</dt><dd>{connection.target.endpoint}</dd></>}<dt>Platform</dt><dd>{connection.target.platform}{connection.target.architecture ? `/${connection.target.architecture}` : ''}</dd><dt>Capabilities</dt><dd>{connection.target.capabilities.length ? connection.target.capabilities.join(', ') : 'Unavailable'}</dd><dt>Data freshness</dt><dd>{connection.stale ? 'Last-known data, refresh pending' : 'Current'}</dd><dt>Last successful connection</dt><dd>{connection.lastSuccessfulAt || 'Not available'}</dd>{connection.recovery === 'automatic' && <><dt>Automatic retry</dt><dd>Attempt {connection.retryAttempt || 1}{connection.nextRetryAt ? ` scheduled for ${connection.nextRetryAt}` : ' scheduled'}</dd></>}<dt>Recovery</dt><dd>{connection.recovery === 'automatic' ? 'Automatic' : connection.recovery === 'manual' ? 'Manual action required' : 'None'}</dd></dl></Dialog>
-    <ToastRegion message={announcement} />
+    {feedback?.tone === 'error' ? <div className="feedback-region"><Notice title="Settings action needs attention" tone="error" identity={feedback.identity}>{feedback.message}</Notice></div> : <ToastRegion message={feedback?.message ?? ''} identity={feedback?.identity} />}
   </div>
 }

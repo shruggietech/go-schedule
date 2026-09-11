@@ -10,7 +10,7 @@ The first focused component run failed seven new expectations before implementat
 
 ## Focused frontend evidence
 
-- `npm test -- --run` passed all 106 component, store, integration, and accessibility tests in 24 files.
+- `npm test -- --run` passed all 111 component, store, integration, and accessibility tests in 24 files after first-round review coverage added persistent settings failures, repeat-event identities, and dynamic JSX notice restoration.
 - `npm run build` passed TypeScript validation and the Vite production build.
 - `npx playwright test e2e/shell.spec.ts` passed nine Windows-hosted Chromium checks.
 - The browser contract covered 1440 by 900, 900 by 650, and 800 by 600 viewports; 200 percent zoom; one page scroll owner; retained navigation, Exit, target context, and Appearance; no document overflow; all five semantic action variants; compact 24 to 34 CSS-pixel dimensions; label contrast of at least 4.5:1; visible hover and focus changes; light and dark palettes; follow-system resolution; reduced motion; local assets; and zero serious or critical axe findings.
@@ -31,6 +31,10 @@ The canonical GUI gate ran on the Windows host and built `desktop/build/bin/gosc
 - coverage: PASS at engine 82.9 percent, schedule 89.1 percent, timezone 91.3 percent, store 80.1 percent, catchup 88.9 percent, and logbus 91.1 percent
 - docs: PASS, including 20 pages and architecture mutation fixtures
 - automation: PASS, including actions, CodeQL, Dependabot, release operations, release notes, brand, lifecycle, eight-gate policy, and automation mutation fixtures
+
+## First-round review evidence
+
+The initial Codex review identified three P2 feedback lifecycle gaps. Failing regression tests reproduced each gap before the corrections: unsuccessful settings actions now remain in dismissible persistent notices, every settings action emits a distinct identity so identical outcomes restart their announcement, and dynamic JSX notices accept caller event identities so later actionable failures restore after an earlier dismissal. The focused 22-test review suite, complete 111-test frontend suite, production bundle, nine Playwright shell checks, and all eight canonical gates passed after the corrections.
 
 ## Release boundary
 

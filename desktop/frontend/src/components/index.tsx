@@ -13,11 +13,11 @@ export function StatusBadge({ state }: { state: ConnectionState }) {
   return <span className={`status status-${state}`}><span className="status-shape" aria-hidden="true" />{labels[state]}</span>
 }
 
-export function Notice({ title, children, tone = 'info', dismissible = tone === 'warning' || tone === 'error' }: { title: string; children: ReactNode; tone?: 'info' | 'warning' | 'error' | 'success'; dismissible?: boolean }) {
+export function Notice({ title, children, tone = 'info', dismissible = tone === 'warning' || tone === 'error', identity }: { title: string; children: ReactNode; tone?: 'info' | 'warning' | 'error' | 'success'; dismissible?: boolean; identity?: unknown }) {
   const [dismissed, setDismissed] = useState(false)
   const contentKey = `${title}:${tone}:${typeof children === 'string' ? children : ''}`
-  useEffect(() => setDismissed(false), [contentKey])
-  if (tone === 'success') return <ToastRegion message={`${title}: ${typeof children === 'string' ? children : ''}`} />
+  useEffect(() => setDismissed(false), [contentKey, identity])
+  if (tone === 'success') return <ToastRegion message={`${title}: ${typeof children === 'string' ? children : ''}`} identity={identity} />
   if (dismissed) return null
   return <section className={`notice notice-${tone}`} role={tone === 'error' || tone === 'warning' ? 'alert' : 'status'}><div className="notice-heading"><strong>{title}</strong>{dismissible && <Button variant="subtle" aria-label={`Dismiss ${title}`} onClick={() => setDismissed(true)}>Dismiss</Button>}</div><div>{children}</div></section>
 }
@@ -65,10 +65,10 @@ export function Dialog({ open, title, children, actions, invoker, onClose }: { o
   return <div className="dialog-backdrop"><div aria-modal="true" className="dialog" ref={ref} role="dialog" aria-labelledby="dialog-title"><h2 id="dialog-title">{title}</h2><div className="dialog-content">{children}</div><div className="dialog-actions">{actions}<Button variant="secondary" onClick={() => { onClose(); invoker?.focus() }}>Close</Button></div></div></div>
 }
 
-export function ToastRegion({ message, duration = 5_000 }: { message: string; duration?: number }) {
+export function ToastRegion({ message, duration = 5_000, identity = message }: { message: string; duration?: number; identity?: unknown }) {
   const [visible, setVisible] = useState(message)
   const [paused, setPaused] = useState(false)
-  useEffect(() => { setVisible(message) }, [message])
+  useEffect(() => { setVisible(message) }, [identity, message])
   useEffect(() => {
     if (!visible || paused) return
     const timer = window.setTimeout(() => setVisible(''), duration)

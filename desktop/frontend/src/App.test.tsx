@@ -66,6 +66,27 @@ describe('production shell', () => {
     expect(bridge.quit).toHaveBeenCalled()
   })
 
+  it('keeps settings failures persistent until dismissed', async () => {
+    const user = userEvent.setup()
+    const rejectedSettings: SettingsBridge = { ...settings, saveAppearance: vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'rejected', message: 'The preference file is read-only.' }) }
+    render(<App bridge={bridge} tasks={tasks} settings={rejectedSettings} />)
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The preference file is read-only.')
+    await user.click(screen.getByRole('button', { name: 'Dismiss Settings action needs attention' }))
+    expect(screen.queryByText('The preference file is read-only.')).not.toBeInTheDocument()
+  })
+
+  it('announces repeated identical settings outcomes', async () => {
+    const user = userEvent.setup()
+    const repeatedSettings: SettingsBridge = { ...settings, saveAppearance: vi.fn().mockImplementation(async (appearance) => ({ action: 'save_appearance', outcome: 'accepted', message: 'Appearance saved.', workspace: { ...settingsWorkspace, preferences: { ...settingsWorkspace.preferences, appearance } } })) }
+    render(<App bridge={bridge} tasks={tasks} settings={repeatedSettings} />)
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
+    expect(await screen.findByRole('status')).toHaveTextContent('Appearance saved.')
+    await user.click(screen.getByRole('button', { name: 'Dismiss notification' }))
+    await user.selectOptions(screen.getByLabelText('Appearance'), 'light')
+    expect(await screen.findByRole('status')).toHaveTextContent('Appearance saved.')
+  })
+
   it('resolves system appearance and does not concatenate routine announcements', async () => {
     const listeners: Array<(event: MediaQueryListEvent) => void> = []
     const matchMedia = vi.fn(() => ({ matches: true, media: '(prefers-color-scheme: dark)', onchange: null, addEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => listeners.push(listener as (event: MediaQueryListEvent) => void), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn() } as unknown as MediaQueryList))

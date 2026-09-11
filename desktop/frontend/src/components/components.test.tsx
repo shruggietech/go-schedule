@@ -53,6 +53,14 @@ describe('shared component catalog', () => {
     expect(screen.queryByText('Try again.')).not.toBeInTheDocument()
   })
 
+  it('restores a dismissed JSX notice when its event identity changes', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<Notice title="Could not save group" tone="error" identity="first"><span>Enter a group name.</span></Notice>)
+    await user.click(screen.getByRole('button', { name: 'Dismiss Could not save group' }))
+    rerender(<Notice title="Could not save group" tone="error" identity="second"><span>The group name is already in use.</span></Notice>)
+    expect(screen.getByText('The group name is already in use.')).toBeVisible()
+  })
+
   it('replaces and dismisses transient feedback after five seconds', async () => {
     vi.useFakeTimers()
     const { rerender } = render(<ToastRegion message="First saved" />)
@@ -62,6 +70,14 @@ describe('shared component catalog', () => {
     expect(screen.queryByText('First saved')).not.toBeInTheDocument()
     await act(async () => vi.advanceTimersByTimeAsync(5_000))
     expect(screen.queryByText('Second saved')).not.toBeInTheDocument()
+  })
+
+  it('restarts identical transient feedback when its event identity changes', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<ToastRegion message="Appearance saved." identity={1} />)
+    await user.click(screen.getByRole('button', { name: 'Dismiss notification' }))
+    rerender(<ToastRegion message="Appearance saved." identity={2} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Appearance saved.')
   })
 
   it('pauses transient dismissal while hovered', async () => {
