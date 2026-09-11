@@ -81,10 +81,10 @@ describe('production shell', () => {
     const repeatedSettings: SettingsBridge = { ...settings, saveAppearance: vi.fn().mockImplementation(async (appearance) => ({ action: 'save_appearance', outcome: 'accepted', message: 'Appearance saved.', workspace: { ...settingsWorkspace, preferences: { ...settingsWorkspace.preferences, appearance } } })) }
     render(<App bridge={bridge} tasks={tasks} settings={repeatedSettings} />)
     await user.selectOptions(screen.getByLabelText('Appearance'), 'dark')
-    expect(await screen.findByRole('status')).toHaveTextContent('Appearance saved.')
+    expect(await screen.findByText('Appearance saved.')).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Dismiss notification' }))
     await user.selectOptions(screen.getByLabelText('Appearance'), 'light')
-    expect(await screen.findByRole('status')).toHaveTextContent('Appearance saved.')
+    expect(await screen.findByText('Appearance saved.')).toBeVisible()
   })
 
   it('resolves system appearance and does not concatenate routine announcements', async () => {

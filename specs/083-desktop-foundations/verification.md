@@ -36,6 +36,8 @@ The canonical GUI gate ran on the Windows host and built `desktop/build/bin/gosc
 
 The initial Codex review identified three P2 feedback lifecycle gaps. Failing regression tests reproduced each gap before the corrections: unsuccessful settings actions now remain in dismissible persistent notices, every settings action emits a distinct identity so identical outcomes restart their announcement, and dynamic JSX notices accept caller event identities so later actionable failures restore after an earlier dismissal. The focused 22-test review suite, complete 111-test frontend suite, production bundle, nine Playwright shell checks, and all eight canonical gates passed after the corrections.
 
+The first CI run on the review fix exposed a macOS-only test scheduling race: the repeated-announcement assertion selected the intentionally empty live region before React populated the visible toast. The product behavior passed on Linux and Windows. The test now waits for the visible announcement text itself, preserving the behavioral assertion without depending on effect scheduling order.
+
 ## Release boundary
 
 S083 modifies source, tests, specifications, and changelog only. It does not move, rebuild, replace, publish, or promote the existing v1.4.0 tag or draft release.
