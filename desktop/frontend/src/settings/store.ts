@@ -14,7 +14,6 @@ export function useSettings(bridge: SettingsBridge = settingsBridge, refreshToke
     let active = true
     void bridge.workspace().then((result) => {
       if (!active) return
-      setMessage(result.message)
       if (result.outcome === 'accepted' && result.workspace) setWorkspace(result.workspace)
       setLoading(false)
     }, () => {

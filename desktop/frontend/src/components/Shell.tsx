@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Button, Dialog, StatusBadge, ToastRegion } from '.'
 import type { Appearance, ConnectionSnapshot, Route } from '../connection/model'
 
@@ -9,9 +9,18 @@ const routes: Array<{ id: Route; label: string }> = [
 export function Shell({ route, onRoute, appearance, onAppearance, appearancePending = false, connection, announcement, onRetry, onQuit, children }: { route: Route; onRoute(route: Route): void; appearance: Appearance; onAppearance(value: Appearance): void; appearancePending?: boolean; connection: ConnectionSnapshot; announcement: string; onRetry(): void; onQuit(): void; children: ReactNode }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [invoker, setInvoker] = useState<HTMLElement | null>(null)
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false)
   const mainRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const query = window.matchMedia?.('(prefers-color-scheme: dark)')
+    if (!query) return
+    const update = (event: MediaQueryListEvent) => setSystemDark(event.matches)
+    setSystemDark(query.matches); query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  const resolvedAppearance = appearance === 'system' ? systemDark ? 'dark' : 'light' : appearance
   const selectRoute = (next: Route) => { onRoute(next); requestAnimationFrame(() => mainRef.current?.focus()) }
-  return <div className="app" data-appearance={appearance}>
+  return <div className="app" data-appearance={appearance} data-resolved-appearance={resolvedAppearance}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <nav className="rail" aria-label="Application"><div className="brand"><img src="/go-schedule-mark.svg" alt="" /><span>go-schedule</span></div><div className="nav-links">{routes.map((item) => <button key={item.id} aria-current={route === item.id ? 'page' : undefined} onClick={() => selectRoute(item.id)}>{item.label}</button>)}</div><Button variant="quiet" onClick={onQuit}>Exit</Button></nav>
     <div className="workspace"><header className="target-bar" aria-label="Target context"><div><strong>{connection.target.displayName}</strong><span>{connection.target.platform}{connection.target.architecture ? `/${connection.target.architecture}` : ''}{connection.target.version ? ` · ${connection.target.version}` : ''}</span>{connection.stale && <span role="status">Data may be stale</span>}</div><StatusBadge state={connection.state} /><Button variant="secondary" onClick={(event) => { setInvoker(event.currentTarget); setDialogOpen(true) }}>Connection details</Button></header>

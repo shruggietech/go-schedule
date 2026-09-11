@@ -66,6 +66,16 @@ describe('production shell', () => {
     expect(bridge.quit).toHaveBeenCalled()
   })
 
+  it('resolves system appearance and does not concatenate routine announcements', async () => {
+    const listeners: Array<(event: MediaQueryListEvent) => void> = []
+    const matchMedia = vi.fn(() => ({ matches: true, media: '(prefers-color-scheme: dark)', onchange: null, addEventListener: (_type: string, listener: EventListenerOrEventListenerObject) => listeners.push(listener as (event: MediaQueryListEvent) => void), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn() } as unknown as MediaQueryList))
+    vi.stubGlobal('matchMedia', matchMedia)
+    render(<App bridge={bridge} tasks={tasks} settings={settings} />)
+    await waitFor(() => expect(document.querySelector('.app')).toHaveAttribute('data-resolved-appearance', 'dark'))
+    expect(screen.getAllByRole('status').every((status) => !status.textContent?.includes('Available. Loaded.'))).toBe(true)
+    vi.unstubAllGlobals()
+  })
+
   it('opens the complete Notifications workspace from primary navigation', async () => {
     const user = userEvent.setup(); render(<App bridge={bridge} tasks={tasks} notifications={notifications} settings={settings} />)
     await user.click(screen.getByRole('button', { name: 'Notifications' }))

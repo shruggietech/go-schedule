@@ -15,4 +15,6 @@ it('separates operate permission from manage-only controls', () => {
   expect(screen.getByRole('button', { name: 'Run now' })).toBeEnabled()
   expect(screen.getByRole('button', { name: 'Enable' })).toBeDisabled()
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Enable' })).toHaveClass('button-affirmative')
+  expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('button-danger')
 })
