@@ -101,9 +101,19 @@ func (s *Service) configuredCoverage(ctx context.Context, workspace *Workspace) 
 		}
 		summary := ConfiguredScope{Type: scope.Type, ID: scope.ID, Name: scope.Name, Context: scope.Context, SourceType: sourceType, SourceName: sourceName(workspace, domain.NotificationScopeType(sourceType), sourceID, scope.Name)}
 		seen := map[string]bool{}
+		enabledSuccess := map[string]bool{}
+		enabledFailure := map[string]bool{}
 		for _, value := range values {
 			summary.OnSuccess = summary.OnSuccess || value.OnSuccess
 			summary.OnFailure = summary.OnFailure || value.OnFailure
+			if enabled[value.ChannelID] && value.OnSuccess && !enabledSuccess[value.ChannelID] {
+				enabledSuccess[value.ChannelID] = true
+				summary.EnabledSuccessCount++
+			}
+			if enabled[value.ChannelID] && value.OnFailure && !enabledFailure[value.ChannelID] {
+				enabledFailure[value.ChannelID] = true
+				summary.EnabledFailureCount++
+			}
 			if seen[value.ChannelID] {
 				continue
 			}

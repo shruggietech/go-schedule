@@ -60,6 +60,8 @@ type ConfiguredScope struct {
 	OnFailure               bool   `json:"onFailure"`
 	DestinationCount        int    `json:"destinationCount"`
 	EnabledDestinationCount int    `json:"enabledDestinationCount"`
+	EnabledSuccessCount     int    `json:"enabledSuccessDestinationCount"`
+	EnabledFailureCount     int    `json:"enabledFailureDestinationCount"`
 }
 
 type Delivery struct {

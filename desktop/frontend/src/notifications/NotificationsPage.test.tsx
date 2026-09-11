@@ -9,8 +9,8 @@ const workspace: NotificationWorkspace = {
   tasks: [{ type: 'task', id: 't1', name: 'Backup', context: 'Operations / Nightly' }],
   groups: [{ type: 'group', id: 'g1', name: 'Operations', context: 'Operations' }],
   coverage: [
-    { type: 'task', id: 't1', name: 'Backup', context: 'Operations / Nightly', sourceType: 'group', sourceName: 'Operations', onSuccess: false, onFailure: true, destinationCount: 1, enabledDestinationCount: 1 },
-    { type: 'group', id: 'g1', name: 'Operations', context: 'Operations', sourceType: 'group', sourceName: 'Operations', onSuccess: false, onFailure: true, destinationCount: 1, enabledDestinationCount: 1 },
+    { type: 'task', id: 't1', name: 'Backup', context: 'Operations / Nightly', sourceType: 'group', sourceName: 'Operations', onSuccess: false, onFailure: true, destinationCount: 1, enabledDestinationCount: 1, enabledSuccessDestinationCount: 0, enabledFailureDestinationCount: 1 },
+    { type: 'group', id: 'g1', name: 'Operations', context: 'Operations', sourceType: 'group', sourceName: 'Operations', onSuccess: false, onFailure: true, destinationCount: 1, enabledDestinationCount: 1, enabledSuccessDestinationCount: 0, enabledFailureDestinationCount: 1 },
   ],
   coverageComplete: true,
   deliveries: [
@@ -35,6 +35,7 @@ describe('NotificationsPage', () => {
     expect(screen.getByText('1 active destination')).toBeInTheDocument()
     expect(screen.getByText('1 configured task')).toBeInTheDocument()
     expect(screen.getByText('1 configured group')).toBeInTheDocument()
+    expect(screen.getByText('4 recent task outcomes')).toBeInTheDocument()
     expect(screen.getByText('Review the failed result and its delivery diagnostics.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Recent notification results' })).toBeInTheDocument()
     expect(screen.getAllByTestId('recent-notification-result')).toHaveLength(5)
@@ -46,7 +47,7 @@ describe('NotificationsPage', () => {
     const { rerender } = render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: empty }) })} available refreshToken={1} />)
     expect(await screen.findByRole('heading', { name: 'Set up notifications' })).toBeInTheDocument()
     expect(screen.getByText('Add a destination, then choose which task or group outcomes should notify it.')).toBeInTheDocument()
-    const disabled = { ...workspace, channels: workspace.channels.map((channel) => ({ ...channel, enabled: false })), coverage: workspace.coverage?.map((scope) => ({ ...scope, enabledDestinationCount: 0 })), deliveries: [] }
+    const disabled = { ...workspace, channels: workspace.channels.map((channel) => ({ ...channel, enabled: false })), coverage: workspace.coverage?.map((scope) => ({ ...scope, enabledDestinationCount: 0, enabledSuccessDestinationCount: 0, enabledFailureDestinationCount: 0 })), deliveries: [] }
     rerender(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: disabled }) })} available refreshToken={2} />)
     expect(await screen.findByRole('heading', { name: 'Notifications are paused' })).toBeInTheDocument()
     expect(screen.getByText('Enable a destination to resume configured notifications.')).toBeInTheDocument()
@@ -57,12 +58,19 @@ describe('NotificationsPage', () => {
     const { rerender } = render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: unassigned }) })} available refreshToken={1} />)
     expect(await screen.findByRole('heading', { name: 'Choose what should notify' })).toBeInTheDocument()
     expect(screen.getByText('Add an assignment rule for the task or group outcomes you need.')).toBeInTheDocument()
-    const inactive = { ...workspace, coverage: workspace.coverage?.map((scope) => ({ ...scope, enabledDestinationCount: 0 })), deliveries: [] }
+    const inactive = { ...workspace, coverage: workspace.coverage?.map((scope) => ({ ...scope, enabledDestinationCount: 0, enabledSuccessDestinationCount: 0, enabledFailureDestinationCount: 0 })), deliveries: [] }
     rerender(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: inactive }) })} available refreshToken={2} />)
     expect(await screen.findByRole('heading', { name: 'Assigned notifications are paused' })).toBeInTheDocument()
     const incomplete = { ...unassigned, coverageComplete: false }
     rerender(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: incomplete }) })} available refreshToken={3} />)
     expect(await screen.findByRole('heading', { name: 'Notification coverage is incomplete' })).toBeInTheDocument()
+  })
+
+  it('reports active destinations separately for success and failure outcomes', async () => {
+    const mixed = { ...workspace, coverage: [{ ...workspace.coverage![0], onSuccess: true, enabledSuccessDestinationCount: 1, enabledFailureDestinationCount: 0 }], deliveries: [] }
+    render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: mixed }) })} available refreshToken={1} />)
+    expect(await screen.findByRole('heading', { name: 'Some notification outcomes are paused' })).toBeInTheDocument()
+    expect(screen.getByText(/failures: 0 active destinations; successes: 1 active destination/)).toBeInTheDocument()
   })
 
   it('never redisplays secrets and requires explicit replacement intent', async () => {

@@ -9,13 +9,13 @@ S085 adds no persisted entity. It extends the secret-free desktop read projectio
 - **Name and context**: Existing human-readable scope values.
 - **Assignment source**: Direct task, inherited group, direct group, or none.
 - **Outcome coverage**: Success, failure, or both.
-- **Destination counts**: Configured destinations and the subset currently enabled.
+- **Destination counts**: Configured destinations, the subset currently enabled, and enabled subsets for success and failure outcomes so mixed rules cannot overstate active coverage.
 - **Completeness**: Workspace-level flag indicating whether all requested summaries were resolved.
 - **Security boundary**: Contains no endpoint, authorization, credential, payload, or secret-derived value.
 
 ## Notification overview
 
-- **Enabled destinations**: Count of currently enabled channels.
+- **Enabled destinations**: Count of currently enabled channels, plus success-specific and failure-specific active counts.
 - **Configured tasks and groups**: Counts and named summaries from the complete coverage projection.
 - **Recent outcomes**: At most five newest delivery summaries.
 - **Overall state**: Setup needed, disabled, healthy, in progress, retrying, or failed.

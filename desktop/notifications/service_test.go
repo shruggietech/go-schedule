@@ -203,8 +203,8 @@ func TestWorkspaceIncludesOrderedSecretFreeConfiguredCoverage(t *testing.T) {
 		t.Fatalf("result=%+v", r)
 	}
 	want := []ConfiguredScope{
-		{Type: "group", ID: "g1", Name: "Parent", Context: "Parent", SourceType: "group", SourceName: "Parent", OnFailure: true, DestinationCount: 1, EnabledDestinationCount: 1},
-		{Type: "task", ID: "t1", Name: "Backup", Context: "Parent / Child", SourceType: "group", SourceName: "Parent", OnSuccess: true, OnFailure: true, DestinationCount: 2, EnabledDestinationCount: 1},
+		{Type: "group", ID: "g1", Name: "Parent", Context: "Parent", SourceType: "group", SourceName: "Parent", OnFailure: true, DestinationCount: 1, EnabledDestinationCount: 1, EnabledFailureCount: 1},
+		{Type: "task", ID: "t1", Name: "Backup", Context: "Parent / Child", SourceType: "group", SourceName: "Parent", OnSuccess: true, OnFailure: true, DestinationCount: 2, EnabledDestinationCount: 1, EnabledFailureCount: 1},
 	}
 	if !reflect.DeepEqual(r.Workspace.Coverage, want) {
 		t.Fatalf("coverage=%+v", r.Workspace.Coverage)

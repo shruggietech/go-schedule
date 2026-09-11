@@ -7,14 +7,14 @@
 - Task summaries use effective assignments so inherited group configuration is visible.
 - Group summaries use direct assignments because group inheritance applies to descendant tasks rather than parent groups.
 - A summary with no assignments is omitted.
-- Destination counts distinguish configured channels from enabled configured channels.
+- Destination counts distinguish configured channels from enabled configured channels and preserve enabled success and failure coverage independently.
 - A failed per-scope lookup does not discard channels or delivery history; `coverageComplete` becomes false.
 - Serialized workspace data must not contain full endpoints, authorization values, credentials, or notification payloads.
 
 ## Initial overview
 
 - The heading describes notification status and recent results without leading with webhook or policy terminology.
-- Status includes active destination count, configured task and group count, and a text state.
+- Status includes active destination count, configured task and group count, recent task-outcome count, and a text state.
 - State guidance identifies a relevant advanced section or states that no action is needed.
 - At most five newest results appear before all advanced summaries.
 - A recent row names task context or Test notification, destination, state, time, and guidance.
