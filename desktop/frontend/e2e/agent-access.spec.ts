@@ -24,6 +24,7 @@ for (const zoom of [0.8, 1, 1.5, 2]) {
     await page.evaluate((value) => { document.documentElement.style.zoom = String(value) }, zoom)
     await page.getByRole('button', { name: 'Agent Access', exact: true }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'Agent Access' })).toBeVisible()
+    await page.getByText('Configure localhost HTTP').click()
     await page.getByLabel('Client name').focus()
     await page.keyboard.press('Tab')
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)

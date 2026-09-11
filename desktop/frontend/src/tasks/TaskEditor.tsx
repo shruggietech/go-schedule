@@ -1,14 +1,330 @@
-import { useRef, useState } from 'react'
-import { Button, Disclosure, Field, Notice } from '../components'
-import { CommandField } from './CommandField'
-import { ScheduleEditor } from './ScheduleEditor'
-import type { GroupSummary, OperationResult, TaskBridge, TaskDraft } from './model'
-export function TaskEditor({ initial, groups, platform, bridge, available = true, previewAvailable = available, targetName = 'This computer', onSaved, onCancel }: { initial: TaskDraft; groups: GroupSummary[]; platform: string; bridge: TaskBridge; available?: boolean; previewAvailable?: boolean; targetName?: string; onSaved(result: OperationResult): void; onCancel(): void }) {
-  const [draft, setDraft] = useState(initial); const [result, setResult] = useState<OperationResult>(); const [pending, setPending] = useState(false); const root = useRef<HTMLElement>(null)
-  const update = (values: Partial<TaskDraft>) => setDraft((current) => ({ ...current, ...values }))
-  const finish = (next: OperationResult) => { setPending(false); setResult(next); if (next.field) setTimeout(() => root.current?.querySelector<HTMLElement>(`[name="${next.field}"]`)?.focus()) }
-  const preview = async () => { setPending(true); finish(await bridge.previewTask(draft)) }
-  const save = async () => { setPending(true); const next = await bridge.saveTask(draft); finish(next); if (next.outcome === 'accepted') onSaved(next) }
-  const error = (field: string) => result?.field === field ? result.message : undefined
-  return <section ref={root} className="panel editor" aria-labelledby="task-editor-title"><h2 id="task-editor-title">{draft.isNew ? 'Create task' : `Edit ${draft.name || 'unnamed'}`}</h2><p>Target: <strong>{targetName}</strong></p>{result && <Notice title={result.outcome === 'accepted' ? 'Ready' : result.outcome === 'stale' ? 'Newer changes found' : 'Could not continue'} tone={result.outcome === 'accepted' ? 'success' : 'error'} identity={result}>{result.message}{result.outcome === 'stale' && <Button type="button" variant="secondary" onClick={() => update({ overwriteStale: true })}>Overwrite newer version</Button>}</Notice>}{result?.command && <section className="command-preview" aria-label="Exact launch preview"><h3>Exact launch preview</h3><dl><dt>Program</dt><dd><code>{result.command.program || "Not configured"}</code></dd>{(result.command.args ?? []).map((argument, index) => <div key={index}><dt>Argument {index + 1}</dt><dd><code>{JSON.stringify(argument)}</code></dd></div>)}</dl></section>}{result?.task?.scheduleSummary && <section className="schedule-preview" aria-label="Schedule preview"><h3>{result.task.scheduleSummary}</h3>{result.task.policySummary && <p>{result.task.policySummary}</p>}<ol>{(result.task.nextRuns ?? []).map((run) => <li key={run}>{new Date(run).toLocaleString()}</li>)}</ol></section>}<div className="form-grid"><Field label="Name" error={error('name')}><input name="name" value={draft.name} onChange={(event) => update({ name: event.target.value })} /></Field><Field label="Group" error={error('group_id')}><select name="group_id" value={draft.groupId} onChange={(event) => update({ groupId: event.target.value })}><option value="">Not assigned</option>{groups.map((group) => <option key={group.id} value={group.id}>{group.path}</option>)}</select></Field><CommandField platform={platform} value={draft.commandLine} isNew={draft.isNew} onChange={(commandLine) => update({ commandLine })} error={error('command')} /><ScheduleEditor draft={draft} update={update} errorField={result?.field} errorMessage={result?.message} /></div><Disclosure summary="Advanced settings"><div className="form-grid"><Field label="Working directory" error={error('working_dir')}><input name="working_dir" value={draft.workingDir} onChange={(event) => update({ workingDir: event.target.value })} /></Field><Field label="Run identity" error={error('run_as')}><input name="run_as" value={draft.runAs} onChange={(event) => update({ runAs: event.target.value })} /></Field><Field label="Standard input" error={error('stdin')}><textarea name="stdin" value={draft.stdin} onChange={(event) => update({ stdin: event.target.value })} /></Field><Field label="Environment" help="One KEY=value entry per line." error={error('environment')}><textarea name="environment" value={(draft.environment ?? []).map(({ key, value }) => `${key}=${value}`).join('\n')} onChange={(event) => update({ environment: event.target.value.split('\n').filter(Boolean).map((row) => { const split = row.indexOf('='); return { key: split < 0 ? row : row.slice(0, split), value: split < 0 ? '' : row.slice(split + 1) } }) })} /></Field><Field label="Overlap policy" error={error('overlap_policy')}><select name="overlap_policy" value={draft.overlapPolicy} onChange={(event) => update({ overlapPolicy: event.target.value })}><option value="queue_one">Queue one</option><option value="skip">Skip</option><option value="allow_concurrent">Allow concurrent</option></select></Field><Field label="Catch-up policy" error={error('catchup_policy')}><select name="catchup_policy" value={draft.catchupPolicy} onChange={(event) => update({ catchupPolicy: event.target.value })}><option value="one">Run one</option><option value="none">None</option></select></Field><Field label="Missing-date policy" error={error('missing_date_policy')}><select name="missing_date_policy" value={draft.missingDatePolicy} onChange={(event) => update({ missingDatePolicy: event.target.value })}><option value="skip">Skip</option><option value="last_valid">Last valid</option><option value="next_valid">Next valid</option></select></Field><Field label="Time basis" error={error('time_basis')}><select name="time_basis" value={draft.timeBasis} onChange={(event) => update({ timeBasis: event.target.value })}><option value="wall_clock">Wall clock</option><option value="elapsed">Elapsed</option><option value="utc">UTC</option></select></Field><Field label="DST gap" error={error('dst_gap_policy')}><select name="dst_gap_policy" value={draft.dstGapPolicy} onChange={(event) => update({ dstGapPolicy: event.target.value })}><option value="next_valid">Next valid</option><option value="skip">Skip</option></select></Field><Field label="DST overlap" error={error('dst_overlap_policy')}><select name="dst_overlap_policy" value={draft.dstOverlapPolicy} onChange={(event) => update({ dstOverlapPolicy: event.target.value })}><option value="first">First</option><option value="both">Both</option><option value="last">Last</option></select></Field></div></Disclosure><div className="actions"><Button type="button" variant="secondary" disabled={!previewAvailable || pending} onClick={() => void preview()}>Preview</Button><Button type="button" disabled={!available || pending} onClick={() => void save()}>{draft.isNew ? 'Save inactive task' : 'Save task'}</Button><Button type="button" variant="quiet" onClick={onCancel}>Cancel</Button></div></section>
+import { useRef, useState } from "react";
+import {
+  Button,
+  Dialog,
+  Disclosure,
+  Field,
+  FormGrid,
+  Notice,
+} from "../components";
+import { CommandField } from "./CommandField";
+import { ScheduleEditor } from "./ScheduleEditor";
+import type {
+  GroupSummary,
+  OperationResult,
+  TaskBridge,
+  TaskDraft,
+} from "./model";
+
+export function TaskEditor({
+  initial,
+  groups,
+  platform,
+  bridge,
+  available = true,
+  previewAvailable = available,
+  targetName = "This computer",
+  invoker = null,
+  onSaved,
+  onCancel,
+}: {
+  initial: TaskDraft;
+  groups: GroupSummary[];
+  platform: string;
+  bridge: TaskBridge;
+  available?: boolean;
+  previewAvailable?: boolean;
+  targetName?: string;
+  invoker?: HTMLElement | null;
+  onSaved(result: OperationResult): void;
+  onCancel(): void;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const [result, setResult] = useState<OperationResult>();
+  const [pendingAction, setPendingAction] = useState<"preview" | "save">();
+  const root = useRef<HTMLDivElement>(null);
+  const update = (values: Partial<TaskDraft>) =>
+    setDraft((current) => ({ ...current, ...values }));
+  const finish = (next: OperationResult) => {
+    setPendingAction(undefined);
+    setResult(next);
+    if (next.field)
+      setTimeout(() => {
+        const field = root.current?.querySelector<HTMLElement>(
+          `[name="${next.field}"]`,
+        );
+        field?.scrollIntoView?.({ block: "nearest" });
+        field?.focus();
+      });
+  };
+  const preview = async () => {
+    setPendingAction("preview");
+    finish(await bridge.previewTask(draft));
+  };
+  const save = async () => {
+    setPendingAction("save");
+    const next = await bridge.saveTask(draft);
+    finish(next);
+    if (next.outcome === "accepted") onSaved(next);
+  };
+  const error = (field: string) =>
+    result?.field === field ? result.message : undefined;
+  const actions = (
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        pending={pendingAction === "preview"}
+        disabled={!previewAvailable || Boolean(pendingAction)}
+        onClick={() => void preview()}
+      >
+        Preview
+      </Button>
+      <Button
+        type="button"
+        pending={pendingAction === "save"}
+        disabled={!available || Boolean(pendingAction)}
+        onClick={() => void save()}
+      >
+        {draft.isNew ? "Save inactive task" : "Save task"}
+      </Button>
+    </>
+  );
+  return (
+    <Dialog
+      open
+      title={draft.isNew ? "Create task" : `Edit ${draft.name || "unnamed"}`}
+      invoker={invoker}
+      closeLabel="Cancel"
+      onClose={onCancel}
+      actions={actions}
+    >
+      <div ref={root} className="editor">
+        <p>
+          Target: <strong>{targetName}</strong>
+        </p>
+        {result && (
+          <Notice
+            title={
+              result.outcome === "accepted"
+                ? "Ready"
+                : result.outcome === "stale"
+                  ? "Newer changes found"
+                  : "Could not continue"
+            }
+            tone={result.outcome === "accepted" ? "success" : "error"}
+            identity={result}
+          >
+            {result.message}
+            {result.outcome === "stale" && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => update({ overwriteStale: true })}
+              >
+                Overwrite newer version
+              </Button>
+            )}
+          </Notice>
+        )}
+        {result?.command && (
+          <section
+            className="command-preview"
+            aria-label="Exact launch preview"
+          >
+            <h3>Exact launch preview</h3>
+            <dl>
+              <dt>Program</dt>
+              <dd>
+                <code>{result.command.program || "Not configured"}</code>
+              </dd>
+              {(result.command.args ?? []).map((argument, index) => (
+                <div key={index}>
+                  <dt>Argument {index + 1}</dt>
+                  <dd>
+                    <code>{JSON.stringify(argument)}</code>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+        {result?.task?.scheduleSummary && (
+          <section className="schedule-preview" aria-label="Schedule preview">
+            <h3>{result.task.scheduleSummary}</h3>
+            {result.task.policySummary && <p>{result.task.policySummary}</p>}
+            <ol>
+              {(result.task.nextRuns ?? []).map((run) => (
+                <li key={run}>{new Date(run).toLocaleString()}</li>
+              ))}
+            </ol>
+          </section>
+        )}
+        <FormGrid>
+          <Field label="Name" error={error("name")}>
+            <input
+              name="name"
+              value={draft.name}
+              onChange={(event) => update({ name: event.target.value })}
+            />
+          </Field>
+          <Field label="Group" error={error("group_id")}>
+            <select
+              name="group_id"
+              value={draft.groupId}
+              onChange={(event) => update({ groupId: event.target.value })}
+            >
+              <option value="">Not assigned</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.path}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <CommandField
+            platform={platform}
+            value={draft.commandLine}
+            isNew={draft.isNew}
+            onChange={(commandLine) => update({ commandLine })}
+            error={error("command")}
+          />
+          <ScheduleEditor
+            draft={draft}
+            update={update}
+            errorField={result?.field}
+            errorMessage={result?.message}
+          />
+        </FormGrid>
+        <Disclosure summary="Advanced settings">
+          <FormGrid>
+            <Field label="Working directory" error={error("working_dir")}>
+              <input
+                name="working_dir"
+                value={draft.workingDir}
+                onChange={(event) => update({ workingDir: event.target.value })}
+              />
+            </Field>
+            <Field label="Run identity" error={error("run_as")}>
+              <input
+                name="run_as"
+                value={draft.runAs}
+                onChange={(event) => update({ runAs: event.target.value })}
+              />
+            </Field>
+            <Field label="Standard input" error={error("stdin")}>
+              <textarea
+                name="stdin"
+                value={draft.stdin}
+                onChange={(event) => update({ stdin: event.target.value })}
+              />
+            </Field>
+            <Field
+              label="Environment"
+              help="One KEY=value entry per line."
+              error={error("environment")}
+            >
+              <textarea
+                name="environment"
+                value={(draft.environment ?? [])
+                  .map(({ key, value }) => `${key}=${value}`)
+                  .join("\n")}
+                onChange={(event) =>
+                  update({
+                    environment: event.target.value
+                      .split("\n")
+                      .filter(Boolean)
+                      .map((row) => {
+                        const split = row.indexOf("=");
+                        return {
+                          key: split < 0 ? row : row.slice(0, split),
+                          value: split < 0 ? "" : row.slice(split + 1),
+                        };
+                      }),
+                  })
+                }
+              />
+            </Field>
+            <Field label="Overlap policy" error={error("overlap_policy")}>
+              <select
+                name="overlap_policy"
+                value={draft.overlapPolicy}
+                onChange={(event) =>
+                  update({ overlapPolicy: event.target.value })
+                }
+              >
+                <option value="queue_one">Queue one</option>
+                <option value="skip">Skip</option>
+                <option value="allow_concurrent">Allow concurrent</option>
+              </select>
+            </Field>
+            <Field label="Catch-up policy" error={error("catchup_policy")}>
+              <select
+                name="catchup_policy"
+                value={draft.catchupPolicy}
+                onChange={(event) =>
+                  update({ catchupPolicy: event.target.value })
+                }
+              >
+                <option value="one">Run one</option>
+                <option value="none">None</option>
+              </select>
+            </Field>
+            <Field
+              label="Missing-date policy"
+              error={error("missing_date_policy")}
+            >
+              <select
+                name="missing_date_policy"
+                value={draft.missingDatePolicy}
+                onChange={(event) =>
+                  update({ missingDatePolicy: event.target.value })
+                }
+              >
+                <option value="skip">Skip</option>
+                <option value="last_valid">Last valid</option>
+                <option value="next_valid">Next valid</option>
+              </select>
+            </Field>
+            <Field label="Time basis" error={error("time_basis")}>
+              <select
+                name="time_basis"
+                value={draft.timeBasis}
+                onChange={(event) => update({ timeBasis: event.target.value })}
+              >
+                <option value="wall_clock">Wall clock</option>
+                <option value="elapsed">Elapsed</option>
+                <option value="utc">UTC</option>
+              </select>
+            </Field>
+            <Field label="DST gap" error={error("dst_gap_policy")}>
+              <select
+                name="dst_gap_policy"
+                value={draft.dstGapPolicy}
+                onChange={(event) =>
+                  update({ dstGapPolicy: event.target.value })
+                }
+              >
+                <option value="next_valid">Next valid</option>
+                <option value="skip">Skip</option>
+              </select>
+            </Field>
+            <Field label="DST overlap" error={error("dst_overlap_policy")}>
+              <select
+                name="dst_overlap_policy"
+                value={draft.dstOverlapPolicy}
+                onChange={(event) =>
+                  update({ dstOverlapPolicy: event.target.value })
+                }
+              >
+                <option value="first">First</option>
+                <option value="both">Both</option>
+                <option value="last">Last</option>
+              </select>
+            </Field>
+          </FormGrid>
+        </Disclosure>
+      </div>
+    </Dialog>
+  );
 }
