@@ -18,6 +18,10 @@ Source review found and corrected an overbroad msiexec-process guard, incorrect 
 
 An initial canonical run passed seven gates but failed automation because the specification used an unsupported Approved state and lacked an inventory row. Both were corrected before the successful complete rerun. The agent-context extension's generated width-wrapped paragraph was also corrected before format passed. Git's shell was installed but absent from PATH; the verified absolute executable was used without installing or changing host tools.
 
+## PR review follow-up
+
+Initial hosted macOS race testing exposed that the test temporary-directory prefix uses a system symlink. Tests now resolve their temporary root before constructing inputs and outputs; production rejection of linked inputs and destinations remains unchanged. Codex's initial review identified an overbroad reverse-containment check that rejected safe sibling output directories. A new sibling-output test reproduced the rejection before the check was changed to compare against the input file itself. Fixture helpers are now present for negative preparation tests, avoiding unrelated missing-helper failures. The corrected full foreground `sh scripts/verify.sh all` run passed all eight gates with exit code 0 on 2026-09-15. Follow-up hosted verification and final external review remain required before merge readiness.
+
 ## Unverified delivery boundaries
 
 No native candidate MSI or Sandbox bootstrap was executed in this implementation round. The fifteen-minute delay remains an unverified reported symptom, not a reproduced or resolved cause. Generated packages and diagnostic logs do not satisfy attended observations. Suitable clean Windows 11, normal-user, multiple-profile, standard/high/mixed-DPI, and complete installer/removal evidence remain required under the existing gate.

@@ -13,7 +13,7 @@ import (
 
 func fixture(t *testing.T) (manifest, string) {
 	t.Helper()
-	root := t.TempDir()
+	root := canonicalTempDir(t)
 	m := manifest{Schema: 1, Repository: "shruggietech/go-schedule", Tag: "v1.4.0", Commit: strings.Repeat("a", 40), RunID: 123, RunAttempt: 1}
 	for _, name := range []string{"candidate", "baseline", "powershell", "webview2"} {
 		data := []byte(name)
@@ -25,14 +25,35 @@ func fixture(t *testing.T) (manifest, string) {
 		sources := map[string]string{"candidate": "https://github.com/shruggietech/go-schedule/actions/runs/123", "baseline": "https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi", "powershell": "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.zip", "webview2": "https://developer.microsoft.com/en-us/microsoft-edge/webview2/"}
 		m.Inputs = append(m.Inputs, input{Role: name, Path: path, Bytes: int64(len(data)), SHA256: hex.EncodeToString(h[:]), Source: sources[name]})
 	}
+	for _, role := range []string{"bootstrap", "collector"} {
+		if err := os.WriteFile(filepath.Join(root, filenames[role]), []byte(role+" fixture"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	return m, root
+}
+
+func canonicalTempDir(t *testing.T) string {
+	t.Helper()
+	path, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestPrepareAllowsSiblingOutput(t *testing.T) {
+	m, root := fixture(t)
+	if err := prepare(m, filepath.Join(root, "new-session"), root); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestPrepareValidation(t *testing.T) {
 	for _, mode := range []string{"tamper", "size", "duplicate", "commit", "occupied", "overlap"} {
 		t.Run(mode, func(t *testing.T) {
 			m, root := fixture(t)
-			out := filepath.Join(t.TempDir(), "new")
+			out := filepath.Join(canonicalTempDir(t), "new")
 			switch mode {
 			case "tamper":
 				m.Inputs[0].SHA256 = strings.Repeat("0", 64)
@@ -78,7 +99,7 @@ func TestPreparationExportsNoAttestation(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "Invoke-ReleaseCandidateAttended.ps1"), []byte("collector fixture"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	out := filepath.Join(t.TempDir(), "package")
+	out := filepath.Join(canonicalTempDir(t), "package")
 	if err := prepare(m, out, root); err != nil {
 		t.Fatal(err)
 	}

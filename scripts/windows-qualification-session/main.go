@@ -161,7 +161,7 @@ func prepare(m manifest, out, helpers string) error {
 			}
 		}
 		// Reject either direction of containment, including output over inputs.
-		for _, pair := range [][2]string{{out, in.Path}, {filepath.Dir(in.Path), out}} {
+		for _, pair := range [][2]string{{out, in.Path}, {in.Path, out}} {
 			rel, err := filepath.Rel(pair[0], pair[1])
 			if err == nil && rel != ".." && !regexp.MustCompile(`^\.\.[/\\]`).MatchString(rel) {
 				return errors.New("input/output overlap")
