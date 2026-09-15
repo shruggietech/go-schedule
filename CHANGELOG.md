@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
+
 - **Notifications now leads with task-facing status, configured coverage, and recent outcomes (Closes #232; Refs #228).** The initial workspace explains whether notifications are active, paused, retrying, healthy, or need attention; summarizes configured task and group coverage without exposing secrets; and prioritizes five recent task outcomes with plain-language guidance. Destination administration, assignment rules, and full redacted delivery diagnostics remain complete behind three keyboard-accessible disclosures.
 
 ### Fixed
+
+- **Task timing selectors no longer stretch when neighboring fields contain helper text (Refs #231, #228, #226).** Shared field grids align their content intrinsically, with a real-browser regression that failed before the correction. The reviewed release candidate must be restaged with this repair before native qualification can complete.
 
 - **Task authoring and desktop administration now remain focused and readable at constrained sizes (Closes #231, #233; Refs #228).** Create and Edit use one bounded task dialog with contained scrolling, collapsed advanced fields, exact invoker focus restoration, validation focus, and operation-scoped progress. Agent Access, Connections, remote pairing, and Settings now share responsive form, definition, status, section, and complete-value presentation, while path copy state is isolated by storage record.
 

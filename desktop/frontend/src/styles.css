@@ -63,7 +63,7 @@ h1, h2 { font-family: 'Space Grotesk', sans-serif; margin: 0 0 .5rem; }
 .notice-heading .button { margin: -.25rem -.5rem -.25rem 0; }
 .state-panel { max-width: 42rem; text-align: center; margin: 3rem auto; }
 .state-symbol { display: block; font-size: 2rem; }
-.field { display: grid; gap: .35rem; }
+.field { display: grid; align-content: start; gap: .35rem; }
 .field input, .field select, .field textarea { width: 100%; padding: .65rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: .35rem; }
 .task-layout { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
 .groups, .task-list, .editor { display: grid; gap: 1rem; }
