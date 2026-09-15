@@ -35,3 +35,14 @@ test('inserts the Linux example once and remains usable at narrow width and zoom
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
   expect(await page.getByRole('dialog').evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
 })
+
+test('keeps timing selectors at intrinsic height beside helper text', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.getByRole('button', { name: 'Create task' }).click()
+  const heights = await Promise.all(['Group', 'Timing mode', 'Schedule syntax'].map(async (name) => {
+    const bounds = await page.getByLabel(name, { exact: true }).boundingBox()
+    expect(bounds).not.toBeNull()
+    return bounds!.height
+  }))
+  expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(1)
+})
