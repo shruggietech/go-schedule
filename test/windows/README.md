@@ -97,6 +97,39 @@ This scenario first proves ordinary IPC access, then creates tasks through the i
 
 ## Attended release-candidate gate
 
+### Prepared disposable sessions (S086)
+
+`scripts/windows-qualification-session` prepares fresh and upgrade Windows Sandbox launch packages without installing software on the development host. Supply an absolute JSON manifest and an absolute new output directory whose parent already exists. Inputs must be local regular files with explicit source identity, byte length, and lowercase SHA-256. Candidate source identifies the exact hosted staging run; baseline source identifies the public v1.1.1 MSI; PowerShell and WebView2 use upstream portable/offline distributions. The tool rejects occupied destinations, links, overlap, missing inputs, and changed bytes. Do not point it at the stale v1.4.0 draft and claim the UI fixes qualified.
+
+```json
+{
+  "schema_version": 1,
+  "repository": "shruggietech/go-schedule",
+  "tag": "v1.4.0",
+  "commit": "REPLACE_WITH_EXACT_40_CHARACTER_STAGED_COMMIT",
+  "run_id": 123456789,
+  "run_attempt": 1,
+  "inputs": [
+    { "role": "candidate", "path": "C:\\candidate\\go-schedule_v1.4.0_windows_amd64.msi", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://github.com/shruggietech/go-schedule/actions/runs/123456789" },
+    { "role": "baseline", "path": "C:\\baseline\\go-schedule_v1.1.1_windows_amd64.msi", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi" },
+    { "role": "powershell", "path": "C:\\tools\\powershell.zip", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.zip" },
+    { "role": "webview2", "path": "C:\\tools\\webview2.exe", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://developer.microsoft.com/en-us/microsoft-edge/webview2/" }
+  ]
+}
+```
+
+The sample is intentionally invalid until actual sizes, hashes, commit, and upstream runtime version/source are recorded. A recorded URL is provenance supplied by the maintainer, not a signature or online authenticity check. Authenticate downloaded upstream packages before preparation. Generate with `go run ./scripts/windows-qualification-session --manifest C:\candidate\session.json --output C:\qualification\new-session`. The new package contains `fresh.wsb`, `upgrade.wsb`, read-only inputs, and independent initially empty export folders. Launching a `.wsb` is an intentional attended installation activity, not part of nondestructive preparation. Networking is disabled; this configuration does not qualify browser or remote-network scenarios.
+
+The guest-only bootstrap copies verified bytes to guest-local disk, prepares offline WebView2, verifies PowerShell 7, initializes the bundled collector's unavailable templates, and opens attended MSI UI with `/L*vx!` logs. It exports ten-second progress and phase records directly to the dedicated host folder. A failure or diagnostic deadline stops further operations without killing the Windows Installer service. MSI code 3010 is recorded as completed-reboot-required, not installation failure, but stops subsequent work until the required reboot can occur in an appropriate environment. Preserve exports and reset or replace the guest before retrying with a new package. No log or phase record is an attended pass.
+
+The collector is available at `C:\qualification\Invoke-ReleaseCandidateAttended.ps1`, its PowerShell runtime at `C:\qualification\pwsh\pwsh.exe`, and its initialized workspace at `C:\qualification\attended-workspace`. After the operator completes or explicitly leaves unavailable the walkthrough and clicks OK on the final instruction dialog, the workspace is copied create-only to the dedicated host exports. Do not close Sandbox before that export. Finalization uses the original repository collector with its Go context on the host and the exact packaged MSI; do not run the copied collector's repository-relative finalization from its guest location. Merge only genuine compatible observations from the separately required environments, preserving identities and attachment hashes. The final gate remains authoritative.
+
+Upgrade uses a separate reset session, installs public v1.1.1, and pauses for genuine representative tasks, run history, and appearance preparation before candidate installation. Baseline and candidate installation are serialized. Do not reuse fresh-install residue as upgrade evidence. Sandbox-account/virtual-machine guards prevent accidental development-host installation; they are not a security boundary against deliberately modified packages or impersonation.
+
+The remaining native walkthrough includes #229 (System/Light/Dark icon visibility), #230 (compact controls, hover/focus/pressed/disabled states, semantic actions, card spacing, persistent navigation/Exit), #231 (task modal sizing, examples, selectors, deletion spacing), #232 (Notifications first, collapsed advanced configuration and help), and #233 (temporary feedback, dismissible errors, aligned Agent Access/Connections, compact monospaced paths, no Copy flicker). These regressions supplement, not replace, the complete required matrix below. Normal-user token, multi-profile, Explorer/browser, and high/mixed-DPI observations require suitable separate clean Windows 11 environments. Do not ask the operator to attest an unavailable environment or manufacture passing fragments.
+
+Existing v1.4.0 tag commit `57555ffa413df641cb21784847ad598c113bf199` predates S083-S085. Preserve that draft's bytes and diagnostics. S086 local preparation does not authorize moving the tag, replacing draft assets, staging a candidate, promoting a release, or closing #226/#228. Request explicit tag/draft refresh authority after the reviewed S086 merge, stage the exact replacement commit, and qualify those exact hosted bytes under the unchanged gate before promotion.
+
 S040 adds `Invoke-ReleaseCandidateAttended.ps1` as the resumable collector for the clean Windows 11 work that cannot run credibly on a hosted server. The tag workflow first stages all platform assets in a draft GitHub release. Use the Windows MSI and `windows-candidate-manifest.json` from that exact draft. Never rebuild, rename, or substitute the MSI after evidence collection starts.
 
 Initialize a new workspace from a normal, non-elevated PowerShell 7 session:
