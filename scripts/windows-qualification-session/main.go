@@ -80,7 +80,11 @@ func rejectLinks(path string) error {
 		if err != nil {
 			return err
 		}
-		if info.Mode()&os.ModeSymlink != 0 {
+		linked, err := isLinkedPath(p, info)
+		if err != nil {
+			return err
+		}
+		if linked {
 			return errors.New("linked input/output path refused")
 		}
 		if filepath.Dir(p) == p {
@@ -130,6 +134,7 @@ func prepare(m manifest, out, helpers string) error {
 		return errors.New("exactly four package inputs required")
 	}
 	seen := map[string]bool{}
+	var identities []os.FileInfo
 	for _, in := range m.Inputs {
 		if _, ok := filenames[in.Role]; !ok || in.Role == "bootstrap" || in.Role == "collector" || seen[in.Role] {
 			return errors.New("unknown or duplicate input role")
@@ -174,6 +179,16 @@ func prepare(m manifest, out, helpers string) error {
 		if n != in.Bytes || digest != in.SHA256 {
 			return fmt.Errorf("input identity mismatch: %s", in.Role)
 		}
+		info, err := os.Stat(in.Path)
+		if err != nil {
+			return err
+		}
+		for _, prior := range identities {
+			if os.SameFile(prior, info) {
+				return errors.New("role input file aliases refused")
+			}
+		}
+		identities = append(identities, info)
 	}
 	for _, role := range []string{"bootstrap", "collector"} {
 		path := filepath.Join(helpers, filenames[role])

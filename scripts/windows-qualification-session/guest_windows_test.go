@@ -50,6 +50,15 @@ func TestGuestNondestructiveFixturesAndHostRefusal(t *testing.T) {
 		}
 	}
 	cmd = exec.CommandContext(ctx, engine, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script)
+	for _, stream := range []string{"stdout", "stderr"} {
+		b, err := os.ReadFile(filepath.Join(out, "timeout-"+stream+".log"))
+		if err != nil || !strings.Contains(string(b), "timeout-"+stream) {
+			t.Fatalf("timeout diagnostics lost: %v %s", err, b)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(out, "timeout-output.json")); err != nil {
+		t.Fatal(err)
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
 	b, err := cmd.CombinedOutput()
 	if err == nil || !strings.Contains(string(b), "only in the prepared Windows Sandbox") {
@@ -58,3 +67,26 @@ func TestGuestNondestructiveFixturesAndHostRefusal(t *testing.T) {
 }
 
 func intPointer(n int) *int { return &n }
+
+func TestRejectDirectoryJunction(t *testing.T) {
+	root := canonicalTempDir(t)
+	target := filepath.Join(root, "target")
+	junction := filepath.Join(root, "junction")
+	if err := os.Mkdir(target, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "input"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command("cmd.exe", "/d", "/c", "mklink", "/J", junction, target)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("junction fixture: %v %s", err, b)
+	}
+	if err := rejectLinks(filepath.Join(junction, "input")); err == nil {
+		t.Fatal("junction input accepted")
+	}
+	if err := rejectLinks(junction); err == nil {
+		t.Fatal("junction output parent accepted")
+	}
+}

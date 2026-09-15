@@ -49,6 +49,25 @@ func TestPrepareAllowsSiblingOutput(t *testing.T) {
 	}
 }
 
+func TestPrepareRejectsInputAliases(t *testing.T) {
+	for _, hardlink := range []bool{false, true} {
+		m, root := fixture(t)
+		alias := m.Inputs[0].Path
+		if hardlink {
+			alias = filepath.Join(root, "candidate-hardlink")
+			if err := os.Link(m.Inputs[0].Path, alias); err != nil {
+				t.Fatal(err)
+			}
+		}
+		m.Inputs[1].Path = alias
+		m.Inputs[1].Bytes = m.Inputs[0].Bytes
+		m.Inputs[1].SHA256 = m.Inputs[0].SHA256
+		if err := prepare(m, filepath.Join(root, "new-session"), root); err == nil || !strings.Contains(err.Error(), "alias") {
+			t.Fatalf("input alias accepted: %v", err)
+		}
+	}
+}
+
 func TestPrepareValidation(t *testing.T) {
 	for _, mode := range []string{"tamper", "size", "duplicate", "commit", "occupied", "overlap"} {
 		t.Run(mode, func(t *testing.T) {

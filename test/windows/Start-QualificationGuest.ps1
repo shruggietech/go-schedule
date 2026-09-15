@@ -105,8 +105,14 @@ Param(
         $watch = [Diagnostics.Stopwatch]::StartNew()
         $process = [Diagnostics.Process]::Start($info)
         $process.StandardInput.Close()
-        $stdout = $process.StandardOutput.ReadToEndAsync()
-        $stderr = $process.StandardError.ReadToEndAsync()
+        # Stream bytes directly to create-only export files, including before EOF.
+        # A one-byte FileStream buffer avoids losing captured data at timeout.
+        $stdoutPath = Join-Path $script:Exports "$Name-stdout.log"
+        $stderrPath = Join-Path $script:Exports "$Name-stderr.log"
+        $stdoutFile = [IO.FileStream]::new($stdoutPath, 'CreateNew', 'Write', 'Read', 1)
+        $stderrFile = [IO.FileStream]::new($stderrPath, 'CreateNew', 'Write', 'Read', 1)
+        $stdout = $process.StandardOutput.BaseStream.CopyToAsync($stdoutFile)
+        $stderr = $process.StandardError.BaseStream.CopyToAsync($stderrFile)
         $nextProgress = 0
         $status = 'timed-out'
         $code = $null
@@ -131,11 +137,15 @@ Param(
         if ($null -ne $code) {
             if (-not $stdout.Wait(3000) -or -not $stderr.Wait(3000)) {
                 $status = 'failed'
-            } else {
-                Save-Record "$Name-output.json" @{
-                    stdout = $stdout.Result; stderr = $stderr.Result
-                }
             }
+        }
+        $captureComplete = $stdout.IsCompleted -and $stderr.IsCompleted -and
+            -not $stdout.IsFaulted -and -not $stderr.IsFaulted
+        if ($stdout.IsCompleted) { $stdoutFile.Dispose() }
+        if ($stderr.IsCompleted) { $stderrFile.Dispose() }
+        Save-Record "$Name-output.json" @{
+            stdout_log = $stdoutPath; stderr_log = $stderrPath
+            capture_complete = $captureComplete
         }
         Save-Record "$Name-phase.json" @{
             started_at = $started.ToString('o')
@@ -198,9 +208,9 @@ Param(
         foreach ($case in @('failure','timeout')) {
             $fixtureArguments = if ($case -eq 'failure') {
                 '-NoProfile -NonInteractive -Command "exit 7"'
-            } else { '-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 3"' }
+            } else { '-NoProfile -NonInteractive -Command "[Console]::Out.WriteLine(''timeout-stdout''); [Console]::Error.WriteLine(''timeout-stderr''); Start-Sleep -Seconds 6"' }
             $refused = $false
-            $fixtureDeadline = if ($case -eq 'failure') { 10 } else { 1 }
+            $fixtureDeadline = if ($case -eq 'failure') { 10 } else { 3 }
             try { Invoke-DiagnosticProcess $case $engine $fixtureArguments $fixtureDeadline }
             catch { $refused = $true }
             if (-not $refused) { throw "Fixture $case did not refuse success." }
