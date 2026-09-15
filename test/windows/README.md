@@ -2,6 +2,14 @@
 
 These tools separate compiled-MSI evidence from native lifecycle evidence. They are maintainer procedures and never count a missing prerequisite as a pass.
 
+## S088 Sandbox testing waiver
+
+On 2026-09-15, the maintainer directed reuse of Windows Sandbox, prohibited restarting the development host, and explicitly authorized release despite incomplete testing (see [#226](https://github.com/shruggietech/go-schedule/issues/226#issuecomment-5685176399)). Use Sandbox only; do not enable host features, provision another virtualization platform, change host security settings, or install the product on the active development host.
+
+The waiver changes release acceptance for unavailable checks, not their factual result. Run supported scenarios after reviewed-main staging and exact candidate verification. Record each unavailable scenario and capability as **not tested, release authorized by maintainer**, preserving failed and timed-out results separately. Historical candidate observations cannot be reassigned to new bytes. Do not manufacture passing fragments, omit required scenarios from the collector, or claim full qualification from partial evidence.
+
+The existing collector and promotion validator still require the full evidence contract for fully qualified publication. A waiver is not a valid passing archive. Any waiver-aware promotion implementation must be explicitly reviewed and preserve source, artifact, checksum, and observation identity checks. Source-owned release metadata changes must merge before staging the final reviewed boundary.
+
 Use `-ArtifactClass local-demo` for a pre-publication exploratory build. This keeps its report distinct from a workflow-staged `candidate` and a release-downloaded `published` artifact. Local-demo inspection proves compiled authoring only and cannot produce a candidate manifest or satisfy the attended gate.
 
 ## Inspect an MSI without installing it
@@ -128,7 +136,7 @@ Upgrade uses a separate reset session, installs public v1.1.1, and pauses for ge
 
 The remaining native walkthrough includes #229 (System/Light/Dark icon visibility), #230 (compact controls, hover/focus/pressed/disabled states, semantic actions, card spacing, persistent navigation/Exit), #231 (task modal sizing, examples, selectors, deletion spacing), #232 (Notifications first, collapsed advanced configuration and help), and #233 (temporary feedback, dismissible errors, aligned Agent Access/Connections, compact monospaced paths, no Copy flicker). These regressions supplement, not replace, the complete required matrix below. Normal-user token, multi-profile, Explorer/browser, and high/mixed-DPI observations require suitable separate clean Windows 11 environments. Do not ask the operator to attest an unavailable environment or manufacture passing fragments.
 
-Existing v1.4.0 tag commit `57555ffa413df641cb21784847ad598c113bf199` predates S083-S085. Preserve that draft's bytes and diagnostics. S086 local preparation does not authorize moving the tag, replacing draft assets, staging a candidate, promoting a release, or closing #226/#228. Request explicit tag/draft refresh authority after the reviewed S086 merge, stage the exact replacement commit, and qualify those exact hosted bytes under the unchanged gate before promotion.
+Historical S081 candidate commit `57555ffa413df641cb21784847ad598c113bf199` predates S083-S085. S087 preserved its bytes and diagnostics, then refreshed the draft to reviewed S086 commit `951d864d9683ec3bdcb1e37535ecddd67738bf13`. That replacement still predates the S087 timing-selector repair. Preserve both candidates' provenance; neither supplies passing evidence for a future replacement. S088 source reconciliation must merge before authorized reviewed-main restaging. Its Sandbox testing waiver permits explicitly untested criteria but does not make partial evidence satisfy the unchanged full-qualification collector or authorize implicit issue closure.
 
 S040 adds `Invoke-ReleaseCandidateAttended.ps1` as the resumable collector for the clean Windows 11 work that cannot run credibly on a hosted server. The tag workflow first stages all platform assets in a draft GitHub release. Use the Windows MSI and `windows-candidate-manifest.json` from that exact draft. Never rebuild, rename, or substitute the MSI after evidence collection starts.
 

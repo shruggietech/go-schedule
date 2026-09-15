@@ -10,27 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
-- **Notifications now leads with task-facing status, configured coverage, and recent outcomes (Closes #232; Refs #228).** The initial workspace explains whether notifications are active, paused, retrying, healthy, or need attention; summarizes configured task and group coverage without exposing secrets; and prioritizes five recent task outcomes with plain-language guidance. Destination administration, assignment rules, and full redacted delivery diagnostics remain complete behind three keyboard-accessible disclosures.
-
-### Fixed
-
-- **Task timing selectors no longer stretch when neighboring fields contain helper text (Refs #231, #228, #226).** Shared field grids align their content intrinsically, with a real-browser regression that failed before the correction. The reviewed release candidate must be restaged with this repair before native qualification can complete.
-
-- **Task authoring and desktop administration now remain focused and readable at constrained sizes (Closes #231, #233; Refs #228).** Create and Edit use one bounded task dialog with contained scrolling, collapsed advanced fields, exact invoker focus restoration, validation focus, and operation-scoped progress. Agent Access, Connections, remote pairing, and Settings now share responsive form, definition, status, section, and complete-value presentation, while path copy state is isolated by storage record.
-
-- **The desktop now keeps its navigation and action feedback coherent at every supported viewport (Closes #229, #230; Refs #228).** Shared semantic controls use compact dimensions, visible hover, pressed, focus, disabled, affirmative, and destructive treatments, while cards and dialogs consume one spacing scale. The Wails title bar follows the operating-system theme, the application resolves follow-system presentation consistently, and one viewport-owned page scroller keeps navigation, Exit, target context, and Appearance available. Routine outcomes replace one another in a bounded five-second toast, while actionable warnings and errors remain explicitly dismissible without becoming permanent oversized interface content.
-
 ### Decisions
 
-- **2026-09-11: make Notifications an operational summary before presenting specialist configuration.** S085 derives secret-free coverage through existing notification contracts, keeps the first viewport bounded around status and recent task outcomes, and progressively discloses destinations, assignment rules, and diagnostics without changing webhook delivery, retry, policy, or credential behavior.
-
-- **2026-09-11: use one focused task dialog and composable administration primitives for the remaining desktop workflow repairs.** S084 preserves existing bridge and persistence contracts while moving task forms out of page flow, keeping specialist network configuration behind explicit disclosures, presenting complete operational values safely, and keying Settings feedback to the exact action. Notifications information architecture remains isolated in #232.
-
-- **2026-09-11: repair the desktop at its shared seams before redesigning individual workspaces.** S083 keeps the existing React and Wails stack, centralizes semantic design tokens and feedback lifetimes, assigns document overflow to one active-page region, and retains a compact horizontal navigation treatment at narrow widths. This closes the release-blocking cross-application defects in #229 and #230 without absorbing task authoring, Notifications information architecture, or administration-form composition from #231 through #233.
+- **2026-09-15: reuse Windows Sandbox and record the maintainer's explicit native-testing waiver (Refs #226, #228, #231).** S088 reconciles cumulative release copy before reviewed-main restaging. The maintainer prohibits host restarts and virtualization changes and authorizes release despite incomplete tests. Supported checks still run; unavailable checks remain explicitly untested, not passed. Existing CI, security tests, exact-candidate validation, and full-qualification evidence semantics are unchanged. Public promotion remains a separate operation.
 
 ## [1.4.0] - 2026-09-10
 
 ### Changed
+
+- **Notifications now leads with task-facing status, configured coverage, and recent outcomes (Closes #232; Refs #228).** The initial workspace explains whether notifications are active, paused, retrying, healthy, or need attention; summarizes configured task and group coverage without exposing secrets; and prioritizes five recent task outcomes with plain-language guidance. Destination administration, assignment rules, and full redacted delivery diagnostics remain complete behind three keyboard-accessible disclosures.
 
 - **Release staging now validates the complete source-owned version boundary before artifact mutation (Refs #226).** The tag workflow requires matching README health output, one dated changelog section, one tag-specific release-note file, its exact tagged changelog link, and successful main CI for the tagged commit before it can create or update a draft. The cumulative v1.4.0 boundary follows public v1.1.1 directly; completed v1.2.0 and v1.3.0 milestones remain delivery history rather than synthetic releases.
 
@@ -86,9 +74,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Task timing selectors no longer stretch when neighboring fields contain helper text (Refs #231, #228, #226).** Shared field grids align their content intrinsically, with a real-browser regression that failed before the correction. The reviewed release candidate must be restaged with this repair before native qualification can complete.
+
+- **Task authoring and desktop administration now remain focused and readable at constrained sizes (Closes #233; Refs #231, #228).** Create and Edit use one bounded task dialog with contained scrolling, collapsed advanced fields, exact invoker focus restoration, validation focus, and operation-scoped progress. Agent Access, Connections, remote pairing, and Settings now share responsive form, definition, status, section, and complete-value presentation, while path copy state is isolated by storage record.
+
+- **The desktop now keeps its navigation and action feedback coherent at every supported viewport (Closes #229, #230; Refs #228).** Shared semantic controls use compact dimensions, visible hover, pressed, focus, disabled, affirmative, and destructive treatments, while cards and dialogs consume one spacing scale. The Wails title bar follows the operating-system theme, the application resolves follow-system presentation consistently, and one viewport-owned page scroller keeps navigation, Exit, target context, and Appearance available. Routine outcomes replace one another in a bounded five-second toast, while actionable warnings and errors remain explicitly dismissible without becoming permanent oversized interface content.
+
 - **Unix `run_as` credential conversion now rejects invalid or out-of-range account identifiers (Closes #145).** Resolved UID and GID text is parsed directly against the unsigned 32-bit process-credential boundary, and the command remains unchanged unless both identifiers validate, preventing negative wrapping, oversized truncation, and partial credential assignment.
 
 ### Decisions
+
+- **2026-09-11: repair the desktop at its shared seams before redesigning individual workspaces.** S083 keeps the existing React and Wails stack, centralizes semantic design tokens and feedback lifetimes, assigns document overflow to one active-page region, and retains a compact horizontal navigation treatment at narrow widths. This closes the release-blocking cross-application defects in #229 and #230 without absorbing task authoring, Notifications information architecture, or administration-form composition from #231 through #233.
+
+- **2026-09-11: use one focused task dialog and composable administration primitives for the remaining desktop workflow repairs.** S084 preserves existing bridge and persistence contracts while moving task forms out of page flow, keeping specialist network configuration behind explicit disclosures, presenting complete operational values safely, and keying Settings feedback to the exact action. Notifications information architecture remains isolated in #232.
+
+- **2026-09-11: make Notifications an operational summary before presenting specialist configuration.** S085 derives secret-free coverage through existing notification contracts, keeps the first viewport bounded around status and recent task outcomes, and progressively discloses destinations, assignment rules, and diagnostics without changing webhook delivery, retry, policy, or credential behavior.
 
 - **2026-09-10: bind remote service configuration by stable path and qualify reviewed source before release publication.** A daemon without `--config` loads an optional `config.json` from its platform data directory so packaged Windows service upgrades retain the operator's choice, while Unix and manually registered services may persist another prevalidated absolute path through `service install --config`. S080 composes the real daemon lifecycle in a fail-fast-disabled three-platform CI matrix and reuses focused security suites for detailed behavior. This qualifies the reviewed v1.4 source without creating a tag or claiming that immutable release artifacts exist.
 
