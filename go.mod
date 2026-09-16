@@ -1,6 +1,6 @@
 module github.com/shruggietech/go-schedule
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
@@ -13,7 +13,7 @@ require (
 	github.com/teambition/rrule-go v1.8.2
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/crypto v0.55.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.48.0
 	golang.org/x/time v0.15.0
 	modernc.org/sqlite v1.58.0
 )
