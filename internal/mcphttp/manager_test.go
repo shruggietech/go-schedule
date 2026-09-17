@@ -29,6 +29,9 @@ type fakeReader struct{}
 type fakeOperator struct{ runs int }
 
 func (f *fakeOperator) SetTaskEnabled(context.Context, string, bool) error { return nil }
+func (f *fakeOperator) VerifyAccess(context.Context) (domain.Capability, error) {
+	return domain.CapabilityOperate, nil
+}
 func (f *fakeOperator) RunNow(context.Context, string) error {
 	f.runs++
 	return nil

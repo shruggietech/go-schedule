@@ -16,6 +16,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 const (
@@ -29,6 +30,7 @@ const (
 type operationClient interface {
 	SetTaskEnabled(context.Context, string, bool) error
 	RunNow(context.Context, string) error
+	VerifyAccess(context.Context) (domain.Capability, error)
 }
 
 type Input struct {
@@ -102,32 +104,48 @@ func (e *Executor) execute(ctx context.Context, operation string, input Input) R
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.prune()
-	if previous, ok := e.cache[input.RequestID]; ok {
-		if previous.fingerprint == fingerprint {
-			return previous.result
-		}
-		base.Outcome, base.Message = OutcomeRejected, "request_id was already used for a different operation or target"
-		return base
-	}
 	callCtx, cancel := context.WithTimeout(client.ExpectDaemon(ctx, input.DaemonID), callTimeout)
 	defer cancel()
-	var err error
-	switch operation {
-	case "tasks.run_now":
-		err = e.client.RunNow(callCtx, input.TaskID)
-	case "tasks.enable":
-		err = e.client.SetTaskEnabled(callCtx, input.TaskID, true)
-	case "tasks.disable":
-		err = e.client.SetTaskEnabled(callCtx, input.TaskID, false)
-	default:
-		err = errors.New("unsupported operation")
+	if previous, ok := e.cache[input.RequestID]; ok {
+		capability, accessErr := e.client.VerifyAccess(callCtx)
+		if accessErr == nil && capability.Allows(domain.CapabilityOperate) {
+			if previous.fingerprint == fingerprint {
+				return previous.result
+			}
+			base.Outcome, base.Message = OutcomeRejected, "request_id was already used for a different operation or target"
+			return base
+		}
+		if accessErr != nil && !isAuthorizationDenial(accessErr) {
+			base.Outcome, base.Message = classify(operation, accessErr)
+			return base
+		}
+		base.Outcome, base.Message = classify(operation, e.invoke(callCtx, operation, input.TaskID))
+		return base
 	}
-	base.Outcome, base.Message = classify(operation, err)
+	base.Outcome, base.Message = classify(operation, e.invoke(callCtx, operation, input.TaskID))
 	if len(e.cache) >= cacheLimit {
 		e.evictOldest()
 	}
 	e.cache[input.RequestID] = cached{fingerprint: fingerprint, result: base, expires: e.now().Add(cacheLifetime)}
 	return base
+}
+
+func (e *Executor) invoke(ctx context.Context, operation, taskID string) error {
+	switch operation {
+	case "tasks.run_now":
+		return e.client.RunNow(ctx, taskID)
+	case "tasks.enable":
+		return e.client.SetTaskEnabled(ctx, taskID, true)
+	case "tasks.disable":
+		return e.client.SetTaskEnabled(ctx, taskID, false)
+	default:
+		return errors.New("unsupported operation")
+	}
+}
+
+func isAuthorizationDenial(err error) bool {
+	var status *client.StatusError
+	return errors.As(err, &status) && status.Code == server.CodeForbidden
 }
 
 func validate(input Input) string {

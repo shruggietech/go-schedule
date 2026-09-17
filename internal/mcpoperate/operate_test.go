@@ -20,6 +20,8 @@ type fakeOperationClient struct {
 	runs    int
 	toggles int
 	err     error
+	access  domain.Capability
+	verify  error
 }
 
 type hostileObserveReader struct{}
@@ -48,6 +50,16 @@ func (f *fakeOperationClient) SetTaskEnabled(context.Context, string, bool) erro
 func (f *fakeOperationClient) RunNow(context.Context, string) error {
 	f.runs++
 	return f.err
+}
+
+func (f *fakeOperationClient) VerifyAccess(context.Context) (domain.Capability, error) {
+	if f.verify != nil {
+		return "", f.verify
+	}
+	if f.access == "" {
+		return domain.CapabilityOperate, nil
+	}
+	return f.access, nil
 }
 
 func validInput() Input {
@@ -112,6 +124,22 @@ func TestExecutorDeduplicatesRetriesAndRejectsRequestIDReuse(t *testing.T) {
 	conflict := executor.execute(context.Background(), "tasks.run_now", input)
 	if conflict.Outcome != OutcomeRejected || backend.runs != 1 {
 		t.Fatalf("conflict=%+v runs=%d", conflict, backend.runs)
+	}
+}
+
+func TestCachedResultRechecksRevocationAndRecordsCurrentDenial(t *testing.T) {
+	backend := &fakeOperationClient{}
+	executor := New(backend)
+	input := validInput()
+	if first := executor.execute(context.Background(), "tasks.run_now", input); first.Outcome != OutcomeAccepted {
+		t.Fatalf("first=%+v", first)
+	}
+	denied := &client.StatusError{Code: server.CodeForbidden, Message: "revoked"}
+	backend.verify = denied
+	backend.err = denied
+	repeated := executor.execute(context.Background(), "tasks.run_now", input)
+	if repeated.Outcome != OutcomeDenied || backend.runs != 2 {
+		t.Fatalf("repeated=%+v runs=%d", repeated, backend.runs)
 	}
 }
 
