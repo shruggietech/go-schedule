@@ -56,7 +56,7 @@ Your **base** Go toolchain is older than the `go` line in `go.mod`. `go version`
 Either upgrade the base Go install to match `go.mod`, or force it for that one command:
 
 ```bash
-GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
+GOTOOLCHAIN=go1.26.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
 ```
 
 **Do not "fix" this by editing `.golangci.yml` or `go.mod`.** CI installs the Go version from `go.mod` as its base toolchain and the pinned setup passes there. Both files are pinned artifacts anyway.

@@ -29,9 +29,9 @@
 
 - [x] T012 [US3] Complete the version inventory, graph-cleanliness evidence, changelog decision, and S090 verification record.
 - [x] T013 [US3] Run all eight canonical gates, GitHub formatting, UTF-8 and mojibake checks, and diff integrity checks.
-- [ ] T014 [US3] Commit, push, and publish the official S090 pull request with complete issue and source-PR traceability.
-- [ ] T015 [US3] Comment on and close #240, #241, and #242 as superseded by the official replacement.
-- [ ] T016 [US3] Address every first-round review finding, optionally request one second Codex round, and address every resulting finding.
+- [x] T014 [US3] Commit, push, and publish the official S090 pull request with complete issue and source-PR traceability.
+- [x] T015 [US3] Comment on and close #240, #241, and #242 as superseded by the official replacement.
+- [x] T016 [US3] Address every first-round review finding, optionally request one second Codex round, and address every resulting finding.
 - [ ] T017 [US3] Confirm all required latest-head checks are green and report merge readiness to the maintainer.
 
 ## Dependencies and Execution Order

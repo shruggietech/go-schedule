@@ -48,4 +48,6 @@ The foreground canonical aggregate passed all eight gates on 2026-09-17 after co
 
 ## Review Evidence
 
-Pending publication.
+- The automatic first Codex round completed on commit `ecc761e` with no findings and an approval reaction.
+- The authorized second and final Codex round found one valid operational-guidance omission: `.claude/skills/go-schedule-verify/SKILL.md` still showed a Go 1.25 linter recovery command. The command now uses Go 1.26 and the final verification contract was rerun before resolution.
+- No third Codex review round was requested.
