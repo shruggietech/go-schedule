@@ -48,7 +48,7 @@ func normalizeOrigins(values []string) ([]string, error) {
 
 func streamableHandler(manager *Manager) http.Handler {
 	sdk := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
-		return manager.newObserveServer()
+		return manager.newMCPServer()
 	}, &mcp.StreamableHTTPOptions{
 		Stateless:                    true,
 		MaxRequestBodyBytes:          maxRequestBodyBytes,

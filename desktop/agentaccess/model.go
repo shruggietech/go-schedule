@@ -9,6 +9,7 @@ type HTTPStatus struct {
 	CredentialFingerprint string   `json:"credentialFingerprint,omitempty"`
 	EnabledAt             string   `json:"enabledAt,omitempty"`
 	ClientName            string   `json:"clientName,omitempty"`
+	Permission            string   `json:"permission,omitempty"`
 	LastAccessedAt        string   `json:"lastAccessedAt,omitempty"`
 	RequestCount          uint64   `json:"requestCount"`
 }
@@ -32,6 +33,7 @@ type EnableDraft struct {
 	ClientName     string   `json:"clientName"`
 	Port           int      `json:"port"`
 	AllowedOrigins []string `json:"allowedOrigins"`
+	Permission     string   `json:"permission"`
 }
 
 // Result gives React a stable result without credentials or native errors.

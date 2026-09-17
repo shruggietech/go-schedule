@@ -6,7 +6,7 @@ describe('Agent Access bridge', () => {
   it('passes the enable draft through the native boundary', async () => {
     const enable = vi.fn().mockResolvedValue({ action: 'enable_agent_access', outcome: 'accepted', message: 'copied' })
     const bridge = createAgentAccessBridge({ go: { main: { App: { EnableAgentAccess: enable } } } } as unknown as Window)
-    const draft = { clientName: 'Codex', port: 43123, allowedOrigins: [] }
+    const draft = { clientName: 'Codex', port: 43123, allowedOrigins: [], permission: 'operate' as const }
     await bridge.enable(draft)
     expect(enable).toHaveBeenCalledWith(draft)
   })

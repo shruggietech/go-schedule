@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Local MCP can explicitly operate existing tasks without gaining management authority (Closes #178; Refs #148).** Observe remains the zero-tool default, while stdio and authenticated numeric-loopback HTTP can opt into exactly three tools for run-now, enable, and disable. Runtime-only MCP actors, exact daemon and task targets, bounded request deduplication, current per-call authorization, intent-first audit attribution, revocation, and stable accepted, rejected, denied, or uncertain results keep task definition, deletion, credentials, remote MCP, and durable grants outside the boundary.
+
 - **The post-v1.4.0 dependency proposals now resolve as one current-main baseline (Closes #243; Refs #240, #241, #242).** The MCP SDK, Go security, timing, and platform modules advance together with React 19.3, matching React types, Node 26 types, and Vite 8.3. Both Go graphs and the frontend lockfile are regenerated natively, while focused and canonical verification preserve the released product, security, accessibility, and packaging contracts.
 
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.

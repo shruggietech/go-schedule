@@ -1,19 +1,20 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/mcpobserve"
+	"github.com/shruggietech/go-schedule/internal/mcpoperate"
 )
-
-var runMCPStdio = func(cmd *cobra.Command, _ []string) error {
-	return mcpobserve.RunStdio(cmd.Context(), newClient(), buildinfo.Version)
-}
 
 var mcpHTTPStatus = func(cmd *cobra.Command) (server.MCPHTTPStatusResponse, error) {
 	ctx, cancel := reqCtx()
@@ -41,15 +42,45 @@ var mcpHTTPDisable = func(cmd *cobra.Command) (server.MCPHTTPStatusResponse, err
 
 func newMCPCmd() *cobra.Command {
 	mcpCmd := &cobra.Command{Use: "mcp", Short: "Local Model Context Protocol integration"}
-	mcpCmd.AddCommand(&cobra.Command{
-		Use:          "serve",
-		Short:        "Serve observe-only scheduler resources over stdio",
-		Args:         cobra.NoArgs,
-		SilenceUsage: true,
-		RunE:         runMCPStdio,
-	})
+	mcpCmd.AddCommand(newMCPServeCmd())
 	mcpCmd.AddCommand(newMCPHTTPCmd())
 	return mcpCmd
+}
+
+func newMCPServeCmd() *cobra.Command {
+	var permission string
+	var clientName string
+	cmd := &cobra.Command{Use: "serve", Short: "Serve scheduler resources and explicitly authorized tools over stdio", Args: cobra.NoArgs, SilenceUsage: true}
+	cmd.Flags().StringVar(&permission, "permission", string(domain.CapabilityObserve), "session permission: observe or operate")
+	cmd.Flags().StringVar(&clientName, "name", "Local MCP stdio client", "audit display name for an Operate session")
+	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
+		capability := domain.Capability(permission)
+		if capability == domain.CapabilityObserve {
+			return mcpobserve.RunStdio(cmd.Context(), newClient(), buildinfo.Version)
+		}
+		if capability != domain.CapabilityOperate {
+			return fmtUsage("--permission must be observe or operate")
+		}
+		base := newClient()
+		if base.Remote() {
+			return fmtUsage("MCP Operate stdio is available only for the local daemon")
+		}
+		createCtx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
+		session, err := base.CreateMCPSession(createCtx, clientName, capability)
+		cancel()
+		if err != nil {
+			return err
+		}
+		defer func() {
+			revokeCtx, revokeCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer revokeCancel()
+			_ = base.RevokeMCPSession(revokeCtx, session.ID)
+		}()
+		mcpServer := mcpobserve.NewServer(base, buildinfo.Version)
+		mcpoperate.AddTools(mcpServer, mcpoperate.New(base.WithMCPSession(session.Credential)))
+		return mcpServer.Run(cmd.Context(), &mcp.StdioTransport{})
+	}
+	return cmd
 }
 
 func newMCPHTTPCmd() *cobra.Command {
@@ -67,7 +98,7 @@ func newMCPHTTPCmd() *cobra.Command {
 				fmt.Fprintln(os.Stdout, "localhost MCP disabled")
 				return nil
 			}
-			fmt.Fprintf(os.Stdout, "localhost MCP enabled for %s at %s (credential %s, successful requests %d)\n", status.ClientName, status.Endpoint, status.CredentialFingerprint, status.RequestCount)
+			fmt.Fprintf(os.Stdout, "localhost MCP %s enabled for %s at %s (credential %s, successful requests %d)\n", status.Permission, status.ClientName, status.Endpoint, status.CredentialFingerprint, status.RequestCount)
 			return nil
 		}},
 		newMCPHTTPEnableCmd(),
@@ -97,11 +128,16 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 	var port int
 	var origins []string
 	var clientName string
+	var permission string
 	cmd := &cobra.Command{Use: "enable", Short: "Start authenticated MCP on numeric IPv4 loopback", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if port < 1 || port > 65535 {
 			return fmtUsage("--port must be between 1 and 65535")
 		}
-		result, err := mcpHTTPEnable(cmd, server.MCPHTTPEnableRequest{Port: port, AllowedOrigins: origins, ClientName: clientName})
+		capability := domain.Capability(permission)
+		if capability != domain.CapabilityObserve && capability != domain.CapabilityOperate {
+			return fmtUsage("--permission must be observe or operate")
+		}
+		result, err := mcpHTTPEnable(cmd, server.MCPHTTPEnableRequest{Port: port, AllowedOrigins: origins, ClientName: clientName, Permission: capability})
 		if err != nil {
 			return err
 		}
@@ -110,6 +146,7 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 	cmd.Flags().IntVar(&port, "port", 0, "loopback TCP port (required)")
 	cmd.Flags().StringSliceVar(&origins, "origin", nil, "allowed loopback browser origin (repeatable)")
 	cmd.Flags().StringVar(&clientName, "name", "", "display name for the active local client")
+	cmd.Flags().StringVar(&permission, "permission", string(domain.CapabilityObserve), "session permission: observe or operate")
 	_ = cmd.MarkFlagRequired("port")
 	return cmd
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/enrollment"
 	"github.com/shruggietech/go-schedule/internal/events"
 	"github.com/shruggietech/go-schedule/internal/logbus"
+	"github.com/shruggietech/go-schedule/internal/mcpsession"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
 
@@ -41,6 +42,7 @@ type Server struct {
 	mux          *http.ServeMux
 	resolveActor func(*http.Request) (string, error)
 	enrollment   *enrollment.Service
+	mcpSessions  *mcpsession.Registry
 }
 
 // RuntimeInfoResponse identifies the daemon's effective local storage paths.
@@ -63,8 +65,11 @@ func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.R
 // NewWithRuntimeInfo constructs a Server with authoritative daemon storage
 // metadata for GET /v1/runtime-info.
 func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, runtime RuntimeInfoResponse, log *slog.Logger) *Server {
-	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux(), enrollment: enrollment.New(st)}
-	s.resolveActor = func(*http.Request) (string, error) {
+	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux(), enrollment: enrollment.New(st), mcpSessions: mcpsession.New(st)}
+	s.resolveActor = func(r *http.Request) (string, error) {
+		if secret := r.Header.Get(MCPSessionHeader); secret != "" {
+			return s.mcpSessions.Resolve(secret)
+		}
 		actor, err := st.LocalActor()
 		return actor.ID, err
 	}
@@ -100,6 +105,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/mcp/http/enable", s.handleMCPHTTPEnable)
 	s.mux.HandleFunc("POST /v1/mcp/http/rotate", s.handleMCPHTTPRotate)
 	s.mux.HandleFunc("POST /v1/mcp/http/disable", s.handleMCPHTTPDisable)
+	s.mux.HandleFunc("POST /v1/mcp/sessions", s.handleCreateMCPSession)
+	s.mux.HandleFunc("DELETE /v1/mcp/sessions/{id}", s.handleRevokeMCPSession)
 
 	s.mux.HandleFunc("GET /v1/tasks", s.handleListTasks)
 	s.mux.HandleFunc("POST /v1/tasks", s.handleCreateTask)

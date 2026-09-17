@@ -15,13 +15,27 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpoperate"
+	"github.com/shruggietech/go-schedule/internal/mcpsession"
 )
 
 type fakeReader struct{}
+
+type fakeOperator struct{ runs int }
+
+func (f *fakeOperator) SetTaskEnabled(context.Context, string, bool) error { return nil }
+func (f *fakeOperator) VerifyAccess(context.Context) (domain.Capability, error) {
+	return domain.CapabilityOperate, nil
+}
+func (f *fakeOperator) RunNow(context.Context, string) error {
+	f.runs++
+	return nil
+}
 
 func (fakeReader) Health(context.Context) (server.HealthResponse, error) {
 	return server.HealthResponse{Status: "ok", Version: "test"}, nil
@@ -370,7 +384,7 @@ func TestOfficialSDKHTTPDiscoveryAndSupportedRevisions(t *testing.T) {
 		t.Fatal(err)
 	}
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
-	serverSession, err := manager.newObserveServer().Connect(ctx, serverTransport, nil)
+	serverSession, err := manager.newMCPServer().Connect(ctx, serverTransport, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -405,6 +419,62 @@ func TestOfficialSDKHTTPDiscoveryAndSupportedRevisions(t *testing.T) {
 		if got := rawInitialize(t, result.Endpoint, result.Credential, revision); got != http.StatusOK {
 			t.Fatalf("revision %s status=%d", revision, got)
 		}
+	}
+}
+
+func TestOperateHTTPDiscoveryExecutionAndDisableRevocation(t *testing.T) {
+	manager := New(fakeReader{}, "test", nil)
+	operator := &fakeOperator{}
+	created := 0
+	revoked := 0
+	manager.sessionCreate = func(_ context.Context, name string, capability domain.Capability) (server.MCPSessionCredentialResponse, error) {
+		created++
+		if name != "Codex" || capability != domain.CapabilityOperate {
+			t.Fatalf("session name=%q capability=%s", name, capability)
+		}
+		return server.MCPSessionCredentialResponse{Session: mcpsession.Session{ID: "session-1", ActorID: uuid.NewString(), Capability: capability}, Credential: "runtime-secret"}, nil
+	}
+	manager.sessionRevoke = func(_ context.Context, id string) error {
+		revoked++
+		if id != "session-1" {
+			t.Fatalf("revoked id=%q", id)
+		}
+		return nil
+	}
+	manager.executorFor = func(secret string) *mcpoperate.Executor {
+		if secret != "runtime-secret" {
+			t.Fatalf("executor secret=%q", secret)
+		}
+		return mcpoperate.New(operator)
+	}
+	result, err := manager.Enable(context.Background(), server.MCPHTTPEnableRequest{Port: freePort(t), ClientName: "Codex", Permission: domain.CapabilityOperate})
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := &http.Client{Transport: authTransport{credential: result.Credential, base: http.DefaultTransport}}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	sdkClient := mcp.NewClient(&mcp.Implementation{Name: "operate-http", Version: "test"}, nil)
+	session, err := sdkClient.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: result.Endpoint, HTTPClient: client, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed, err := session.ListTools(ctx, nil)
+	if err != nil || len(listed.Tools) != 3 {
+		t.Fatalf("tools=%+v err=%v", listed, err)
+	}
+	called, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "tasks_run_now", Arguments: map[string]any{"daemon_id": uuid.NewString(), "task_id": "task-1", "request_id": uuid.NewString()}})
+	if err != nil || called.IsError || operator.runs != 1 {
+		t.Fatalf("call=%+v runs=%d err=%v", called, operator.runs, err)
+	}
+	if err := session.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Disable(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if created != 1 || revoked != 1 {
+		t.Fatalf("created=%d revoked=%d", created, revoked)
 	}
 }
 
