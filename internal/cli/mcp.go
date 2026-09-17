@@ -62,6 +62,9 @@ func newMCPServeCmd() *cobra.Command {
 			return fmtUsage("--permission must be observe or operate")
 		}
 		base := newClient()
+		if base.Remote() {
+			return fmtUsage("MCP Operate stdio is available only for the local daemon")
+		}
 		createCtx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 		session, err := base.CreateMCPSession(createCtx, clientName, capability)
 		cancel()

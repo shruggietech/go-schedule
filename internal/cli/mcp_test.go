@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/platform"
@@ -84,6 +85,18 @@ func TestMCPHTTPCredentialOutputIsExplicitlyOneTime(t *testing.T) {
 	}
 	if got := string(output); !strings.Contains(got, "credential (shown once): one-time-secret") || !strings.Contains(got, result.Endpoint) {
 		t.Fatalf("output=%q", got)
+	}
+}
+
+func TestMCPStdioOperateRejectsRemoteTargetBeforeSessionCreation(t *testing.T) {
+	previous := selectedClient
+	selectedClient = client.NewUnavailableRemote("https://remote.example.test")
+	t.Cleanup(func() { selectedClient = previous })
+	command := newMCPServeCmd()
+	command.SetArgs([]string{"--permission", "operate"})
+	err := command.Execute()
+	if err == nil || !strings.Contains(err.Error(), "available only for the local daemon") {
+		t.Fatalf("error=%v", err)
 	}
 }
 
