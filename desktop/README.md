@@ -6,7 +6,7 @@ Current installers and release workflows build this module while preserving the 
 
 ## Build and test
 
-Requirements are Go 1.25, Node.js 26, npm, the platform WebView development prerequisites required by Wails v2.15.0, and Chromium for the optional browser contract.
+Requirements are Go 1.26, Node.js 26, npm, the platform WebView development prerequisites required by Wails v2.15.0, and Chromium for the optional browser contract.
 
 ```text
 cd desktop/frontend

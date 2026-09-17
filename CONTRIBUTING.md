@@ -55,7 +55,7 @@ Neither indicates a problem with the repository.
 **golangci-lint refuses to start**, saying the Go version used to build it is lower than the targeted Go version. Your *base* Go toolchain is older than the `go` line in `go.mod`. `go version` can still report the newer one, because `GOTOOLCHAIN=auto` upgrades transparently inside this repository, but `go run <linter>@<ver>` builds the linter under *its* `go.mod`, which the older base toolchain already satisfies, so no upgrade happens and the linter compiles against the older version. The canonical driver derives `GOTOOLCHAIN` from `go.mod`; for a direct diagnostic invocation, either upgrade your base Go install or force the matching toolchain for that one command:
 
 ```bash
-GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
+GOTOOLCHAIN=go1.26.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
 ```
 
 Do not "fix" this by editing `.golangci.yml` or `go.mod`. CI installs the Go version from `go.mod` as its base toolchain, and the pinned setup passes there.
