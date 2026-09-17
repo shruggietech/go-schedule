@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 type fakeBackend struct {
@@ -24,6 +25,7 @@ func (b *fakeBackend) MCPHTTPStatus(context.Context) (server.MCPHTTPStatusRespon
 func (b *fakeBackend) EnableMCPHTTP(_ context.Context, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
 	b.status.Enabled = true
 	b.status.ClientName = strings.TrimSpace(req.ClientName)
+	b.status.Permission = req.Permission
 	return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: b.status, Credential: b.secret}, b.err
 }
 func (b *fakeBackend) RotateMCPHTTPCredential(context.Context) (server.MCPHTTPCredentialResponse, error) {
@@ -60,9 +62,9 @@ func (n *fakeNative) BrowserOpenURL(_ context.Context, value string) error {
 
 func TestWorkspaceProjectsAuthorityAndEvidenceWithoutSecret(t *testing.T) {
 	now := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
-	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{Enabled: true, Endpoint: "http://127.0.0.1:43123/mcp", AllowedOrigins: []string{}, ClientName: "Codex", RequestCount: 3, LastAccessedAt: &now}}
+	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{Enabled: true, Endpoint: "http://127.0.0.1:43123/mcp", AllowedOrigins: []string{}, ClientName: "Codex", Permission: domain.CapabilityOperate, RequestCount: 3, LastAccessedAt: &now}}
 	result := NewService(backend, &fakeNative{}).Workspace(context.Background())
-	if result.Outcome != "accepted" || result.Workspace == nil || len(result.Workspace.Authorities) != 3 || result.Workspace.HTTP.RequestCount != 3 {
+	if result.Outcome != "accepted" || result.Workspace == nil || len(result.Workspace.Authorities) != 3 || result.Workspace.Authorities[1].Status != "available" || result.Workspace.HTTP.Permission != "operate" || result.Workspace.HTTP.RequestCount != 3 {
 		t.Fatalf("workspace = %+v", result)
 	}
 	if strings.Contains(result.Message, "Bearer") {
@@ -74,7 +76,7 @@ func TestEnableCopiesCredentialAndClipboardFailureRevokes(t *testing.T) {
 	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}, secret: "top-secret"}
 	native := &fakeNative{}
 	service := NewService(backend, native)
-	result := service.Enable(context.Background(), EnableDraft{ClientName: "Codex", Port: 43123})
+	result := service.Enable(context.Background(), EnableDraft{ClientName: "Codex", Port: 43123, Permission: "operate"})
 	if result.Outcome != "accepted" || native.copied != "top-secret" || result.Workspace == nil {
 		t.Fatalf("enable = %+v copied=%q", result, native.copied)
 	}

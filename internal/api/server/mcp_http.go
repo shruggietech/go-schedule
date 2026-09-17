@@ -6,26 +6,31 @@ import (
 	"errors"
 	"net/http"
 	"time"
+
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 // MCPHTTPStatusResponse describes the optional runtime-only localhost endpoint.
 // It never contains the bearer credential.
 type MCPHTTPStatusResponse struct {
-	Enabled               bool       `json:"enabled"`
-	Endpoint              string     `json:"endpoint,omitempty"`
-	AllowedOrigins        []string   `json:"allowed_origins"`
-	CredentialFingerprint string     `json:"credential_fingerprint,omitempty"`
-	EnabledAt             *time.Time `json:"enabled_at,omitempty"`
-	ClientName            string     `json:"client_name,omitempty"`
-	LastAccessedAt        *time.Time `json:"last_accessed_at,omitempty"`
-	RequestCount          uint64     `json:"request_count"`
+	Enabled               bool              `json:"enabled"`
+	Endpoint              string            `json:"endpoint,omitempty"`
+	AllowedOrigins        []string          `json:"allowed_origins"`
+	CredentialFingerprint string            `json:"credential_fingerprint,omitempty"`
+	EnabledAt             *time.Time        `json:"enabled_at,omitempty"`
+	ClientName            string            `json:"client_name,omitempty"`
+	LastAccessedAt        *time.Time        `json:"last_accessed_at,omitempty"`
+	RequestCount          uint64            `json:"request_count"`
+	Permission            domain.Capability `json:"permission,omitempty"`
+	ActorID               string            `json:"actor_id,omitempty"`
 }
 
 // MCPHTTPEnableRequest contains the only caller-selectable listener settings.
 type MCPHTTPEnableRequest struct {
-	Port           int      `json:"port"`
-	AllowedOrigins []string `json:"allowed_origins"`
-	ClientName     string   `json:"client_name,omitempty"`
+	Port           int               `json:"port"`
+	AllowedOrigins []string          `json:"allowed_origins"`
+	ClientName     string            `json:"client_name,omitempty"`
+	Permission     domain.Capability `json:"permission,omitempty"`
 }
 
 // MCPHTTPCredentialResponse returns a newly issued credential once.

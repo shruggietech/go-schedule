@@ -34,6 +34,7 @@ type Client struct {
 	verified         atomic.Bool
 	selected         atomic.Pointer[Client]
 	identityTimeout  time.Duration
+	mcpSession       string
 }
 
 type unavailableTransport struct{}
@@ -162,6 +163,12 @@ func (c *Client) newRequest(ctx context.Context, method, path string, body any) 
 	}
 	if target.remote && target.bearer != "" && path != "/v1/health" && path != "/v1/manifest" {
 		request.Header.Set("Authorization", "Bearer "+target.bearer)
+	}
+	if !target.remote && target.mcpSession != "" {
+		request.Header.Set(server.MCPSessionHeader, target.mcpSession)
+	}
+	if expected := expectedDaemon(ctx); expected != "" {
+		request.Header.Set(server.ExpectedDaemonHeader, expected)
 	}
 	return request, nil
 }

@@ -8,7 +8,7 @@ const off: AgentAccessWorkspace = {
   http: { enabled: false, allowedOrigins: [], requestCount: 0 },
   authorities: [
     { name: "Observe", status: "available", description: "Read bounded data." },
-    { name: "Operate", status: "future", description: "Unavailable." },
+    { name: "Operate", status: "available", description: "Run, enable, and disable existing tasks." },
     { name: "Manage", status: "future", description: "Unavailable." },
   ],
 };
@@ -44,11 +44,13 @@ describe("Agent Access page", () => {
       await screen.findByRole("heading", { name: "Agent Access" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/opens no network listener/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Future, unavailable/i)).toHaveLength(2);
+    expect(screen.getAllByText(/Future, unavailable/i)).toHaveLength(1);
     expect(screen.getByText("Configure localhost HTTP").closest("details")).not.toHaveAttribute("open");
     fireEvent.click(screen.getByText("Configure localhost HTTP"));
+    fireEvent.change(screen.getByLabelText("Permission"), { target: { value: "operate" } });
     fireEvent.click(screen.getByRole("button", { name: /Enable and copy/i }));
     await waitFor(() => expect(api.enable).toHaveBeenCalled());
+    expect(api.enable).toHaveBeenCalledWith(expect.objectContaining({ permission: "operate" }));
     expect(container.textContent).not.toContain("top-secret");
     expect(container.querySelector('input[name="credential"]')).toBeNull();
   });
@@ -62,6 +64,7 @@ describe("Agent Access page", () => {
         credentialFingerprint: "abc",
         enabledAt: "2026-09-09T12:00:00Z",
         clientName: "Codex",
+        permission: "operate",
         lastAccessedAt: "2026-09-09T12:01:00Z",
         requestCount: 2,
       },

@@ -151,7 +151,7 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 
 	api := server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log)
 	api.SetNotificationDispatcher(dispatcher)
-	mcpHTTP := mcphttp.New(client.New(endpoint), buildinfo.Version, log)
+	mcpHTTP := mcphttp.NewWithSessions(client.New(endpoint), buildinfo.Version, log)
 	api.SetMCPHTTPManager(mcpHTTP)
 	localActor, err := st.LocalActor()
 	if err != nil {

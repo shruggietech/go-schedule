@@ -10,7 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/platform"
 )
 
@@ -27,6 +30,30 @@ func TestMCPHTTPCommandRegistersCompleteRuntimeSurface(t *testing.T) {
 	enable.SetArgs([]string{"--port", "0"})
 	if err := enable.Execute(); err == nil {
 		t.Fatal("invalid port succeeded")
+	}
+}
+
+func TestMCPHTTPEnableRequiresExplicitValidPermission(t *testing.T) {
+	previous := mcpHTTPEnable
+	t.Cleanup(func() { mcpHTTPEnable = previous })
+	var captured server.MCPHTTPEnableRequest
+	mcpHTTPEnable = func(_ *cobra.Command, request server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
+		captured = request
+		return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: server.MCPHTTPStatusResponse{Enabled: true, Endpoint: "http://127.0.0.1:43123/mcp", Permission: request.Permission}, Credential: "secret"}, nil
+	}
+	command := newMCPHTTPEnableCmd()
+	command.SetOut(io.Discard)
+	command.SetArgs([]string{"--port", "43123", "--permission", "operate", "--name", "Codex"})
+	if err := command.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if captured.Permission != domain.CapabilityOperate || captured.ClientName != "Codex" {
+		t.Fatalf("request=%+v", captured)
+	}
+	invalid := newMCPHTTPEnableCmd()
+	invalid.SetArgs([]string{"--port", "43123", "--permission", "manage"})
+	if err := invalid.Execute(); err == nil {
+		t.Fatal("manage permission succeeded")
 	}
 }
 

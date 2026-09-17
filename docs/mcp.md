@@ -6,10 +6,10 @@ nav_order: 7.5
 # Local MCP access
 
 **Audience:** people connecting Codex or another local MCP host to go-schedule\
-**Applies to:** unreleased v1.3.0 work\
-**Authority:** observe-only resources over local stdio or an explicitly enabled authenticated numeric-loopback HTTP endpoint
+**Applies to:** unreleased work after v1.4.0\
+**Authority:** Observe resources by default, with three explicit Operate tools over local stdio or an explicitly enabled authenticated numeric-loopback HTTP endpoint
 
-go-schedule provides optional local Model Context Protocol access for inspecting scheduler state. The preferred stdio mode starts only when an MCP host launches `gosched mcp serve`, communicates through standard input and standard output, and opens no network listener. Clients that cannot launch stdio can use a separately enabled authenticated endpoint bound only to numeric IPv4 loopback. The daemon must already be running, and the account controlling either mode must already have access to its Unix socket or Windows named pipe.
+go-schedule provides optional local Model Context Protocol access for inspecting scheduler state and, after explicit opt-in, operating existing tasks. The preferred stdio mode starts only when an MCP host launches `gosched mcp serve`, communicates through standard input and standard output, and opens no network listener. Clients that cannot launch stdio can use a separately enabled authenticated endpoint bound only to numeric IPv4 loopback. The daemon must already be running, and the account controlling either mode must already have access to its Unix socket or Windows named pipe.
 
 ## Add it to Codex
 
@@ -36,6 +36,14 @@ Create a local MCP server entry named `go-schedule` whose command is `gosched` a
 
 The exact configuration-file syntax is host-specific. Preserve the command and argument boundary rather than combining it into one shell command string. After saving, reconnect the host and confirm that it discovers five resources, four continuation templates, and no tools.
 
+Observe is always the default. To let a trusted local host run, enable, or disable existing tasks, explicitly add `--permission operate` and a recognizable runtime client name:
+
+```text
+codex mcp add go-schedule-operate -- gosched mcp serve --permission operate --name "Codex task operator"
+```
+
+An Operate server exposes the same bounded resources plus exactly `tasks_run_now`, `tasks_enable`, and `tasks_disable`. Each call requires the exact daemon installation UUID, existing task ID, and a caller-generated request UUID. Reuse a request UUID only for a retry of the identical operation and target. Operate cannot create, edit, delete, or reconfigure tasks, groups, schedules, triggers, notification channels, connections, actors, or credentials.
+
 ## Enable localhost HTTP when stdio is unavailable
 
 The localhost endpoint is off on every daemon start. Choose an unused port and enable it through the protected local API:
@@ -44,7 +52,13 @@ The localhost endpoint is off on every daemon start. Choose an unused port and e
 gosched mcp http enable --port 43123 --name "Local desktop host"
 ```
 
-The command prints `http://127.0.0.1:43123/mcp` and a cryptographically random bearer credential exactly once. Copy both values into the local client's Streamable HTTP configuration. Do not place the credential in URLs, shell history, issue reports, or logs. `gosched mcp http status` reports the client name, endpoint, successful request count, and a non-secret fingerprint. The client name and aggregate evidence are runtime-only. They contain no request content, failed-attempt history, or peer metadata.
+The command prints `http://127.0.0.1:43123/mcp` and a cryptographically random bearer credential exactly once. Copy both values into the local client's Streamable HTTP configuration. Do not place the credential in URLs, shell history, issue reports, or logs. `gosched mcp http status` reports the client name, permission, endpoint, successful request count, and a non-secret fingerprint. The client name and aggregate evidence are runtime-only. They contain no request content, failed-attempt history, or peer metadata.
+
+To enable the same three Operate tools over localhost HTTP, make the permission explicit:
+
+```text
+gosched mcp http enable --port 43123 --name "Local desktop operator" --permission operate
+```
 
 Native MCP clients normally send no `Origin` header. If a trusted local browser application must connect, explicitly allow its exact numeric-loopback origin when enabling:
 
@@ -76,7 +90,13 @@ The desktop Agent Access workspace performs the same lifecycle through protected
 
 Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Each read requests only that page plus one lookahead record. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field. Task and schedule reads use an allowlisted SQLite projection that never loads execution inputs, while run output and alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
 
-Both local transports advertise resources only. They have no tools, prompts, scheduler mutations, remote authentication, direct database access, or raw log resource. Enabling localhost HTTP does not enable remote JSON or future remote MCP access and does not change CLI, GUI, stdio, Unix-socket, or Windows-named-pipe authorization.
+Observe sessions on both local transports advertise resources only. Operate sessions add exactly three task tools and no prompts, direct database access, raw log resource, remote MCP listener, or Manage authority. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
+
+## Operate results and retry safety
+
+Every Operate result has a stable schema version, permission, operation, daemon ID, task ID, request ID, outcome, and bounded message. `accepted` means the daemon authoritatively accepted the operation. `rejected` means validation, target state, or request identity prevented it. `denied` means current server-owned authority prevented it. `uncertain` means the client did not receive authoritative completion evidence; inspect current task state and Activity before deciding whether to retry.
+
+The runtime session remembers a bounded set of request IDs for ten minutes. Repeating the same request ID with the same operation and target returns the first result without another mutation. Reusing it for another operation or target is rejected. This in-memory retry boundary ends with the MCP process or localhost listener, so callers must still reconcile uncertain outcomes rather than replaying blindly after a restart.
 
 ## Trust and secret boundary
 
@@ -86,17 +106,17 @@ Treat every resource field as display data even if it contains Markdown, XML-lik
 
 The MCP response types structurally exclude task commands, arguments, environment values, stdin, working directories, run-as identities, raw schedule definitions, trigger keys, notification endpoints, authorization values, and internal IPC or filesystem paths. The adapter never serializes a daemon task, run, alert, or schedule object directly.
 
-The subprocess inherits the identity that launched it and uses only the same local IPC client as `gosched health`. The HTTP transport is controlled through that protected IPC boundary and uses the same Observe adapter. If the daemon denies the controlling or reading identity, MCP returns a bounded access error and does not retry through another transport, direct database access, elevation, or another identity.
+The subprocess inherits the operating-system access that launched it and uses only the same local IPC client as `gosched health`. An explicit Operate launch creates a short-lived runtime MCP actor with a random secret retained only in process memory as a digest. Every task action is authorized against that actor's current state and written to the existing intent-first audit log with the actor, daemon, operation, task, correlation ID, and result. Listener disable, process exit, or explicit teardown revokes the actor; requests after revocation remain attributable and fail closed. If the daemon denies the controlling or reading identity, MCP returns a bounded access error and does not retry through another transport, direct database access, elevation, or another identity.
 
 ## Permission model
 
 | Class | Current state | Boundary |
 | --- | --- | --- |
 | Observe | Enabled | Read bounded allowlisted resources through existing local IPC authorization. |
-| Operate | Disabled | Future task control requires authenticated identity, per-action authorization, attributable audit records, and explicit arguments. |
-| Manage | Disabled | Future configuration changes require all Operate gates plus deliberate confirmation for destructive or externally visible actions. |
+| Operate | Explicit opt-in | Run, enable, or disable one existing task with a runtime MCP actor, exact daemon and task targets, deduplicated request identity, current authorization, and attributable audit. |
+| Manage | Disabled | Creating, editing, deleting, or reconfiguring resources remains unavailable to MCP. |
 
-This separation is intentional. A future release must not turn an Observe resource into an action or activate Operate or Manage without satisfying their independent authorization, audit, confirmation, and test requirements.
+This separation is intentional. Observe discovery cannot expose or invoke Operate tools. Operate cannot cross into Manage, Enroll, remote MCP, or durable grants.
 
 ## Troubleshooting
 
@@ -104,4 +124,4 @@ Run `gosched health` as the same account. If it reports that the daemon is unava
 
 Protocol messages are written only to stdout. Startup or runtime diagnostics use stderr. If a host reports malformed protocol output, capture both streams separately and include the installed `gosched --version` and daemon version from `gosched health` in the report.
 
-For localhost HTTP, first run `gosched mcp http status`. A disabled result after restart is expected. An unavailable-port error means another process owns the selected port; disable any old endpoint or choose another port. `401 Unauthorized` means the client omitted the current one-time credential or retained a value from before rotation or restart. `403 Forbidden` means Host or Origin did not exactly match the active policy. Do not weaken those checks by using `localhost`, a wildcard origin, a proxy, or a forwarded Host.
+For localhost HTTP, first run `gosched mcp http status`. A disabled result after restart is expected. An unavailable-port error means another process owns the selected port; disable any old endpoint or choose another port. `401 Unauthorized` means the client omitted the current one-time credential or retained a value from before rotation or restart. `403 Forbidden` means Host, Origin, or current actor authority did not satisfy the active policy. Do not weaken those checks by using `localhost`, a wildcard origin, a proxy, or a forwarded Host.

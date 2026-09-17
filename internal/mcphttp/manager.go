@@ -19,9 +19,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/mcpobserve"
+	"github.com/shruggietech/go-schedule/internal/mcpoperate"
 )
 
 const (
@@ -39,16 +41,21 @@ type observeReader interface {
 
 // Manager owns one runtime-only listener and its credential digest.
 type Manager struct {
-	opMu    sync.Mutex
-	mu      sync.RWMutex
-	reader  observeReader
-	version string
-	log     *slog.Logger
-	status  server.MCPHTTPStatusResponse
-	digest  [sha256.Size]byte
-	http    *http.Server
-	listen  net.Listener
-	now     func() time.Time
+	opMu          sync.Mutex
+	mu            sync.RWMutex
+	reader        observeReader
+	version       string
+	log           *slog.Logger
+	status        server.MCPHTTPStatusResponse
+	digest        [sha256.Size]byte
+	http          *http.Server
+	listen        net.Listener
+	now           func() time.Time
+	sessionCreate func(context.Context, string, domain.Capability) (server.MCPSessionCredentialResponse, error)
+	sessionRevoke func(context.Context, string) error
+	executorFor   func(string) *mcpoperate.Executor
+	sessionID     string
+	executor      *mcpoperate.Executor
 }
 
 // New constructs a disabled manager.
@@ -57,6 +64,16 @@ func New(reader observeReader, version string, log *slog.Logger) *Manager {
 		log = slog.New(slog.DiscardHandler)
 	}
 	return &Manager{reader: reader, version: version, log: log, status: disabledStatus(), now: time.Now}
+}
+
+// NewWithSessions enables explicit Operate sessions in addition to the
+// Observe-only default.
+func NewWithSessions(local *client.Client, version string, log *slog.Logger) *Manager {
+	manager := New(local, version, log)
+	manager.sessionCreate = local.CreateMCPSession
+	manager.sessionRevoke = local.RevokeMCPSession
+	manager.executorFor = func(secret string) *mcpoperate.Executor { return mcpoperate.New(local.WithMCPSession(secret)) }
+	return manager
 }
 
 func disabledStatus() server.MCPHTTPStatusResponse {
@@ -71,7 +88,7 @@ func (m *Manager) Status() server.MCPHTTPStatusResponse {
 }
 
 // Enable validates, binds, issues a credential, and atomically publishes the listener.
-func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
+func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
 	m.opMu.Lock()
 	defer m.opMu.Unlock()
 	if req.Port < 1 || req.Port > 65535 {
@@ -91,6 +108,16 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 	if enabled {
 		return server.MCPHTTPCredentialResponse{}, conflictError("localhost MCP is already enabled; disable it before changing port or origins")
 	}
+	permission := req.Permission
+	if permission == "" {
+		permission = domain.CapabilityObserve
+	}
+	if permission != domain.CapabilityObserve && permission != domain.CapabilityOperate {
+		return server.MCPHTTPCredentialResponse{}, validationError("permission", "permission must be observe or operate")
+	}
+	if permission == domain.CapabilityOperate && (m.sessionCreate == nil || m.sessionRevoke == nil || m.executorFor == nil) {
+		return server.MCPHTTPCredentialResponse{}, conflictError("MCP Operate sessions are unavailable")
+	}
 	credential, digest, fingerprint, err := newCredential()
 	if err != nil {
 		return server.MCPHTTPCredentialResponse{}, fmt.Errorf("generate localhost MCP credential: %w", err)
@@ -100,6 +127,17 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 	if err != nil {
 		return server.MCPHTTPCredentialResponse{}, conflictError("cannot enable localhost MCP because the selected port is unavailable")
 	}
+	var sessionID, actorID string
+	var executor *mcpoperate.Executor
+	if permission == domain.CapabilityOperate {
+		session, sessionErr := m.sessionCreate(ctx, clientName, permission)
+		if sessionErr != nil {
+			_ = listener.Close()
+			return server.MCPHTTPCredentialResponse{}, fmt.Errorf("create MCP Operate session: %w", sessionErr)
+		}
+		sessionID, actorID = session.ID, session.ActorID
+		executor = m.executorFor(session.Credential)
+	}
 	enabledAt := m.now().UTC()
 	status := server.MCPHTTPStatusResponse{
 		Enabled:               true,
@@ -108,6 +146,8 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 		CredentialFingerprint: fingerprint,
 		EnabledAt:             &enabledAt,
 		ClientName:            clientName,
+		Permission:            permission,
+		ActorID:               actorID,
 	}
 	httpServer := &http.Server{Handler: streamableHandler(m), ReadHeaderTimeout: 5 * time.Second}
 	m.mu.Lock()
@@ -115,6 +155,8 @@ func (m *Manager) Enable(_ context.Context, req server.MCPHTTPEnableRequest) (se
 	m.digest = digest
 	m.http = httpServer
 	m.listen = listener
+	m.sessionID = sessionID
+	m.executor = executor
 	m.mu.Unlock()
 	go m.serve(httpServer, listener)
 	m.log.Info("localhost MCP enabled", "endpoint", status.Endpoint, "credential_fingerprint", fingerprint)
@@ -128,7 +170,10 @@ func (m *Manager) serve(httpServer *http.Server, listener net.Listener) {
 	}
 	m.mu.Lock()
 	if m.http == httpServer {
-		m.clearLocked()
+		sessionID := m.clearLocked()
+		m.mu.Unlock()
+		m.revokeRuntimeSession(sessionID)
+		return
 	}
 	m.mu.Unlock()
 }
@@ -166,7 +211,7 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 	}
 	httpServer := m.http
 	listener := m.listen
-	m.clearLocked()
+	sessionID := m.clearLocked()
 	m.mu.Unlock()
 	if listener != nil {
 		_ = listener.Close()
@@ -175,8 +220,10 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 	defer cancel()
 	if err := httpServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, net.ErrClosed) {
 		_ = httpServer.Close()
+		m.revokeRuntimeSession(sessionID)
 		return disabledStatus(), fmt.Errorf("stop localhost MCP listener: %w", err)
 	}
+	m.revokeRuntimeSession(sessionID)
 	m.log.Info("localhost MCP disabled")
 	return disabledStatus(), nil
 }
@@ -187,15 +234,38 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 	return err
 }
 
-func (m *Manager) clearLocked() {
+func (m *Manager) clearLocked() string {
+	sessionID := m.sessionID
 	m.status = disabledStatus()
 	m.digest = [sha256.Size]byte{}
 	m.http = nil
 	m.listen = nil
+	m.sessionID = ""
+	m.executor = nil
+	return sessionID
 }
 
-func (m *Manager) newObserveServer() *mcp.Server {
-	return mcpobserve.NewServer(m.reader, m.version)
+func (m *Manager) newMCPServer() *mcp.Server {
+	server := mcpobserve.NewServer(m.reader, m.version)
+	m.mu.RLock()
+	executor := m.executor
+	permission := m.status.Permission
+	m.mu.RUnlock()
+	if permission == domain.CapabilityOperate && executor != nil {
+		mcpoperate.AddTools(server, executor)
+	}
+	return server
+}
+
+func (m *Manager) revokeRuntimeSession(id string) {
+	if id == "" || m.sessionRevoke == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	if err := m.sessionRevoke(ctx, id); err != nil {
+		m.log.Error("revoke localhost MCP session", "error", err)
+	}
 }
 
 func newCredential() (string, [sha256.Size]byte, string, error) {
