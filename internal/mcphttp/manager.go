@@ -219,9 +219,13 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 	defer cancel()
 	if err := httpServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, net.ErrClosed) {
-		_ = httpServer.Close()
+		closeErr := httpServer.Close()
 		m.revokeRuntimeSession(sessionID)
-		return disabledStatus(), fmt.Errorf("stop localhost MCP listener: %w", err)
+		if closeErr != nil && !errors.Is(closeErr, net.ErrClosed) && !errors.Is(closeErr, http.ErrServerClosed) {
+			return disabledStatus(), fmt.Errorf("force stop localhost MCP listener after graceful shutdown failed: %w", closeErr)
+		}
+		m.log.Warn("localhost MCP required forced shutdown", "error", err)
+		return disabledStatus(), nil
 	}
 	m.revokeRuntimeSession(sessionID)
 	m.log.Info("localhost MCP disabled")
