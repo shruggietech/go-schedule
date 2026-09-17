@@ -37,7 +37,7 @@ Two local-environment traps, neither of which indicates a problem with the repo:
 - **golangci-lint refuses to start** with "the Go language version (go1.x) used to build golangci-lint is lower than the targeted Go version". Your *base* Go toolchain is older than the `go` line in `go.mod`. `go version` can still report the newer one, because `GOTOOLCHAIN=auto` upgrades transparently inside this repo, but `go run <linter>@<ver>` builds the linter under *its* go.mod, which the older base toolchain already satisfies, so no upgrade happens and the linter is compiled with the older version. The canonical driver derives `GOTOOLCHAIN` from `go.mod`; for a direct diagnostic invocation, either upgrade the base Go install or force the matching toolchain for that one command:
 
   ```bash
-  GOTOOLCHAIN=go1.25.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
+  GOTOOLCHAIN=go1.26.0 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
   ```
 
   Do not "fix" this by editing `.golangci.yml` or `go.mod`, CI installs the Go version from `go.mod` as its base toolchain and the pinned setup passes there.
@@ -55,5 +55,5 @@ Two local-environment traps, neither of which indicates a problem with the repo:
 Internal scheduling in UTC; per-task IANA timezone with DST (next-valid / first-occurrence); recurrence via RFC 5545 RRULE (rrule-go) behind a human-readable layer; injected `Clock` interface; `log/slog` structured logs; `go test -race`; dispatch latency p99 < 100ms. The GUI is built windowless (`-H windowsgui`) and tasks spawn with no console window.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure, shell commands, and other important information, read the current plan at specs/088-release-boundary-qualification/plan.md
+For additional context about technologies to be used, project structure, shell commands, and other important information, read the current plan at specs/090-post-release-dependency-refresh/plan.md
 <!-- SPECKIT END -->

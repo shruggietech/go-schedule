@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **The post-v1.4.0 dependency proposals now resolve as one current-main baseline (Closes #243; Refs #240, #241, #242).** The MCP SDK, Go security, timing, and platform modules advance together with React 19.3, matching React types, Node 26 types, and Vite 8.3. Both Go graphs and the frontend lockfile are regenerated natively, while focused and canonical verification preserve the released product, security, accessibility, and packaging contracts.
+
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-17: adopt Go 1.26 as the repository baseline (Refs #240, #241, #243).** The selected x/crypto 0.57.0, x/sys 0.48.0, and x/time 0.16.0 releases require Go 1.26. Root and desktop module declarations plus maintainer guidance advance together; CI and release workflows continue deriving the exact toolchain from each module file.
 
 - **2026-09-15: reuse Windows Sandbox and record the maintainer's explicit native-testing waiver (Refs #226, #228, #231).** S088 reconciles cumulative release copy before reviewed-main restaging. The maintainer prohibits host restarts and virtualization changes and authorizes release despite incomplete tests. Supported checks still run; unavailable checks remain explicitly untested, not passed. Existing CI, security tests, exact-candidate validation, and full-qualification evidence semantics are unchanged. Public promotion remains a separate operation.
 
