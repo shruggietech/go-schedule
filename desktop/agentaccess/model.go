@@ -12,6 +12,7 @@ type HTTPStatus struct {
 	Permission            string   `json:"permission,omitempty"`
 	LastAccessedAt        string   `json:"lastAccessedAt,omitempty"`
 	RequestCount          uint64   `json:"requestCount"`
+	RequireConfirmation   bool     `json:"requireConfirmation"`
 }
 
 // Authority describes one MCP permission class without implying unavailable controls.
@@ -30,10 +31,11 @@ type Workspace struct {
 
 // EnableDraft contains user-selectable localhost settings.
 type EnableDraft struct {
-	ClientName     string   `json:"clientName"`
-	Port           int      `json:"port"`
-	AllowedOrigins []string `json:"allowedOrigins"`
-	Permission     string   `json:"permission"`
+	ClientName          string   `json:"clientName"`
+	Port                int      `json:"port"`
+	AllowedOrigins      []string `json:"allowedOrigins"`
+	Permission          string   `json:"permission"`
+	RequireConfirmation bool     `json:"requireConfirmation"`
 }
 
 // Result gives React a stable result without credentials or native errors.

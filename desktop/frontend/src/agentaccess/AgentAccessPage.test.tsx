@@ -9,7 +9,7 @@ const off: AgentAccessWorkspace = {
   authorities: [
     { name: "Observe", status: "available", description: "Read bounded data." },
     { name: "Operate", status: "available", description: "Run, enable, and disable existing tasks." },
-    { name: "Manage", status: "future", description: "Unavailable." },
+    { name: "Manage", status: "available", description: "Create, update, and delete bounded automation definitions." },
   ],
 };
 const bridge = (workspace = off): AgentAccessBridge => ({
@@ -44,7 +44,8 @@ describe("Agent Access page", () => {
       await screen.findByRole("heading", { name: "Agent Access" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/opens no network listener/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Future, unavailable/i)).toHaveLength(1);
+    expect(screen.queryByText(/Future, unavailable/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Manage.*Available/i })).toBeInTheDocument();
     expect(screen.getByText("Configure localhost HTTP").closest("details")).not.toHaveAttribute("open");
     fireEvent.click(screen.getByText("Configure localhost HTTP"));
     fireEvent.change(screen.getByLabelText("Permission"), { target: { value: "operate" } });
@@ -80,6 +81,16 @@ describe("Agent Access page", () => {
     expect(
       screen.getByRole("button", { name: /Revoke access/i }),
     ).toBeInTheDocument();
+  });
+  it("offers Manage with optional per-call confirmation", async () => {
+    const api = bridge();
+    render(<AgentAccessPage bridge={api} available refreshToken={1} />);
+    await screen.findByRole("heading", { name: "Agent Access" });
+    fireEvent.click(screen.getByText("Configure localhost HTTP"));
+    fireEvent.change(screen.getByLabelText("Permission"), { target: { value: "manage" } });
+    fireEvent.click(screen.getByLabelText("Require confirmed calls"));
+    fireEvent.click(screen.getByRole("button", { name: /Enable and copy/i }));
+    await waitFor(() => expect(api.enable).toHaveBeenCalledWith(expect.objectContaining({ permission: "manage", requireConfirmation: true })));
   });
   it("shows an actionable initial load failure instead of indefinite loading", async () => {
     const api = bridge();

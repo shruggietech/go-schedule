@@ -12,6 +12,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpmanage"
 	"github.com/shruggietech/go-schedule/internal/mcpobserve"
 	"github.com/shruggietech/go-schedule/internal/mcpoperate"
 )
@@ -50,16 +51,21 @@ func newMCPCmd() *cobra.Command {
 func newMCPServeCmd() *cobra.Command {
 	var permission string
 	var clientName string
+	var requireConfirmation bool
 	cmd := &cobra.Command{Use: "serve", Short: "Serve scheduler resources and explicitly authorized tools over stdio", Args: cobra.NoArgs, SilenceUsage: true}
-	cmd.Flags().StringVar(&permission, "permission", string(domain.CapabilityObserve), "session permission: observe or operate")
-	cmd.Flags().StringVar(&clientName, "name", "Local MCP stdio client", "audit display name for an Operate session")
+	cmd.Flags().StringVar(&permission, "permission", string(domain.CapabilityObserve), "session permission: observe, operate, or manage")
+	cmd.Flags().StringVar(&clientName, "name", "Local MCP stdio client", "audit display name for a mutation-capable session")
+	cmd.Flags().BoolVar(&requireConfirmation, "require-confirmation", false, "require confirmed=true on every Manage mutation")
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		capability := domain.Capability(permission)
 		if capability == domain.CapabilityObserve {
 			return mcpobserve.RunStdio(cmd.Context(), newClient(), buildinfo.Version)
 		}
-		if capability != domain.CapabilityOperate {
-			return fmtUsage("--permission must be observe or operate")
+		if capability != domain.CapabilityOperate && capability != domain.CapabilityManage {
+			return fmtUsage("--permission must be observe, operate, or manage")
+		}
+		if requireConfirmation && capability != domain.CapabilityManage {
+			return fmtUsage("--require-confirmation requires --permission manage")
 		}
 		base := newClient()
 		if base.Remote() {
@@ -78,6 +84,9 @@ func newMCPServeCmd() *cobra.Command {
 		}()
 		mcpServer := mcpobserve.NewServer(base, buildinfo.Version)
 		mcpoperate.AddTools(mcpServer, mcpoperate.New(base.WithMCPSession(session.Credential)))
+		if capability == domain.CapabilityManage {
+			mcpmanage.AddTools(mcpServer, mcpmanage.New(base.WithMCPSession(session.Credential), requireConfirmation))
+		}
 		return mcpServer.Run(cmd.Context(), &mcp.StdioTransport{})
 	}
 	return cmd
@@ -129,15 +138,19 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 	var origins []string
 	var clientName string
 	var permission string
+	var requireConfirmation bool
 	cmd := &cobra.Command{Use: "enable", Short: "Start authenticated MCP on numeric IPv4 loopback", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if port < 1 || port > 65535 {
 			return fmtUsage("--port must be between 1 and 65535")
 		}
 		capability := domain.Capability(permission)
-		if capability != domain.CapabilityObserve && capability != domain.CapabilityOperate {
-			return fmtUsage("--permission must be observe or operate")
+		if capability != domain.CapabilityObserve && capability != domain.CapabilityOperate && capability != domain.CapabilityManage {
+			return fmtUsage("--permission must be observe, operate, or manage")
 		}
-		result, err := mcpHTTPEnable(cmd, server.MCPHTTPEnableRequest{Port: port, AllowedOrigins: origins, ClientName: clientName, Permission: capability})
+		if requireConfirmation && capability != domain.CapabilityManage {
+			return fmtUsage("--require-confirmation requires --permission manage")
+		}
+		result, err := mcpHTTPEnable(cmd, server.MCPHTTPEnableRequest{Port: port, AllowedOrigins: origins, ClientName: clientName, Permission: capability, RequireConfirmation: requireConfirmation})
 		if err != nil {
 			return err
 		}
@@ -146,7 +159,8 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 	cmd.Flags().IntVar(&port, "port", 0, "loopback TCP port (required)")
 	cmd.Flags().StringSliceVar(&origins, "origin", nil, "allowed loopback browser origin (repeatable)")
 	cmd.Flags().StringVar(&clientName, "name", "", "display name for the active local client")
-	cmd.Flags().StringVar(&permission, "permission", string(domain.CapabilityObserve), "session permission: observe or operate")
+	cmd.Flags().StringVar(&permission, "permission", string(domain.CapabilityObserve), "session permission: observe, operate, or manage")
+	cmd.Flags().BoolVar(&requireConfirmation, "require-confirmation", false, "require confirmed=true on every Manage mutation")
 	_ = cmd.MarkFlagRequired("port")
 	return cmd
 }

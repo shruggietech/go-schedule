@@ -84,7 +84,7 @@ func TestActorAPIUsesIntentFirstAuditAndProtectsLocalActor(t *testing.T) {
 		t.Fatal(err)
 	}
 	events, err := s.store.ListAudit(domain.AuditQuery{Operation: "actors.create", Limit: 10})
-	if err != nil || len(events) != 1 || events[0].Result != domain.AuditResultSucceeded {
+	if err != nil || len(events) != 1 || events[0].Result != domain.AuditResultSucceeded || events[0].TargetID != actor.ID {
 		t.Fatalf("events=%+v err=%v", events, err)
 	}
 	local, _ := s.store.LocalActor()

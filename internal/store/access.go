@@ -227,12 +227,16 @@ func (s *Store) insertAudit(event domain.AuditEvent) error {
 	return nil
 }
 
-func (s *Store) CompleteAudit(id string, result domain.AuditResult) error {
+func (s *Store) CompleteAudit(id string, result domain.AuditResult, completedTargetID ...string) error {
 	if result != domain.AuditResultSucceeded && result != domain.AuditResultFailed {
 		return fmt.Errorf("store: complete audit: invalid result")
 	}
 	now := fmtTime(time.Now())
-	changed, err := s.db.Exec(`UPDATE audit_events SET result=?,completed_at=? WHERE id=? AND result='uncertain'`, result, now, id)
+	targetID := ""
+	if len(completedTargetID) > 0 {
+		targetID = completedTargetID[0]
+	}
+	changed, err := s.db.Exec(`UPDATE audit_events SET result=?,completed_at=?,target_id=CASE WHEN target_id='' AND ?<>'' THEN ? ELSE target_id END WHERE id=? AND result='uncertain'`, result, now, targetID, targetID, id)
 	if err != nil {
 		return fmt.Errorf("store: complete audit: %w", err)
 	}

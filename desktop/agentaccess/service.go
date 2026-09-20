@@ -45,7 +45,7 @@ func (s *Service) Enable(ctx context.Context, draft EnableDraft) Result {
 		return Result{Action: "enable_agent_access", Outcome: "rejected", Message: "Enter a client name."}
 	}
 	callCtx, cancel := context.WithTimeout(ctx, operationTimeout)
-	result, err := s.backend.EnableMCPHTTP(callCtx, server.MCPHTTPEnableRequest{Port: draft.Port, AllowedOrigins: draft.AllowedOrigins, ClientName: draft.ClientName, Permission: domain.Capability(draft.Permission)})
+	result, err := s.backend.EnableMCPHTTP(callCtx, server.MCPHTTPEnableRequest{Port: draft.Port, AllowedOrigins: draft.AllowedOrigins, ClientName: draft.ClientName, Permission: domain.Capability(draft.Permission), RequireConfirmation: draft.RequireConfirmation})
 	cancel()
 	if err != nil {
 		return Result{Action: "enable_agent_access", Outcome: "rejected", Message: "Localhost access could not be enabled. Check the name, port, and origins, then try again."}
@@ -118,7 +118,7 @@ func (s *Service) handoff(ctx context.Context, action, message string, result se
 }
 
 func project(status server.MCPHTTPStatusResponse) Workspace {
-	httpStatus := HTTPStatus{Enabled: status.Enabled, Endpoint: status.Endpoint, AllowedOrigins: append([]string{}, status.AllowedOrigins...), CredentialFingerprint: status.CredentialFingerprint, ClientName: status.ClientName, Permission: string(status.Permission), RequestCount: status.RequestCount}
+	httpStatus := HTTPStatus{Enabled: status.Enabled, Endpoint: status.Endpoint, AllowedOrigins: append([]string{}, status.AllowedOrigins...), CredentialFingerprint: status.CredentialFingerprint, ClientName: status.ClientName, Permission: string(status.Permission), RequestCount: status.RequestCount, RequireConfirmation: status.RequireConfirmation}
 	if status.EnabledAt != nil {
 		httpStatus.EnabledAt = status.EnabledAt.UTC().Format(time.RFC3339Nano)
 	}
@@ -126,9 +126,9 @@ func project(status server.MCPHTTPStatusResponse) Workspace {
 		httpStatus.LastAccessedAt = status.LastAccessedAt.UTC().Format(time.RFC3339Nano)
 	}
 	return Workspace{
-		StdioDescription: "Available on demand when an MCP host launches `gosched mcp serve`. Observe remains the default; `--permission operate` explicitly enables the three task tools. Stdio opens no network listener.",
+		StdioDescription: "Available on demand when an MCP host launches `gosched mcp serve`. Observe remains the default; Operate and Manage require explicit permission. Stdio opens no network listener.",
 		HTTP:             httpStatus,
-		Authorities:      []Authority{{Name: "Observe", Status: "available", Description: "Read bounded scheduler health, task, run, alert, and summary data."}, {Name: "Operate", Status: "available", Description: "With explicit opt-in, run, enable, or disable one existing task using exact daemon, task, and request identifiers."}, {Name: "Manage", Status: "future", Description: "Unavailable. Agents cannot create, edit, delete, or reconfigure scheduled work or access controls."}},
+		Authorities:      []Authority{{Name: "Observe", Status: "available", Description: "Read bounded scheduler health, task, run, alert, and summary data."}, {Name: "Operate", Status: "available", Description: "With explicit opt-in, run, enable, or disable one existing task using exact daemon, task, and request identifiers."}, {Name: "Manage", Status: "available", Description: "With explicit opt-in, create, update, or delete bounded automation definitions without access-control or credential tools."}},
 	}
 }
 

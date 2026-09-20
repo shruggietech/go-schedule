@@ -22,6 +22,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpmanage"
 	"github.com/shruggietech/go-schedule/internal/mcpobserve"
 	"github.com/shruggietech/go-schedule/internal/mcpoperate"
 )
@@ -53,9 +54,11 @@ type Manager struct {
 	now           func() time.Time
 	sessionCreate func(context.Context, string, domain.Capability) (server.MCPSessionCredentialResponse, error)
 	sessionRevoke func(context.Context, string) error
-	executorFor   func(string) *mcpoperate.Executor
+	operateFor    func(string) *mcpoperate.Executor
+	manageFor     func(string, bool) *mcpmanage.Executor
 	sessionID     string
-	executor      *mcpoperate.Executor
+	operate       *mcpoperate.Executor
+	manage        *mcpmanage.Executor
 }
 
 // New constructs a disabled manager.
@@ -66,13 +69,16 @@ func New(reader observeReader, version string, log *slog.Logger) *Manager {
 	return &Manager{reader: reader, version: version, log: log, status: disabledStatus(), now: time.Now}
 }
 
-// NewWithSessions enables explicit Operate sessions in addition to the
+// NewWithSessions enables explicit Operate and Manage sessions in addition to the
 // Observe-only default.
 func NewWithSessions(local *client.Client, version string, log *slog.Logger) *Manager {
 	manager := New(local, version, log)
 	manager.sessionCreate = local.CreateMCPSession
 	manager.sessionRevoke = local.RevokeMCPSession
-	manager.executorFor = func(secret string) *mcpoperate.Executor { return mcpoperate.New(local.WithMCPSession(secret)) }
+	manager.operateFor = func(secret string) *mcpoperate.Executor { return mcpoperate.New(local.WithMCPSession(secret)) }
+	manager.manageFor = func(secret string, confirm bool) *mcpmanage.Executor {
+		return mcpmanage.New(local.WithMCPSession(secret), confirm)
+	}
 	return manager
 }
 
@@ -112,11 +118,17 @@ func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (
 	if permission == "" {
 		permission = domain.CapabilityObserve
 	}
-	if permission != domain.CapabilityObserve && permission != domain.CapabilityOperate {
-		return server.MCPHTTPCredentialResponse{}, validationError("permission", "permission must be observe or operate")
+	if permission != domain.CapabilityObserve && permission != domain.CapabilityOperate && permission != domain.CapabilityManage {
+		return server.MCPHTTPCredentialResponse{}, validationError("permission", "permission must be observe, operate, or manage")
 	}
-	if permission == domain.CapabilityOperate && (m.sessionCreate == nil || m.sessionRevoke == nil || m.executorFor == nil) {
-		return server.MCPHTTPCredentialResponse{}, conflictError("MCP Operate sessions are unavailable")
+	if req.RequireConfirmation && permission != domain.CapabilityManage {
+		return server.MCPHTTPCredentialResponse{}, validationError("require_confirmation", "confirmation policy requires Manage permission")
+	}
+	if permission.Allows(domain.CapabilityOperate) && (m.sessionCreate == nil || m.sessionRevoke == nil || m.operateFor == nil) {
+		return server.MCPHTTPCredentialResponse{}, conflictError("MCP mutation sessions are unavailable")
+	}
+	if permission == domain.CapabilityManage && m.manageFor == nil {
+		return server.MCPHTTPCredentialResponse{}, conflictError("MCP Manage sessions are unavailable")
 	}
 	credential, digest, fingerprint, err := newCredential()
 	if err != nil {
@@ -128,15 +140,19 @@ func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (
 		return server.MCPHTTPCredentialResponse{}, conflictError("cannot enable localhost MCP because the selected port is unavailable")
 	}
 	var sessionID, actorID string
-	var executor *mcpoperate.Executor
-	if permission == domain.CapabilityOperate {
+	var operate *mcpoperate.Executor
+	var manage *mcpmanage.Executor
+	if permission.Allows(domain.CapabilityOperate) {
 		session, sessionErr := m.sessionCreate(ctx, clientName, permission)
 		if sessionErr != nil {
 			_ = listener.Close()
-			return server.MCPHTTPCredentialResponse{}, fmt.Errorf("create MCP Operate session: %w", sessionErr)
+			return server.MCPHTTPCredentialResponse{}, fmt.Errorf("create MCP mutation session: %w", sessionErr)
 		}
 		sessionID, actorID = session.ID, session.ActorID
-		executor = m.executorFor(session.Credential)
+		operate = m.operateFor(session.Credential)
+		if permission == domain.CapabilityManage {
+			manage = m.manageFor(session.Credential, req.RequireConfirmation)
+		}
 	}
 	enabledAt := m.now().UTC()
 	status := server.MCPHTTPStatusResponse{
@@ -148,6 +164,7 @@ func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (
 		ClientName:            clientName,
 		Permission:            permission,
 		ActorID:               actorID,
+		RequireConfirmation:   req.RequireConfirmation,
 	}
 	httpServer := &http.Server{Handler: streamableHandler(m), ReadHeaderTimeout: 5 * time.Second}
 	m.mu.Lock()
@@ -156,7 +173,8 @@ func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (
 	m.http = httpServer
 	m.listen = listener
 	m.sessionID = sessionID
-	m.executor = executor
+	m.operate = operate
+	m.manage = manage
 	m.mu.Unlock()
 	go m.serve(httpServer, listener)
 	m.log.Info("localhost MCP enabled", "endpoint", status.Endpoint, "credential_fingerprint", fingerprint)
@@ -245,18 +263,23 @@ func (m *Manager) clearLocked() string {
 	m.http = nil
 	m.listen = nil
 	m.sessionID = ""
-	m.executor = nil
+	m.operate = nil
+	m.manage = nil
 	return sessionID
 }
 
 func (m *Manager) newMCPServer() *mcp.Server {
 	server := mcpobserve.NewServer(m.reader, m.version)
 	m.mu.RLock()
-	executor := m.executor
+	operate := m.operate
+	manage := m.manage
 	permission := m.status.Permission
 	m.mu.RUnlock()
-	if permission == domain.CapabilityOperate && executor != nil {
-		mcpoperate.AddTools(server, executor)
+	if permission.Allows(domain.CapabilityOperate) && operate != nil {
+		mcpoperate.AddTools(server, operate)
+	}
+	if permission == domain.CapabilityManage && manage != nil {
+		mcpmanage.AddTools(server, manage)
 	}
 	return server
 }

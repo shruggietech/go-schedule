@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const workspace = { stdioDescription: 'Available on demand when an MCP host launches gosched mcp serve. Stdio opens no network listener.', http: { enabled: false, allowedOrigins: [], requestCount: 0 }, authorities: [{ name: 'Observe', status: 'available', description: 'Read bounded scheduler data.' }, { name: 'Operate', status: 'future', description: 'Unavailable. Agents cannot run or change scheduled work.' }, { name: 'Manage', status: 'future', description: 'Unavailable. Agents cannot change configuration or access controls.' }] }
+    const workspace = { stdioDescription: 'Available on demand when an MCP host launches gosched mcp serve. Stdio opens no network listener.', http: { enabled: false, allowedOrigins: [], requestCount: 0 }, authorities: [{ name: 'Observe', status: 'available', description: 'Read bounded scheduler data.' }, { name: 'Operate', status: 'available', description: 'Run, enable, and disable existing tasks.' }, { name: 'Manage', status: 'available', description: 'Create, update, and delete bounded automation definitions.' }] }
     const settings = { preferences: { version: 1, appearance: 'system', transition: { status: 'not_required', retired: [] } }, preferencePath: '', storage: [], product: { name: 'go-schedule', version: 'test', publisher: 'ShruggieTech', links: [] }, daemonAvailable: true, loadedAt: '2026-09-09T12:00:00Z' }
     const app = {
       Snapshot: async () => ({ generation: 1, revision: 1, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'windows', capabilities: ['agent-access'], permissions: ['observe'] }, message: 'Connected.' }),

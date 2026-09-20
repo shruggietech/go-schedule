@@ -31,7 +31,7 @@ func (s *Server) handleCreateMCPSession(w http.ResponseWriter, r *http.Request) 
 	session, credential, err := s.mcpSessions.Create(request.ClientName, request.Capability)
 	if err != nil {
 		if errors.Is(err, mcpsession.ErrInvalidSession) || errors.Is(err, domain.ErrInvalidActor) {
-			writeError(w, http.StatusBadRequest, CodeValidation, "session", "client name and capability must define a valid Observe or Operate session")
+			writeError(w, http.StatusBadRequest, CodeValidation, "session", "client name and capability must define a valid Observe, Operate, or Manage session")
 			return
 		}
 		s.internal(w, err)

@@ -51,10 +51,10 @@ func TestRegistryCreatesResolvesAndRetainsAttributionAfterRevocation(t *testing.
 	}
 }
 
-func TestRegistryRejectsManageAndUnknownSessions(t *testing.T) {
+func TestRegistryAcceptsManageAndRejectsUnknownSessions(t *testing.T) {
 	registry := New(&fakeStore{})
-	if _, _, err := registry.Create("Codex", domain.CapabilityManage); !errors.Is(err, ErrInvalidSession) {
-		t.Fatalf("manage err=%v", err)
+	if session, _, err := registry.Create("Codex", domain.CapabilityManage); err != nil || session.Capability != domain.CapabilityManage {
+		t.Fatalf("manage session=%+v err=%v", session, err)
 	}
 	if _, err := registry.Revoke("missing"); !errors.Is(err, store.ErrNotFound) {
 		t.Fatalf("missing err=%v", err)

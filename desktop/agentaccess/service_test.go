@@ -26,6 +26,7 @@ func (b *fakeBackend) EnableMCPHTTP(_ context.Context, req server.MCPHTTPEnableR
 	b.status.Enabled = true
 	b.status.ClientName = strings.TrimSpace(req.ClientName)
 	b.status.Permission = req.Permission
+	b.status.RequireConfirmation = req.RequireConfirmation
 	return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: b.status, Credential: b.secret}, b.err
 }
 func (b *fakeBackend) RotateMCPHTTPCredential(context.Context) (server.MCPHTTPCredentialResponse, error) {
@@ -64,7 +65,7 @@ func TestWorkspaceProjectsAuthorityAndEvidenceWithoutSecret(t *testing.T) {
 	now := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
 	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{Enabled: true, Endpoint: "http://127.0.0.1:43123/mcp", AllowedOrigins: []string{}, ClientName: "Codex", Permission: domain.CapabilityOperate, RequestCount: 3, LastAccessedAt: &now}}
 	result := NewService(backend, &fakeNative{}).Workspace(context.Background())
-	if result.Outcome != "accepted" || result.Workspace == nil || len(result.Workspace.Authorities) != 3 || result.Workspace.Authorities[1].Status != "available" || result.Workspace.HTTP.Permission != "operate" || result.Workspace.HTTP.RequestCount != 3 {
+	if result.Outcome != "accepted" || result.Workspace == nil || len(result.Workspace.Authorities) != 3 || result.Workspace.Authorities[1].Status != "available" || result.Workspace.Authorities[2].Status != "available" || result.Workspace.HTTP.Permission != "operate" || result.Workspace.HTTP.RequestCount != 3 {
 		t.Fatalf("workspace = %+v", result)
 	}
 	if strings.Contains(result.Message, "Bearer") {
@@ -90,6 +91,14 @@ func TestEnableCopiesCredentialAndClipboardFailureRevokes(t *testing.T) {
 	result = NewService(backend, failing).Rotate(context.Background())
 	if result.Workspace != nil || !strings.Contains(result.Message, "could not be confirmed") || !backend.status.Enabled {
 		t.Fatalf("unconfirmed rollback = %+v status=%+v", result, backend.status)
+	}
+}
+
+func TestEnableForwardsManageConfirmationPolicy(t *testing.T) {
+	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}, secret: "one-time"}
+	result := NewService(backend, &fakeNative{}).Enable(context.Background(), EnableDraft{ClientName: "Codex", Port: 43123, Permission: "manage", RequireConfirmation: true})
+	if result.Outcome != "accepted" || backend.status.Permission != domain.CapabilityManage || !backend.status.RequireConfirmation {
+		t.Fatalf("result=%+v status=%+v", result, backend.status)
 	}
 }
 
