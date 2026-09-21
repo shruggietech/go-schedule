@@ -118,6 +118,11 @@ paths:
         - {name: from, in: query, schema: {type: string, format: date-time}}
         - {name: to, in: query, schema: {type: string, format: date-time}}
       responses: {"200": {$ref: "#/components/responses/Calendar"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /system-summary:
+    get:
+      operationId: system.summary.read
+      description: Returns one bounded, read-only operational observation without executable configuration, output, messages, destinations, payloads, or credentials.
+      responses: {"200": {$ref: "#/components/responses/SystemSummary"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /events:
     get:
       operationId: events.stream
@@ -167,6 +172,7 @@ components:
     Run: {description: Run detail, content: {application/json: {schema: {$ref: "#/components/schemas/Run"}}}}
     AlertList: {description: Alert collection, content: {application/json: {schema: {$ref: "#/components/schemas/AlertList"}}}}
     Calendar: {description: Calendar window, content: {application/json: {schema: {$ref: "#/components/schemas/Calendar"}}}}
+    SystemSummary: {description: Bounded operational observation, content: {application/json: {schema: {$ref: "#/components/schemas/SystemSummary"}}}}
     ActorList: {description: Authorized actors, content: {application/json: {schema: {$ref: "#/components/schemas/ActorList"}}}}
     Actor: {description: Current authenticated actor, content: {application/json: {schema: {$ref: "#/components/schemas/Actor"}}}}
     AuditList: {description: Management audit events, content: {application/json: {schema: {$ref: "#/components/schemas/AuditList"}}}}
@@ -175,6 +181,41 @@ components:
     Unauthorized: {description: Generic authentication failure, headers: {WWW-Authenticate: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
     RequestTooLarge: {description: Request body exceeds the operation limit, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
   schemas:
+    SystemSummary:
+      type: object
+      additionalProperties: false
+      required: [schema, observed_at, active_task_count, recent_failure_count, unacknowledged_alert_count, notification_problem_count]
+      properties:
+        schema: {type: string, const: go-schedule.system-summary.v1}
+        observed_at: {type: string, format: date-time}
+        active_task_count: {type: integer, minimum: 0}
+        next_occurrence: {$ref: "#/components/schemas/UpcomingSummary"}
+        recent_failure_count: {type: integer, minimum: 0}
+        recent_failure: {$ref: "#/components/schemas/FailureSummary"}
+        unacknowledged_alert_count: {type: integer, minimum: 0}
+        unacknowledged_alert: {$ref: "#/components/schemas/AlertSummary"}
+        notification_problem_count: {type: integer, minimum: 0}
+        notification_problem: {$ref: "#/components/schemas/NotificationProblemSummary"}
+    UpcomingSummary:
+      type: object
+      additionalProperties: false
+      required: [task_id, task_name, scheduled_for]
+      properties: {task_id: {type: string}, task_name: {type: string}, scheduled_for: {type: string, format: date-time}}
+    FailureSummary:
+      type: object
+      additionalProperties: false
+      required: [run_id, task_id, task_name, ended_at]
+      properties: {run_id: {type: string}, task_id: {type: string}, task_name: {type: string}, ended_at: {type: string, format: date-time}}
+    AlertSummary:
+      type: object
+      additionalProperties: false
+      required: [alert_id, severity, kind, created_at]
+      properties: {alert_id: {type: string}, task_id: {type: string}, run_id: {type: string}, severity: {type: string}, kind: {type: string}, created_at: {type: string, format: date-time}}
+    NotificationProblemSummary:
+      type: object
+      additionalProperties: false
+      required: [delivery_id, channel_name, state, created_at]
+      properties: {delivery_id: {type: string}, task_id: {type: string}, run_id: {type: string}, channel_name: {type: string}, state: {type: string, enum: [pending, claimed, failed]}, created_at: {type: string, format: date-time}}
     Health:
       type: object
       additionalProperties: false

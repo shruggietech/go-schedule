@@ -165,6 +165,27 @@ func (e IssuedCredentialState) Valid() bool {
 	}
 }
 
+// Defines values for NotificationProblemSummaryState.
+const (
+	NotificationProblemSummaryStateClaimed NotificationProblemSummaryState = "claimed"
+	NotificationProblemSummaryStateFailed  NotificationProblemSummaryState = "failed"
+	NotificationProblemSummaryStatePending NotificationProblemSummaryState = "pending"
+)
+
+// Valid indicates whether the value is a known member of the NotificationProblemSummaryState enum.
+func (e NotificationProblemSummaryState) Valid() bool {
+	switch e {
+	case NotificationProblemSummaryStateClaimed:
+		return true
+	case NotificationProblemSummaryStateFailed:
+		return true
+	case NotificationProblemSummaryStatePending:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OccurrenceKind.
 const (
 	Past      OccurrenceKind = "past"
@@ -177,6 +198,21 @@ func (e OccurrenceKind) Valid() bool {
 	case Past:
 		return true
 	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SystemSummarySchema.
+const (
+	GoScheduleSystemSummaryV1 SystemSummarySchema = "go-schedule.system-summary.v1"
+)
+
+// Valid indicates whether the value is a known member of the SystemSummarySchema enum.
+func (e SystemSummarySchema) Valid() bool {
+	switch e {
+	case GoScheduleSystemSummaryV1:
 		return true
 	default:
 		return false
@@ -492,6 +528,16 @@ type AlertList struct {
 	Alerts []Alert `json:"alerts"`
 }
 
+// AlertSummary defines model for AlertSummary.
+type AlertSummary struct {
+	AlertId   string    `json:"alert_id"`
+	CreatedAt time.Time `json:"created_at"`
+	Kind      string    `json:"kind"`
+	RunId     *string   `json:"run_id,omitempty"`
+	Severity  string    `json:"severity"`
+	TaskId    *string   `json:"task_id,omitempty"`
+}
+
 // AuditEvent defines model for AuditEvent.
 type AuditEvent struct {
 	ActorId       *openapi_types.UUID `json:"actor_id,omitempty"`
@@ -541,6 +587,14 @@ type ErrorEnvelope struct {
 		Field   *string `json:"field,omitempty"`
 		Message string  `json:"message"`
 	} `json:"error"`
+}
+
+// FailureSummary defines model for FailureSummary.
+type FailureSummary struct {
+	EndedAt  time.Time `json:"ended_at"`
+	RunId    string    `json:"run_id"`
+	TaskId   string    `json:"task_id"`
+	TaskName string    `json:"task_name"`
 }
 
 // Group defines model for Group.
@@ -610,6 +664,19 @@ type Manifest struct {
 	RemoteApiVersions []string           `json:"remote_api_versions"`
 }
 
+// NotificationProblemSummary defines model for NotificationProblemSummary.
+type NotificationProblemSummary struct {
+	ChannelName string                          `json:"channel_name"`
+	CreatedAt   time.Time                       `json:"created_at"`
+	DeliveryId  string                          `json:"delivery_id"`
+	RunId       *string                         `json:"run_id,omitempty"`
+	State       NotificationProblemSummaryState `json:"state"`
+	TaskId      *string                         `json:"task_id,omitempty"`
+}
+
+// NotificationProblemSummaryState defines model for NotificationProblemSummary.State.
+type NotificationProblemSummaryState string
+
 // Occurrence defines model for Occurrence.
 type Occurrence struct {
 	Kind     OccurrenceKind      `json:"kind"`
@@ -651,6 +718,23 @@ type Run struct {
 type RunList struct {
 	Runs []Run `json:"runs"`
 }
+
+// SystemSummary defines model for SystemSummary.
+type SystemSummary struct {
+	ActiveTaskCount          int                         `json:"active_task_count"`
+	NextOccurrence           *UpcomingSummary            `json:"next_occurrence,omitempty"`
+	NotificationProblem      *NotificationProblemSummary `json:"notification_problem,omitempty"`
+	NotificationProblemCount int                         `json:"notification_problem_count"`
+	ObservedAt               time.Time                   `json:"observed_at"`
+	RecentFailure            *FailureSummary             `json:"recent_failure,omitempty"`
+	RecentFailureCount       int                         `json:"recent_failure_count"`
+	Schema                   SystemSummarySchema         `json:"schema"`
+	UnacknowledgedAlert      *AlertSummary               `json:"unacknowledged_alert,omitempty"`
+	UnacknowledgedAlertCount int                         `json:"unacknowledged_alert_count"`
+}
+
+// SystemSummarySchema defines model for SystemSummary.Schema.
+type SystemSummarySchema string
 
 // TaskCreateRequest defines model for TaskCreateRequest.
 type TaskCreateRequest struct {
@@ -763,6 +847,13 @@ type TaskUpdateRequestOverlapPolicy string
 
 // TaskUpdateRequestTimeBasis defines model for TaskUpdateRequest.TimeBasis.
 type TaskUpdateRequestTimeBasis string
+
+// UpcomingSummary defines model for UpcomingSummary.
+type UpcomingSummary struct {
+	ScheduledFor time.Time `json:"scheduled_for"`
+	TaskId       string    `json:"task_id"`
+	TaskName     string    `json:"task_name"`
+}
 
 // ID defines model for ID.
 type ID = openapi_types.UUID
@@ -968,6 +1059,11 @@ type ClientInterface interface {
 
 	// RunsRead performs a GET /runs/{id} (the `RunsRead` operationId) request.
 	RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SystemSummaryRead performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
+	//
+	// Returns one bounded, read-only operational observation without executable configuration, output, messages, destinations, payloads, or credentials.
+	SystemSummaryRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TasksList performs a GET /tasks (the `TasksList` operationId) request.
 	TasksList(ctx context.Context, params *TasksListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1208,6 +1304,21 @@ func (c *Client) RunsActiveList(ctx context.Context, reqEditors ...RequestEditor
 // RunsRead performs a GET /runs/{id} (the `RunsRead` operationId) request.
 func (c *Client) RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRunsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SystemSummaryRead performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
+//
+// Returns one bounded, read-only operational observation without executable configuration, output, messages, destinations, payloads, or credentials.
+func (c *Client) SystemSummaryRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSystemSummaryReadRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -2070,6 +2181,33 @@ func NewRunsReadRequest(server string, id ID) (*http.Request, error) {
 	return req, nil
 }
 
+// NewSystemSummaryReadRequest constructs an http.Request for the SystemSummaryRead method
+func NewSystemSummaryReadRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/system-summary")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewTasksListRequest constructs an http.Request for the TasksList method
 func NewTasksListRequest(server string, params *TasksListParams) (*http.Request, error) {
 	var err error
@@ -2568,6 +2706,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	RunsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*RunsReadResponse, error)
+
+	// SystemSummaryReadWithResponse performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
+	//
+	// Returns one bounded, read-only operational observation without executable configuration, output, messages, destinations, payloads, or credentials.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	SystemSummaryReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SystemSummaryReadResponse, error)
 
 	// TasksListWithResponse performs a GET /tasks (the `TasksList` operationId) request.
 	//
@@ -3410,6 +3555,61 @@ func (r RunsReadResponse) ContentType() string {
 	return ""
 }
 
+// SystemSummaryReadResponse401Headers the declared response headers of an HTTP 401 response for SystemSummaryRead
+type SystemSummaryReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type SystemSummaryReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SystemSummary
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *SystemSummaryReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SystemSummaryReadResponse) GetJSON200() *SystemSummary {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SystemSummaryReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r SystemSummaryReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SystemSummaryReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SystemSummaryReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SystemSummaryReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // TasksListResponse401Headers the declared response headers of an HTTP 401 response for TasksList
 type TasksListResponse401Headers struct {
 	WWWAuthenticate *string
@@ -4014,6 +4214,19 @@ func (c *ClientWithResponses) RunsReadWithResponse(ctx context.Context, id ID, r
 		return nil, err
 	}
 	return ParseRunsReadResponse(rsp)
+}
+
+// SystemSummaryReadWithResponse performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
+//
+// Returns one bounded, read-only operational observation without executable configuration, output, messages, destinations, payloads, or credentials.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SystemSummaryReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*SystemSummaryReadResponse, error) {
+	rsp, err := c.SystemSummaryRead(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSystemSummaryReadResponse(rsp)
 }
 
 // TasksListWithResponse performs a GET /tasks (the `TasksList` operationId) request.
@@ -4759,6 +4972,52 @@ func ParseRunsReadResponse(rsp *http.Response) (*RunsReadResponse, error) {
 	switch {
 	case rsp.StatusCode == 401:
 		var headers RunsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseSystemSummaryReadResponse parses an HTTP response from a SystemSummaryReadWithResponse call
+func ParseSystemSummaryReadResponse(rsp *http.Response) (*SystemSummaryReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SystemSummaryReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SystemSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers SystemSummaryReadResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {

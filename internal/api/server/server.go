@@ -105,6 +105,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PATCH /v1/manifest", s.handleRenameManifest)
 	s.mux.HandleFunc("POST /v1/manifest/reset", s.handleResetManifest)
 	s.mux.HandleFunc("GET /v1/runtime-info", s.handleRuntimeInfo)
+	s.mux.HandleFunc("GET /v1/system-summary", s.handleSystemSummary)
 	s.mux.HandleFunc("GET /v1/mcp/http", s.handleMCPHTTPStatus)
 	s.mux.HandleFunc("POST /v1/mcp/http/enable", s.handleMCPHTTPEnable)
 	s.mux.HandleFunc("POST /v1/mcp/http/rotate", s.handleMCPHTTPRotate)

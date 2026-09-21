@@ -89,6 +89,18 @@ func TestRemoteAllowlistAndBearerLifecycle(t *testing.T) {
 			t.Fatalf("task detail leaked %q: %s", secret, detail.Body.String())
 		}
 	}
+	summaryRequest := httptest.NewRequest(http.MethodGet, "/api/v1/system-summary", nil)
+	summaryRequest.Header.Set("Authorization", "Bearer "+issued.Token)
+	summaryResponse := httptest.NewRecorder()
+	handler.ServeHTTP(summaryResponse, summaryRequest)
+	if summaryResponse.Code != http.StatusOK || !bytes.Contains(summaryResponse.Body.Bytes(), []byte(domain.SystemSummarySchema)) {
+		t.Fatalf("system summary=%d %s", summaryResponse.Code, summaryResponse.Body.String())
+	}
+	for _, secret := range []string{"secret-command", "secret-env", "secret-stdin", "secret-directory", "secret-user"} {
+		if bytes.Contains(summaryResponse.Body.Bytes(), []byte(secret)) {
+			t.Fatalf("system summary leaked %q: %s", secret, summaryResponse.Body.String())
+		}
+	}
 	deniedRequest := httptest.NewRequest(http.MethodPost, "/api/v1/tasks", bytes.NewBufferString(`{}`))
 	deniedRequest.Header.Set("Content-Type", "application/json; charset=utf-8")
 	deniedRequest.Header.Set("Authorization", "Bearer "+issued.Token)

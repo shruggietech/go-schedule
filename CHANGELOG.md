@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **All Systems now provides bounded operational triage across every registered daemon (Closes #182; Refs #174).** The desktop observes This computer and each saved profile independently with four-worker fan-out, progressive generation updates, five-second target deadlines, typed connection failures, session-only stale continuity, stable filtering and sorting, and exact-profile drill-down. A new additive Observe-authorized summary endpoint returns bounded counts and safe representative identifiers for upcoming work, recent failures, alerts, and notification problems without exposing executable configuration, output, messages, destinations, payloads, or credentials.
+
 - **Notification policies now report persistent problems, recovery, excessive duration, start failures, and daemon presence without flooding receivers (Closes #175; Refs #19).** Task and group assignments support durable consecutive-failure thresholds, deterministic condition precedence, duplicate suppression, reminders, recovery, and success quiet periods. Optional per-channel healthy-presence heartbeats let receivers detect a stopped daemon, while the API, CLI, desktop policy editor, webhook evidence, and delivery history explain why each notification fired.
 
 - **Agent Access now provides a complete secret-free MCP grant lifecycle (Closes #181, #148).** The desktop inventories named agents, daemon, authority, independent transport, timestamps, expiry, state, safe credential fingerprint, and bounded recent audit evidence. Local administrators can create duration-bounded remote MCP enrollments through a native clipboard handoff, deliberately choose non-expiring access, narrow authority or expiry, and revoke grants, while current per-request authorization prevents existing connections from retaining superseded access.
@@ -23,6 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-21: compute fleet observations inside each independent daemon and retain no durable fleet state (Refs #182, #174).** One bounded summary endpoint uses the daemon's authoritative clock and data, while the desktop coordinates temporary clients without changing the selected connection. This preserves profile-specific trust and authority, supports partial results, and avoids implying clustering, shared execution ownership, failover, or synchronization.
+
+- **2026-09-21: index failed-run summaries by outcome and effective completion time (Refs #182).** Schema migration 21 adds the expression index matching the bounded recent-failure query so unbounded historical runs cannot turn routine overview refreshes into full-table scans.
 
 - **2026-09-21: represent daemon health as receiver-observed healthy presence rather than claiming a stopped daemon can report itself (Refs #175).** An enabled channel may emit durable heartbeats with an explicit next-expected deadline. The receiver owns missed-heartbeat detection, while zero remains the default and no background network behavior begins until the operator opts in.
 

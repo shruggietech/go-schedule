@@ -3,7 +3,7 @@ import { Button, Notice, StatePanel } from "./components";
 import { Shell, type ShellFeedback } from "./components/Shell";
 import { desktopBridge } from "./connection/bridge";
 import { useConnection } from "./connection/store";
-import type { Appearance, DesktopBridge, Route } from "./connection/model";
+import type { Appearance, ConnectionSnapshot, DesktopBridge, Route } from "./connection/model";
 import { taskBridge as nativeTaskBridge } from "./tasks/bridge";
 import type { TaskBridge } from "./tasks/model";
 import { TasksPage } from "./tasks/TasksPage";
@@ -25,8 +25,13 @@ import type { NotificationBridge } from "./notifications/model";
 import { AgentAccessPage } from "./agentaccess/AgentAccessPage";
 import { agentAccessBridge as nativeAgentAccessBridge } from "./agentaccess/bridge";
 import type { AgentAccessBridge } from "./agentaccess/model";
+import { SystemsPage, type Drilldown } from "./systems/SystemsPage";
 
 const copy: Record<Route, { title: string; detail: string }> = {
+  systems: {
+    title: "All Systems",
+    detail: "Bounded operational observations from every registered scheduler.",
+  },
   tasks: {
     title: "Tasks",
     detail:
@@ -59,6 +64,49 @@ const copy: Record<Route, { title: string; detail: string }> = {
   },
 };
 
+const reconnectTimeout = 6500;
+
+function selectedTarget(snapshot: ConnectionSnapshot, registrationKey: string) {
+  return registrationKey === "local"
+    ? snapshot.target.kind !== "remote"
+    : snapshot.target.profileId === registrationKey;
+}
+
+async function selectAndWaitForTarget(bridge: DesktopBridge, registrationKey: string): Promise<ConnectionSnapshot> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let unsubscribe: () => void = () => undefined;
+    let timeout = 0;
+    const finish = (snapshot?: ConnectionSnapshot, message?: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      unsubscribe();
+      if (snapshot) resolve(snapshot);
+      else reject(new Error(message ?? "The scheduler did not reconnect in time. Check the connection and try again."));
+    };
+    const inspect = (snapshot: ConnectionSnapshot) => {
+      if (!selectedTarget(snapshot, registrationKey)) return;
+      if (snapshot.state === "connected") finish(snapshot);
+      else if (snapshot.state !== "connecting" && snapshot.state !== "recovering") finish(undefined, `${snapshot.message}${snapshot.action ? ` ${snapshot.action}` : ""}`);
+    };
+    unsubscribe = bridge.subscribe((event) => { if (event.snapshot) inspect(event.snapshot); });
+    timeout = window.setTimeout(() => finish(), reconnectTimeout);
+    const request = bridge.selectConnection?.(registrationKey === "local" ? "" : registrationKey);
+    if (!request) {
+      finish(undefined, "This scheduler could not be selected.");
+      return;
+    }
+    void request.then((selected) => {
+      if (!selected || selected.outcome !== "accepted") {
+        finish(undefined, selected?.message ?? "This scheduler could not be selected.");
+        return;
+      }
+      void bridge.snapshot().then(inspect).catch(() => undefined);
+    }).catch(() => finish(undefined, "This scheduler could not be selected."));
+  });
+}
+
 export function App({
   bridge = desktopBridge,
   tasks = nativeTaskBridge,
@@ -81,6 +129,7 @@ export function App({
   const [announcementFeedback, setAnnouncementFeedback] =
     useState<ShellFeedback>();
   const [settingsError, setSettingsError] = useState<ShellFeedback>();
+  const [drilldown, setDrilldown] = useState<Drilldown>();
   const feedbackSequence = useRef(0);
   const { snapshot, announcement, retryPending, retry } = useConnection(bridge);
   const desktopSettings = useSettings(
@@ -132,6 +181,18 @@ export function App({
   const saveAppearance = (value: Appearance) => {
     void desktopSettings.saveAppearance(value);
   };
+  const openSystem = async (intent: Drilldown) => {
+    feedbackSequence.current += 1;
+    try {
+      await selectAndWaitForTarget(bridge, intent.registrationKey);
+    } catch (error) {
+      setAnnouncementFeedback({ identity: `system:${feedbackSequence.current}`, message: error instanceof Error ? error.message : "This scheduler could not be reconnected.", tone: "error" });
+      return;
+    }
+    setDrilldown(intent);
+    setAnnouncementFeedback({ identity: `system:${feedbackSequence.current}`, message: `${intent.label} selected. Opened ${intent.context}.`, tone: "success" });
+    setRoute(intent.destination);
+  };
   return (
     <Shell
       route={route}
@@ -145,6 +206,7 @@ export function App({
       onRetry={() => void retry()}
       onQuit={() => void bridge.quit()}
     >
+      {drilldown && route === drilldown.destination && <Notice title={`Opened from ${drilldown.label}`} tone="info" dismissible={false}>{drilldown.context}{drilldown.taskId ? ` · Task ${drilldown.taskId}` : ""}{drilldown.recordId ? ` · Record ${drilldown.recordId}` : ""}</Notice>}
       {desktopSettings.loading ? (
         <StatePanel
           title="Loading desktop preferences"
@@ -164,6 +226,8 @@ export function App({
             detail="This feature is outside the authenticated remote operation allowlist. Select This computer to use it."
           />
         </>
+      ) : route === "systems" ? (
+        <SystemsPage bridge={bridge} onOpen={openSystem} />
       ) : route === "tasks" ? (
         <>
           {snapshot.state !== "connected" && (

@@ -52,6 +52,7 @@ var operations = []Operation{
 	{Method: http.MethodGet, RemotePath: "/api/v1/alerts", LocalPath: "/v1/alerts", ID: "alerts.list", Retry: RetrySafe},
 	{Method: http.MethodPost, RemotePath: "/api/v1/alerts/{id}/ack", LocalPath: "/v1/alerts/{id}/ack", ID: "alerts.acknowledge", Retry: RetryNever},
 	{Method: http.MethodGet, RemotePath: "/api/v1/calendar", LocalPath: "/v1/calendar", ID: "calendar.read", Retry: RetrySafe},
+	{Method: http.MethodGet, RemotePath: "/api/v1/system-summary", LocalPath: "/v1/system-summary", ID: "system.summary.read", Retry: RetrySafe},
 	{Method: http.MethodGet, RemotePath: "/api/v1/events", LocalPath: "/v1/events", ID: "events.stream", Retry: RetryReconnect},
 	{Method: http.MethodGet, RemotePath: "/api/v1/access/current", LocalPath: "/v1/access/current", ID: "actors.current", Retry: RetrySafe},
 	{Method: http.MethodGet, RemotePath: "/api/v1/access/actors", LocalPath: "/v1/access/actors", ID: "actors.list", Retry: RetrySafe},
