@@ -190,7 +190,7 @@ func New(c manageClient, requireConfirmation bool) *Executor {
 func AddTools(s *mcp.Server, e *Executor) {
 	closed, destructive := false, true
 	annotations := func(title string) *mcp.ToolAnnotations {
-		return &mcp.ToolAnnotations{Title: title, ReadOnlyHint: false, DestructiveHint: &destructive, IdempotentHint: true, OpenWorldHint: &closed}
+		return &mcp.ToolAnnotations{Title: title, ReadOnlyHint: false, DestructiveHint: &destructive, IdempotentHint: false, OpenWorldHint: &closed}
 	}
 	mcp.AddTool(s, &mcp.Tool{Name: "tasks_manage", Title: "Manage one task definition", Description: "Create, update, or delete one task through the scheduler API. Environment and stdin values are intentionally unavailable.", Annotations: annotations("Manage task")}, e.taskHandler())
 	mcp.AddTool(s, &mcp.Tool{Name: "groups_manage", Title: "Manage one task group", Description: "Create, update, or delete one task group through the scheduler API.", Annotations: annotations("Manage group")}, e.groupHandler())

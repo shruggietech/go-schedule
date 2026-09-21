@@ -126,7 +126,7 @@ func TestDiscoveryAddsExactlySixManageTools(t *testing.T) {
 	names := make([]string, 0, len(listed.Tools))
 	for _, tool := range listed.Tools {
 		names = append(names, tool.Name)
-		if tool.InputSchema == nil || tool.Annotations == nil || tool.Annotations.ReadOnlyHint {
+		if tool.InputSchema == nil || tool.Annotations == nil || tool.Annotations.ReadOnlyHint || tool.Annotations.IdempotentHint {
 			t.Fatalf("unsafe metadata for %s: %+v", tool.Name, tool)
 		}
 		if tool.Name == "tasks_manage" {
