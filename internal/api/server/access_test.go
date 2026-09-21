@@ -113,6 +113,22 @@ func TestCurrentActorReportsServerOwnedAuthorityToObserveClients(t *testing.T) {
 	}
 }
 
+func TestCurrentActorRejectsStaleExpectedDaemonIdentity(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Manage session", domain.CapabilityManage, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetActorResolver(func(*http.Request) (string, error) { return actor.ID, nil })
+	request := httptest.NewRequest(http.MethodGet, "/v1/access/current", nil)
+	request.Header.Set(ExpectedDaemonHeader, "stale-daemon-id")
+	response := httptest.NewRecorder()
+	s.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusConflict || !bytes.Contains(response.Body.Bytes(), []byte("daemon identity does not match")) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
 func TestAuditExportIsNDJSONAndDoesNotExposePayloads(t *testing.T) {
 	s := newTestServer(t)
 	response := httptest.NewRecorder()

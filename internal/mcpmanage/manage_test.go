@@ -264,4 +264,19 @@ func TestOutcomeClassificationAndRevokedRetry(t *testing.T) {
 	}
 }
 
+func TestCachedResultRejectsStaleDaemonIdentity(t *testing.T) {
+	backend := &fakeManageClient{}
+	executor := New(backend, false)
+	input := GroupInput{Envelope: Envelope{DaemonID: uuid.NewString(), RequestID: uuid.NewString()}, Action: "delete", ObjectID: "group-1"}
+	_, first, _ := executor.groupHandler()(context.Background(), nil, input)
+	if first.Outcome != OutcomeAccepted || backend.calls != 1 {
+		t.Fatalf("first=%+v calls=%d", first, backend.calls)
+	}
+	backend.verify = &client.StatusError{Code: server.CodeConflict, Field: "daemon_id", Message: "daemon identity does not match the requested target"}
+	_, repeated, _ := executor.groupHandler()(context.Background(), nil, input)
+	if repeated.Outcome != OutcomeRejected || backend.calls != 1 {
+		t.Fatalf("repeated=%+v calls=%d", repeated, backend.calls)
+	}
+}
+
 func jsonMarshal(value any) ([]byte, error) { return json.Marshal(value) }

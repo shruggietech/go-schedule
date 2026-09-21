@@ -78,6 +78,10 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if operation.Audit == authorization.AuditNone {
+		if expected := r.Header.Get(ExpectedDaemonHeader); expected != "" && expected != identity.InstallationID {
+			writeError(w, http.StatusConflict, CodeConflict, "daemon_id", "daemon identity does not match the requested target")
+			return
+		}
 		s.mux.ServeHTTP(w, r)
 		return
 	}
