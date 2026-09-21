@@ -44,7 +44,7 @@ describe('SearchPage', () => {
     const review = screen.getByRole('button', { name: 'Review 1 selected' })
     expect(review).toBeEnabled()
     await user.click(review)
-    expect(screen.getByRole('dialog', { name: 'Confirm run now' })).toHaveTextContent('Workshop (daemon-a)')
+    expect(screen.getByRole('dialog', { name: 'Confirm run now' })).toHaveTextContent('Workshop (daemon-a, local)')
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
   })
 

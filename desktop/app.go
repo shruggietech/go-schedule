@@ -333,6 +333,13 @@ func (a *App) ActivityWorkspace() operations.OperationResult {
 	return a.operations.ActivityWorkspace(a.ctx)
 }
 
+func (a *App) ActivityRecord(kind, id string) operations.OperationResult {
+	if a.operations == nil || a.ctx == nil {
+		return operations.OperationResult{Action: "load_activity_record", Outcome: "unavailable", Message: "Activity is unavailable."}
+	}
+	return a.operations.ActivityRecord(a.ctx, kind, id)
+}
+
 func (a *App) AcknowledgeAlert(id string) operations.OperationResult {
 	if a.operations == nil || a.ctx == nil {
 		return operations.OperationResult{Action: "acknowledge_alerts", Outcome: "unavailable", Message: "Activity is unavailable."}

@@ -15,13 +15,14 @@ function OccurrenceDetail({ item, missing }: { item?: ScheduleOccurrence; missin
   return <aside className="panel operation-detail"><h2>{item.taskName}</h2><dl><dt>Record</dt><dd>{kindLabel(item.kind)}</dd><dt>State</dt><dd><span className={`operation-state state-${item.state}`}>{stateLabel(item.state)}</span></dd><dt>Time</dt><dd>{localTime(item.time)}</dd><dt>Task ID</dt><dd><code>{item.taskId || 'Unavailable'}</code></dd><dt>Run ID</dt><dd><code>{item.runId || 'Not recorded'}</code></dd></dl></aside>
 }
 
-export function SchedulePage({ bridge, available, refreshToken, targetName = 'This computer', initialRecordId, initialTaskId }: { bridge: OperationsBridge; available: boolean; refreshToken: number; targetName?: string; initialRecordId?: string; initialTaskId?: string }) {
+export function SchedulePage({ bridge, available, refreshToken, targetName = 'This computer', initialRecordId, initialTaskId, initialOccurredAt }: { bridge: OperationsBridge; available: boolean; refreshToken: number; targetName?: string; initialRecordId?: string; initialTaskId?: string; initialOccurredAt?: string }) {
   const [days, setDays] = useState(7)
   const [view, setView] = useState<'agenda' | 'calendar'>('agenda')
   const [selectedID, setSelectedID] = useState('')
   const [selectedDay, setSelectedDay] = useState('')
   const [month, setMonth] = useState<Date>()
   const { snapshot, status, load } = useSchedule(bridge, days, available, refreshToken)
+  useEffect(() => { if (initialOccurredAt && new Date(initialOccurredAt).getTime() > Date.now() + 7 * 24 * 60 * 60 * 1000) setDays(30) }, [initialOccurredAt])
   useEffect(() => {
     if (!snapshot) return
     const exact = initialRecordId ? snapshot.occurrences.find((item) => item.id === initialRecordId) : undefined

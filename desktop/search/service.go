@@ -94,10 +94,10 @@ func (s *Service) Search(ctx context.Context, request Request, publish ...func(S
 	snapshot := func(complete bool) Snapshot {
 		values := append([]Observation(nil), observations...)
 		if complete {
-			current := s.currentKeys(observations)
+			current := s.currentRegistrations(observations)
 			kept := values[:0]
 			for _, value := range values {
-				if current[value.Registration.Key] {
+				if registration, ok := current[value.Registration.Key]; ok && sameRegistration(value.Registration, registration) {
 					kept = append(kept, value)
 				}
 			}
@@ -180,6 +180,15 @@ func (s *Service) observe(parent context.Context, value target, query string, ki
 	if err := validateResult(result, query, limit); err != nil {
 		return failed(value.registration, &connection.Failure{State: connection.StateIncompatible, Message: "This scheduler returned an unsupported search response.", Action: "Update the scheduler service.", Cause: err})
 	}
+	for index := range result.Results {
+		hints := result.Results[index].ActionHints[:0]
+		for _, hint := range result.Results[index].ActionHints {
+			if hint.Valid() {
+				hints = append(hints, hint)
+			}
+		}
+		result.Results[index].ActionHints = hints
+	}
 	matches := make([]Match, 0, len(result.Results))
 	for _, item := range result.Results {
 		available, reason := availableActions(item.ActionHints, health.Permissions)
@@ -188,25 +197,35 @@ func (s *Service) observe(parent context.Context, value target, query string, ki
 	return Observation{Registration: value.registration, State: connection.StateConnected, ObservedAt: result.ObservedAt.UTC().Format(time.RFC3339), Truncated: result.Truncated, Matches: matches}
 }
 
-func (s *Service) currentKeys(fallback []Observation) map[string]bool {
-	result := map[string]bool{"local": true}
+func (s *Service) currentRegistrations(fallback []Observation) map[string]systems.Registration {
+	result := map[string]systems.Registration{"local": {Key: "local", Kind: "local"}}
 	if s.profiles == nil {
 		for _, observation := range fallback {
-			result[observation.Registration.Key] = true
+			result[observation.Registration.Key] = observation.Registration
 		}
 		return result
 	}
 	collection, err := s.profiles.Load()
 	if err != nil {
 		for _, observation := range fallback {
-			result[observation.Registration.Key] = true
+			result[observation.Registration.Key] = observation.Registration
 		}
 		return result
 	}
 	for _, profile := range collection.Profiles {
-		result[profile.ID] = true
+		result[profile.ID] = registrationOf(profile)
 	}
 	return result
+}
+
+func sameRegistration(observed, current systems.Registration) bool {
+	if observed.Key != current.Key || observed.Kind != current.Kind {
+		return false
+	}
+	if observed.Kind == "local" {
+		return true
+	}
+	return observed.Label == current.Label && observed.Endpoint == current.Endpoint && observed.DaemonID == current.DaemonID && observed.Platform == current.Platform && observed.Architecture == current.Architecture && observed.Version == current.Version
 }
 
 func validateResult(result domain.DaemonSearch, query string, limit int) error {
@@ -216,11 +235,6 @@ func validateResult(result domain.DaemonSearch, query string, limit int) error {
 	for _, item := range result.Results {
 		if !item.Kind.Valid() || strings.TrimSpace(item.ObjectID) == "" || strings.TrimSpace(item.Name) == "" {
 			return errors.New("invalid search match")
-		}
-		for _, action := range item.ActionHints {
-			if !action.Valid() {
-				return errors.New("invalid search action")
-			}
 		}
 	}
 	return nil

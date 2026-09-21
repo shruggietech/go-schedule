@@ -300,6 +300,7 @@ export function App({
           targetName={targetContext}
           initialRecordId={drilldown?.destination === "schedule" ? drilldown.recordId : undefined}
 		  initialTaskId={drilldown?.destination === "schedule" ? drilldown.taskId : undefined}
+		  initialOccurredAt={drilldown?.destination === "schedule" ? drilldown.occurredAt : undefined}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0
           }
@@ -311,6 +312,7 @@ export function App({
           targetName={targetContext}
           canMutate={canOperate}
           initialRecordId={drilldown?.destination === "activity" ? drilldown.recordId : undefined}
+		  initialRecordKind={drilldown?.destination === "activity" ? drilldown.recordKind : undefined}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0
           }

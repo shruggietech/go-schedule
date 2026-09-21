@@ -69,7 +69,8 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if kinds[domain.SearchKindSchedule] || len(kinds) == 0 {
-		for offset := 0; len(results) <= limit; offset += limit + 1 {
+		schedules := make([]domain.SearchMatch, 0, limit+1)
+		for offset := 0; len(schedules) <= limit; offset += limit + 1 {
 			candidates, searchErr := s.store.SearchScheduleFacts(query, offset, limit+1)
 			if searchErr != nil {
 				s.internal(w, searchErr)
@@ -78,11 +79,12 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 			if len(candidates) == 0 {
 				break
 			}
-			results = append(results, s.resolveSearchOccurrences(candidates, observedAt)...)
+			schedules = append(schedules, s.resolveSearchOccurrences(candidates, observedAt)...)
 			if len(candidates) < limit+1 {
 				break
 			}
 		}
+		results = append(results, schedules...)
 	}
 	domain.SortSearchMatches(results)
 	truncated := len(results) > limit
