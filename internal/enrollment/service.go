@@ -138,6 +138,15 @@ func (s *Service) Authenticate(token string) (domain.ClientCredential, domain.Ac
 		return domain.ClientCredential{}, domain.Actor{}, ErrRejected
 	}
 	digest := sha256.Sum256(raw)
+	return s.AuthenticateDigest(digest[:])
+}
+
+// AuthenticateDigest revalidates an already-derived credential digest. It is
+// used to bind short-lived access grants to their durable source credential.
+func (s *Service) AuthenticateDigest(digest []byte) (domain.ClientCredential, domain.Actor, error) {
+	if len(digest) != sha256.Size {
+		return domain.ClientCredential{}, domain.Actor{}, ErrRejected
+	}
 	credential, actor, err := s.store.AuthenticateCredential(digest[:], s.now())
 	if err != nil {
 		if errors.Is(err, store.ErrCredentialRevoked) {
@@ -147,6 +156,9 @@ func (s *Service) Authenticate(token string) (domain.ClientCredential, domain.Ac
 	}
 	return credential, actor, nil
 }
+
+// Identity returns the persistent daemon identity used as the authorization issuer.
+func (s *Service) Identity() (domain.DaemonIdentity, error) { return s.store.DaemonIdentity() }
 
 func (s *Service) Rotate(id string) (domain.IssuedCredential, error) {
 	raw := make([]byte, 32)

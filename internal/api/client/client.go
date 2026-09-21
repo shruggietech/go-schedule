@@ -4,12 +4,14 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -55,6 +57,43 @@ func New(endpoint string) *Client {
 	client := &Client{http: &http.Client{Transport: transport}, endpoint: endpoint, baseURL: "http://ipc"}
 	client.verified.Store(true)
 	return client
+}
+
+type handlerTransport struct{ handler http.Handler }
+
+func (t handlerTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	recorder := &responseRecorder{header: make(http.Header), status: http.StatusOK}
+	t.handler.ServeHTTP(recorder, request)
+	return &http.Response{StatusCode: recorder.status, Header: recorder.header, Body: io.NopCloser(bytes.NewReader(recorder.body.Bytes())), Request: request}, nil
+}
+
+type responseRecorder struct {
+	header      http.Header
+	body        bytes.Buffer
+	status      int
+	wroteHeader bool
+}
+
+func (r *responseRecorder) Header() http.Header { return r.header }
+func (r *responseRecorder) WriteHeader(status int) {
+	if r.wroteHeader {
+		return
+	}
+	r.status = status
+	r.wroteHeader = true
+}
+func (r *responseRecorder) Write(value []byte) (int, error) {
+	if !r.wroteHeader {
+		r.WriteHeader(http.StatusOK)
+	}
+	return r.body.Write(value)
+}
+
+// NewInProcess returns a verified client that dispatches directly to handler.
+func NewInProcess(handler http.Handler) *Client {
+	result := &Client{http: &http.Client{Transport: handlerTransport{handler: handler}}, endpoint: "in-process", baseURL: "http://in-process"}
+	result.verified.Store(true)
+	return result
 }
 
 // NewSwitchable returns a stable client facade whose selected immutable target can change safely.

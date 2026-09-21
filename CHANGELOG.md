@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Remote MCP now uses standards-based, least-authority authorization over the existing opt-in HTTPS listener (Closes #180; Refs #148).** RFC 9728 discovery and authorization-server metadata lead unattended MCP clients through a resource-bound client-credentials exchange backed only by persistent `mcp` actors. Short-lived memory-only tokens preserve Observe, Operate, and Manage boundaries, actor-attributed API execution, immediate credential lifecycle enforcement, host and origin checks, request and rate limits, and official SDK Streamable HTTP negotiation without making persistent JSON credentials valid MCP bearers.
+
 - **Local MCP can explicitly manage bounded automation definitions without gaining enrollment or permission authority (Closes #179; Refs #148).** Manage sessions inherit Observe and Operate, then add six family tools for one task, group, completion chain, trigger, filesystem watcher, or notification-assignment mutation through the ordinary API. Exact daemon and request identity, optional per-call confirmation, bounded replay protection, runtime revocation, redacted outcomes, withheld trigger credentials, and schemas without task environment or stdin preserve the existing validation and audit boundary.
 
 - **Local MCP can explicitly operate existing tasks without gaining management authority (Closes #178; Refs #148).** Observe remains the zero-tool default, while stdio and authenticated numeric-loopback HTTP can opt into exactly three tools for run-now, enable, and disable. Runtime-only MCP actors, exact daemon and task targets, bounded request deduplication, current per-call authorization, intent-first audit attribution, revocation, and stable accepted, rejected, denied, or uncertain results keep task definition, deletion, credentials, remote MCP, and durable grants outside the boundary.
@@ -17,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-20: use the existing MCP actor credential only as an OAuth client credential, then issue a distinct short-lived resource token (Refs #180).** This separates durable administrative enrollment from runtime protocol access, lets rotation and revocation invalidate live grants immediately, binds every grant to one resource, daemon, actor, and capability, and avoids introducing JWTs, interactive user accounts, or a second authorization vocabulary.
 
 - **2026-09-20: expose MCP Manage as six typed family tools with connection-scoped optional confirmation (Refs #179).** One action discriminator per definition family keeps discovery bounded without resorting to an untyped universal mutation endpoint. Each call delegates one lifecycle to the existing API and returns only identity and outcome; bulk mutation, task environment and stdin, trigger credentials, permission administration, and enrollment remain unavailable.
 
