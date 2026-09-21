@@ -15,6 +15,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/automation"
+	"github.com/shruggietech/go-schedule/desktop/bundles"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/connections"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
@@ -74,7 +75,7 @@ func main() {
 	profileStore := clientprofile.NewStore("")
 	secretStore := clientsecret.New()
 	native := wailsNative{}
-	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(router)), automation: automation.NewService(automation.NewLocalBackend(router)), operations: operations.NewService(operations.NewLocalBackend(router)), notifications: notifications.NewService(notifications.NewLocalBackend(router)), settings: settings.NewService(settings.NewLocalBackend(localDaemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(router), native), remotePairing: remotepairing.NewWithStores(secretStore, profileStore)})
+	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(router)), automation: automation.NewService(automation.NewLocalBackend(router)), bundles: bundles.NewService(bundles.NewLocalBackend(router)), operations: operations.NewService(operations.NewLocalBackend(router)), notifications: notifications.NewService(notifications.NewLocalBackend(router)), settings: settings.NewService(settings.NewLocalBackend(localDaemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(router), native), remotePairing: remotepairing.NewWithStores(secretStore, profileStore)})
 	app.connections = connections.New(profileStore, secretStore, localDaemon, router, app.manager)
 	app.systems = systems.New(profileStore, secretStore, localDaemon)
 	app.search = search.New(profileStore, secretStore, localDaemon)

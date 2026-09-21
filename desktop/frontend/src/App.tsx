@@ -29,6 +29,9 @@ import { SystemsPage, type Drilldown } from "./systems/SystemsPage";
 import { SearchPage } from "./search/SearchPage";
 import { searchBridge as nativeSearchBridge } from "./search/bridge";
 import type { SearchBridge } from "./search/model";
+import { BundlesPage } from "./bundles/BundlesPage";
+import { bundleBridge as nativeBundleBridge } from "./bundles/bridge";
+import type { BundleBridge } from "./bundles/model";
 
 const copy: Record<Route, { title: string; detail: string }> = {
   systems: {
@@ -48,6 +51,7 @@ const copy: Record<Route, { title: string; detail: string }> = {
     title: "Automation Sources",
     detail: "Connect events and external sources to local work.",
   },
+	 bundles: { title: "Portable bundles", detail: "Export, compare, and apply safe automation intent on one selected scheduler." },
   schedule: { title: "Schedule", detail: "Predicted work and recorded runs." },
   activity: {
     title: "Activity",
@@ -124,6 +128,7 @@ export function App({
   settings = nativeSettingsBridge,
   agentAccess = nativeAgentAccessBridge,
   search = nativeSearchBridge,
+	 bundles = nativeBundleBridge,
 }: {
   bridge?: DesktopBridge;
   tasks?: TaskBridge;
@@ -133,6 +138,7 @@ export function App({
   settings?: SettingsBridge;
   agentAccess?: AgentAccessBridge;
   search?: SearchBridge;
+	 bundles?: BundleBridge;
 }) {
   const [route, setRoute] = useState<Route>("tasks");
   const [appearance, setAppearance] = useState<Appearance>("system");
@@ -293,6 +299,8 @@ export function App({
             snapshot.state === "connected" ? snapshot.generation : 0
           }
         />
+	  ) : route === "bundles" ? (
+		<BundlesPage bridge={bundles} targetName={targetContext} manageAvailable={canManage} />
       ) : route === "schedule" ? (
         <SchedulePage
           bridge={operations}

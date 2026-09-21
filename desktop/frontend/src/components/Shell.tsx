@@ -3,7 +3,7 @@ import { Button, Dialog, Notice, StatusBadge, ToastRegion } from '.'
 import type { Appearance, ConnectionSnapshot, Route } from '../connection/model'
 
 const routes: Array<{ id: Route; label: string }> = [
-  { id: 'systems', label: 'All Systems' }, { id: 'search', label: 'Search' }, { id: 'tasks', label: 'Tasks' }, { id: 'automation', label: 'Automation Sources' }, { id: 'schedule', label: 'Schedule' }, { id: 'activity', label: 'Activity' }, { id: 'notifications', label: 'Notifications' }, { id: 'agentAccess', label: 'Agent Access' }, { id: 'connections', label: 'Connections' }, { id: 'settings', label: 'Settings' },
+  { id: 'systems', label: 'All Systems' }, { id: 'search', label: 'Search' }, { id: 'tasks', label: 'Tasks' }, { id: 'automation', label: 'Automation Sources' }, { id: 'bundles', label: 'Bundles' }, { id: 'schedule', label: 'Schedule' }, { id: 'activity', label: 'Activity' }, { id: 'notifications', label: 'Notifications' }, { id: 'agentAccess', label: 'Agent Access' }, { id: 'connections', label: 'Connections' }, { id: 'settings', label: 'Settings' },
 ]
 
 export type ShellFeedback = { identity: string | number; message: string; tone: 'success' | 'error' }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/enrollment"
@@ -44,6 +45,8 @@ type Server struct {
 	enrollment   *enrollment.Service
 	mcpSessions  *mcpsession.Registry
 	remoteMCP    bool
+	bundlePlans  map[string]storedBundlePlan
+	bundlePlanMu sync.Mutex
 }
 
 // RuntimeInfoResponse identifies the daemon's effective local storage paths.
@@ -66,7 +69,7 @@ func New(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.R
 // NewWithRuntimeInfo constructs a Server with authoritative daemon storage
 // metadata for GET /v1/runtime-info.
 func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker, logs *logbus.Ring, logPath string, runtime RuntimeInfoResponse, log *slog.Logger) *Server {
-	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux(), enrollment: enrollment.New(st), mcpSessions: mcpsession.New(st)}
+	s := &Server{store: st, sched: sched, broker: broker, logs: logs, logPath: logPath, runtime: runtime, log: log, mux: http.NewServeMux(), enrollment: enrollment.New(st), mcpSessions: mcpsession.New(st), bundlePlans: make(map[string]storedBundlePlan)}
 	s.resolveActor = func(r *http.Request) (string, error) {
 		if secret := r.Header.Get(MCPSessionHeader); secret != "" {
 			return s.mcpSessions.Resolve(secret)
@@ -107,6 +110,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/runtime-info", s.handleRuntimeInfo)
 	s.mux.HandleFunc("GET /v1/system-summary", s.handleSystemSummary)
 	s.mux.HandleFunc("GET /v1/search", s.handleSearch)
+	s.mux.HandleFunc("GET /v1/bundles/export", s.handleBundleExport)
+	s.mux.HandleFunc("POST /v1/bundles/validate", s.handleBundleValidate)
+	s.mux.HandleFunc("POST /v1/bundles/preview", s.handleBundlePreview)
+	s.mux.HandleFunc("POST /v1/bundles/compare", s.handleBundleCompare)
+	s.mux.HandleFunc("POST /v1/bundles/apply", s.handleBundleApply)
 	s.mux.HandleFunc("GET /v1/mcp/http", s.handleMCPHTTPStatus)
 	s.mux.HandleFunc("POST /v1/mcp/http/enable", s.handleMCPHTTPEnable)
 	s.mux.HandleFunc("POST /v1/mcp/http/rotate", s.handleMCPHTTPRotate)

@@ -117,6 +117,7 @@ func newRoot() *cobra.Command {
 		newPairingCmd(),
 		newCredentialCmd(),
 		newProfileCmd(),
+		newBundleCmd(),
 	)
 	return root
 }
