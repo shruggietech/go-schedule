@@ -1,17 +1,15 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 2.0.1 → 3.0.0 (2026-08-26, reinstating pull requests as the
-  integration path for third-party review).
-Bump rationale: Requiring a review branch and pull request changes the
-  integration contract for every author and is therefore a MAJOR amendment.
-  The rule is intentionally lightweight for a one-developer project with no
-  users: it creates a durable AI-review venue without branch protection,
-  approval requirements, or other hosted enforcement.
+Version change: 3.0.0 → 3.1.0 (2026-09-21, separating engineering verification
+  from GitHub issue completion).
+Bump rationale: The amendment adds a planning-governance rule without removing
+  or weakening testing, CI, review, or release requirements. GitHub feature,
+  task, epic, and release issues now close on delivered functional outcomes;
+  defects found during release use are tracked as their own bug issues.
 
 Modified principles:
-  - V. Autonomous Build-Phase Execution (2026-08-26, v3.0.0: the mandatory halt
-    precedes review-branch publication and PR creation)
+  - None
 Added principles:
   - I. Code Quality
   - II. Testing Standards (NON-NEGOTIABLE)
@@ -22,21 +20,22 @@ Added sections:
   - Engineering Constraints
   - Development Workflow & Quality Gates
   - Governance
-Modified sections (2026-08-26, v3.0.0):
-  - Development Workflow & Quality Gates (lightweight PR-first review)
-  - Governance (the maintainer retains final review and merge judgment)
+Modified sections (2026-09-21, v3.1.0):
+  - Development Workflow & Quality Gates (outcome-based issue completion)
+  - Governance (release defects become separate active-release issues)
 
 Templates requiring updates:
   ✅ .specify/templates/plan-template.md (Constitution Check gates are dynamic;
-     no edit required for either amendment)
+     no edit required)
   ✅ .specify/templates/spec-template.md (no mandatory-section changes required)
   ✅ .specify/templates/tasks-template.md (principle-driven task categories covered)
-  ✅ README.md (contributor entry point synchronized for PR-first review)
-  ✅ CLAUDE.md (Integration workflow synchronized for PR-first, v3.0.0)
-  ✅ CONTRIBUTING.md (one integration workflow and closing-keyword guidance)
-  ✅ docs/build-autopilot.md (review branch, halt, PR, review, and cleanup flow)
-  ✅ .github/PULL_REQUEST_TEMPLATE.md (canonical verification and `Closes`)
-  ✅ .github/workflows/ci.yml (no change needed; already runs on pull requests)
+  ✅ AGENTS.md (issue acceptance and closure guidance synchronized)
+  ✅ CONTRIBUTING.md (issue closure and defect follow-up guidance synchronized)
+  ✅ docs/remote-access.md (downstream issue closure guidance synchronized)
+  ✅ test/windows/README.md (release observations no longer gate issue closure)
+  ✅ .github/ISSUE_TEMPLATE/bug_report.yml (already captures active-release defects)
+  ✅ .github/PULL_REQUEST_TEMPLATE.md (verification remains a PR requirement)
+  ✅ .github/workflows/ci.yml (verification remains enforced on pull requests)
 
 Deferred TODOs: None
 -->
@@ -120,6 +119,8 @@ Build-phase work runs under the Build-Phase Autopilot Protocol (`docs/build-auto
 - Third-party review comments MUST be considered individually. Warranted changes are made; suggestions that do not fit receive a concise rationale. AI feedback is advisory and the maintainer retains final review and merge judgment.
 - The single pre-publication halt MUST verify compliance with all five core principles, and MUST surface any change that weakens one without recorded justification.
 - Any deviation from a principle MUST be recorded in the pull-request description under a "Complexity / Deviation" note explaining why a simpler compliant approach was rejected.
+- GitHub feature, task, epic, and release issues MUST describe functional outcomes and MUST NOT make test execution, CI results, attended walkthroughs, qualification packets, evidence archives, or other verification activity a condition of issue closure. Those engineering checks remain mandatory where this constitution, the pull-request workflow, or release tooling requires them.
+- An issue closes when its functional acceptance criteria are delivered. A defect observed during CI, review, release preparation, or use of an active release MUST be filed or updated as a separate bug issue with the affected release, reproduction context, and user-visible impact instead of keeping the delivered outcome issue open.
 
 ## Governance
 
@@ -138,5 +139,6 @@ This constitution supersedes ad-hoc practices and conventions. When a technical 
 - 2026-07-22, v2.0.0: **removed the pull-request integration requirement.** Development is trunk-based: work is committed directly onto `main`, with no feature branches and no pull requests. The requirement never described this project's practice, it is a one-to-two developer project that has never used pull requests for review, and a PR with no reviewer is ceremony that adds latency without adding scrutiny. Removing a mandated gate is a backward-incompatible governance change, hence MAJOR. Nothing else is relaxed: the single pre-push halt remains mandatory and becomes the sole human review point, CI still runs on every push to `main`, and the local CI-parity requirement is *strengthened*, with no PR to block a bad merge, a red local run must halt rather than be pushed and sorted out afterwards. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
 - 2026-07-23, v2.0.1: **retired `TODO.md`; the roadmap is now the GitHub issue tracker.** Principle V's standing authorization previously named `TODO.md` as the second source of traceable scope alongside the master specification. That file duplicated, in prose a reader had to be told to look at, work that belongs in the tracker where it can be labelled, discussed, and closed; its eight remaining open items were filed as issues #13 through #20 and the file was removed. This is a PATCH clarification: what autopilot may run without further authorization is unchanged, only where that scope is recorded. Mirrored in `CLAUDE.md` and `docs/build-autopilot.md`.
 - 2026-08-26, v3.0.0: **reinstated pull requests as the mandatory integration path.** Recent maintainer work established that a review branch and PR are useful venues for third-party AI review. Autopilot now halts before review-branch publication and PR creation. That publication authorization continues through verified, in-scope review-fix pushes to the same open PR, avoiding contradictory extra halts during review. The amendment deliberately adds no branch protection, approval requirement, fixed check list, or mandatory conversation rule; those controls are disproportionate for the current one-developer project with no users. The maintainer considers feedback and retains final merge judgment. Mirrored in `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/build-autopilot.md`, and the PR template.
+- 2026-09-21, v3.1.0: **separated engineering verification from GitHub issue completion.** Tests, CI, review, and release checks remain mandatory under principles I through V and the pull-request workflow, but they are not acceptance criteria or closure gates for feature, task, epic, or release issues. Functional outcomes close when delivered. Defects found during verification or in an active release are tracked as separate bug issues with release and reproduction context. Mirrored in `AGENTS.md`, `CONTRIBUTING.md`, `docs/remote-access.md`, and `test/windows/README.md`.
 
-**Version**: 3.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-08-26
+**Version**: 3.1.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-09-21

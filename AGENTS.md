@@ -20,9 +20,9 @@
 
 - Bundle as many compatible GitHub Issues into one implementation slice as can be completed, validated, and reviewed coherently.
 - Do not default to one GitHub Issue per implementation slice. Split work only when dependencies, risk, reviewability, platform boundaries, conflicting validation needs, or independent delivery value make separate slices materially clearer or safer.
-- Preserve issue-level traceability inside a bundled slice by naming every included issue, satisfying each issue's acceptance criteria, and reporting any issue that remains incomplete instead of closing it implicitly.
+- Preserve issue-level traceability inside a bundled slice by naming every included issue, satisfying each issue's functional acceptance criteria, and reporting any issue whose functional outcome remains incomplete instead of closing it implicitly.
 - Prefer slices that deliver a meaningful end-to-end capability or release increment over artificially narrow issue-by-issue churn.
-- Do not close an issue merely because it was included in a slice. Close it only after its individual acceptance criteria and required verification are complete.
+- Do not close an issue merely because it was included in a slice. Close it when its individual functional acceptance criteria are delivered. Tests, CI, attended walkthroughs, qualification packets, evidence archives, and other verification activity MUST NOT be GitHub issue closure gates; any defect they reveal MUST be filed or updated as a separate bug issue against the affected active release.
 
 ## GitHub project management
 
@@ -33,14 +33,14 @@
 - Organize substantial work under outcome-oriented or release-oriented milestones. Give every planned issue the appropriate milestone unless the repository convention explicitly permits an unmilestoned backlog.
 - Use coordinator or epic issues for work spanning several child issues or milestones. Each child issue must identify its parent, and each coordinator issue must maintain a linked child-issue index and a completion checklist.
 - Record dependencies with explicit GitHub issue references. State what an issue depends on, what it blocks when useful, and the order in which dependent work can safely proceed.
-- Give every issue a specific outcome, bounded scope, acceptance criteria, dependency section, and links to the specifications, decisions, incidents, or review findings that authorize it.
+- Give every issue a specific outcome, bounded scope, functional acceptance criteria, dependency section, and links to the specifications, decisions, incidents, or review findings that authorize it. Acceptance criteria MUST describe product or planning outcomes and MUST NOT require verification activity for closure.
 - Apply the repository's established label taxonomy consistently. Prefer structured label families for work type, functional area, priority, and estimated effort when those families exist.
 - Treat “tags” as GitHub labels. Do not create synonymous, differently punctuated, or differently capitalized labels when an existing label already represents the same category.
 - Create or revise labels when the roadmap introduces a durable new category. Every label must have a concise description, an intentional color, and a scope that does not overlap confusingly with existing labels.
 - Follow the repository's established title-prefix convention, such as lifecycle, stability, release-stage, or work-type prefixes. Inspect existing usage before selecting a prefix, apply it consistently, and do not invent a new prefix for a single issue.
 - Do not invent milestone deadlines, release dates, priorities, assignees, or completion claims without supporting project authority.
-- Keep planned capabilities visibly distinct from shipped capabilities. Closing an issue or milestone must not cause documentation, associations, release notes, or public claims to advertise behavior that has not passed its release gates.
-- When completed historical work must be represented, create a clearly identified retrospective issue or milestone, attach the available implementation and verification evidence, and close it as completed without rewriting project history.
+- Keep planned capabilities visibly distinct from shipped capabilities. Closing an issue or milestone must not cause documentation, associations, release notes, or public claims to advertise behavior that has not been implemented or published as stated.
+- When completed historical work must be represented, create a clearly identified retrospective issue or milestone, attach the available implementation references and known defect links, and close it as completed without rewriting project history.
 - After bulk creation or reorganization, audit the complete planning surface for duplicate titles, missing milestones, missing required labels, broken issue references, missing parent links, invalid dependency ordering, and incorrect open or closed states.
 - Prefer idempotent automation for bulk GitHub management. Match existing records by stable identity or exact canonical title so an interrupted run can resume without creating duplicates.
 - Never create, modify, close, or reorganize issues in a repository that does not match the verified Git remote or the repository explicitly named by the user.
