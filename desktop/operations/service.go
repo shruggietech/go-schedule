@@ -81,6 +81,50 @@ func (s *Service) ActivityWorkspace(ctx context.Context) OperationResult {
 	return OperationResult{Action: "load_activity", Outcome: "accepted", Message: "Activity is up to date.", Activity: &workspace}
 }
 
+// ActivityRecord loads one source-selected run or alert outside the bounded recent view.
+func (s *Service) ActivityRecord(ctx context.Context, kind, id string) OperationResult {
+	c, cancel := context.WithTimeout(ctx, callTimeout)
+	defer cancel()
+	if kind == "failure" {
+		reader, ok := s.backend.(interface {
+			GetRun(context.Context, string) (domain.Run, error)
+		})
+		if !ok {
+			return OperationResult{Action: "load_activity_record", Outcome: "rejected", Message: "This scheduler cannot load an exact run record."}
+		}
+		run, err := reader.GetRun(c, id)
+		if err != nil {
+			return failure("load_activity_record", err)
+		}
+		workspace := buildActivity([]domain.Run{run}, server.LogsResponse{Logs: []domain.LogRecord{}}, []domain.Alert{}, s.now())
+		return OperationResult{Action: "load_activity_record", Outcome: "accepted", Message: "Opened the selected run record.", Activity: &workspace}
+	}
+	if kind == "alert" {
+		reader, ok := s.backend.(interface {
+			ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
+		})
+		if !ok {
+			return OperationResult{Action: "load_activity_record", Outcome: "rejected", Message: "This scheduler cannot load an exact alert record."}
+		}
+		for offset := 0; ; offset += activityLimit {
+			alerts, err := reader.ListAlertsPage(c, false, offset, activityLimit, 0)
+			if err != nil {
+				return failure("load_activity_record", err)
+			}
+			for _, alert := range alerts {
+				if alert.ID == id {
+					workspace := buildActivity([]domain.Run{}, server.LogsResponse{Logs: []domain.LogRecord{}}, []domain.Alert{alert}, s.now())
+					return OperationResult{Action: "load_activity_record", Outcome: "accepted", Message: "Opened the selected alert record.", Activity: &workspace}
+				}
+			}
+			if len(alerts) < activityLimit {
+				break
+			}
+		}
+	}
+	return OperationResult{Action: "load_activity_record", Outcome: "rejected", Message: "The selected activity record no longer exists."}
+}
+
 func mergeRuns(persisted, active []domain.Run) []domain.Run {
 	merged := append([]domain.Run(nil), persisted...)
 	seen := make(map[string]bool, len(persisted))

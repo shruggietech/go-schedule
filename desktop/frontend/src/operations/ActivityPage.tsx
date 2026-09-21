@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button, Notice, StatePanel } from '../components'
 import type { ActivityWorkspace, AlertRecord, LogRecord, OperationsBridge, RunRecord } from './model'
 import { useActivity } from './store'
@@ -25,11 +25,12 @@ function Detail({ item, missing, canMutate, pending, acknowledge }: { item?: Act
   return <aside className="panel operation-detail"><h2>Alert details</h2><dl><dt>Status</dt><dd>{alert.acknowledged ? 'Acknowledged' : 'Unacknowledged'}</dd><dt>Severity</dt><dd>{label(alert.severity)}</dd><dt>Kind</dt><dd>{label(alert.kind)}</dd><dt>Time</dt><dd>{localTime(alert.time)}</dd><dt>Task ID</dt><dd><code>{alert.taskId || 'Unavailable'}</code></dd><dt>Run ID</dt><dd><code>{alert.runId || 'Unavailable'}</code></dd></dl><p>{alert.message}</p>{!alert.acknowledged && <Button disabled={!canMutate || pending} onClick={() => acknowledge(alert.id)}>Acknowledge alert</Button>}</aside>
 }
 
-export function ActivityPage({ bridge, available, refreshToken, targetName = 'This computer', canMutate = available }: { bridge: OperationsBridge; available: boolean; refreshToken: number; targetName?: string; canMutate?: boolean }) {
-  const { workspace, status, pending, load, acknowledge } = useActivity(bridge, available, refreshToken)
+export function ActivityPage({ bridge, available, refreshToken, targetName = 'This computer', canMutate = available, initialRecordId, initialRecordKind }: { bridge: OperationsBridge; available: boolean; refreshToken: number; targetName?: string; canMutate?: boolean; initialRecordId?: string; initialRecordKind?: string }) {
+	const { workspace, status, pending, load, acknowledge } = useActivity(bridge, available, refreshToken, initialRecordId && initialRecordKind ? { id: initialRecordId, kind: initialRecordKind } : undefined)
   const reconciling = status?.outcome === 'uncertain'
   const [query, setQuery] = useState(''); const [type, setType] = useState('all'); const [severity, setSeverity] = useState('all'); const [outcome, setOutcome] = useState('all'); const [selectedID, setSelectedID] = useState(''); const [clearedAt, setClearedAt] = useState('')
   const rows = useMemo(() => activityItems(workspace).filter((item) => (!clearedAt || item.time > clearedAt) && (type === 'all' || item.type === type) && (severity === 'all' || item.severity === severity) && (outcome === 'all' || item.state === outcome) && (!query.trim() || item.search.includes(query.trim().toLowerCase()))), [clearedAt, outcome, query, severity, type, workspace])
+  useEffect(() => { if (initialRecordId) { const found = activityItems(workspace).find((item) => (item.raw as { id: string }).id === initialRecordId); if (found) setSelectedID(found.id) } }, [initialRecordId, workspace])
   const selected = rows.find((item) => item.id === selectedID); const missing = Boolean(selectedID && workspace && !selected)
   const clear = () => { const alertIDs = rows.filter((item) => item.type === 'alert' && !(item.raw as AlertRecord).acknowledged).map((item) => (item.raw as AlertRecord).id); setClearedAt(new Date().toISOString()); if (alertIDs.length) void acknowledge(alertIDs) }
   return <>

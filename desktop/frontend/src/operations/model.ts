@@ -8,6 +8,7 @@ export type OperationResult = { action: string; outcome: 'accepted' | 'rejected'
 export interface OperationsBridge {
   scheduleWindow(days: number): Promise<OperationResult>
   activityWorkspace(): Promise<OperationResult>
+	activityRecord?(kind: string, id: string): Promise<OperationResult>
   acknowledgeAlert(id: string): Promise<OperationResult>
   acknowledgeAlerts(ids: string[]): Promise<OperationResult>
   subscribe?(listener: (event: { kind: string }) => void): () => void

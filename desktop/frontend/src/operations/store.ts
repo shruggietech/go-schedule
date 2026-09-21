@@ -24,7 +24,7 @@ export function useSchedule(bridge: OperationsBridge, days: number, available: b
   return { snapshot, status, load }
 }
 
-export function useActivity(bridge: OperationsBridge, available: boolean, refreshToken: number) {
+export function useActivity(bridge: OperationsBridge, available: boolean, refreshToken: number, initialRecord?: { kind: string; id: string }) {
   const [workspace, setWorkspace] = useState<ActivityWorkspace>()
   const [status, setStatus] = useState<OperationResult>()
   const [pending, setPending] = useState(false)
@@ -46,6 +46,7 @@ export function useActivity(bridge: OperationsBridge, available: boolean, refres
     } finally { setPending(false) }
   }, [apply, available, bridge, pending])
   useEffect(() => { void load() }, [load, refreshToken])
+	useEffect(() => { if (available && initialRecord) { const request = bridge.activityRecord?.(initialRecord.kind, initialRecord.id); if (request) void request.then(apply) } }, [apply, available, bridge, initialRecord?.id, initialRecord?.kind])
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = bridge.subscribe?.((event) => { if (relevant(event.kind)) { clearTimeout(timer); timer = setTimeout(() => void load(), 75) } })

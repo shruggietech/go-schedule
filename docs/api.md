@@ -115,6 +115,14 @@ Ordinary Trigger Set representations include stable set identity, name, target, 
 | `POST` | `/v1/trigger-sets/{id}/rotate` | Atomically rotate every key and return ordered replacement secrets |
 | `POST` | `/v1/trigger-sets/{id}/reveal` | Explicitly return current ordered secrets |
 
+## Bounded search
+
+`GET /v1/search` returns one versioned, secret-free search observation over tasks, groups, failed runs, upcoming scheduled tasks, and unacknowledged alerts. The required `q` parameter accepts one through 200 Unicode characters after trimming. Repeated `kind` parameters may select `task`, `group`, `failure`, `schedule`, or `alert`; omission searches every kind. `limit` defaults to 50 and accepts one through 50.
+
+The response schema is `go-schedule.daemon-search.v1`. Each result contains its kind, stable object identity, safe display name, optional task identity, bounded context, optional occurrence time or enabled state, and advisory action hints. The response never includes task commands, arguments, working directories, environments, stdin, run output, alert messages, credentials, notification payloads, certificate bodies, or secret-bearing endpoints. Observe authority is sufficient, and the read creates no mutation audit record.
+
+Upcoming schedule results are the nearest valid occurrence for matching active scheduled tasks within 30 days. Failure results include failed runs only, and alert results include unacknowledged alerts only. Results are deterministic and bounded; `truncated` reports when more safe matches existed than the requested limit.
+
 ## Runtime storage information
 
 `GET /v1/runtime-info` returns the absolute effective paths used by the running daemon: `data_dir`, `database_path`, optional `config_path`, `log_path`, and `lock_path`. Desktop clients use this endpoint for read-only storage disclosure, including when the daemon was launched with a custom configuration path.

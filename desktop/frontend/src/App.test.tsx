@@ -7,6 +7,7 @@ import type { TaskBridge } from './tasks/model'
 import type { OperationsBridge } from './operations/model'
 import type { SettingsBridge, SettingsWorkspace } from './settings/model'
 import type { NotificationBridge } from './notifications/model'
+import type { SearchBridge, SearchSnapshot } from './search/model'
 
 const connected: ConnectionSnapshot = { generation: 1, revision: 2, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'linux', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.' }
 const bridge: DesktopBridge = { snapshot: vi.fn().mockResolvedValue(connected), retry: vi.fn().mockResolvedValue({ action: 'retry', outcome: 'accepted', message: 'Trying again.' }), quit: vi.fn().mockResolvedValue({ action: 'quit', outcome: 'accepted', message: 'Closing.' }), subscribe: () => () => undefined }
@@ -17,8 +18,23 @@ const settingsWorkspace: SettingsWorkspace = { preferences: { version: 1, appear
 const settings: SettingsBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_settings', outcome: 'accepted', message: 'Loaded.', workspace: settingsWorkspace }), saveAppearance: vi.fn().mockImplementation(async (appearance) => ({ action: 'save_appearance', outcome: 'accepted', message: 'Saved.', workspace: { ...settingsWorkspace, preferences: { ...settingsWorkspace.preferences, appearance } } })), restore: vi.fn(), copyStoragePath: vi.fn(), openProductLink: vi.fn() }
 const notifications: NotificationBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_notifications', outcome: 'accepted', message: 'Loaded.', workspace: { channels: [], tasks: [], groups: [], deliveries: [], loadedAt: '2026-09-07T00:00:00Z' } }), saveChannel: vi.fn(), setChannelEnabled: vi.fn(), testChannel: vi.fn(), deleteChannel: vi.fn(), policy: vi.fn(), savePolicy: vi.fn() }
 const systemsSnapshot: SystemsSnapshot = { generation: 1, startedAt: '2026-09-21T15:00:00Z', completedAt: '2026-09-21T15:00:01Z', complete: true, observations: [{ registration: { key: 'profile-7', profileId: 'profile-7', kind: 'remote', label: 'Production', endpoint: 'https://example.test', daemonId: 'daemon-identity', shortDaemonId: 'daemon-i', platform: 'linux', version: '1.5.0' }, state: 'connected', observedAt: '2026-09-21T15:00:00Z', stale: false, summary: { schema: 'go-schedule.system-summary.v1', observed_at: '2026-09-21T15:00:00Z', active_task_count: 1, recent_failure_count: 1, recent_failure: { run_id: 'run-7', task_id: 'task-7', task_name: 'Archive', ended_at: '2026-09-21T14:00:00Z' }, unacknowledged_alert_count: 0, notification_problem_count: 0 } }] }
+const searchSnapshot: SearchSnapshot = { generation: 1, query: 'archive', startedAt: '2026-09-21T15:00:00Z', completedAt: '2026-09-21T15:00:01Z', complete: true, observations: [{ registration: { key: 'profile-7', profileId: 'profile-7', kind: 'remote', label: 'Production', daemonId: 'expected-daemon', shortDaemonId: 'expected' }, state: 'connected', observedAt: '2026-09-21T15:00:00Z', truncated: false, matches: [{ registrationKey: 'profile-7', expectedDaemonId: 'expected-daemon', sourceLabel: 'Production', sourceShortId: 'expected', result: { kind: 'task', object_id: 'task-7', task_id: 'task-7', name: 'Archive', action_hints: ['run_now'] }, availableActions: ['open', 'run_now'] }] }] }
+const search: SearchBridge = { search: vi.fn().mockResolvedValue(searchSnapshot), execute: vi.fn(), subscribe: () => () => undefined }
 
 describe('production shell', () => {
+  it('leaves search open when the selected registration resolves to a different daemon identity', async () => {
+    const user = userEvent.setup()
+    const identityChanged: ConnectionSnapshot = { ...connected, target: { ...connected.target, id: 'different-daemon', profileId: 'profile-7', kind: 'remote', displayName: 'Production' } }
+    const selecting: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(identityChanged), selectConnection: vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' }) }
+    render(<App bridge={selecting} tasks={tasks} settings={settings} search={search} />)
+    await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await user.type(screen.getByLabelText('Search all systems'), 'archive')
+    await user.click(screen.getAllByRole('button', { name: /^Search$/ }).at(-1)!)
+    await user.click(await screen.findByRole('button', { name: 'Open' }))
+    expect(await screen.findByText('The scheduler identity changed. Search was left open and no record was opened.')).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible()
+  })
+
   it('keeps remote identity visible and fails closed for unsupported or observe-only actions', async () => {
     const user = userEvent.setup()
     const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks', 'schedule', 'activity'], permissions: ['read'] } }

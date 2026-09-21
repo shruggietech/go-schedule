@@ -39,6 +39,16 @@ func (b *LocalBackend) ListLogs(ctx context.Context, severity string, limit int)
 func (b *LocalBackend) ListAlertsLimited(ctx context.Context, unacked bool, limit int) ([]domain.Alert, error) {
 	return b.daemon.ListAlertsLimited(ctx, unacked, limit)
 }
+func (b *LocalBackend) GetRun(ctx context.Context, id string) (domain.Run, error) {
+	return b.daemon.(interface {
+		GetRun(context.Context, string) (domain.Run, error)
+	}).GetRun(ctx, id)
+}
+func (b *LocalBackend) ListAlertsPage(ctx context.Context, unacked bool, offset, limit, messageLimit int) ([]domain.Alert, error) {
+	return b.daemon.(interface {
+		ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
+	}).ListAlertsPage(ctx, unacked, offset, limit, messageLimit)
+}
 func (b *LocalBackend) AckAlert(ctx context.Context, id string) error {
 	return b.daemon.AckAlert(ctx, id)
 }
