@@ -117,3 +117,37 @@ func TestSearchFactsHandlesEmptyInputDisabledObjectsAndKindIsolation(t *testing.
 		t.Fatalf("failure-only search = %+v, %v", failures, searchErr)
 	}
 }
+
+func TestSearchFactsAdvertisesEnableOnlyForReadyTaskAndPagesSchedules(t *testing.T) {
+	st := openMem(t)
+	schedule := &domain.Schedule{ID: "schedule-ready", Kind: domain.ScheduleRecurring, RRULE: "FREQ=DAILY", HumanSummary: "Daily"}
+	if err := st.CreateSchedule(schedule); err != nil {
+		t.Fatal(err)
+	}
+	ready := &domain.Task{ID: "ready-task", Name: "Ready archive", Command: "echo", Enabled: false, Timezone: "UTC", ScheduleID: schedule.ID, State: domain.TaskActive}
+	if err := st.CreateTask(ready); err != nil {
+		t.Fatal(err)
+	}
+	results, err := st.SearchFacts("ready archive", map[domain.SearchKind]bool{domain.SearchKindTask: true}, 10)
+	if err != nil || len(results) != 1 || len(results[0].ActionHints) != 3 || results[0].ActionHints[1] != domain.SearchActionEnable {
+		t.Fatalf("ready task search = %+v, %v", results, err)
+	}
+	schedules, err := st.SearchScheduleFacts("ready archive", 0, 1)
+	if err != nil || len(schedules) != 1 || schedules[0].TaskID != ready.ID {
+		t.Fatalf("schedule page = %+v, %v", schedules, err)
+	}
+	if schedules, err := st.SearchScheduleFacts("ready archive", 1, 1); err != nil || len(schedules) != 0 {
+		t.Fatalf("empty schedule page = %+v, %v", schedules, err)
+	}
+	for _, request := range []struct {
+		query         string
+		offset, limit int
+	}{{"", 0, 1}, {"ready archive", -1, 1}, {"ready archive", 0, 0}} {
+		if schedules, err := st.SearchScheduleFacts(request.query, request.offset, request.limit); err != nil || len(schedules) != 0 {
+			t.Fatalf("invalid schedule page = %+v, %v", schedules, err)
+		}
+	}
+	if ready, err := st.taskEnableReady("missing"); err == nil || ready {
+		t.Fatalf("missing task readiness = %v, %v", ready, err)
+	}
+}
