@@ -10,6 +10,7 @@ export function useAgentAccess(bridge: AgentAccessBridge, available: boolean, re
   const [actions, setActions] = useState<AgentActionsResult>()
   const [pending, setPending] = useState(false)
   const sequence = useRef(0)
+  const actionsSequence = useRef(0)
   const mutationPending = useRef(false)
   const apply = useCallback((result: AgentAccessResult) => { setStatus(result); if (result.workspace) setWorkspace(result.workspace) }, [])
   const load = useCallback(async () => {
@@ -25,8 +26,10 @@ export function useAgentAccess(bridge: AgentAccessBridge, available: boolean, re
     try { const result = await work(); if (request === sequence.current) apply(result) } catch { if (request === sequence.current) apply(unavailable('agent_access_action')) } finally { mutationPending.current = false; setPending(false) }
   }, [apply, available])
   const loadActions = useCallback(async (actorId: string) => {
+    const request = ++actionsSequence.current
+    setActions(undefined)
     setPending(true)
-    try { setActions(await bridge.actions(actorId)) } catch { setActions(actionsUnavailable()) } finally { setPending(false) }
+    try { const result = await bridge.actions(actorId); if (request === actionsSequence.current) setActions(result) } catch { if (request === actionsSequence.current) setActions(actionsUnavailable()) } finally { if (request === actionsSequence.current) setPending(false) }
   }, [bridge])
   useEffect(() => { void load() }, [load, refreshToken])
   useEffect(() => {
@@ -48,7 +51,7 @@ export function useAgentAccess(bridge: AgentAccessBridge, available: boolean, re
     editGrant: (draft: AgentGrantEditDraft) => mutate(() => bridge.editGrant(draft)),
     revokeGrant: (actorId: string) => mutate(() => bridge.revokeGrant(actorId)),
     loadActions,
-    clearActions: () => setActions(undefined),
+    clearActions: () => { actionsSequence.current++; setActions(undefined); setPending(false) },
     openGuide: () => mutate(bridge.openGuide),
   }
 }

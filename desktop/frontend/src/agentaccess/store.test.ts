@@ -50,6 +50,24 @@ describe('useAgentAccess', () => {
     expect(result.current.message).not.toContain('native detail')
   })
 
+  it('ignores stale recent-action responses after switching actors', async () => {
+    let resolveFirst!: (value: ReturnType<AgentAccessBridge['actions']> extends Promise<infer T> ? T : never) => void
+    let resolveSecond!: (value: ReturnType<AgentAccessBridge['actions']> extends Promise<infer T> ? T : never) => void
+    const api = bridge()
+    api.actions = vi.fn()
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve }))
+    const { result } = renderHook(() => useAgentAccess(api, true, 1))
+    await waitFor(() => expect(result.current.workspace).toEqual(workspace))
+    act(() => { void result.current.loadActions('actor-a') })
+    act(() => { void result.current.loadActions('actor-b') })
+    act(() => resolveSecond({ action: 'load_agent_actions', outcome: 'accepted', message: 'current', actions: [] }))
+    await waitFor(() => expect(result.current.actions?.message).toBe('current'))
+    act(() => resolveFirst({ action: 'load_agent_actions', outcome: 'accepted', message: 'stale', actions: [] }))
+    await waitFor(() => expect(result.current.pending).toBe(false))
+    expect(result.current.actions?.message).toBe('current')
+  })
+
   it('refreshes evidence while localhost access is active', async () => {
     vi.useFakeTimers()
     const active = { ...workspace, http: { ...workspace.http, enabled: true } }

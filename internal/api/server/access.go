@@ -29,6 +29,7 @@ type ActorUpdateRequest struct {
 	State           *domain.ActorState `json:"state,omitempty"`
 	ExpiresAt       *time.Time         `json:"expires_at,omitempty"`
 	ClearExpiration bool               `json:"clear_expiration,omitempty"`
+	Monotonic       bool               `json:"monotonic,omitempty"`
 }
 
 type auditResponseWriter struct {
@@ -192,6 +193,20 @@ func (s *Server) handleUpdateActor(w http.ResponseWriter, r *http.Request) {
 	}
 	if request.DisplayName == nil && request.Capability == nil && request.State == nil && request.ExpiresAt == nil && !request.ClearExpiration {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "provide at least one actor field")
+		return
+	}
+	if request.Monotonic {
+		if request.DisplayName != nil || request.State != nil || request.ClearExpiration || (request.Capability == nil && request.ExpiresAt == nil) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "body", "monotonic updates may only narrow capability or expiry")
+			return
+		}
+		var expires **time.Time
+		if request.ExpiresAt != nil {
+			value := request.ExpiresAt
+			expires = &value
+		}
+		actor, err := s.store.NarrowActor(r.PathValue("id"), store.ActorUpdate{Capability: request.Capability, ExpiresAt: expires})
+		s.writeActorResult(w, actor, err)
 		return
 	}
 	var expires **time.Time

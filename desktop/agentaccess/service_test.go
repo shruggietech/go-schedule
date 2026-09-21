@@ -23,6 +23,7 @@ type fakeBackend struct {
 	err         error
 	disableErr  error
 	disabled    int
+	lastUpdate  server.ActorUpdateRequest
 }
 
 func (b *fakeBackend) Manifest(context.Context) (server.ManifestResponse, error) {
@@ -59,6 +60,7 @@ func (b *fakeBackend) CancelPairing(context.Context, string) (domain.PairingSess
 	return b.pairing.PairingSession, b.disableErr
 }
 func (b *fakeBackend) UpdateActor(_ context.Context, id string, request server.ActorUpdateRequest) (domain.Actor, error) {
+	b.lastUpdate = request
 	for i := range b.actors {
 		if b.actors[i].ID != id {
 			continue
@@ -243,6 +245,11 @@ func TestCreateGrantCopiesBundleWithoutReturningPhraseAndRollsBackFailure(t *tes
 	if result.Outcome != "accepted" || !strings.Contains(native.copied, "GO_SCHEDULE_MCP_ENROLLMENT_V1") || !strings.Contains(native.copied, "phrase=one-time-phrase") || strings.Contains(fmt.Sprintf("%+v", result), "one-time-phrase") {
 		t.Fatalf("result=%+v copied=%q", result, native.copied)
 	}
+	for _, field := range []string{"display_name=Release agent", "kind=mcp", "capability=manage"} {
+		if !strings.Contains(native.copied, field) {
+			t.Fatalf("enrollment bundle missing %q: %q", field, native.copied)
+		}
+	}
 	if backend.pairing.GrantExpiresAt == nil || !backend.pairing.GrantExpiresAt.Equal(now.Add(7*24*time.Hour)) {
 		t.Fatalf("pairing=%+v", backend.pairing)
 	}
@@ -270,6 +277,9 @@ func TestGrantEditsAreMonotonicAndActionsAreBounded(t *testing.T) {
 	if backend.actors[0].Capability != domain.CapabilityOperate || backend.actors[0].ExpiresAt == nil || !backend.actors[0].ExpiresAt.Equal(now.Add(7*24*time.Hour)) {
 		t.Fatalf("actor=%+v", backend.actors[0])
 	}
+	if !backend.lastUpdate.Monotonic {
+		t.Fatal("desktop grant edit did not request atomic monotonic enforcement")
+	}
 	if result := service.EditGrant(context.Background(), GrantEditDraft{ActorID: actor.ID, Capability: "manage"}); result.Outcome != "rejected" {
 		t.Fatalf("widen=%+v", result)
 	}
@@ -279,5 +289,20 @@ func TestGrantEditsAreMonotonicAndActionsAreBounded(t *testing.T) {
 	}
 	if result := service.RevokeGrant(context.Background(), actor.ID); result.Outcome != "accepted" || backend.actors[0].State != domain.ActorStateRevoked {
 		t.Fatalf("revoke=%+v actor=%+v", result, backend.actors[0])
+	}
+}
+
+func TestWorkspaceUsesNewestAuditAsStdioLastUse(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	actor := domain.Actor{ID: "stdio-agent", Kind: domain.ActorKindMCP, DisplayName: "Stdio agent", Capability: domain.CapabilityObserve, State: domain.ActorStateActive, CreatedAt: now.Add(-time.Hour)}
+	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}, actors: []domain.Actor{actor}, events: []domain.AuditEvent{
+		{ActorID: actor.ID, OccurredAt: now},
+		{ActorID: actor.ID, OccurredAt: now.Add(-time.Minute)},
+	}}
+	service := NewService(backend, &fakeNative{})
+	service.now = func() time.Time { return now }
+	result := service.Workspace(context.Background())
+	if result.Workspace == nil || len(result.Workspace.Grants) != 1 || result.Workspace.Grants[0].Transport != "stdio" || result.Workspace.Grants[0].LastUsedAt != now.Format(time.RFC3339Nano) {
+		t.Fatalf("workspace=%+v", result.Workspace)
 	}
 }

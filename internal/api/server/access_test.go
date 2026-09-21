@@ -120,6 +120,30 @@ func TestActorAPIUsesIntentFirstAuditAndProtectsLocalActor(t *testing.T) {
 	}
 }
 
+func TestActorAPIMonotonicUpdateRejectsStaleWidening(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Agent", domain.CapabilityManage, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := func(capability string) *httptest.ResponseRecorder {
+		response := httptest.NewRecorder()
+		body := bytes.NewBufferString(`{"capability":"` + capability + `","monotonic":true}`)
+		s.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/v1/access/actors/"+actor.ID, body))
+		return response
+	}
+	if response := request("observe"); response.Code != http.StatusOK {
+		t.Fatalf("narrow status=%d body=%s", response.Code, response.Body.String())
+	}
+	if response := request("operate"); response.Code != http.StatusBadRequest {
+		t.Fatalf("stale widening status=%d body=%s", response.Code, response.Body.String())
+	}
+	current, err := s.store.GetActor(actor.ID)
+	if err != nil || current.Capability != domain.CapabilityObserve {
+		t.Fatalf("actor=%+v err=%v", current, err)
+	}
+}
+
 func TestCurrentActorReportsServerOwnedAuthorityToObserveClients(t *testing.T) {
 	s := newTestServer(t)
 	actor, err := s.store.CreateActor(domain.ActorKindDesktop, "Remote desktop", domain.CapabilityOperate, nil)

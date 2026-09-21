@@ -102,7 +102,7 @@ func (s *Service) CreateGrant(ctx context.Context, draft GrantDraft) Result {
 	if pairing.GrantExpiresAt != nil {
 		grantExpiry = pairing.GrantExpiresAt.UTC().Format(time.RFC3339)
 	}
-	bundle := fmt.Sprintf("GO_SCHEDULE_MCP_ENROLLMENT_V1\ndaemon_id=%s\npairing_id=%s\nphrase=%s\ncapability=%s\ngrant_expires_at=%s\n", pairing.DaemonID, pairing.ID, pairing.Phrase, pairing.Capability, grantExpiry)
+	bundle := fmt.Sprintf("GO_SCHEDULE_MCP_ENROLLMENT_V1\ndaemon_id=%s\npairing_id=%s\nphrase=%s\ndisplay_name=%s\nkind=%s\ncapability=%s\ngrant_expires_at=%s\n", pairing.DaemonID, pairing.ID, pairing.Phrase, name, domain.ActorKindMCP, pairing.Capability, grantExpiry)
 	pairing.Phrase = ""
 	copyCtx, copyCancel := context.WithTimeout(ctx, operationTimeout)
 	copyErr := context.Canceled
@@ -131,7 +131,7 @@ func (s *Service) EditGrant(ctx context.Context, draft GrantEditDraft) Result {
 	if !ok || actor.Builtin || actor.Kind != domain.ActorKindMCP || actor.State != domain.ActorStateActive || !actor.ActiveAt(s.now()) {
 		return Result{Action: "edit_agent_grant", Outcome: "rejected", Message: "This active MCP grant is no longer available to change."}
 	}
-	request := server.ActorUpdateRequest{}
+	request := server.ActorUpdateRequest{Monotonic: true}
 	if draft.Capability != "" {
 		capability := domain.Capability(draft.Capability)
 		if !narrowerOrEqual(actor.Capability, capability) {
@@ -257,6 +257,12 @@ func (s *Service) workspace(ctx context.Context) (Workspace, error) {
 			transport = "localhost_http"
 			if status.LastAccessedAt != nil {
 				lastUsed = status.LastAccessedAt.UTC().Format(time.RFC3339Nano)
+			}
+		}
+		if transport == "stdio" {
+			events, auditErr := s.backend.ListAudit(callCtx, domain.AuditQuery{ActorID: actor.ID, Limit: 1})
+			if auditErr == nil && len(events) > 0 {
+				lastUsed = events[0].OccurredAt.UTC().Format(time.RFC3339Nano)
 			}
 		}
 		state := actor.State
