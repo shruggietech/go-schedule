@@ -89,6 +89,56 @@ func (s *Store) UpdateCompletionChain(c *domain.CompletionChain) error {
 	return nil
 }
 
+// ReplaceCompletionChains atomically replaces existing chain definitions. It
+// is used for reviewed portable imports so valid final graphs that swap two
+// relationship identities do not fail against a transient unique constraint.
+func (s *Store) ReplaceCompletionChains(chains []domain.CompletionChain) error {
+	if len(chains) == 0 {
+		return nil
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin replace completion chains: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	oldTargets := make([]string, 0, len(chains))
+	for i := range chains {
+		var created string
+		var targetID string
+		if err := tx.QueryRow(`SELECT created_at,target_task_id FROM completion_chains WHERE id=?`, chains[i].ID).Scan(&created, &targetID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("store: read completion chain for replacement: %w", err)
+		}
+		oldTargets = append(oldTargets, targetID)
+		chains[i].CreatedAt, _ = parseTime(created)
+		chains[i].UpdatedAt = time.Now().UTC()
+	}
+	for _, chain := range chains {
+		if _, err := tx.Exec(`DELETE FROM completion_chains WHERE id=?`, chain.ID); err != nil {
+			return fmt.Errorf("store: stage completion chain replacement: %w", err)
+		}
+	}
+	for _, chain := range chains {
+		if err := validateCompletionChain(tx, &chain, ""); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO completion_chains(id,source_task_id,target_task_id,on_outcome,created_at,updated_at) VALUES(?,?,?,?,?,?)`, chain.ID, chain.SourceTaskID, chain.TargetTaskID, string(chain.OnOutcome), fmtTime(chain.CreatedAt), fmtTime(chain.UpdatedAt)); err != nil {
+			if isUniqueConstraint(err) {
+				return ErrDuplicateChain
+			}
+			return fmt.Errorf("store: replace completion chain: %w", err)
+		}
+	}
+	for _, targetID := range oldTargets {
+		if err := disableIfNotActivationReady(tx, targetID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // GetCompletionChain returns one relationship enriched with current task names.
 func (s *Store) GetCompletionChain(id string) (domain.CompletionChain, error) {
 	return scanCompletionChain(s.db.QueryRow(completionChainSelect+` WHERE c.id=?`, id))

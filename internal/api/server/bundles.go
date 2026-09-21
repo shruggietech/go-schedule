@@ -16,7 +16,10 @@ import (
 	"github.com/shruggietech/go-schedule/internal/timezone"
 )
 
-const bundlePlanLifetime = 15 * time.Minute
+const (
+	bundlePlanLifetime = 15 * time.Minute
+	maxBundlePlans     = 8
+)
 
 // BundleRequest carries an untrusted portable document for validation or review.
 type BundleRequest struct {
@@ -177,6 +180,16 @@ func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan) {
 			delete(s.bundlePlans, id)
 		}
 	}
+	for len(s.bundlePlans) >= maxBundlePlans {
+		var oldestID string
+		var oldest time.Time
+		for id, stored := range s.bundlePlans {
+			if oldestID == "" || stored.Created.Before(oldest) {
+				oldestID, oldest = id, stored.Created
+			}
+		}
+		delete(s.bundlePlans, oldestID)
+	}
 	s.bundlePlans[plan.ID] = storedBundlePlan{Document: doc, Plan: plan, Created: now}
 }
 
@@ -194,12 +207,16 @@ func (s *Server) takeBundlePlan(req BundleApplyRequest) (storedBundlePlan, bool)
 // applyBundle creates or updates only portable intent. Imported tasks remain disabled drafts because commands and all other execution inputs are excluded.
 func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan) []bundle.Item {
 	outcomes := make([]bundle.Item, 0, len(plan.Items))
+	blocked := s.detachBundleGroupParents(doc, plan, &outcomes)
 	groups := append([]bundle.Group(nil), doc.Groups...)
 	for len(groups) > 0 {
 		remaining := make([]bundle.Group, 0, len(groups))
 		progressed := false
 		for _, group := range groups {
 			if !bundlePlanChanges(plan, "group", group.PortableID) {
+				continue
+			}
+			if blocked[group.PortableID] {
 				continue
 			}
 			if group.ParentPortableID != "" {
@@ -224,17 +241,94 @@ func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan) []bundle.Ite
 			outcomes = append(outcomes, s.applyBundleTask(task))
 		}
 	}
-	for _, chain := range doc.Chains {
-		if bundlePlanChanges(plan, "chain", chain.PortableID) {
-			outcomes = append(outcomes, s.applyBundleChain(chain))
-		}
-	}
+	outcomes = append(outcomes, s.applyBundleChains(doc.Chains, plan)...)
 	for _, item := range plan.Items {
-		if item.Action == bundle.ActionTargetOnly || item.Action == bundle.ActionUnchanged {
+		if item.Action == bundle.ActionTargetOnly || item.Action == bundle.ActionUnchanged || item.Action == bundle.ActionConflict {
 			outcomes = append(outcomes, item)
 		}
 	}
 	return outcomes
+}
+
+func (s *Server) applyBundleChains(sources []bundle.Chain, plan bundle.Plan) []bundle.Item {
+	outcomes := []bundle.Item{}
+	updates := []domain.CompletionChain{}
+	updateItems := []bundle.Item{}
+	creates := []bundle.Chain{}
+	for _, source := range sources {
+		if !bundlePlanChanges(plan, "chain", source.PortableID) {
+			continue
+		}
+		item := bundle.Item{Kind: "chain", PortableID: source.PortableID, Name: source.PortableID}
+		sourceID, sourceErr := s.store.ObjectIDForPortableID("task", source.SourceTaskID)
+		targetID, targetErr := s.store.ObjectIDForPortableID("task", source.TargetTaskID)
+		if sourceErr != nil || targetErr != nil {
+			item.Action, item.Message = bundle.ActionFailed, "chain task was not applied"
+			outcomes = append(outcomes, item)
+			continue
+		}
+		id, err := s.store.ObjectIDForPortableID("chain", source.PortableID)
+		if errors.Is(err, store.ErrNotFound) {
+			creates = append(creates, source)
+			continue
+		}
+		if err != nil {
+			item.Action, item.Message = bundle.ActionFailed, err.Error()
+			outcomes = append(outcomes, item)
+			continue
+		}
+		updates = append(updates, domain.CompletionChain{ID: id, SourceTaskID: sourceID, TargetTaskID: targetID, OnOutcome: domain.CompletionOutcome(source.OnOutcome)})
+		updateItems = append(updateItems, item)
+	}
+	if err := s.store.ReplaceCompletionChains(updates); err != nil {
+		for _, item := range updateItems {
+			item.Action, item.Message = bundle.ActionFailed, err.Error()
+			outcomes = append(outcomes, item)
+		}
+	} else {
+		for _, item := range updateItems {
+			item.Action = bundle.ActionApplied
+			outcomes = append(outcomes, item)
+		}
+	}
+	for _, source := range creates {
+		outcomes = append(outcomes, s.applyBundleChain(source))
+	}
+	return outcomes
+}
+
+// detachBundleGroupParents removes old parent edges before installing the
+// reviewed hierarchy. This prevents an otherwise-valid hierarchy reversal from
+// being rejected because an intermediate state would temporarily be cyclic.
+func (s *Server) detachBundleGroupParents(doc bundle.Document, plan bundle.Plan, outcomes *[]bundle.Item) map[string]bool {
+	blocked := map[string]bool{}
+	for _, source := range doc.Groups {
+		if !bundlePlanChanges(plan, "group", source.PortableID) {
+			continue
+		}
+		id, err := s.store.ObjectIDForPortableID("group", source.PortableID)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			blocked[source.PortableID] = true
+			*outcomes = append(*outcomes, bundle.Item{Kind: "group", PortableID: source.PortableID, Name: source.Name, Action: bundle.ActionFailed, Message: err.Error()})
+			continue
+		}
+		group, err := s.store.GetGroup(id)
+		if err != nil || group.ParentID == "" {
+			continue
+		}
+		desiredParent, err := s.groupObjectID(source.ParentPortableID)
+		if err != nil || group.ParentID == desiredParent {
+			continue
+		}
+		if err := s.store.SetGroupParent(id, ""); err != nil {
+			blocked[source.PortableID] = true
+			*outcomes = append(*outcomes, bundle.Item{Kind: "group", PortableID: source.PortableID, Name: source.Name, Action: bundle.ActionFailed, Message: err.Error()})
+		}
+	}
+	return blocked
 }
 
 func bundlePlanChanges(plan bundle.Plan, kind, portableID string) bool {

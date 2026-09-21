@@ -78,3 +78,10 @@ func TestValidateRejectsInvalidAndCyclicCompletionChains(t *testing.T) {
 		t.Fatal("projected chain cycle was accepted")
 	}
 }
+
+func TestValidateRejectsCyclicGroupHierarchy(t *testing.T) {
+	issues := Validate(Document{Schema: SchemaV1, Groups: []Group{{PortableID: "a", Name: "A", ParentPortableID: "b"}, {PortableID: "b", Name: "B", ParentPortableID: "a"}}})
+	if len(issues) == 0 {
+		t.Fatal("cyclic group hierarchy was accepted")
+	}
+}

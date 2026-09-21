@@ -181,6 +181,7 @@ func Validate(doc Document) []Issue {
 			issues = append(issues, Issue{Kind: "group", Identity: group.PortableID, Message: "parent group is absent from bundle"})
 		}
 	}
+	issues = append(issues, validateGroupGraph(doc.Groups)...)
 	for _, task := range doc.Tasks {
 		if task.GroupPortableID != "" && !groups[task.GroupPortableID] {
 			issues = append(issues, Issue{Kind: "task", Identity: task.PortableID, Message: "group is absent from bundle"})
@@ -205,6 +206,25 @@ func Validate(doc Document) []Issue {
 		}
 	}
 	issues = append(issues, validateChainGraph(doc.Chains)...)
+	return issues
+}
+
+func validateGroupGraph(groups []Group) []Issue {
+	parents := map[string]string{}
+	for _, group := range groups {
+		parents[group.PortableID] = group.ParentPortableID
+	}
+	issues := []Issue{}
+	for _, group := range groups {
+		seen := map[string]bool{}
+		for id := group.PortableID; id != ""; id = parents[id] {
+			if seen[id] {
+				issues = append(issues, Issue{Kind: "group", Identity: group.PortableID, Message: "group hierarchy would create a cycle"})
+				break
+			}
+			seen[id] = true
+		}
+	}
 	return issues
 }
 
