@@ -17,4 +17,4 @@
 ## Finalization
 
 - [x] T010 Run repository formatting, focused and full test suites, desktop build, spec-kit analysis, and publication formatting checks.
-- [ ] T011 Update GitHub issue #184 and project status, publish the S098 pull request, and complete the authorized review protocol.
+- [x] T011 Update GitHub issue #184 and project status, publish the S098 pull request, and complete the authorized review protocol (publication bookkeeping is tracked on PR #253).

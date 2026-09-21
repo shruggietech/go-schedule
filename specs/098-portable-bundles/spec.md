@@ -8,7 +8,7 @@
 
 <!-- Allowed states and transition evidence: specs/README.md -->
 
-**Delivery**: Implementation complete, pull request and review pending
+**Delivery**: PR [#253](https://github.com/shruggietech/go-schedule/pull/253)
 
 **Input**: Work slice S098 and GitHub issue #184.
 
