@@ -33,7 +33,7 @@ Templates requiring updates:
   ✅ CONTRIBUTING.md (issue closure and defect follow-up guidance synchronized)
   ✅ docs/remote-access.md (downstream issue closure guidance synchronized)
   ✅ test/windows/README.md (release observations no longer gate issue closure)
-  ✅ .github/ISSUE_TEMPLATE/bug_report.yml (already captures active-release defects)
+  ✅ .github/ISSUE_TEMPLATE/bug_report.yml (captures release or revision, reproduction, and impact)
   ✅ .github/PULL_REQUEST_TEMPLATE.md (verification remains a PR requirement)
   ✅ .github/workflows/ci.yml (verification remains enforced on pull requests)
 
@@ -120,7 +120,7 @@ Build-phase work runs under the Build-Phase Autopilot Protocol (`docs/build-auto
 - The single pre-publication halt MUST verify compliance with all five core principles, and MUST surface any change that weakens one without recorded justification.
 - Any deviation from a principle MUST be recorded in the pull-request description under a "Complexity / Deviation" note explaining why a simpler compliant approach was rejected.
 - GitHub feature, task, epic, and release issues MUST describe functional outcomes and MUST NOT make test execution, CI results, attended walkthroughs, qualification packets, evidence archives, or other verification activity a condition of issue closure. Those engineering checks remain mandatory where this constitution, the pull-request workflow, or release tooling requires them.
-- An issue closes when its functional acceptance criteria are delivered. A defect observed during CI, review, release preparation, or use of an active release MUST be filed or updated as a separate bug issue with the affected release, reproduction context, and user-visible impact instead of keeping the delivered outcome issue open.
+- An issue closes when its functional acceptance criteria are delivered. A defect observed during CI, review, release preparation, or use of an active release MUST be filed or updated as a separate bug issue with the affected release or source revision, reproduction context, and user-visible impact instead of keeping the delivered outcome issue open.
 
 ## Governance
 

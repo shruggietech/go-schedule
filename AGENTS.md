@@ -22,7 +22,7 @@
 - Do not default to one GitHub Issue per implementation slice. Split work only when dependencies, risk, reviewability, platform boundaries, conflicting validation needs, or independent delivery value make separate slices materially clearer or safer.
 - Preserve issue-level traceability inside a bundled slice by naming every included issue, satisfying each issue's functional acceptance criteria, and reporting any issue whose functional outcome remains incomplete instead of closing it implicitly.
 - Prefer slices that deliver a meaningful end-to-end capability or release increment over artificially narrow issue-by-issue churn.
-- Do not close an issue merely because it was included in a slice. Close it when its individual functional acceptance criteria are delivered. Tests, CI, attended walkthroughs, qualification packets, evidence archives, and other verification activity MUST NOT be GitHub issue closure gates; any defect they reveal MUST be filed or updated as a separate bug issue against the affected active release.
+- Do not close an issue merely because it was included in a slice. Close it when its individual functional acceptance criteria are delivered. Tests, CI, attended walkthroughs, qualification packets, evidence archives, and other verification activity MUST NOT be GitHub issue closure gates; any defect they reveal MUST be filed or updated as a separate bug issue against the affected release or pending source revision.
 
 ## GitHub project management
 

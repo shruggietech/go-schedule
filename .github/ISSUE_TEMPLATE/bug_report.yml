@@ -32,6 +32,16 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: affected-release
+    attributes:
+      label: Affected release or source revision
+      description: >
+        Name the released version, commit, branch, or pull request where the defect occurs. Use "not yet released" with the source revision for findings discovered during development or review.
+      placeholder: "v1.4.0 / commit abc1234 / PR #249"
+    validations:
+      required: true
+
   - type: dropdown
     id: component
     attributes:
@@ -126,6 +136,6 @@ body:
     attributes:
       label: Impact
       description: >
-        Optional. Who this affects and whether a workaround exists. "Only affects X install path" is genuinely useful information.
+        Who this affects, what user-visible behavior is impaired, and whether a workaround exists. "Only affects X install path" is genuinely useful information.
     validations:
-      required: false
+      required: true
