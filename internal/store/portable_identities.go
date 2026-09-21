@@ -39,7 +39,27 @@ func (s *Store) ObjectIDForPortableID(kind, portableID string) (string, error) {
 		}
 		return "", fmt.Errorf("store: resolve portable identity: %w", err)
 	}
-	return objectID, nil
+	var table string
+	switch kind {
+	case "group":
+		table = "groups"
+	case "task":
+		table = "tasks"
+	case "chain":
+		table = "completion_chains"
+	default:
+		return "", fmt.Errorf("store: unsupported portable identity kind %q", kind)
+	}
+	var exists int
+	if err := s.db.QueryRow(`SELECT 1 FROM `+table+` WHERE id=?`, objectID).Scan(&exists); err == nil {
+		return objectID, nil
+	} else if err != sql.ErrNoRows {
+		return "", fmt.Errorf("store: verify portable identity: %w", err)
+	}
+	if _, err := s.db.Exec(`DELETE FROM portable_identities WHERE object_kind=? AND portable_id=?`, kind, portableID); err != nil {
+		return "", fmt.Errorf("store: remove stale portable identity: %w", err)
+	}
+	return "", ErrNotFound
 }
 
 // BindPortableID records a reviewed portable identity for a newly created

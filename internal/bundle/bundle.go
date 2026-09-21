@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 )
@@ -96,6 +97,24 @@ type Plan struct {
 	Items             []Item `json:"items"`
 }
 
+// Decode rejects unknown and trailing JSON so a reviewed bundle always has the
+// same meaning as the document supplied by its operator.
+func Decode(data []byte) (Document, error) {
+	var doc Document
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&doc); err != nil {
+		return Document{}, err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return Document{}, fmt.Errorf("bundle contains more than one JSON value")
+		}
+		return Document{}, err
+	}
+	return doc, nil
+}
+
 // Canonicalize normalizes a document and rejects unsafe or structurally invalid
 // content before returning its stable JSON bytes and SHA-256 digest.
 func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
@@ -181,8 +200,69 @@ func Validate(doc Document) []Issue {
 		if chain.SourceTaskID == chain.TargetTaskID {
 			issues = append(issues, Issue{Kind: "chain", Identity: chain.PortableID, Message: "chain source and target must differ"})
 		}
+		if !validOutcome(chain.OnOutcome) {
+			issues = append(issues, Issue{Kind: "chain", Identity: chain.PortableID, Message: "chain outcome must be success, failure, or any"})
+		}
+	}
+	issues = append(issues, validateChainGraph(doc.Chains)...)
+	return issues
+}
+
+// ValidateProjectedChains checks the final completion graph produced by a
+// bundle. A source chain replaces a target chain with the same portable ID;
+// target-only chains remain in the graph because apply preserves them.
+func ValidateProjectedChains(source, target Document) []Issue {
+	projected := map[string]Chain{}
+	for _, chain := range target.Chains {
+		projected[chain.PortableID] = chain
+	}
+	for _, chain := range source.Chains {
+		projected[chain.PortableID] = chain
+	}
+	chains := make([]Chain, 0, len(projected))
+	for _, chain := range projected {
+		chains = append(chains, chain)
+	}
+	return validateChainGraph(chains)
+}
+
+func validOutcome(outcome string) bool {
+	return outcome == "success" || outcome == "failure" || outcome == "any"
+}
+
+func validateChainGraph(chains []Chain) []Issue {
+	issues := []Issue{}
+	graph := map[string][]string{}
+	seen := map[string]bool{}
+	for _, chain := range chains {
+		key := chain.SourceTaskID + "\x00" + chain.TargetTaskID + "\x00" + chain.OnOutcome
+		if seen[key] {
+			issues = append(issues, Issue{Kind: "chain", Identity: chain.PortableID, Message: "completion chain duplicates an existing relationship"})
+			continue
+		}
+		seen[key] = true
+		graph[chain.SourceTaskID] = append(graph[chain.SourceTaskID], chain.TargetTaskID)
+		if reaches(graph, chain.TargetTaskID, chain.SourceTaskID, map[string]bool{}) {
+			issues = append(issues, Issue{Kind: "chain", Identity: chain.PortableID, Message: "completion chain would create a cycle"})
+		}
 	}
 	return issues
+}
+
+func reaches(graph map[string][]string, from, target string, seen map[string]bool) bool {
+	if from == target {
+		return true
+	}
+	if seen[from] {
+		return false
+	}
+	seen[from] = true
+	for _, next := range graph[from] {
+		if reaches(graph, next, target, seen) {
+			return true
+		}
+	}
+	return false
 }
 
 // Fingerprint returns the stable digest of a target's exported safe snapshot.
@@ -200,12 +280,14 @@ func Preview(id, daemonID string, source, target Document) Plan {
 		return plan
 	}
 	targetGroups := mapByID(target.Groups, func(v Group) string { return v.PortableID })
+	targetGroupNames := nameIndex(target.Groups, func(v Group) string { return v.Name }, func(v Group) string { return v.PortableID })
 	for _, v := range canonical.Groups {
-		plan.Items = append(plan.Items, compareGroup(v, targetGroups[v.PortableID]))
+		plan.Items = append(plan.Items, compareGroup(v, targetGroups[v.PortableID], targetGroupNames[v.Name]))
 	}
 	targetTasks := mapByID(target.Tasks, func(v Task) string { return v.PortableID })
+	targetTaskNames := nameIndex(target.Tasks, func(v Task) string { return v.Name }, func(v Task) string { return v.PortableID })
 	for _, v := range canonical.Tasks {
-		plan.Items = append(plan.Items, compareTask(v, targetTasks[v.PortableID]))
+		plan.Items = append(plan.Items, compareTask(v, targetTasks[v.PortableID], targetTaskNames[v.Name]))
 	}
 	targetChains := mapByID(target.Chains, func(v Chain) string { return v.PortableID })
 	for _, v := range canonical.Chains {
@@ -240,6 +322,13 @@ func mapByID[T any](values []T, id func(T) string) map[string]T {
 	}
 	return out
 }
+func nameIndex[T any](values []T, name, id func(T) string) map[string][]string {
+	out := map[string][]string{}
+	for _, value := range values {
+		out[name(value)] = append(out[name(value)], id(value))
+	}
+	return out
+}
 func groupByID(values []Group, id string) (Group, bool) {
 	for _, value := range values {
 		if value.PortableID == id {
@@ -264,8 +353,11 @@ func chainByID(values []Chain, id string) (Chain, bool) {
 	}
 	return Chain{}, false
 }
-func compareGroup(source Group, target Group) Item {
+func compareGroup(source Group, target Group, sameNames []string) Item {
 	if target.PortableID == "" {
+		if len(sameNames) > 0 {
+			return Item{Kind: "group", PortableID: source.PortableID, Name: source.Name, Action: ActionConflict, Message: "target has a group with the same name but a different portable identity"}
+		}
 		return Item{Kind: "group", PortableID: source.PortableID, Name: source.Name, Action: ActionCreate}
 	}
 	if source == target {
@@ -273,8 +365,11 @@ func compareGroup(source Group, target Group) Item {
 	}
 	return Item{Kind: "group", PortableID: source.PortableID, Name: source.Name, Action: ActionUpdate}
 }
-func compareTask(source Task, target Task) Item {
+func compareTask(source Task, target Task, sameNames []string) Item {
 	if target.PortableID == "" {
+		if len(sameNames) > 0 {
+			return Item{Kind: "task", PortableID: source.PortableID, Name: source.Name, Action: ActionConflict, Message: "target has a task with the same name but a different portable identity"}
+		}
 		return Item{Kind: "task", PortableID: source.PortableID, Name: source.Name, Action: ActionCreate}
 	}
 	if source == target {

@@ -105,8 +105,12 @@ func bundleApply() *cobra.Command {
 }
 
 func readBundleDocument(path string) (bundle.Document, error) {
-	var document bundle.Document
-	if err := readBundleJSON(path, &document); err != nil {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return bundle.Document{}, err
+	}
+	document, err := bundle.Decode(data)
+	if err != nil {
 		return bundle.Document{}, err
 	}
 	return document, nil

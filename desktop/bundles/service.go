@@ -88,11 +88,7 @@ func (s *Service) Apply(ctx context.Context, plan bundle.Plan) Result {
 }
 
 func parse(raw string) (bundle.Document, error) {
-	var doc bundle.Document
-	if err := json.Unmarshal([]byte(raw), &doc); err != nil {
-		return bundle.Document{}, err
-	}
-	return doc, nil
+	return bundle.Decode([]byte(raw))
 }
 
 func rejected(action, message string) Result {

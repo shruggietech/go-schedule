@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -89,5 +91,49 @@ func TestBundleExportDoesNotExposeExecutionInputs(t *testing.T) {
 	}
 	if got := export.Body.String(); strings.Contains(got, secret) {
 		t.Fatalf("bundle leaked execution input: %s", got)
+	}
+}
+
+func TestBundleRequestRejectsUnknownFields(t *testing.T) {
+	s := newTestServer(t)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/v1/bundles/validate", bytes.NewBufferString(`{"bundle":{"schema":"go-schedule.bundle/v1","command":"unsafe"}}`))
+	s.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestBundleUpdatePreservesRequestedEnabledStateWhenLocallyReady(t *testing.T) {
+	s := newTestServer(t)
+	doc := bundle.Document{Schema: bundle.SchemaV1, Tasks: []bundle.Task{{PortableID: "portable-task", Name: "Source name", Enabled: true, Timezone: "UTC", Schedule: "every day at 09:00", ScheduleSyntax: "human", OverlapPolicy: "queue_one", CatchupPolicy: "one", MissingDatePolicy: "skip", TimeBasis: "wall_clock", DSTGapPolicy: "next_valid", DSTOverlapPolicy: "first"}}}
+	preview := doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc})
+	var plan bundle.Plan
+	if preview.Code != http.StatusOK || json.Unmarshal(preview.Body.Bytes(), &plan) != nil {
+		t.Fatalf("initial preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	if apply := doJSON(t, s, http.MethodPost, "/v1/bundles/apply", BundleApplyRequest{PlanID: plan.ID, BundleDigest: plan.BundleDigest, TargetDaemonID: plan.TargetDaemonID, TargetFingerprint: plan.TargetFingerprint}); apply.Code != http.StatusOK {
+		t.Fatalf("initial apply status=%d body=%s", apply.Code, apply.Body.String())
+	}
+	tasks, err := s.store.ListTasks("", "")
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("tasks=%+v err=%v", tasks, err)
+	}
+	task := tasks[0]
+	task.Command, task.Enabled = "echo", true
+	if err := s.store.UpdateTask(&task); err != nil {
+		t.Fatal(err)
+	}
+	doc.Tasks[0].Name = "Updated name"
+	preview = doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc})
+	if preview.Code != http.StatusOK || json.Unmarshal(preview.Body.Bytes(), &plan) != nil {
+		t.Fatalf("update preview status=%d body=%s", preview.Code, preview.Body.String())
+	}
+	if apply := doJSON(t, s, http.MethodPost, "/v1/bundles/apply", BundleApplyRequest{PlanID: plan.ID, BundleDigest: plan.BundleDigest, TargetDaemonID: plan.TargetDaemonID, TargetFingerprint: plan.TargetFingerprint}); apply.Code != http.StatusOK {
+		t.Fatalf("update apply status=%d body=%s", apply.Code, apply.Body.String())
+	}
+	updated, err := s.store.GetTask(task.ID)
+	if err != nil || !updated.Enabled {
+		t.Fatalf("updated task=%+v err=%v", updated, err)
 	}
 }

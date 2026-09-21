@@ -1,6 +1,10 @@
 package store
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/shruggietech/go-schedule/internal/domain"
+)
 
 func TestPortableIdentityIsStableAndIndependentFromObjectID(t *testing.T) {
 	st, err := Open(":memory:")
@@ -31,6 +35,12 @@ func TestPortableIdentityResolutionAndBinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
+	for _, id := range []string{"task-1", "task-2"} {
+		task := domain.Task{ID: id, Name: id, Command: "echo", Timezone: "UTC", State: domain.TaskActive}
+		if err := st.CreateTask(&task); err != nil {
+			t.Fatal(err)
+		}
+	}
 
 	if _, err := st.PortableID("", "task-1"); err == nil {
 		t.Fatal("PortableID accepted an empty kind")
@@ -56,5 +66,14 @@ func TestPortableIdentityResolutionAndBinding(t *testing.T) {
 	}
 	if err := st.BindPortableID("task", "task-1", "portable-task-2"); err == nil {
 		t.Fatal("BindPortableID accepted a conflicting object binding")
+	}
+	if _, err := st.db.Exec(`INSERT INTO portable_identities(object_kind,object_id,portable_id,created_at) VALUES(?,?,?,?)`, "task", "deleted-task", "stale-portable-task", fmtTime(st.now())); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.ObjectIDForPortableID("task", "stale-portable-task"); err != ErrNotFound {
+		t.Fatalf("stale portable identity error = %v, want %v", err, ErrNotFound)
+	}
+	if err := st.BindPortableID("task", "task-2", "stale-portable-task"); err != nil {
+		t.Fatalf("stale portable identity was not removed: %v", err)
 	}
 }

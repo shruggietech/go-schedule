@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -52,8 +53,8 @@ func (s *Server) handleBundleExport(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleBundleValidate(w http.ResponseWriter, r *http.Request) {
-	var req BundleRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req, err := decodeBundleRequest(r.Body)
+	if err != nil {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON")
 		return
 	}
@@ -70,8 +71,8 @@ func (s *Server) handleBundleCompare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain bool) {
-	var req BundleRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	req, err := decodeBundleRequest(r.Body)
+	if err != nil {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON")
 		return
 	}
@@ -86,6 +87,11 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 		s.internal(w, err)
 		return
 	}
+	issues = append(issues, bundle.ValidateProjectedChains(canonical, target)...)
+	if len(issues) > 0 {
+		writeError(w, http.StatusBadRequest, CodeValidation, "bundle", "bundle is incompatible with the target")
+		return
+	}
 	identity, err := s.store.DaemonIdentity()
 	if err != nil {
 		s.internal(w, err)
@@ -96,6 +102,22 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 		s.rememberBundlePlan(canonical, plan)
 	}
 	writeJSON(w, http.StatusOK, plan)
+}
+
+func decodeBundleRequest(body io.Reader) (BundleRequest, error) {
+	var req BundleRequest
+	decoder := json.NewDecoder(body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		return BundleRequest{}, err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return BundleRequest{}, errors.New("body contains more than one JSON value")
+		}
+		return BundleRequest{}, err
+	}
+	return req, nil
 }
 
 func bundleCompatibilityIssues(doc bundle.Document) []bundle.Issue {
@@ -319,7 +341,7 @@ func (s *Server) applyBundleTask(source bundle.Task) bundle.Item {
 		return item
 	}
 	updated := bundleTask(source, groupID, scheduleID)
-	updated.ID, updated.Command, updated.Args, updated.WorkingDir, updated.Env, updated.Stdin, updated.RunAs, updated.State = task.ID, task.Command, task.Args, task.WorkingDir, task.Env, task.Stdin, task.RunAs, task.State
+	updated.ID, updated.Command, updated.Args, updated.WorkingDir, updated.Env, updated.Stdin, updated.RunAs, updated.State, updated.Enabled = task.ID, task.Command, task.Args, task.WorkingDir, task.Env, task.Stdin, task.RunAs, task.State, source.Enabled
 	if err := s.store.UpdateTask(&updated); err != nil {
 		item.Action, item.Message = bundle.ActionFailed, err.Error()
 		return item
