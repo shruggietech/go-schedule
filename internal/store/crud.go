@@ -266,6 +266,13 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 		return fmt.Errorf("store: begin update task: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	var previousGroupID sql.NullString
+	if err := tx.QueryRow(`SELECT group_id FROM tasks WHERE id=?`, t.ID).Scan(&previousGroupID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("store: read task group before update: %w", err)
+	}
 	hasCompletion, err := taskHasIncomingCompletion(tx, t.ID)
 	if err != nil {
 		return err
@@ -291,6 +298,11 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 	)
 	if err := affected(res, err, "update task"); err != nil {
 		return err
+	}
+	if previousGroupID.String != t.GroupID {
+		if err := resetNotificationConditionStatesForScope(tx, domain.NotificationScopeTask, t.ID); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit update task: %w", err)
@@ -629,10 +641,10 @@ func (s *Store) CreateRun(r *domain.Run) error {
 		r.ID = newID()
 	}
 	_, err := s.db.Exec(
-		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt),
-		string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID), nullStr(r.SourceTriggerID), nullStr(r.SourceWatcherID),
+		string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID), nullStr(r.SourceTriggerID), nullStr(r.SourceWatcherID), boolToInt(r.StartFailed),
 	)
 	if err != nil {
 		return fmt.Errorf("store: create run: %w", err)
@@ -642,7 +654,7 @@ func (s *Store) CreateRun(r *domain.Run) error {
 
 // GetRun returns the run by exact ID, or ErrNotFound.
 func (s *Store) GetRun(id string) (domain.Run, error) {
-	row := s.db.QueryRow(`SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id FROM runs WHERE id=?`, id)
+	row := s.db.QueryRow(`SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed FROM runs WHERE id=?`, id)
 	return scanRun(row)
 }
 
@@ -662,7 +674,7 @@ func (s *Store) ListRunsPage(taskID string, offset, limit, outputLimit int) ([]d
 		outputExpr = `CAST(substr(CAST(output AS BLOB),1,?) AS TEXT),CASE WHEN output_truncated=1 OR length(CAST(output AS BLOB))>? THEN 1 ELSE 0 END`
 		args = append(args, outputLimit, outputLimit)
 	}
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id FROM runs`
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed FROM runs`
 	if taskID != "" {
 		q += ` WHERE task_id=?`
 		args = append(args, taskID)
@@ -699,10 +711,10 @@ func scanRun(sc scanner) (domain.Run, error) {
 	var r domain.Run
 	var started, ended sql.NullString
 	var exit sql.NullInt64
-	var truncated int
+	var truncated, startFailed int
 	var outcome, trigger, scheduled string
 	var sourceTask, sourceRun, sourceTrigger, sourceWatcher sql.NullString
-	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun, &sourceTrigger, &sourceWatcher); err != nil {
+	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun, &sourceTrigger, &sourceWatcher, &startFailed); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Run{}, ErrNotFound
 		}
@@ -719,6 +731,7 @@ func scanRun(sc scanner) (domain.Run, error) {
 	r.SourceWatcherID = sourceWatcher.String
 	r.ExitCode = intPtr(exit)
 	r.OutputTruncated = truncated != 0
+	r.StartFailed = startFailed != 0
 	return r, nil
 }
 

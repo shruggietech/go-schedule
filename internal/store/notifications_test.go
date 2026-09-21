@@ -3,9 +3,14 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -17,6 +22,40 @@ func createNotificationTestTask(t *testing.T, st *Store, groupID string) domain.
 		t.Fatal(err)
 	}
 	return task
+}
+
+func TestPublishedWebhookSchemaAcceptsConditionAndHealthPayloads(t *testing.T) {
+	file, err := os.Open(filepath.Join("..", "..", "specs", "067-webhook-notifications", "contracts", "webhook-v1.schema.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	var document any
+	if err := json.NewDecoder(file).Decode(&document); err != nil {
+		t.Fatal(err)
+	}
+	compiler := jsonschema.NewCompiler()
+	if err := compiler.AddResource("webhook-v1.schema.json", document); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := compiler.Compile("webhook-v1.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	created := "2026-09-21T12:00:00Z"
+	samples := []string{
+		`{"schema":"go-schedule.webhook.v1","event":"run.completed","delivery":{"id":"delivery-1","created_at":"` + created + `"},"daemon":{"version":"v1.5.0"},"task":{"id":"task-1","name":"Backup"},"run":{"id":"run-1","outcome":"failure","trigger":"manual","scheduled_for":"` + created + `"},"condition":{"kind":"failure_to_start","summary":"Task process could not be started.","streak":1,"threshold":1}}`,
+		`{"schema":"go-schedule.webhook.v1","event":"daemon.health","delivery":{"id":"delivery-2","created_at":"` + created + `"},"daemon":{"version":"v1.5.0","status":"healthy","next_expected_at":"2026-09-21T12:05:00Z"},"task":null,"condition":{"kind":"daemon_health","summary":"Daemon is healthy."}}`,
+	}
+	for _, sample := range samples {
+		var value any
+		if err := json.Unmarshal([]byte(sample), &value); err != nil {
+			t.Fatal(err)
+		}
+		if err := schema.Validate(value); err != nil {
+			t.Fatalf("published schema rejected payload %s: %v", sample, err)
+		}
+	}
 }
 
 func TestNotificationChannelLifecycleValidationAndFiltering(t *testing.T) {
@@ -244,6 +283,272 @@ func TestNotificationChannelAssignmentPrecedenceAndAtomicRunDelivery(t *testing.
 	policy, _ = st.EffectiveNotificationPolicy(task.ID)
 	if policy.SourceScopeID != child.ID {
 		t.Fatalf("inheritance did not resume: %+v", policy)
+	}
+}
+
+func TestNotificationConditionsThresholdReminderRecoveryAndPrecedence(t *testing.T) {
+	st := openMem(t)
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "conditions")
+	assignment := domain.NotificationAssignment{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2, OnFailureToStart: true, DurationThresholdSeconds: 60, OnRecovery: true, ReminderIntervalSeconds: 120, QuietPeriodSeconds: 180}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{assignment}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	record := func(id string, outcome domain.RunOutcome, startFailed bool, ended time.Time, duration time.Duration) {
+		t.Helper()
+		started := ended.Add(-duration)
+		run := domain.Run{ID: id, TaskID: task.ID, ScheduledFor: started, StartedAt: &started, EndedAt: &ended, Outcome: outcome, Trigger: domain.TriggerManual, StartFailed: startFailed}
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	record("failure-1", domain.OutcomeFailure, false, base, time.Second)
+	record("failure-2", domain.OutcomeFailure, false, base.Add(time.Minute), time.Second)
+	record("failure-3", domain.OutcomeFailure, false, base.Add(2*time.Minute), time.Second)
+	record("failure-4", domain.OutcomeFailure, false, base.Add(3*time.Minute), time.Second)
+	record("failure-5", domain.OutcomeFailure, false, base.Add(4*time.Minute), time.Second)
+	record("start-failed", domain.OutcomeFailure, true, base.Add(5*time.Minute), time.Second)
+	record("recovered", domain.OutcomeSuccess, false, base.Add(6*time.Minute), time.Second)
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID, Limit: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deliveries) != 4 {
+		t.Fatalf("deliveries=%d, want threshold, reminder, start precedence, recovery: %+v", len(deliveries), deliveries)
+	}
+	want := []domain.NotificationConditionKind{domain.NotificationConditionRecovery, domain.NotificationConditionFailureToStart, domain.NotificationConditionConsecutiveFailure, domain.NotificationConditionConsecutiveFailure}
+	for i, delivery := range deliveries {
+		if delivery.ConditionKind != want[i] {
+			t.Fatalf("delivery %d condition=%s, want %s", i, delivery.ConditionKind, want[i])
+		}
+		var event domain.WebhookEvent
+		if err := json.Unmarshal(delivery.Payload, &event); err != nil || event.Condition == nil || event.Condition.Kind != want[i] {
+			t.Fatalf("delivery %d event=%+v err=%v", i, event, err)
+		}
+	}
+}
+
+func TestNotificationSuccessContinuesWhenRecoveryDeliveryIsDisabled(t *testing.T) {
+	st := openMem(t)
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "success without recovery")
+	assignment := domain.NotificationAssignment{ChannelID: channel.ID, OnSuccess: true, OnFailure: true}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{assignment}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	for index, outcome := range []domain.RunOutcome{domain.OutcomeFailure, domain.OutcomeSuccess} {
+		ended := base.Add(time.Duration(index) * time.Minute)
+		run := domain.Run{ID: fmt.Sprintf("transition-%d", index), TaskID: task.ID, ScheduledFor: ended, EndedAt: &ended, Outcome: outcome, Trigger: domain.TriggerManual}
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 2 || deliveries[0].ConditionKind != domain.NotificationConditionSuccess || deliveries[1].ConditionKind != domain.NotificationConditionFailure {
+		t.Fatalf("deliveries=%+v err=%v", deliveries, err)
+	}
+}
+
+func TestNotificationPolicyOverrideRoundTripResetsInheritedState(t *testing.T) {
+	st := openMem(t)
+	group := domain.Group{Name: "Inherited policy", Enabled: true}
+	if err := st.CreateGroup(&group); err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, group.ID)
+	inherited := createNotificationTestChannel(t, st, "inherited")
+	direct := createNotificationTestChannel(t, st, "direct")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeGroup, group.ID, []domain.NotificationAssignment{{ChannelID: inherited.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordFailure := func(id string, at time.Time) {
+		t.Helper()
+		run := domain.Run{ID: id, TaskID: task.ID, ScheduledFor: at, EndedAt: &at, Outcome: domain.OutcomeFailure, Trigger: domain.TriggerManual}
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recordFailure("inherited-first", base)
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: direct.ID, OnFailure: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, nil); err != nil {
+		t.Fatal(err)
+	}
+	recordFailure("inherited-after-override", base.Add(time.Minute))
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 0 {
+		t.Fatalf("stale inherited state created delivery: %+v err=%v", deliveries, err)
+	}
+}
+
+func TestNotificationTaskGroupRoundTripResetsInheritedState(t *testing.T) {
+	st := openMem(t)
+	source := &domain.Group{Name: "Source", Enabled: true}
+	other := &domain.Group{Name: "Other", Enabled: true}
+	if err := st.CreateGroup(source); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CreateGroup(other); err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, source.ID)
+	channel := createNotificationTestChannel(t, st, "task move")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeGroup, source.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordNotificationFailure(t, st, task.ID, "before-task-move", base)
+	stored, err := st.GetTask(task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored.GroupID = other.ID
+	if err := st.UpdateTask(&stored); err != nil {
+		t.Fatal(err)
+	}
+	stored.GroupID = source.ID
+	if err := st.UpdateTask(&stored); err != nil {
+		t.Fatal(err)
+	}
+	recordNotificationFailure(t, st, task.ID, "after-task-move", base.Add(time.Minute))
+	assertNoNotificationDeliveries(t, st, task.ID)
+}
+
+func TestNotificationGroupReparentRoundTripResetsDescendantState(t *testing.T) {
+	st := openMem(t)
+	source := &domain.Group{Name: "Source", Enabled: true}
+	other := &domain.Group{Name: "Other", Enabled: true}
+	if err := st.CreateGroup(source); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CreateGroup(other); err != nil {
+		t.Fatal(err)
+	}
+	child := &domain.Group{Name: "Child", ParentID: source.ID, Enabled: true}
+	if err := st.CreateGroup(child); err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, child.ID)
+	channel := createNotificationTestChannel(t, st, "group move")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeGroup, source.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordNotificationFailure(t, st, task.ID, "before-group-move", base)
+	if err := st.SetGroupParent(child.ID, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetGroupParent(child.ID, source.ID); err != nil {
+		t.Fatal(err)
+	}
+	recordNotificationFailure(t, st, task.ID, "after-group-move", base.Add(time.Minute))
+	assertNoNotificationDeliveries(t, st, task.ID)
+}
+
+func recordNotificationFailure(t *testing.T, st *Store, taskID, runID string, at time.Time) {
+	t.Helper()
+	run := domain.Run{ID: runID, TaskID: taskID, ScheduledFor: at, EndedAt: &at, Outcome: domain.OutcomeFailure, Trigger: domain.TriggerManual}
+	if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertNoNotificationDeliveries(t *testing.T, st *Store, taskID string) {
+	t.Helper()
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: taskID})
+	if err != nil || len(deliveries) != 0 {
+		t.Fatalf("stale hierarchy state created delivery: %+v err=%v", deliveries, err)
+	}
+}
+
+func TestNotificationSuccessQuietPeriodAndDaemonHeartbeat(t *testing.T) {
+	st := openMem(t)
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "quiet and health")
+	channel.HealthIntervalSeconds = 60
+	if err := st.UpdateNotificationChannel(channel); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnSuccess: true, QuietPeriodSeconds: 120}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	for i, offset := range []time.Duration{0, time.Minute, 2 * time.Minute} {
+		ended := base.Add(offset)
+		run := domain.Run{ID: fmt.Sprintf("success-%d", i), TaskID: task.ID, ScheduledFor: ended, EndedAt: &ended, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 2 {
+		t.Fatalf("quiet deliveries=%+v err=%v", deliveries, err)
+	}
+	created, err := st.CreateDueDaemonHealthDeliveries(base)
+	if err != nil || created != 1 {
+		t.Fatalf("created heartbeat=%d err=%v", created, err)
+	}
+	created, err = st.CreateDueDaemonHealthDeliveries(base.Add(30 * time.Second))
+	if err != nil || created != 0 {
+		t.Fatalf("early heartbeat=%d err=%v", created, err)
+	}
+	heartbeats, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{ChannelID: channel.ID, Limit: 20})
+	if err != nil || len(heartbeats) != 3 {
+		t.Fatalf("heartbeat deliveries=%+v err=%v", heartbeats, err)
+	}
+	foundHeartbeat := false
+	for _, delivery := range heartbeats {
+		foundHeartbeat = foundHeartbeat || (delivery.EventKind == domain.NotificationEventDaemonHealth && delivery.ConditionKind == domain.NotificationConditionDaemonHealth)
+	}
+	if !foundHeartbeat {
+		t.Fatalf("daemon heartbeat not found: %+v", heartbeats)
+	}
+}
+
+func TestNotificationConditionStateSurvivesRestartAndPolicyChangeResetsIt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "notifications.db")
+	st, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "restart")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordFailure := func(store *Store, id string, at time.Time) {
+		t.Helper()
+		run := domain.Run{ID: id, TaskID: task.ID, ScheduledFor: at, EndedAt: &at, Outcome: domain.OutcomeFailure, Trigger: domain.TriggerManual}
+		if err := store.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recordFailure(st, "before-restart", base)
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	st, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	recordFailure(st, "after-restart", base.Add(time.Minute))
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 1 || deliveries[0].ConditionKind != domain.NotificationConditionConsecutiveFailure {
+		t.Fatalf("restart deliveries=%+v err=%v", deliveries, err)
+	}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	recordFailure(st, "after-policy-change", base.Add(2*time.Minute))
+	deliveries, err = st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 1 {
+		t.Fatalf("policy reset created delivery: %+v err=%v", deliveries, err)
 	}
 }
 

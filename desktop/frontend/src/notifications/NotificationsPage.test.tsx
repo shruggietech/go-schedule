@@ -66,11 +66,18 @@ describe('NotificationsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Notification coverage is incomplete' })).toBeInTheDocument()
   })
 
-  it('reports active destinations separately for success and failure outcomes', async () => {
+  it('treats advanced-only conditions as active problem coverage', async () => {
+    const advanced = { ...workspace, coverage: workspace.coverage?.map((scope) => ({ ...scope, onFailure: false, onProblem: true, enabledFailureDestinationCount: 0, enabledProblemDestinationCount: 1 })), deliveries: [] }
+    render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: advanced }) })} available refreshToken={1} />)
+    expect(await screen.findByRole('heading', { name: 'Notifications are active' })).toBeInTheDocument()
+    expect(screen.getAllByText(/problems: 1 active destination/)).toHaveLength(2)
+  })
+
+  it('reports active destinations separately for success and problem outcomes', async () => {
     const mixed = { ...workspace, coverage: [{ ...workspace.coverage![0], onSuccess: true, enabledSuccessDestinationCount: 1, enabledFailureDestinationCount: 0 }], deliveries: [] }
     render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: mixed }) })} available refreshToken={1} />)
     expect(await screen.findByRole('heading', { name: 'Some notification outcomes are paused' })).toBeInTheDocument()
-    expect(screen.getByText(/failures: 0 active destinations; successes: 1 active destination/)).toBeInTheDocument()
+    expect(screen.getByText(/problems: 0 active destinations; successes: 1 active destination/)).toBeInTheDocument()
   })
 
   it('never redisplays secrets and requires explicit replacement intent', async () => {
@@ -102,6 +109,15 @@ describe('NotificationsPage', () => {
     const policyEditor = screen.getByText('Direct assignments for Backup').closest('fieldset')!; await user.click(within(policyEditor).getAllByLabelText('Success')[0])
     expect(screen.getByText('Success notifications can be noisy')).toBeInTheDocument(); await user.click(screen.getByRole('button', { name: 'Save direct rule' }))
     await waitFor(() => expect(savePolicy).toHaveBeenCalledWith(expect.objectContaining({ scopeType: 'task', scopeId: 't1', assignments: [expect.objectContaining({ channelId: 'c1', onSuccess: true })] })))
+  })
+
+  it('configures actionable conditions and daemon heartbeat timing', async () => {
+    const user = userEvent.setup(); const saveChannel = vi.fn(bridge().saveChannel); const savePolicy = vi.fn(bridge().savePolicy)
+    render(<NotificationsPage bridge={bridge({ saveChannel, savePolicy })} available refreshToken={1} />); await screen.findByText('1 active destination')
+    await user.click(screen.getByText('Manage destinations')); await user.click(screen.getByRole('button', { name: 'New channel' })); await user.type(screen.getByLabelText('Channel name'), 'Heartbeat'); await user.type(screen.getByLabelText('HTTPS endpoint'), 'https://health.test/hook'); await user.type(screen.getByLabelText('Daemon heartbeat (minutes)'), '5'); await user.click(screen.getByRole('button', { name: 'Save channel' }))
+    await waitFor(() => expect(saveChannel).toHaveBeenCalledWith(expect.objectContaining({ healthIntervalMinutes: 5 })))
+    await user.click(screen.getByText('Manage assignment rules')); await user.selectOptions(screen.getByLabelText('Task or group'), 'task:t1'); const editor = await screen.findByText('Direct assignments for Backup'); const fieldset = editor.closest('fieldset')!; await user.click(within(fieldset).getAllByLabelText('Failure')[0]); await user.click(within(fieldset).getAllByLabelText('Failure to start')[0]); await user.clear(within(fieldset).getAllByLabelText('Failures before notifying')[0]); await user.type(within(fieldset).getAllByLabelText('Failures before notifying')[0], '3'); await user.clear(within(fieldset).getAllByLabelText('Duration threshold (seconds)')[0]); await user.type(within(fieldset).getAllByLabelText('Duration threshold (seconds)')[0], '30'); await user.click(within(fieldset).getAllByLabelText('Recovery')[0]); await user.click(screen.getByRole('button', { name: 'Save direct rule' }))
+    await waitFor(() => expect(savePolicy).toHaveBeenCalledWith(expect.objectContaining({ assignments: [expect.objectContaining({ onFailure: true, onFailureToStart: true, failureThreshold: 3, durationThresholdSeconds: 30, onRecovery: true })] })))
   })
 
   it('hides a prior policy immediately when the selected scope changes or clears', async () => {

@@ -2,23 +2,25 @@
 package notifications
 
 type Channel struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Kind             string `json:"kind"`
-	EndpointSummary  string `json:"endpointSummary"`
-	HasAuthorization bool   `json:"hasAuthorization"`
-	Enabled          bool   `json:"enabled"`
-	UpdatedAt        string `json:"updatedAt"`
+	ID                    string `json:"id"`
+	Name                  string `json:"name"`
+	Kind                  string `json:"kind"`
+	EndpointSummary       string `json:"endpointSummary"`
+	HasAuthorization      bool   `json:"hasAuthorization"`
+	Enabled               bool   `json:"enabled"`
+	HealthIntervalMinutes int64  `json:"healthIntervalMinutes"`
+	UpdatedAt             string `json:"updatedAt"`
 }
 
 type ChannelDraft struct {
-	ID                   string `json:"id"`
-	Name                 string `json:"name"`
-	Endpoint             string `json:"endpoint"`
-	Authorization        string `json:"authorization"`
-	ReplaceEndpoint      bool   `json:"replaceEndpoint"`
-	ReplaceAuthorization bool   `json:"replaceAuthorization"`
-	IsNew                bool   `json:"isNew"`
+	ID                    string `json:"id"`
+	Name                  string `json:"name"`
+	Endpoint              string `json:"endpoint"`
+	Authorization         string `json:"authorization"`
+	ReplaceEndpoint       bool   `json:"replaceEndpoint"`
+	ReplaceAuthorization  bool   `json:"replaceAuthorization"`
+	IsNew                 bool   `json:"isNew"`
+	HealthIntervalMinutes int64  `json:"healthIntervalMinutes"`
 }
 
 type Scope struct {
@@ -29,9 +31,15 @@ type Scope struct {
 }
 
 type Assignment struct {
-	ChannelID string `json:"channelId"`
-	OnSuccess bool   `json:"onSuccess"`
-	OnFailure bool   `json:"onFailure"`
+	ChannelID                string `json:"channelId"`
+	OnSuccess                bool   `json:"onSuccess"`
+	OnFailure                bool   `json:"onFailure"`
+	FailureThreshold         int    `json:"failureThreshold"`
+	OnFailureToStart         bool   `json:"onFailureToStart"`
+	DurationThresholdSeconds int64  `json:"durationThresholdSeconds"`
+	OnRecovery               bool   `json:"onRecovery"`
+	ReminderIntervalMinutes  int64  `json:"reminderIntervalMinutes"`
+	QuietPeriodMinutes       int64  `json:"quietPeriodMinutes"`
 }
 
 type PolicyDraft struct {
@@ -58,10 +66,12 @@ type ConfiguredScope struct {
 	SourceName              string `json:"sourceName"`
 	OnSuccess               bool   `json:"onSuccess"`
 	OnFailure               bool   `json:"onFailure"`
+	OnProblem               bool   `json:"onProblem"`
 	DestinationCount        int    `json:"destinationCount"`
 	EnabledDestinationCount int    `json:"enabledDestinationCount"`
 	EnabledSuccessCount     int    `json:"enabledSuccessDestinationCount"`
 	EnabledFailureCount     int    `json:"enabledFailureDestinationCount"`
+	EnabledProblemCount     int    `json:"enabledProblemDestinationCount"`
 }
 
 type Delivery struct {
@@ -83,6 +93,8 @@ type Delivery struct {
 	CompletedAt        string `json:"completedAt,omitempty"`
 	LastStatus         int    `json:"lastStatus,omitempty"`
 	LastError          string `json:"lastError,omitempty"`
+	ConditionKind      string `json:"conditionKind,omitempty"`
+	ConditionSummary   string `json:"conditionSummary,omitempty"`
 }
 
 type Workspace struct {

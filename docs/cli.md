@@ -474,7 +474,7 @@ gosched logs --severity error --limit 200
 Manage reusable webhook channels, task and group policies, and redacted delivery evidence. Add `--json` to every read or mutation that returns an object.
 
 ```sh
-gosched notification channel add "Operations" --endpoint https://receiver.example/hook --authorization "Bearer value"
+gosched notification channel add "Operations" --endpoint https://receiver.example/hook --authorization "Bearer value" --health-interval 5m
 gosched notification channel list
 gosched notification channel get <channel-id>
 gosched notification channel update <channel-id> --name "Primary operations" --endpoint https://new.example/hook
@@ -483,6 +483,8 @@ gosched notification channel test <channel-id>
 gosched notification channel disable <channel-id>
 gosched notification channel enable <channel-id>
 gosched notification task set <task-id> --channel <channel-id> --on failure
+gosched notification task set <task-id> --channel <channel-id> --on failure --failure-threshold 3 --failure-to-start --duration-threshold 30m --recovery --reminder 2h
+gosched notification group set <group-id> --channel <channel-id> --on success --quiet-period 24h
 gosched notification task show <task-id>
 gosched notification task effective <task-id>
 gosched notification group set <group-id> --channel <channel-id> --on success,failure
@@ -491,7 +493,7 @@ gosched notification deliveries --state failed --limit 20
 gosched notification channel rm <channel-id>
 ```
 
-`--authorization` is write-only and may be visible in shell history, so use the shell's protected input practices when that matters. An empty rotation value clears authorization. Task assignments replace inherited group assignments; otherwise the nearest group with assignments wins. Omitting every `--channel` from `task set` or `group set` clears the direct policy and resumes inheritance. The complete behavior and receiver contract are in [Webhook notifications](notifications.md).
+`--authorization` is write-only and may be visible in shell history, so use the shell's protected input practices when that matters. An empty rotation value clears authorization. `--health-interval 0` disables healthy-presence heartbeats. Condition durations accept Go duration syntax such as `30m` or `2h`; zero disables the condition. Task assignments replace inherited group assignments; otherwise the nearest group with assignments wins. Omitting every `--channel` from `task set` or `group set` clears the direct policy and resumes inheritance. The complete condition, suppression, restart, heartbeat, and receiver contracts are in [Webhook notifications](notifications.md).
 
 The Activity view identifies itself as a limited recent view and displays the exact configured path to the daemon's complete rotating JSONL log. Platform install guides list the default locations, but `log_file_path` overrides them; the path reported in Activity is authoritative for the running daemon.
 

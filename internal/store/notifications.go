@@ -1,6 +1,7 @@
 package store
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -20,10 +21,13 @@ var ErrNotificationChannelDisabled = errors.New("store: notification channel is 
 
 // CreateNotificationChannel persists a validated write-only destination.
 func (s *Store) CreateNotificationChannel(channel *domain.NotificationChannel) error {
+	if !validStoreNotificationInterval(channel.HealthIntervalSeconds, 60, 86400) {
+		return fmt.Errorf("store: invalid notification health interval")
+	}
 	if channel.ID == "" {
 		channel.ID = newID()
 	}
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	if channel.CreatedAt.IsZero() {
 		channel.CreatedAt = now
 	}
@@ -36,7 +40,7 @@ func (s *Store) CreateNotificationChannel(channel *domain.NotificationChannel) e
 	if err != nil {
 		return fmt.Errorf("store: protect notification authorization: %w", err)
 	}
-	_, err = s.db.Exec(`INSERT INTO notification_channels(id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`, channel.ID, channel.Name, string(channel.Kind), endpoint, channel.EndpointSummary, authorization, boolToInt(channel.Enabled), fmtTime(channel.CreatedAt), fmtTime(channel.UpdatedAt))
+	_, err = s.db.Exec(`INSERT INTO notification_channels(id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds) VALUES(?,?,?,?,?,?,?,?,?,?)`, channel.ID, channel.Name, string(channel.Kind), endpoint, channel.EndpointSummary, authorization, boolToInt(channel.Enabled), fmtTime(channel.CreatedAt), fmtTime(channel.UpdatedAt), channel.HealthIntervalSeconds)
 	if err != nil {
 		return fmt.Errorf("store: create notification channel: %w", err)
 	}
@@ -44,7 +48,7 @@ func (s *Store) CreateNotificationChannel(channel *domain.NotificationChannel) e
 	return nil
 }
 
-const notificationChannelSelect = `SELECT id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at FROM notification_channels`
+const notificationChannelSelect = `SELECT id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds FROM notification_channels`
 
 // GetNotificationChannel returns one channel, including protected values for daemon use.
 func (s *Store) GetNotificationChannel(id string) (domain.NotificationChannel, error) {
@@ -73,7 +77,7 @@ func scanNotificationChannel(sc scanner) (domain.NotificationChannel, error) {
 	var channel domain.NotificationChannel
 	var kind, created, updated string
 	var enabled int
-	if err := sc.Scan(&channel.ID, &channel.Name, &kind, &channel.Endpoint, &channel.EndpointSummary, &channel.Authorization, &enabled, &created, &updated); err != nil {
+	if err := sc.Scan(&channel.ID, &channel.Name, &kind, &channel.Endpoint, &channel.EndpointSummary, &channel.Authorization, &enabled, &created, &updated, &channel.HealthIntervalSeconds); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return channel, ErrNotFound
 		}
@@ -97,17 +101,20 @@ func scanNotificationChannel(sc scanner) (domain.NotificationChannel, error) {
 
 // UpdateNotificationChannel replaces the mutable non-authorization fields.
 func (s *Store) UpdateNotificationChannel(channel domain.NotificationChannel) error {
+	if !validStoreNotificationInterval(channel.HealthIntervalSeconds, 60, 86400) {
+		return fmt.Errorf("store: invalid notification health interval")
+	}
 	endpoint, err := secretstore.Protect(channel.Endpoint)
 	if err != nil {
 		return fmt.Errorf("store: protect notification endpoint: %w", err)
 	}
-	res, err := s.db.Exec(`UPDATE notification_channels SET name=?,endpoint=?,endpoint_summary=?,enabled=?,updated_at=? WHERE id=?`, channel.Name, endpoint, channel.EndpointSummary, boolToInt(channel.Enabled), fmtTime(time.Now().UTC()), channel.ID)
+	res, err := s.db.Exec(`UPDATE notification_channels SET name=?,endpoint=?,endpoint_summary=?,enabled=?,health_interval_seconds=?,updated_at=? WHERE id=?`, channel.Name, endpoint, channel.EndpointSummary, boolToInt(channel.Enabled), channel.HealthIntervalSeconds, fmtTime(s.now().UTC()), channel.ID)
 	return affected(res, err, "update notification channel")
 }
 
 // SetNotificationChannelEnabled changes whether new work may be created.
 func (s *Store) SetNotificationChannelEnabled(id string, enabled bool) error {
-	res, err := s.db.Exec(`UPDATE notification_channels SET enabled=?,updated_at=? WHERE id=?`, boolToInt(enabled), fmtTime(time.Now().UTC()), id)
+	res, err := s.db.Exec(`UPDATE notification_channels SET enabled=?,updated_at=? WHERE id=?`, boolToInt(enabled), fmtTime(s.now().UTC()), id)
 	return affected(res, err, "set notification channel enabled")
 }
 
@@ -117,7 +124,7 @@ func (s *Store) RotateNotificationChannelAuthorization(id, authorization string)
 	if err != nil {
 		return fmt.Errorf("store: protect notification authorization: %w", err)
 	}
-	res, err := s.db.Exec(`UPDATE notification_channels SET authorization=?,updated_at=? WHERE id=?`, protected, fmtTime(time.Now().UTC()), id)
+	res, err := s.db.Exec(`UPDATE notification_channels SET authorization=?,updated_at=? WHERE id=?`, protected, fmtTime(s.now().UTC()), id)
 	return affected(res, err, "rotate notification channel authorization")
 }
 
@@ -171,10 +178,14 @@ func (s *Store) ReplaceNotificationAssignments(scopeType domain.NotificationScop
 	if _, err := tx.Exec(`DELETE FROM notification_assignments WHERE `+column+`=?`, scopeID); err != nil {
 		return fmt.Errorf("store: clear notification assignments: %w", err)
 	}
-	now, seen := time.Now().UTC(), map[string]bool{}
+	now, seen := s.now().UTC(), map[string]bool{}
 	for i := range assignments {
 		a := &assignments[i]
-		if a.ChannelID == "" || (!a.OnSuccess && !a.OnFailure) || seen[a.ChannelID] {
+		if a.FailureThreshold == 0 {
+			a.FailureThreshold = 1
+		}
+		problemCondition := a.OnFailure || a.OnFailureToStart || a.DurationThresholdSeconds > 0
+		if a.ChannelID == "" || (!a.OnSuccess && !problemCondition) || seen[a.ChannelID] || a.FailureThreshold < 1 || a.FailureThreshold > 100 || !validStoreNotificationInterval(a.DurationThresholdSeconds, 1, 2592000) || !validStoreNotificationInterval(a.ReminderIntervalSeconds, 60, 2592000) || !validStoreNotificationInterval(a.QuietPeriodSeconds, 60, 2592000) || ((a.OnRecovery || a.ReminderIntervalSeconds > 0) && !problemCondition) {
 			return fmt.Errorf("store: invalid or duplicate notification assignment")
 		}
 		seen[a.ChannelID] = true
@@ -192,12 +203,36 @@ func (s *Store) ReplaceNotificationAssignments(scopeType domain.NotificationScop
 		} else {
 			groupID = scopeID
 		}
-		if _, err := tx.Exec(`INSERT INTO notification_assignments(id,channel_id,task_id,group_id,on_success,on_failure,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)`, a.ID, a.ChannelID, taskID, groupID, boolToInt(a.OnSuccess), boolToInt(a.OnFailure), fmtTime(now), fmtTime(now)); err != nil {
+		if _, err := tx.Exec(`INSERT INTO notification_assignments(id,channel_id,task_id,group_id,on_success,on_failure,created_at,updated_at,failure_threshold,on_failure_to_start,duration_threshold_seconds,on_recovery,reminder_interval_seconds,quiet_period_seconds) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, a.ID, a.ChannelID, taskID, groupID, boolToInt(a.OnSuccess), boolToInt(a.OnFailure), fmtTime(now), fmtTime(now), a.FailureThreshold, boolToInt(a.OnFailureToStart), a.DurationThresholdSeconds, boolToInt(a.OnRecovery), a.ReminderIntervalSeconds, a.QuietPeriodSeconds); err != nil {
 			return fmt.Errorf("store: create notification assignment: %w", err)
 		}
 	}
+	if err := resetNotificationConditionStatesForScope(tx, scopeType, scopeID); err != nil {
+		return err
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit notification assignments: %w", err)
+	}
+	return nil
+}
+
+func validStoreNotificationInterval(value, minimum, maximum int64) bool {
+	return value == 0 || (value >= minimum && value <= maximum)
+}
+
+func resetNotificationConditionStatesForScope(tx *sql.Tx, scopeType domain.NotificationScopeType, scopeID string) error {
+	var err error
+	if scopeType == domain.NotificationScopeTask {
+		_, err = tx.Exec(`DELETE FROM notification_condition_states WHERE task_id=?`, scopeID)
+	} else {
+		_, err = tx.Exec(`WITH RECURSIVE descendants(id) AS (
+			SELECT id FROM groups WHERE id=?
+			UNION ALL
+			SELECT groups.id FROM groups JOIN descendants ON groups.parent_id=descendants.id
+		) DELETE FROM notification_condition_states WHERE task_id IN (SELECT id FROM tasks WHERE group_id IN (SELECT id FROM descendants))`, scopeID)
+	}
+	if err != nil {
+		return fmt.Errorf("store: reset notification condition state: %w", err)
 	}
 	return nil
 }
@@ -219,7 +254,7 @@ type notificationQuerier interface {
 }
 
 func listNotificationAssignments(q notificationQuerier, column, scopeID string, scopeType domain.NotificationScopeType) ([]domain.NotificationAssignment, error) {
-	rows, err := q.Query(`SELECT id,channel_id,on_success,on_failure,created_at,updated_at FROM notification_assignments WHERE `+column+`=? ORDER BY created_at,id`, scopeID)
+	rows, err := q.Query(`SELECT id,channel_id,on_success,on_failure,created_at,updated_at,failure_threshold,on_failure_to_start,duration_threshold_seconds,on_recovery,reminder_interval_seconds,quiet_period_seconds FROM notification_assignments WHERE `+column+`=? ORDER BY created_at,id`, scopeID)
 	if err != nil {
 		return nil, fmt.Errorf("store: list notification assignments: %w", err)
 	}
@@ -227,12 +262,13 @@ func listNotificationAssignments(q notificationQuerier, column, scopeID string, 
 	var out []domain.NotificationAssignment
 	for rows.Next() {
 		var a domain.NotificationAssignment
-		var success, failure int
+		var success, failure, failureToStart, recovery int
 		var created, updated string
-		if err := rows.Scan(&a.ID, &a.ChannelID, &success, &failure, &created, &updated); err != nil {
+		if err := rows.Scan(&a.ID, &a.ChannelID, &success, &failure, &created, &updated, &a.FailureThreshold, &failureToStart, &a.DurationThresholdSeconds, &recovery, &a.ReminderIntervalSeconds, &a.QuietPeriodSeconds); err != nil {
 			return nil, fmt.Errorf("store: scan notification assignment: %w", err)
 		}
 		a.ScopeType, a.ScopeID, a.OnSuccess, a.OnFailure = scopeType, scopeID, success != 0, failure != 0
+		a.OnFailureToStart, a.OnRecovery = failureToStart != 0, recovery != 0
 		a.CreatedAt, _ = parseTime(created)
 		a.UpdatedAt, _ = parseTime(updated)
 		out = append(out, a)
@@ -293,7 +329,7 @@ func (s *Store) insertNotificationDelivery(q notificationExecer, d domain.Notifi
 	if err != nil {
 		return fmt.Errorf("store: protect delivery authorization: %w", err)
 	}
-	_, err = q.Exec(`INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, d.ID, nullStr(d.ChannelID), d.ChannelName, d.DestinationSummary, endpoint, authorization, string(d.EventKind), nullStr(d.TaskID), nullStr(d.RunID), d.TaskName, d.GroupID, d.GroupName, []byte(d.Payload), string(d.State), d.Attempts, fmtTime(d.NextAttemptAt), fmtTime(d.CreatedAt), fmtTimePtr(d.ClaimedAt), fmtTimePtr(d.CompletedAt), d.LastStatus, d.LastError)
+	_, err = q.Exec(`INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, d.ID, nullStr(d.ChannelID), d.ChannelName, d.DestinationSummary, endpoint, authorization, string(d.EventKind), nullStr(d.TaskID), nullStr(d.RunID), d.TaskName, d.GroupID, d.GroupName, []byte(d.Payload), string(d.State), d.Attempts, fmtTime(d.NextAttemptAt), fmtTime(d.CreatedAt), fmtTimePtr(d.ClaimedAt), fmtTimePtr(d.CompletedAt), d.LastStatus, d.LastError, string(d.ConditionKind), d.ConditionSummary)
 	if err != nil {
 		return fmt.Errorf("store: create notification delivery: %w", err)
 	}
@@ -309,7 +345,7 @@ func (s *Store) CreateTestNotificationDelivery(channelID string) (domain.Notific
 	if !channel.Enabled {
 		return domain.NotificationDelivery{}, ErrNotificationChannelDisabled
 	}
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	delivery := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventTest, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now}
 	event := domain.WebhookEvent{Schema: "go-schedule.webhook.v1", Event: string(domain.NotificationEventTest), Delivery: domain.WebhookDelivery{ID: delivery.ID, CreatedAt: now}, Daemon: domain.WebhookDaemon{Version: buildinfo.Version}, Task: nil}
 	delivery.Payload, err = json.Marshal(event)
@@ -341,24 +377,71 @@ func (s *Store) createRunNotificationDeliveries(tx *sql.Tx, run domain.Run) erro
 			return fmt.Errorf("store: snapshot notification group: %w", err)
 		}
 	}
-	now := time.Now().UTC()
+	now := s.now().UTC()
+	if run.EndedAt != nil {
+		now = run.EndedAt.UTC()
+	}
 	for _, assignment := range policy.Assignments {
-		if (run.Outcome == domain.OutcomeSuccess && !assignment.OnSuccess) || (run.Outcome == domain.OutcomeFailure && !assignment.OnFailure) {
+		state, err := loadNotificationConditionState(tx, run.TaskID, assignment.ChannelID)
+		if err != nil {
+			return err
+		}
+		fingerprint := notificationPolicyFingerprint(assignment)
+		if state.PolicyFingerprint != fingerprint {
+			state = notificationConditionState{PolicyFingerprint: fingerprint}
+		}
+		if run.Outcome == domain.OutcomeFailure {
+			state.ConsecutiveFailures++
+		} else {
+			state.ConsecutiveFailures = 0
+		}
+		condition, summary := matchingRunCondition(run, assignment, state.ConsecutiveFailures)
+		reminder := false
+		emit := false
+		if condition != "" {
+			if state.ActiveCondition != condition {
+				emit = true
+				state.ActiveCondition = condition
+				state.ActiveSince = &now
+			} else if assignment.ReminderIntervalSeconds > 0 && reminderDue(now, state.LastNotifiedAt, assignment.ReminderIntervalSeconds, assignment.QuietPeriodSeconds) {
+				emit, reminder = true, true
+			}
+		} else {
+			if state.ActiveCondition != "" {
+				emit = assignment.OnRecovery
+				if emit {
+					condition = domain.NotificationConditionRecovery
+					summary = "Task recovered after an active notification condition."
+				}
+				state.ActiveCondition, state.ActiveSince = "", nil
+			}
+			if !emit && run.Outcome == domain.OutcomeSuccess && assignment.OnSuccess && (assignment.QuietPeriodSeconds == 0 || state.LastNotifiedAt == nil || now.Sub(*state.LastNotifiedAt) >= time.Duration(assignment.QuietPeriodSeconds)*time.Second) {
+				emit, condition, summary = true, domain.NotificationConditionSuccess, "Task completed successfully."
+			}
+		}
+		state.LastEvaluatedRunID, state.UpdatedAt = run.ID, now
+		if !emit {
+			if err := saveNotificationConditionState(tx, run.TaskID, assignment.ChannelID, state); err != nil {
+				return err
+			}
 			continue
 		}
 		channel, err := scanNotificationChannel(tx.QueryRow(notificationChannelSelect+` WHERE id=? AND enabled=1`, assignment.ChannelID))
 		if errors.Is(err, ErrNotFound) {
+			if err := saveNotificationConditionState(tx, run.TaskID, assignment.ChannelID, state); err != nil {
+				return err
+			}
 			continue
 		}
 		if err != nil {
 			return err
 		}
-		d := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventRunCompleted, TaskID: run.TaskID, RunID: run.ID, TaskName: taskName, GroupID: groupID.String, GroupName: groupName, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now}
+		d := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventRunCompleted, TaskID: run.TaskID, RunID: run.ID, TaskName: taskName, GroupID: groupID.String, GroupName: groupName, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now, ConditionKind: condition, ConditionSummary: summary}
 		duration := int64(0)
 		if run.StartedAt != nil && run.EndedAt != nil && !run.EndedAt.Before(*run.StartedAt) {
 			duration = run.EndedAt.Sub(*run.StartedAt).Milliseconds()
 		}
-		event := domain.WebhookEvent{Schema: "go-schedule.webhook.v1", Event: string(domain.NotificationEventRunCompleted), Delivery: domain.WebhookDelivery{ID: d.ID, CreatedAt: now}, Daemon: domain.WebhookDaemon{Version: buildinfo.Version}, Task: &domain.WebhookTask{ID: run.TaskID, Name: taskName, GroupID: groupID.String, GroupName: groupName}, Run: &domain.WebhookRun{ID: run.ID, Outcome: run.Outcome, Trigger: run.Trigger, ScheduledFor: run.ScheduledFor, StartedAt: run.StartedAt, EndedAt: run.EndedAt, DurationMS: duration, ExitCode: run.ExitCode}}
+		event := domain.WebhookEvent{Schema: "go-schedule.webhook.v1", Event: string(domain.NotificationEventRunCompleted), Delivery: domain.WebhookDelivery{ID: d.ID, CreatedAt: now}, Daemon: domain.WebhookDaemon{Version: buildinfo.Version}, Task: &domain.WebhookTask{ID: run.TaskID, Name: taskName, GroupID: groupID.String, GroupName: groupName}, Run: &domain.WebhookRun{ID: run.ID, Outcome: run.Outcome, Trigger: run.Trigger, ScheduledFor: run.ScheduledFor, StartedAt: run.StartedAt, EndedAt: run.EndedAt, DurationMS: duration, ExitCode: run.ExitCode}, Condition: &domain.WebhookCondition{Kind: condition, Summary: summary, Streak: state.ConsecutiveFailures, Threshold: assignment.FailureThreshold, Reminder: reminder}}
 		d.Payload, err = json.Marshal(event)
 		if err != nil {
 			return fmt.Errorf("store: encode run notification: %w", err)
@@ -366,8 +449,143 @@ func (s *Store) createRunNotificationDeliveries(tx *sql.Tx, run domain.Run) erro
 		if err := s.insertNotificationDelivery(tx, d); err != nil {
 			return err
 		}
+		state.LastNotifiedAt = &now
+		if err := saveNotificationConditionState(tx, run.TaskID, assignment.ChannelID, state); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func reminderDue(now time.Time, last *time.Time, reminderSeconds, quietSeconds int64) bool {
+	if last == nil {
+		return true
+	}
+	elapsed := now.Sub(*last)
+	return elapsed >= time.Duration(reminderSeconds)*time.Second && (quietSeconds == 0 || elapsed >= time.Duration(quietSeconds)*time.Second)
+}
+
+type notificationConditionState struct {
+	PolicyFingerprint   string
+	ConsecutiveFailures int
+	ActiveCondition     domain.NotificationConditionKind
+	ActiveSince         *time.Time
+	LastNotifiedAt      *time.Time
+	LastEvaluatedRunID  string
+	UpdatedAt           time.Time
+}
+
+func loadNotificationConditionState(tx *sql.Tx, taskID, channelID string) (notificationConditionState, error) {
+	var state notificationConditionState
+	var active string
+	var activeSince, lastNotified, updated sql.NullString
+	err := tx.QueryRow(`SELECT policy_fingerprint,consecutive_failures,active_condition,active_since,last_notified_at,last_evaluated_run_id,updated_at FROM notification_condition_states WHERE task_id=? AND channel_id=?`, taskID, channelID).Scan(&state.PolicyFingerprint, &state.ConsecutiveFailures, &active, &activeSince, &lastNotified, &state.LastEvaluatedRunID, &updated)
+	if errors.Is(err, sql.ErrNoRows) {
+		return state, nil
+	}
+	if err != nil {
+		return state, fmt.Errorf("store: read notification condition state: %w", err)
+	}
+	state.ActiveCondition = domain.NotificationConditionKind(active)
+	state.ActiveSince, _ = parseTimePtr(activeSince)
+	state.LastNotifiedAt, _ = parseTimePtr(lastNotified)
+	if updated.Valid {
+		state.UpdatedAt, _ = parseTime(updated.String)
+	}
+	return state, nil
+}
+
+func saveNotificationConditionState(tx *sql.Tx, taskID, channelID string, state notificationConditionState) error {
+	_, err := tx.Exec(`INSERT INTO notification_condition_states(task_id,channel_id,policy_fingerprint,consecutive_failures,active_condition,active_since,last_notified_at,last_evaluated_run_id,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(task_id,channel_id) DO UPDATE SET policy_fingerprint=excluded.policy_fingerprint,consecutive_failures=excluded.consecutive_failures,active_condition=excluded.active_condition,active_since=excluded.active_since,last_notified_at=excluded.last_notified_at,last_evaluated_run_id=excluded.last_evaluated_run_id,updated_at=excluded.updated_at`, taskID, channelID, state.PolicyFingerprint, state.ConsecutiveFailures, string(state.ActiveCondition), fmtTimePtr(state.ActiveSince), fmtTimePtr(state.LastNotifiedAt), state.LastEvaluatedRunID, fmtTime(state.UpdatedAt))
+	if err != nil {
+		return fmt.Errorf("store: save notification condition state: %w", err)
+	}
+	return nil
+}
+
+func notificationPolicyFingerprint(a domain.NotificationAssignment) string {
+	value := fmt.Sprintf("%s|%t|%t|%d|%t|%d|%t|%d|%d|%s", a.ChannelID, a.OnSuccess, a.OnFailure, a.FailureThreshold, a.OnFailureToStart, a.DurationThresholdSeconds, a.OnRecovery, a.ReminderIntervalSeconds, a.QuietPeriodSeconds, fmtTime(a.UpdatedAt))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(value)))
+}
+
+func matchingRunCondition(run domain.Run, a domain.NotificationAssignment, streak int) (domain.NotificationConditionKind, string) {
+	if run.StartFailed && a.OnFailureToStart {
+		return domain.NotificationConditionFailureToStart, "Task process could not be started."
+	}
+	if run.Outcome == domain.OutcomeFailure && a.OnFailure && streak >= a.FailureThreshold {
+		if a.FailureThreshold > 1 {
+			return domain.NotificationConditionConsecutiveFailure, fmt.Sprintf("Task failed %d consecutive times (threshold %d).", streak, a.FailureThreshold)
+		}
+		return domain.NotificationConditionFailure, "Task completed with a failure."
+	}
+	if a.DurationThresholdSeconds > 0 && run.StartedAt != nil && run.EndedAt != nil && run.EndedAt.Sub(*run.StartedAt) >= time.Duration(a.DurationThresholdSeconds)*time.Second {
+		return domain.NotificationConditionDurationExceeded, fmt.Sprintf("Task duration reached or exceeded %d seconds.", a.DurationThresholdSeconds)
+	}
+	return "", ""
+}
+
+// CreateDueDaemonHealthDeliveries creates at most one pending healthy-presence heartbeat per channel.
+func (s *Store) CreateDueDaemonHealthDeliveries(now time.Time) (int, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("store: begin daemon health deliveries: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	rows, err := tx.Query(notificationChannelSelect + ` WHERE enabled=1 AND health_interval_seconds>0 ORDER BY id`)
+	if err != nil {
+		return 0, fmt.Errorf("store: list daemon health channels: %w", err)
+	}
+	var channels []domain.NotificationChannel
+	for rows.Next() {
+		channel, err := scanNotificationChannel(rows)
+		if err != nil {
+			_ = rows.Close()
+			return 0, err
+		}
+		channels = append(channels, channel)
+	}
+	if err := rows.Close(); err != nil {
+		return 0, fmt.Errorf("store: close daemon health channels: %w", err)
+	}
+	created := 0
+	for _, channel := range channels {
+		var dueRaw string
+		err := tx.QueryRow(`SELECT next_due_at FROM notification_daemon_health_states WHERE channel_id=?`, channel.ID).Scan(&dueRaw)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return 0, fmt.Errorf("store: read daemon health state: %w", err)
+		}
+		if err == nil {
+			due, _ := parseTime(dueRaw)
+			if now.Before(due) {
+				continue
+			}
+		}
+		var unfinished int
+		if err := tx.QueryRow(`SELECT COUNT(*) FROM notification_deliveries WHERE channel_id=? AND event_kind=? AND state IN (?,?)`, channel.ID, string(domain.NotificationEventDaemonHealth), string(domain.NotificationDeliveryPending), string(domain.NotificationDeliveryClaimed)).Scan(&unfinished); err != nil {
+			return 0, fmt.Errorf("store: check daemon health work: %w", err)
+		}
+		next := now.Add(time.Duration(channel.HealthIntervalSeconds) * time.Second)
+		lastID := ""
+		if unfinished == 0 {
+			delivery := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventDaemonHealth, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now, ConditionKind: domain.NotificationConditionDaemonHealth, ConditionSummary: "Daemon healthy-presence heartbeat."}
+			event := domain.WebhookEvent{Schema: "go-schedule.webhook.v1", Event: string(domain.NotificationEventDaemonHealth), Delivery: domain.WebhookDelivery{ID: delivery.ID, CreatedAt: now}, Daemon: domain.WebhookDaemon{Version: buildinfo.Version, Status: "healthy", NextExpectedAt: &next}, Task: nil, Condition: &domain.WebhookCondition{Kind: domain.NotificationConditionDaemonHealth, Summary: delivery.ConditionSummary}}
+			delivery.Payload, err = json.Marshal(event)
+			if err != nil {
+				return 0, fmt.Errorf("store: encode daemon health notification: %w", err)
+			}
+			if err := s.insertNotificationDelivery(tx, delivery); err != nil {
+				return 0, err
+			}
+			lastID, created = delivery.ID, created+1
+		}
+		if _, err := tx.Exec(`INSERT INTO notification_daemon_health_states(channel_id,next_due_at,last_delivery_id,updated_at) VALUES(?,?,?,?) ON CONFLICT(channel_id) DO UPDATE SET next_due_at=excluded.next_due_at,last_delivery_id=CASE WHEN excluded.last_delivery_id='' THEN notification_daemon_health_states.last_delivery_id ELSE excluded.last_delivery_id END,updated_at=excluded.updated_at`, channel.ID, fmtTime(next), lastID, fmtTime(now)); err != nil {
+			return 0, fmt.Errorf("store: save daemon health state: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("store: commit daemon health deliveries: %w", err)
+	}
+	return created, nil
 }
 
 // RecoverNotificationDeliveries makes interrupted claims replayable without resetting attempts.
@@ -488,21 +706,22 @@ func pruneNotificationDeliveries(tx *sql.Tx) error {
 	return nil
 }
 
-const notificationDeliverySelect = `SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error FROM notification_deliveries`
+const notificationDeliverySelect = `SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary FROM notification_deliveries`
 
 func scanNotificationDelivery(sc scanner) (domain.NotificationDelivery, error) {
 	var d domain.NotificationDelivery
 	var channelID, taskID, runID sql.NullString
-	var eventKind, state, next, created string
+	var eventKind, state, next, created, conditionKind string
 	var claimed, completed sql.NullString
 	var payload []byte
-	if err := sc.Scan(&d.ID, &channelID, &d.ChannelName, &d.DestinationSummary, &d.Endpoint, &d.Authorization, &eventKind, &taskID, &runID, &d.TaskName, &d.GroupID, &d.GroupName, &payload, &state, &d.Attempts, &next, &created, &claimed, &completed, &d.LastStatus, &d.LastError); err != nil {
+	if err := sc.Scan(&d.ID, &channelID, &d.ChannelName, &d.DestinationSummary, &d.Endpoint, &d.Authorization, &eventKind, &taskID, &runID, &d.TaskName, &d.GroupID, &d.GroupName, &payload, &state, &d.Attempts, &next, &created, &claimed, &completed, &d.LastStatus, &d.LastError, &conditionKind, &d.ConditionSummary); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return d, ErrNotFound
 		}
 		return d, fmt.Errorf("store: scan notification delivery: %w", err)
 	}
 	d.ChannelID, d.TaskID, d.RunID, d.EventKind, d.State, d.Payload = channelID.String, taskID.String, runID.String, domain.NotificationEventKind(eventKind), domain.NotificationDeliveryState(state), payload
+	d.ConditionKind = domain.NotificationConditionKind(conditionKind)
 	var err error
 	d.Endpoint, err = secretstore.Unprotect(d.Endpoint)
 	if err != nil {

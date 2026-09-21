@@ -14,17 +14,19 @@ import (
 
 // NotificationChannelCreateRequest is the write-only channel creation contract.
 type NotificationChannelCreateRequest struct {
-	Name          string `json:"name"`
-	Endpoint      string `json:"endpoint"`
-	Authorization string `json:"authorization,omitempty"`
-	Enabled       *bool  `json:"enabled,omitempty"`
+	Name                  string `json:"name"`
+	Endpoint              string `json:"endpoint"`
+	Authorization         string `json:"authorization,omitempty"`
+	Enabled               *bool  `json:"enabled,omitempty"`
+	HealthIntervalSeconds int64  `json:"health_interval_seconds,omitempty"`
 }
 
 // NotificationChannelUpdateRequest changes non-authorization channel fields.
 type NotificationChannelUpdateRequest struct {
-	Name     *string `json:"name,omitempty"`
-	Endpoint *string `json:"endpoint,omitempty"`
-	Enabled  *bool   `json:"enabled,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	Endpoint              *string `json:"endpoint,omitempty"`
+	Enabled               *bool   `json:"enabled,omitempty"`
+	HealthIntervalSeconds *int64  `json:"health_interval_seconds,omitempty"`
 }
 
 // NotificationChannelRotateRequest replaces or removes authorization.
@@ -34,9 +36,15 @@ type NotificationChannelRotateRequest struct {
 
 // NotificationAssignmentInput is one item in a complete scope replacement.
 type NotificationAssignmentInput struct {
-	ChannelID string `json:"channel_id"`
-	OnSuccess bool   `json:"on_success"`
-	OnFailure bool   `json:"on_failure"`
+	ChannelID                string `json:"channel_id"`
+	OnSuccess                bool   `json:"on_success"`
+	OnFailure                bool   `json:"on_failure"`
+	FailureThreshold         int    `json:"failure_threshold,omitempty"`
+	OnFailureToStart         bool   `json:"on_failure_to_start,omitempty"`
+	DurationThresholdSeconds int64  `json:"duration_threshold_seconds,omitempty"`
+	OnRecovery               bool   `json:"on_recovery,omitempty"`
+	ReminderIntervalSeconds  int64  `json:"reminder_interval_seconds,omitempty"`
+	QuietPeriodSeconds       int64  `json:"quiet_period_seconds,omitempty"`
 }
 
 // NotificationAssignmentsRequest atomically replaces a scope policy.
@@ -64,7 +72,11 @@ func (s *Server) handleCreateNotificationChannel(w http.ResponseWriter, r *http.
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
-	channel := domain.NotificationChannel{Name: name, Kind: domain.NotificationChannelWebhook, Endpoint: strings.TrimSpace(req.Endpoint), EndpointSummary: summary, Authorization: req.Authorization, Enabled: enabled}
+	if !validNotificationInterval(req.HealthIntervalSeconds, 60, 86400) {
+		writeError(w, http.StatusBadRequest, CodeValidation, "health_interval_seconds", "health interval must be 0 or between 60 and 86400 seconds")
+		return
+	}
+	channel := domain.NotificationChannel{Name: name, Kind: domain.NotificationChannelWebhook, Endpoint: strings.TrimSpace(req.Endpoint), EndpointSummary: summary, Authorization: req.Authorization, Enabled: enabled, HealthIntervalSeconds: req.HealthIntervalSeconds}
 	if err := s.store.CreateNotificationChannel(&channel); err != nil {
 		s.internalError(w, "create notification channel", err)
 		return
@@ -121,6 +133,13 @@ func (s *Server) handleUpdateNotificationChannel(w http.ResponseWriter, r *http.
 	}
 	if req.Enabled != nil {
 		channel.Enabled = *req.Enabled
+	}
+	if req.HealthIntervalSeconds != nil {
+		if !validNotificationInterval(*req.HealthIntervalSeconds, 60, 86400) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "health_interval_seconds", "health interval must be 0 or between 60 and 86400 seconds")
+			return
+		}
+		channel.HealthIntervalSeconds = *req.HealthIntervalSeconds
 	}
 	if err := s.store.UpdateNotificationChannel(channel); err != nil {
 		s.internalError(w, "update notification channel", err)
@@ -235,7 +254,18 @@ func (s *Server) handleScopeNotifications(w http.ResponseWriter, r *http.Request
 			return
 		}
 		seen[item.ChannelID] = true
-		assignments[i] = domain.NotificationAssignment{ChannelID: item.ChannelID, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure}
+		if item.FailureThreshold == 0 {
+			item.FailureThreshold = 1
+		}
+		if item.FailureThreshold < 1 || item.FailureThreshold > 100 {
+			writeError(w, http.StatusBadRequest, CodeValidation, "assignments", "failure threshold must be between 1 and 100")
+			return
+		}
+		if !validNotificationInterval(item.DurationThresholdSeconds, 1, 2592000) || !validNotificationInterval(item.ReminderIntervalSeconds, 60, 2592000) || !validNotificationInterval(item.QuietPeriodSeconds, 60, 2592000) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "assignments", "duration must be 0 or between 1 and 2592000 seconds; reminder and quiet intervals must be 0 or between 60 and 2592000 seconds")
+			return
+		}
+		assignments[i] = domain.NotificationAssignment{ChannelID: item.ChannelID, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure, FailureThreshold: item.FailureThreshold, OnFailureToStart: item.OnFailureToStart, DurationThresholdSeconds: item.DurationThresholdSeconds, OnRecovery: item.OnRecovery, ReminderIntervalSeconds: item.ReminderIntervalSeconds, QuietPeriodSeconds: item.QuietPeriodSeconds}
 	}
 	if err := s.store.ReplaceNotificationAssignments(scope, id, assignments); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -256,6 +286,10 @@ func (s *Server) handleScopeNotifications(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, struct {
 		Assignments []domain.NotificationAssignment `json:"assignments"`
 	}{assignments})
+}
+
+func validNotificationInterval(value, minimum, maximum int64) bool {
+	return value == 0 || (value >= minimum && value <= maximum)
 }
 
 func (s *Server) handleEffectiveTaskNotifications(w http.ResponseWriter, r *http.Request) {

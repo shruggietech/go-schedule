@@ -20,6 +20,7 @@ type dispatcherStore struct {
 }
 
 func (s *dispatcherStore) RecoverNotificationDeliveries(time.Time) (int64, error) { return 0, nil }
+func (s *dispatcherStore) CreateDueDaemonHealthDeliveries(time.Time) (int, error) { return 0, nil }
 func (s *dispatcherStore) ClaimNotificationDeliveries(limit int, _ time.Time) ([]domain.NotificationDelivery, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -82,6 +83,7 @@ type refillStore struct {
 }
 
 func (s *refillStore) RecoverNotificationDeliveries(time.Time) (int64, error) { return 0, nil }
+func (s *refillStore) CreateDueDaemonHealthDeliveries(time.Time) (int, error) { return 0, nil }
 func (s *refillStore) ClaimNotificationDeliveries(limit int, _ time.Time) ([]domain.NotificationDelivery, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

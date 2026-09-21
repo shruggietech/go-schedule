@@ -7,7 +7,7 @@
   "required": ["schema", "event", "delivery", "daemon", "task"],
   "properties": {
     "schema": { "const": "go-schedule.webhook.v1" },
-    "event": { "enum": ["run.completed", "test"] },
+    "event": { "enum": ["run.completed", "test", "daemon.health"] },
     "delivery": {
       "type": "object",
       "additionalProperties": false,
@@ -21,7 +21,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["version"],
-      "properties": { "version": { "type": "string" } }
+      "properties": {
+        "version": { "type": "string" },
+        "status": { "const": "healthy" },
+        "next_expected_at": { "type": "string", "format": "date-time" }
+      }
     },
     "task": {
       "type": ["object", "null"],
@@ -48,10 +52,23 @@
         "duration_ms": { "type": "integer", "minimum": 0 },
         "exit_code": { "type": "integer" }
       }
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "summary"],
+      "properties": {
+        "kind": { "enum": ["success", "failure", "consecutive_failure", "failure_to_start", "duration_exceeded", "recovery", "daemon_health"] },
+        "summary": { "type": "string" },
+        "streak": { "type": "integer", "minimum": 0 },
+        "threshold": { "type": "integer", "minimum": 0 },
+        "reminder": { "type": "boolean" }
+      }
     }
   },
   "allOf": [
-    { "if": { "properties": { "event": { "const": "run.completed" } } }, "then": { "required": ["run"], "properties": { "task": { "type": "object" } } } },
-    { "if": { "properties": { "event": { "const": "test" } } }, "then": { "properties": { "task": { "type": "null" } } } }
+    { "if": { "properties": { "event": { "const": "run.completed" } } }, "then": { "required": ["run", "condition"], "properties": { "task": { "type": "object" } } } },
+    { "if": { "properties": { "event": { "const": "test" } } }, "then": { "properties": { "task": { "type": "null" } } } },
+    { "if": { "properties": { "event": { "const": "daemon.health" } } }, "then": { "required": ["condition"], "properties": { "task": { "type": "null" }, "daemon": { "required": ["version", "status", "next_expected_at"] }, "condition": { "properties": { "kind": { "const": "daemon_health" } } } } } }
   ]
 }
