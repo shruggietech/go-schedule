@@ -39,6 +39,18 @@ func TestMetadataTokenExchangeAndMCPInitialization(t *testing.T) {
 	if err := json.Unmarshal(metadata.Body.Bytes(), &document); err != nil || document["resource"] != testResource {
 		t.Fatalf("metadata=%s err=%v", metadata.Body.String(), err)
 	}
+	authorizationMetadata := request(handler, http.MethodGet, "/.well-known/oauth-authorization-server", "", "", "")
+	if authorizationMetadata.Code != http.StatusOK {
+		t.Fatalf("authorization metadata status=%d body=%s", authorizationMetadata.Code, authorizationMetadata.Body.String())
+	}
+	var authorizationDocument map[string]any
+	if err := json.Unmarshal(authorizationMetadata.Body.Bytes(), &authorizationDocument); err != nil {
+		t.Fatal(err)
+	}
+	responseTypes, ok := authorizationDocument["response_types_supported"].([]any)
+	if !ok || len(responseTypes) != 0 {
+		t.Fatalf("response_types_supported=%#v", authorizationDocument["response_types_supported"])
+	}
 
 	token := exchange(t, handler, issued.ID, issued.Token, "mcp:manage")
 	requestBody := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}`
@@ -147,6 +159,34 @@ func TestTokenRefreshReusesMutationDeduplicationServer(t *testing.T) {
 	secondGrant := secondInfo.Extra["grant"].(*grant)
 	if firstGrant.server != secondGrant.server {
 		t.Fatal("token refresh must retain the credential-scoped mutation deduplication server")
+	}
+}
+
+func TestLiveGrantKeepsDeduplicationServerPastCacheLifetime(t *testing.T) {
+	service, cleanup := testEnrollment(t)
+	defer cleanup()
+	issued := issueCredential(t, service, domain.ActorKindMCP, domain.CapabilityManage)
+	handler := newTestHandler(t, service)
+	handler.config.AccessTokenLifetimeSeconds = 20 * 60
+	now := time.Date(2026, time.September, 20, 12, 0, 0, 0, time.UTC)
+	handler.now = func() time.Time { return now }
+	firstToken := exchange(t, handler, issued.ID, issued.Token, "mcp:manage")
+	now = now.Add(serverCacheLifetime + time.Minute)
+	secondToken := exchange(t, handler, issued.ID, issued.Token, "mcp:manage")
+	request := httptest.NewRequest(http.MethodPost, testResource, nil)
+	request.URL.Scheme, request.URL.Host = "", ""
+	firstInfo, err := handler.verify(context.Background(), firstToken, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondInfo, err := handler.verify(context.Background(), secondToken, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstGrant := firstInfo.Extra["grant"].(*grant)
+	secondGrant := secondInfo.Extra["grant"].(*grant)
+	if firstGrant.server != secondGrant.server {
+		t.Fatal("a live grant must keep its credential-scoped deduplication server")
 	}
 }
 

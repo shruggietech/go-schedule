@@ -148,7 +148,7 @@ func (h *Handler) serveAuthorizationMetadata(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"issuer": h.issuer, "token_endpoint": h.issuer + "/oauth/token", "grant_types_supported": []string{"client_credentials"}, "token_endpoint_auth_methods_supported": []string{"client_secret_basic"}, "scopes_supported": supportedScopes()})
+	writeJSON(w, http.StatusOK, map[string]any{"issuer": h.issuer, "token_endpoint": h.issuer + "/oauth/token", "response_types_supported": []string{}, "grant_types_supported": []string{"client_credentials"}, "token_endpoint_auth_methods_supported": []string{"client_secret_basic"}, "scopes_supported": supportedScopes()})
 }
 
 func (h *Handler) serveToken(w http.ResponseWriter, r *http.Request) {
@@ -255,18 +255,20 @@ func (h *Handler) serverForRequest(r *http.Request) *mcp.Server {
 		return nil
 	}
 	h.mu.Lock()
-	if cached, ok := h.servers[entry.serverKey]; ok {
-		cached.lastUsed = h.now()
-		h.servers[entry.serverKey] = cached
-	}
+	entry.server = h.serverLocked(entry)
+	server := entry.server
 	h.mu.Unlock()
-	return entry.server
+	return server
 }
 
 func (h *Handler) serverLocked(entry *grant) *mcp.Server {
 	now := h.now()
+	live := make(map[serverKey]bool, len(h.grants))
+	for _, active := range h.grants {
+		live[active.serverKey] = true
+	}
 	for key, cached := range h.servers {
-		if cached.lastUsed.Add(serverCacheLifetime).Before(now) {
+		if !live[key] && cached.lastUsed.Add(serverCacheLifetime).Before(now) {
 			delete(h.servers, key)
 		}
 	}
@@ -278,12 +280,16 @@ func (h *Handler) serverLocked(entry *grant) *mcp.Server {
 	if len(h.servers) >= 1024 {
 		var oldestKey serverKey
 		var oldest time.Time
+		found := false
 		for key, cached := range h.servers {
-			if oldest.IsZero() || cached.lastUsed.Before(oldest) {
+			if !live[key] && (!found || cached.lastUsed.Before(oldest)) {
 				oldestKey, oldest = key, cached.lastUsed
+				found = true
 			}
 		}
-		delete(h.servers, oldestKey)
+		if found {
+			delete(h.servers, oldestKey)
+		}
 	}
 	server := h.newServer(entry)
 	h.servers[entry.serverKey] = cachedServer{server: server, lastUsed: now}
