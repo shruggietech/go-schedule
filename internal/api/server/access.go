@@ -78,6 +78,10 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if operation.Audit == authorization.AuditNone {
+		if expected := r.Header.Get(ExpectedDaemonHeader); expected != "" && expected != identity.InstallationID {
+			writeError(w, http.StatusConflict, CodeConflict, "daemon_id", "daemon identity does not match the requested target")
+			return
+		}
 		s.mux.ServeHTTP(w, r)
 		return
 	}
@@ -98,7 +102,7 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 	if capture.status >= 400 {
 		result = domain.AuditResultFailed
 	}
-	if err := s.store.CompleteAudit(event.ID, result); err != nil {
+	if err := s.store.CompleteAudit(event.ID, result, completedAuditTarget(event.TargetID, capture.status, capture.body.Bytes())); err != nil {
 		writeError(w, http.StatusInternalServerError, CodeAuditUnavailable, "", "audit result could not be persisted")
 		return
 	}
@@ -107,6 +111,34 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(capture.status)
 	_, _ = w.Write(capture.body.Bytes())
+}
+
+func completedAuditTarget(existing string, status int, body []byte) string {
+	if existing != "" || status < 200 || status >= 300 || len(body) == 0 {
+		return existing
+	}
+	var response struct {
+		ID   string `json:"id"`
+		Task *struct {
+			ID string `json:"id"`
+		} `json:"task"`
+		Trigger *struct {
+			ID string `json:"id"`
+		} `json:"trigger"`
+	}
+	if json.Unmarshal(body, &response) != nil {
+		return existing
+	}
+	if response.ID != "" {
+		return response.ID
+	}
+	if response.Task != nil {
+		return response.Task.ID
+	}
+	if response.Trigger != nil {
+		return response.Trigger.ID
+	}
+	return existing
 }
 
 func (s *Server) handleListActors(w http.ResponseWriter, _ *http.Request) {

@@ -84,7 +84,7 @@ func TestActorAPIUsesIntentFirstAuditAndProtectsLocalActor(t *testing.T) {
 		t.Fatal(err)
 	}
 	events, err := s.store.ListAudit(domain.AuditQuery{Operation: "actors.create", Limit: 10})
-	if err != nil || len(events) != 1 || events[0].Result != domain.AuditResultSucceeded {
+	if err != nil || len(events) != 1 || events[0].Result != domain.AuditResultSucceeded || events[0].TargetID != actor.ID {
 		t.Fatalf("events=%+v err=%v", events, err)
 	}
 	local, _ := s.store.LocalActor()
@@ -110,6 +110,22 @@ func TestCurrentActorReportsServerOwnedAuthorityToObserveClients(t *testing.T) {
 	var current domain.Actor
 	if err := json.Unmarshal(response.Body.Bytes(), &current); err != nil || current.ID != actor.ID || current.Capability != domain.CapabilityOperate {
 		t.Fatalf("actor=%+v err=%v", current, err)
+	}
+}
+
+func TestCurrentActorRejectsStaleExpectedDaemonIdentity(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Manage session", domain.CapabilityManage, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetActorResolver(func(*http.Request) (string, error) { return actor.ID, nil })
+	request := httptest.NewRequest(http.MethodGet, "/v1/access/current", nil)
+	request.Header.Set(ExpectedDaemonHeader, "stale-daemon-id")
+	response := httptest.NewRecorder()
+	s.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusConflict || !bytes.Contains(response.Body.Bytes(), []byte("daemon identity does not match")) {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 

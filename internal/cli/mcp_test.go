@@ -51,10 +51,15 @@ func TestMCPHTTPEnableRequiresExplicitValidPermission(t *testing.T) {
 	if captured.Permission != domain.CapabilityOperate || captured.ClientName != "Codex" {
 		t.Fatalf("request=%+v", captured)
 	}
+	manage := newMCPHTTPEnableCmd()
+	manage.SetArgs([]string{"--port", "43123", "--permission", "manage", "--require-confirmation"})
+	if err := manage.Execute(); err != nil || captured.Permission != domain.CapabilityManage || !captured.RequireConfirmation {
+		t.Fatalf("manage request=%+v err=%v", captured, err)
+	}
 	invalid := newMCPHTTPEnableCmd()
-	invalid.SetArgs([]string{"--port", "43123", "--permission", "manage"})
+	invalid.SetArgs([]string{"--port", "43123", "--permission", "enroll"})
 	if err := invalid.Execute(); err == nil {
-		t.Fatal("manage permission succeeded")
+		t.Fatal("enroll permission succeeded")
 	}
 }
 

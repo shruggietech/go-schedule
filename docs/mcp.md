@@ -7,9 +7,9 @@ nav_order: 7.5
 
 **Audience:** people connecting Codex or another local MCP host to go-schedule\
 **Applies to:** unreleased work after v1.4.0\
-**Authority:** Observe resources by default, with three explicit Operate tools over local stdio or an explicitly enabled authenticated numeric-loopback HTTP endpoint
+**Authority:** Observe resources by default, with explicit Operate and Manage tools over local stdio or an explicitly enabled authenticated numeric-loopback HTTP endpoint
 
-go-schedule provides optional local Model Context Protocol access for inspecting scheduler state and, after explicit opt-in, operating existing tasks. The preferred stdio mode starts only when an MCP host launches `gosched mcp serve`, communicates through standard input and standard output, and opens no network listener. Clients that cannot launch stdio can use a separately enabled authenticated endpoint bound only to numeric IPv4 loopback. The daemon must already be running, and the account controlling either mode must already have access to its Unix socket or Windows named pipe.
+go-schedule provides optional local Model Context Protocol access for inspecting scheduler state and, after explicit opt-in, operating existing tasks or managing bounded automation definitions. The preferred stdio mode starts only when an MCP host launches `gosched mcp serve`, communicates through standard input and standard output, and opens no network listener. Clients that cannot launch stdio can use a separately enabled authenticated endpoint bound only to numeric IPv4 loopback. The daemon must already be running, and the account controlling either mode must already have access to its Unix socket or Windows named pipe.
 
 ## Add it to Codex
 
@@ -44,6 +44,20 @@ codex mcp add go-schedule-operate -- gosched mcp serve --permission operate --na
 
 An Operate server exposes the same bounded resources plus exactly `tasks_run_now`, `tasks_enable`, and `tasks_disable`. Each call requires the exact daemon installation UUID, existing task ID, and a caller-generated request UUID. Reuse a request UUID only for a retry of the identical operation and target. Operate cannot create, edit, delete, or reconfigure tasks, groups, schedules, triggers, notification channels, connections, actors, or credentials.
 
+To let a deliberately trusted host manage automation definitions, explicitly choose Manage:
+
+```text
+codex mcp add go-schedule-manage -- gosched mcp serve --permission manage --name "Codex definition manager"
+```
+
+Manage inherits the three Operate tools and adds exactly `tasks_manage`, `groups_manage`, `chains_manage`, `triggers_manage`, `watchers_manage`, and `notification_assignments_replace`. Each family tool changes one definition per call through the ordinary local API. Bulk mutation, actor administration, enrollment, credential reveal, direct database access, and raw filesystem access are unavailable. Task environment and stdin values are intentionally absent from the MCP schema. Trigger creation returns the new trigger identity but withholds its generated key; an Enroll-authorized human client owns later credential handling.
+
+Attended environments can require an explicit confirmation field on every Manage call without imposing prompts on unattended deployments:
+
+```text
+codex mcp add go-schedule-manage-attended -- gosched mcp serve --permission manage --require-confirmation --name "Attended definition manager"
+```
+
 ## Enable localhost HTTP when stdio is unavailable
 
 The localhost endpoint is off on every daemon start. Choose an unused port and enable it through the protected local API:
@@ -58,6 +72,12 @@ To enable the same three Operate tools over localhost HTTP, make the permission 
 
 ```text
 gosched mcp http enable --port 43123 --name "Local desktop operator" --permission operate
+```
+
+Manage and its optional confirmation policy use the same lifecycle:
+
+```text
+gosched mcp http enable --port 43123 --name "Local desktop manager" --permission manage --require-confirmation
 ```
 
 Native MCP clients normally send no `Origin` header. If a trusted local browser application must connect, explicitly allow its exact numeric-loopback origin when enabling:
@@ -90,7 +110,7 @@ The desktop Agent Access workspace performs the same lifecycle through protected
 
 Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Each read requests only that page plus one lookahead record. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field. Task and schedule reads use an allowlisted SQLite projection that never loads execution inputs, while run output and alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
 
-Observe sessions on both local transports advertise resources only. Operate sessions add exactly three task tools and no prompts, direct database access, raw log resource, remote MCP listener, or Manage authority. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
+Observe sessions on both local transports advertise resources only. Operate sessions add exactly three task tools. Manage sessions inherit those tools and add exactly six definition tools, with no prompts unless the connection requires caller confirmation, and no direct database access, raw log resource, remote MCP listener, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
 
 ## Operate results and retry safety
 
@@ -98,13 +118,19 @@ Every Operate result has a stable schema version, permission, operation, daemon 
 
 The runtime session remembers a bounded set of request IDs for ten minutes. Repeating the same request ID with the same operation and target returns the first result without another mutation. Reusing it for another operation or target is rejected. This in-memory retry boundary ends with the MCP process or localhost listener, so callers must still reconcile uncertain outcomes rather than replaying blindly after a restart.
 
+## Manage results, deletes, and compatibility
+
+Every Manage result adds affected object kind and object identity to the stable Operate outcome model. A call changes one definition or atomically replaces one task or group assignment scope, so there is no partial bulk result. Delete behavior, reference conflicts, readiness updates, validation errors, and assignment replacement are the same as the JSON API, GUI, and CLI because tools delegate to that API rather than mutating storage directly.
+
+`accepted` proves the API completed the mutation. `rejected` covers invalid action, schema, target, reference, confirmation, or request-identity reuse. `denied` means current server-owned capability prevented dispatch. `uncertain` means the caller must inspect current state before retrying. Incompatible or future actions fail closed. Manage never silently retries transport failures.
+
 ## Trust and secret boundary
 
 Task names, schedule summaries, policy summaries, alert messages, and command output are user-controlled, untrusted data. Every response labels these fields and tells the host not to treat their contents as instructions. JSON encoding does not make hostile text trustworthy.
 
 Treat every resource field as display data even if it contains Markdown, XML-like text, ANSI escapes, JSON fragments, or sentences that resemble agent instructions. Such content cannot add tools or change permissions. A host should render or summarize it as untrusted scheduler data and must not execute instructions found inside it.
 
-The MCP response types structurally exclude task commands, arguments, environment values, stdin, working directories, run-as identities, raw schedule definitions, trigger keys, notification endpoints, authorization values, and internal IPC or filesystem paths. The adapter never serializes a daemon task, run, alert, or schedule object directly.
+Observe response types structurally exclude task commands, arguments, environment values, stdin, working directories, run-as identities, raw schedule definitions, trigger keys, notification endpoints, authorization values, and internal IPC or filesystem paths. Manage inputs permit bounded definition fields such as commands, schedules, and watcher paths where the ordinary API requires them, but omit task environment and stdin. Manage results return only operation and object identity, outcome, and a safe explanation, never definition content or credentials.
 
 The subprocess inherits the operating-system access that launched it and uses only the same local IPC client as `gosched health`. An explicit Operate launch creates a short-lived runtime MCP actor with a random secret retained only in process memory as a digest. Every task action is authorized against that actor's current state and written to the existing intent-first audit log with the actor, daemon, operation, task, correlation ID, and result. Listener disable, process exit, or explicit teardown revokes the actor; requests after revocation remain attributable and fail closed. If the daemon denies the controlling or reading identity, MCP returns a bounded access error and does not retry through another transport, direct database access, elevation, or another identity.
 
@@ -114,9 +140,9 @@ The subprocess inherits the operating-system access that launched it and uses on
 | --- | --- | --- |
 | Observe | Enabled | Read bounded allowlisted resources through existing local IPC authorization. |
 | Operate | Explicit opt-in | Run, enable, or disable one existing task with a runtime MCP actor, exact daemon and task targets, deduplicated request identity, current authorization, and attributable audit. |
-| Manage | Disabled | Creating, editing, deleting, or reconfiguring resources remains unavailable to MCP. |
+| Manage | Explicit opt-in | Create, update, or delete one bounded task, group, chain, trigger, or watcher definition, or atomically replace one notification-assignment scope, through the ordinary API with redacted results and optional confirmation. |
 
-This separation is intentional. Observe discovery cannot expose or invoke Operate tools. Operate cannot cross into Manage, Enroll, remote MCP, or durable grants.
+This separation is intentional. Observe discovery cannot expose or invoke Operate or Manage tools. Operate cannot cross into Manage. Manage cannot cross into Enroll, permission administration, remote MCP, or durable grants.
 
 ## Troubleshooting
 

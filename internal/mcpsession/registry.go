@@ -56,7 +56,7 @@ func New(st actorStore) *Registry {
 
 // Create returns a session and its secret exactly once.
 func (r *Registry) Create(displayName string, capability domain.Capability) (Session, string, error) {
-	if capability != domain.CapabilityObserve && capability != domain.CapabilityOperate {
+	if capability != domain.CapabilityObserve && capability != domain.CapabilityOperate && capability != domain.CapabilityManage {
 		return Session{}, "", ErrInvalidSession
 	}
 	created := r.now().UTC()

@@ -23,14 +23,16 @@ type MCPHTTPStatusResponse struct {
 	RequestCount          uint64            `json:"request_count"`
 	Permission            domain.Capability `json:"permission,omitempty"`
 	ActorID               string            `json:"actor_id,omitempty"`
+	RequireConfirmation   bool              `json:"require_confirmation,omitempty"`
 }
 
 // MCPHTTPEnableRequest contains the only caller-selectable listener settings.
 type MCPHTTPEnableRequest struct {
-	Port           int               `json:"port"`
-	AllowedOrigins []string          `json:"allowed_origins"`
-	ClientName     string            `json:"client_name,omitempty"`
-	Permission     domain.Capability `json:"permission,omitempty"`
+	Port                int               `json:"port"`
+	AllowedOrigins      []string          `json:"allowed_origins"`
+	ClientName          string            `json:"client_name,omitempty"`
+	Permission          domain.Capability `json:"permission,omitempty"`
+	RequireConfirmation bool              `json:"require_confirmation,omitempty"`
 }
 
 // MCPHTTPCredentialResponse returns a newly issued credential once.

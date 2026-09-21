@@ -20,6 +20,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpmanage"
 	"github.com/shruggietech/go-schedule/internal/mcpoperate"
 	"github.com/shruggietech/go-schedule/internal/mcpsession"
 )
@@ -441,7 +442,7 @@ func TestOperateHTTPDiscoveryExecutionAndDisableRevocation(t *testing.T) {
 		}
 		return nil
 	}
-	manager.executorFor = func(secret string) *mcpoperate.Executor {
+	manager.operateFor = func(secret string) *mcpoperate.Executor {
 		if secret != "runtime-secret" {
 			t.Fatalf("executor secret=%q", secret)
 		}
@@ -475,6 +476,47 @@ func TestOperateHTTPDiscoveryExecutionAndDisableRevocation(t *testing.T) {
 	}
 	if created != 1 || revoked != 1 {
 		t.Fatalf("created=%d revoked=%d", created, revoked)
+	}
+}
+
+func TestManageHTTPDiscoveryIncludesOperateAndConfirmationPolicy(t *testing.T) {
+	manager := New(fakeReader{}, "test", nil)
+	manager.sessionCreate = func(_ context.Context, _ string, capability domain.Capability) (server.MCPSessionCredentialResponse, error) {
+		if capability != domain.CapabilityManage {
+			t.Fatalf("capability=%s", capability)
+		}
+		return server.MCPSessionCredentialResponse{Session: mcpsession.Session{ID: "session-1", ActorID: uuid.NewString(), Capability: capability}, Credential: "runtime-secret"}, nil
+	}
+	manager.sessionRevoke = func(context.Context, string) error { return nil }
+	manager.operateFor = func(string) *mcpoperate.Executor { return mcpoperate.New(&fakeOperator{}) }
+	manager.manageFor = func(_ string, confirm bool) *mcpmanage.Executor {
+		if !confirm {
+			t.Fatal("confirmation policy was not propagated")
+		}
+		return mcpmanage.New(nil, confirm)
+	}
+	result, err := manager.Enable(context.Background(), server.MCPHTTPEnableRequest{Port: freePort(t), ClientName: "Codex", Permission: domain.CapabilityManage, RequireConfirmation: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.RequireConfirmation || result.Permission != domain.CapabilityManage {
+		t.Fatalf("status=%+v", result.MCPHTTPStatusResponse)
+	}
+	client := &http.Client{Transport: authTransport{credential: result.Credential, base: http.DefaultTransport}}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	sdkClient := mcp.NewClient(&mcp.Implementation{Name: "manage-http", Version: "test"}, nil)
+	session, err := sdkClient.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: result.Endpoint, HTTPClient: client, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+	listed, err := session.ListTools(ctx, nil)
+	if err != nil || len(listed.Tools) != 9 {
+		t.Fatalf("tools=%+v err=%v", listed, err)
+	}
+	if _, err := manager.Disable(context.Background()); err != nil {
+		t.Fatal(err)
 	}
 }
 
