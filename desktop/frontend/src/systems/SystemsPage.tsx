@@ -20,17 +20,24 @@ export function SystemsPage({ bridge, onOpen }: { bridge: DesktopBridge; onOpen(
   const [sort, setSort] = useState<SortKey>('state')
   const latestGeneration = useRef(0)
   const requestSequence = useRef(0)
+  const accept = (next: SystemsSnapshot) => {
+    if (next.generation >= latestGeneration.current) { latestGeneration.current = next.generation; setSnapshot(next) }
+  }
   const refresh = async () => {
     const request = ++requestSequence.current
     setLoading(true); setError('')
     try {
-      const next = await bridge.allSystems?.() ?? { generation: 0, startedAt: '', completedAt: '', observations: [] }
-      if (next.generation >= latestGeneration.current) { latestGeneration.current = next.generation; setSnapshot(next) }
+      const next = await bridge.allSystems?.() ?? { generation: 0, startedAt: '', completedAt: '', complete: true, observations: [] }
+      accept(next)
     }
     catch { if (request === requestSequence.current) setError('All Systems could not be refreshed. Check the desktop connection and try again.') }
     finally { if (request === requestSequence.current) setLoading(false) }
   }
-  useEffect(() => { void refresh() }, [bridge])
+  useEffect(() => {
+    const unsubscribe = bridge.subscribeSystems?.(accept) ?? (() => undefined)
+    void refresh()
+    return unsubscribe
+  }, [bridge])
   const observations = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase()
     return [...(snapshot?.observations ?? [])].filter((item) => {
@@ -70,7 +77,7 @@ export function SystemsPage({ bridge, onOpen }: { bridge: DesktopBridge; onOpen(
           <Button variant="secondary" onClick={() => open(item, 'tasks', summary?.next_occurrence?.task_id, undefined, summary?.next_occurrence ? `Upcoming task: ${summary.next_occurrence.task_name}` : 'Task list')}>Tasks</Button>
           <Button variant="secondary" onClick={() => open(item, 'schedule', summary?.next_occurrence?.task_id, undefined, summary?.next_occurrence ? `Upcoming at ${when(summary.next_occurrence.scheduled_for)}` : 'Schedule')}>Schedule</Button>
           <Button variant="secondary" onClick={() => open(item, 'activity', summary?.recent_failure?.task_id ?? summary?.unacknowledged_alert?.task_id, summary?.recent_failure?.run_id ?? summary?.unacknowledged_alert?.alert_id, summary?.recent_failure ? `Failed run ${summary.recent_failure.run_id}` : summary?.unacknowledged_alert ? `Alert ${summary.unacknowledged_alert.alert_id}` : 'Activity')}>Activity</Button>
-          <Button variant="secondary" onClick={() => open(item, 'notifications', summary?.notification_problem?.task_id, summary?.notification_problem?.delivery_id, summary?.notification_problem ? `Delivery ${summary.notification_problem.delivery_id}` : 'Notifications')}>Notifications</Button>
+          <Button variant="secondary" onClick={() => open(item, item.registration.kind === 'remote' ? 'activity' : 'notifications', summary?.notification_problem?.task_id, summary?.notification_problem?.delivery_id, summary?.notification_problem ? `Notification delivery ${summary.notification_problem.delivery_id}` : 'Notifications')}>{item.registration.kind === 'remote' ? 'Notification issue' : 'Notifications'}</Button>
         </div>
       </article>
     })}</div>}

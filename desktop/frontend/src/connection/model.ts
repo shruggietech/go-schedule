@@ -53,7 +53,7 @@ export interface SystemSummary { schema: string; observed_at: string; active_tas
 export interface SystemRegistration { key: string; profileId?: string; kind: 'local' | 'remote'; label: string; endpoint?: string; daemonId?: string; shortDaemonId?: string; platform?: string; architecture?: string; version?: string }
 export interface SystemFailure { state: ConnectionState; message: string; action: string }
 export interface SystemObservation { registration: SystemRegistration; state: ConnectionState; observedAt?: string; stale: boolean; summary?: SystemSummary; failure?: SystemFailure }
-export interface SystemsSnapshot { generation: number; startedAt: string; completedAt: string; observations: SystemObservation[] }
+export interface SystemsSnapshot { generation: number; startedAt: string; completedAt: string; complete: boolean; observations: SystemObservation[] }
 
 export interface DesktopBridge {
   snapshot(): Promise<ConnectionSnapshot>
@@ -63,6 +63,7 @@ export interface DesktopBridge {
   renameConnection?(id: string, label: string): Promise<ConnectionResult>
   removeConnection?(id: string): Promise<ConnectionResult>
   allSystems?(): Promise<SystemsSnapshot>
+  subscribeSystems?(listener: (snapshot: SystemsSnapshot) => void): () => void
   quit(): Promise<ActionResult>
   subscribe(listener: (event: DesktopEvent) => void): () => void
 }

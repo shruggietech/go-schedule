@@ -131,3 +131,29 @@ func TestRefreshRetainsCompletedObservationsWhenMembershipRecheckFails(t *testin
 		t.Fatalf("observations = %+v", snapshot.Observations)
 	}
 }
+
+func TestRefreshPublishesCompletedTargetsBeforeSlowTargetsFinish(t *testing.T) {
+	now := time.Date(2026, 9, 21, 15, 0, 0, 0, time.UTC)
+	release := make(chan struct{})
+	targets := []target{
+		{registration: Registration{Key: "fast", Kind: "remote", Label: "Fast"}, backend: backendFake{health: connection.Health{ID: "fast", DisplayName: "Fast", Platform: "linux", Version: "1.0.0"}}, client: summaryFake{value: domain.SystemSummary{Schema: domain.SystemSummarySchema, ObservedAt: now}}},
+		{registration: Registration{Key: "slow", Kind: "remote", Label: "Slow"}, backend: backendFake{health: connection.Health{ID: "slow", DisplayName: "Slow", Platform: "linux", Version: "1.0.0"}, release: release}, client: summaryFake{value: domain.SystemSummary{Schema: domain.SystemSummarySchema, ObservedAt: now}}},
+	}
+	profiles := []clientprofile.Profile{{ID: "fast"}, {ID: "slow"}}
+	service := &Service{profiles: profileStoreFake{clientprofile.Collection{Version: 1, Profiles: profiles}}, cache: map[string]cachedSummary{}, now: func() time.Time { return now }, timeout: time.Second, concurrency: 2, loadTargets: func() ([]target, []Observation) { return targets, nil }}
+	updates := make(chan Snapshot, 4)
+	done := make(chan Snapshot, 1)
+	go func() { done <- service.Refresh(context.Background(), func(snapshot Snapshot) { updates <- snapshot }) }()
+	select {
+	case update := <-updates:
+		if update.Complete || len(update.Observations) != 1 || update.Observations[0].Registration.Key != "fast" {
+			t.Fatalf("first update = %+v", update)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("fast target was not published while slow target remained blocked")
+	}
+	close(release)
+	if final := <-done; !final.Complete || len(final.Observations) != 2 {
+		t.Fatalf("final snapshot = %+v", final)
+	}
+}

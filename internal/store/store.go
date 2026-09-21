@@ -635,6 +635,14 @@ CREATE TABLE notification_daemon_health_states (
 );
 `,
 	},
+	{
+		// v21: keep bounded operational summaries indexable across unbounded run
+		// history by matching the outcome and effective timestamp query shape.
+		version: 21,
+		stmts: `
+CREATE INDEX idx_runs_outcome_effective_time ON runs(outcome, COALESCE(ended_at, scheduled_for));
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

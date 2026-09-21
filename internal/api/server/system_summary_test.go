@@ -43,3 +43,32 @@ func TestSystemSummaryReturnsBoundedSafeProjection(t *testing.T) {
 		t.Fatalf("summary=%+v", summary)
 	}
 }
+
+func TestSystemSummaryExcludesTasksBlockedByDisabledGroup(t *testing.T) {
+	s := newTestServer(t)
+	created := doJSON(t, s, http.MethodPost, "/v1/tasks", TaskCreateRequest{Name: "Blocked", Command: "echo", Schedule: "every day at 09:00", Timezone: "UTC"})
+	var response TaskResponse
+	if err := json.Unmarshal(created.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	group := &domain.Group{Name: "Disabled", Enabled: false}
+	if err := s.store.CreateGroup(group); err != nil {
+		t.Fatal(err)
+	}
+	response.Task.GroupID = group.ID
+	if err := s.store.UpdateTask(&response.Task); err != nil {
+		t.Fatal(err)
+	}
+
+	result := doJSON(t, s, http.MethodGet, "/v1/system-summary", nil)
+	if result.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", result.Code, result.Body.String())
+	}
+	var summary domain.SystemSummary
+	if err := json.Unmarshal(result.Body.Bytes(), &summary); err != nil {
+		t.Fatal(err)
+	}
+	if summary.NextOccurrence != nil {
+		t.Fatalf("blocked task advertised as upcoming: %+v", summary.NextOccurrence)
+	}
+}

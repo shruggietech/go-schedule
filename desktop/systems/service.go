@@ -58,8 +58,8 @@ func New(profiles profileStore, secrets secretStore, local *client.Client) *Serv
 	return &Service{profiles: profiles, secrets: secrets, local: local, cache: make(map[string]cachedSummary), now: time.Now, timeout: targetTimeout, concurrency: maxConcurrentTargets}
 }
 
-// Refresh returns one observation for every registration present at completion.
-func (s *Service) Refresh(ctx context.Context) Snapshot {
+// Refresh returns one observation for every registration present at completion and optionally publishes generation-scoped partial snapshots.
+func (s *Service) Refresh(ctx context.Context, publish ...func(Snapshot)) Snapshot {
 	started := s.now().UTC()
 	refreshCtx, generation := s.begin(ctx)
 	var targets []target
@@ -99,15 +99,33 @@ func (s *Service) Refresh(ctx context.Context) Snapshot {
 	}()
 
 	observations := append([]Observation(nil), setupFailures...)
+	if len(observations) > 0 && len(publish) > 0 {
+		publish[0](s.snapshot(generation, started, observations, false, false))
+	}
 	for value := range results {
 		observations = append(observations, value)
-	}
-	current := s.currentKeys(observations)
-	filtered := observations[:0]
-	for _, value := range observations {
-		if current[value.Registration.Key] {
-			filtered = append(filtered, value)
+		if len(publish) > 0 {
+			publish[0](s.snapshot(generation, started, observations, false, false))
 		}
+	}
+	final := s.snapshot(generation, started, observations, true, true)
+	if len(publish) > 0 {
+		publish[0](final)
+	}
+	return final
+}
+
+func (s *Service) snapshot(generation uint64, started time.Time, observations []Observation, complete, filterCurrent bool) Snapshot {
+	filtered := append([]Observation(nil), observations...)
+	if filterCurrent {
+		current := s.currentKeys(observations)
+		kept := filtered[:0]
+		for _, value := range filtered {
+			if current[value.Registration.Key] {
+				kept = append(kept, value)
+			}
+		}
+		filtered = kept
 	}
 	sort.SliceStable(filtered, func(i, j int) bool {
 		if filtered[i].Registration.Kind != filtered[j].Registration.Kind {
@@ -118,7 +136,11 @@ func (s *Service) Refresh(ctx context.Context) Snapshot {
 		}
 		return filtered[i].Registration.Key < filtered[j].Registration.Key
 	})
-	return Snapshot{Generation: generation, StartedAt: started.Format(time.RFC3339), CompletedAt: s.now().UTC().Format(time.RFC3339), Observations: filtered}
+	completedAt := ""
+	if complete {
+		completedAt = s.now().UTC().Format(time.RFC3339)
+	}
+	return Snapshot{Generation: generation, StartedAt: started.Format(time.RFC3339), CompletedAt: completedAt, Complete: complete, Observations: filtered}
 }
 
 func (s *Service) begin(parent context.Context) (context.Context, uint64) {

@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/schedule"
 	"github.com/shruggietech/go-schedule/internal/store"
+	tasklogic "github.com/shruggietech/go-schedule/internal/task"
 )
 
 const systemSummaryWindow = 24 * time.Hour
@@ -33,9 +34,14 @@ func (s *Server) nextSummaryOccurrence(from, to time.Time) (*domain.UpcomingSumm
 	if err != nil {
 		return nil, err
 	}
+	groups, err := s.store.ListGroups()
+	if err != nil {
+		return nil, err
+	}
+	groupsByID := tasklogic.ByID(groups)
 	var nearest *domain.UpcomingSummary
 	for _, task := range tasks {
-		if !task.Enabled || task.ScheduleID == "" {
+		if !task.Enabled || task.ScheduleID == "" || !tasklogic.ChainEnabled(task.GroupID, groupsByID) {
 			continue
 		}
 		sch, err := s.store.GetSchedule(task.ScheduleID)

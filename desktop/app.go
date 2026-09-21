@@ -16,7 +16,10 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 )
 
-const desktopEventName = "desktop:event"
+const (
+	desktopEventName = "desktop:event"
+	systemsEventName = "systems:event"
+)
 
 type eventEmitter interface {
 	Emit(context.Context, string, any)
@@ -56,7 +59,11 @@ func (a *App) AllSystems() systems.Snapshot {
 	if a.systems == nil || a.ctx == nil {
 		return systems.Snapshot{Observations: []systems.Observation{}}
 	}
-	return a.systems.Refresh(a.ctx)
+	return a.systems.Refresh(a.ctx, func(snapshot systems.Snapshot) {
+		if a.emitter != nil {
+			a.emitter.Emit(a.ctx, systemsEventName, snapshot)
+		}
+	})
 }
 
 func (a *App) ConnectionProfiles() connections.Result {

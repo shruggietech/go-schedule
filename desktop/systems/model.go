@@ -44,6 +44,7 @@ type Snapshot struct {
 	Generation   uint64        `json:"generation"`
 	StartedAt    string        `json:"startedAt"`
 	CompletedAt  string        `json:"completedAt"`
+	Complete     bool          `json:"complete"`
 	Observations []Observation `json:"observations"`
 }
 

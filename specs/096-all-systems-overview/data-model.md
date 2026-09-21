@@ -106,9 +106,10 @@ removed_registration -> late_result -> discarded
 
 | Field | Type | Rules |
 |---|---|---|
-| generation | integer | Identifies the completed refresh |
+| generation | integer | Identifies one refresh and all of its progressive snapshots |
 | startedAt | RFC 3339 timestamp | Desktop clock |
-| completedAt | RFC 3339 timestamp | Desktop clock |
+| completedAt | optional RFC 3339 timestamp | Desktop clock, present only on the final snapshot |
+| complete | boolean | Whether every target in the generation has reached a terminal observation |
 | observations | SystemObservation array | One entry per current registration, stable key ordering |
 
 ## DrilldownIntent
