@@ -66,11 +66,18 @@ describe('NotificationsPage', () => {
     expect(await screen.findByRole('heading', { name: 'Notification coverage is incomplete' })).toBeInTheDocument()
   })
 
-  it('reports active destinations separately for success and failure outcomes', async () => {
+  it('treats advanced-only conditions as active problem coverage', async () => {
+    const advanced = { ...workspace, coverage: workspace.coverage?.map((scope) => ({ ...scope, onFailure: false, onProblem: true, enabledFailureDestinationCount: 0, enabledProblemDestinationCount: 1 })), deliveries: [] }
+    render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: advanced }) })} available refreshToken={1} />)
+    expect(await screen.findByRole('heading', { name: 'Notifications are active' })).toBeInTheDocument()
+    expect(screen.getAllByText(/problems: 1 active destination/)).toHaveLength(2)
+  })
+
+  it('reports active destinations separately for success and problem outcomes', async () => {
     const mixed = { ...workspace, coverage: [{ ...workspace.coverage![0], onSuccess: true, enabledSuccessDestinationCount: 1, enabledFailureDestinationCount: 0 }], deliveries: [] }
     render(<NotificationsPage bridge={bridge({ workspace: () => Promise.resolve({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: mixed }) })} available refreshToken={1} />)
     expect(await screen.findByRole('heading', { name: 'Some notification outcomes are paused' })).toBeInTheDocument()
-    expect(screen.getByText(/failures: 0 active destinations; successes: 1 active destination/)).toBeInTheDocument()
+    expect(screen.getByText(/problems: 0 active destinations; successes: 1 active destination/)).toBeInTheDocument()
   })
 
   it('never redisplays secrets and requires explicit replacement intent', async () => {

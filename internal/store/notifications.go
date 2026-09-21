@@ -21,7 +21,7 @@ var ErrNotificationChannelDisabled = errors.New("store: notification channel is 
 
 // CreateNotificationChannel persists a validated write-only destination.
 func (s *Store) CreateNotificationChannel(channel *domain.NotificationChannel) error {
-	if !validStoreNotificationInterval(channel.HealthIntervalSeconds, 86400) {
+	if !validStoreNotificationInterval(channel.HealthIntervalSeconds, 60, 86400) {
 		return fmt.Errorf("store: invalid notification health interval")
 	}
 	if channel.ID == "" {
@@ -101,7 +101,7 @@ func scanNotificationChannel(sc scanner) (domain.NotificationChannel, error) {
 
 // UpdateNotificationChannel replaces the mutable non-authorization fields.
 func (s *Store) UpdateNotificationChannel(channel domain.NotificationChannel) error {
-	if !validStoreNotificationInterval(channel.HealthIntervalSeconds, 86400) {
+	if !validStoreNotificationInterval(channel.HealthIntervalSeconds, 60, 86400) {
 		return fmt.Errorf("store: invalid notification health interval")
 	}
 	endpoint, err := secretstore.Protect(channel.Endpoint)
@@ -185,7 +185,7 @@ func (s *Store) ReplaceNotificationAssignments(scopeType domain.NotificationScop
 			a.FailureThreshold = 1
 		}
 		problemCondition := a.OnFailure || a.OnFailureToStart || a.DurationThresholdSeconds > 0
-		if a.ChannelID == "" || (!a.OnSuccess && !problemCondition) || seen[a.ChannelID] || a.FailureThreshold < 1 || a.FailureThreshold > 100 || !validStoreNotificationInterval(a.DurationThresholdSeconds, 2592000) || !validStoreNotificationInterval(a.ReminderIntervalSeconds, 2592000) || !validStoreNotificationInterval(a.QuietPeriodSeconds, 2592000) || ((a.OnRecovery || a.ReminderIntervalSeconds > 0) && !problemCondition) {
+		if a.ChannelID == "" || (!a.OnSuccess && !problemCondition) || seen[a.ChannelID] || a.FailureThreshold < 1 || a.FailureThreshold > 100 || !validStoreNotificationInterval(a.DurationThresholdSeconds, 1, 2592000) || !validStoreNotificationInterval(a.ReminderIntervalSeconds, 60, 2592000) || !validStoreNotificationInterval(a.QuietPeriodSeconds, 60, 2592000) || ((a.OnRecovery || a.ReminderIntervalSeconds > 0) && !problemCondition) {
 			return fmt.Errorf("store: invalid or duplicate notification assignment")
 		}
 		seen[a.ChannelID] = true
@@ -207,14 +207,34 @@ func (s *Store) ReplaceNotificationAssignments(scopeType domain.NotificationScop
 			return fmt.Errorf("store: create notification assignment: %w", err)
 		}
 	}
+	if err := resetNotificationConditionStatesForScope(tx, scopeType, scopeID); err != nil {
+		return err
+	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit notification assignments: %w", err)
 	}
 	return nil
 }
 
-func validStoreNotificationInterval(value, maximum int64) bool {
-	return value == 0 || (value >= 60 && value <= maximum)
+func validStoreNotificationInterval(value, minimum, maximum int64) bool {
+	return value == 0 || (value >= minimum && value <= maximum)
+}
+
+func resetNotificationConditionStatesForScope(tx *sql.Tx, scopeType domain.NotificationScopeType, scopeID string) error {
+	var err error
+	if scopeType == domain.NotificationScopeTask {
+		_, err = tx.Exec(`DELETE FROM notification_condition_states WHERE task_id=?`, scopeID)
+	} else {
+		_, err = tx.Exec(`WITH RECURSIVE descendants(id) AS (
+			SELECT id FROM groups WHERE id=?
+			UNION ALL
+			SELECT groups.id FROM groups JOIN descendants ON groups.parent_id=descendants.id
+		) DELETE FROM notification_condition_states WHERE task_id IN (SELECT id FROM tasks WHERE group_id IN (SELECT id FROM descendants))`, scopeID)
+	}
+	if err != nil {
+		return fmt.Errorf("store: reset notification condition state: %w", err)
+	}
+	return nil
 }
 
 // ListNotificationAssignments returns the policy configured directly on one scope.
@@ -386,15 +406,18 @@ func (s *Store) createRunNotificationDeliveries(tx *sql.Tx, run domain.Run) erro
 			} else if assignment.ReminderIntervalSeconds > 0 && reminderDue(now, state.LastNotifiedAt, assignment.ReminderIntervalSeconds, assignment.QuietPeriodSeconds) {
 				emit, reminder = true, true
 			}
-		} else if state.ActiveCondition != "" {
-			emit = assignment.OnRecovery
-			if emit {
-				condition = domain.NotificationConditionRecovery
-				summary = "Task recovered after an active notification condition."
+		} else {
+			if state.ActiveCondition != "" {
+				emit = assignment.OnRecovery
+				if emit {
+					condition = domain.NotificationConditionRecovery
+					summary = "Task recovered after an active notification condition."
+				}
+				state.ActiveCondition, state.ActiveSince = "", nil
 			}
-			state.ActiveCondition, state.ActiveSince = "", nil
-		} else if run.Outcome == domain.OutcomeSuccess && assignment.OnSuccess && (assignment.QuietPeriodSeconds == 0 || state.LastNotifiedAt == nil || now.Sub(*state.LastNotifiedAt) >= time.Duration(assignment.QuietPeriodSeconds)*time.Second) {
-			emit, condition, summary = true, domain.NotificationConditionSuccess, "Task completed successfully."
+			if !emit && run.Outcome == domain.OutcomeSuccess && assignment.OnSuccess && (assignment.QuietPeriodSeconds == 0 || state.LastNotifiedAt == nil || now.Sub(*state.LastNotifiedAt) >= time.Duration(assignment.QuietPeriodSeconds)*time.Second) {
+				emit, condition, summary = true, domain.NotificationConditionSuccess, "Task completed successfully."
+			}
 		}
 		state.LastEvaluatedRunID, state.UpdatedAt = run.ID, now
 		if !emit {

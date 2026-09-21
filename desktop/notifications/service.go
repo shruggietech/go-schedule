@@ -103,9 +103,12 @@ func (s *Service) configuredCoverage(ctx context.Context, workspace *Workspace) 
 		seen := map[string]bool{}
 		enabledSuccess := map[string]bool{}
 		enabledFailure := map[string]bool{}
+		enabledProblem := map[string]bool{}
 		for _, value := range values {
+			problem := value.OnFailure || value.OnFailureToStart || value.DurationThresholdSeconds > 0
 			summary.OnSuccess = summary.OnSuccess || value.OnSuccess
 			summary.OnFailure = summary.OnFailure || value.OnFailure
+			summary.OnProblem = summary.OnProblem || problem
 			if enabled[value.ChannelID] && value.OnSuccess && !enabledSuccess[value.ChannelID] {
 				enabledSuccess[value.ChannelID] = true
 				summary.EnabledSuccessCount++
@@ -113,6 +116,10 @@ func (s *Service) configuredCoverage(ctx context.Context, workspace *Workspace) 
 			if enabled[value.ChannelID] && value.OnFailure && !enabledFailure[value.ChannelID] {
 				enabledFailure[value.ChannelID] = true
 				summary.EnabledFailureCount++
+			}
+			if enabled[value.ChannelID] && problem && !enabledProblem[value.ChannelID] {
+				enabledProblem[value.ChannelID] = true
+				summary.EnabledProblemCount++
 			}
 			if seen[value.ChannelID] {
 				continue

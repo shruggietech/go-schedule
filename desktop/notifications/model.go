@@ -66,10 +66,12 @@ type ConfiguredScope struct {
 	SourceName              string `json:"sourceName"`
 	OnSuccess               bool   `json:"onSuccess"`
 	OnFailure               bool   `json:"onFailure"`
+	OnProblem               bool   `json:"onProblem"`
 	DestinationCount        int    `json:"destinationCount"`
 	EnabledDestinationCount int    `json:"enabledDestinationCount"`
 	EnabledSuccessCount     int    `json:"enabledSuccessDestinationCount"`
 	EnabledFailureCount     int    `json:"enabledFailureDestinationCount"`
+	EnabledProblemCount     int    `json:"enabledProblemDestinationCount"`
 }
 
 type Delivery struct {

@@ -203,8 +203,8 @@ func TestWorkspaceIncludesOrderedSecretFreeConfiguredCoverage(t *testing.T) {
 		t.Fatalf("result=%+v", r)
 	}
 	want := []ConfiguredScope{
-		{Type: "group", ID: "g1", Name: "Parent", Context: "Parent", SourceType: "group", SourceName: "Parent", OnFailure: true, DestinationCount: 1, EnabledDestinationCount: 1, EnabledFailureCount: 1},
-		{Type: "task", ID: "t1", Name: "Backup", Context: "Parent / Child", SourceType: "group", SourceName: "Parent", OnSuccess: true, OnFailure: true, DestinationCount: 2, EnabledDestinationCount: 1, EnabledFailureCount: 1},
+		{Type: "group", ID: "g1", Name: "Parent", Context: "Parent", SourceType: "group", SourceName: "Parent", OnFailure: true, OnProblem: true, DestinationCount: 1, EnabledDestinationCount: 1, EnabledFailureCount: 1, EnabledProblemCount: 1},
+		{Type: "task", ID: "t1", Name: "Backup", Context: "Parent / Child", SourceType: "group", SourceName: "Parent", OnSuccess: true, OnFailure: true, OnProblem: true, DestinationCount: 2, EnabledDestinationCount: 1, EnabledFailureCount: 1, EnabledProblemCount: 1},
 	}
 	if !reflect.DeepEqual(r.Workspace.Coverage, want) {
 		t.Fatalf("coverage=%+v", r.Workspace.Coverage)
@@ -216,6 +216,26 @@ func TestWorkspaceIncludesOrderedSecretFreeConfiguredCoverage(t *testing.T) {
 	dump := strings.ToLower(string(encoded))
 	if strings.Contains(dump, "private.example") || strings.Contains(dump, "bearer") {
 		t.Fatalf("secret leaked: %s", dump)
+	}
+}
+
+func TestWorkspaceCountsAdvancedOnlyAssignmentsAsProblemCoverage(t *testing.T) {
+	f := fixture()
+	f.directByScope = map[string][]domain.NotificationAssignment{
+		"group:g1": {{ChannelID: "c1", ScopeType: domain.NotificationScopeGroup, ScopeID: "g1", OnFailureToStart: true, DurationThresholdSeconds: 30}},
+		"group:g2": {},
+	}
+	f.effectiveByTask = map[string]domain.EffectiveNotificationPolicy{
+		"t1": {TaskID: "t1", SourceScopeType: domain.NotificationScopeGroup, SourceScopeID: "g1", Assignments: []domain.NotificationAssignment{{ChannelID: "c1", OnFailureToStart: true, DurationThresholdSeconds: 30}}},
+	}
+	r := NewService(f).Workspace(context.Background())
+	if r.Outcome != "accepted" || r.Workspace == nil || len(r.Workspace.Coverage) != 2 {
+		t.Fatalf("result=%+v", r)
+	}
+	for _, item := range r.Workspace.Coverage {
+		if !item.OnProblem || item.EnabledProblemCount != 1 {
+			t.Fatalf("advanced coverage=%+v", item)
+		}
 	}
 }
 

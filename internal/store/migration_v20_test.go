@@ -35,4 +35,17 @@ func TestMigrationV20AddsNotificationConditionState(t *testing.T) {
 			t.Fatalf("table %s count=%d err=%v", table, count, err)
 		}
 	}
+	var assignmentSchema string
+	if err := st.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='notification_assignments'`).Scan(&assignmentSchema); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.db.Exec(`INSERT INTO notification_channels(id,name,kind,endpoint,endpoint_summary,enabled,created_at,updated_at) VALUES('channel-advanced','Advanced','webhook','https://example.test','https://example.test',1,'2026-09-21T00:00:00Z','2026-09-21T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.db.Exec(`INSERT INTO groups(id,name,enabled,created_at,updated_at) VALUES('group-advanced','Advanced',1,'2026-09-21T00:00:00Z','2026-09-21T00:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.db.Exec(`INSERT INTO notification_assignments(id,channel_id,group_id,on_failure_to_start,created_at,updated_at) VALUES('assignment-advanced','channel-advanced','group-advanced',1,'2026-09-21T00:00:00Z','2026-09-21T00:00:00Z')`); err != nil {
+		t.Fatalf("advanced-only assignment rejected by schema %q: %v", assignmentSchema, err)
+	}
 }

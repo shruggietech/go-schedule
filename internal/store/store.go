@@ -553,6 +553,33 @@ ALTER TABLE notification_assignments ADD COLUMN on_recovery INTEGER NOT NULL DEF
 ALTER TABLE notification_assignments ADD COLUMN reminder_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(reminder_interval_seconds BETWEEN 0 AND 2592000);
 ALTER TABLE notification_assignments ADD COLUMN quiet_period_seconds INTEGER NOT NULL DEFAULT 0 CHECK(quiet_period_seconds BETWEEN 0 AND 2592000);
 
+ALTER TABLE notification_assignments RENAME TO notification_assignments_v19;
+CREATE TABLE notification_assignments (
+	id                         TEXT PRIMARY KEY,
+	channel_id                 TEXT NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
+	task_id                    TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+	group_id                   TEXT REFERENCES groups(id) ON DELETE CASCADE,
+	on_success                 INTEGER NOT NULL DEFAULT 0 CHECK(on_success IN (0,1)),
+	on_failure                 INTEGER NOT NULL DEFAULT 0 CHECK(on_failure IN (0,1)),
+	created_at                 TEXT NOT NULL,
+	updated_at                 TEXT NOT NULL,
+	failure_threshold          INTEGER NOT NULL DEFAULT 1 CHECK(failure_threshold BETWEEN 1 AND 100),
+	on_failure_to_start        INTEGER NOT NULL DEFAULT 0 CHECK(on_failure_to_start IN (0,1)),
+	duration_threshold_seconds INTEGER NOT NULL DEFAULT 0 CHECK(duration_threshold_seconds BETWEEN 0 AND 2592000),
+	on_recovery                INTEGER NOT NULL DEFAULT 0 CHECK(on_recovery IN (0,1)),
+	reminder_interval_seconds  INTEGER NOT NULL DEFAULT 0 CHECK(reminder_interval_seconds BETWEEN 0 AND 2592000),
+	quiet_period_seconds       INTEGER NOT NULL DEFAULT 0 CHECK(quiet_period_seconds BETWEEN 0 AND 2592000),
+	CHECK ((task_id IS NOT NULL) != (group_id IS NOT NULL)),
+	CHECK (on_success = 1 OR on_failure = 1 OR on_failure_to_start = 1 OR duration_threshold_seconds > 0)
+);
+INSERT INTO notification_assignments(id,channel_id,task_id,group_id,on_success,on_failure,created_at,updated_at,failure_threshold,on_failure_to_start,duration_threshold_seconds,on_recovery,reminder_interval_seconds,quiet_period_seconds)
+SELECT id,channel_id,task_id,group_id,on_success,on_failure,created_at,updated_at,failure_threshold,on_failure_to_start,duration_threshold_seconds,on_recovery,reminder_interval_seconds,quiet_period_seconds FROM notification_assignments_v19;
+DROP TABLE notification_assignments_v19;
+CREATE UNIQUE INDEX idx_notification_assignments_task_channel ON notification_assignments(task_id,channel_id) WHERE task_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_notification_assignments_group_channel ON notification_assignments(group_id,channel_id) WHERE group_id IS NOT NULL;
+CREATE INDEX idx_notification_assignments_task ON notification_assignments(task_id);
+CREATE INDEX idx_notification_assignments_group ON notification_assignments(group_id);
+
 ALTER TABLE notification_deliveries RENAME TO notification_deliveries_v19;
 CREATE TABLE notification_deliveries (
 	id                   TEXT PRIMARY KEY,

@@ -72,7 +72,7 @@ func (s *Server) handleCreateNotificationChannel(w http.ResponseWriter, r *http.
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
-	if !validNotificationInterval(req.HealthIntervalSeconds, 86400) {
+	if !validNotificationInterval(req.HealthIntervalSeconds, 60, 86400) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "health_interval_seconds", "health interval must be 0 or between 60 and 86400 seconds")
 		return
 	}
@@ -135,7 +135,7 @@ func (s *Server) handleUpdateNotificationChannel(w http.ResponseWriter, r *http.
 		channel.Enabled = *req.Enabled
 	}
 	if req.HealthIntervalSeconds != nil {
-		if !validNotificationInterval(*req.HealthIntervalSeconds, 86400) {
+		if !validNotificationInterval(*req.HealthIntervalSeconds, 60, 86400) {
 			writeError(w, http.StatusBadRequest, CodeValidation, "health_interval_seconds", "health interval must be 0 or between 60 and 86400 seconds")
 			return
 		}
@@ -261,8 +261,8 @@ func (s *Server) handleScopeNotifications(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusBadRequest, CodeValidation, "assignments", "failure threshold must be between 1 and 100")
 			return
 		}
-		if !validNotificationInterval(item.DurationThresholdSeconds, 2592000) || !validNotificationInterval(item.ReminderIntervalSeconds, 2592000) || !validNotificationInterval(item.QuietPeriodSeconds, 2592000) {
-			writeError(w, http.StatusBadRequest, CodeValidation, "assignments", "duration, reminder, and quiet intervals must be 0 or between 60 and 2592000 seconds")
+		if !validNotificationInterval(item.DurationThresholdSeconds, 1, 2592000) || !validNotificationInterval(item.ReminderIntervalSeconds, 60, 2592000) || !validNotificationInterval(item.QuietPeriodSeconds, 60, 2592000) {
+			writeError(w, http.StatusBadRequest, CodeValidation, "assignments", "duration must be 0 or between 1 and 2592000 seconds; reminder and quiet intervals must be 0 or between 60 and 2592000 seconds")
 			return
 		}
 		assignments[i] = domain.NotificationAssignment{ChannelID: item.ChannelID, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure, FailureThreshold: item.FailureThreshold, OnFailureToStart: item.OnFailureToStart, DurationThresholdSeconds: item.DurationThresholdSeconds, OnRecovery: item.OnRecovery, ReminderIntervalSeconds: item.ReminderIntervalSeconds, QuietPeriodSeconds: item.QuietPeriodSeconds}
@@ -288,8 +288,8 @@ func (s *Server) handleScopeNotifications(w http.ResponseWriter, r *http.Request
 	}{assignments})
 }
 
-func validNotificationInterval(value, maximum int64) bool {
-	return value == 0 || (value >= 60 && value <= maximum)
+func validNotificationInterval(value, minimum, maximum int64) bool {
+	return value == 0 || (value >= minimum && value <= maximum)
 }
 
 func (s *Server) handleEffectiveTaskNotifications(w http.ResponseWriter, r *http.Request) {

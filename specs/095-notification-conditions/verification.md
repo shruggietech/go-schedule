@@ -11,7 +11,7 @@ S095 completes issue #175 with durable, explainable notification conditions for 
 - One primary problem is selected in deterministic order: failure to start, consecutive failure, then duration exceeded.
 - The first problem transition notifies once, identical repeats are suppressed, an elapsed reminder can notify again, and optional recovery fires when the active problem clears.
 - Success quiet periods suppress routine repeat volume without hiding the first problem or recovery transition.
-- Policy fingerprints reset stale counters and active conditions when an assignment changes. Durable state survives daemon restart and evaluates only runs present in durable history.
+- Policy replacement transactionally clears affected task state, including descendant task state for group rules, while assignment fingerprints guard each evaluated channel. Durable state survives daemon restart and evaluates only runs present in durable history.
 - Enabled channels may opt into healthy-presence heartbeats with a receiver-visible next expected deadline. Zero disables heartbeat work, and a stopped daemon makes no false claim that it can send its own outage.
 - API, CLI, MCP Manage-compatible assignment input, desktop channel and policy controls, webhook payloads, and redacted delivery history carry the complete condition configuration and safe explanation.
 - Desktop controls use labeled native inputs, remain inside the existing responsive policy layout, and preserve the progressive-disclosure workflow.
@@ -21,7 +21,7 @@ S095 completes issue #175 with durable, explainable notification conditions for 
 - `go test ./...` at the repository root: passed, including integration tests.
 - `go test ./...` in `desktop`: passed.
 - `npm run build` in `desktop/frontend`: TypeScript and Vite production build passed.
-- `npm test -- --run` in `desktop/frontend`: 24 files and 135 tests passed.
+- `npm test -- --run` in `desktop/frontend`: 24 files and 136 tests passed.
 - `npm run test:e2e -- --grep "notifications"` in `desktop/frontend`: 2 Playwright workflows passed with accessibility coverage.
 - `go test -race ./internal/store ./internal/notification ./internal/api/server`: passed.
 - `go run ./scripts/github-format`: passed with no em dashes or hard-wrapped Markdown prose.

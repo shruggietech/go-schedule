@@ -8,9 +8,9 @@ const label = (value: string) => value.replaceAll('_', ' ').replace(/^./, (chara
 const localTime = (value?: string) => value ? new Date(value).toLocaleString() : 'Not available'
 const plural = (count: number, singular: string) => `${count} ${singular}${count === 1 ? '' : 's'}`
 const assignment = (values: Assignment[], channelId: string): Assignment => values.find((item) => item.channelId === channelId) ?? { channelId, onSuccess: false, onFailure: false, failureThreshold: 1, onFailureToStart: false, durationThresholdMinutes: 0, onRecovery: false, reminderIntervalMinutes: 0, quietPeriodMinutes: 0 }
-const hasActiveOutcome = (workspace: NotificationWorkspace) => (workspace.coverage ?? []).some((scope) => scope.enabledSuccessDestinationCount > 0 || scope.enabledFailureDestinationCount > 0)
-const hasInactiveAssignedOutcome = (workspace: NotificationWorkspace) => (workspace.coverage ?? []).some((scope) => (scope.onSuccess && scope.enabledSuccessDestinationCount === 0) || (scope.onFailure && scope.enabledFailureDestinationCount === 0))
-const coverageDetail = (scope: NonNullable<NotificationWorkspace['coverage']>[number]) => [scope.onFailure && `failures: ${plural(scope.enabledFailureDestinationCount, 'active destination')}`, scope.onSuccess && `successes: ${plural(scope.enabledSuccessDestinationCount, 'active destination')}`].filter(Boolean).join('; ')
+const hasActiveOutcome = (workspace: NotificationWorkspace) => (workspace.coverage ?? []).some((scope) => scope.enabledSuccessDestinationCount > 0 || (scope.enabledProblemDestinationCount ?? scope.enabledFailureDestinationCount) > 0)
+const hasInactiveAssignedOutcome = (workspace: NotificationWorkspace) => (workspace.coverage ?? []).some((scope) => (scope.onSuccess && scope.enabledSuccessDestinationCount === 0) || ((scope.onProblem ?? scope.onFailure) && (scope.enabledProblemDestinationCount ?? scope.enabledFailureDestinationCount) === 0))
+const coverageDetail = (scope: NonNullable<NotificationWorkspace['coverage']>[number]) => [(scope.onProblem ?? scope.onFailure) && `problems: ${plural(scope.enabledProblemDestinationCount ?? scope.enabledFailureDestinationCount, 'active destination')}`, scope.onSuccess && `successes: ${plural(scope.enabledSuccessDestinationCount, 'active destination')}`].filter(Boolean).join('; ')
 
 const deliveryGuidance: Record<Delivery['state'], string> = {
   queued: 'Waiting to be sent. No action is needed yet.',

@@ -83,4 +83,8 @@ func TestNotificationAssignmentAPIExplainsTaskPrecedence(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("invalid reminder status=%d body=%s", rec.Code, rec.Body.String())
 	}
+	rec = doJSON(t, s, http.MethodPut, "/v1/tasks/"+task.Task.ID+"/notifications", NotificationAssignmentsRequest{Assignments: []NotificationAssignmentInput{{ChannelID: channel.ID, DurationThresholdSeconds: 1}}})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("sub-minute duration status=%d body=%s", rec.Code, rec.Body.String())
+	}
 }
