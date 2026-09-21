@@ -116,6 +116,40 @@ func TestAuthoritySurfacesAreMonotonic(t *testing.T) {
 	}
 }
 
+func TestRequestedScopesAreAnUnorderedAuthoritySet(t *testing.T) {
+	scopes, capability, ok := requestedScopes("mcp:manage mcp:operate", domain.CapabilityManage)
+	if !ok || capability != domain.CapabilityManage || strings.Join(scopes, " ") != "mcp:observe mcp:operate mcp:manage" {
+		t.Fatalf("scopes=%v capability=%q ok=%v", scopes, capability, ok)
+	}
+	if _, _, ok := requestedScopes("mcp:manage mcp:operate", domain.CapabilityOperate); ok {
+		t.Fatal("an Operate actor must not gain Manage through scope ordering")
+	}
+}
+
+func TestTokenRefreshReusesMutationDeduplicationServer(t *testing.T) {
+	service, cleanup := testEnrollment(t)
+	defer cleanup()
+	issued := issueCredential(t, service, domain.ActorKindMCP, domain.CapabilityManage)
+	handler := newTestHandler(t, service)
+	firstToken := exchange(t, handler, issued.ID, issued.Token, "mcp:manage")
+	secondToken := exchange(t, handler, issued.ID, issued.Token, "mcp:manage")
+	firstRequest := httptest.NewRequest(http.MethodPost, testResource, nil)
+	firstRequest.URL.Scheme, firstRequest.URL.Host = "", ""
+	firstInfo, err := handler.verify(context.Background(), firstToken, firstRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondInfo, err := handler.verify(context.Background(), secondToken, firstRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstGrant := firstInfo.Extra["grant"].(*grant)
+	secondGrant := secondInfo.Extra["grant"].(*grant)
+	if firstGrant.server != secondGrant.server {
+		t.Fatal("token refresh must retain the credential-scoped mutation deduplication server")
+	}
+}
+
 type bearerTransport struct {
 	base  http.RoundTripper
 	token string

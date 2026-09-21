@@ -32,6 +32,8 @@ import (
 
 const maxTokenRequestBytes = 16 << 10
 
+const serverCacheLifetime = 10 * time.Minute
+
 type clientFactory func(actorID string) *client.Client
 
 type grant struct {
@@ -46,6 +48,18 @@ type grant struct {
 	scopes          []string
 	expires         time.Time
 	server          *mcp.Server
+	serverKey       serverKey
+}
+
+type serverKey struct {
+	credentialID string
+	actorID      string
+	capability   domain.Capability
+}
+
+type cachedServer struct {
+	server   *mcp.Server
+	lastUsed time.Time
 }
 
 // Handler owns memory-only OAuth access grants and the remote MCP transport.
@@ -60,6 +74,7 @@ type Handler struct {
 	allowActor  func(string) bool
 	version     string
 	grants      map[[sha256.Size]byte]*grant
+	servers     map[serverKey]cachedServer
 	now         func() time.Time
 	random      io.Reader
 	protected   http.Handler
@@ -74,7 +89,7 @@ func New(cfg config.RemoteMCPConfig, version string, service *enrollment.Service
 	}
 	resource, _ := url.Parse(cfg.ResourceURL)
 	issuer := resource.Scheme + "://" + resource.Host
-	h := &Handler{config: cfg, resource: resource, issuer: issuer, metadataURL: issuer + "/.well-known/oauth-protected-resource/mcp", enrollment: service, client: factory, allowActor: allowActor, version: version, grants: make(map[[sha256.Size]byte]*grant), now: func() time.Time { return time.Now().UTC() }, random: rand.Reader}
+	h := &Handler{config: cfg, resource: resource, issuer: issuer, metadataURL: issuer + "/.well-known/oauth-protected-resource/mcp", enrollment: service, client: factory, allowActor: allowActor, version: version, grants: make(map[[sha256.Size]byte]*grant), servers: make(map[serverKey]cachedServer), now: func() time.Time { return time.Now().UTC() }, random: rand.Reader}
 	h.metadata = auth.ProtectedResourceMetadataHandler(&oauthex.ProtectedResourceMetadata{Resource: cfg.ResourceURL, AuthorizationServers: []string{issuer}, ScopesSupported: supportedScopes(), BearerMethodsSupported: []string{"header"}, ResourceName: "go-schedule remote MCP"})
 	stream := mcp.NewStreamableHTTPHandler(h.serverForRequest, &mcp.StreamableHTTPOptions{Stateless: true, MaxRequestBodyBytes: 1 << 20, PropagateRequestCancellation: true, DisableLocalhostProtection: true})
 	limitedStream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -189,12 +204,13 @@ func (h *Handler) serveToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	entry := &grant{digest: digest, sourceDigest: sourceDigest, credentialID: credential.ID, actorID: actor.ID, capability: capability, actorCapability: actor.Capability, daemonID: identity.InstallationID, resource: h.config.ResourceURL, scopes: scopes, expires: h.now().Add(h.config.AccessTokenLifetime())}
-	entry.server = h.newServer(entry)
+	entry.serverKey = serverKey{credentialID: credential.ID, actorID: actor.ID, capability: capability}
 	h.mu.Lock()
 	h.pruneLocked()
 	if len(h.grants) >= 1024 {
 		h.evictOldestLocked()
 	}
+	entry.server = h.serverLocked(entry)
 	h.grants[digest] = entry
 	h.mu.Unlock()
 	writeJSON(w, http.StatusOK, map[string]any{"access_token": accessToken, "token_type": "Bearer", "expires_in": int(h.config.AccessTokenLifetime().Seconds()), "scope": strings.Join(scopes, " ")})
@@ -238,7 +254,40 @@ func (h *Handler) serverForRequest(r *http.Request) *mcp.Server {
 	if entry == nil {
 		return nil
 	}
+	h.mu.Lock()
+	if cached, ok := h.servers[entry.serverKey]; ok {
+		cached.lastUsed = h.now()
+		h.servers[entry.serverKey] = cached
+	}
+	h.mu.Unlock()
 	return entry.server
+}
+
+func (h *Handler) serverLocked(entry *grant) *mcp.Server {
+	now := h.now()
+	for key, cached := range h.servers {
+		if cached.lastUsed.Add(serverCacheLifetime).Before(now) {
+			delete(h.servers, key)
+		}
+	}
+	if cached, ok := h.servers[entry.serverKey]; ok {
+		cached.lastUsed = now
+		h.servers[entry.serverKey] = cached
+		return cached.server
+	}
+	if len(h.servers) >= 1024 {
+		var oldestKey serverKey
+		var oldest time.Time
+		for key, cached := range h.servers {
+			if oldest.IsZero() || cached.lastUsed.Before(oldest) {
+				oldestKey, oldest = key, cached.lastUsed
+			}
+		}
+		delete(h.servers, oldestKey)
+	}
+	server := h.newServer(entry)
+	h.servers[entry.serverKey] = cachedServer{server: server, lastUsed: now}
+	return server
 }
 
 func (h *Handler) newServer(entry *grant) *mcp.Server {
@@ -271,9 +320,13 @@ func requestedScopes(value string, allowed domain.Capability) ([]string, domain.
 		switch scope {
 		case "mcp:observe":
 		case "mcp:operate":
-			capability = domain.CapabilityOperate
+			if !capability.Allows(domain.CapabilityOperate) {
+				capability = domain.CapabilityOperate
+			}
 		case "mcp:manage":
-			capability = domain.CapabilityManage
+			if !capability.Allows(domain.CapabilityManage) {
+				capability = domain.CapabilityManage
+			}
 		default:
 			return nil, "", false
 		}
