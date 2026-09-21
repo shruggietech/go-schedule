@@ -41,7 +41,7 @@ The probe covers default, both, neither, and desktop-only shortcut states; maint
 
 `GOSCHEDULE_REMOVE_DATA=0` (or an absent property) preserves application data. Only exact `GOSCHEDULE_REMOVE_DATA=1` requests a committed wipe. The helper's retained failure ledger is `%ProgramData%\ShruggieTech\go-schedule-uninstall\b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34\cleanup-result.json`; the matching HKLM summary records state, remaining count, and report path. Complete cleanup removes stale result evidence. MSI success proves software removal, so the lifecycle probe separately verifies the cleanup result.
 
-The hosted runner is Windows Server and has no attended desktop session. Its evidence is explicitly labelled `hosted Windows Server silent installer contract`. It does not prove visible dialog defaults, confirmation and cancel interaction, the Windows 11 Settings wording/navigation, Explorer launches, browser handling, interactive-user integrity, or native window behavior. Those release-candidate observations remain the clean Windows 11 gate in #94, and #97/#98 remain open until that gate passes.
+The hosted runner is Windows Server and has no attended desktop session. Its evidence is explicitly labelled `hosted Windows Server silent installer contract`. It does not prove visible dialog defaults, confirmation and cancel interaction, the Windows 11 Settings wording/navigation, Explorer launches, browser handling, interactive-user integrity, or native window behavior. Those observations remain part of clean Windows 11 release qualification. Any observed failure becomes a separate bug against the affected active release; it does not keep the delivered functional outcomes in #97 or #98 open.
 
 ## Run the fresh lifecycle
 
