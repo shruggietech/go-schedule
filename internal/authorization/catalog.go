@@ -36,6 +36,7 @@ var catalog = []Operation{
 	op("POST", "/v1/manifest/reset", "manifest.identity.reset", domain.CapabilityEnroll, "daemon", AuditMutation),
 	op("GET", "/v1/runtime-info", "runtime.read", domain.CapabilityManage, "daemon", AuditPrivilegedRead),
 	op("GET", "/v1/system-summary", "system.summary.read", domain.CapabilityObserve, "daemon", AuditNone),
+	op("GET", "/v1/search", "search.read", domain.CapabilityObserve, "daemon", AuditNone),
 	op("GET", "/v1/mcp/http", "mcp.http.read", domain.CapabilityObserve, "mcp_listener", AuditNone),
 	op("POST", "/v1/mcp/http/enable", "mcp.http.enable", domain.CapabilityEnroll, "mcp_listener", AuditMutation),
 	op("POST", "/v1/mcp/http/rotate", "mcp.http.rotate", domain.CapabilityEnroll, "mcp_listener", AuditMutation),

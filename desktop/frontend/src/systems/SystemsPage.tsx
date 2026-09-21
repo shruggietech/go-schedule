@@ -3,7 +3,7 @@ import { Button, Notice, StatePanel, StatusBadge } from '../components'
 import type { DesktopBridge, Route, SystemObservation, SystemsSnapshot } from '../connection/model'
 
 type SortKey = 'label' | 'state' | 'freshness' | 'upcoming' | 'failures' | 'alerts' | 'notifications'
-export interface Drilldown { registrationKey: string; label: string; destination: Extract<Route, 'tasks' | 'schedule' | 'activity' | 'notifications'>; taskId?: string; recordId?: string; context: string }
+export interface Drilldown { registrationKey: string; expectedDaemonId?: string; label: string; destination: Extract<Route, 'tasks' | 'schedule' | 'activity' | 'notifications'>; taskId?: string; recordId?: string; context: string }
 
 const severity: Record<string, number> = { connected: 0, degraded: 1, recovering: 2, timed_out: 3, unavailable: 4, access_denied: 5, unauthorized: 6, forbidden: 7, revoked: 8, incompatible: 9, trust_changed: 10, identity_changed: 11, connecting: 12 }
 const dateValue = (value?: string) => value ? Date.parse(value) || 0 : 0

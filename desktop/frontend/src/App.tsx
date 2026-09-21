@@ -26,11 +26,18 @@ import { AgentAccessPage } from "./agentaccess/AgentAccessPage";
 import { agentAccessBridge as nativeAgentAccessBridge } from "./agentaccess/bridge";
 import type { AgentAccessBridge } from "./agentaccess/model";
 import { SystemsPage, type Drilldown } from "./systems/SystemsPage";
+import { SearchPage } from "./search/SearchPage";
+import { searchBridge as nativeSearchBridge } from "./search/bridge";
+import type { SearchBridge } from "./search/model";
 
 const copy: Record<Route, { title: string; detail: string }> = {
   systems: {
     title: "All Systems",
     detail: "Bounded operational observations from every registered scheduler.",
+  },
+  search: {
+    title: "Search",
+    detail: "Find automation and operational evidence across registered schedulers.",
   },
   tasks: {
     title: "Tasks",
@@ -72,7 +79,7 @@ function selectedTarget(snapshot: ConnectionSnapshot, registrationKey: string) {
     : snapshot.target.profileId === registrationKey;
 }
 
-async function selectAndWaitForTarget(bridge: DesktopBridge, registrationKey: string): Promise<ConnectionSnapshot> {
+async function selectAndWaitForTarget(bridge: DesktopBridge, registrationKey: string, expectedDaemonId?: string): Promise<ConnectionSnapshot> {
   return new Promise((resolve, reject) => {
     let settled = false;
     let unsubscribe: () => void = () => undefined;
@@ -87,7 +94,8 @@ async function selectAndWaitForTarget(bridge: DesktopBridge, registrationKey: st
     };
     const inspect = (snapshot: ConnectionSnapshot) => {
       if (!selectedTarget(snapshot, registrationKey)) return;
-      if (snapshot.state === "connected") finish(snapshot);
+      if (snapshot.state === "connected" && expectedDaemonId && snapshot.target.id !== expectedDaemonId) finish(undefined, "The scheduler identity changed. Search was left open and no record was opened.");
+      else if (snapshot.state === "connected") finish(snapshot);
       else if (snapshot.state !== "connecting" && snapshot.state !== "recovering") finish(undefined, `${snapshot.message}${snapshot.action ? ` ${snapshot.action}` : ""}`);
     };
     unsubscribe = bridge.subscribe((event) => { if (event.snapshot) inspect(event.snapshot); });
@@ -115,6 +123,7 @@ export function App({
   notifications = nativeNotificationBridge,
   settings = nativeSettingsBridge,
   agentAccess = nativeAgentAccessBridge,
+  search = nativeSearchBridge,
 }: {
   bridge?: DesktopBridge;
   tasks?: TaskBridge;
@@ -123,6 +132,7 @@ export function App({
   notifications?: NotificationBridge;
   settings?: SettingsBridge;
   agentAccess?: AgentAccessBridge;
+  search?: SearchBridge;
 }) {
   const [route, setRoute] = useState<Route>("tasks");
   const [appearance, setAppearance] = useState<Appearance>("system");
@@ -184,7 +194,7 @@ export function App({
   const openSystem = async (intent: Drilldown) => {
     feedbackSequence.current += 1;
     try {
-      await selectAndWaitForTarget(bridge, intent.registrationKey);
+      await selectAndWaitForTarget(bridge, intent.registrationKey, intent.expectedDaemonId);
     } catch (error) {
       setAnnouncementFeedback({ identity: `system:${feedbackSequence.current}`, message: error instanceof Error ? error.message : "This scheduler could not be reconnected.", tone: "error" });
       return;
@@ -228,6 +238,8 @@ export function App({
         </>
       ) : route === "systems" ? (
         <SystemsPage bridge={bridge} onOpen={openSystem} />
+      ) : route === "search" ? (
+        <SearchPage bridge={search} onOpen={openSystem} />
       ) : route === "tasks" ? (
         <>
           {snapshot.state !== "connected" && (

@@ -123,6 +123,19 @@ paths:
       operationId: system.summary.read
       description: Returns one bounded, read-only operational observation without executable configuration, output, messages, destinations, payloads, or credentials.
       responses: {"200": {$ref: "#/components/responses/SystemSummary"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /search:
+    get:
+      operationId: search.read
+      description: Returns a bounded, secret-free search projection for tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts.
+      parameters:
+        - {name: q, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 200}}
+        - name: kind
+          in: query
+          style: form
+          explode: true
+          schema: {type: array, items: {$ref: "#/components/schemas/SearchKind"}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 50}}
+      responses: {"200": {$ref: "#/components/responses/Search"}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /events:
     get:
       operationId: events.stream
@@ -173,6 +186,7 @@ components:
     AlertList: {description: Alert collection, content: {application/json: {schema: {$ref: "#/components/schemas/AlertList"}}}}
     Calendar: {description: Calendar window, content: {application/json: {schema: {$ref: "#/components/schemas/Calendar"}}}}
     SystemSummary: {description: Bounded operational observation, content: {application/json: {schema: {$ref: "#/components/schemas/SystemSummary"}}}}
+    Search: {description: Bounded secret-free search observation, content: {application/json: {schema: {$ref: "#/components/schemas/DaemonSearch"}}}}
     ActorList: {description: Authorized actors, content: {application/json: {schema: {$ref: "#/components/schemas/ActorList"}}}}
     Actor: {description: Current authenticated actor, content: {application/json: {schema: {$ref: "#/components/schemas/Actor"}}}}
     AuditList: {description: Management audit events, content: {application/json: {schema: {$ref: "#/components/schemas/AuditList"}}}}
@@ -181,6 +195,31 @@ components:
     Unauthorized: {description: Generic authentication failure, headers: {WWW-Authenticate: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
     RequestTooLarge: {description: Request body exceeds the operation limit, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
   schemas:
+    DaemonSearch:
+      type: object
+      additionalProperties: false
+      required: [schema, query, observed_at, truncated, results]
+      properties:
+        schema: {type: string, const: go-schedule.daemon-search.v1}
+        query: {type: string}
+        observed_at: {type: string, format: date-time}
+        truncated: {type: boolean}
+        results: {type: array, maxItems: 50, items: {$ref: "#/components/schemas/SearchMatch"}}
+    SearchMatch:
+      type: object
+      additionalProperties: false
+      required: [kind, object_id, name, action_hints]
+      properties:
+        kind: {$ref: "#/components/schemas/SearchKind"}
+        object_id: {type: string}
+        task_id: {type: string}
+        name: {type: string}
+        context: {type: string}
+        occurred_at: {type: string, format: date-time}
+        enabled: {type: boolean}
+        action_hints: {type: array, items: {$ref: "#/components/schemas/SearchAction"}}
+    SearchKind: {type: string, enum: [task, group, failure, schedule, alert]}
+    SearchAction: {type: string, enum: [open, acknowledge, enable, disable, run_now]}
     SystemSummary:
       type: object
       additionalProperties: false

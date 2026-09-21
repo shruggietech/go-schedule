@@ -45,6 +45,27 @@ func TestOperationCatalogCoversEveryRegisteredManagementRoute(t *testing.T) {
 	}
 }
 
+func TestSearchAuthorizationRequiresObserveAndDoesNotAuditMutation(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Search client", domain.CapabilityObserve, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetActorResolver(func(*http.Request) (string, error) { return actor.ID, nil })
+	response := httptest.NewRecorder()
+	s.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/search?q=task", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	events, err := s.store.ListAudit(domain.AuditQuery{Operation: "search.read", Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("read-only search created audit evidence: %+v", events)
+	}
+}
+
 func TestAuthorizationReloadsRevokedActorAndAuditsDenial(t *testing.T) {
 	s := newTestServer(t)
 	actor, err := s.store.CreateActor(domain.ActorKindCLI, "Automation", domain.CapabilityObserve, nil)

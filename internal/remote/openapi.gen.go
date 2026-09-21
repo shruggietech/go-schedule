@@ -132,6 +132,21 @@ func (e Capability) Valid() bool {
 	}
 }
 
+// Defines values for DaemonSearchSchema.
+const (
+	GoScheduleDaemonSearchV1 DaemonSearchSchema = "go-schedule.daemon-search.v1"
+)
+
+// Valid indicates whether the value is a known member of the DaemonSearchSchema enum.
+func (e DaemonSearchSchema) Valid() bool {
+	switch e {
+	case GoScheduleDaemonSearchV1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthStatus.
 const (
 	Ok HealthStatus = "ok"
@@ -198,6 +213,60 @@ func (e OccurrenceKind) Valid() bool {
 	case Past:
 		return true
 	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchAction.
+const (
+	Acknowledge SearchAction = "acknowledge"
+	Disable     SearchAction = "disable"
+	Enable      SearchAction = "enable"
+	Open        SearchAction = "open"
+	RunNow      SearchAction = "run_now"
+)
+
+// Valid indicates whether the value is a known member of the SearchAction enum.
+func (e SearchAction) Valid() bool {
+	switch e {
+	case Acknowledge:
+		return true
+	case Disable:
+		return true
+	case Enable:
+		return true
+	case Open:
+		return true
+	case RunNow:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SearchKind.
+const (
+	SearchKindAlert    SearchKind = "alert"
+	SearchKindFailure  SearchKind = "failure"
+	SearchKindGroup    SearchKind = "group"
+	SearchKindSchedule SearchKind = "schedule"
+	SearchKindTask     SearchKind = "task"
+)
+
+// Valid indicates whether the value is a known member of the SearchKind enum.
+func (e SearchKind) Valid() bool {
+	switch e {
+	case SearchKindAlert:
+		return true
+	case SearchKindFailure:
+		return true
+	case SearchKindGroup:
+		return true
+	case SearchKindSchedule:
+		return true
+	case SearchKindTask:
 		return true
 	default:
 		return false
@@ -570,6 +639,18 @@ type Calendar struct {
 // Capability defines model for Capability.
 type Capability string
 
+// DaemonSearch defines model for DaemonSearch.
+type DaemonSearch struct {
+	ObservedAt time.Time          `json:"observed_at"`
+	Query      string             `json:"query"`
+	Results    []SearchMatch      `json:"results"`
+	Schema     DaemonSearchSchema `json:"schema"`
+	Truncated  bool               `json:"truncated"`
+}
+
+// DaemonSearchSchema defines model for DaemonSearch.Schema.
+type DaemonSearchSchema string
+
 // EnrollmentRequest defines model for EnrollmentRequest.
 type EnrollmentRequest struct {
 	Capability  Capability         `json:"capability"`
@@ -719,6 +800,24 @@ type RunList struct {
 	Runs []Run `json:"runs"`
 }
 
+// SearchAction defines model for SearchAction.
+type SearchAction string
+
+// SearchKind defines model for SearchKind.
+type SearchKind string
+
+// SearchMatch defines model for SearchMatch.
+type SearchMatch struct {
+	ActionHints []SearchAction `json:"action_hints"`
+	Context     *string        `json:"context,omitempty"`
+	Enabled     *bool          `json:"enabled,omitempty"`
+	Kind        SearchKind     `json:"kind"`
+	Name        string         `json:"name"`
+	ObjectId    string         `json:"object_id"`
+	OccurredAt  *time.Time     `json:"occurred_at,omitempty"`
+	TaskId      *string        `json:"task_id,omitempty"`
+}
+
 // SystemSummary defines model for SystemSummary.
 type SystemSummary struct {
 	ActiveTaskCount          int                         `json:"active_task_count"`
@@ -861,6 +960,9 @@ type ID = openapi_types.UUID
 // RequestTooLarge defines model for RequestTooLarge.
 type RequestTooLarge = ErrorEnvelope
 
+// Search defines model for Search.
+type Search = DaemonSearch
+
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = ErrorEnvelope
 
@@ -911,6 +1013,13 @@ type RunsListParams struct {
 	Offset      *int                `form:"offset,omitempty" json:"offset,omitempty"`
 	Limit       *int                `form:"limit,omitempty" json:"limit,omitempty"`
 	OutputLimit *int                `form:"output_limit,omitempty" json:"output_limit,omitempty"`
+}
+
+// SearchReadParams defines parameters for SearchRead.
+type SearchReadParams struct {
+	Q     string        `form:"q" json:"q"`
+	Kind  *[]SearchKind `form:"kind,omitempty" json:"kind,omitempty"`
+	Limit *int          `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // TasksListParams defines parameters for TasksList.
@@ -1059,6 +1168,11 @@ type ClientInterface interface {
 
 	// RunsRead performs a GET /runs/{id} (the `RunsRead` operationId) request.
 	RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SearchRead performs a GET /search (the `SearchRead` operationId) request.
+	//
+	// Returns a bounded, secret-free search projection for tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts.
+	SearchRead(ctx context.Context, params *SearchReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SystemSummaryRead performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
 	//
@@ -1304,6 +1418,21 @@ func (c *Client) RunsActiveList(ctx context.Context, reqEditors ...RequestEditor
 // RunsRead performs a GET /runs/{id} (the `RunsRead` operationId) request.
 func (c *Client) RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRunsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SearchRead performs a GET /search (the `SearchRead` operationId) request.
+//
+// Returns a bounded, secret-free search projection for tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts.
+func (c *Client) SearchRead(ctx context.Context, params *SearchReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchReadRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2181,6 +2310,80 @@ func NewRunsReadRequest(server string, id ID) (*http.Request, error) {
 	return req, nil
 }
 
+// NewSearchReadRequest constructs an http.Request for the SearchRead method
+func NewSearchReadRequest(server string, params *SearchReadParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/search")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "q", params.Q, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Kind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kind", *params.Kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "array", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSystemSummaryReadRequest constructs an http.Request for the SystemSummaryRead method
 func NewSystemSummaryReadRequest(server string) (*http.Request, error) {
 	var err error
@@ -2706,6 +2909,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	RunsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*RunsReadResponse, error)
+
+	// SearchReadWithResponse performs a GET /search (the `SearchRead` operationId) request.
+	//
+	// Returns a bounded, secret-free search projection for tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	SearchReadWithResponse(ctx context.Context, params *SearchReadParams, reqEditors ...RequestEditorFn) (*SearchReadResponse, error)
 
 	// SystemSummaryReadWithResponse performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
 	//
@@ -3555,6 +3765,61 @@ func (r RunsReadResponse) ContentType() string {
 	return ""
 }
 
+// SearchReadResponse401Headers the declared response headers of an HTTP 401 response for SearchRead
+type SearchReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type SearchReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Search
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *SearchReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SearchReadResponse) GetJSON200() *Search {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SearchReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r SearchReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SearchReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SearchReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SearchReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // SystemSummaryReadResponse401Headers the declared response headers of an HTTP 401 response for SystemSummaryRead
 type SystemSummaryReadResponse401Headers struct {
 	WWWAuthenticate *string
@@ -4214,6 +4479,19 @@ func (c *ClientWithResponses) RunsReadWithResponse(ctx context.Context, id ID, r
 		return nil, err
 	}
 	return ParseRunsReadResponse(rsp)
+}
+
+// SearchReadWithResponse performs a GET /search (the `SearchRead` operationId) request.
+//
+// Returns a bounded, secret-free search projection for tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) SearchReadWithResponse(ctx context.Context, params *SearchReadParams, reqEditors ...RequestEditorFn) (*SearchReadResponse, error) {
+	rsp, err := c.SearchRead(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSearchReadResponse(rsp)
 }
 
 // SystemSummaryReadWithResponse performs a GET /system-summary (the `SystemSummaryRead` operationId) request.
@@ -4972,6 +5250,52 @@ func ParseRunsReadResponse(rsp *http.Response) (*RunsReadResponse, error) {
 	switch {
 	case rsp.StatusCode == 401:
 		var headers RunsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseSearchReadResponse parses an HTTP response from a SearchReadWithResponse call
+func ParseSearchReadResponse(rsp *http.Response) (*SearchReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SearchReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Search
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers SearchReadResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {

@@ -20,7 +20,7 @@ func TestManifestReportsBoundedDeterministicDaemonFacts(t *testing.T) {
 	if !reflect.DeepEqual(first.LocalAPIVersions, []string{"v1"}) || first.RemoteAPIVersions == nil || len(first.RemoteAPIVersions) != 0 || first.OperatingMode != "local_only" {
 		t.Fatalf("protocol contract = %+v", first)
 	}
-	if !sort.StringsAreSorted(first.Capabilities) || len(first.Capabilities) != 11 || !contains(first.Capabilities, "actor-authorization") || !contains(first.Capabilities, "management-audit") || first.Platform.OS == "" || first.Platform.Architecture == "" {
+	if !sort.StringsAreSorted(first.Capabilities) || len(first.Capabilities) != 12 || !contains(first.Capabilities, "actor-authorization") || !contains(first.Capabilities, "management-audit") || !contains(first.Capabilities, "search") || first.Platform.OS == "" || first.Platform.Architecture == "" {
 		t.Fatalf("capability/platform contract = %+v", first)
 	}
 	rec := httptest.NewRecorder()
@@ -44,7 +44,7 @@ func TestManifestReportsRemoteMCPWithoutExposingConfiguration(t *testing.T) {
 	s := newTestServer(t)
 	s.SetRemoteMCPEnabled(true)
 	manifest := requestManifest(t, s, http.MethodGet, "/v1/manifest", nil)
-	if !contains(manifest.Capabilities, "remote-mcp") || len(manifest.Capabilities) != 12 || !sort.StringsAreSorted(manifest.Capabilities) {
+	if !contains(manifest.Capabilities, "remote-mcp") || len(manifest.Capabilities) != 13 || !sort.StringsAreSorted(manifest.Capabilities) {
 		t.Fatalf("capabilities = %v", manifest.Capabilities)
 	}
 }

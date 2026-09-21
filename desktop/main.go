@@ -20,6 +20,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
+	"github.com/shruggietech/go-schedule/desktop/search"
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/systems"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
@@ -76,6 +77,7 @@ func main() {
 	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(router)), automation: automation.NewService(automation.NewLocalBackend(router)), operations: operations.NewService(operations.NewLocalBackend(router)), notifications: notifications.NewService(notifications.NewLocalBackend(router)), settings: settings.NewService(settings.NewLocalBackend(localDaemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(router), native), remotePairing: remotepairing.NewWithStores(secretStore, profileStore)})
 	app.connections = connections.New(profileStore, secretStore, localDaemon, router, app.manager)
 	app.systems = systems.New(profileStore, secretStore, localDaemon)
+	app.search = search.New(profileStore, secretStore, localDaemon)
 	if err := wails.Run(&options.App{
 		Title: "go-schedule", Width: 1440, Height: 900, MinWidth: 800, MinHeight: 600,
 		BackgroundColour: &options.RGBA{R: 245, G: 247, B: 250, A: 1},

@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
+	"github.com/shruggietech/go-schedule/desktop/search"
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/systems"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
@@ -19,6 +20,7 @@ import (
 const (
 	desktopEventName = "desktop:event"
 	systemsEventName = "systems:event"
+	searchEventName  = "search:event"
 )
 
 type eventEmitter interface {
@@ -49,9 +51,30 @@ type App struct {
 	remotePairing *remotepairing.Service
 	connections   *connections.Service
 	systems       *systems.Service
+	search        *search.Service
 	emitter       eventEmitter
 	native        nativeRuntime
 	ctx           context.Context
+}
+
+// SearchAcrossSystems searches every current registration without changing the selected connection.
+func (a *App) SearchAcrossSystems(request search.Request) search.Snapshot {
+	if a.search == nil || a.ctx == nil {
+		return search.Snapshot{Query: request.Query, Complete: true, Observations: []search.Observation{}}
+	}
+	return a.search.Search(a.ctx, request, func(snapshot search.Snapshot) {
+		if a.emitter != nil {
+			a.emitter.Emit(a.ctx, searchEventName, snapshot)
+		}
+	})
+}
+
+// ExecuteSearchAction performs one explicitly confirmed target-safe action batch.
+func (a *App) ExecuteSearchAction(intent search.ActionIntent) search.ActionBatchResult {
+	if a.search == nil || a.ctx == nil {
+		return search.ActionBatchResult{Action: intent.Action, Outcome: "unavailable", Message: "Cross-daemon actions are unavailable.", Outcomes: []search.ActionOutcome{}}
+	}
+	return a.search.Execute(a.ctx, intent)
 }
 
 // AllSystems refreshes one bounded observation for every registered scheduler.
