@@ -12,6 +12,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/authorization"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 func TestOperationCatalogCoversEveryRegisteredManagementRoute(t *testing.T) {
@@ -71,6 +72,30 @@ func TestAuthorizationReloadsRevokedActorAndAuditsDenial(t *testing.T) {
 	}
 }
 
+func TestAuthorizationReloadsNarrowedActorOnNextRequest(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Existing connection", domain.CapabilityManage, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetActorResolver(func(*http.Request) (string, error) { return actor.ID, nil })
+	handler := s.Handler()
+	before := httptest.NewRecorder()
+	handler.ServeHTTP(before, httptest.NewRequest(http.MethodPost, "/v1/tasks", nil))
+	if before.Code == http.StatusForbidden {
+		t.Fatalf("manage request was denied before narrowing: status=%d body=%s", before.Code, before.Body.String())
+	}
+	observe := domain.CapabilityObserve
+	if _, err := s.store.UpdateActor(actor.ID, store.ActorUpdate{Capability: &observe}); err != nil {
+		t.Fatal(err)
+	}
+	after := httptest.NewRecorder()
+	handler.ServeHTTP(after, httptest.NewRequest(http.MethodPost, "/v1/tasks", nil))
+	if after.Code != http.StatusForbidden {
+		t.Fatalf("request after narrowing status=%d body=%s", after.Code, after.Body.String())
+	}
+}
+
 func TestActorAPIUsesIntentFirstAuditAndProtectsLocalActor(t *testing.T) {
 	s := newTestServer(t)
 	body := bytes.NewBufferString(`{"kind":"cli","display_name":"Release operator","capability":"manage"}`)
@@ -92,6 +117,30 @@ func TestActorAPIUsesIntentFirstAuditAndProtectsLocalActor(t *testing.T) {
 	s.Handler().ServeHTTP(revoke, httptest.NewRequest(http.MethodPost, "/v1/access/actors/"+local.ID+"/revoke", nil))
 	if revoke.Code != http.StatusConflict {
 		t.Fatalf("revoke status=%d body=%s", revoke.Code, revoke.Body.String())
+	}
+}
+
+func TestActorAPIMonotonicUpdateRejectsStaleWidening(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Agent", domain.CapabilityManage, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := func(capability string) *httptest.ResponseRecorder {
+		response := httptest.NewRecorder()
+		body := bytes.NewBufferString(`{"capability":"` + capability + `","monotonic":true}`)
+		s.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/v1/access/actors/"+actor.ID, body))
+		return response
+	}
+	if response := request("observe"); response.Code != http.StatusOK {
+		t.Fatalf("narrow status=%d body=%s", response.Code, response.Body.String())
+	}
+	if response := request("operate"); response.Code != http.StatusBadRequest {
+		t.Fatalf("stale widening status=%d body=%s", response.Code, response.Body.String())
+	}
+	current, err := s.store.GetActor(actor.ID)
+	if err != nil || current.Capability != domain.CapabilityObserve {
+		t.Fatalf("actor=%+v err=%v", current, err)
 	}
 }
 

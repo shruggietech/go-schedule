@@ -61,10 +61,21 @@ func New(st persistence) *Service {
 	return &Service{store: st, random: rand.Reader, now: func() time.Time { return time.Now().UTC() }, memory: 64 * 1024}
 }
 
-func (s *Service) Create(name string, kind domain.ActorKind, capability domain.Capability) (domain.PairingSecret, error) {
+func (s *Service) Create(name string, kind domain.ActorKind, capability domain.Capability, grantExpiry ...*time.Time) (domain.PairingSecret, error) {
 	name, err := domain.NormalizeActorDisplayName(name)
 	if err != nil || !kind.Valid() || kind == domain.ActorKindLocalOS || !capability.Valid() {
 		return domain.PairingSecret{}, domain.ErrInvalidActor
+	}
+	var grantExpiresAt *time.Time
+	if len(grantExpiry) > 1 {
+		return domain.PairingSecret{}, domain.ErrInvalidActor
+	}
+	if len(grantExpiry) == 1 && grantExpiry[0] != nil {
+		value := grantExpiry[0].UTC()
+		if !value.After(s.now()) {
+			return domain.PairingSecret{}, domain.ErrInvalidActor
+		}
+		grantExpiresAt = &value
 	}
 	phrase, err := s.phrase()
 	if err != nil {
@@ -75,7 +86,7 @@ func (s *Service) Create(name string, kind domain.ActorKind, capability domain.C
 		return domain.PairingSecret{}, err
 	}
 	now := s.now()
-	session := domain.PairingSession{ID: uuid.NewString(), DisplayName: name, Kind: kind, Capability: capability, AttemptsRemaining: PairingAttempts, State: domain.PairingActive, CreatedAt: now, ExpiresAt: now.Add(PairingLifetime)}
+	session := domain.PairingSession{ID: uuid.NewString(), DisplayName: name, Kind: kind, Capability: capability, AttemptsRemaining: PairingAttempts, State: domain.PairingActive, CreatedAt: now, ExpiresAt: now.Add(PairingLifetime), GrantExpiresAt: grantExpiresAt}
 	if err := s.store.CreatePairing(session, salt, s.verify(phrase, salt)); err != nil {
 		return domain.PairingSecret{}, err
 	}

@@ -108,6 +108,17 @@ func (r *Registry) Revoke(id string) (Session, error) {
 	return candidate.session, nil
 }
 
+// List returns the secret-free runtime sessions known to this daemon process.
+func (r *Registry) List() []Session {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	sessions := make([]Session, 0, len(r.sessions))
+	for _, candidate := range r.sessions {
+		sessions = append(sessions, candidate.session)
+	}
+	return sessions
+}
+
 func newSecret() (string, [sha256.Size]byte, error) {
 	var raw [32]byte
 	if _, err := rand.Read(raw[:]); err != nil {

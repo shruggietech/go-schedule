@@ -77,11 +77,15 @@ Local IPC authorization remains independent. A local OS caller does not receive 
 
 An enrollment phrase is short-lived and single-use. It exists only to bootstrap one named client relationship, is visibly tied to the intended daemon identity, has a strict expiry and attempt budget, is retained only through a salted Argon2id verifier, and cannot be used as an ordinary API credential. Successful exchange atomically consumes the phrase and issues unrelated durable material. Cancellation, expiry, exhaustion, or success permanently ends that phrase.
 
+Pairing creation may also record a separate actor-grant deadline. The one-time phrase still expires after ten minutes, while successful exchange copies the selected fixed deadline into the new actor. Supported administrative presets are 1 hour, 24 hours, 7 days, and 30 days, with non-expiring access available only as a deliberate choice. The desktop Agent Access workflow copies a complete one-time enrollment bundle through native clipboard integration and cancels the pending pairing if that handoff fails.
+
 A durable credential is an opaque 256-bit bearer value retained only as a digest. Go's `crypto/rand` creates the raw value, base64url is its opaque transport encoding, RFC 6750 `Authorization: Bearer` syntax carries it, SHA-256 stores a verifier, and constant-time comparison checks it. The token contains no claims, authority, identity, expiry, or signature. Server-owned actor and credential records provide those facts so revocation takes effect immediately.
 
 Each client installation receives an independent credential and safe fingerprint. Issuance returns the raw value once. The desktop and named CLI profiles store it through supported operating-system credential storage, never in application JSON, process arguments, shell-history examples, logs, exports, diagnostics, or screenshots. Rotation replaces the verifier atomically and invalidates the prior value. A lost credential is revoked and replaced, never recovered or re-derived from an enrollment phrase.
 
 The daemon revalidates actor and credential state periodically during a live stream. Revocation, expiry, or actor disablement terminates authority for new requests immediately and closes existing streams within the documented revalidation bound defined by #167 and #168.
+
+The local Agent Access workspace exposes only safe actor, credential fingerprint, transport, timestamp, and audit metadata. It can narrow capability, impose or shorten expiry, revoke a grant, and show the newest 25 actor-attributed audit records. Widening capability, clearing or extending an expiry, and reactivating a revoked actor require a new enrollment instead of mutating the old security decision.
 
 ## Client connection profiles
 

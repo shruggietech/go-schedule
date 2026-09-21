@@ -17,7 +17,8 @@ func TestRemoteAccessPersistenceLifecycleAndFailureBounds(t *testing.T) {
 	}
 	defer st.Close()
 	now := time.Now().UTC()
-	session := domain.PairingSession{ID: uuid.NewString(), DisplayName: "Stored client", Kind: domain.ActorKindCLI, Capability: domain.CapabilityOperate, AttemptsRemaining: 5, State: domain.PairingActive, CreatedAt: now, ExpiresAt: now.Add(time.Minute)}
+	grantExpires := now.Add(7 * 24 * time.Hour)
+	session := domain.PairingSession{ID: uuid.NewString(), DisplayName: "Stored client", Kind: domain.ActorKindCLI, Capability: domain.CapabilityOperate, AttemptsRemaining: 5, State: domain.PairingActive, CreatedAt: now, ExpiresAt: now.Add(time.Minute), GrantExpiresAt: &grantExpires}
 	salt := make([]byte, 16)
 	verifier := make([]byte, 32)
 	if err := st.CreatePairing(session, salt, verifier); err != nil {
@@ -36,7 +37,7 @@ func TestRemoteAccessPersistenceLifecycleAndFailureBounds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if actor.DisplayName != session.DisplayName || credential.ActorID != actor.ID {
+	if actor.DisplayName != session.DisplayName || credential.ActorID != actor.ID || actor.ExpiresAt == nil || !actor.ExpiresAt.Equal(grantExpires) {
 		t.Fatalf("actor=%+v credential=%+v", actor, credential)
 	}
 	if items, err := st.ListCredentials(); err != nil || len(items) != 1 {

@@ -134,6 +134,66 @@ func (s *Store) UpdateActor(id string, update ActorUpdate) (domain.Actor, error)
 	return s.GetActor(id)
 }
 
+// NarrowActor atomically applies an MCP capability or expiry reduction.
+func (s *Store) NarrowActor(id string, update ActorUpdate) (domain.Actor, error) {
+	if update.DisplayName != nil || update.State != nil || (update.Capability == nil && update.ExpiresAt == nil) {
+		return domain.Actor{}, domain.ErrInvalidActor
+	}
+	changeCapability := update.Capability != nil
+	nextCapability := domain.CapabilityObserve
+	nextRank := 0
+	if changeCapability {
+		nextCapability = *update.Capability
+		switch nextCapability {
+		case domain.CapabilityObserve:
+			nextRank = 1
+		case domain.CapabilityOperate:
+			nextRank = 2
+		case domain.CapabilityManage:
+			nextRank = 3
+		default:
+			return domain.Actor{}, domain.ErrInvalidActor
+		}
+	}
+	changeExpiry := update.ExpiresAt != nil
+	var nextExpiry *time.Time
+	if changeExpiry {
+		nextExpiry = *update.ExpiresAt
+		if nextExpiry == nil || !nextExpiry.After(time.Now()) {
+			return domain.Actor{}, domain.ErrInvalidActor
+		}
+	}
+	now := time.Now().UTC()
+	result, err := s.db.Exec(`UPDATE actors SET
+		capability=CASE WHEN ? THEN ? ELSE capability END,
+		expires_at=CASE WHEN ? THEN ? ELSE expires_at END,
+		updated_at=?
+		WHERE id=? AND builtin=0 AND kind=? AND state=? AND (expires_at IS NULL OR expires_at>?)
+		AND (?=0 OR (CASE capability WHEN ? THEN 1 WHEN ? THEN 2 WHEN ? THEN 3 ELSE 0 END)>=?)
+		AND (?=0 OR expires_at IS NULL OR expires_at>?)`,
+		changeCapability, nextCapability, changeExpiry, fmtTimePtr(nextExpiry), fmtTime(now), id, domain.ActorKindMCP, domain.ActorStateActive, fmtTime(now),
+		changeCapability, domain.CapabilityObserve, domain.CapabilityOperate, domain.CapabilityManage, nextRank,
+		changeExpiry, fmtTimePtr(nextExpiry))
+	if err != nil {
+		return domain.Actor{}, fmt.Errorf("store: narrow actor: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return domain.Actor{}, fmt.Errorf("store: inspect narrowed actor: %w", err)
+	}
+	if changed != 1 {
+		actor, lookupErr := s.GetActor(id)
+		if lookupErr != nil {
+			return domain.Actor{}, lookupErr
+		}
+		if actor.Builtin {
+			return domain.Actor{}, ErrBuiltinActor
+		}
+		return domain.Actor{}, domain.ErrInvalidActor
+	}
+	return s.GetActor(id)
+}
+
 func (s *Store) RevokeActor(id string) (domain.Actor, error) {
 	state := domain.ActorStateRevoked
 	return s.UpdateActor(id, ActorUpdate{State: &state})
@@ -277,7 +337,7 @@ func (s *Store) ListAudit(query domain.AuditQuery) ([]domain.AuditEvent, error) 
 		args = append(args, fmtTime(*query.Until))
 	}
 	args = append(args, query.Limit)
-	rows, err := s.db.Query(`SELECT id,COALESCE(actor_id,''),daemon_id,operation,target_kind,target_id,result,correlation_id,occurred_at,completed_at FROM audit_events WHERE `+strings.Join(clauses, " AND ")+` ORDER BY occurred_at,id LIMIT ?`, args...)
+	rows, err := s.db.Query(`SELECT id,COALESCE(actor_id,''),daemon_id,operation,target_kind,target_id,result,correlation_id,occurred_at,completed_at FROM audit_events WHERE `+strings.Join(clauses, " AND ")+` ORDER BY occurred_at DESC,id DESC LIMIT ?`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list audit: %w", err)
 	}

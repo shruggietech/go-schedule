@@ -25,22 +25,31 @@ type accessClient interface {
 func newPairingCmd() *cobra.Command {
 	api := newClient()
 	command := &cobra.Command{Use: "pairing", Short: "Create and manage one-time remote pairing phrases"}
-	var kind, capability string
+	var kind, capability, grantDuration string
 	create := &cobra.Command{Use: "create <display-name>", Short: "Create a phrase displayed once", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		grantExpiresAt, err := grantExpiration(time.Now().UTC(), grantDuration)
+		if err != nil {
+			return err
+		}
 		ctx, cancel := reqCtx()
 		defer cancel()
-		item, err := api.CreatePairing(ctx, server.PairingCreateRequest{DisplayName: args[0], Kind: domain.ActorKind(kind), Capability: domain.Capability(capability)})
+		item, err := api.CreatePairing(ctx, server.PairingCreateRequest{DisplayName: args[0], Kind: domain.ActorKind(kind), Capability: domain.Capability(capability), ExpiresAt: grantExpiresAt})
 		if err != nil {
 			return err
 		}
 		if jsonOut {
 			return printJSONTo(cmd.OutOrStdout(), item)
 		}
-		_, err = fmt.Fprintf(cmd.OutOrStdout(), "Pairing ID: %s\nDaemon ID: %s\nExpires: %s\nPhrase (shown once): %s\n", item.ID, item.DaemonID, item.ExpiresAt.Format(time.RFC3339), item.Phrase)
+		grantExpiry := "non-expiring"
+		if item.GrantExpiresAt != nil {
+			grantExpiry = item.GrantExpiresAt.Format(time.RFC3339)
+		}
+		_, err = fmt.Fprintf(cmd.OutOrStdout(), "Pairing ID: %s\nDaemon ID: %s\nEnrollment expires: %s\nGrant expires: %s\nPhrase (shown once): %s\n", item.ID, item.DaemonID, item.ExpiresAt.Format(time.RFC3339), grantExpiry, item.Phrase)
 		return err
 	}}
 	create.Flags().StringVar(&kind, "kind", string(domain.ActorKindDesktop), "client kind: desktop, cli, json, or mcp")
 	create.Flags().StringVar(&capability, "capability", string(domain.CapabilityObserve), "capability: observe, operate, manage, or enroll")
+	create.Flags().StringVar(&grantDuration, "grant-duration", "non-expiring", "access duration: 1h, 24h, 7d, 30d, or non-expiring")
 	list := &cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := reqCtx()
 		defer cancel()
@@ -67,6 +76,19 @@ func newPairingCmd() *cobra.Command {
 	}}
 	command.AddCommand(create, list, cancelCmd)
 	return command
+}
+
+func grantExpiration(now time.Time, value string) (*time.Time, error) {
+	durations := map[string]time.Duration{"1h": time.Hour, "24h": 24 * time.Hour, "7d": 7 * 24 * time.Hour, "30d": 30 * 24 * time.Hour}
+	if value == "non-expiring" {
+		return nil, nil
+	}
+	duration, ok := durations[value]
+	if !ok {
+		return nil, fmtUsage("--grant-duration must be 1h, 24h, 7d, 30d, or non-expiring")
+	}
+	expires := now.Add(duration)
+	return &expires, nil
 }
 
 func newCredentialCmd() *cobra.Command {

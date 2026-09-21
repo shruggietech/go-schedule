@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRemoteAccessStatesAndSafeMetadata(t *testing.T) {
@@ -21,5 +22,14 @@ func TestRemoteAccessStatesAndSafeMetadata(t *testing.T) {
 		if strings.Contains(string(encoded), protected) {
 			t.Fatalf("metadata contains %q: %s", protected, encoded)
 		}
+	}
+}
+
+func TestPairingCarriesSeparateEnrollmentAndGrantDeadlines(t *testing.T) {
+	now := time.Now().UTC()
+	grantExpires := now.Add(7 * 24 * time.Hour)
+	pairing := PairingSession{CreatedAt: now, ExpiresAt: now.Add(10 * time.Minute), GrantExpiresAt: &grantExpires}
+	if pairing.GrantExpiresAt == nil || !pairing.GrantExpiresAt.Equal(grantExpires) || !pairing.ExpiresAt.Before(*pairing.GrantExpiresAt) {
+		t.Fatalf("pairing=%+v", pairing)
 	}
 }

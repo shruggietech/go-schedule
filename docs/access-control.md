@@ -32,7 +32,7 @@ Mutations and privileged reads require a durable audit intent before the protect
 
 Each event stores only its event identifier, known actor identifier, daemon identifier, operation identifier, target classification and optional identifier, result, correlation identifier, occurrence time, and optional completion time. It never stores request or response bodies, authorization headers, raw errors, commands, environment variables, standard input, filesystem paths, cryptographic keys, credentials, or secrets. Scheduler run history and logs remain separate from management audit.
 
-On every new audit record, the same transaction removes events older than 90 days and trims history to the newest 10,000 events. Queries default to 100 events and permit at most 1,000. Results sort by occurrence time and event identifier. Filters cover actor, operation, result, start time, and end time; newline-delimited JSON export uses the same deterministic filter and ordering rules.
+On every new audit record, the same transaction removes events older than 90 days and trims history to the newest 10,000 events. Queries default to 100 events and permit at most 1,000. Results sort newest first by occurrence time and event identifier. Filters cover actor, operation, result, start time, and end time; newline-delimited JSON export uses the same deterministic filter and ordering rules.
 
 ## Actor administration
 
@@ -62,4 +62,4 @@ The export file is created with owner-only permissions. Treat it as administrati
 
 ## Upgrade and future integration
 
-Opening an older database applies forward-only schema v18, preserves scheduler and daemon identity data, creates actor, audit, pairing, and credential storage as needed, and initializes one built-in local actor. Reopening is idempotent. The remote HTTPS adapter authenticates the presented credential to its current actor on every request, then calls this same operation catalog and authorizer. Pairing creation and credential lifecycle remain local Enroll operations with intent-first audit; bearer values, phrase verifiers, request bodies, and certificate keys never enter audit records.
+Opening an older database applies forward-only schema v19, preserves scheduler and daemon identity data, creates actor, audit, pairing, and credential storage as needed, and initializes one built-in local actor. Schema v19 adds the optional fixed actor-grant deadline carried by a pairing into atomic exchange. Reopening is idempotent. The remote HTTPS adapter authenticates the presented credential to its current actor on every request, then calls this same operation catalog and authorizer. Pairing creation and credential lifecycle remain local Enroll operations with intent-first audit; bearer values, phrase verifiers, request bodies, and certificate keys never enter audit records.

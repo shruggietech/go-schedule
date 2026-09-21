@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/store"
@@ -12,6 +13,7 @@ type PairingCreateRequest struct {
 	DisplayName string            `json:"display_name"`
 	Kind        domain.ActorKind  `json:"kind"`
 	Capability  domain.Capability `json:"capability"`
+	ExpiresAt   *time.Time        `json:"expires_at,omitempty"`
 }
 
 func (s *Server) handleCreatePairing(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +22,7 @@ func (s *Server) handleCreatePairing(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid pairing request")
 		return
 	}
-	result, err := s.enrollment.Create(request.DisplayName, request.Kind, request.Capability)
+	result, err := s.enrollment.Create(request.DisplayName, request.Kind, request.Capability, request.ExpiresAt)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid pairing request")
 		return

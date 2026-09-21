@@ -30,6 +30,7 @@ type PairingSession struct {
 	State             PairingState `json:"state"`
 	CreatedAt         time.Time    `json:"created_at"`
 	ExpiresAt         time.Time    `json:"expires_at"`
+	GrantExpiresAt    *time.Time   `json:"grant_expires_at,omitempty"`
 	CompletedAt       *time.Time   `json:"completed_at,omitempty"`
 }
 

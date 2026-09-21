@@ -152,6 +152,7 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 
 	api := server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log)
 	api.SetNotificationDispatcher(dispatcher)
+	api.SetRemoteMCPEnabled(cfg.Remote.Enabled && cfg.Remote.MCP.Enabled)
 	mcpHTTP := mcphttp.NewWithSessions(client.New(endpoint), buildinfo.Version, log)
 	api.SetMCPHTTPManager(mcpHTTP)
 	localActor, err := st.LocalActor()
@@ -160,6 +161,7 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 	}
 	remoteAPI := server.NewWithRuntimeInfo(st, eng, broker, ring, cfg.LogPath(), runtimeInfo, log)
 	remoteAPI.SetNotificationDispatcher(dispatcher)
+	remoteAPI.SetRemoteMCPEnabled(cfg.Remote.Enabled && cfg.Remote.MCP.Enabled)
 	remoteAPI.SetActorResolver(remote.ActorID)
 	remoteErr := make(chan error, 1)
 	if cfg.Remote.Enabled {

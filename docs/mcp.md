@@ -98,6 +98,10 @@ Rotation invalidates the previous value immediately and prints the replacement o
 
 The desktop Agent Access workspace performs the same lifecycle through protected local IPC. It copies a new credential through the native clipboard boundary and never exposes that value to the webview. If clipboard copying fails, it disables localhost HTTP so an inaccessible credential cannot remain active.
 
+Agent Access also presents one secret-free inventory of MCP actors for This computer. Each grant names the client, daemon, authority, inferred transport, creation, last use when known, expiry, and lifecycle state. A local administrator can create a remote MCP enrollment for 1 hour, 24 hours, 7 days, 30 days, or a deliberately acknowledged non-expiring grant. The one-time enrollment bundle is copied through the native clipboard boundary and is never returned to React; a failed copy cancels the pending pairing.
+
+Existing remote grants can be narrowed from Manage to Operate or Observe, from Operate to Observe, assigned an earlier expiry, or permanently revoked. They cannot be widened, extended, made non-expiring, or reactivated through this control. The daemon reloads current actor authority on each request, so the next operation on an existing connection uses the narrower boundary. Recent actions show at most the newest 25 actor-attributed shared audit events without request bodies or protected values. Listener controls remain separate from grants, so changing stdio, localhost HTTP, or remote HTTPS never silently enables another transport.
+
 ## Available resources
 
 | Resource | Contents |

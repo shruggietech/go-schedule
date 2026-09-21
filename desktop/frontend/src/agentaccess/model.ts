@@ -1,6 +1,13 @@
 export interface AgentHTTPStatus { enabled: boolean; endpoint?: string; allowedOrigins: string[]; credentialFingerprint?: string; enabledAt?: string; clientName?: string; permission?: string; lastAccessedAt?: string; requestCount: number; requireConfirmation?: boolean }
 export interface AgentAuthority { name: string; status: 'available' | 'future'; description: string }
-export interface AgentAccessWorkspace { stdioDescription: string; http: AgentHTTPStatus; authorities: AgentAuthority[] }
+export interface AgentDaemon { id: string; name: string }
+export interface AgentTransport { id: 'stdio' | 'localhost_http' | 'remote_https'; name: string; state: string; description: string }
+export interface AgentGrant { id: string; clientName: string; daemonId: string; daemonName: string; capability: 'observe' | 'operate' | 'manage'; capabilityDescription: string; transport: 'stdio' | 'localhost_http' | 'remote_https'; createdAt: string; lastUsedAt?: string; expiresAt?: string; state: 'active' | 'expired' | 'revoked'; credentialFingerprint?: string }
+export interface AgentAction { daemonId: string; operation: string; targetKind: string; targetId?: string; result: 'uncertain' | 'succeeded' | 'failed' | 'denied'; occurredAt: string }
+export interface AgentAccessWorkspace { stdioDescription: string; http: AgentHTTPStatus; authorities: AgentAuthority[]; daemon?: AgentDaemon; mcpState?: 'off' | 'active'; transports?: AgentTransport[]; grants?: AgentGrant[] }
 export interface AgentAccessDraft { clientName: string; port: number; allowedOrigins: string[]; permission: 'observe' | 'operate' | 'manage'; requireConfirmation?: boolean }
+export interface AgentGrantDraft { clientName: string; capability: 'observe' | 'operate' | 'manage'; duration: '1h' | '24h' | '7d' | '30d' | 'non-expiring' }
+export interface AgentGrantEditDraft { actorId: string; capability?: 'observe' | 'operate' | 'manage'; duration?: '1h' | '24h' | '7d' | '30d'; expiresAt?: string }
 export interface AgentAccessResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable'; message: string; workspace?: AgentAccessWorkspace }
-export interface AgentAccessBridge { workspace(): Promise<AgentAccessResult>; enable(draft: AgentAccessDraft): Promise<AgentAccessResult>; rotate(): Promise<AgentAccessResult>; revoke(): Promise<AgentAccessResult>; openGuide(): Promise<AgentAccessResult> }
+export interface AgentActionsResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable'; message: string; actions: AgentAction[] }
+export interface AgentAccessBridge { workspace(): Promise<AgentAccessResult>; enable(draft: AgentAccessDraft): Promise<AgentAccessResult>; rotate(): Promise<AgentAccessResult>; revoke(): Promise<AgentAccessResult>; createGrant(draft: AgentGrantDraft): Promise<AgentAccessResult>; editGrant(draft: AgentGrantEditDraft): Promise<AgentAccessResult>; revokeGrant(actorId: string): Promise<AgentAccessResult>; actions(actorId: string): Promise<AgentActionsResult>; openGuide(): Promise<AgentAccessResult> }

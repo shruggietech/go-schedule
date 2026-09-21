@@ -7,6 +7,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpsession"
 )
 
 type expectedDaemonKey struct{}
@@ -27,6 +28,12 @@ func (c *Client) CreateMCPSession(ctx context.Context, clientName string, capabi
 	var out server.MCPSessionCredentialResponse
 	err := c.do(ctx, http.MethodPost, "/v1/mcp/sessions", server.MCPSessionCreateRequest{ClientName: clientName, Capability: capability}, &out)
 	return out, err
+}
+
+func (c *Client) ListMCPSessions(ctx context.Context) ([]mcpsession.Session, error) {
+	var out server.MCPSessionListResponse
+	err := c.do(ctx, http.MethodGet, "/v1/mcp/sessions", nil, &out)
+	return out.Sessions, err
 }
 
 func (c *Client) RevokeMCPSession(ctx context.Context, id string) error {

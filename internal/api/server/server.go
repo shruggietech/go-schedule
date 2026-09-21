@@ -43,6 +43,7 @@ type Server struct {
 	resolveActor func(*http.Request) (string, error)
 	enrollment   *enrollment.Service
 	mcpSessions  *mcpsession.Registry
+	remoteMCP    bool
 }
 
 // RuntimeInfoResponse identifies the daemon's effective local storage paths.
@@ -95,6 +96,9 @@ func (s *Server) SetNotificationDispatcher(dispatcher NotificationDispatcher) { 
 // SetMCPHTTPManager connects runtime-only localhost MCP lifecycle control.
 func (s *Server) SetMCPHTTPManager(manager MCPHTTPManager) { s.mcpHTTP = manager }
 
+// SetRemoteMCPEnabled exposes only whether the separately configured remote MCP listener is active.
+func (s *Server) SetRemoteMCPEnabled(enabled bool) { s.remoteMCP = enabled }
+
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/health", s.handleHealth)
 	s.mux.HandleFunc("GET /v1/manifest", s.handleManifest)
@@ -105,6 +109,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/mcp/http/enable", s.handleMCPHTTPEnable)
 	s.mux.HandleFunc("POST /v1/mcp/http/rotate", s.handleMCPHTTPRotate)
 	s.mux.HandleFunc("POST /v1/mcp/http/disable", s.handleMCPHTTPDisable)
+	s.mux.HandleFunc("GET /v1/mcp/sessions", s.handleListMCPSessions)
 	s.mux.HandleFunc("POST /v1/mcp/sessions", s.handleCreateMCPSession)
 	s.mux.HandleFunc("DELETE /v1/mcp/sessions/{id}", s.handleRevokeMCPSession)
 

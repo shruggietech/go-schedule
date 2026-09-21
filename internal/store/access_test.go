@@ -49,6 +49,39 @@ func TestActorLifecycleAndBuiltInProtection(t *testing.T) {
 	}
 }
 
+func TestNarrowActorRejectsStaleAuthorityAndExpiryWidening(t *testing.T) {
+	st, err := Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	now := time.Now().UTC()
+	originalExpiry := now.Add(24 * time.Hour)
+	actor, err := st.CreateActor(domain.ActorKindMCP, "Agent", domain.CapabilityManage, &originalExpiry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	observe := domain.CapabilityObserve
+	shortExpiry := now.Add(time.Hour)
+	shortExpiryPointer := &shortExpiry
+	if _, err := st.NarrowActor(actor.ID, ActorUpdate{Capability: &observe, ExpiresAt: &shortExpiryPointer}); err != nil {
+		t.Fatal(err)
+	}
+	staleCapability := domain.CapabilityOperate
+	if _, err := st.NarrowActor(actor.ID, ActorUpdate{Capability: &staleCapability}); !errors.Is(err, domain.ErrInvalidActor) {
+		t.Fatalf("stale capability widening err=%v", err)
+	}
+	staleExpiry := now.Add(2 * time.Hour)
+	staleExpiryPointer := &staleExpiry
+	if _, err := st.NarrowActor(actor.ID, ActorUpdate{ExpiresAt: &staleExpiryPointer}); !errors.Is(err, domain.ErrInvalidActor) {
+		t.Fatalf("stale expiry widening err=%v", err)
+	}
+	current, err := st.GetActor(actor.ID)
+	if err != nil || current.Capability != domain.CapabilityObserve || current.ExpiresAt == nil || !current.ExpiresAt.Equal(shortExpiry) {
+		t.Fatalf("current=%+v err=%v", current, err)
+	}
+}
+
 func TestAuditLifecycleFilteringAndAgeRetention(t *testing.T) {
 	st, err := Open(":memory:")
 	if err != nil {
@@ -77,7 +110,7 @@ func TestAuditLifecycleFilteringAndAgeRetention(t *testing.T) {
 		t.Fatalf("events=%+v err=%v", events, err)
 	}
 	all, err := st.ListAudit(domain.AuditQuery{Limit: 10})
-	if err != nil || len(all) != 2 || all[0].ID != current.ID || all[1].Result != domain.AuditResultDenied {
+	if err != nil || len(all) != 2 || all[0].Result != domain.AuditResultDenied || all[1].ID != current.ID {
 		t.Fatalf("all=%+v err=%v", all, err)
 	}
 }
