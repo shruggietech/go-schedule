@@ -94,6 +94,7 @@ type GrantEditDraft struct {
 	ActorID    string `json:"actorId"`
 	Capability string `json:"capability,omitempty"`
 	Duration   string `json:"duration,omitempty"`
+	ExpiresAt  string `json:"expiresAt,omitempty"`
 }
 
 // Result gives React a stable result without credentials or native errors.

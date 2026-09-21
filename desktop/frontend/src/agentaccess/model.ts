@@ -7,7 +7,7 @@ export interface AgentAction { daemonId: string; operation: string; targetKind: 
 export interface AgentAccessWorkspace { stdioDescription: string; http: AgentHTTPStatus; authorities: AgentAuthority[]; daemon?: AgentDaemon; mcpState?: 'off' | 'active'; transports?: AgentTransport[]; grants?: AgentGrant[] }
 export interface AgentAccessDraft { clientName: string; port: number; allowedOrigins: string[]; permission: 'observe' | 'operate' | 'manage'; requireConfirmation?: boolean }
 export interface AgentGrantDraft { clientName: string; capability: 'observe' | 'operate' | 'manage'; duration: '1h' | '24h' | '7d' | '30d' | 'non-expiring' }
-export interface AgentGrantEditDraft { actorId: string; capability?: 'observe' | 'operate' | 'manage'; duration?: '1h' | '24h' | '7d' | '30d' }
+export interface AgentGrantEditDraft { actorId: string; capability?: 'observe' | 'operate' | 'manage'; duration?: '1h' | '24h' | '7d' | '30d'; expiresAt?: string }
 export interface AgentAccessResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable'; message: string; workspace?: AgentAccessWorkspace }
 export interface AgentActionsResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable'; message: string; actions: AgentAction[] }
 export interface AgentAccessBridge { workspace(): Promise<AgentAccessResult>; enable(draft: AgentAccessDraft): Promise<AgentAccessResult>; rotate(): Promise<AgentAccessResult>; revoke(): Promise<AgentAccessResult>; createGrant(draft: AgentGrantDraft): Promise<AgentAccessResult>; editGrant(draft: AgentGrantEditDraft): Promise<AgentAccessResult>; revokeGrant(actorId: string): Promise<AgentAccessResult>; actions(actorId: string): Promise<AgentActionsResult>; openGuide(): Promise<AgentAccessResult> }

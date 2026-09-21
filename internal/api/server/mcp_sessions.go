@@ -22,6 +22,14 @@ type MCPSessionCredentialResponse struct {
 	Credential string `json:"credential"`
 }
 
+type MCPSessionListResponse struct {
+	Sessions []mcpsession.Session `json:"sessions"`
+}
+
+func (s *Server) handleListMCPSessions(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, MCPSessionListResponse{Sessions: s.mcpSessions.List()})
+}
+
 func (s *Server) handleCreateMCPSession(w http.ResponseWriter, r *http.Request) {
 	var request MCPSessionCreateRequest
 	if err := decodeSingleJSON(r, &request); err != nil {

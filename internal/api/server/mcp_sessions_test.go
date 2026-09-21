@@ -32,6 +32,20 @@ func createMCPSessionForTest(t *testing.T, s *Server, capability domain.Capabili
 	return session
 }
 
+func TestListMCPSessionsProjectsOnlyRuntimeEvidence(t *testing.T) {
+	s := newTestServer(t)
+	session := createMCPSessionForTest(t, s, domain.CapabilityObserve)
+	response := httptest.NewRecorder()
+	s.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/mcp/sessions", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("list status=%d body=%s", response.Code, response.Body.String())
+	}
+	var listed MCPSessionListResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &listed); err != nil || len(listed.Sessions) != 1 || listed.Sessions[0].ActorID != session.ActorID {
+		t.Fatalf("sessions=%+v err=%v", listed.Sessions, err)
+	}
+}
+
 func performMCPOperation(t *testing.T, s *Server, method, path, credential, daemonID string, body []byte) *httptest.ResponseRecorder {
 	t.Helper()
 	request := httptest.NewRequest(method, path, bytes.NewReader(body))

@@ -10,6 +10,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpsession"
 )
 
 type fakeBackend struct {
@@ -17,6 +18,7 @@ type fakeBackend struct {
 	manifest    server.ManifestResponse
 	actors      []domain.Actor
 	credentials []domain.ClientCredential
+	sessions    []mcpsession.Session
 	events      []domain.AuditEvent
 	pairing     domain.PairingSecret
 	secret      string
@@ -37,6 +39,9 @@ func (b *fakeBackend) ListActors(context.Context) ([]domain.Actor, error) {
 }
 func (b *fakeBackend) ListCredentials(context.Context) ([]domain.ClientCredential, error) {
 	return append([]domain.ClientCredential(nil), b.credentials...), b.err
+}
+func (b *fakeBackend) ListMCPSessions(context.Context) ([]mcpsession.Session, error) {
+	return append([]mcpsession.Session(nil), b.sessions...), b.err
 }
 func (b *fakeBackend) ListAudit(_ context.Context, query domain.AuditQuery) ([]domain.AuditEvent, error) {
 	var result []domain.AuditEvent
@@ -277,6 +282,13 @@ func TestGrantEditsAreMonotonicAndActionsAreBounded(t *testing.T) {
 	if backend.actors[0].Capability != domain.CapabilityOperate || backend.actors[0].ExpiresAt == nil || !backend.actors[0].ExpiresAt.Equal(now.Add(7*24*time.Hour)) {
 		t.Fatalf("actor=%+v", backend.actors[0])
 	}
+	customExpiry := now.Add(30 * time.Minute)
+	if result := service.EditGrant(context.Background(), GrantEditDraft{ActorID: actor.ID, ExpiresAt: customExpiry.Format(time.RFC3339)}); result.Outcome != "accepted" {
+		t.Fatalf("custom expiry edit=%+v", result)
+	}
+	if backend.actors[0].ExpiresAt == nil || !backend.actors[0].ExpiresAt.Equal(customExpiry) {
+		t.Fatalf("custom expiry actor=%+v", backend.actors[0])
+	}
 	if !backend.lastUpdate.Monotonic {
 		t.Fatal("desktop grant edit did not request atomic monotonic enforcement")
 	}
@@ -302,7 +314,12 @@ func TestWorkspaceUsesNewestAuditAsStdioLastUse(t *testing.T) {
 	service := NewService(backend, &fakeNative{})
 	service.now = func() time.Time { return now }
 	result := service.Workspace(context.Background())
-	if result.Workspace == nil || len(result.Workspace.Grants) != 1 || result.Workspace.Grants[0].Transport != "stdio" || result.Workspace.Grants[0].LastUsedAt != now.Format(time.RFC3339Nano) {
+	if result.Workspace == nil || result.Workspace.MCPState != "off" || len(result.Workspace.Grants) != 1 || result.Workspace.Grants[0].Transport != "stdio" || result.Workspace.Grants[0].LastUsedAt != now.Format(time.RFC3339Nano) {
 		t.Fatalf("workspace=%+v", result.Workspace)
+	}
+	backend.sessions = []mcpsession.Session{{ID: "session", ActorID: actor.ID, CreatedAt: now.Add(-time.Minute), ExpiresAt: now.Add(time.Hour)}}
+	result = service.Workspace(context.Background())
+	if result.Workspace == nil || result.Workspace.MCPState != "active" || result.Workspace.Transports[0].State != "active" {
+		t.Fatalf("live workspace=%+v", result.Workspace)
 	}
 }

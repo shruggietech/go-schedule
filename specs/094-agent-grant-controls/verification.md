@@ -20,8 +20,8 @@ S094 completes issue #181 and the remaining acceptance sweep for epic #148. Agen
 
 - `go test ./...` at the repository root: passed after formatting reconciliation.
 - `go test ./...` in `desktop`: passed.
-- `npm test -- --run` in `desktop/frontend`: 24 files and 133 tests passed.
-- Review regressions passed for complete enrollment bundles, atomic stale-update rejection, stdio last-use audit projection, and stale recent-action response suppression.
+- `npm test -- --run` in `desktop/frontend`: 24 files and 134 tests passed.
+- Review regressions passed for complete enrollment bundles, atomic stale-update rejection, live stdio session projection, stdio last-use audit projection, custom finite deadline shortening, fresh non-expiring consent, and stale recent-action response suppression.
 - `npm run build` in `desktop/frontend`: TypeScript and Vite production build passed.
 - `npm run test:e2e -- --grep "Agent Access"` in `desktop/frontend`: 5 Playwright tests passed.
 - `go test ./internal/api/server ./internal/remotemcp`: focused next-request authority tests passed.

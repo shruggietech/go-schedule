@@ -109,6 +109,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/mcp/http/enable", s.handleMCPHTTPEnable)
 	s.mux.HandleFunc("POST /v1/mcp/http/rotate", s.handleMCPHTTPRotate)
 	s.mux.HandleFunc("POST /v1/mcp/http/disable", s.handleMCPHTTPDisable)
+	s.mux.HandleFunc("GET /v1/mcp/sessions", s.handleListMCPSessions)
 	s.mux.HandleFunc("POST /v1/mcp/sessions", s.handleCreateMCPSession)
 	s.mux.HandleFunc("DELETE /v1/mcp/sessions/{id}", s.handleRevokeMCPSession)
 

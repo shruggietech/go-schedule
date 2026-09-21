@@ -39,6 +39,7 @@ var catalog = []Operation{
 	op("POST", "/v1/mcp/http/enable", "mcp.http.enable", domain.CapabilityEnroll, "mcp_listener", AuditMutation),
 	op("POST", "/v1/mcp/http/rotate", "mcp.http.rotate", domain.CapabilityEnroll, "mcp_listener", AuditMutation),
 	op("POST", "/v1/mcp/http/disable", "mcp.http.disable", domain.CapabilityEnroll, "mcp_listener", AuditMutation),
+	op("GET", "/v1/mcp/sessions", "mcp.sessions.list", domain.CapabilityEnroll, "mcp_session", AuditNone),
 	op("POST", "/v1/mcp/sessions", "mcp.sessions.create", domain.CapabilityEnroll, "mcp_session", AuditMutation),
 	op("DELETE", "/v1/mcp/sessions/{id}", "mcp.sessions.revoke", domain.CapabilityEnroll, "mcp_session", AuditMutation),
 	op("GET", "/v1/tasks", "tasks.list", domain.CapabilityObserve, "task", AuditNone),

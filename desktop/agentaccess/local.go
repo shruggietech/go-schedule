@@ -6,6 +6,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpsession"
 )
 
 // Backend supplies the authoritative daemon-owned MCP lifecycle.
@@ -13,6 +14,7 @@ type Backend interface {
 	Manifest(context.Context) (server.ManifestResponse, error)
 	ListActors(context.Context) ([]domain.Actor, error)
 	ListCredentials(context.Context) ([]domain.ClientCredential, error)
+	ListMCPSessions(context.Context) ([]mcpsession.Session, error)
 	ListAudit(context.Context, domain.AuditQuery) ([]domain.AuditEvent, error)
 	CreatePairing(context.Context, server.PairingCreateRequest) (domain.PairingSecret, error)
 	CancelPairing(context.Context, string) (domain.PairingSession, error)
@@ -44,6 +46,9 @@ func (b *LocalBackend) ListActors(ctx context.Context) ([]domain.Actor, error) {
 }
 func (b *LocalBackend) ListCredentials(ctx context.Context) ([]domain.ClientCredential, error) {
 	return b.daemon.ListCredentials(ctx)
+}
+func (b *LocalBackend) ListMCPSessions(ctx context.Context) ([]mcpsession.Session, error) {
+	return b.daemon.ListMCPSessions(ctx)
 }
 func (b *LocalBackend) ListAudit(ctx context.Context, query domain.AuditQuery) ([]domain.AuditEvent, error) {
 	return b.daemon.ListAudit(ctx, query)

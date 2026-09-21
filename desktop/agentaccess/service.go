@@ -141,12 +141,23 @@ func (s *Service) EditGrant(ctx context.Context, draft GrantEditDraft) Result {
 			request.Capability = &capability
 		}
 	}
+	if draft.Duration != "" && draft.ExpiresAt != "" {
+		return Result{Action: "edit_agent_grant", Outcome: "rejected", Message: "Choose one earlier expiry."}
+	}
 	if draft.Duration != "" {
 		expiresAt, err := s.expiration(draft.Duration, false)
 		if err != nil || expiresAt == nil || (actor.ExpiresAt != nil && !expiresAt.Before(*actor.ExpiresAt)) {
 			return Result{Action: "edit_agent_grant", Outcome: "rejected", Message: "Choose an expiry that is earlier than the current grant deadline."}
 		}
 		request.ExpiresAt = expiresAt
+	}
+	if draft.ExpiresAt != "" {
+		expiresAt, err := time.Parse(time.RFC3339, draft.ExpiresAt)
+		if err != nil || !expiresAt.After(s.now()) || (actor.ExpiresAt != nil && !expiresAt.Before(*actor.ExpiresAt)) {
+			return Result{Action: "edit_agent_grant", Outcome: "rejected", Message: "Choose a future expiry that is earlier than the current grant deadline."}
+		}
+		expiresAt = expiresAt.UTC()
+		request.ExpiresAt = &expiresAt
 	}
 	if request.Capability == nil && request.ExpiresAt == nil {
 		return Result{Action: "edit_agent_grant", Outcome: "rejected", Message: "Choose a lower authority or an earlier expiry."}
@@ -233,6 +244,14 @@ func (s *Service) workspace(ctx context.Context) (Workspace, error) {
 	if err != nil {
 		return Workspace{}, err
 	}
+	sessions, err := s.backend.ListMCPSessions(callCtx)
+	if err != nil {
+		return Workspace{}, err
+	}
+	liveStdioActors := make(map[string]bool, len(sessions))
+	for _, session := range sessions {
+		liveStdioActors[session.ActorID] = true
+	}
 	credentialByActor := make(map[string]domain.ClientCredential, len(credentials))
 	for _, credential := range credentials {
 		credentialByActor[credential.ActorID] = credential
@@ -269,7 +288,7 @@ func (s *Service) workspace(ctx context.Context) (Workspace, error) {
 		if state == domain.ActorStateActive && !actor.ActiveAt(now) {
 			state = domain.ActorStateExpired
 		}
-		if transport == "stdio" && state == domain.ActorStateActive {
+		if transport == "stdio" && state == domain.ActorStateActive && liveStdioActors[actor.ID] {
 			stdioActive = true
 		}
 		expires := ""

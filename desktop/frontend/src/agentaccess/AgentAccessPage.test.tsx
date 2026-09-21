@@ -107,6 +107,22 @@ describe("Agent Access page", () => {
     fireEvent.change(within(dialog).getByLabelText("Client name"), { target: { value: "Build agent" } });
     fireEvent.click(within(dialog).getByLabelText(/remain active until revoked/i));
     expect(within(dialog).getByRole("button", { name: "Create and copy enrollment" })).toBeEnabled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getByRole("button", { name: "Grant remote access" }));
+    const reopened = screen.getByRole("dialog", { name: "Grant remote MCP access" });
+    expect(within(reopened).getByLabelText(/remain active until revoked/i)).not.toBeChecked();
+    expect(within(reopened).getByRole("button", { name: "Create and copy enrollment" })).toBeDisabled();
+  });
+  it("accepts a custom earlier finite grant deadline", async () => {
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const active = { ...off, grants: [{ id: "actor-1", clientName: "Build agent", daemonId: "daemon-1", daemonName: "This computer", capability: "operate" as const, capabilityDescription: "Operate.", transport: "stdio" as const, createdAt: new Date().toISOString(), expiresAt, state: "active" as const }] };
+    const api = bridge(active);
+    render(<AgentAccessPage bridge={api} available refreshToken={1} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Narrow access" }));
+    const dialog = screen.getByRole("dialog", { name: "Narrow Build agent access" });
+    fireEvent.change(within(dialog).getByLabelText("Earlier expiry"), { target: { value: new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16) } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Apply narrower access" }));
+    await waitFor(() => expect(api.editGrant).toHaveBeenCalledWith(expect.objectContaining({ actorId: "actor-1", expiresAt: expect.any(String) })));
   });
   it("offers Manage with optional per-call confirmation", async () => {
     const api = bridge();

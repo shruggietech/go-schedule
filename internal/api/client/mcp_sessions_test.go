@@ -25,7 +25,10 @@ func TestMCPSessionClientUsesLifecyclePathsAndMutationHeaders(t *testing.T) {
 		}
 		body := "{}"
 		status := http.StatusNoContent
-		if request.URL.Path == "/v1/mcp/sessions" {
+		if request.Method == http.MethodGet && request.URL.Path == "/v1/mcp/sessions" {
+			body = `{"sessions":[{"id":"session-1","actor_id":"actor-1","capability":"operate"}]}`
+			status = http.StatusOK
+		} else if request.URL.Path == "/v1/mcp/sessions" {
 			body = `{"id":"session-1","actor_id":"actor-1","capability":"operate","credential":"session-secret"}`
 			status = http.StatusCreated
 		}
@@ -36,6 +39,10 @@ func TestMCPSessionClientUsesLifecyclePathsAndMutationHeaders(t *testing.T) {
 	if err != nil || session.ID != "session-1" || session.Credential != "session-secret" {
 		t.Fatalf("session=%+v err=%v", session, err)
 	}
+	sessions, err := base.ListMCPSessions(context.Background())
+	if err != nil || len(sessions) != 1 || sessions[0].ActorID != "actor-1" {
+		t.Fatalf("sessions=%+v err=%v", sessions, err)
+	}
 	operating := base.WithMCPSession(session.Credential)
 	if err := operating.RunNow(ExpectDaemon(context.Background(), "daemon-1"), "task-1"); err != nil {
 		t.Fatal(err)
@@ -43,7 +50,7 @@ func TestMCPSessionClientUsesLifecyclePathsAndMutationHeaders(t *testing.T) {
 	if err := base.RevokeMCPSession(context.Background(), session.ID); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"POST /v1/mcp/sessions", "POST /v1/tasks/task-1/run-now", "DELETE /v1/mcp/sessions/session-1"}
+	want := []string{"POST /v1/mcp/sessions", "GET /v1/mcp/sessions", "POST /v1/tasks/task-1/run-now", "DELETE /v1/mcp/sessions/session-1"}
 	if len(requests) != len(want) {
 		t.Fatalf("requests=%v", requests)
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/mcpsession"
 )
 
 type appBackend struct{}
@@ -82,6 +83,9 @@ func (b *facadeAgentAccessBackend) ListActors(context.Context) ([]domain.Actor, 
 }
 func (b *facadeAgentAccessBackend) ListCredentials(context.Context) ([]domain.ClientCredential, error) {
 	return []domain.ClientCredential{}, nil
+}
+func (b *facadeAgentAccessBackend) ListMCPSessions(context.Context) ([]mcpsession.Session, error) {
+	return []mcpsession.Session{}, nil
 }
 func (b *facadeAgentAccessBackend) ListAudit(context.Context, domain.AuditQuery) ([]domain.AuditEvent, error) {
 	return []domain.AuditEvent{}, nil
