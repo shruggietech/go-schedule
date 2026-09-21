@@ -99,11 +99,24 @@ func (s *Service) Refresh(ctx context.Context, publish ...func(Snapshot)) Snapsh
 	}()
 
 	observations := append([]Observation(nil), setupFailures...)
+	positions := make(map[string]int, len(setupFailures)+len(targets))
+	for index := range observations {
+		positions[observations[index].Registration.Key] = index
+	}
+	for _, value := range targets {
+		positions[value.registration.Key] = len(observations)
+		observations = append(observations, Observation{Registration: value.registration, State: connection.StateConnecting})
+	}
 	if len(observations) > 0 && len(publish) > 0 {
 		publish[0](s.snapshot(generation, started, observations, false, false))
 	}
 	for value := range results {
-		observations = append(observations, value)
+		if index, ok := positions[value.Registration.Key]; ok {
+			observations[index] = value
+		} else {
+			positions[value.Registration.Key] = len(observations)
+			observations = append(observations, value)
+		}
 		if len(publish) > 0 {
 			publish[0](s.snapshot(generation, started, observations, false, false))
 		}

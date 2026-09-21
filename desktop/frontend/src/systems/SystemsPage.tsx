@@ -76,7 +76,9 @@ export function SystemsPage({ bridge, onOpen }: { bridge: DesktopBridge; onOpen(
         <div className="actions">
           <Button variant="secondary" onClick={() => open(item, 'tasks', summary?.next_occurrence?.task_id, undefined, summary?.next_occurrence ? `Upcoming task: ${summary.next_occurrence.task_name}` : 'Task list')}>Tasks</Button>
           <Button variant="secondary" onClick={() => open(item, 'schedule', summary?.next_occurrence?.task_id, undefined, summary?.next_occurrence ? `Upcoming at ${when(summary.next_occurrence.scheduled_for)}` : 'Schedule')}>Schedule</Button>
-          <Button variant="secondary" onClick={() => open(item, 'activity', summary?.recent_failure?.task_id ?? summary?.unacknowledged_alert?.task_id, summary?.recent_failure?.run_id ?? summary?.unacknowledged_alert?.alert_id, summary?.recent_failure ? `Failed run ${summary.recent_failure.run_id}` : summary?.unacknowledged_alert ? `Alert ${summary.unacknowledged_alert.alert_id}` : 'Activity')}>Activity</Button>
+          {summary?.recent_failure && <Button variant="secondary" onClick={() => open(item, 'activity', summary.recent_failure?.task_id, summary.recent_failure?.run_id, `Failed run ${summary.recent_failure?.run_id}`)}>Failed run</Button>}
+          {summary?.unacknowledged_alert && <Button variant="secondary" onClick={() => open(item, 'activity', summary.unacknowledged_alert?.task_id, summary.unacknowledged_alert?.alert_id, `Alert ${summary.unacknowledged_alert?.alert_id}`)}>Alert</Button>}
+          {!summary?.recent_failure && !summary?.unacknowledged_alert && <Button variant="secondary" onClick={() => open(item, 'activity', undefined, undefined, 'Activity')}>Activity</Button>}
           <Button variant="secondary" onClick={() => open(item, item.registration.kind === 'remote' ? 'activity' : 'notifications', summary?.notification_problem?.task_id, summary?.notification_problem?.delivery_id, summary?.notification_problem ? `Notification delivery ${summary.notification_problem.delivery_id}` : 'Notifications')}>{item.registration.kind === 'remote' ? 'Notification issue' : 'Notifications'}</Button>
         </div>
       </article>

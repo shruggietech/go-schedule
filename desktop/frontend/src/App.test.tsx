@@ -131,12 +131,15 @@ describe('production shell', () => {
 
   it('selects the exact system before opening representative context', async () => {
     const user = userEvent.setup()
+    let publish!: (event: DesktopEvent) => void
     const selectConnection = vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' })
-    render(<App bridge={{ ...bridge, allSystems: vi.fn().mockResolvedValue(systemsSnapshot), selectConnection }} tasks={tasks} operations={operations} settings={settings} />)
+    render(<App bridge={{ ...bridge, allSystems: vi.fn().mockResolvedValue(systemsSnapshot), selectConnection, subscribe: (listener) => { publish = listener; return () => undefined } }} tasks={tasks} operations={operations} settings={settings} />)
     await user.click(screen.getByRole('button', { name: 'All Systems' }))
     await screen.findByText('https://example.test · daemon-i')
-    await user.click(screen.getAllByRole('button', { name: 'Activity' })[1])
+    await user.click(screen.getByRole('button', { name: 'Failed run' }))
     expect(selectConnection).toHaveBeenCalledWith('profile-7')
+    expect(screen.getByRole('heading', { level: 1, name: 'All Systems' })).toBeVisible()
+    act(() => publish({ id: 'connected', kind: 'connection', message: 'Connected.', generation: 2, occurredAt: '2026-09-21T15:00:02Z', snapshot: { ...connected, generation: 2, target: { ...connected.target, id: 'daemon-identity', profileId: 'profile-7', kind: 'remote', displayName: 'Production' } } }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Activity' })).toBeVisible()
     expect(screen.getByText(/Failed run run-7 · Task task-7 · Record run-7/)).toBeVisible()
   })
@@ -147,9 +150,22 @@ describe('production shell', () => {
     render(<App bridge={{ ...bridge, allSystems: vi.fn().mockResolvedValue(systemsSnapshot), selectConnection }} tasks={tasks} operations={operations} settings={settings} />)
     await user.click(screen.getByRole('button', { name: 'All Systems' }))
     await screen.findByText('https://example.test · daemon-i')
-    await user.click(screen.getAllByRole('button', { name: 'Activity' })[1])
+    await user.click(screen.getByRole('button', { name: 'Failed run' }))
     expect(selectConnection).toHaveBeenCalledWith('profile-7')
     expect(screen.getByRole('heading', { level: 1, name: 'All Systems' })).toBeVisible()
     expect(await screen.findByText('The profile was removed.')).toBeVisible()
+  })
+
+  it('keeps All Systems open when the selected target cannot reconnect', async () => {
+    const user = userEvent.setup()
+    let publish!: (event: DesktopEvent) => void
+    const selectConnection = vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' })
+    render(<App bridge={{ ...bridge, allSystems: vi.fn().mockResolvedValue(systemsSnapshot), selectConnection, subscribe: (listener) => { publish = listener; return () => undefined } }} tasks={tasks} operations={operations} settings={settings} />)
+    await user.click(screen.getByRole('button', { name: 'All Systems' }))
+    await screen.findByText('https://example.test · daemon-i')
+    await user.click(screen.getByRole('button', { name: 'Failed run' }))
+    act(() => publish({ id: 'timed-out', kind: 'connection', message: 'Timed out.', generation: 2, occurredAt: '2026-09-21T15:00:02Z', snapshot: { ...connected, generation: 2, state: 'timed_out', message: 'The scheduler timed out.', action: 'Check the network.', target: { ...connected.target, id: 'daemon-identity', profileId: 'profile-7', kind: 'remote', displayName: 'Production' } } }))
+    expect(screen.getByRole('heading', { level: 1, name: 'All Systems' })).toBeVisible()
+    expect(await screen.findByText('The scheduler timed out. Check the network.')).toBeVisible()
   })
 })

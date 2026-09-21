@@ -146,8 +146,16 @@ func TestRefreshPublishesCompletedTargetsBeforeSlowTargetsFinish(t *testing.T) {
 	go func() { done <- service.Refresh(context.Background(), func(snapshot Snapshot) { updates <- snapshot }) }()
 	select {
 	case update := <-updates:
-		if update.Complete || len(update.Observations) != 1 || update.Observations[0].Registration.Key != "fast" {
+		if update.Complete || len(update.Observations) != 2 || update.Observations[0].State != connection.StateConnecting || update.Observations[1].State != connection.StateConnecting {
 			t.Fatalf("first update = %+v", update)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("pending targets were not published before observation began")
+	}
+	select {
+	case update := <-updates:
+		if update.Complete || len(update.Observations) != 2 || update.Observations[0].Registration.Key != "fast" || update.Observations[0].State != connection.StateConnected || update.Observations[1].Registration.Key != "slow" || update.Observations[1].State != connection.StateConnecting {
+			t.Fatalf("progressive update = %+v", update)
 		}
 	case <-time.After(time.Second):
 		t.Fatal("fast target was not published while slow target remained blocked")

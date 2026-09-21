@@ -11,7 +11,7 @@ const snapshot: SystemsSnapshot = {
   complete: true,
   observations: [
     { registration: { key: 'local', kind: 'local', label: 'Workshop', daemonId: 'local-daemon', shortDaemonId: 'local-da', platform: 'windows', version: '1.5.0' }, state: 'connected', observedAt: '2026-09-21T15:00:00Z', stale: false, summary: { schema: 'go-schedule.system-summary.v1', observed_at: '2026-09-21T15:00:00Z', active_task_count: 2, next_occurrence: { task_id: 'task-1', task_name: 'Daily export', scheduled_for: '2026-09-21T16:00:00Z' }, recent_failure_count: 0, unacknowledged_alert_count: 0, notification_problem_count: 0 } },
-    { registration: { key: 'remote-1', profileId: 'remote-1', kind: 'remote', label: 'Workshop', endpoint: 'https://remote.test', daemonId: 'remote-daemon', shortDaemonId: 'remote-d', platform: 'linux', version: '1.5.0' }, state: 'timed_out', observedAt: '2026-09-21T14:00:00Z', stale: true, failure: { state: 'timed_out', message: 'The scheduler timed out.', action: 'Check the network.' }, summary: { schema: 'go-schedule.system-summary.v1', observed_at: '2026-09-21T14:00:00Z', active_task_count: 1, recent_failure_count: 1, recent_failure: { run_id: 'run-7', task_id: 'task-7', task_name: 'Archive', ended_at: '2026-09-21T13:00:00Z' }, unacknowledged_alert_count: 1, notification_problem_count: 1 } },
+    { registration: { key: 'remote-1', profileId: 'remote-1', kind: 'remote', label: 'Workshop', endpoint: 'https://remote.test', daemonId: 'remote-daemon', shortDaemonId: 'remote-d', platform: 'linux', version: '1.5.0' }, state: 'timed_out', observedAt: '2026-09-21T14:00:00Z', stale: true, failure: { state: 'timed_out', message: 'The scheduler timed out.', action: 'Check the network.' }, summary: { schema: 'go-schedule.system-summary.v1', observed_at: '2026-09-21T14:00:00Z', active_task_count: 1, recent_failure_count: 1, recent_failure: { run_id: 'run-7', task_id: 'task-7', task_name: 'Archive', ended_at: '2026-09-21T13:00:00Z' }, unacknowledged_alert_count: 1, unacknowledged_alert: { alert_id: 'alert-8', task_id: 'task-8', severity: 'error', kind: 'run_failed', created_at: '2026-09-21T13:30:00Z' }, notification_problem_count: 1 } },
   ],
 }
 
@@ -36,8 +36,10 @@ describe('SystemsPage', () => {
     const onOpen = vi.fn().mockResolvedValue(undefined)
     render(<SystemsPage bridge={bridge()} onOpen={onOpen} />)
     await screen.findByText('https://remote.test · remote-d')
-    await user.click(screen.getAllByRole('button', { name: 'Activity' })[1])
+    await user.click(screen.getByRole('button', { name: 'Failed run' }))
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ registrationKey: 'remote-1', destination: 'activity', taskId: 'task-7', recordId: 'run-7' }))
+    await user.click(screen.getByRole('button', { name: 'Alert' }))
+    expect(onOpen).toHaveBeenLastCalledWith(expect.objectContaining({ registrationKey: 'remote-1', destination: 'activity', taskId: 'task-8', recordId: 'alert-8' }))
   })
 
   it('supports state filtering, search, and stable label sorting', async () => {
