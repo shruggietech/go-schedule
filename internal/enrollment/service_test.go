@@ -56,6 +56,33 @@ func TestPairingIsSingleUseAndCredentialCanRotateAndRevoke(t *testing.T) {
 	}
 }
 
+func TestPairingGrantDeadlineIsFixedAtCreationAndAppliedOnExchange(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	service := New(st)
+	service.memory = 64
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	grantExpires := now.Add(24 * time.Hour)
+	pairing, err := service.Create("Bounded MCP", domain.ActorKindMCP, domain.CapabilityOperate, &grantExpires)
+	if err != nil || pairing.GrantExpiresAt == nil || !pairing.GrantExpiresAt.Equal(grantExpires) {
+		t.Fatalf("pairing=%+v err=%v", pairing, err)
+	}
+	service.now = func() time.Time { return now.Add(5 * time.Minute) }
+	issued, err := service.Exchange(pairing.ID, pairing.Phrase, pairing.DaemonID, pairing.DisplayName, pairing.Kind, pairing.Capability)
+	if err != nil || issued.Actor.ExpiresAt == nil || !issued.Actor.ExpiresAt.Equal(grantExpires) {
+		t.Fatalf("issued=%+v err=%v", issued, err)
+	}
+	if _, err := service.Create("Expired", domain.ActorKindMCP, domain.CapabilityObserve, ptrTime(now)); !errors.Is(err, domain.ErrInvalidActor) {
+		t.Fatalf("expired grant err=%v", err)
+	}
+}
+
+func ptrTime(value time.Time) *time.Time { return &value }
+
 func TestConcurrentPairingExchangeCreatesExactlyOneRelationship(t *testing.T) {
 	st, err := store.Open(":memory:")
 	if err != nil {

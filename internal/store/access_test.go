@@ -77,7 +77,7 @@ func TestAuditLifecycleFilteringAndAgeRetention(t *testing.T) {
 		t.Fatalf("events=%+v err=%v", events, err)
 	}
 	all, err := st.ListAudit(domain.AuditQuery{Limit: 10})
-	if err != nil || len(all) != 2 || all[0].ID != current.ID || all[1].Result != domain.AuditResultDenied {
+	if err != nil || len(all) != 2 || all[0].Result != domain.AuditResultDenied || all[1].ID != current.ID {
 		t.Fatalf("all=%+v err=%v", all, err)
 	}
 }

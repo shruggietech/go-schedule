@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AgentAccessBridge, AgentAccessDraft, AgentAccessResult, AgentAccessWorkspace } from './model'
+import type { AgentAccessBridge, AgentAccessDraft, AgentAccessResult, AgentAccessWorkspace, AgentActionsResult, AgentGrantDraft, AgentGrantEditDraft } from './model'
 
 const unavailable = (action: string): AgentAccessResult => ({ action, outcome: 'unavailable', message: 'Agent Access is unavailable. Check the local scheduler connection, then try again.' })
+const actionsUnavailable = (): AgentActionsResult => ({ action: 'load_agent_actions', outcome: 'unavailable', message: 'Recent agent actions could not be loaded.', actions: [] })
 
 export function useAgentAccess(bridge: AgentAccessBridge, available: boolean, refreshToken: number) {
   const [workspace, setWorkspace] = useState<AgentAccessWorkspace>()
   const [status, setStatus] = useState<AgentAccessResult>()
+  const [actions, setActions] = useState<AgentActionsResult>()
   const [pending, setPending] = useState(false)
   const sequence = useRef(0)
   const mutationPending = useRef(false)
@@ -13,12 +15,7 @@ export function useAgentAccess(bridge: AgentAccessBridge, available: boolean, re
   const load = useCallback(async () => {
     if (!available || mutationPending.current) return
     const request = ++sequence.current
-    try {
-      const result = await bridge.workspace()
-      if (request === sequence.current) apply(result)
-    } catch {
-      if (request === sequence.current) apply(unavailable('load_agent_access'))
-    }
+    try { const result = await bridge.workspace(); if (request === sequence.current) apply(result) } catch { if (request === sequence.current) apply(unavailable('load_agent_access')) }
   }, [apply, available, bridge])
   const mutate = useCallback(async (work: () => Promise<AgentAccessResult>) => {
     if (!available || mutationPending.current) return
@@ -27,11 +24,31 @@ export function useAgentAccess(bridge: AgentAccessBridge, available: boolean, re
     const request = ++sequence.current
     try { const result = await work(); if (request === sequence.current) apply(result) } catch { if (request === sequence.current) apply(unavailable('agent_access_action')) } finally { mutationPending.current = false; setPending(false) }
   }, [apply, available])
+  const loadActions = useCallback(async (actorId: string) => {
+    setPending(true)
+    try { setActions(await bridge.actions(actorId)) } catch { setActions(actionsUnavailable()) } finally { setPending(false) }
+  }, [bridge])
   useEffect(() => { void load() }, [load, refreshToken])
   useEffect(() => {
     if (!available || !workspace?.http.enabled) return
     const timer = setInterval(() => void load(), 5000)
     return () => clearInterval(timer)
   }, [available, load, workspace?.http.enabled])
-  return { workspace, message: status?.message ?? '', pending, load, enable: (draft: AgentAccessDraft) => mutate(() => bridge.enable(draft)), rotate: () => mutate(bridge.rotate), revoke: () => mutate(bridge.revoke), openGuide: () => mutate(bridge.openGuide) }
+  return {
+    workspace,
+    message: status?.message ?? '',
+    outcome: status?.outcome,
+    actions,
+    pending,
+    load,
+    enable: (draft: AgentAccessDraft) => mutate(() => bridge.enable(draft)),
+    rotate: () => mutate(bridge.rotate),
+    revoke: () => mutate(bridge.revoke),
+    createGrant: (draft: AgentGrantDraft) => mutate(() => bridge.createGrant(draft)),
+    editGrant: (draft: AgentGrantEditDraft) => mutate(() => bridge.editGrant(draft)),
+    revokeGrant: (actorId: string) => mutate(() => bridge.revokeGrant(actorId)),
+    loadActions,
+    clearActions: () => setActions(undefined),
+    openGuide: () => mutate(bridge.openGuide),
+  }
 }

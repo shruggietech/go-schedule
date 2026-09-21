@@ -156,6 +156,38 @@ func (a *App) RevokeAgentAccess() agentaccess.Result {
 	return a.agentAccess.Revoke(a.ctx)
 }
 
+// CreateAgentGrant creates one remote MCP enrollment and copies it natively.
+func (a *App) CreateAgentGrant(draft agentaccess.GrantDraft) agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "create_agent_grant", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.CreateGrant(a.ctx, draft)
+}
+
+// EditAgentGrant narrows one existing MCP actor grant.
+func (a *App) EditAgentGrant(draft agentaccess.GrantEditDraft) agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "edit_agent_grant", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.EditGrant(a.ctx, draft)
+}
+
+// RevokeAgentGrant permanently revokes one existing MCP actor grant.
+func (a *App) RevokeAgentGrant(actorID string) agentaccess.Result {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.Result{Action: "revoke_agent_grant", Outcome: "unavailable", Message: "Agent Access is unavailable."}
+	}
+	return a.agentAccess.RevokeGrant(a.ctx, actorID)
+}
+
+// AgentGrantActions returns bounded shared audit evidence for one MCP actor.
+func (a *App) AgentGrantActions(actorID string) agentaccess.ActionsResult {
+	if a.agentAccess == nil || a.ctx == nil {
+		return agentaccess.ActionsResult{Action: "load_agent_actions", Outcome: "unavailable", Message: "Agent activity is unavailable.", Actions: []agentaccess.Action{}}
+	}
+	return a.agentAccess.Actions(a.ctx, actorID)
+}
+
 // OpenAgentAccessGuide opens the fixed official setup guide.
 func (a *App) OpenAgentAccessGuide() agentaccess.Result {
 	if a.agentAccess == nil || a.ctx == nil {

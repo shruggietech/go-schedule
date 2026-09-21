@@ -23,7 +23,7 @@ func (s *Store) CreatePairing(session domain.PairingSession, salt, verifier []by
 	if _, err := domain.NormalizeActorDisplayName(session.DisplayName); err != nil || !session.Kind.Valid() || session.Kind == domain.ActorKindLocalOS || !session.Capability.Valid() {
 		return domain.ErrInvalidActor
 	}
-	_, err := s.db.Exec(`INSERT INTO pairing_sessions(id,display_name,kind,capability,salt,verifier,attempts_remaining,state,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?)`, session.ID, session.DisplayName, session.Kind, session.Capability, salt, verifier, session.AttemptsRemaining, session.State, fmtTime(session.CreatedAt), fmtTime(session.ExpiresAt))
+	_, err := s.db.Exec(`INSERT INTO pairing_sessions(id,display_name,kind,capability,salt,verifier,attempts_remaining,state,created_at,expires_at,grant_expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, session.ID, session.DisplayName, session.Kind, session.Capability, salt, verifier, session.AttemptsRemaining, session.State, fmtTime(session.CreatedAt), fmtTime(session.ExpiresAt), fmtTimePtr(session.GrantExpiresAt))
 	if err != nil {
 		return fmt.Errorf("store: create pairing: %w", err)
 	}
@@ -51,7 +51,7 @@ func (s *Store) PairingForExchange(id string) (domain.PairingSession, []byte, er
 }
 
 func (s *Store) ListPairings() ([]domain.PairingSession, error) {
-	rows, err := s.db.Query(`SELECT id,display_name,kind,capability,attempts_remaining,state,created_at,expires_at,completed_at FROM pairing_sessions ORDER BY created_at DESC,id DESC`)
+	rows, err := s.db.Query(`SELECT id,display_name,kind,capability,attempts_remaining,state,created_at,expires_at,grant_expires_at,completed_at FROM pairing_sessions ORDER BY created_at DESC,id DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("store: list pairings: %w", err)
 	}
@@ -80,7 +80,7 @@ func (s *Store) CancelPairing(id string) (domain.PairingSession, error) {
 }
 
 func (s *Store) getPairing(id string) (domain.PairingSession, error) {
-	item, err := scanPairing(s.db.QueryRow(`SELECT id,display_name,kind,capability,attempts_remaining,state,created_at,expires_at,completed_at FROM pairing_sessions WHERE id=?`, id))
+	item, err := scanPairing(s.db.QueryRow(`SELECT id,display_name,kind,capability,attempts_remaining,state,created_at,expires_at,grant_expires_at,completed_at FROM pairing_sessions WHERE id=?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.PairingSession{}, ErrNotFound
 	}
@@ -90,8 +90,8 @@ func (s *Store) getPairing(id string) (domain.PairingSession, error) {
 func scanPairing(row rowScanner) (domain.PairingSession, error) {
 	var item domain.PairingSession
 	var created, expires string
-	var completed sql.NullString
-	if err := row.Scan(&item.ID, &item.DisplayName, &item.Kind, &item.Capability, &item.AttemptsRemaining, &item.State, &created, &expires, &completed); err != nil {
+	var grantExpires, completed sql.NullString
+	if err := row.Scan(&item.ID, &item.DisplayName, &item.Kind, &item.Capability, &item.AttemptsRemaining, &item.State, &created, &expires, &grantExpires, &completed); err != nil {
 		return item, err
 	}
 	var err error
@@ -99,6 +99,9 @@ func scanPairing(row rowScanner) (domain.PairingSession, error) {
 		return item, err
 	}
 	if item.ExpiresAt, err = parseTime(expires); err != nil {
+		return item, err
+	}
+	if item.GrantExpiresAt, err = parseTimePtr(grantExpires); err != nil {
 		return item, err
 	}
 	if item.CompletedAt, err = parseTimePtr(completed); err != nil {
@@ -124,7 +127,8 @@ func (s *Store) ExchangePairing(id string, candidateVerifier []byte, actor domai
 	var attempts int
 	var state domain.PairingState
 	var expires string
-	if err := tx.QueryRow(`SELECT display_name,kind,capability,verifier,attempts_remaining,state,expires_at FROM pairing_sessions WHERE id=?`, id).Scan(&name, &kind, &capability, &verifier, &attempts, &state, &expires); err != nil {
+	var grantExpires sql.NullString
+	if err := tx.QueryRow(`SELECT display_name,kind,capability,verifier,attempts_remaining,state,expires_at,grant_expires_at FROM pairing_sessions WHERE id=?`, id).Scan(&name, &kind, &capability, &verifier, &attempts, &state, &expires, &grantExpires); err != nil {
 		return actor, credential, ErrEnrollmentRejected
 	}
 	expiresAt, err := parseTime(expires)
@@ -156,6 +160,10 @@ func (s *Store) ExchangePairing(id string, candidateVerifier []byte, actor domai
 		return actor, credential, ErrEnrollmentRejected
 	}
 	actor.DisplayName, actor.Kind, actor.Capability = name, kind, capability
+	actor.ExpiresAt, err = parseTimePtr(grantExpires)
+	if err != nil || (actor.ExpiresAt != nil && !actor.ExpiresAt.After(now)) {
+		return actor, credential, ErrEnrollmentRejected
+	}
 	if _, err := tx.Exec(`INSERT INTO actors(id,kind,display_name,capability,state,builtin,created_at,updated_at,expires_at) VALUES(?,?,?,?,?,0,?,?,?)`, actor.ID, actor.Kind, actor.DisplayName, actor.Capability, actor.State, fmtTime(actor.CreatedAt), fmtTime(actor.UpdatedAt), fmtTimePtr(actor.ExpiresAt)); err != nil {
 		return actor, credential, fmt.Errorf("store: enroll actor: %w", err)
 	}

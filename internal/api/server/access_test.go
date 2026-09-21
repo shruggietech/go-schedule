@@ -12,6 +12,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/authorization"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/store"
 )
 
 func TestOperationCatalogCoversEveryRegisteredManagementRoute(t *testing.T) {
@@ -68,6 +69,30 @@ func TestAuthorizationReloadsRevokedActorAndAuditsDenial(t *testing.T) {
 	events, err := s.store.ListAudit(domain.AuditQuery{ActorID: actor.ID, Result: domain.AuditResultDenied, Limit: 10})
 	if err != nil || len(events) != 1 || events[0].Operation != "health.read" {
 		t.Fatalf("events=%+v err=%v", events, err)
+	}
+}
+
+func TestAuthorizationReloadsNarrowedActorOnNextRequest(t *testing.T) {
+	s := newTestServer(t)
+	actor, err := s.store.CreateActor(domain.ActorKindMCP, "Existing connection", domain.CapabilityManage, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SetActorResolver(func(*http.Request) (string, error) { return actor.ID, nil })
+	handler := s.Handler()
+	before := httptest.NewRecorder()
+	handler.ServeHTTP(before, httptest.NewRequest(http.MethodPost, "/v1/tasks", nil))
+	if before.Code == http.StatusForbidden {
+		t.Fatalf("manage request was denied before narrowing: status=%d body=%s", before.Code, before.Body.String())
+	}
+	observe := domain.CapabilityObserve
+	if _, err := s.store.UpdateActor(actor.ID, store.ActorUpdate{Capability: &observe}); err != nil {
+		t.Fatal(err)
+	}
+	after := httptest.NewRecorder()
+	handler.ServeHTTP(after, httptest.NewRequest(http.MethodPost, "/v1/tasks", nil))
+	if after.Code != http.StatusForbidden {
+		t.Fatalf("request after narrowing status=%d body=%s", after.Code, after.Body.String())
 	}
 }
 

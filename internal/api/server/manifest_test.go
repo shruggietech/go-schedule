@@ -40,6 +40,15 @@ func TestManifestReportsBoundedDeterministicDaemonFacts(t *testing.T) {
 	}
 }
 
+func TestManifestReportsRemoteMCPWithoutExposingConfiguration(t *testing.T) {
+	s := newTestServer(t)
+	s.SetRemoteMCPEnabled(true)
+	manifest := requestManifest(t, s, http.MethodGet, "/v1/manifest", nil)
+	if !contains(manifest.Capabilities, "remote-mcp") || len(manifest.Capabilities) != 12 || !sort.StringsAreSorted(manifest.Capabilities) {
+		t.Fatalf("capabilities = %v", manifest.Capabilities)
+	}
+}
+
 func contains(values []string, wanted string) bool {
 	for _, value := range values {
 		if value == wanted {

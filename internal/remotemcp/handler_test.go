@@ -271,6 +271,27 @@ func TestAccessGrantExpiresAtConfiguredBoundary(t *testing.T) {
 	}
 }
 
+func TestAccessGrantRejectsChangedActorAuthorityOnNextRequest(t *testing.T) {
+	database, err := store.Open(t.TempDir() + "/test.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	service := enrollment.New(database)
+	issued := issueCredential(t, service, domain.ActorKindMCP, domain.CapabilityOperate)
+	handler := newTestHandler(t, service)
+	token := exchange(t, handler, issued.ID, issued.Token, "mcp:operate")
+	request := httptest.NewRequest(http.MethodPost, testResource, nil)
+	request.URL.Scheme, request.URL.Host = "", ""
+	observe := domain.CapabilityObserve
+	if _, err := database.UpdateActor(issued.Actor.ID, store.ActorUpdate{Capability: &observe}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := handler.verify(context.Background(), token, request); !errors.Is(err, auth.ErrInvalidToken) {
+		t.Fatalf("verify after narrowing=%v, want invalid token", err)
+	}
+}
+
 func TestAccessTokenRejectsQueryCookieAndDuplicateAuthorization(t *testing.T) {
 	service, cleanup := testEnrollment(t)
 	defer cleanup()

@@ -3,6 +3,7 @@ package agentaccess
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -12,11 +13,74 @@ import (
 )
 
 type fakeBackend struct {
-	status     server.MCPHTTPStatusResponse
-	secret     string
-	err        error
-	disableErr error
-	disabled   int
+	status      server.MCPHTTPStatusResponse
+	manifest    server.ManifestResponse
+	actors      []domain.Actor
+	credentials []domain.ClientCredential
+	events      []domain.AuditEvent
+	pairing     domain.PairingSecret
+	secret      string
+	err         error
+	disableErr  error
+	disabled    int
+}
+
+func (b *fakeBackend) Manifest(context.Context) (server.ManifestResponse, error) {
+	if b.manifest.InstallationID == "" {
+		b.manifest = server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "This computer"}
+	}
+	return b.manifest, b.err
+}
+func (b *fakeBackend) ListActors(context.Context) ([]domain.Actor, error) {
+	return append([]domain.Actor(nil), b.actors...), b.err
+}
+func (b *fakeBackend) ListCredentials(context.Context) ([]domain.ClientCredential, error) {
+	return append([]domain.ClientCredential(nil), b.credentials...), b.err
+}
+func (b *fakeBackend) ListAudit(_ context.Context, query domain.AuditQuery) ([]domain.AuditEvent, error) {
+	var result []domain.AuditEvent
+	for _, event := range b.events {
+		if query.ActorID == "" || query.ActorID == event.ActorID {
+			result = append(result, event)
+		}
+	}
+	if query.Limit > 0 && len(result) > query.Limit {
+		result = result[:query.Limit]
+	}
+	return result, b.err
+}
+func (b *fakeBackend) CreatePairing(_ context.Context, request server.PairingCreateRequest) (domain.PairingSecret, error) {
+	if b.pairing.ID == "" {
+		b.pairing = domain.PairingSecret{PairingSession: domain.PairingSession{ID: "pairing-1", DisplayName: request.DisplayName, Kind: request.Kind, Capability: request.Capability, ExpiresAt: time.Now().Add(10 * time.Minute), GrantExpiresAt: request.ExpiresAt}, Phrase: "one-time-phrase", DaemonID: "daemon-1"}
+	}
+	return b.pairing, b.err
+}
+func (b *fakeBackend) CancelPairing(context.Context, string) (domain.PairingSession, error) {
+	return b.pairing.PairingSession, b.disableErr
+}
+func (b *fakeBackend) UpdateActor(_ context.Context, id string, request server.ActorUpdateRequest) (domain.Actor, error) {
+	for i := range b.actors {
+		if b.actors[i].ID != id {
+			continue
+		}
+		if request.Capability != nil {
+			b.actors[i].Capability = *request.Capability
+		}
+		if request.ExpiresAt != nil {
+			b.actors[i].ExpiresAt = request.ExpiresAt
+		}
+		return b.actors[i], b.err
+	}
+	return domain.Actor{}, errors.New("missing")
+}
+func (b *fakeBackend) RevokeActor(_ context.Context, id string) (domain.Actor, error) {
+	for i := range b.actors {
+		if b.actors[i].ID == id {
+			b.actors[i].State = domain.ActorStateRevoked
+			return b.actors[i], b.err
+		}
+	}
+	return domain.Actor{}, errors.New("missing")
 }
 
 func (b *fakeBackend) MCPHTTPStatus(context.Context) (server.MCPHTTPStatusResponse, error) {
@@ -73,6 +137,51 @@ func TestWorkspaceProjectsAuthorityAndEvidenceWithoutSecret(t *testing.T) {
 	}
 }
 
+func TestWorkspaceProjectsTransportAwareSecretFreeGrants(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	expires := now.Add(24 * time.Hour)
+	backend := &fakeBackend{
+		manifest: server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "Workshop", Capabilities: []string{"remote-mcp"}},
+		status:   server.MCPHTTPStatusResponse{Enabled: true, ActorID: "local-http", ClientName: "Local agent", Permission: domain.CapabilityOperate, AllowedOrigins: []string{}},
+		actors: []domain.Actor{
+			{ID: "remote", Kind: domain.ActorKindMCP, DisplayName: "Remote agent", Capability: domain.CapabilityManage, State: domain.ActorStateActive, CreatedAt: now, ExpiresAt: &expires},
+			{ID: "local-http", Kind: domain.ActorKindMCP, DisplayName: "Local agent", Capability: domain.CapabilityOperate, State: domain.ActorStateActive, CreatedAt: now},
+			{ID: "cli", Kind: domain.ActorKindCLI, DisplayName: "Not an agent", Capability: domain.CapabilityObserve, State: domain.ActorStateActive, CreatedAt: now},
+		},
+		credentials: []domain.ClientCredential{{ID: "credential", ActorID: "remote", Fingerprint: "safe-fingerprint", State: domain.CredentialActive, CreatedAt: now, UpdatedAt: now}},
+	}
+	service := NewService(backend, &fakeNative{})
+	service.now = func() time.Time { return now }
+	result := service.Workspace(context.Background())
+	if result.Outcome != "accepted" || result.Workspace == nil || result.Workspace.MCPState != "active" || len(result.Workspace.Grants) != 2 {
+		t.Fatalf("result=%+v", result)
+	}
+	if result.Workspace.Grants[0].Transport != "remote_https" || result.Workspace.Grants[0].DaemonID != "daemon-1" || result.Workspace.Grants[0].CredentialFingerprint != "safe-fingerprint" {
+		t.Fatalf("grants=%+v", result.Workspace.Grants)
+	}
+	if result.Workspace.Transports[2].State != "active" {
+		t.Fatalf("transports=%+v", result.Workspace.Transports)
+	}
+	if strings.Contains(fmt.Sprintf("%+v", result.Workspace), "one-time-phrase") {
+		t.Fatal("workspace contains protected enrollment material")
+	}
+}
+
+func TestRemoteGrantDoesNotImplyRemoteListenerEnablement(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	backend := &fakeBackend{
+		actors:      []domain.Actor{{ID: "remote", Kind: domain.ActorKindMCP, DisplayName: "Remote agent", Capability: domain.CapabilityObserve, State: domain.ActorStateActive, CreatedAt: now}},
+		credentials: []domain.ClientCredential{{ID: "credential", ActorID: "remote", Fingerprint: "safe-fingerprint", State: domain.CredentialActive, CreatedAt: now, UpdatedAt: now}},
+		status:      server.MCPHTTPStatusResponse{AllowedOrigins: []string{}},
+	}
+	service := NewService(backend, &fakeNative{})
+	service.now = func() time.Time { return now }
+	result := service.Workspace(context.Background())
+	if result.Workspace == nil || result.Workspace.MCPState != "off" || result.Workspace.Transports[2].State != "off" || len(result.Workspace.Grants) != 1 {
+		t.Fatalf("workspace=%+v", result.Workspace)
+	}
+}
+
 func TestEnableCopiesCredentialAndClipboardFailureRevokes(t *testing.T) {
 	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}, secret: "top-secret"}
 	native := &fakeNative{}
@@ -121,5 +230,54 @@ func TestClipboardHandoffCancellationStillRollsBack(t *testing.T) {
 	result := NewService(backend, &fakeNative{waitForContext: true}).Rotate(ctx)
 	if result.Workspace == nil || result.Workspace.HTTP.Enabled || backend.disabled != 1 {
 		t.Fatalf("deadline rollback = %+v disabled=%d", result, backend.disabled)
+	}
+}
+
+func TestCreateGrantCopiesBundleWithoutReturningPhraseAndRollsBackFailure(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}}
+	native := &fakeNative{}
+	service := NewService(backend, native)
+	service.now = func() time.Time { return now }
+	result := service.CreateGrant(context.Background(), GrantDraft{ClientName: "Release agent", Capability: "manage", Duration: "7d"})
+	if result.Outcome != "accepted" || !strings.Contains(native.copied, "GO_SCHEDULE_MCP_ENROLLMENT_V1") || !strings.Contains(native.copied, "phrase=one-time-phrase") || strings.Contains(fmt.Sprintf("%+v", result), "one-time-phrase") {
+		t.Fatalf("result=%+v copied=%q", result, native.copied)
+	}
+	if backend.pairing.GrantExpiresAt == nil || !backend.pairing.GrantExpiresAt.Equal(now.Add(7*24*time.Hour)) {
+		t.Fatalf("pairing=%+v", backend.pairing)
+	}
+	backend = &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}}
+	result = NewService(backend, &fakeNative{copyErr: errors.New("denied")}).CreateGrant(context.Background(), GrantDraft{ClientName: "Agent", Capability: "observe", Duration: "1h"})
+	if result.Outcome != "unavailable" || !strings.Contains(result.Message, "cancelled") {
+		t.Fatalf("rollback=%+v", result)
+	}
+}
+
+func TestGrantEditsAreMonotonicAndActionsAreBounded(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	expires := now.Add(30 * 24 * time.Hour)
+	actor := domain.Actor{ID: "actor-1", Kind: domain.ActorKindMCP, DisplayName: "Agent", Capability: domain.CapabilityManage, State: domain.ActorStateActive, CreatedAt: now, ExpiresAt: &expires}
+	events := make([]domain.AuditEvent, 30)
+	for i := range events {
+		events[i] = domain.AuditEvent{ActorID: actor.ID, DaemonID: "daemon-1", Operation: "tasks.update", TargetKind: "task", Result: domain.AuditResultSucceeded, OccurredAt: now.Add(time.Duration(i) * time.Minute)}
+	}
+	backend := &fakeBackend{status: server.MCPHTTPStatusResponse{AllowedOrigins: []string{}}, actors: []domain.Actor{actor}, events: events}
+	service := NewService(backend, &fakeNative{})
+	service.now = func() time.Time { return now }
+	if result := service.EditGrant(context.Background(), GrantEditDraft{ActorID: actor.ID, Capability: "operate", Duration: "7d"}); result.Outcome != "accepted" {
+		t.Fatalf("edit=%+v", result)
+	}
+	if backend.actors[0].Capability != domain.CapabilityOperate || backend.actors[0].ExpiresAt == nil || !backend.actors[0].ExpiresAt.Equal(now.Add(7*24*time.Hour)) {
+		t.Fatalf("actor=%+v", backend.actors[0])
+	}
+	if result := service.EditGrant(context.Background(), GrantEditDraft{ActorID: actor.ID, Capability: "manage"}); result.Outcome != "rejected" {
+		t.Fatalf("widen=%+v", result)
+	}
+	actions := service.Actions(context.Background(), actor.ID)
+	if actions.Outcome != "accepted" || len(actions.Actions) != recentActionLimit {
+		t.Fatalf("actions=%+v", actions)
+	}
+	if result := service.RevokeGrant(context.Background(), actor.ID); result.Outcome != "accepted" || backend.actors[0].State != domain.ActorStateRevoked {
+		t.Fatalf("revoke=%+v actor=%+v", result, backend.actors[0])
 	}
 }

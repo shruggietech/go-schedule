@@ -528,6 +528,14 @@ CREATE TABLE client_credentials (
 CREATE INDEX idx_client_credentials_state ON client_credentials(state,actor_id);
 `,
 	},
+	{
+		// v19: retain the administrator-approved persistent grant deadline
+		// separately from the short-lived enrollment deadline.
+		version: 19,
+		stmts: `
+ALTER TABLE pairing_sessions ADD COLUMN grant_expires_at TEXT;
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

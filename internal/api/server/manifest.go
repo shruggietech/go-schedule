@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+	"sort"
 
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/domain"
@@ -94,10 +95,14 @@ func (s *Server) writeManifest(w http.ResponseWriter, r *http.Request) {
 	}
 	remoteVersions := []string{}
 	capabilities := append([]string(nil), daemonCapabilities...)
+	if s.remoteMCP {
+		capabilities = append(capabilities, "remote-mcp")
+	}
 	if r.Header.Get("X-Go-Schedule-Transport") == "remote" {
 		remoteVersions = []string{"v1"}
 		capabilities = append(capabilities, "remote-json")
 	}
+	sort.Strings(capabilities)
 	writeJSON(w, http.StatusOK, ManifestResponse{
 		InstallationID:    identity.InstallationID,
 		DisplayName:       identity.DisplayName,

@@ -277,7 +277,7 @@ func (s *Store) ListAudit(query domain.AuditQuery) ([]domain.AuditEvent, error) 
 		args = append(args, fmtTime(*query.Until))
 	}
 	args = append(args, query.Limit)
-	rows, err := s.db.Query(`SELECT id,COALESCE(actor_id,''),daemon_id,operation,target_kind,target_id,result,correlation_id,occurred_at,completed_at FROM audit_events WHERE `+strings.Join(clauses, " AND ")+` ORDER BY occurred_at,id LIMIT ?`, args...)
+	rows, err := s.db.Query(`SELECT id,COALESCE(actor_id,''),daemon_id,operation,target_kind,target_id,result,correlation_id,occurred_at,completed_at FROM audit_events WHERE `+strings.Join(clauses, " AND ")+` ORDER BY occurred_at DESC,id DESC LIMIT ?`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list audit: %w", err)
 	}

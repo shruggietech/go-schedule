@@ -4,7 +4,17 @@ import type { AgentAccessBridge, AgentAccessWorkspace } from './model'
 import { useAgentAccess } from './store'
 
 const workspace: AgentAccessWorkspace = { stdioDescription: 'On demand.', http: { enabled: false, allowedOrigins: [], requestCount: 0 }, authorities: [] }
-const bridge = (): AgentAccessBridge => ({ workspace: vi.fn().mockResolvedValue({ action: 'load_agent_access', outcome: 'accepted', message: '', workspace }), enable: vi.fn(), rotate: vi.fn(), revoke: vi.fn(), openGuide: vi.fn() })
+const bridge = (): AgentAccessBridge => ({
+  workspace: vi.fn().mockResolvedValue({ action: 'load_agent_access', outcome: 'accepted', message: '', workspace }),
+  enable: vi.fn(),
+  rotate: vi.fn(),
+  revoke: vi.fn(),
+  createGrant: vi.fn(),
+  editGrant: vi.fn(),
+  revokeGrant: vi.fn(),
+  actions: vi.fn().mockResolvedValue({ action: 'load_agent_actions', outcome: 'accepted', message: '', actions: [] }),
+  openGuide: vi.fn(),
+})
 
 describe('useAgentAccess', () => {
   it('rejects stale loads when connection identity changes', async () => {

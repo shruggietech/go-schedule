@@ -83,3 +83,19 @@ func TestAuditCommandsListAndExport(t *testing.T) {
 		}
 	}
 }
+
+func TestGrantExpirationPresets(t *testing.T) {
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	for value, want := range map[string]time.Duration{"1h": time.Hour, "24h": 24 * time.Hour, "7d": 7 * 24 * time.Hour, "30d": 30 * 24 * time.Hour} {
+		expires, err := grantExpiration(now, value)
+		if err != nil || expires == nil || !expires.Equal(now.Add(want)) {
+			t.Fatalf("value=%s expires=%v err=%v", value, expires, err)
+		}
+	}
+	if expires, err := grantExpiration(now, "non-expiring"); err != nil || expires != nil {
+		t.Fatalf("non-expiring=%v err=%v", expires, err)
+	}
+	if _, err := grantExpiration(now, "forever"); err == nil {
+		t.Fatal("invalid duration accepted")
+	}
+}

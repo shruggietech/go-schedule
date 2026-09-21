@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Agent Access now provides a complete secret-free MCP grant lifecycle (Closes #181, #148).** The desktop inventories named agents, daemon, authority, independent transport, timestamps, expiry, state, safe credential fingerprint, and bounded recent audit evidence. Local administrators can create duration-bounded remote MCP enrollments through a native clipboard handoff, deliberately choose non-expiring access, narrow authority or expiry, and revoke grants, while current per-request authorization prevents existing connections from retaining superseded access.
+
 - **Remote MCP now uses standards-based, least-authority authorization over the existing opt-in HTTPS listener (Closes #180; Refs #148).** RFC 9728 discovery and authorization-server metadata lead unattended MCP clients through a resource-bound client-credentials exchange backed only by persistent `mcp` actors. Short-lived memory-only tokens preserve Observe, Operate, and Manage boundaries, actor-attributed API execution, immediate credential lifecycle enforcement, host and origin checks, request and rate limits, and official SDK Streamable HTTP negotiation without making persistent JSON credentials valid MCP bearers.
 
 - **Local MCP can explicitly manage bounded automation definitions without gaining enrollment or permission authority (Closes #179; Refs #148).** Manage sessions inherit Observe and Operate, then add six family tools for one task, group, completion chain, trigger, filesystem watcher, or notification-assignment mutation through the ordinary API. Exact daemon and request identity, optional per-call confirmation, bounded replay protection, runtime revocation, redacted outcomes, withheld trigger credentials, and schemas without task environment or stdin preserve the existing validation and audit boundary.
@@ -19,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-20: treat MCP listener availability and actor grants as independent controls (Refs #181, #148).** Agent Access reports stdio, localhost HTTP, and remote HTTPS separately and never enables one transport while creating or changing a grant. Existing grants are monotonic: they can be narrowed, shortened, expired, or revoked, while higher or longer authority requires a new deliberate enrollment.
 
 - **2026-09-20: use the existing MCP actor credential only as an OAuth client credential, then issue a distinct short-lived resource token (Refs #180).** This separates durable administrative enrollment from runtime protocol access, lets rotation and revocation invalidate live grants immediately, binds every grant to one resource, daemon, actor, and capability, and avoids introducing JWTs, interactive user accounts, or a second authorization vocabulary.
 

@@ -74,6 +74,31 @@ type facadeSettingsBackend struct{}
 
 type facadeAgentAccessBackend struct{ status server.MCPHTTPStatusResponse }
 
+func (b *facadeAgentAccessBackend) Manifest(context.Context) (server.ManifestResponse, error) {
+	return server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "This computer"}, nil
+}
+func (b *facadeAgentAccessBackend) ListActors(context.Context) ([]domain.Actor, error) {
+	return []domain.Actor{}, nil
+}
+func (b *facadeAgentAccessBackend) ListCredentials(context.Context) ([]domain.ClientCredential, error) {
+	return []domain.ClientCredential{}, nil
+}
+func (b *facadeAgentAccessBackend) ListAudit(context.Context, domain.AuditQuery) ([]domain.AuditEvent, error) {
+	return []domain.AuditEvent{}, nil
+}
+func (b *facadeAgentAccessBackend) CreatePairing(context.Context, server.PairingCreateRequest) (domain.PairingSecret, error) {
+	return domain.PairingSecret{}, nil
+}
+func (b *facadeAgentAccessBackend) CancelPairing(context.Context, string) (domain.PairingSession, error) {
+	return domain.PairingSession{}, nil
+}
+func (b *facadeAgentAccessBackend) UpdateActor(context.Context, string, server.ActorUpdateRequest) (domain.Actor, error) {
+	return domain.Actor{}, nil
+}
+func (b *facadeAgentAccessBackend) RevokeActor(context.Context, string) (domain.Actor, error) {
+	return domain.Actor{}, nil
+}
+
 func (b *facadeAgentAccessBackend) MCPHTTPStatus(context.Context) (server.MCPHTTPStatusResponse, error) {
 	return b.status, nil
 }
