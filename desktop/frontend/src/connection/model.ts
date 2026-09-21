@@ -1,6 +1,6 @@
 export type ConnectionState = 'connecting' | 'connected' | 'degraded' | 'recovering' | 'unavailable' | 'access_denied' | 'unauthorized' | 'revoked' | 'forbidden' | 'incompatible' | 'trust_changed' | 'identity_changed' | 'timed_out'
 export type Appearance = 'system' | 'light' | 'dark'
-export type Route = 'tasks' | 'automation' | 'schedule' | 'activity' | 'notifications' | 'agentAccess' | 'connections' | 'settings'
+export type Route = 'systems' | 'tasks' | 'automation' | 'schedule' | 'activity' | 'notifications' | 'agentAccess' | 'connections' | 'settings'
 
 export interface Target {
   id: string
@@ -45,6 +45,16 @@ export interface ConnectionProfile { id: string; label: string; endpoint: string
 export interface ConnectionWorkspace { activeProfileId?: string; profiles: ConnectionProfile[] }
 export interface ConnectionResult extends ActionResult { workspace?: ConnectionWorkspace }
 
+export interface UpcomingSummary { task_id: string; task_name: string; scheduled_for: string }
+export interface FailureSummary { run_id: string; task_id: string; task_name: string; ended_at: string }
+export interface AlertSummary { alert_id: string; task_id?: string; run_id?: string; severity: string; kind: string; created_at: string }
+export interface NotificationProblemSummary { delivery_id: string; task_id?: string; run_id?: string; channel_name: string; state: string; created_at: string }
+export interface SystemSummary { schema: string; observed_at: string; active_task_count: number; next_occurrence?: UpcomingSummary; recent_failure_count: number; recent_failure?: FailureSummary; unacknowledged_alert_count: number; unacknowledged_alert?: AlertSummary; notification_problem_count: number; notification_problem?: NotificationProblemSummary }
+export interface SystemRegistration { key: string; profileId?: string; kind: 'local' | 'remote'; label: string; endpoint?: string; daemonId?: string; shortDaemonId?: string; platform?: string; architecture?: string; version?: string }
+export interface SystemFailure { state: ConnectionState; message: string; action: string }
+export interface SystemObservation { registration: SystemRegistration; state: ConnectionState; observedAt?: string; stale: boolean; summary?: SystemSummary; failure?: SystemFailure }
+export interface SystemsSnapshot { generation: number; startedAt: string; completedAt: string; observations: SystemObservation[] }
+
 export interface DesktopBridge {
   snapshot(): Promise<ConnectionSnapshot>
   retry(): Promise<ActionResult>
@@ -52,6 +62,7 @@ export interface DesktopBridge {
   selectConnection?(id: string): Promise<ConnectionResult>
   renameConnection?(id: string, label: string): Promise<ConnectionResult>
   removeConnection?(id: string): Promise<ConnectionResult>
+  allSystems?(): Promise<SystemsSnapshot>
   quit(): Promise<ActionResult>
   subscribe(listener: (event: DesktopEvent) => void): () => void
 }

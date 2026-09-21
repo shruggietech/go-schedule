@@ -43,6 +43,12 @@ The [daemon identity lifecycle](daemon-identity.md) defines stable installation 
 
 The current manifest reports local API `v1`, no remote API version, and `local_only` operating mode. It excludes hostnames, network addresses, storage paths, accounts, environment values, commands, credentials, trigger keys, scheduler records, and lifecycle timestamps. A stale reset confirmation returns `409 conflict`; invalid names and malformed requests return `400 validation_failed`; neither failure mutates state. `GET /v1/health` remains unchanged.
 
+## Bounded system summary
+
+`GET /v1/system-summary` and its authenticated remote equivalent `GET /api/v1/system-summary` return one daemon-owned `go-schedule.system-summary.v1` observation for the desktop All Systems view. Observe authority is sufficient. The response reports its observation time, active-task count, nearest upcoming occurrence in the next 24 hours, failed-run count in the previous 24 hours, current unacknowledged-alert count, and failed or retrying notification-delivery count in the previous 24 hours. Each category includes at most one safe representative identifier for drill-down.
+
+The response never includes task commands, arguments, environment, stdin, working directories, run output, alert messages, notification destinations, authorization, payloads, certificates, or credentials. Counts are computed at the database boundary and representatives are limited independently of retained history. The request is read-only, creates no overview cache in the daemon, and does not imply shared state or coordination with another daemon.
+
 ## Actor permissions and management audit
 
 The [actor permissions and management audit contract](access-control.md) applies one Observe, Operate, Manage, and Enroll hierarchy to every registered management operation. Protected local IPC resolves to the built-in local actor without new authentication input.

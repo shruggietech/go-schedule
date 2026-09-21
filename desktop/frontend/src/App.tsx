@@ -25,8 +25,13 @@ import type { NotificationBridge } from "./notifications/model";
 import { AgentAccessPage } from "./agentaccess/AgentAccessPage";
 import { agentAccessBridge as nativeAgentAccessBridge } from "./agentaccess/bridge";
 import type { AgentAccessBridge } from "./agentaccess/model";
+import { SystemsPage, type Drilldown } from "./systems/SystemsPage";
 
 const copy: Record<Route, { title: string; detail: string }> = {
+  systems: {
+    title: "All Systems",
+    detail: "Bounded operational observations from every registered scheduler.",
+  },
   tasks: {
     title: "Tasks",
     detail:
@@ -81,6 +86,7 @@ export function App({
   const [announcementFeedback, setAnnouncementFeedback] =
     useState<ShellFeedback>();
   const [settingsError, setSettingsError] = useState<ShellFeedback>();
+  const [drilldown, setDrilldown] = useState<Drilldown>();
   const feedbackSequence = useRef(0);
   const { snapshot, announcement, retryPending, retry } = useConnection(bridge);
   const desktopSettings = useSettings(
@@ -132,6 +138,17 @@ export function App({
   const saveAppearance = (value: Appearance) => {
     void desktopSettings.saveAppearance(value);
   };
+  const openSystem = async (intent: Drilldown) => {
+    const selected = await bridge.selectConnection?.(intent.registrationKey === "local" ? "" : intent.registrationKey);
+    feedbackSequence.current += 1;
+    if (!selected || selected.outcome !== "accepted") {
+      setAnnouncementFeedback({ identity: `system:${feedbackSequence.current}`, message: selected?.message ?? "This scheduler could not be selected.", tone: "error" });
+      return;
+    }
+    setDrilldown(intent);
+    setAnnouncementFeedback({ identity: `system:${feedbackSequence.current}`, message: `${intent.label} selected. Opened ${intent.context}.`, tone: "success" });
+    setRoute(intent.destination);
+  };
   return (
     <Shell
       route={route}
@@ -145,6 +162,7 @@ export function App({
       onRetry={() => void retry()}
       onQuit={() => void bridge.quit()}
     >
+      {drilldown && route === drilldown.destination && <Notice title={`Opened from ${drilldown.label}`} tone="info" dismissible={false}>{drilldown.context}{drilldown.taskId ? ` · Task ${drilldown.taskId}` : ""}{drilldown.recordId ? ` · Record ${drilldown.recordId}` : ""}</Notice>}
       {desktopSettings.loading ? (
         <StatePanel
           title="Loading desktop preferences"
@@ -164,6 +182,8 @@ export function App({
             detail="This feature is outside the authenticated remote operation allowlist. Select This computer to use it."
           />
         </>
+      ) : route === "systems" ? (
+        <SystemsPage bridge={bridge} onOpen={openSystem} />
       ) : route === "tasks" ? (
         <>
           {snapshot.state !== "connected" && (

@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { App } from './App'
-import type { ConnectionSnapshot, DesktopBridge, DesktopEvent } from './connection/model'
+import type { ConnectionSnapshot, DesktopBridge, DesktopEvent, SystemsSnapshot } from './connection/model'
 import type { TaskBridge } from './tasks/model'
 import type { OperationsBridge } from './operations/model'
 import type { SettingsBridge, SettingsWorkspace } from './settings/model'
@@ -16,6 +16,7 @@ const operations: OperationsBridge = { scheduleWindow: vi.fn().mockResolvedValue
 const settingsWorkspace: SettingsWorkspace = { preferences: { version: 1, appearance: 'system', transition: { status: 'not_found', retired: ['appearance.font', 'appearance.scroll_sensitivity'] } }, preferencePath: '/home/ada/.config/go-schedule/desktop/preferences.json', storage: [], product: { name: 'go-schedule', version: '1.2.0', publisher: 'ShruggieTech', links: [] }, daemonAvailable: true, loadedAt: '2026-09-07T00:00:00Z' }
 const settings: SettingsBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_settings', outcome: 'accepted', message: 'Loaded.', workspace: settingsWorkspace }), saveAppearance: vi.fn().mockImplementation(async (appearance) => ({ action: 'save_appearance', outcome: 'accepted', message: 'Saved.', workspace: { ...settingsWorkspace, preferences: { ...settingsWorkspace.preferences, appearance } } })), restore: vi.fn(), copyStoragePath: vi.fn(), openProductLink: vi.fn() }
 const notifications: NotificationBridge = { workspace: vi.fn().mockResolvedValue({ action: 'load_notifications', outcome: 'accepted', message: 'Loaded.', workspace: { channels: [], tasks: [], groups: [], deliveries: [], loadedAt: '2026-09-07T00:00:00Z' } }), saveChannel: vi.fn(), setChannelEnabled: vi.fn(), testChannel: vi.fn(), deleteChannel: vi.fn(), policy: vi.fn(), savePolicy: vi.fn() }
+const systemsSnapshot: SystemsSnapshot = { generation: 1, startedAt: '2026-09-21T15:00:00Z', completedAt: '2026-09-21T15:00:01Z', observations: [{ registration: { key: 'profile-7', profileId: 'profile-7', kind: 'remote', label: 'Production', endpoint: 'https://example.test', daemonId: 'daemon-identity', shortDaemonId: 'daemon-i', platform: 'linux', version: '1.5.0' }, state: 'connected', observedAt: '2026-09-21T15:00:00Z', stale: false, summary: { schema: 'go-schedule.system-summary.v1', observed_at: '2026-09-21T15:00:00Z', active_task_count: 1, recent_failure_count: 1, recent_failure: { run_id: 'run-7', task_id: 'task-7', task_name: 'Archive', ended_at: '2026-09-21T14:00:00Z' }, unacknowledged_alert_count: 0, notification_problem_count: 0 } }] }
 
 describe('production shell', () => {
   it('keeps remote identity visible and fails closed for unsupported or observe-only actions', async () => {
@@ -126,5 +127,29 @@ describe('production shell', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Notifications' })).toBeVisible()
     expect(await screen.findByRole('heading', { level: 2, name: 'Set up notifications' })).toBeVisible()
     expect(screen.getByRole('heading', { level: 2, name: 'No notification results yet' })).toBeVisible()
+  })
+
+  it('selects the exact system before opening representative context', async () => {
+    const user = userEvent.setup()
+    const selectConnection = vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' })
+    render(<App bridge={{ ...bridge, allSystems: vi.fn().mockResolvedValue(systemsSnapshot), selectConnection }} tasks={tasks} operations={operations} settings={settings} />)
+    await user.click(screen.getByRole('button', { name: 'All Systems' }))
+    await screen.findByText('https://example.test · daemon-i')
+    await user.click(screen.getAllByRole('button', { name: 'Activity' })[1])
+    expect(selectConnection).toHaveBeenCalledWith('profile-7')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Activity' })).toBeVisible()
+    expect(screen.getByText(/Failed run run-7 · Task task-7 · Record run-7/)).toBeVisible()
+  })
+
+  it('keeps All Systems open when exact target selection fails', async () => {
+    const user = userEvent.setup()
+    const selectConnection = vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'rejected', message: 'The profile was removed.' })
+    render(<App bridge={{ ...bridge, allSystems: vi.fn().mockResolvedValue(systemsSnapshot), selectConnection }} tasks={tasks} operations={operations} settings={settings} />)
+    await user.click(screen.getByRole('button', { name: 'All Systems' }))
+    await screen.findByText('https://example.test · daemon-i')
+    await user.click(screen.getAllByRole('button', { name: 'Activity' })[1])
+    expect(selectConnection).toHaveBeenCalledWith('profile-7')
+    expect(screen.getByRole('heading', { level: 1, name: 'All Systems' })).toBeVisible()
+    expect(await screen.findByText('The profile was removed.')).toBeVisible()
   })
 })

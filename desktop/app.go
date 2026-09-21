@@ -12,6 +12,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/operations"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
 	"github.com/shruggietech/go-schedule/desktop/settings"
+	"github.com/shruggietech/go-schedule/desktop/systems"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 )
 
@@ -44,9 +45,18 @@ type App struct {
 	agentAccess   *agentaccess.Service
 	remotePairing *remotepairing.Service
 	connections   *connections.Service
+	systems       *systems.Service
 	emitter       eventEmitter
 	native        nativeRuntime
 	ctx           context.Context
+}
+
+// AllSystems refreshes one bounded observation for every registered scheduler.
+func (a *App) AllSystems() systems.Snapshot {
+	if a.systems == nil || a.ctx == nil {
+		return systems.Snapshot{Observations: []systems.Observation{}}
+	}
+	return a.systems.Refresh(a.ctx)
 }
 
 func (a *App) ConnectionProfiles() connections.Result {
