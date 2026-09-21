@@ -300,7 +300,7 @@ The boundary also excludes federation, teams, multi-tenancy, interactive OAuth g
 9. #179 adds bounded MCP Manage authority over automation definitions.
 10. #180 exposes MCP through standards-based remote authorization.
 
-No network implementation begins until S074 and [issue #165](https://github.com/shruggietech/go-schedule/issues/165) are reviewed and merged. Each downstream issue remains open until its own acceptance criteria and verification are complete.
+No network implementation begins until S074 and [issue #165](https://github.com/shruggietech/go-schedule/issues/165) are reviewed and merged. Each downstream issue remains open until its functional acceptance criteria are delivered. Verification findings are tracked as separate bug issues against the affected release or pending source revision.
 
 ## Implemented HTTPS and enrollment operations
 

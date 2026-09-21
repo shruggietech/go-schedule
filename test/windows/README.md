@@ -41,7 +41,7 @@ The probe covers default, both, neither, and desktop-only shortcut states; maint
 
 `GOSCHEDULE_REMOVE_DATA=0` (or an absent property) preserves application data. Only exact `GOSCHEDULE_REMOVE_DATA=1` requests a committed wipe. The helper's retained failure ledger is `%ProgramData%\ShruggieTech\go-schedule-uninstall\b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34\cleanup-result.json`; the matching HKLM summary records state, remaining count, and report path. Complete cleanup removes stale result evidence. MSI success proves software removal, so the lifecycle probe separately verifies the cleanup result.
 
-The hosted runner is Windows Server and has no attended desktop session. Its evidence is explicitly labelled `hosted Windows Server silent installer contract`. It does not prove visible dialog defaults, confirmation and cancel interaction, the Windows 11 Settings wording/navigation, Explorer launches, browser handling, interactive-user integrity, or native window behavior. Those release-candidate observations remain the clean Windows 11 gate in #94, and #97/#98 remain open until that gate passes.
+The hosted runner is Windows Server and has no attended desktop session. Its evidence is explicitly labelled `hosted Windows Server silent installer contract`. It does not prove visible dialog defaults, confirmation and cancel interaction, the Windows 11 Settings wording/navigation, Explorer launches, browser handling, interactive-user integrity, or native window behavior. Those observations remain part of clean Windows 11 release qualification. Any observed failure becomes a separate bug against the affected active release; it does not keep the delivered functional outcomes in #97 or #98 open.
 
 ## Run the fresh lifecycle
 
@@ -136,7 +136,7 @@ Upgrade uses a separate reset session, installs public v1.1.1, and pauses for ge
 
 The remaining native walkthrough includes #229 (System/Light/Dark icon visibility), #230 (compact controls, hover/focus/pressed/disabled states, semantic actions, card spacing, persistent navigation/Exit), #231 (task modal sizing, examples, selectors, deletion spacing), #232 (Notifications first, collapsed advanced configuration and help), and #233 (temporary feedback, dismissible errors, aligned Agent Access/Connections, compact monospaced paths, no Copy flicker). These regressions supplement, not replace, the complete required matrix below. Normal-user token, multi-profile, Explorer/browser, and high/mixed-DPI observations require suitable separate clean Windows 11 environments. Do not ask the operator to attest an unavailable environment or manufacture passing fragments.
 
-Historical S081 candidate commit `57555ffa413df641cb21784847ad598c113bf199` predates S083-S085. S087 preserved its bytes and diagnostics, then refreshed the draft to reviewed S086 commit `951d864d9683ec3bdcb1e37535ecddd67738bf13`. That replacement still predates the S087 timing-selector repair. Preserve both candidates' provenance; neither supplies passing evidence for a future replacement. S088 source reconciliation must merge before authorized reviewed-main restaging. Its Sandbox testing waiver permits explicitly untested criteria but does not make partial evidence satisfy the unchanged full-qualification collector or authorize implicit issue closure.
+Historical S081 candidate commit `57555ffa413df641cb21784847ad598c113bf199` predates S083-S085. S087 preserved its bytes and diagnostics, then refreshed the draft to reviewed S086 commit `951d864d9683ec3bdcb1e37535ecddd67738bf13`. That replacement still predates the S087 timing-selector repair. Preserve both candidates' provenance; neither supplies passing evidence for a future replacement. S088 source reconciliation must merge before authorized reviewed-main restaging. Its Sandbox testing waiver permits explicitly untested observations but does not make partial evidence satisfy the unchanged full-qualification collector. Issue completion follows functional acceptance criteria, and any observed release defect is tracked separately.
 
 S040 adds `Invoke-ReleaseCandidateAttended.ps1` as the resumable collector for the clean Windows 11 work that cannot run credibly on a hosted server. The tag workflow first stages all platform assets in a draft GitHub release. Use the Windows MSI and `windows-candidate-manifest.json` from that exact draft. Never rebuild, rename, or substitute the MSI after evidence collection starts.
 
@@ -197,7 +197,7 @@ Use the exact installed release candidate. Every row is a required `pass` observ
 | `desktop.schedule-activity-tables` | #226 | With at least 100 rows per view in both palettes and sizes, prove current Schedule and Activity headers, upcoming through unavailable schedule states, run, daemon-log, and alert record types, info through error severity, stable row identity, accurate detail, range, calendar, filter, clear, and acknowledge behavior, and no horizontal scrollbar. |
 | `desktop.schedule-activity-tables-scaled` | #226 | Repeat the complete current Schedule and Activity observation above 96 DPI. |
 
-Native evidence is required because headless layout, contrast, mapping, and scroll tests cannot prove Windows text rasterization, physical input, display scaling, or interaction-state readability. Keep release issue #226 open until its acceptance criteria and formal exact-candidate evidence have been reviewed.
+Native evidence remains useful because headless layout, contrast, mapping, and scroll tests cannot prove Windows text rasterization, physical input, display scaling, or interaction-state readability. Native findings do not keep a delivered feature or release issue open; file each observed defect as a bug against the affected active release.
 
 Finalize after all fragments are reviewed and recorded:
 
@@ -239,4 +239,4 @@ The checked-in `test/fixtures/windows-release-gate/passing` data is plain text a
 - The installed-core probe proves manual and scheduled production execution in the LocalSystem service context plus diagnostic failure controls.
 - The CI service-core probe continuously proves the binary-level LocalSystem boundary; it does not replace the candidate-MSI walkthrough.
 - The CI MSI-contract probe proves compiled database and silent native lifecycle behavior on its disposable Windows Server runner. It does not impersonate #94's attended clean Windows 11 desktop evidence.
-- `unavailable` cannot close an issue that requires runtime evidence.
+- `unavailable` records that the observation did not run and must never be reported as a pass.

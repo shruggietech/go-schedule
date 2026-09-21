@@ -32,7 +32,7 @@ All development is integrated through pull requests. Maintainers, automation age
 
 Run the local verification aggregate before publishing the branch. Hosted CI then supplies additional evidence on the pull request, and third-party AI reviewers may suggest changes. Consider each comment on its merits: implement warranted improvements and explain why other suggestions do not fit. The sole maintainer retains the final merge decision. This project does not add branch protection, approval counts, or mandatory conversation rules for ceremony's sake.
 
-Use `Closes #N` when the pull request fully completes an issue. `Fixes #N` and `Resolves #N` have the same closing intent. Use `Refs #N` for partial or related work that should leave the issue open. The [pull-request template](.github/PULL_REQUEST_TEMPLATE.md) asks for this link and the verification evidence described below.
+Use `Closes #N` when the pull request delivers an issue's functional acceptance criteria. `Fixes #N` and `Resolves #N` have the same closing intent. Use `Refs #N` for partial or related work that leaves the functional outcome incomplete. The [pull-request template](.github/PULL_REQUEST_TEMPLATE.md) asks for this link and reports the engineering checks described below. Those checks remain mandatory for the pull request, but they are not GitHub issue closure gates. Any defect they reveal is filed or updated as its own bug issue against the affected release or pending source revision.
 
 ## Verification gates
 
