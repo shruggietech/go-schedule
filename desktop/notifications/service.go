@@ -68,7 +68,7 @@ func buildWorkspace(channels []domain.NotificationChannel, tasks []server.TaskRe
 	}
 	w := Workspace{Channels: make([]Channel, 0, len(channels)), Tasks: make([]Scope, 0, len(tasks)), Groups: make([]Scope, 0, len(groups)), Coverage: []ConfiguredScope{}, CoverageComplete: true, Deliveries: make([]Delivery, 0, len(deliveries)), LoadedAt: timestamp(loadedAt)}
 	for _, value := range channels {
-		w.Channels = append(w.Channels, Channel{ID: value.ID, Name: fallback(value.Name, "Unnamed channel"), Kind: string(value.Kind), EndpointSummary: value.EndpointSummary, HasAuthorization: value.HasAuthorization, Enabled: value.Enabled, UpdatedAt: timestamp(value.UpdatedAt)})
+		w.Channels = append(w.Channels, Channel{ID: value.ID, Name: fallback(value.Name, "Unnamed channel"), Kind: string(value.Kind), EndpointSummary: value.EndpointSummary, HasAuthorization: value.HasAuthorization, Enabled: value.Enabled, HealthIntervalMinutes: value.HealthIntervalSeconds / 60, UpdatedAt: timestamp(value.UpdatedAt)})
 	}
 	for _, value := range groups {
 		w.Groups = append(w.Groups, Scope{Type: "group", ID: value.ID, Name: fallback(value.Name, "Unnamed group"), Context: groupPath(value.ID)})
@@ -183,6 +183,8 @@ func mapDelivery(value domain.NotificationDelivery) Delivery {
 	kind := "task_outcome"
 	if value.EventKind == domain.NotificationEventTest {
 		kind = "test"
+	} else if value.EventKind == domain.NotificationEventDaemonHealth {
+		kind = "daemon_health"
 	}
 	state := string(value.State)
 	switch value.State {
@@ -199,7 +201,7 @@ func mapDelivery(value domain.NotificationDelivery) Delivery {
 	case domain.NotificationDeliveryFailed:
 		state = "failed"
 	}
-	return Delivery{ID: value.ID, ChannelID: value.ChannelID, ChannelName: fallback(value.ChannelName, "Removed channel"), DestinationSummary: value.DestinationSummary, Kind: kind, TaskID: value.TaskID, TaskName: value.TaskName, GroupID: value.GroupID, GroupName: value.GroupName, RunID: value.RunID, State: state, Attempts: value.Attempts, NextAttemptAt: timestamp(value.NextAttemptAt), CreatedAt: timestamp(value.CreatedAt), ClaimedAt: optionalTimestamp(value.ClaimedAt), CompletedAt: optionalTimestamp(value.CompletedAt), LastStatus: value.LastStatus, LastError: value.LastError}
+	return Delivery{ID: value.ID, ChannelID: value.ChannelID, ChannelName: fallback(value.ChannelName, "Removed channel"), DestinationSummary: value.DestinationSummary, Kind: kind, TaskID: value.TaskID, TaskName: value.TaskName, GroupID: value.GroupID, GroupName: value.GroupName, RunID: value.RunID, State: state, Attempts: value.Attempts, NextAttemptAt: timestamp(value.NextAttemptAt), CreatedAt: timestamp(value.CreatedAt), ClaimedAt: optionalTimestamp(value.ClaimedAt), CompletedAt: optionalTimestamp(value.CompletedAt), LastStatus: value.LastStatus, LastError: value.LastError, ConditionKind: string(value.ConditionKind), ConditionSummary: value.ConditionSummary}
 }
 
 func (s *Service) SaveChannel(ctx context.Context, draft ChannelDraft) Result {
@@ -215,13 +217,14 @@ func (s *Service) SaveChannel(ctx context.Context, draft ChannelDraft) Result {
 		if _, err := webhook.ValidateEndpoint(endpoint); err != nil {
 			return rejected("save_notification_channel", "endpoint", "Enter a valid HTTPS webhook endpoint.")
 		}
-		created, err := s.backend.CreateNotificationChannel(c, server.NotificationChannelCreateRequest{Name: name, Endpoint: endpoint, Authorization: draft.Authorization})
+		created, err := s.backend.CreateNotificationChannel(c, server.NotificationChannelCreateRequest{Name: name, Endpoint: endpoint, Authorization: draft.Authorization, HealthIntervalSeconds: draft.HealthIntervalMinutes * 60})
 		if err != nil {
 			return failure("save_notification_channel", err)
 		}
 		entityID = created.ID
 	} else {
-		req := server.NotificationChannelUpdateRequest{Name: &name}
+		healthSeconds := draft.HealthIntervalMinutes * 60
+		req := server.NotificationChannelUpdateRequest{Name: &name, HealthIntervalSeconds: &healthSeconds}
 		if draft.ReplaceEndpoint {
 			endpoint := strings.TrimSpace(draft.Endpoint)
 			if _, err := webhook.ValidateEndpoint(endpoint); err != nil {
@@ -352,11 +355,11 @@ func (s *Service) SavePolicy(ctx context.Context, draft PolicyDraft) Result {
 	req := server.NotificationAssignmentsRequest{Assignments: make([]server.NotificationAssignmentInput, 0, len(draft.Assignments))}
 	for _, item := range draft.Assignments {
 		id := strings.TrimSpace(item.ChannelID)
-		if id == "" || seen[id] || (!item.OnSuccess && !item.OnFailure) {
-			return rejected("save_notification_policy", "assignments", "Each selected channel must be unique and notify on failure, success, or both.")
+		if id == "" || seen[id] || (!item.OnSuccess && !item.OnFailure && !item.OnFailureToStart && item.DurationThresholdMinutes == 0) {
+			return rejected("save_notification_policy", "assignments", "Each selected channel must be unique and select at least one notification condition.")
 		}
 		seen[id] = true
-		req.Assignments = append(req.Assignments, server.NotificationAssignmentInput{ChannelID: id, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure})
+		req.Assignments = append(req.Assignments, server.NotificationAssignmentInput{ChannelID: id, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure, FailureThreshold: item.FailureThreshold, OnFailureToStart: item.OnFailureToStart, DurationThresholdSeconds: item.DurationThresholdMinutes * 60, OnRecovery: item.OnRecovery, ReminderIntervalSeconds: item.ReminderIntervalMinutes * 60, QuietPeriodSeconds: item.QuietPeriodMinutes * 60})
 	}
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	var err error
@@ -408,7 +411,7 @@ func sourceName(workspace *Workspace, kind domain.NotificationScopeType, id, tas
 func mapAssignments(values []domain.NotificationAssignment) []Assignment {
 	out := make([]Assignment, 0, len(values))
 	for _, value := range values {
-		out = append(out, Assignment{ChannelID: value.ChannelID, OnSuccess: value.OnSuccess, OnFailure: value.OnFailure})
+		out = append(out, Assignment{ChannelID: value.ChannelID, OnSuccess: value.OnSuccess, OnFailure: value.OnFailure, FailureThreshold: value.FailureThreshold, OnFailureToStart: value.OnFailureToStart, DurationThresholdMinutes: value.DurationThresholdSeconds / 60, OnRecovery: value.OnRecovery, ReminderIntervalMinutes: value.ReminderIntervalSeconds / 60, QuietPeriodMinutes: value.QuietPeriodSeconds / 60})
 	}
 	return out
 }

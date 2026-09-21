@@ -104,6 +104,15 @@ describe('NotificationsPage', () => {
     await waitFor(() => expect(savePolicy).toHaveBeenCalledWith(expect.objectContaining({ scopeType: 'task', scopeId: 't1', assignments: [expect.objectContaining({ channelId: 'c1', onSuccess: true })] })))
   })
 
+  it('configures actionable conditions and daemon heartbeat timing', async () => {
+    const user = userEvent.setup(); const saveChannel = vi.fn(bridge().saveChannel); const savePolicy = vi.fn(bridge().savePolicy)
+    render(<NotificationsPage bridge={bridge({ saveChannel, savePolicy })} available refreshToken={1} />); await screen.findByText('1 active destination')
+    await user.click(screen.getByText('Manage destinations')); await user.click(screen.getByRole('button', { name: 'New channel' })); await user.type(screen.getByLabelText('Channel name'), 'Heartbeat'); await user.type(screen.getByLabelText('HTTPS endpoint'), 'https://health.test/hook'); await user.type(screen.getByLabelText('Daemon heartbeat (minutes)'), '5'); await user.click(screen.getByRole('button', { name: 'Save channel' }))
+    await waitFor(() => expect(saveChannel).toHaveBeenCalledWith(expect.objectContaining({ healthIntervalMinutes: 5 })))
+    await user.click(screen.getByText('Manage assignment rules')); await user.selectOptions(screen.getByLabelText('Task or group'), 'task:t1'); const editor = await screen.findByText('Direct assignments for Backup'); const fieldset = editor.closest('fieldset')!; await user.click(within(fieldset).getAllByLabelText('Failure')[0]); await user.click(within(fieldset).getAllByLabelText('Failure to start')[0]); await user.clear(within(fieldset).getAllByLabelText('Failures before notifying')[0]); await user.type(within(fieldset).getAllByLabelText('Failures before notifying')[0], '3'); await user.clear(within(fieldset).getAllByLabelText('Duration threshold (minutes)')[0]); await user.type(within(fieldset).getAllByLabelText('Duration threshold (minutes)')[0], '30'); await user.click(within(fieldset).getAllByLabelText('Recovery')[0]); await user.click(screen.getByRole('button', { name: 'Save direct rule' }))
+    await waitFor(() => expect(savePolicy).toHaveBeenCalledWith(expect.objectContaining({ assignments: [expect.objectContaining({ onFailure: true, onFailureToStart: true, failureThreshold: 3, durationThresholdMinutes: 30, onRecovery: true })] })))
+  })
+
   it('hides a prior policy immediately when the selected scope changes or clears', async () => {
     const user = userEvent.setup(); const next = new Promise<NotificationResult>(() => undefined); const loadPolicy = vi.fn().mockResolvedValueOnce({ action: 'load_notification_policy', outcome: 'accepted', message: 'Done.', policy }).mockReturnValueOnce(next)
     render(<NotificationsPage bridge={bridge({ policy: loadPolicy })} available refreshToken={1} />); await screen.findByText('1 active destination'); await user.click(screen.getByText('Manage assignment rules'))

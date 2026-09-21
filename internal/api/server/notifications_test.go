@@ -17,7 +17,7 @@ func TestNotificationChannelAPIIsRedactedAndQueuesTest(t *testing.T) {
 	s := newTestServer(t)
 	wake := &notificationWake{}
 	s.SetNotificationDispatcher(wake)
-	rec := doJSON(t, s, http.MethodPost, "/v1/notification-channels", NotificationChannelCreateRequest{Name: "Build alerts", Endpoint: "https://user:pass@example.test/hook?token=secret", Authorization: "Bearer secret"})
+	rec := doJSON(t, s, http.MethodPost, "/v1/notification-channels", NotificationChannelCreateRequest{Name: "Build alerts", Endpoint: "https://user:pass@example.test/hook?token=secret", Authorization: "Bearer secret", HealthIntervalSeconds: 300})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -30,7 +30,7 @@ func TestNotificationChannelAPIIsRedactedAndQueuesTest(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &channel); err != nil {
 		t.Fatal(err)
 	}
-	if channel.EndpointSummary != "https://example.test" || !channel.HasAuthorization {
+	if channel.EndpointSummary != "https://example.test" || !channel.HasAuthorization || channel.HealthIntervalSeconds != 300 {
 		t.Fatalf("channel=%+v", channel)
 	}
 	rec = doJSON(t, s, http.MethodPost, "/v1/notification-channels/"+channel.ID+"/test", nil)
@@ -68,7 +68,7 @@ func TestNotificationAssignmentAPIExplainsTaskPrecedence(t *testing.T) {
 	if policy.SourceScopeType != domain.NotificationScopeGroup || policy.SourceScopeID != group.ID || len(policy.Assignments) != 1 {
 		t.Fatalf("policy=%+v", policy)
 	}
-	rec = doJSON(t, s, http.MethodPut, "/v1/tasks/"+task.Task.ID+"/notifications", NotificationAssignmentsRequest{Assignments: []NotificationAssignmentInput{{ChannelID: channel.ID, OnSuccess: true}}})
+	rec = doJSON(t, s, http.MethodPut, "/v1/tasks/"+task.Task.ID+"/notifications", NotificationAssignmentsRequest{Assignments: []NotificationAssignmentInput{{ChannelID: channel.ID, OnSuccess: true, OnFailure: true, FailureThreshold: 3, OnFailureToStart: true, DurationThresholdSeconds: 600, OnRecovery: true, ReminderIntervalSeconds: 3600, QuietPeriodSeconds: 600}}})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("task assignment status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -76,7 +76,11 @@ func TestNotificationAssignmentAPIExplainsTaskPrecedence(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &policy); err != nil {
 		t.Fatal(err)
 	}
-	if policy.SourceScopeType != domain.NotificationScopeTask || !policy.Assignments[0].OnSuccess {
+	if policy.SourceScopeType != domain.NotificationScopeTask || !policy.Assignments[0].OnSuccess || policy.Assignments[0].FailureThreshold != 3 || !policy.Assignments[0].OnFailureToStart || policy.Assignments[0].DurationThresholdSeconds != 600 || !policy.Assignments[0].OnRecovery || policy.Assignments[0].ReminderIntervalSeconds != 3600 || policy.Assignments[0].QuietPeriodSeconds != 600 {
 		t.Fatalf("policy=%+v", policy)
+	}
+	rec = doJSON(t, s, http.MethodPut, "/v1/tasks/"+task.Task.ID+"/notifications", NotificationAssignmentsRequest{Assignments: []NotificationAssignmentInput{{ChannelID: channel.ID, OnFailure: true, ReminderIntervalSeconds: 1}}})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("invalid reminder status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }

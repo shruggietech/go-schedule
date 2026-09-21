@@ -18,6 +18,7 @@ const (
 // DeliveryStore is the durable state used by Dispatcher.
 type DeliveryStore interface {
 	RecoverNotificationDeliveries(time.Time) (int64, error)
+	CreateDueDaemonHealthDeliveries(time.Time) (int, error)
 	ClaimNotificationDeliveries(int, time.Time) ([]domain.NotificationDelivery, error)
 	RetryNotificationDelivery(string, time.Time, int, string) error
 	CompleteNotificationDelivery(string, bool, int, string, time.Time) error
@@ -88,6 +89,9 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 }
 
 func (d *Dispatcher) process(ctx context.Context) error {
+	if _, err := d.store.CreateDueDaemonHealthDeliveries(d.clock.Now().UTC()); err != nil {
+		return err
+	}
 	var wg sync.WaitGroup
 	var firstErr error
 	var errOnce sync.Once

@@ -55,6 +55,7 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 		end := time.Now().UTC()
 		run.EndedAt = &end
 		run.Outcome = domain.OutcomeFailure
+		run.StartFailed = true
 		captureDiagnostic(buf, &run, "run_as: "+err.Error())
 		return run
 	}
@@ -74,7 +75,10 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 			code := ee.ExitCode()
 			run.ExitCode = &code
 		} else if run.Output == "" {
+			run.StartFailed = true
 			captureDiagnostic(buf, &run, fmt.Sprintf("process start failed for %q: %v", task.Command, err))
+		} else {
+			run.StartFailed = true
 		}
 		return run
 	}

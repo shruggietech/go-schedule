@@ -8,13 +8,15 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"time"
 
 	_ "modernc.org/sqlite" // registers the "sqlite" database/sql driver
 )
 
 // Store wraps a SQLite database connection.
 type Store struct {
-	db *sql.DB
+	db  *sql.DB
+	now func() time.Time
 }
 
 // Open opens (creating if needed) the database at path, applies migrations, and
@@ -31,7 +33,7 @@ func Open(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("store: pragmas: %w", err)
 	}
-	s := &Store{db: db}
+	s := &Store{db: db, now: time.Now}
 	if path != ":memory:" {
 		if err := os.Chmod(path, 0o600); err != nil {
 			_ = db.Close()
@@ -534,6 +536,76 @@ CREATE INDEX idx_client_credentials_state ON client_credentials(state,actor_id);
 		version: 19,
 		stmts: `
 ALTER TABLE pairing_sessions ADD COLUMN grant_expires_at TEXT;
+`,
+	},
+	{
+		// v20: add durable advanced notification conditions, structured process
+		// start failure, and opt-in daemon-health heartbeats. Existing assignments
+		// retain threshold-one failure behavior and migration creates no work.
+		version: 20,
+		stmts: `
+ALTER TABLE runs ADD COLUMN start_failed INTEGER NOT NULL DEFAULT 0 CHECK(start_failed IN (0,1));
+ALTER TABLE notification_channels ADD COLUMN health_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(health_interval_seconds = 0 OR health_interval_seconds BETWEEN 60 AND 86400);
+ALTER TABLE notification_assignments ADD COLUMN failure_threshold INTEGER NOT NULL DEFAULT 1 CHECK(failure_threshold BETWEEN 1 AND 100);
+ALTER TABLE notification_assignments ADD COLUMN on_failure_to_start INTEGER NOT NULL DEFAULT 0 CHECK(on_failure_to_start IN (0,1));
+ALTER TABLE notification_assignments ADD COLUMN duration_threshold_seconds INTEGER NOT NULL DEFAULT 0 CHECK(duration_threshold_seconds BETWEEN 0 AND 2592000);
+ALTER TABLE notification_assignments ADD COLUMN on_recovery INTEGER NOT NULL DEFAULT 0 CHECK(on_recovery IN (0,1));
+ALTER TABLE notification_assignments ADD COLUMN reminder_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(reminder_interval_seconds BETWEEN 0 AND 2592000);
+ALTER TABLE notification_assignments ADD COLUMN quiet_period_seconds INTEGER NOT NULL DEFAULT 0 CHECK(quiet_period_seconds BETWEEN 0 AND 2592000);
+
+ALTER TABLE notification_deliveries RENAME TO notification_deliveries_v19;
+CREATE TABLE notification_deliveries (
+	id                   TEXT PRIMARY KEY,
+	channel_id           TEXT REFERENCES notification_channels(id) ON DELETE SET NULL,
+	channel_name         TEXT NOT NULL,
+	destination_summary  TEXT NOT NULL,
+	endpoint             TEXT NOT NULL DEFAULT '',
+	authorization        TEXT NOT NULL DEFAULT '',
+	event_kind           TEXT NOT NULL CHECK(event_kind IN ('run.completed','test','daemon.health')),
+	task_id              TEXT,
+	run_id               TEXT,
+	task_name            TEXT NOT NULL DEFAULT '',
+	group_id             TEXT NOT NULL DEFAULT '',
+	group_name           TEXT NOT NULL DEFAULT '',
+	payload              BLOB NOT NULL,
+	state                TEXT NOT NULL CHECK(state IN ('pending','claimed','succeeded','failed')),
+	attempts             INTEGER NOT NULL DEFAULT 0,
+	next_attempt_at      TEXT NOT NULL,
+	created_at           TEXT NOT NULL,
+	claimed_at           TEXT,
+	completed_at         TEXT,
+	last_status          INTEGER NOT NULL DEFAULT 0,
+	last_error           TEXT NOT NULL DEFAULT '',
+	condition_kind       TEXT NOT NULL DEFAULT '' CHECK(condition_kind IN ('','success','failure','failure_to_start','duration_exceeded','recovery','daemon_health','consecutive_failure')),
+	condition_summary    TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error)
+SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error FROM notification_deliveries_v19;
+DROP TABLE notification_deliveries_v19;
+CREATE INDEX idx_notification_deliveries_pending ON notification_deliveries(state,next_attempt_at,created_at);
+CREATE INDEX idx_notification_deliveries_channel ON notification_deliveries(channel_id,created_at);
+CREATE INDEX idx_notification_deliveries_task ON notification_deliveries(task_id,created_at);
+CREATE INDEX idx_notification_deliveries_run ON notification_deliveries(run_id);
+
+CREATE TABLE notification_condition_states (
+	task_id              TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	channel_id           TEXT NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
+	policy_fingerprint   TEXT NOT NULL,
+	consecutive_failures INTEGER NOT NULL DEFAULT 0,
+	active_condition     TEXT NOT NULL DEFAULT '' CHECK(active_condition IN ('','failure','failure_to_start','consecutive_failure','duration_exceeded')),
+	active_since         TEXT,
+	last_notified_at     TEXT,
+	last_evaluated_run_id TEXT NOT NULL DEFAULT '',
+	updated_at           TEXT NOT NULL,
+	PRIMARY KEY(task_id,channel_id)
+);
+
+CREATE TABLE notification_daemon_health_states (
+	channel_id       TEXT PRIMARY KEY REFERENCES notification_channels(id) ON DELETE CASCADE,
+	next_due_at      TEXT NOT NULL,
+	last_delivery_id TEXT NOT NULL DEFAULT '',
+	updated_at       TEXT NOT NULL
+);
 `,
 	},
 }

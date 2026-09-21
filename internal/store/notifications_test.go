@@ -3,6 +3,8 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -244,6 +246,136 @@ func TestNotificationChannelAssignmentPrecedenceAndAtomicRunDelivery(t *testing.
 	policy, _ = st.EffectiveNotificationPolicy(task.ID)
 	if policy.SourceScopeID != child.ID {
 		t.Fatalf("inheritance did not resume: %+v", policy)
+	}
+}
+
+func TestNotificationConditionsThresholdReminderRecoveryAndPrecedence(t *testing.T) {
+	st := openMem(t)
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "conditions")
+	assignment := domain.NotificationAssignment{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2, OnFailureToStart: true, DurationThresholdSeconds: 60, OnRecovery: true, ReminderIntervalSeconds: 120, QuietPeriodSeconds: 180}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{assignment}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	record := func(id string, outcome domain.RunOutcome, startFailed bool, ended time.Time, duration time.Duration) {
+		t.Helper()
+		started := ended.Add(-duration)
+		run := domain.Run{ID: id, TaskID: task.ID, ScheduledFor: started, StartedAt: &started, EndedAt: &ended, Outcome: outcome, Trigger: domain.TriggerManual, StartFailed: startFailed}
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	record("failure-1", domain.OutcomeFailure, false, base, time.Second)
+	record("failure-2", domain.OutcomeFailure, false, base.Add(time.Minute), time.Second)
+	record("failure-3", domain.OutcomeFailure, false, base.Add(2*time.Minute), time.Second)
+	record("failure-4", domain.OutcomeFailure, false, base.Add(3*time.Minute), time.Second)
+	record("failure-5", domain.OutcomeFailure, false, base.Add(4*time.Minute), time.Second)
+	record("start-failed", domain.OutcomeFailure, true, base.Add(5*time.Minute), time.Second)
+	record("recovered", domain.OutcomeSuccess, false, base.Add(6*time.Minute), time.Second)
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID, Limit: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deliveries) != 4 {
+		t.Fatalf("deliveries=%d, want threshold, reminder, start precedence, recovery: %+v", len(deliveries), deliveries)
+	}
+	want := []domain.NotificationConditionKind{domain.NotificationConditionRecovery, domain.NotificationConditionFailureToStart, domain.NotificationConditionConsecutiveFailure, domain.NotificationConditionConsecutiveFailure}
+	for i, delivery := range deliveries {
+		if delivery.ConditionKind != want[i] {
+			t.Fatalf("delivery %d condition=%s, want %s", i, delivery.ConditionKind, want[i])
+		}
+		var event domain.WebhookEvent
+		if err := json.Unmarshal(delivery.Payload, &event); err != nil || event.Condition == nil || event.Condition.Kind != want[i] {
+			t.Fatalf("delivery %d event=%+v err=%v", i, event, err)
+		}
+	}
+}
+
+func TestNotificationSuccessQuietPeriodAndDaemonHeartbeat(t *testing.T) {
+	st := openMem(t)
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "quiet and health")
+	channel.HealthIntervalSeconds = 60
+	if err := st.UpdateNotificationChannel(channel); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnSuccess: true, QuietPeriodSeconds: 120}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	for i, offset := range []time.Duration{0, time.Minute, 2 * time.Minute} {
+		ended := base.Add(offset)
+		run := domain.Run{ID: fmt.Sprintf("success-%d", i), TaskID: task.ID, ScheduledFor: ended, EndedAt: &ended, Outcome: domain.OutcomeSuccess, Trigger: domain.TriggerManual}
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 2 {
+		t.Fatalf("quiet deliveries=%+v err=%v", deliveries, err)
+	}
+	created, err := st.CreateDueDaemonHealthDeliveries(base)
+	if err != nil || created != 1 {
+		t.Fatalf("created heartbeat=%d err=%v", created, err)
+	}
+	created, err = st.CreateDueDaemonHealthDeliveries(base.Add(30 * time.Second))
+	if err != nil || created != 0 {
+		t.Fatalf("early heartbeat=%d err=%v", created, err)
+	}
+	heartbeats, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{ChannelID: channel.ID, Limit: 20})
+	if err != nil || len(heartbeats) != 3 {
+		t.Fatalf("heartbeat deliveries=%+v err=%v", heartbeats, err)
+	}
+	foundHeartbeat := false
+	for _, delivery := range heartbeats {
+		foundHeartbeat = foundHeartbeat || (delivery.EventKind == domain.NotificationEventDaemonHealth && delivery.ConditionKind == domain.NotificationConditionDaemonHealth)
+	}
+	if !foundHeartbeat {
+		t.Fatalf("daemon heartbeat not found: %+v", heartbeats)
+	}
+}
+
+func TestNotificationConditionStateSurvivesRestartAndPolicyChangeResetsIt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "notifications.db")
+	st, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, "")
+	channel := createNotificationTestChannel(t, st, "restart")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordFailure := func(store *Store, id string, at time.Time) {
+		t.Helper()
+		run := domain.Run{ID: id, TaskID: task.ID, ScheduledFor: at, EndedAt: &at, Outcome: domain.OutcomeFailure, Trigger: domain.TriggerManual}
+		if err := store.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recordFailure(st, "before-restart", base)
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	st, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	recordFailure(st, "after-restart", base.Add(time.Minute))
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 1 || deliveries[0].ConditionKind != domain.NotificationConditionConsecutiveFailure {
+		t.Fatalf("restart deliveries=%+v err=%v", deliveries, err)
+	}
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeTask, task.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	recordFailure(st, "after-policy-change", base.Add(2*time.Minute))
+	deliveries, err = st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: task.ID})
+	if err != nil || len(deliveries) != 1 {
+		t.Fatalf("policy reset created delivery: %+v err=%v", deliveries, err)
 	}
 }
 

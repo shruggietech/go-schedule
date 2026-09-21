@@ -149,14 +149,14 @@ Trigger Set lifecycle events use `kind: "trigger_set"` and contain set identity,
 
 ## Webhook notifications
 
-Notification channels are reusable write-only webhook destinations. Ordinary channel responses contain `id`, `name`, `kind`, `endpoint_summary`, `has_authorization`, `enabled`, `created_at`, and `updated_at`. See [Webhook notifications](notifications.md) for the receiver payload, precedence, retry, duplicate, and security contracts.
+Notification channels are reusable write-only webhook destinations. Ordinary channel responses contain `id`, `name`, `kind`, `endpoint_summary`, `has_authorization`, `enabled`, `health_interval_seconds`, `created_at`, and `updated_at`. Assignment objects add `failure_threshold`, `on_failure_to_start`, `duration_threshold_seconds`, `on_recovery`, `reminder_interval_seconds`, and `quiet_period_seconds` to the existing outcome fields. See [Webhook notifications](notifications.md) for condition, receiver payload, precedence, retry, duplicate, heartbeat, and security contracts.
 
 | Method | Path | Result |
 | --- | --- | --- |
 | `GET` | `/v1/notification-channels` | `{"notification_channels": [...]}` with redacted metadata |
-| `POST` | `/v1/notification-channels` | Create from `name`, `endpoint`, optional `authorization`, and optional `enabled`; `201` |
+| `POST` | `/v1/notification-channels` | Create from `name`, `endpoint`, optional `authorization`, `enabled`, and `health_interval_seconds`; `201` |
 | `GET` | `/v1/notification-channels/{id}` | One redacted channel |
-| `PATCH` | `/v1/notification-channels/{id}` | Update optional `name`, `endpoint`, or `enabled` |
+| `PATCH` | `/v1/notification-channels/{id}` | Update optional `name`, `endpoint`, `enabled`, or `health_interval_seconds` |
 | `DELETE` | `/v1/notification-channels/{id}` | Remove assignments and unfinished work while preserving safe terminal history; `204` |
 | `POST` | `/v1/notification-channels/{id}/enable` | Enable new delivery creation |
 | `POST` | `/v1/notification-channels/{id}/disable` | Disable new delivery creation |
@@ -169,7 +169,7 @@ Notification channels are reusable write-only webhook destinations. Ordinary cha
 | `PUT` | `/v1/groups/{id}/notifications` | Atomically replace direct group assignments |
 | `GET` | `/v1/notification-deliveries` | List redacted evidence with optional `channel`, `task`, `run`, `state`, and `limit` filters |
 
-An assignment contains `channel_id`, `on_success`, and `on_failure`; at least one outcome must be true and one channel may occur only once per scope. The nearest non-empty task or group scope replaces all more distant assignments. Delivery responses remain distinct from run responses and include a safe parsed `event`, attempts, timestamps, last status, and bounded diagnostic without protected endpoint or authorization fields.
+An assignment contains `channel_id` plus one or more outcome or problem conditions; one channel may occur only once per scope. Recovery and reminders require at least one problem condition. The nearest non-empty task or group scope replaces all more distant assignments. Delivery responses remain distinct from run responses and include safe condition metadata, a safe parsed `event`, attempts, timestamps, last status, and bounded diagnostic without protected endpoint or authorization fields.
 
 ## Remote HTTPS API
 

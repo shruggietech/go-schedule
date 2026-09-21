@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -25,6 +26,7 @@ func newNotificationChannelCmd() *cobra.Command {
 
 func notificationChannelAdd() *cobra.Command {
 	var endpoint, authorization string
+	var healthInterval time.Duration
 	var disabled bool
 	cmd := &cobra.Command{Use: "add <name>", Short: "Create a webhook channel", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
 		if endpoint == "" {
@@ -33,7 +35,7 @@ func notificationChannelAdd() *cobra.Command {
 		enabled := !disabled
 		ctx, cancel := reqCtx()
 		defer cancel()
-		channel, err := newClient().CreateNotificationChannel(ctx, server.NotificationChannelCreateRequest{Name: args[0], Endpoint: endpoint, Authorization: authorization, Enabled: &enabled})
+		channel, err := newClient().CreateNotificationChannel(ctx, server.NotificationChannelCreateRequest{Name: args[0], Endpoint: endpoint, Authorization: authorization, Enabled: &enabled, HealthIntervalSeconds: int64(healthInterval / time.Second)})
 		if err != nil {
 			return err
 		}
@@ -42,6 +44,7 @@ func notificationChannelAdd() *cobra.Command {
 	cmd.Flags().StringVar(&endpoint, "endpoint", "", "HTTPS webhook URL (HTTP allowed for loopback)")
 	cmd.Flags().StringVar(&authorization, "authorization", "", "write-only Authorization header value")
 	cmd.Flags().BoolVar(&disabled, "disabled", false, "create disabled")
+	cmd.Flags().DurationVar(&healthInterval, "health-interval", 0, "healthy-presence heartbeat interval (0 disables)")
 	return cmd
 }
 
@@ -76,6 +79,7 @@ func notificationChannelGet() *cobra.Command {
 
 func notificationChannelUpdate() *cobra.Command {
 	var name, endpoint string
+	var healthInterval time.Duration
 	cmd := &cobra.Command{Use: "update <id>", Short: "Update a webhook channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		req := server.NotificationChannelUpdateRequest{}
 		if cmd.Flags().Changed("name") {
@@ -84,8 +88,12 @@ func notificationChannelUpdate() *cobra.Command {
 		if cmd.Flags().Changed("endpoint") {
 			req.Endpoint = &endpoint
 		}
-		if req.Name == nil && req.Endpoint == nil {
-			return fmtUsage("at least one of --name or --endpoint is required")
+		if cmd.Flags().Changed("health-interval") {
+			seconds := int64(healthInterval / time.Second)
+			req.HealthIntervalSeconds = &seconds
+		}
+		if req.Name == nil && req.Endpoint == nil && req.HealthIntervalSeconds == nil {
+			return fmtUsage("at least one of --name, --endpoint, or --health-interval is required")
 		}
 		ctx, cancel := reqCtx()
 		defer cancel()
@@ -97,6 +105,7 @@ func notificationChannelUpdate() *cobra.Command {
 	}}
 	cmd.Flags().StringVar(&name, "name", "", "new channel name")
 	cmd.Flags().StringVar(&endpoint, "endpoint", "", "new webhook URL")
+	cmd.Flags().DurationVar(&healthInterval, "health-interval", 0, "healthy-presence heartbeat interval (0 disables)")
 	return cmd
 }
 
@@ -164,7 +173,7 @@ func printNotificationChannel(channel domain.NotificationChannel) error {
 	if jsonOut {
 		return printJSON(channel)
 	}
-	fmt.Fprintf(os.Stdout, "%s (%s) %s enabled=%t authorization=%t\n", channel.Name, channel.ID, channel.EndpointSummary, channel.Enabled, channel.HasAuthorization)
+	fmt.Fprintf(os.Stdout, "%s (%s) %s enabled=%t authorization=%t health_interval=%ds\n", channel.Name, channel.ID, channel.EndpointSummary, channel.Enabled, channel.HasAuthorization, channel.HealthIntervalSeconds)
 	return nil
 }
 
@@ -182,14 +191,20 @@ func newNotificationGroupCmd() *cobra.Command {
 func notificationScopeSet(taskScope bool) *cobra.Command {
 	var channels []string
 	var outcomes string
+	var failureThreshold int
+	var failureToStart, recovery bool
+	var durationThreshold, reminder, quietPeriod time.Duration
 	cmd := &cobra.Command{Use: "set <id>", Short: "Replace the complete direct notification policy", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
 		onSuccess, onFailure, err := parseNotificationOutcomes(outcomes)
 		if err != nil {
 			return err
 		}
+		if !onSuccess && !onFailure && !failureToStart && durationThreshold == 0 && len(channels) > 0 {
+			return fmtUsage("select at least one outcome, --failure-to-start, or --duration-threshold")
+		}
 		items := make([]server.NotificationAssignmentInput, len(channels))
 		for i, id := range channels {
-			items[i] = server.NotificationAssignmentInput{ChannelID: id, OnSuccess: onSuccess, OnFailure: onFailure}
+			items[i] = server.NotificationAssignmentInput{ChannelID: id, OnSuccess: onSuccess, OnFailure: onFailure, FailureThreshold: failureThreshold, OnFailureToStart: failureToStart, DurationThresholdSeconds: int64(durationThreshold / time.Second), OnRecovery: recovery, ReminderIntervalSeconds: int64(reminder / time.Second), QuietPeriodSeconds: int64(quietPeriod / time.Second)}
 		}
 		ctx, cancel := reqCtx()
 		defer cancel()
@@ -210,6 +225,12 @@ func notificationScopeSet(taskScope bool) *cobra.Command {
 	}}
 	cmd.Flags().StringSliceVar(&channels, "channel", nil, "channel ID (repeatable); omit all to resume inheritance")
 	cmd.Flags().StringVar(&outcomes, "on", "failure", "comma-separated outcomes: success,failure")
+	cmd.Flags().IntVar(&failureThreshold, "failure-threshold", 1, "consecutive failures required before notification")
+	cmd.Flags().BoolVar(&failureToStart, "failure-to-start", false, "notify when the task process cannot start")
+	cmd.Flags().DurationVar(&durationThreshold, "duration-threshold", 0, "notify when run duration reaches this threshold")
+	cmd.Flags().BoolVar(&recovery, "recovery", false, "notify when an active problem clears")
+	cmd.Flags().DurationVar(&reminder, "reminder", 0, "repeat an active problem after this interval")
+	cmd.Flags().DurationVar(&quietPeriod, "quiet-period", 0, "suppress routine notifications within this interval")
 	return cmd
 }
 
@@ -221,13 +242,11 @@ func parseNotificationOutcomes(value string) (bool, bool, error) {
 			success = true
 		case "failure":
 			failure = true
+		case "none":
 		case "":
 		default:
-			return false, false, fmtUsage("--on accepts success and failure")
+			return false, false, fmtUsage("--on accepts success, failure, and none")
 		}
-	}
-	if !success && !failure {
-		return false, false, fmtUsage("--on must select success or failure")
 	}
 	return success, failure, nil
 }

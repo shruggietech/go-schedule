@@ -311,6 +311,7 @@ type Run struct {
 	// OutputTruncated reports that the configured capture cap discarded one or
 	// more output bytes. It is metadata so the retained output stays within cap.
 	OutputTruncated bool       `json:"output_truncated,omitempty"`
+	StartFailed     bool       `json:"start_failed,omitempty"`
 	Trigger         RunTrigger `json:"trigger"`
 	SourceTaskID    string     `json:"source_task_id,omitempty"`
 	SourceRunID     string     `json:"source_run_id,omitempty"`

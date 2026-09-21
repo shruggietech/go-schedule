@@ -29,4 +29,8 @@ func TestParseNotificationOutcomes(t *testing.T) {
 	if _, _, err := parseNotificationOutcomes("maybe"); err == nil {
 		t.Fatal("accepted invalid outcome")
 	}
+	success, failure, err = parseNotificationOutcomes("none")
+	if err != nil || success || failure {
+		t.Fatalf("none success=%t failure=%t err=%v", success, failure, err)
+	}
 }
