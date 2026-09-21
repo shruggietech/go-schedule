@@ -1,7 +1,7 @@
 export type Channel = { id: string; name: string; kind: string; endpointSummary: string; hasAuthorization: boolean; enabled: boolean; healthIntervalMinutes?: number; updatedAt: string }
 export type ChannelDraft = { id: string; name: string; endpoint: string; authorization: string; replaceEndpoint: boolean; replaceAuthorization: boolean; isNew: boolean; healthIntervalMinutes: number }
 export type Scope = { type: 'task' | 'group'; id: string; name: string; context: string }
-export type Assignment = { channelId: string; onSuccess: boolean; onFailure: boolean; failureThreshold?: number; onFailureToStart?: boolean; durationThresholdMinutes?: number; onRecovery?: boolean; reminderIntervalMinutes?: number; quietPeriodMinutes?: number }
+export type Assignment = { channelId: string; onSuccess: boolean; onFailure: boolean; failureThreshold?: number; onFailureToStart?: boolean; durationThresholdSeconds?: number; onRecovery?: boolean; reminderIntervalMinutes?: number; quietPeriodMinutes?: number }
 export type PolicyDraft = { scopeType: 'task' | 'group'; scopeId: string; assignments: Assignment[] }
 export type Policy = { scope: Scope; directAssignments: Assignment[]; effectiveSourceType: 'task' | 'group' | 'none'; effectiveSourceId?: string; effectiveSourceName: string; effectiveAssignments: Assignment[] }
 export type ConfiguredScope = { type: 'task' | 'group'; id: string; name: string; context: string; sourceType: 'task' | 'group' | 'none'; sourceName: string; onSuccess: boolean; onFailure: boolean; onProblem?: boolean; destinationCount: number; enabledDestinationCount: number; enabledSuccessDestinationCount: number; enabledFailureDestinationCount: number; enabledProblemDestinationCount?: number }

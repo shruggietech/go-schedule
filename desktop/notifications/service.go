@@ -362,11 +362,11 @@ func (s *Service) SavePolicy(ctx context.Context, draft PolicyDraft) Result {
 	req := server.NotificationAssignmentsRequest{Assignments: make([]server.NotificationAssignmentInput, 0, len(draft.Assignments))}
 	for _, item := range draft.Assignments {
 		id := strings.TrimSpace(item.ChannelID)
-		if id == "" || seen[id] || (!item.OnSuccess && !item.OnFailure && !item.OnFailureToStart && item.DurationThresholdMinutes == 0) {
+		if id == "" || seen[id] || (!item.OnSuccess && !item.OnFailure && !item.OnFailureToStart && item.DurationThresholdSeconds == 0) {
 			return rejected("save_notification_policy", "assignments", "Each selected channel must be unique and select at least one notification condition.")
 		}
 		seen[id] = true
-		req.Assignments = append(req.Assignments, server.NotificationAssignmentInput{ChannelID: id, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure, FailureThreshold: item.FailureThreshold, OnFailureToStart: item.OnFailureToStart, DurationThresholdSeconds: item.DurationThresholdMinutes * 60, OnRecovery: item.OnRecovery, ReminderIntervalSeconds: item.ReminderIntervalMinutes * 60, QuietPeriodSeconds: item.QuietPeriodMinutes * 60})
+		req.Assignments = append(req.Assignments, server.NotificationAssignmentInput{ChannelID: id, OnSuccess: item.OnSuccess, OnFailure: item.OnFailure, FailureThreshold: item.FailureThreshold, OnFailureToStart: item.OnFailureToStart, DurationThresholdSeconds: item.DurationThresholdSeconds, OnRecovery: item.OnRecovery, ReminderIntervalSeconds: item.ReminderIntervalMinutes * 60, QuietPeriodSeconds: item.QuietPeriodMinutes * 60})
 	}
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	var err error
@@ -418,7 +418,7 @@ func sourceName(workspace *Workspace, kind domain.NotificationScopeType, id, tas
 func mapAssignments(values []domain.NotificationAssignment) []Assignment {
 	out := make([]Assignment, 0, len(values))
 	for _, value := range values {
-		out = append(out, Assignment{ChannelID: value.ChannelID, OnSuccess: value.OnSuccess, OnFailure: value.OnFailure, FailureThreshold: value.FailureThreshold, OnFailureToStart: value.OnFailureToStart, DurationThresholdMinutes: value.DurationThresholdSeconds / 60, OnRecovery: value.OnRecovery, ReminderIntervalMinutes: value.ReminderIntervalSeconds / 60, QuietPeriodMinutes: value.QuietPeriodSeconds / 60})
+		out = append(out, Assignment{ChannelID: value.ChannelID, OnSuccess: value.OnSuccess, OnFailure: value.OnFailure, FailureThreshold: value.FailureThreshold, OnFailureToStart: value.OnFailureToStart, DurationThresholdSeconds: value.DurationThresholdSeconds, OnRecovery: value.OnRecovery, ReminderIntervalMinutes: value.ReminderIntervalSeconds / 60, QuietPeriodMinutes: value.QuietPeriodSeconds / 60})
 	}
 	return out
 }

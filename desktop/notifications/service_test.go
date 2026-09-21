@@ -298,8 +298,8 @@ func TestPolicyUsesAuthoritativeEffectiveSourceAndValidatesAssignments(t *testin
 	if bad.Outcome != "rejected" || bad.Field != "assignments" {
 		t.Fatalf("bad=%+v", bad)
 	}
-	good := s.SavePolicy(context.Background(), PolicyDraft{ScopeType: "task", ScopeID: "t1", Assignments: []Assignment{{ChannelID: "c1", OnFailure: true}}})
-	if good.Outcome != "accepted" || len(f.replaced.Assignments) != 1 || !f.replaced.Assignments[0].OnFailure {
+	good := s.SavePolicy(context.Background(), PolicyDraft{ScopeType: "task", ScopeID: "t1", Assignments: []Assignment{{ChannelID: "c1", DurationThresholdSeconds: 30}}})
+	if good.Outcome != "accepted" || len(f.replaced.Assignments) != 1 || f.replaced.Assignments[0].DurationThresholdSeconds != 30 {
 		t.Fatalf("good=%+v request=%+v", good, f.replaced)
 	}
 }

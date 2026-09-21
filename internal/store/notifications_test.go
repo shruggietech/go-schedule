@@ -385,6 +385,86 @@ func TestNotificationPolicyOverrideRoundTripResetsInheritedState(t *testing.T) {
 	}
 }
 
+func TestNotificationTaskGroupRoundTripResetsInheritedState(t *testing.T) {
+	st := openMem(t)
+	source := &domain.Group{Name: "Source", Enabled: true}
+	other := &domain.Group{Name: "Other", Enabled: true}
+	if err := st.CreateGroup(source); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CreateGroup(other); err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, source.ID)
+	channel := createNotificationTestChannel(t, st, "task move")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeGroup, source.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordNotificationFailure(t, st, task.ID, "before-task-move", base)
+	stored, err := st.GetTask(task.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored.GroupID = other.ID
+	if err := st.UpdateTask(&stored); err != nil {
+		t.Fatal(err)
+	}
+	stored.GroupID = source.ID
+	if err := st.UpdateTask(&stored); err != nil {
+		t.Fatal(err)
+	}
+	recordNotificationFailure(t, st, task.ID, "after-task-move", base.Add(time.Minute))
+	assertNoNotificationDeliveries(t, st, task.ID)
+}
+
+func TestNotificationGroupReparentRoundTripResetsDescendantState(t *testing.T) {
+	st := openMem(t)
+	source := &domain.Group{Name: "Source", Enabled: true}
+	other := &domain.Group{Name: "Other", Enabled: true}
+	if err := st.CreateGroup(source); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CreateGroup(other); err != nil {
+		t.Fatal(err)
+	}
+	child := &domain.Group{Name: "Child", ParentID: source.ID, Enabled: true}
+	if err := st.CreateGroup(child); err != nil {
+		t.Fatal(err)
+	}
+	task := createNotificationTestTask(t, st, child.ID)
+	channel := createNotificationTestChannel(t, st, "group move")
+	if err := st.ReplaceNotificationAssignments(domain.NotificationScopeGroup, source.ID, []domain.NotificationAssignment{{ChannelID: channel.ID, OnFailure: true, FailureThreshold: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
+	recordNotificationFailure(t, st, task.ID, "before-group-move", base)
+	if err := st.SetGroupParent(child.ID, other.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetGroupParent(child.ID, source.ID); err != nil {
+		t.Fatal(err)
+	}
+	recordNotificationFailure(t, st, task.ID, "after-group-move", base.Add(time.Minute))
+	assertNoNotificationDeliveries(t, st, task.ID)
+}
+
+func recordNotificationFailure(t *testing.T, st *Store, taskID, runID string, at time.Time) {
+	t.Helper()
+	run := domain.Run{ID: runID, TaskID: taskID, ScheduledFor: at, EndedAt: &at, Outcome: domain.OutcomeFailure, Trigger: domain.TriggerManual}
+	if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertNoNotificationDeliveries(t *testing.T, st *Store, taskID string) {
+	t.Helper()
+	deliveries, err := st.ListNotificationDeliveries(domain.NotificationDeliveryFilter{TaskID: taskID})
+	if err != nil || len(deliveries) != 0 {
+		t.Fatalf("stale hierarchy state created delivery: %+v err=%v", deliveries, err)
+	}
+}
+
 func TestNotificationSuccessQuietPeriodAndDaemonHeartbeat(t *testing.T) {
 	st := openMem(t)
 	task := createNotificationTestTask(t, st, "")

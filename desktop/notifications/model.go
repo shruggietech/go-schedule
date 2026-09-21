@@ -36,7 +36,7 @@ type Assignment struct {
 	OnFailure                bool   `json:"onFailure"`
 	FailureThreshold         int    `json:"failureThreshold"`
 	OnFailureToStart         bool   `json:"onFailureToStart"`
-	DurationThresholdMinutes int64  `json:"durationThresholdMinutes"`
+	DurationThresholdSeconds int64  `json:"durationThresholdSeconds"`
 	OnRecovery               bool   `json:"onRecovery"`
 	ReminderIntervalMinutes  int64  `json:"reminderIntervalMinutes"`
 	QuietPeriodMinutes       int64  `json:"quietPeriodMinutes"`

@@ -57,9 +57,23 @@ func (s *Store) SetGroupParent(groupID, parentID string) error {
 	if err := s.ValidateParent(groupID, parentID); err != nil {
 		return err
 	}
-	res, err := s.db.Exec(`UPDATE groups SET parent_id=?, updated_at=? WHERE id=?`,
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin set group parent: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	res, err := tx.Exec(`UPDATE groups SET parent_id=?, updated_at=? WHERE id=?`,
 		nullStr(parentID), fmtTime(time.Now().UTC()), groupID)
-	return affected(res, err, "set group parent")
+	if err := affected(res, err, "set group parent"); err != nil {
+		return err
+	}
+	if err := resetNotificationConditionStatesForScope(tx, domain.NotificationScopeGroup, groupID); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("store: commit set group parent: %w", err)
+	}
+	return nil
 }
 
 // RenameGroup updates a group's name.

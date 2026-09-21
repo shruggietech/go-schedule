@@ -266,6 +266,13 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 		return fmt.Errorf("store: begin update task: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	var previousGroupID sql.NullString
+	if err := tx.QueryRow(`SELECT group_id FROM tasks WHERE id=?`, t.ID).Scan(&previousGroupID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("store: read task group before update: %w", err)
+	}
 	hasCompletion, err := taskHasIncomingCompletion(tx, t.ID)
 	if err != nil {
 		return err
@@ -291,6 +298,11 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 	)
 	if err := affected(res, err, "update task"); err != nil {
 		return err
+	}
+	if previousGroupID.String != t.GroupID {
+		if err := resetNotificationConditionStatesForScope(tx, domain.NotificationScopeTask, t.ID); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("store: commit update task: %w", err)
