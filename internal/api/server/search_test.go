@@ -90,3 +90,25 @@ func TestSearchReportsTruncationAndKindFilter(t *testing.T) {
 		t.Fatalf("status=%d result=%+v", response.Code, result)
 	}
 }
+
+func TestSearchScheduleAppliesLimitAfterTemporalEligibility(t *testing.T) {
+	s := newTestServer(t)
+	for _, request := range []TaskCreateRequest{
+		{Name: "Archive A", Schedule: "every day at 09:00", Timezone: "UTC"},
+		{Name: "Archive B", Schedule: "every day at 09:00", Timezone: "UTC"},
+		{Name: "Archive C", Command: "echo", Schedule: "every day at 09:00", Timezone: "UTC"},
+	} {
+		response := doJSON(t, s, http.MethodPost, "/v1/tasks", request)
+		if response.Code != http.StatusCreated {
+			t.Fatalf("create status=%d body=%s", response.Code, response.Body.String())
+		}
+	}
+	response := doJSON(t, s, http.MethodGet, "/v1/search?q=archive&kind=schedule&limit=1", nil)
+	var result domain.DaemonSearch
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusOK || len(result.Results) != 1 || result.Results[0].Name != "Archive C" || result.Results[0].Kind != domain.SearchKindSchedule {
+		t.Fatalf("status=%d result=%+v", response.Code, result)
+	}
+}

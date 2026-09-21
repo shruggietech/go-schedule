@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Notice, StatePanel } from "../components";
 import { GroupsPanel } from "./GroupsPanel";
 import { TaskActions } from "./TaskActions";
@@ -21,6 +21,7 @@ export function TasksPage({
   previewAvailable = manageAvailable,
   targetName = "This computer",
   refreshToken = 0,
+  initialTaskId,
   onActivity,
 }: {
   bridge: TaskBridge;
@@ -33,6 +34,7 @@ export function TasksPage({
   previewAvailable?: boolean;
   targetName?: string;
   refreshToken?: number;
+  initialTaskId?: string;
   onActivity(): void;
 }) {
   const { workspace, status, selected, setSelected, load, accept, setStatus } =
@@ -55,6 +57,9 @@ export function TasksPage({
     [workspace, query, state],
   );
   const task = workspace?.tasks.find((value) => value.id === selected);
+  useEffect(() => {
+    if (initialTaskId && workspace?.tasks.some((value) => value.id === initialTaskId)) setSelected(initialTaskId);
+  }, [initialTaskId, setSelected, workspace]);
   const reconciling = status?.outcome === "uncertain";
   const handle = (result: OperationResult) => {
     accept(result);

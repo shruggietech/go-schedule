@@ -134,13 +134,19 @@ func revalidateAndDispatch(ctx context.Context, daemon daemonClient, action doma
 		}
 		return daemon.RunNow(ctx, selection.ObjectID)
 	case domain.SearchActionAcknowledge:
-		alerts, err := daemon.ListAlertsLimited(ctx, true, 200)
-		if err != nil {
-			return err
-		}
-		for _, alert := range alerts {
-			if alert.ID == selection.ObjectID {
-				return daemon.AckAlert(ctx, selection.ObjectID)
+		const pageSize = 200
+		for offset := 0; ; offset += pageSize {
+			alerts, err := daemon.ListAlertsPage(ctx, true, offset, pageSize, 0)
+			if err != nil {
+				return err
+			}
+			for _, alert := range alerts {
+				if alert.ID == selection.ObjectID {
+					return daemon.AckAlert(ctx, selection.ObjectID)
+				}
+			}
+			if len(alerts) < pageSize {
+				break
 			}
 		}
 		return errors.New("alert no longer exists")

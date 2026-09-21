@@ -278,6 +278,7 @@ export function App({
             groupAvailable={!remote && canManage}
             previewAvailable={!remote && canManage}
             targetName={targetContext}
+            initialTaskId={drilldown?.destination === "tasks" ? drilldown.taskId : undefined}
             refreshToken={
               snapshot.state === "connected" ? snapshot.generation : 0
             }
@@ -297,6 +298,8 @@ export function App({
           bridge={operations}
           available={snapshot.state === "connected"}
           targetName={targetContext}
+          initialRecordId={drilldown?.destination === "schedule" ? drilldown.recordId : undefined}
+		  initialTaskId={drilldown?.destination === "schedule" ? drilldown.taskId : undefined}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0
           }
@@ -307,6 +310,7 @@ export function App({
           available={snapshot.state === "connected"}
           targetName={targetContext}
           canMutate={canOperate}
+          initialRecordId={drilldown?.destination === "activity" ? drilldown.recordId : undefined}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0
           }

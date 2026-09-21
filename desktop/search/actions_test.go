@@ -67,3 +67,19 @@ func TestRevalidateAndDispatchAcknowledgesOnlyCurrentAlert(t *testing.T) {
 		t.Fatal("missing alert accepted")
 	}
 }
+
+func TestRevalidateAndDispatchFindsSelectedAlertBeyondFirstPage(t *testing.T) {
+	alerts := make([]domain.Alert, 201)
+	for index := range alerts {
+		alerts[index] = domain.Alert{ID: "older"}
+	}
+	alerts[200] = domain.Alert{ID: "selected"}
+	called := false
+	daemon := &daemonFake{alerts: alerts, action: func(action domain.SearchAction, id string) error {
+		called = action == domain.SearchActionAcknowledge && id == "selected"
+		return nil
+	}}
+	if err := revalidateAndDispatch(context.Background(), daemon, domain.SearchActionAcknowledge, Selection{Kind: domain.SearchKindAlert, ObjectID: "selected"}); err != nil || !called {
+		t.Fatalf("err=%v called=%v", err, called)
+	}
+}

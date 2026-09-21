@@ -49,12 +49,41 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	observedAt := time.Now().UTC()
-	results, err := s.store.SearchFacts(query, kinds, limit)
+	searchKinds := kinds
+	if kinds[domain.SearchKindSchedule] || len(kinds) == 0 {
+		searchKinds = make(map[domain.SearchKind]bool, len(kinds)+4)
+		if len(kinds) == 0 {
+			for _, kind := range []domain.SearchKind{domain.SearchKindTask, domain.SearchKindGroup, domain.SearchKindFailure, domain.SearchKindAlert} {
+				searchKinds[kind] = true
+			}
+		} else {
+			for kind := range kinds {
+				searchKinds[kind] = true
+			}
+		}
+		searchKinds[domain.SearchKindSchedule] = false
+	}
+	results, err := s.store.SearchFacts(query, searchKinds, limit)
 	if err != nil {
 		s.internal(w, err)
 		return
 	}
-	results = s.resolveSearchOccurrences(results, observedAt)
+	if kinds[domain.SearchKindSchedule] || len(kinds) == 0 {
+		for offset := 0; len(results) <= limit; offset += limit + 1 {
+			candidates, searchErr := s.store.SearchScheduleFacts(query, offset, limit+1)
+			if searchErr != nil {
+				s.internal(w, searchErr)
+				return
+			}
+			if len(candidates) == 0 {
+				break
+			}
+			results = append(results, s.resolveSearchOccurrences(candidates, observedAt)...)
+			if len(candidates) < limit+1 {
+				break
+			}
+		}
+	}
 	domain.SortSearchMatches(results)
 	truncated := len(results) > limit
 	if truncated {

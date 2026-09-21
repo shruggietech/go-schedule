@@ -34,10 +34,10 @@ func TestSearchFactsBoundsKindsAndExcludesSecretFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results) != 5 {
-		t.Fatalf("results = %+v, want five kinds", results)
+	if len(results) != 4 {
+		t.Fatalf("results = %+v, want four non-temporal kinds", results)
 	}
-	wantKinds := []domain.SearchKind{domain.SearchKindTask, domain.SearchKindGroup, domain.SearchKindFailure, domain.SearchKindSchedule, domain.SearchKindAlert}
+	wantKinds := []domain.SearchKind{domain.SearchKindTask, domain.SearchKindGroup, domain.SearchKindFailure, domain.SearchKindAlert}
 	for index, kind := range wantKinds {
 		if results[index].Kind != kind {
 			t.Fatalf("result %d kind = %q, want %q", index, results[index].Kind, kind)
@@ -102,7 +102,7 @@ func TestSearchFactsHandlesEmptyInputDisabledObjectsAndKindIsolation(t *testing.
 	}
 
 	tasks, err := st.SearchFacts("disabled", map[domain.SearchKind]bool{domain.SearchKindTask: true}, 50)
-	if err != nil || len(tasks) != 1 || tasks[0].Kind != domain.SearchKindTask || tasks[0].Enabled == nil || *tasks[0].Enabled || len(tasks[0].ActionHints) != 2 || tasks[0].ActionHints[1] != domain.SearchActionEnable {
+	if err != nil || len(tasks) != 1 || tasks[0].Kind != domain.SearchKindTask || tasks[0].Enabled == nil || *tasks[0].Enabled || len(tasks[0].ActionHints) != 1 || tasks[0].ActionHints[0] != domain.SearchActionOpen {
 		t.Fatalf("disabled task search = %+v, %v", tasks, err)
 	}
 	groups, err := st.SearchFacts("disabled", map[domain.SearchKind]bool{domain.SearchKindGroup: true}, 50)

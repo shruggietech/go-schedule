@@ -33,7 +33,7 @@ type daemonClient interface {
 	GetTask(context.Context, string) (server.TaskResponse, error)
 	SetTaskEnabled(context.Context, string, bool) error
 	RunNow(context.Context, string) error
-	ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error)
+	ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
 	AckAlert(context.Context, string) error
 }
 
@@ -93,6 +93,16 @@ func (s *Service) Search(ctx context.Context, request Request, publish ...func(S
 	}
 	snapshot := func(complete bool) Snapshot {
 		values := append([]Observation(nil), observations...)
+		if complete {
+			current := s.currentKeys(observations)
+			kept := values[:0]
+			for _, value := range values {
+				if current[value.Registration.Key] {
+					kept = append(kept, value)
+				}
+			}
+			values = kept
+		}
 		sort.SliceStable(values, func(i, j int) bool { return registrationLess(values[i].Registration, values[j].Registration) })
 		completed := ""
 		if complete {
@@ -167,12 +177,53 @@ func (s *Service) observe(parent context.Context, value target, query string, ki
 	if err != nil {
 		return failed(value.registration, err)
 	}
+	if err := validateResult(result, query, limit); err != nil {
+		return failed(value.registration, &connection.Failure{State: connection.StateIncompatible, Message: "This scheduler returned an unsupported search response.", Action: "Update the scheduler service.", Cause: err})
+	}
 	matches := make([]Match, 0, len(result.Results))
 	for _, item := range result.Results {
 		available, reason := availableActions(item.ActionHints, health.Permissions)
 		matches = append(matches, Match{RegistrationKey: value.registration.Key, ExpectedDaemonID: health.ID, SourceLabel: value.registration.Label, SourceShortID: connection.ShortID(health.ID), Result: item, AvailableActions: available, DisabledReason: reason})
 	}
 	return Observation{Registration: value.registration, State: connection.StateConnected, ObservedAt: result.ObservedAt.UTC().Format(time.RFC3339), Truncated: result.Truncated, Matches: matches}
+}
+
+func (s *Service) currentKeys(fallback []Observation) map[string]bool {
+	result := map[string]bool{"local": true}
+	if s.profiles == nil {
+		for _, observation := range fallback {
+			result[observation.Registration.Key] = true
+		}
+		return result
+	}
+	collection, err := s.profiles.Load()
+	if err != nil {
+		for _, observation := range fallback {
+			result[observation.Registration.Key] = true
+		}
+		return result
+	}
+	for _, profile := range collection.Profiles {
+		result[profile.ID] = true
+	}
+	return result
+}
+
+func validateResult(result domain.DaemonSearch, query string, limit int) error {
+	if result.Schema != domain.DaemonSearchSchema || result.ObservedAt.IsZero() || result.Query != query || len(result.Results) > limit {
+		return errors.New("invalid search envelope")
+	}
+	for _, item := range result.Results {
+		if !item.Kind.Valid() || strings.TrimSpace(item.ObjectID) == "" || strings.TrimSpace(item.Name) == "" {
+			return errors.New("invalid search match")
+		}
+		for _, action := range item.ActionHints {
+			if !action.Valid() {
+				return errors.New("invalid search action")
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Service) targets() ([]target, []Observation) {

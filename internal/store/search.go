@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/task"
 )
 
 // SearchFacts returns at most limit plus one safe matches so callers can report truncation.
@@ -18,7 +19,12 @@ func (s *Store) SearchFacts(query string, kinds map[domain.SearchKind]bool, limi
 	allKinds := len(kinds) == 0
 	result := make([]domain.SearchMatch, 0, queryLimit)
 
-	if allKinds || kinds[domain.SearchKindTask] || kinds[domain.SearchKindSchedule] {
+	if allKinds || kinds[domain.SearchKindTask] {
+		type taskCandidate struct {
+			id, name, state, scheduleID string
+			enabled, commandReady       int
+		}
+		candidates := make([]taskCandidate, 0, queryLimit)
 		rows, err := s.db.Query(`SELECT id,name,enabled,state,COALESCE(schedule_id,''),CASE WHEN length(trim(command))>0 THEN 1 ELSE 0 END
 			FROM tasks WHERE lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\'
 			ORDER BY lower(name),id LIMIT ?`, pattern, pattern, queryLimit)
@@ -32,29 +38,29 @@ func (s *Store) SearchFacts(query string, kinds map[domain.SearchKind]bool, limi
 				_ = rows.Close()
 				return nil, fmt.Errorf("store: scan search task: %w", err)
 			}
-			if allKinds || kinds[domain.SearchKindTask] {
-				enabledValue := enabled != 0
-				actions := []domain.SearchAction{domain.SearchActionOpen}
-				if enabledValue {
-					actions = append(actions, domain.SearchActionDisable)
-				} else {
-					actions = append(actions, domain.SearchActionEnable)
-				}
-				if commandReady != 0 {
-					actions = append(actions, domain.SearchActionRunNow)
-				}
-				status := "disabled"
-				if enabledValue {
-					status = "enabled"
-				}
-				result = append(result, domain.SearchMatch{Kind: domain.SearchKindTask, ObjectID: id, TaskID: id, Name: name, Context: state + ", " + status, Enabled: &enabledValue, ActionHints: actions})
-			}
-			if scheduleID != "" && (allKinds || kinds[domain.SearchKindSchedule]) {
-				result = append(result, domain.SearchMatch{Kind: domain.SearchKindSchedule, ObjectID: id, TaskID: id, Name: name, Context: "Scheduled task", ActionHints: []domain.SearchAction{domain.SearchActionOpen}})
-			}
+			candidates = append(candidates, taskCandidate{id: id, name: name, state: state, scheduleID: scheduleID, enabled: enabled, commandReady: commandReady})
 		}
 		if err := rows.Close(); err != nil {
 			return nil, fmt.Errorf("store: close task search: %w", err)
+		}
+		for _, candidate := range candidates {
+			enabledValue := candidate.enabled != 0
+			actions := []domain.SearchAction{domain.SearchActionOpen}
+			if enabledValue {
+				actions = append(actions, domain.SearchActionDisable)
+			} else if ready, err := s.taskEnableReady(candidate.id); err != nil {
+				return nil, err
+			} else if ready {
+				actions = append(actions, domain.SearchActionEnable)
+			}
+			if candidate.commandReady != 0 {
+				actions = append(actions, domain.SearchActionRunNow)
+			}
+			status := "disabled"
+			if enabledValue {
+				status = "enabled"
+			}
+			result = append(result, domain.SearchMatch{Kind: domain.SearchKindTask, ObjectID: candidate.id, TaskID: candidate.id, Name: candidate.name, Context: candidate.state + ", " + status, Enabled: &enabledValue, ActionHints: actions})
 		}
 	}
 
@@ -143,6 +149,54 @@ func (s *Store) SearchFacts(query string, kinds map[domain.SearchKind]bool, limi
 		result = result[:queryLimit]
 	}
 	return result, nil
+}
+
+// SearchScheduleFacts returns one bounded page of task candidates. Callers resolve
+// temporal eligibility before applying the public result limit.
+func (s *Store) SearchScheduleFacts(query string, offset, limit int) ([]domain.SearchMatch, error) {
+	query = strings.TrimSpace(query)
+	if query == "" || limit < 1 || offset < 0 {
+		return []domain.SearchMatch{}, nil
+	}
+	pattern := "%" + escapeLike(strings.ToLower(query)) + "%"
+	rows, err := s.db.Query(`SELECT id,name,COALESCE(schedule_id,'') FROM tasks WHERE schedule_id IS NOT NULL AND schedule_id<>'' AND (lower(id) LIKE ? ESCAPE '\' OR lower(name) LIKE ? ESCAPE '\') ORDER BY lower(name),id LIMIT ? OFFSET ?`, pattern, pattern, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("store: search schedules: %w", err)
+	}
+	defer rows.Close()
+	result := make([]domain.SearchMatch, 0, limit)
+	for rows.Next() {
+		var id, name, scheduleID string
+		if err := rows.Scan(&id, &name, &scheduleID); err != nil {
+			return nil, fmt.Errorf("store: scan search schedule: %w", err)
+		}
+		result = append(result, domain.SearchMatch{Kind: domain.SearchKindSchedule, ObjectID: id, TaskID: id, Name: name, Context: "Scheduled task", ActionHints: []domain.SearchAction{domain.SearchActionOpen}})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("store: search schedules: %w", err)
+	}
+	return result, nil
+}
+
+func (s *Store) taskEnableReady(id string) (bool, error) {
+	taskValue, err := s.GetTask(id)
+	if err != nil {
+		return false, err
+	}
+	completion, err := taskHasIncomingCompletion(s.db, id)
+	if err != nil {
+		return false, err
+	}
+	trigger, err := taskHasEnabledTrigger(s.db, id)
+	if err != nil {
+		return false, err
+	}
+	watcher, err := taskHasEnabledWatcher(s.db, id)
+	if err != nil {
+		return false, err
+	}
+	readiness := task.EvaluateReadiness(taskValue, completion, trigger, watcher)
+	return taskValue.State == domain.TaskActive && readiness.CommandReady && readiness.ActivationReady, nil
 }
 
 func escapeLike(value string) string {

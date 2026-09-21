@@ -65,8 +65,12 @@ func (f *daemonFake) SetTaskEnabled(_ context.Context, id string, enabled bool) 
 func (f *daemonFake) RunNow(_ context.Context, id string) error {
 	return f.call(domain.SearchActionRunNow, id)
 }
-func (f *daemonFake) ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error) {
-	return f.alerts, f.err
+func (f *daemonFake) ListAlertsPage(_ context.Context, _ bool, offset, limit, _ int) ([]domain.Alert, error) {
+	if offset >= len(f.alerts) {
+		return []domain.Alert{}, f.err
+	}
+	end := min(offset+limit, len(f.alerts))
+	return f.alerts[offset:end], f.err
 }
 func (f *daemonFake) AckAlert(_ context.Context, id string) error {
 	return f.call(domain.SearchActionAcknowledge, id)
@@ -85,7 +89,7 @@ func TestSearchBoundsConcurrencyAndPublishesSourceIdentity(t *testing.T) {
 	targets := make([]target, 12)
 	for index := range targets {
 		key := string(rune('a' + index))
-		daemon := &daemonFake{search: domain.DaemonSearch{Schema: domain.DaemonSearchSchema, ObservedAt: now, Results: []domain.SearchMatch{{Kind: domain.SearchKindTask, ObjectID: "task-" + key, Name: "Duplicate", ActionHints: []domain.SearchAction{domain.SearchActionRunNow}}}}}
+		daemon := &daemonFake{search: domain.DaemonSearch{Schema: domain.DaemonSearchSchema, Query: "duplicate", ObservedAt: now, Results: []domain.SearchMatch{{Kind: domain.SearchKindTask, ObjectID: "task-" + key, Name: "Duplicate", ActionHints: []domain.SearchAction{domain.SearchActionRunNow}}}}}
 		targets[index] = target{registration: systems.Registration{Key: key, Kind: "remote", Label: "Same label"}, backend: backendFake{health: connection.Health{ID: "daemon-" + key, Permissions: []string{"read", "operate"}}, active: &active, peak: &peak, release: release}, client: daemon}
 	}
 	service := &Service{now: func() time.Time { return now }, timeout: time.Second, concurrency: 8, loadTargets: func() ([]target, []Observation) { return targets, nil }}
@@ -132,12 +136,23 @@ func TestSearchCancelsPriorGeneration(t *testing.T) {
 
 func TestObserveOnlyResultsExposeOpenButNotMutation(t *testing.T) {
 	now := time.Now().UTC()
-	daemon := &daemonFake{search: domain.DaemonSearch{Schema: domain.DaemonSearchSchema, ObservedAt: now, Results: []domain.SearchMatch{{Kind: domain.SearchKindTask, ObjectID: "task", Name: "Task", ActionHints: []domain.SearchAction{domain.SearchActionRunNow}}}}}
+	daemon := &daemonFake{search: domain.DaemonSearch{Schema: domain.DaemonSearchSchema, Query: "task", ObservedAt: now, Results: []domain.SearchMatch{{Kind: domain.SearchKindTask, ObjectID: "task", Name: "Task", ActionHints: []domain.SearchAction{domain.SearchActionRunNow}}}}}
 	service := &Service{now: time.Now, timeout: time.Second, concurrency: 1, loadTargets: func() ([]target, []Observation) {
 		return []target{{registration: systems.Registration{Key: "remote"}, backend: backendFake{health: connection.Health{ID: "daemon", Permissions: []string{"read"}}}, client: daemon}}, nil
 	}}
 	match := service.Search(context.Background(), Request{Query: "task"}).Observations[0].Matches[0]
 	if len(match.AvailableActions) != 1 || match.AvailableActions[0] != domain.SearchActionOpen || match.DisabledReason == "" {
 		t.Fatalf("match=%+v", match)
+	}
+}
+
+func TestSearchRejectsMalformedDaemonSearchResponse(t *testing.T) {
+	daemon := &daemonFake{search: domain.DaemonSearch{Schema: "future", Query: "task", ObservedAt: time.Now().UTC(), Results: []domain.SearchMatch{{Kind: domain.SearchKindTask, ObjectID: "task", Name: "Task"}}}}
+	service := &Service{now: time.Now, timeout: time.Second, concurrency: 1, loadTargets: func() ([]target, []Observation) {
+		return []target{{registration: systems.Registration{Key: "remote"}, backend: backendFake{health: connection.Health{ID: "daemon", Permissions: []string{"read"}}}, client: daemon}}, nil
+	}}
+	observation := service.Search(context.Background(), Request{Query: "task"}).Observations[0]
+	if observation.State != connection.StateIncompatible || observation.Failure == nil {
+		t.Fatalf("observation=%+v", observation)
 	}
 }
