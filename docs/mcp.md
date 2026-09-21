@@ -110,7 +110,15 @@ The desktop Agent Access workspace performs the same lifecycle through protected
 
 Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Each read requests only that page plus one lookahead record. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field. Task and schedule reads use an allowlisted SQLite projection that never loads execution inputs, while run output and alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
 
-Observe sessions on both local transports advertise resources only. Operate sessions add exactly three task tools. Manage sessions inherit those tools and add exactly six definition tools, with no prompts unless the connection requires caller confirmation, and no direct database access, raw log resource, remote MCP listener, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
+Observe sessions on local and remote transports advertise resources only. Operate sessions add exactly three task tools. Manage sessions inherit those tools and add exactly six definition tools, with no direct database access, raw log resource, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
+
+## Remote HTTPS authorization
+
+Remote MCP is independently disabled even when the remote JSON listener is enabled. An operator must set `remote.mcp.enabled` and a canonical public HTTPS `remote.mcp.resource_url` ending in `/mcp`. The public resource URL can differ from the numeric listener address when a reverse proxy fronts the daemon, but the proxy must preserve the public `Host` value and connect to the daemon through trusted TLS.
+
+The RFC 9728 protected-resource document points clients to authorization-server metadata on the same HTTPS origin. Unattended clients use the standard client-credentials grant with an existing persistent `mcp` credential: the credential ID is `client_id`, the one-time returned credential token is `client_secret`, and the exact configured resource is the RFC 8707 `resource` value. Pairing phrases and credentials belonging to desktop, CLI, or JSON actors are rejected.
+
+The token endpoint returns an opaque, short-lived, memory-only bearer. It is valid only in the `Authorization` header at the configured `/mcp` resource. Tokens expire after ten minutes by default, disappear on daemon restart, and fail immediately after source credential rotation, revocation, expiry, actor capability change, or daemon identity change. Requested `mcp:observe`, `mcp:operate`, or `mcp:manage` scope cannot exceed the persistent actor capability.
 
 ## Operate results and retry safety
 
@@ -142,7 +150,7 @@ The subprocess inherits the operating-system access that launched it and uses on
 | Operate | Explicit opt-in | Run, enable, or disable one existing task with a runtime MCP actor, exact daemon and task targets, deduplicated request identity, current authorization, and attributable audit. |
 | Manage | Explicit opt-in | Create, update, or delete one bounded task, group, chain, trigger, or watcher definition, or atomically replace one notification-assignment scope, through the ordinary API with redacted results and optional confirmation. |
 
-This separation is intentional. Observe discovery cannot expose or invoke Operate or Manage tools. Operate cannot cross into Manage. Manage cannot cross into Enroll, permission administration, remote MCP, or durable grants.
+This separation is intentional. Observe discovery cannot expose or invoke Operate or Manage tools. Operate cannot cross into Manage. Manage cannot cross into Enroll, permission administration, or credential administration. Remote access preserves the same hierarchy and delegates mutations through the ordinary actor-attributed API.
 
 ## Troubleshooting
 

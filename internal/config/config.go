@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -53,11 +54,29 @@ type Config struct {
 
 // RemoteConfig describes the explicitly enabled HTTPS listener.
 type RemoteConfig struct {
-	Enabled                   bool   `json:"enabled"`
-	BindAddress               string `json:"bind_address"`
-	CertificateFile           string `json:"certificate_file"`
-	PrivateKeyFile            string `json:"private_key_file"`
-	AcknowledgePublicExposure bool   `json:"acknowledge_public_exposure"`
+	Enabled                   bool            `json:"enabled"`
+	BindAddress               string          `json:"bind_address"`
+	CertificateFile           string          `json:"certificate_file"`
+	PrivateKeyFile            string          `json:"private_key_file"`
+	AcknowledgePublicExposure bool            `json:"acknowledge_public_exposure"`
+	MCP                       RemoteMCPConfig `json:"mcp"`
+}
+
+// RemoteMCPConfig controls the standards-based remote MCP resource.
+type RemoteMCPConfig struct {
+	Enabled                    bool   `json:"enabled"`
+	ResourceURL                string `json:"resource_url"`
+	AccessTokenLifetimeSeconds int    `json:"access_token_lifetime_seconds"`
+}
+
+const defaultRemoteMCPTokenLifetime = 10 * time.Minute
+
+// AccessTokenLifetime returns the configured lifetime or the safe default.
+func (c RemoteMCPConfig) AccessTokenLifetime() time.Duration {
+	if c.AccessTokenLifetimeSeconds == 0 {
+		return defaultRemoteMCPTokenLifetime
+	}
+	return time.Duration(c.AccessTokenLifetimeSeconds) * time.Second
 }
 
 // Default returns the built-in configuration.
@@ -141,6 +160,9 @@ func (c Config) Validate() error {
 // Validate rejects incomplete or accidentally broad remote exposure.
 func (c RemoteConfig) Validate() error {
 	if !c.Enabled {
+		if c.MCP.Enabled {
+			return fmt.Errorf("config: remote.mcp.enabled requires remote.enabled")
+		}
 		return nil
 	}
 	if strings.TrimSpace(c.BindAddress) != c.BindAddress || c.BindAddress == "" {
@@ -166,6 +188,24 @@ func (c RemoteConfig) Validate() error {
 	}
 	if (ip.IsUnspecified() || (!ip.IsLoopback() && !ip.IsPrivate())) && !c.AcknowledgePublicExposure {
 		return fmt.Errorf("config: remote.acknowledge_public_exposure must be true for wildcard or public bind address %q", c.BindAddress)
+	}
+	return c.MCP.Validate()
+}
+
+// Validate rejects ambiguous resource identifiers and unsafe token lifetimes.
+func (c RemoteMCPConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+	if c.ResourceURL == "" || c.ResourceURL != strings.TrimSpace(c.ResourceURL) {
+		return fmt.Errorf("config: remote.mcp.resource_url must be an exact HTTPS URL ending in /mcp")
+	}
+	resource, err := url.Parse(c.ResourceURL)
+	if err != nil || resource.Scheme != "https" || resource.Host == "" || resource.Path != "/mcp" || resource.RawPath != "" || resource.RawQuery != "" || resource.Fragment != "" || resource.User != nil {
+		return fmt.Errorf("config: remote.mcp.resource_url %q must be a canonical HTTPS URL ending in /mcp", c.ResourceURL)
+	}
+	if c.AccessTokenLifetimeSeconds < 0 || c.AccessTokenLifetimeSeconds > 3600 {
+		return fmt.Errorf("config: remote.mcp.access_token_lifetime_seconds must be from 1 through 3600, or zero for the 600 second default")
 	}
 	return nil
 }

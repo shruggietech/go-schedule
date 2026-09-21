@@ -44,7 +44,8 @@ require_fixed '| T12 | A hostile web origin drives a credentialed browser reques
 require_fixed 'Product ownership' 'product ownership'
 require_fixed 'Operator ownership' 'operator ownership'
 require_fixed 'offline mutation queue' 'offline mutation queue non-goal'
-require_fixed 'remote MCP mutation authority' 'remote MCP mutation non-goal'
+require_fixed 'Remote MCP clients use a separate persistent actor and credential.' 'remote MCP credential isolation'
+require_fixed 'short-lived token is not accepted by the JSON API' 'remote MCP token isolation'
 
 for mode in \
   'Local IPC' \
@@ -95,7 +96,7 @@ awk '
 ' "$DOC" > "$ORDER"
 
 previous=0
-for issue in 166 167 168 169 170 171 172 173; do
+for issue in 166 167 168 169 170 171 172 173 178 179 180; do
   line=$(grep -n -m 1 -F -- "#$issue " "$ORDER" | cut -d: -f1 || true)
   if [ -z "$line" ]; then
     report "missing downstream issue #$issue"

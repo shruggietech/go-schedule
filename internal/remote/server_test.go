@@ -127,6 +127,22 @@ func TestOversizedBodyIsRejectedAtRemoteBoundary(t *testing.T) {
 	}
 }
 
+func TestRemoteMCPRoutesAreAbsentUntilExplicitlyMounted(t *testing.T) {
+	handler := NewHandler(http.NotFoundHandler(), nil, "public")
+	request := httptest.NewRequest(http.MethodGet, "/.well-known/oauth-protected-resource/mcp", nil)
+	missing := httptest.NewRecorder()
+	handler.ServeHTTP(missing, request)
+	if missing.Code != http.StatusNotFound {
+		t.Fatalf("unmounted status=%d", missing.Code)
+	}
+	handler.SetMCPHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }), []string{"/.well-known/oauth-protected-resource/mcp"})
+	mounted := httptest.NewRecorder()
+	handler.ServeHTTP(mounted, request)
+	if mounted.Code != http.StatusNoContent {
+		t.Fatalf("mounted status=%d", mounted.Code)
+	}
+}
+
 func TestRemoteStreamUsesObservationProjectionOutsideRequestCapacity(t *testing.T) {
 	st, err := store.Open(":memory:")
 	if err != nil {

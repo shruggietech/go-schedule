@@ -32,6 +32,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/mcphttp"
 	"github.com/shruggietech/go-schedule/internal/notification"
 	"github.com/shruggietech/go-schedule/internal/remote"
+	"github.com/shruggietech/go-schedule/internal/remotemcp"
 	"github.com/shruggietech/go-schedule/internal/service"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
@@ -162,7 +163,19 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 	remoteAPI.SetActorResolver(remote.ActorID)
 	remoteErr := make(chan error, 1)
 	if cfg.Remote.Enabled {
-		remoteHandler := remote.NewHandler(remoteAPI.Handler(), enrollment.New(st), localActor.ID)
+		enrollmentService := enrollment.New(st)
+		remoteHandler := remote.NewHandler(remoteAPI.Handler(), enrollmentService, localActor.ID)
+		if cfg.Remote.MCP.Enabled {
+			remoteMCP, err := remotemcp.New(cfg.Remote.MCP, buildinfo.Version, enrollmentService, func(actorID string) *client.Client {
+				return client.NewInProcess(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					remoteAPI.Handler().ServeHTTP(w, r.WithContext(remote.WithActorID(r.Context(), actorID)))
+				}))
+			}, remoteHandler.AllowMCPActor)
+			if err != nil {
+				return err
+			}
+			remoteHandler.SetMCPHandler(remoteMCP, remoteMCP.Paths())
+		}
 		go func() { remoteErr <- remote.Serve(ctx, cfg.Remote, remoteHandler, log) }()
 	}
 	srv := &http.Server{

@@ -22,6 +22,11 @@ import (
 
 type actorContextKey struct{}
 
+// WithActorID binds an authenticated persistent actor to an in-process API request.
+func WithActorID(ctx context.Context, actorID string) context.Context {
+	return context.WithValue(ctx, actorContextKey{}, actorID)
+}
+
 func ActorID(r *http.Request) (string, error) {
 	value, _ := r.Context().Value(actorContextKey{}).(string)
 	if value == "" {
@@ -38,7 +43,21 @@ type Handler struct {
 	concurrent  chan struct{}
 	streams     *streamSet
 	publicActor string
+	mcp         http.Handler
+	mcpPaths    map[string]bool
 }
+
+// SetMCPHandler mounts the explicitly enabled remote MCP endpoints.
+func (h *Handler) SetMCPHandler(handler http.Handler, paths []string) {
+	h.mcp = handler
+	h.mcpPaths = make(map[string]bool, len(paths))
+	for _, path := range paths {
+		h.mcpPaths[path] = true
+	}
+}
+
+// AllowMCPActor applies the existing per-credential remote rate limit.
+func (h *Handler) AllowMCPActor(credentialID string) bool { return h.actors.allow(credentialID) }
 
 func NewHandler(next http.Handler, enrollmentService *enrollment.Service, publicActorID string) *Handler {
 	return &Handler{next: next, enrollment: enrollmentService, sources: newLimiterSet(10, 20, 4096), actors: newLimiterSet(20, 40, 4096), concurrent: make(chan struct{}, 64), streams: newStreamSet(16, 2), publicActor: publicActorID}
@@ -48,6 +67,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Header.Get("Origin") != "" {
 		remoteError(w, http.StatusForbidden, "origin_rejected", "browser-origin requests are not supported")
+		return
+	}
+	if h.mcp != nil && h.mcpPaths[r.URL.Path] {
+		select {
+		case h.concurrent <- struct{}{}:
+			defer func() { <-h.concurrent }()
+		default:
+			remoteError(w, http.StatusServiceUnavailable, "busy", "remote request capacity is exhausted")
+			return
+		}
+		source, _, _ := net.SplitHostPort(r.RemoteAddr)
+		if source == "" {
+			source = r.RemoteAddr
+		}
+		if !h.sources.allow(source) {
+			limited(w)
+			return
+		}
+		h.mcp.ServeHTTP(w, r)
 		return
 	}
 	operation, ok := lookup(r.Method, r.URL.Path)
@@ -171,7 +209,7 @@ func (h *Handler) exchange(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) forward(w http.ResponseWriter, r *http.Request, operation Operation, actorID string) {
-	clone := r.Clone(context.WithValue(r.Context(), actorContextKey{}, actorID))
+	clone := r.Clone(WithActorID(r.Context(), actorID))
 	clone.URL.Path = localPath(operation, r.URL.Path)
 	if operation.ID == "tasks.list" || operation.ID == "tasks.create" || operation.ID == "tasks.read" || operation.ID == "tasks.update" || operation.ID == "events.stream" {
 		query := clone.URL.Query()

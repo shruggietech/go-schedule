@@ -161,7 +161,11 @@ The following configuration is an illustrative private-network example. Replace 
     "bind_address": "10.0.0.20:8443",
     "certificate_file": "/etc/goschedule/tls/server.crt",
     "private_key_file": "/etc/goschedule/tls/server.key",
-    "acknowledge_public_exposure": false
+    "acknowledge_public_exposure": false,
+    "mcp": {
+      "enabled": true,
+      "resource_url": "https://scheduler.example.internal:8443/mcp"
+    }
   }
 }
 ```
@@ -209,6 +213,8 @@ gosched --profile production task list
 ```
 
 Direct JSON clients perform `POST /api/v1/enroll` once, store the returned bearer in an operating-system or application secret store, verify `GET /api/v1/manifest`, and send `Authorization: Bearer <opaque-value>` only in request headers. The [OpenAPI document](https://github.com/shruggietech/go-schedule/blob/main/api/openapi/remote-v1.yaml) is authoritative. Browser origins, credential query parameters, credential cookies, redirects, and plaintext HTTP are unsupported.
+
+Remote MCP clients use a separate persistent actor and credential. Create it locally with `gosched pairing create "Automation agent" --kind mcp --capability observe`, exchange the pairing through the existing protected enrollment workflow, then use the returned credential ID and credential token as OAuth client ID and secret. Discover the resource at `/.well-known/oauth-protected-resource/mcp`, discover the client-credentials token endpoint from `/.well-known/oauth-authorization-server`, and request only the required `mcp:observe`, `mcp:operate`, or `mcp:manage` scope with the exact configured resource URL. The resulting short-lived token is not accepted by the JSON API, and the durable credential is not accepted directly by `/mcp`.
 
 Choose Observe for read-only state and history, Operate for deliberate runs and acknowledgements, Manage for scheduler-object configuration, and Enroll only for administrators who must manage actors and credentials. Create separate relationships for separate client installations.
 
@@ -273,9 +279,9 @@ The owning implementation issues pin each reviewed version, prove clean restorat
 
 ## Non-goals
 
-No JWT, user-account system, SSO, custom certificate authority, automatic public exposure, general policy language, offline mutation queue, or remote MCP mutation authority is included.
+No JWT, user-account system, SSO, custom certificate authority, automatic public exposure, general policy language, or offline mutation queue is included.
 
-The boundary also excludes federation, teams, multi-tenancy, OAuth authorization-server behavior, automatic ACME, NAT traversal, service discovery, per-resource ACLs, deny expressions, background mutation replay, multi-master synchronization, conflict resolution, credential export, and credential recovery. Lost credentials are replaced through independently authorized administration.
+The boundary also excludes federation, teams, multi-tenancy, interactive OAuth grants, automatic ACME, NAT traversal, service discovery, per-resource ACLs, deny expressions, background mutation replay, multi-master synchronization, conflict resolution, credential export, and credential recovery. Lost credentials are replaced through independently authorized administration.
 
 ## Required implementation order
 
@@ -286,6 +292,9 @@ The boundary also excludes federation, teams, multi-tenancy, OAuth authorization
 5. #170 and #171 implement desktop and CLI clients.
 6. #172 implements resilience.
 7. #173 qualifies the release.
+8. #178 adds bounded MCP Operate authority over existing tasks.
+9. #179 adds bounded MCP Manage authority over automation definitions.
+10. #180 exposes MCP through standards-based remote authorization.
 
 No network implementation begins until S074 and [issue #165](https://github.com/shruggietech/go-schedule/issues/165) are reviewed and merged. Each downstream issue remains open until its own acceptance criteria and verification are complete.
 

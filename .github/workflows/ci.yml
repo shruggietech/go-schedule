@@ -107,7 +107,7 @@ jobs:
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./internal/config ./internal/remote ./internal/enrollment ./internal/authorization ./internal/api/client ./internal/cli ./internal/clientprofile
+        run: go test -race ./internal/config ./internal/remote ./internal/remotemcp ./internal/enrollment ./internal/authorization ./internal/api/client ./internal/cli ./internal/clientprofile
       - name: Qualify desktop remote connection behavior
         shell: bash
         working-directory: desktop

@@ -72,7 +72,9 @@ Go standard library owns HTTP, TLS, randomness, digests, and constant-time compa
 
 ## Non-goals
 
-No JWT, user-account system, SSO, custom certificate authority, automatic public exposure, general policy language, offline mutation queue, or remote MCP mutation authority is included.
+No JWT, user-account system, SSO, custom certificate authority, automatic public exposure, general policy language, or offline mutation queue is included.
+
+Remote MCP clients use a separate persistent actor and credential. A short-lived token is not accepted by the JSON API.
 
 ## Required implementation order
 
@@ -83,6 +85,9 @@ No JWT, user-account system, SSO, custom certificate authority, automatic public
 5. #170 and #171 implement desktop and CLI clients.
 6. #172 implements resilience.
 7. #173 qualifies the release.
+8. #178 adds bounded MCP Operate authority over existing tasks.
+9. #179 adds bounded MCP Manage authority over automation definitions.
+10. #180 exposes MCP through standards-based remote authorization.
 EOF
 }
 
@@ -147,6 +152,11 @@ missing_non_goal="$TMP/missing-non-goal"
 cp -R "$GOOD" "$missing_non_goal"
 sed 's/offline mutation queue/background synchronization/' "$GOOD/docs/remote-access.md" > "$missing_non_goal/docs/remote-access.md"
 run_expect_fail missing-non-goal 'offline mutation queue non-goal' "$missing_non_goal"
+
+missing_mcp_isolation="$TMP/missing-mcp-isolation"
+cp -R "$GOOD" "$missing_mcp_isolation"
+sed 's/A short-lived token is not accepted by the JSON API./A short-lived token is shared with the JSON API./' "$GOOD/docs/remote-access.md" > "$missing_mcp_isolation/docs/remote-access.md"
+run_expect_fail missing-mcp-isolation 'remote MCP token isolation' "$missing_mcp_isolation"
 
 wrong_order="$TMP/wrong-order"
 cp -R "$GOOD" "$wrong_order"
