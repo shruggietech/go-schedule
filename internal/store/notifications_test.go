@@ -11,6 +11,7 @@ import (
 	"time"
 
 	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
+
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
