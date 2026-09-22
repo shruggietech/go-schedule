@@ -47,6 +47,12 @@ func (s *Store) ObjectIDForPortableID(kind, portableID string) (string, error) {
 		table = "tasks"
 	case "chain":
 		table = "completion_chains"
+	case "external_trigger":
+		table = "external_triggers"
+	case "trigger_set":
+		table = "external_trigger_sets"
+	case "watcher":
+		table = "filesystem_watchers"
 	default:
 		return "", fmt.Errorf("store: unsupported portable identity kind %q", kind)
 	}

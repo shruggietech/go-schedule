@@ -11,18 +11,72 @@ import (
 	"strings"
 )
 
-// SchemaV1 is the only portable bundle schema accepted by this release.
+// SchemaV1 identifies the original groups, tasks, and chains bundle.
 const SchemaV1 = "go-schedule.bundle/v1"
+
+// SchemaV2 adds source and notification policy intent without changing v1.
+const SchemaV2 = "go-schedule.bundle/v2"
 
 // Document carries portable automation intent. It deliberately has no daemon
 // identity, credentials, raw trigger keys, notification endpoints, run history,
 // command, working directory, environment, or run-as identity.
 type Document struct {
-	Schema     string  `json:"schema"`
-	Groups     []Group `json:"groups,omitempty"`
-	Tasks      []Task  `json:"tasks,omitempty"`
-	Chains     []Chain `json:"chains,omitempty"`
-	Exclusions []Issue `json:"exclusions,omitempty"`
+	Schema               string               `json:"schema"`
+	Groups               []Group              `json:"groups,omitempty"`
+	Tasks                []Task               `json:"tasks,omitempty"`
+	Chains               []Chain              `json:"chains,omitempty"`
+	ExternalTriggers     []ExternalTrigger    `json:"external_triggers,omitempty"`
+	TriggerSets          []TriggerSet         `json:"trigger_sets,omitempty"`
+	Watchers             []Watcher            `json:"watchers,omitempty"`
+	NotificationPolicies []NotificationPolicy `json:"notification_policies,omitempty"`
+	Exclusions           []Issue              `json:"exclusions,omitempty"`
+}
+
+// ExternalTrigger describes a standalone invocation source without its key.
+type ExternalTrigger struct {
+	PortableID   string `json:"portable_id"`
+	Name         string `json:"name"`
+	TargetTaskID string `json:"target_task_portable_id"`
+}
+
+// TriggerSet describes an ordered set without its member keys.
+type TriggerSet struct {
+	PortableID   string `json:"portable_id"`
+	Name         string `json:"name"`
+	TargetTaskID string `json:"target_task_portable_id"`
+	MemberCount  int    `json:"member_count"`
+}
+
+// Watcher describes file selection without a machine-local path.
+type Watcher struct {
+	PortableID   string `json:"portable_id"`
+	Name         string `json:"name"`
+	Kind         string `json:"kind"`
+	Pattern      string `json:"pattern,omitempty"`
+	Recursive    bool   `json:"recursive"`
+	Debounce     string `json:"debounce"`
+	Stability    string `json:"stability"`
+	TargetTaskID string `json:"target_task_portable_id"`
+}
+
+// NotificationPolicy binds a portable scope to local channels by name.
+type NotificationPolicy struct {
+	ScopeType       string                   `json:"scope_type"`
+	ScopePortableID string                   `json:"scope_portable_id"`
+	Assignments     []NotificationAssignment `json:"assignments"`
+}
+
+// NotificationAssignment contains only delivery conditions and a channel name.
+type NotificationAssignment struct {
+	ChannelName              string `json:"channel_name"`
+	OnSuccess                bool   `json:"on_success"`
+	OnFailure                bool   `json:"on_failure"`
+	FailureThreshold         int    `json:"failure_threshold"`
+	OnFailureToStart         bool   `json:"on_failure_to_start"`
+	DurationThresholdSeconds int64  `json:"duration_threshold_seconds"`
+	OnRecovery               bool   `json:"on_recovery"`
+	ReminderIntervalSeconds  int64  `json:"reminder_interval_seconds"`
+	QuietPeriodSeconds       int64  `json:"quiet_period_seconds"`
 }
 
 type Group struct {
@@ -33,7 +87,7 @@ type Group struct {
 }
 
 // Task is only the portable scheduling intent. Execution inputs are never part
-// of a v1 document and their omission is disclosed by an exclusion.
+// of a portable document and their omission is disclosed by an exclusion.
 type Task struct {
 	PortableID        string `json:"portable_id"`
 	Name              string `json:"name"`
@@ -123,6 +177,17 @@ func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
 	sort.Slice(doc.Groups, func(i, j int) bool { return doc.Groups[i].PortableID < doc.Groups[j].PortableID })
 	sort.Slice(doc.Tasks, func(i, j int) bool { return doc.Tasks[i].PortableID < doc.Tasks[j].PortableID })
 	sort.Slice(doc.Chains, func(i, j int) bool { return doc.Chains[i].PortableID < doc.Chains[j].PortableID })
+	sort.Slice(doc.ExternalTriggers, func(i, j int) bool { return doc.ExternalTriggers[i].PortableID < doc.ExternalTriggers[j].PortableID })
+	sort.Slice(doc.TriggerSets, func(i, j int) bool { return doc.TriggerSets[i].PortableID < doc.TriggerSets[j].PortableID })
+	sort.Slice(doc.Watchers, func(i, j int) bool { return doc.Watchers[i].PortableID < doc.Watchers[j].PortableID })
+	for i := range doc.NotificationPolicies {
+		sort.Slice(doc.NotificationPolicies[i].Assignments, func(a, b int) bool {
+			return doc.NotificationPolicies[i].Assignments[a].ChannelName < doc.NotificationPolicies[i].Assignments[b].ChannelName
+		})
+	}
+	sort.Slice(doc.NotificationPolicies, func(i, j int) bool {
+		return policyID(doc.NotificationPolicies[i]) < policyID(doc.NotificationPolicies[j])
+	})
 	sort.Slice(doc.Exclusions, func(i, j int) bool { return issueKey(doc.Exclusions[i]) < issueKey(doc.Exclusions[j]) })
 	bytes, err := json.Marshal(doc)
 	if err != nil {
@@ -137,11 +202,14 @@ func issueKey(issue Issue) string {
 	return issue.Kind + "\x00" + issue.Identity + "\x00" + issue.Message
 }
 
-// Validate checks the v1 format, durable identities, and cross-object references.
+// Validate checks the versioned format, durable identities, and cross-object references.
 func Validate(doc Document) []Issue {
 	issues := []Issue{}
-	if doc.Schema != SchemaV1 {
+	if doc.Schema != SchemaV1 && doc.Schema != SchemaV2 {
 		issues = append(issues, Issue{Kind: "schema", Message: fmt.Sprintf("unsupported bundle schema %q", doc.Schema)})
+	}
+	if doc.Schema == SchemaV1 && (len(doc.ExternalTriggers) > 0 || len(doc.TriggerSets) > 0 || len(doc.Watchers) > 0 || len(doc.NotificationPolicies) > 0) {
+		issues = append(issues, Issue{Kind: "schema", Message: "source and policy fields require bundle v2"})
 	}
 	seen := map[string]string{}
 	add := func(kind, id, name string) {
@@ -206,7 +274,59 @@ func Validate(doc Document) []Issue {
 		}
 	}
 	issues = append(issues, validateChainGraph(doc.Chains)...)
+	for _, trigger := range doc.ExternalTriggers {
+		add("external_trigger", trigger.PortableID, trigger.Name)
+		if !tasks[trigger.TargetTaskID] {
+			issues = append(issues, Issue{Kind: "external_trigger", Identity: trigger.PortableID, Message: "target task is absent from bundle"})
+		}
+	}
+	for _, set := range doc.TriggerSets {
+		add("trigger_set", set.PortableID, set.Name)
+		if !tasks[set.TargetTaskID] {
+			issues = append(issues, Issue{Kind: "trigger_set", Identity: set.PortableID, Message: "target task is absent from bundle"})
+		}
+		if set.MemberCount < 1 || set.MemberCount > 99 {
+			issues = append(issues, Issue{Kind: "trigger_set", Identity: set.PortableID, Message: "member_count must be 1 through 99"})
+		}
+	}
+	for _, watcher := range doc.Watchers {
+		add("watcher", watcher.PortableID, watcher.Name)
+		if !tasks[watcher.TargetTaskID] {
+			issues = append(issues, Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "target task is absent from bundle"})
+		}
+		if watcher.Kind != "file" && watcher.Kind != "directory" {
+			issues = append(issues, Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "unsupported watcher kind"})
+		}
+		if watcher.Debounce == "" || watcher.Stability == "" {
+			issues = append(issues, Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "watcher timing is required"})
+		}
+	}
+	policies := map[string]bool{}
+	for _, policy := range doc.NotificationPolicies {
+		id := policyID(policy)
+		if policies[id] {
+			issues = append(issues, Issue{Kind: "notification_policy", Identity: id, Message: "duplicate notification policy scope"})
+		}
+		policies[id] = true
+		if (policy.ScopeType == "task" && !tasks[policy.ScopePortableID]) || (policy.ScopeType == "group" && !groups[policy.ScopePortableID]) || (policy.ScopeType != "task" && policy.ScopeType != "group") {
+			issues = append(issues, Issue{Kind: "notification_policy", Identity: id, Message: "scope is absent from bundle"})
+		}
+		channels := map[string]bool{}
+		for _, assignment := range policy.Assignments {
+			if assignment.ChannelName == "" || channels[assignment.ChannelName] {
+				issues = append(issues, Issue{Kind: "notification_policy", Identity: id, Message: "channel names must be unique and nonempty"})
+			}
+			channels[assignment.ChannelName] = true
+			if !assignment.OnSuccess && !assignment.OnFailure && !assignment.OnFailureToStart && assignment.DurationThresholdSeconds == 0 {
+				issues = append(issues, Issue{Kind: "notification_policy", Identity: id, Message: "assignment needs a delivery condition"})
+			}
+		}
+	}
 	return issues
+}
+
+func policyID(policy NotificationPolicy) string {
+	return policy.ScopeType + ":" + policy.ScopePortableID
 }
 
 func validateGroupGraph(groups []Group) []Issue {
@@ -292,6 +412,7 @@ func Fingerprint(target Document) string { _, _, digest, _ := Canonicalize(targe
 // mutation. Target-only state is visible drift, never an inferred deletion.
 func Preview(id, daemonID string, source, target Document) Plan {
 	canonical, _, digest, issues := Canonicalize(source)
+	target, _, _, _ = Canonicalize(target)
 	plan := Plan{ID: id, BundleDigest: digest, TargetDaemonID: daemonID, TargetFingerprint: Fingerprint(target), Items: make([]Item, 0)}
 	if len(issues) > 0 {
 		for _, issue := range issues {
@@ -313,6 +434,22 @@ func Preview(id, daemonID string, source, target Document) Plan {
 	for _, v := range canonical.Chains {
 		plan.Items = append(plan.Items, compareChain(v, targetChains[v.PortableID]))
 	}
+	for _, v := range canonical.ExternalTriggers {
+		item := comparePortable("external_trigger", v.PortableID, v.Name, v, mapByID(target.ExternalTriggers, func(t ExternalTrigger) string { return t.PortableID })[v.PortableID])
+		plan.Items = append(plan.Items, sourceNameConflict(item, target.ExternalTriggers, v.Name, func(t ExternalTrigger) string { return t.Name }))
+	}
+	for _, v := range canonical.TriggerSets {
+		item := comparePortable("trigger_set", v.PortableID, v.Name, v, mapByID(target.TriggerSets, func(t TriggerSet) string { return t.PortableID })[v.PortableID])
+		plan.Items = append(plan.Items, sourceNameConflict(item, target.TriggerSets, v.Name, func(t TriggerSet) string { return t.Name }))
+	}
+	for _, v := range canonical.Watchers {
+		item := comparePortable("watcher", v.PortableID, v.Name, v, mapByID(target.Watchers, func(t Watcher) string { return t.PortableID })[v.PortableID])
+		plan.Items = append(plan.Items, sourceNameConflict(item, target.Watchers, v.Name, func(t Watcher) string { return t.Name }))
+	}
+	for _, v := range canonical.NotificationPolicies {
+		id := policyID(v)
+		plan.Items = append(plan.Items, comparePortable("notification_policy", id, id, v, mapByID(target.NotificationPolicies, policyID)[id]))
+	}
 	for _, group := range target.Groups {
 		if _, found := groupByID(canonical.Groups, group.PortableID); !found {
 			plan.Items = append(plan.Items, Item{Kind: "group", PortableID: group.PortableID, Name: group.Name, Action: ActionTargetOnly, Message: "exists only on target"})
@@ -328,8 +465,68 @@ func Preview(id, daemonID string, source, target Document) Plan {
 			plan.Items = append(plan.Items, Item{Kind: "chain", PortableID: chain.PortableID, Name: chain.PortableID, Action: ActionTargetOnly, Message: "exists only on target"})
 		}
 	}
+	appendTargetOnly := func(kind, id, name string) {
+		plan.Items = append(plan.Items, Item{Kind: kind, PortableID: id, Name: name, Action: ActionTargetOnly, Message: "exists only on target"})
+	}
+	for _, v := range target.ExternalTriggers {
+		if _, ok := findPortable(canonical.ExternalTriggers, v.PortableID, func(x ExternalTrigger) string { return x.PortableID }); !ok {
+			appendTargetOnly("external_trigger", v.PortableID, v.Name)
+		}
+	}
+	for _, v := range target.TriggerSets {
+		if _, ok := findPortable(canonical.TriggerSets, v.PortableID, func(x TriggerSet) string { return x.PortableID }); !ok {
+			appendTargetOnly("trigger_set", v.PortableID, v.Name)
+		}
+	}
+	for _, v := range target.Watchers {
+		if _, ok := findPortable(canonical.Watchers, v.PortableID, func(x Watcher) string { return x.PortableID }); !ok {
+			appendTargetOnly("watcher", v.PortableID, v.Name)
+		}
+	}
+	for _, v := range target.NotificationPolicies {
+		id := policyID(v)
+		if _, ok := findPortable(canonical.NotificationPolicies, id, policyID); !ok {
+			appendTargetOnly("notification_policy", id, id)
+		}
+	}
 	sort.Slice(plan.Items, func(i, j int) bool { return planKey(plan.Items[i]) < planKey(plan.Items[j]) })
 	return plan
+}
+
+func sourceNameConflict[T any](item Item, target []T, name string, nameOf func(T) string) Item {
+	if item.Action == ActionCreate {
+		for _, existing := range target {
+			if nameOf(existing) == name {
+				item.Action, item.Message = ActionConflict, "target has a source with the same name but a different portable identity"
+				break
+			}
+		}
+	}
+	return item
+}
+
+func findPortable[T any](values []T, id string, key func(T) string) (T, bool) {
+	for _, value := range values {
+		if key(value) == id {
+			return value, true
+		}
+	}
+	var zero T
+	return zero, false
+}
+
+func comparePortable[T any](kind, id, name string, source, target T) Item {
+	var zero T
+	sourceJSON, _ := json.Marshal(source)
+	targetJSON, _ := json.Marshal(target)
+	zeroJSON, _ := json.Marshal(zero)
+	if string(targetJSON) == string(zeroJSON) {
+		return Item{Kind: kind, PortableID: id, Name: name, Action: ActionCreate}
+	}
+	if string(sourceJSON) == string(targetJSON) {
+		return Item{Kind: kind, PortableID: id, Name: name, Action: ActionUnchanged}
+	}
+	return Item{Kind: kind, PortableID: id, Name: name, Action: ActionUpdate}
 }
 
 func planKey(item Item) string {

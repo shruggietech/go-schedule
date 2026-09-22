@@ -176,6 +176,13 @@ func (a *App) PortableBundlePreview(raw string) bundles.Result {
 	return a.bundles.Preview(a.ctx, raw)
 }
 
+func (a *App) PortableBundlePreviewWithPaths(raw string, paths map[string]string) bundles.Result {
+	if a.bundles == nil || a.ctx == nil {
+		return bundles.Result{Action: "preview_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}
+	}
+	return a.bundles.PreviewWithPaths(a.ctx, raw, paths)
+}
+
 func (a *App) PortableBundleCompare(raw string) bundles.Result {
 	if a.bundles == nil || a.ctx == nil {
 		return bundles.Result{Action: "compare_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}

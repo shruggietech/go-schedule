@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -55,6 +56,7 @@ func bundleValidate() *cobra.Command {
 
 func bundlePreview() *cobra.Command {
 	var output string
+	var watcherPaths []string
 	command := &cobra.Command{Use: "preview <bundle-file>", Short: "Create a target-bound, single-use apply plan", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		document, err := readBundleDocument(args[0])
 		if err != nil {
@@ -62,13 +64,22 @@ func bundlePreview() *cobra.Command {
 		}
 		ctx, cancel := reqCtx()
 		defer cancel()
-		plan, err := newClient().PreviewBundle(ctx, document)
+		paths := map[string]string{}
+		for _, binding := range watcherPaths {
+			id, path, found := strings.Cut(binding, "=")
+			if !found || id == "" || path == "" {
+				return fmtUsage("watcher path must be portable-id=absolute-path")
+			}
+			paths[id] = path
+		}
+		plan, err := newClient().PreviewBundleWithPaths(ctx, document, paths)
 		if err != nil {
 			return err
 		}
 		return writeBundleJSON(cmd, output, plan)
 	}}
 	command.Flags().StringVarP(&output, "output", "o", "", "write the single-use plan to a file")
+	command.Flags().StringArrayVar(&watcherPaths, "watcher-path", nil, "bind a watcher to a target-local path (portable-id=absolute-path)")
 	return command
 }
 

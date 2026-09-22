@@ -2,6 +2,7 @@ package store
 
 import (
 	"testing"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -26,6 +27,58 @@ func TestPortableIdentityIsStableAndIndependentFromObjectID(t *testing.T) {
 	var version int
 	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 22 {
 		t.Fatalf("version=%d err=%v", version, err)
+	}
+}
+
+func TestPortableSourceIdentitiesResolveOnlyLiveRecords(t *testing.T) {
+	st := openMem(t)
+	task := domain.Task{Name: "target", Command: "echo", State: domain.TaskActive}
+	if err := st.CreateTask(&task); err != nil {
+		t.Fatal(err)
+	}
+	trigger := domain.ExternalTrigger{Name: "call", TargetTaskID: task.ID}
+	if err := st.CreateExternalTrigger(&trigger); err != nil {
+		t.Fatal(err)
+	}
+	set := domain.TriggerSet{Name: "set", TargetTaskID: task.ID}
+	if err := st.CreateTriggerSet(&set, 2, false); err != nil {
+		t.Fatal(err)
+	}
+	watcher := domain.FilesystemWatcher{Name: "files", Kind: domain.WatcherDirectory, Path: t.TempDir(), TargetTaskID: task.ID, Debounce: 250 * time.Millisecond, Stability: 500 * time.Millisecond}
+	if err := st.CreateFilesystemWatcher(&watcher); err != nil {
+		t.Fatal(err)
+	}
+	var triggerPortableID string
+	for _, value := range []struct{ kind, id string }{{"external_trigger", trigger.ID}, {"trigger_set", set.ID}, {"watcher", watcher.ID}} {
+		portableID, err := st.PortableID(value.kind, value.id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if value.kind == "external_trigger" {
+			triggerPortableID = portableID
+		}
+		resolved, err := st.ObjectIDForPortableID(value.kind, portableID)
+		if err != nil || resolved != value.id {
+			t.Fatalf("%s resolved %q err=%v", value.kind, resolved, err)
+		}
+	}
+	if err := st.DeleteExternalTrigger(trigger.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.ObjectIDForPortableID("external_trigger", triggerPortableID); err != ErrNotFound {
+		t.Fatalf("stale trigger identity error=%v", err)
+	}
+	if _, err := st.ObjectIDForPortableID("external_trigger", "missing"); err != ErrNotFound {
+		t.Fatalf("missing identity error=%v", err)
+	}
+	if _, err := st.ObjectIDForPortableID("unknown", "missing"); err != ErrNotFound {
+		t.Fatalf("unknown absent identity error=%v", err)
+	}
+	if err := st.BindPortableID("unknown", "not-an-object", "unsupported-id"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.ObjectIDForPortableID("unknown", "unsupported-id"); err == nil {
+		t.Fatal("unsupported object kind resolved")
 	}
 }
 

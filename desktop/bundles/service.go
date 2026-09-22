@@ -47,13 +47,25 @@ func (s *Service) Validate(ctx context.Context, raw string) Result {
 }
 
 func (s *Service) Preview(ctx context.Context, raw string) Result {
+	return s.PreviewWithPaths(ctx, raw, nil)
+}
+
+// PreviewWithPaths binds new watchers to absolute paths on the selected target.
+func (s *Service) PreviewWithPaths(ctx context.Context, raw string, paths map[string]string) Result {
 	doc, err := parse(raw)
 	if err != nil {
 		return rejected("preview_bundle", "Enter valid bundle JSON.")
 	}
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	plan, err := s.backend.PreviewBundle(c, doc)
+	var plan bundle.Plan
+	if backend, ok := s.backend.(interface {
+		PreviewBundleWithPaths(context.Context, bundle.Document, map[string]string) (bundle.Plan, error)
+	}); ok {
+		plan, err = backend.PreviewBundleWithPaths(c, doc, paths)
+	} else {
+		plan, err = s.backend.PreviewBundle(c, doc)
+	}
 	if err != nil {
 		return failure("preview_bundle", err)
 	}

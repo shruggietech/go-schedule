@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Portable bundles now include safe automation source and notification policy intent (Refs #184).** Version 2 exports standalone external triggers, trigger sets, filesystem watcher selection rules, and notification assignments without keys, endpoints, credentials, local paths, or enabled state. Target-bound preview accepts local watcher paths, checks notification channel names, and applies reviewed changes with new sources disabled and fresh local keys. Existing version 1 documents remain readable.
+
 - **Cross-daemon search finds and safely acts on automation across every registered scheduler (Closes #183; Refs #174).** A dedicated desktop workspace progressively searches tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts with eight-target fan-out, three-second target deadlines, source identity, freshness, truncation, and independent failures. Exact-source opening validates the expected daemon identity, while explicit acknowledge, enable, disable, and run-now batches group confirmation by daemon, revalidate current identity, authority, and object state, and retain independent accepted, rejected, or uncertain outcomes without rollback or automatic replay.
 
 - **All Systems now provides bounded operational triage across every registered daemon (Closes #182; Refs #174).** The desktop observes This computer and each saved profile independently with four-worker fan-out, progressive generation updates, five-second target deadlines, typed connection failures, session-only stale continuity, stable filtering and sorting, and exact-profile drill-down. A new additive Observe-authorized summary endpoint returns bounded counts and safe representative identifiers for upcoming work, recent failures, alerts, and notification problems without exposing executable configuration, output, messages, destinations, payloads, or credentials.
@@ -27,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-22: keep target bindings outside portable bundle documents (Refs #184).** Watcher paths are supplied to preview for the selected daemon and retained only with its single-use plan. Notification policy references resolve to uniquely named channels already configured on the target. Trigger-set rename and member-count edits surface conflicts until the store has an atomic edit operation, preserving accurate preview outcomes.
 
 - **2026-09-21: keep fleet search stateless and reconstruct every mutation target from its registration (Refs #183, #174).** Each daemon performs its own bounded secret-free query, and the desktop retains results only for the active search generation. Before mutation, the desktop reloads the exact profile and credential, verifies the expected daemon and current Operate authority, reloads the object, and dispatches through the existing audited endpoint. Display labels never select a target, and partial success never implies transactionality.
 

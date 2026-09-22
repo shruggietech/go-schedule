@@ -139,7 +139,7 @@ paths:
   /bundles/export:
     get:
       operationId: bundles.export
-      description: Returns a versioned secret-free portable automation document.
+      description: Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
       responses: {"200": {description: Portable automation bundle}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /bundles/validate:
     post:
@@ -150,7 +150,7 @@ paths:
   /bundles/preview:
     post:
       operationId: bundles.preview
-      description: Creates a short-lived target-bound plan without target mutation.
+      description: Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: true}}}}
       responses: {"200": {description: Target-bound bundle plan}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
   /bundles/compare:
