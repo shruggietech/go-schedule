@@ -85,3 +85,25 @@ func TestValidateRejectsCyclicGroupHierarchy(t *testing.T) {
 		t.Fatal("cyclic group hierarchy was accepted")
 	}
 }
+
+func TestV2SourcesAreCanonicalAndV1CannotClaimThem(t *testing.T) {
+	tasks := []Task{{PortableID: "task", Name: "Task", Timezone: "UTC", OverlapPolicy: "queue_one", CatchupPolicy: "one", MissingDatePolicy: "skip", TimeBasis: "wall_clock", DSTGapPolicy: "next_valid", DSTOverlapPolicy: "first"}}
+	doc := Document{Schema: SchemaV2, Tasks: tasks, ExternalTriggers: []ExternalTrigger{{PortableID: "z", Name: "Z", TargetTaskID: "task"}, {PortableID: "a", Name: "A", TargetTaskID: "task"}}, TriggerSets: []TriggerSet{{PortableID: "set", Name: "Set", TargetTaskID: "task", MemberCount: 2}}, Watchers: []Watcher{{PortableID: "watcher", Name: "Watch", Kind: "directory", Pattern: "*.txt", Debounce: "250ms", Stability: "500ms", TargetTaskID: "task"}}, NotificationPolicies: []NotificationPolicy{{ScopeType: "task", ScopePortableID: "task", Assignments: []NotificationAssignment{{ChannelName: "Z", OnFailure: true, FailureThreshold: 1}, {ChannelName: "A", OnSuccess: true, FailureThreshold: 1}}}}}
+	_, first, digest, issues := Canonicalize(doc)
+	if len(issues) != 0 {
+		t.Fatalf("issues=%+v", issues)
+	}
+	doc.ExternalTriggers[0], doc.ExternalTriggers[1] = doc.ExternalTriggers[1], doc.ExternalTriggers[0]
+	doc.NotificationPolicies[0].Assignments[0], doc.NotificationPolicies[0].Assignments[1] = doc.NotificationPolicies[0].Assignments[1], doc.NotificationPolicies[0].Assignments[0]
+	_, second, secondDigest, issues := Canonicalize(doc)
+	if len(issues) != 0 || digest != secondDigest || string(first) != string(second) {
+		t.Fatalf("unstable v2 bundle: %s / %s, issues=%+v", first, second, issues)
+	}
+	doc.Schema = SchemaV1
+	if issues := Validate(doc); len(issues) == 0 {
+		t.Fatal("v1 accepted source fields")
+	}
+	if _, err := Decode([]byte(`{"schema":"go-schedule.bundle/v2","watchers":[{"portable_id":"w","name":"W","path":"/secret"}]}`)); err == nil {
+		t.Fatal("bundle accepted a machine-local watcher path")
+	}
+}

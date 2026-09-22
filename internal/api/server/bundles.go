@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/bundle"
@@ -23,7 +25,8 @@ const (
 
 // BundleRequest carries an untrusted portable document for validation or review.
 type BundleRequest struct {
-	Bundle bundle.Document `json:"bundle"`
+	Bundle       bundle.Document   `json:"bundle"`
+	WatcherPaths map[string]string `json:"watcher_paths,omitempty"`
 }
 
 // BundleApplyRequest must echo the exact preview supplied by the daemon. A caller cannot turn a validation result into an apply authorization.
@@ -40,9 +43,16 @@ type BundleApplyResponse struct {
 }
 
 type storedBundlePlan struct {
-	Document bundle.Document
-	Plan     bundle.Plan
-	Created  time.Time
+	Document        bundle.Document
+	Plan            bundle.Plan
+	WatcherPaths    map[string]string
+	ChannelBindings map[string]bundleChannelBinding
+	Created         time.Time
+}
+
+type bundleChannelBinding struct {
+	ID        string
+	UpdatedAt time.Time
 }
 
 func (s *Server) handleBundleExport(w http.ResponseWriter, _ *http.Request) {
@@ -101,10 +111,204 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 		return
 	}
 	plan := bundle.Preview(bundlePlanID(), identity.InstallationID, canonical, target)
+	channelBindings := map[string]bundleChannelBinding{}
+	for index := range plan.Items {
+		item := &plan.Items[index]
+		if item.Kind == "trigger_set" && item.Action == bundle.ActionUpdate {
+			for _, source := range canonical.TriggerSets {
+				if source.PortableID != item.PortableID {
+					continue
+				}
+				for _, existing := range target.TriggerSets {
+					if existing.PortableID == item.PortableID && (existing.Name != source.Name || existing.MemberCount != source.MemberCount) {
+						item.Action, item.Message = bundle.ActionConflict, "existing trigger set name or member count differs; update the target set locally"
+					}
+				}
+			}
+		}
+		if item.Kind == "watcher" && item.Action == bundle.ActionCreate {
+			path := req.WatcherPaths[item.PortableID]
+			if path == "" || !filepath.IsAbs(path) {
+				item.Action, item.Message = bundle.ActionConflict, "supply an absolute target-local watcher path before preview"
+			}
+		}
+		if item.Kind == "notification_policy" && (item.Action == bundle.ActionCreate || item.Action == bundle.ActionUpdate) {
+			for _, policy := range canonical.NotificationPolicies {
+				if policy.ScopeType+":"+policy.ScopePortableID != item.PortableID {
+					continue
+				}
+				channels, err := s.store.ListNotificationChannels()
+				if err != nil {
+					s.internal(w, err)
+					return
+				}
+				for _, assignment := range policy.Assignments {
+					count := 0
+					for _, channel := range channels {
+						if channel.Name == assignment.ChannelName {
+							count++
+							channelBindings[assignment.ChannelName] = bundleChannelBinding{ID: channel.ID, UpdatedAt: channel.UpdatedAt}
+						}
+					}
+					if count != 1 {
+						item.Action, item.Message = bundle.ActionConflict, "target needs exactly one local channel named "+assignment.ChannelName
+						break
+					}
+				}
+			}
+		}
+	}
 	if retain {
-		s.rememberBundlePlan(canonical, plan)
+		s.rememberBundlePlan(canonical, plan, req.WatcherPaths, channelBindings)
 	}
 	writeJSON(w, http.StatusOK, plan)
+}
+
+func (s *Server) applyBundleExternalTrigger(source bundle.ExternalTrigger) bundle.Item {
+	item := bundle.Item{Kind: "external_trigger", PortableID: source.PortableID, Name: source.Name}
+	taskID, err := s.store.ObjectIDForPortableID("task", source.TargetTaskID)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, "target task was not applied"
+		return item
+	}
+	id, err := s.store.ObjectIDForPortableID("external_trigger", source.PortableID)
+	if errors.Is(err, store.ErrNotFound) {
+		trigger := domain.ExternalTrigger{Name: source.Name, TargetTaskID: taskID, Enabled: false}
+		if err := s.store.CreateExternalTrigger(&trigger); err != nil {
+			item.Action, item.Message = bundle.ActionFailed, err.Error()
+			return item
+		}
+		if err := s.store.BindPortableID("external_trigger", trigger.ID, source.PortableID); err != nil {
+			item.Action, item.Message = bundle.ActionUncertain, err.Error()
+			return item
+		}
+		item.Action, item.Message = bundle.ActionApplied, "created disabled with a fresh local key; rotate and enable locally"
+		return item
+	}
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	trigger := domain.ExternalTrigger{ID: id, Name: source.Name, TargetTaskID: taskID}
+	if err := s.store.UpdateExternalTrigger(&trigger); err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	item.Action, item.Message = bundle.ActionApplied, "updated portable intent; local key and enabled state preserved"
+	return item
+}
+
+func (s *Server) applyBundleTriggerSet(source bundle.TriggerSet) bundle.Item {
+	item := bundle.Item{Kind: "trigger_set", PortableID: source.PortableID, Name: source.Name}
+	taskID, err := s.store.ObjectIDForPortableID("task", source.TargetTaskID)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, "target task was not applied"
+		return item
+	}
+	id, err := s.store.ObjectIDForPortableID("trigger_set", source.PortableID)
+	if errors.Is(err, store.ErrNotFound) {
+		set := domain.TriggerSet{Name: source.Name, TargetTaskID: taskID}
+		if err := s.store.CreateTriggerSet(&set, source.MemberCount, false); err != nil {
+			item.Action, item.Message = bundle.ActionFailed, err.Error()
+			return item
+		}
+		if err := s.store.BindPortableID("trigger_set", set.ID, source.PortableID); err != nil {
+			item.Action, item.Message = bundle.ActionUncertain, err.Error()
+			return item
+		}
+		item.Action, item.Message = bundle.ActionApplied, "created disabled with fresh local member keys; rotate and enable locally"
+		return item
+	}
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	if _, err := s.store.RetargetTriggerSet(id, taskID); err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	item.Action, item.Message = bundle.ActionApplied, "retargeted set; member keys and enabled state preserved"
+	return item
+}
+
+func (s *Server) applyBundleWatcher(source bundle.Watcher, path string) bundle.Item {
+	item := bundle.Item{Kind: "watcher", PortableID: source.PortableID, Name: source.Name}
+	taskID, err := s.store.ObjectIDForPortableID("task", source.TargetTaskID)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, "target task was not applied"
+		return item
+	}
+	debounce, err := time.ParseDuration(source.Debounce)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, "invalid debounce duration"
+		return item
+	}
+	stability, err := time.ParseDuration(source.Stability)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, "invalid stability duration"
+		return item
+	}
+	id, err := s.store.ObjectIDForPortableID("watcher", source.PortableID)
+	watcher := domain.FilesystemWatcher{Name: source.Name, Kind: domain.WatcherKind(source.Kind), Pattern: source.Pattern, Recursive: source.Recursive, Debounce: debounce, Stability: stability, TargetTaskID: taskID}
+	if errors.Is(err, store.ErrNotFound) {
+		watcher.Path, watcher.Enabled = path, false
+		if err := s.store.CreateFilesystemWatcher(&watcher); err != nil {
+			item.Action, item.Message = bundle.ActionFailed, err.Error()
+			return item
+		}
+		if err := s.store.BindPortableID("watcher", watcher.ID, source.PortableID); err != nil {
+			item.Action, item.Message = bundle.ActionUncertain, err.Error()
+			return item
+		}
+		item.Action, item.Message = bundle.ActionApplied, "created disabled with target-local path"
+		return item
+	}
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	existing, err := s.store.GetFilesystemWatcher(id)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	watcher.ID, watcher.Path, watcher.Enabled = id, existing.Path, existing.Enabled
+	if err := s.store.UpdateFilesystemWatcher(&watcher); err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	item.Action, item.Message = bundle.ActionApplied, "updated portable selection; local path and enabled state preserved"
+	return item
+}
+
+func (s *Server) applyBundleNotificationPolicy(source bundle.NotificationPolicy, bindings map[string]bundleChannelBinding) bundle.Item {
+	id := source.ScopeType + ":" + source.ScopePortableID
+	item := bundle.Item{Kind: "notification_policy", PortableID: id, Name: id}
+	scopeID, err := s.store.ObjectIDForPortableID(source.ScopeType, source.ScopePortableID)
+	if err != nil {
+		item.Action, item.Message = bundle.ActionFailed, "policy scope was not applied"
+		return item
+	}
+	assignments := make([]domain.NotificationAssignment, 0, len(source.Assignments))
+	for _, assignment := range source.Assignments {
+		binding, exists := bindings[assignment.ChannelName]
+		if !exists {
+			item.Action, item.Message = bundle.ActionFailed, "reviewed channel binding is missing"
+			return item
+		}
+		channel, err := s.store.GetNotificationChannel(binding.ID)
+		if err != nil || channel.Name != assignment.ChannelName || !channel.UpdatedAt.Equal(binding.UpdatedAt) {
+			item.Action, item.Message = bundle.ActionFailed, "reviewed channel changed after preview; preview again"
+			return item
+		}
+		assignments = append(assignments, domain.NotificationAssignment{ChannelID: binding.ID, OnSuccess: assignment.OnSuccess, OnFailure: assignment.OnFailure, FailureThreshold: assignment.FailureThreshold, OnFailureToStart: assignment.OnFailureToStart, DurationThresholdSeconds: assignment.DurationThresholdSeconds, OnRecovery: assignment.OnRecovery, ReminderIntervalSeconds: assignment.ReminderIntervalSeconds, QuietPeriodSeconds: assignment.QuietPeriodSeconds})
+	}
+	if err := s.store.ReplaceNotificationAssignments(domain.NotificationScopeType(source.ScopeType), scopeID, assignments); err != nil {
+		item.Action, item.Message = bundle.ActionFailed, err.Error()
+		return item
+	}
+	item.Action, item.Message = bundle.ActionApplied, "bound to target-local notification channels"
+	return item
 }
 
 func decodeBundleRequest(body io.Reader) (BundleRequest, error) {
@@ -138,7 +342,35 @@ func bundleCompatibilityIssues(doc bundle.Document) []bundle.Issue {
 			issues = append(issues, bundle.Issue{Kind: "task", Identity: task.PortableID, Message: "task policy is unsupported on target"})
 		}
 	}
+	for _, watcher := range doc.Watchers {
+		debounce, debounceErr := time.ParseDuration(watcher.Debounce)
+		stability, stabilityErr := time.ParseDuration(watcher.Stability)
+		if debounceErr != nil || stabilityErr != nil || debounce < store.MinWatcherDuration || debounce > store.MaxWatcherDuration || stability < store.MinWatcherDuration || stability > store.MaxWatcherDuration {
+			issues = append(issues, bundle.Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "watcher timing is unsupported on target"})
+		}
+		if watcher.Kind == string(domain.WatcherFile) && (watcher.Pattern != "" || watcher.Recursive) {
+			issues = append(issues, bundle.Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "file watcher cannot have a pattern or recurse"})
+		}
+		if watcher.Kind == string(domain.WatcherDirectory) {
+			if watcher.Pattern == "" || strings.ContainsAny(watcher.Pattern, `/\`) {
+				issues = append(issues, bundle.Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "directory watcher needs a local filename pattern"})
+			} else if _, err := filepath.Match(watcher.Pattern, "candidate"); err != nil {
+				issues = append(issues, bundle.Issue{Kind: "watcher", Identity: watcher.PortableID, Message: "watcher pattern is invalid"})
+			}
+		}
+	}
+	for _, policy := range doc.NotificationPolicies {
+		for _, a := range policy.Assignments {
+			if a.FailureThreshold < 1 || a.FailureThreshold > 100 || invalidBundleInterval(a.DurationThresholdSeconds, 1) || invalidBundleInterval(a.ReminderIntervalSeconds, 60) || invalidBundleInterval(a.QuietPeriodSeconds, 60) || ((a.OnRecovery || a.ReminderIntervalSeconds > 0) && !a.OnFailure && !a.OnFailureToStart && a.DurationThresholdSeconds == 0) {
+				issues = append(issues, bundle.Issue{Kind: "notification_policy", Identity: policy.ScopeType + ":" + policy.ScopePortableID, Message: "notification condition is unsupported on target"})
+			}
+		}
+	}
 	return issues
+}
+
+func invalidBundleInterval(value, minimum int64) bool {
+	return value != 0 && (value < minimum || value > 2592000)
 }
 
 func (s *Server) handleBundleApply(w http.ResponseWriter, r *http.Request) {
@@ -166,12 +398,12 @@ func (s *Server) handleBundleApply(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, CodeConflict, "plan", "target changed after preview; preview again before apply")
 		return
 	}
-	outcomes := s.applyBundle(stored.Document, stored.Plan)
+	outcomes := s.applyBundle(stored.Document, stored.Plan, stored.WatcherPaths, stored.ChannelBindings)
 	s.reload()
 	writeJSON(w, http.StatusOK, BundleApplyResponse{Plan: stored.Plan, Outcomes: outcomes})
 }
 
-func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan) {
+func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan, watcherPaths map[string]string, channelBindings map[string]bundleChannelBinding) {
 	s.bundlePlanMu.Lock()
 	defer s.bundlePlanMu.Unlock()
 	now := time.Now().UTC()
@@ -190,7 +422,7 @@ func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan) {
 		}
 		delete(s.bundlePlans, oldestID)
 	}
-	s.bundlePlans[plan.ID] = storedBundlePlan{Document: doc, Plan: plan, Created: now}
+	s.bundlePlans[plan.ID] = storedBundlePlan{Document: doc, Plan: plan, WatcherPaths: watcherPaths, ChannelBindings: channelBindings, Created: now}
 }
 
 func (s *Server) takeBundlePlan(req BundleApplyRequest) (storedBundlePlan, bool) {
@@ -205,7 +437,7 @@ func (s *Server) takeBundlePlan(req BundleApplyRequest) (storedBundlePlan, bool)
 }
 
 // applyBundle creates or updates only portable intent. Imported tasks remain disabled drafts because commands and all other execution inputs are excluded.
-func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan) []bundle.Item {
+func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths map[string]string, channelBindings map[string]bundleChannelBinding) []bundle.Item {
 	outcomes := make([]bundle.Item, 0, len(plan.Items))
 	blocked := s.detachBundleGroupParents(doc, plan, &outcomes)
 	groups := append([]bundle.Group(nil), doc.Groups...)
@@ -242,6 +474,26 @@ func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan) []bundle.Ite
 		}
 	}
 	outcomes = append(outcomes, s.applyBundleChains(doc.Chains, plan)...)
+	for _, source := range doc.ExternalTriggers {
+		if bundlePlanChanges(plan, "external_trigger", source.PortableID) {
+			outcomes = append(outcomes, s.applyBundleExternalTrigger(source))
+		}
+	}
+	for _, source := range doc.TriggerSets {
+		if bundlePlanChanges(plan, "trigger_set", source.PortableID) {
+			outcomes = append(outcomes, s.applyBundleTriggerSet(source))
+		}
+	}
+	for _, source := range doc.Watchers {
+		if bundlePlanChanges(plan, "watcher", source.PortableID) {
+			outcomes = append(outcomes, s.applyBundleWatcher(source, watcherPaths[source.PortableID]))
+		}
+	}
+	for _, source := range doc.NotificationPolicies {
+		if bundlePlanChanges(plan, "notification_policy", source.ScopeType+":"+source.ScopePortableID) {
+			outcomes = append(outcomes, s.applyBundleNotificationPolicy(source, channelBindings))
+		}
+	}
 	for _, item := range plan.Items {
 		if item.Action == bundle.ActionTargetOnly || item.Action == bundle.ActionUnchanged || item.Action == bundle.ActionConflict {
 			outcomes = append(outcomes, item)
@@ -502,7 +754,7 @@ func (s *Server) applyBundleChain(source bundle.Chain) bundle.Item {
 }
 
 func (s *Server) bundleDocument() (bundle.Document, error) {
-	doc := bundle.Document{Schema: bundle.SchemaV1, Groups: []bundle.Group{}, Tasks: []bundle.Task{}, Chains: []bundle.Chain{}, Exclusions: []bundle.Issue{}}
+	doc := bundle.Document{Schema: bundle.SchemaV2, Groups: []bundle.Group{}, Tasks: []bundle.Task{}, Chains: []bundle.Chain{}, Exclusions: []bundle.Issue{}}
 	groups, err := s.store.ListGroups()
 	if err != nil {
 		return doc, err
@@ -559,17 +811,76 @@ func (s *Server) bundleDocument() (bundle.Document, error) {
 	if err != nil {
 		return doc, err
 	}
-	if len(triggers) > 0 {
-		doc.Exclusions = append(doc.Exclusions, bundle.Issue{Kind: "external_trigger", Message: "external trigger keys were excluded"})
+	for _, trigger := range triggers {
+		if trigger.SetID != "" {
+			continue
+		}
+		id, err := s.store.PortableID("external_trigger", trigger.ID)
+		if err != nil {
+			return doc, err
+		}
+		doc.ExternalTriggers = append(doc.ExternalTriggers, bundle.ExternalTrigger{PortableID: id, Name: trigger.Name, TargetTaskID: taskIDs[trigger.TargetTaskID]})
+		doc.Exclusions = append(doc.Exclusions, bundle.Issue{Kind: "external_trigger_key", Identity: id, Message: "trigger key and enabled state were excluded"})
+	}
+	sets, err := s.store.ListTriggerSets()
+	if err != nil {
+		return doc, err
+	}
+	for _, set := range sets {
+		id, err := s.store.PortableID("trigger_set", set.ID)
+		if err != nil {
+			return doc, err
+		}
+		doc.TriggerSets = append(doc.TriggerSets, bundle.TriggerSet{PortableID: id, Name: set.Name, TargetTaskID: taskIDs[set.TargetTaskID], MemberCount: len(set.Members)})
+		doc.Exclusions = append(doc.Exclusions, bundle.Issue{Kind: "trigger_set_keys", Identity: id, Message: "member keys and enabled state were excluded"})
 	}
 	watchers, err := s.store.ListFilesystemWatchers()
 	if err != nil {
 		return doc, err
 	}
-	if len(watchers) > 0 {
-		doc.Exclusions = append(doc.Exclusions, bundle.Issue{Kind: "filesystem_watcher", Message: "machine-specific watcher paths were excluded"})
+	for _, watcher := range watchers {
+		id, err := s.store.PortableID("watcher", watcher.ID)
+		if err != nil {
+			return doc, err
+		}
+		doc.Watchers = append(doc.Watchers, bundle.Watcher{PortableID: id, Name: watcher.Name, Kind: string(watcher.Kind), Pattern: watcher.Pattern, Recursive: watcher.Recursive, Debounce: watcher.Debounce.String(), Stability: watcher.Stability.String(), TargetTaskID: taskIDs[watcher.TargetTaskID]})
+		doc.Exclusions = append(doc.Exclusions, bundle.Issue{Kind: "watcher_path", Identity: id, Message: "machine-local watcher path and enabled state were excluded"})
+	}
+	channels, err := s.store.ListNotificationChannels()
+	if err != nil {
+		return doc, err
+	}
+	channelNames := map[string]string{}
+	for _, channel := range channels {
+		channelNames[channel.ID] = channel.Name
+	}
+	for _, group := range groups {
+		assignments, err := s.store.ListNotificationAssignments(domain.NotificationScopeGroup, group.ID)
+		if err != nil {
+			return doc, err
+		}
+		if len(assignments) > 0 {
+			doc.NotificationPolicies = append(doc.NotificationPolicies, bundlePolicy("group", groupIDs[group.ID], assignments, channelNames))
+		}
+	}
+	for _, task := range tasks {
+		assignments, err := s.store.ListNotificationAssignments(domain.NotificationScopeTask, task.ID)
+		if err != nil {
+			return doc, err
+		}
+		if len(assignments) > 0 {
+			doc.NotificationPolicies = append(doc.NotificationPolicies, bundlePolicy("task", taskIDs[task.ID], assignments, channelNames))
+		}
 	}
 	return doc, nil
+}
+
+func bundlePolicy(scopeType, scopeID string, assignments []domain.NotificationAssignment, channels map[string]string) bundle.NotificationPolicy {
+	policy := bundle.NotificationPolicy{ScopeType: scopeType, ScopePortableID: scopeID, Assignments: []bundle.NotificationAssignment{}}
+	for _, a := range assignments {
+		policy.Assignments = append(policy.Assignments, bundle.NotificationAssignment{ChannelName: channels[a.ChannelID], OnSuccess: a.OnSuccess, OnFailure: a.OnFailure, FailureThreshold: a.FailureThreshold, OnFailureToStart: a.OnFailureToStart, DurationThresholdSeconds: a.DurationThresholdSeconds, OnRecovery: a.OnRecovery, ReminderIntervalSeconds: a.ReminderIntervalSeconds, QuietPeriodSeconds: a.QuietPeriodSeconds})
+	}
+	return policy
 }
 
 func bundlePlanID() string {

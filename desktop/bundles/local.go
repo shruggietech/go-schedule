@@ -28,6 +28,14 @@ func (b *LocalBackend) ValidateBundle(ctx context.Context, doc bundle.Document) 
 func (b *LocalBackend) PreviewBundle(ctx context.Context, doc bundle.Document) (bundle.Plan, error) {
 	return b.daemon.PreviewBundle(ctx, doc)
 }
+func (b *LocalBackend) PreviewBundleWithPaths(ctx context.Context, doc bundle.Document, paths map[string]string) (bundle.Plan, error) {
+	if backend, ok := b.daemon.(interface {
+		PreviewBundleWithPaths(context.Context, bundle.Document, map[string]string) (bundle.Plan, error)
+	}); ok {
+		return backend.PreviewBundleWithPaths(ctx, doc, paths)
+	}
+	return b.daemon.PreviewBundle(ctx, doc)
+}
 func (b *LocalBackend) CompareBundle(ctx context.Context, doc bundle.Document) (bundle.Plan, error) {
 	return b.daemon.CompareBundle(ctx, doc)
 }

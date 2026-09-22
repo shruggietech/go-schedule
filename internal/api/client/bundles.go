@@ -30,8 +30,13 @@ func (c *Client) ValidateBundle(ctx context.Context, document bundle.Document) (
 
 // PreviewBundle creates a single-use, target-bound plan. ApplyBundle accepts only this plan while it remains fresh.
 func (c *Client) PreviewBundle(ctx context.Context, document bundle.Document) (bundle.Plan, error) {
+	return c.PreviewBundleWithPaths(ctx, document, nil)
+}
+
+// PreviewBundleWithPaths supplies target-local watcher paths outside the canonical bundle.
+func (c *Client) PreviewBundleWithPaths(ctx context.Context, document bundle.Document, paths map[string]string) (bundle.Plan, error) {
 	var out bundle.Plan
-	err := c.do(ctx, http.MethodPost, "/v1/bundles/preview", server.BundleRequest{Bundle: document}, &out)
+	err := c.do(ctx, http.MethodPost, "/v1/bundles/preview", server.BundleRequest{Bundle: document, WatcherPaths: paths}, &out)
 	return out, err
 }
 

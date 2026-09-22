@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/shruggietech/go-schedule/internal/bundle"
+	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
 func TestBundleApplyRequiresPreviewAndCreatesDisabledDraft(t *testing.T) {
@@ -135,5 +136,137 @@ func TestBundleUpdatePreservesRequestedEnabledStateWhenLocallyReady(t *testing.T
 	updated, err := s.store.GetTask(task.ID)
 	if err != nil || !updated.Enabled {
 		t.Fatalf("updated task=%+v err=%v", updated, err)
+	}
+}
+
+func TestBundleV2SourcesRequireBindingsAndApplyAsDisabled(t *testing.T) {
+	s := newTestServer(t)
+	doc := bundle.Document{Schema: bundle.SchemaV2, Tasks: []bundle.Task{{PortableID: "task", Name: "Portable", Timezone: "UTC", OverlapPolicy: "queue_one", CatchupPolicy: "one", MissingDatePolicy: "skip", TimeBasis: "wall_clock", DSTGapPolicy: "next_valid", DSTOverlapPolicy: "first"}}, ExternalTriggers: []bundle.ExternalTrigger{{PortableID: "trigger", Name: " API ", TargetTaskID: "task"}}, TriggerSets: []bundle.TriggerSet{{PortableID: "set", Name: " Batch ", TargetTaskID: "task", MemberCount: 2}}, Watchers: []bundle.Watcher{{PortableID: "watcher", Name: " Files ", Kind: "directory", Pattern: "*.txt", Debounce: "0.25s", Stability: "0.5s", TargetTaskID: "task"}}, NotificationPolicies: []bundle.NotificationPolicy{{ScopeType: "task", ScopePortableID: "task", Assignments: []bundle.NotificationAssignment{{ChannelName: "ops", OnFailure: true, FailureThreshold: 1}}}}}
+	preview := doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc})
+	if preview.Code != http.StatusOK {
+		t.Fatalf("preview=%d %s", preview.Code, preview.Body.String())
+	}
+	var plan bundle.Plan
+	if err := json.Unmarshal(preview.Body.Bytes(), &plan); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range plan.Items {
+		if item.Kind == "watcher" && item.Action != bundle.ActionConflict {
+			t.Fatalf("unbound watcher=%+v", item)
+		}
+		if item.Kind == "notification_policy" && item.Action != bundle.ActionConflict {
+			t.Fatalf("unbound policy=%+v", item)
+		}
+	}
+	channel := domain.NotificationChannel{Name: "ops", Kind: domain.NotificationChannelWebhook, Endpoint: "https://example.test/secret", Authorization: "Bearer private", Enabled: true}
+	if err := s.store.CreateNotificationChannel(&channel); err != nil {
+		t.Fatal(err)
+	}
+	path := t.TempDir()
+	preview = doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc, WatcherPaths: map[string]string{"watcher": path}})
+	if preview.Code != http.StatusOK || json.Unmarshal(preview.Body.Bytes(), &plan) != nil {
+		t.Fatalf("bound preview=%d %s", preview.Code, preview.Body.String())
+	}
+	for _, item := range plan.Items {
+		if item.Action == bundle.ActionConflict || item.Action == bundle.ActionInvalid {
+			t.Fatalf("unexpected conflict: %+v", item)
+		}
+	}
+	apply := doJSON(t, s, http.MethodPost, "/v1/bundles/apply", BundleApplyRequest{PlanID: plan.ID, BundleDigest: plan.BundleDigest, TargetDaemonID: plan.TargetDaemonID, TargetFingerprint: plan.TargetFingerprint})
+	if apply.Code != http.StatusOK {
+		t.Fatalf("apply=%d %s", apply.Code, apply.Body.String())
+	}
+	var result BundleApplyResponse
+	if err := json.Unmarshal(apply.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range result.Outcomes {
+		if item.Action != bundle.ActionApplied {
+			t.Fatalf("item not applied: %+v", item)
+		}
+	}
+	triggers, err := s.store.ListExternalTriggers()
+	if err != nil || len(triggers) != 3 {
+		t.Fatalf("triggers=%+v err=%v", triggers, err)
+	}
+	for _, trigger := range triggers {
+		if trigger.Enabled || !strings.HasPrefix(trigger.Key, "gst_") {
+			t.Fatalf("unsafe imported trigger: %+v", trigger)
+		}
+	}
+	watchers, err := s.store.ListFilesystemWatchers()
+	if err != nil || len(watchers) != 1 || watchers[0].Enabled || watchers[0].Path != path {
+		t.Fatalf("watchers=%+v err=%v", watchers, err)
+	}
+	export := doJSON(t, s, http.MethodGet, "/v1/bundles/export", nil)
+	if export.Code != http.StatusOK {
+		t.Fatalf("export=%d %s", export.Code, export.Body.String())
+	}
+	for _, forbidden := range []string{path, "https://example.test/secret", "Bearer private", triggers[0].Key} {
+		if strings.Contains(export.Body.String(), forbidden) {
+			t.Fatalf("export leaked %q", forbidden)
+		}
+	}
+	if !strings.Contains(export.Body.String(), bundle.SchemaV2) {
+		t.Fatal("export did not emit v2")
+	}
+	second := doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc})
+	if second.Code != http.StatusOK || json.Unmarshal(second.Body.Bytes(), &plan) != nil {
+		t.Fatalf("second preview=%d %s", second.Code, second.Body.String())
+	}
+	for _, item := range plan.Items {
+		if item.Action != bundle.ActionUnchanged {
+			t.Fatalf("round trip drift: %+v", item)
+		}
+	}
+}
+
+func TestBundlePolicyRejectsChannelReplacementAfterPreview(t *testing.T) {
+	s := newTestServer(t)
+	doc := bundle.Document{Schema: bundle.SchemaV2, Tasks: []bundle.Task{{PortableID: "task", Name: "Portable", Timezone: "UTC", OverlapPolicy: "queue_one", CatchupPolicy: "one", MissingDatePolicy: "skip", TimeBasis: "wall_clock", DSTGapPolicy: "next_valid", DSTOverlapPolicy: "first"}}, NotificationPolicies: []bundle.NotificationPolicy{{ScopeType: "task", ScopePortableID: "task", Assignments: []bundle.NotificationAssignment{{ChannelName: "ops", OnFailure: true, FailureThreshold: 1}}}}}
+	channel := domain.NotificationChannel{Name: "ops", Kind: domain.NotificationChannelWebhook, Endpoint: "https://example.test/first", Enabled: true}
+	if err := s.store.CreateNotificationChannel(&channel); err != nil {
+		t.Fatal(err)
+	}
+	preview := doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc})
+	if preview.Code != http.StatusOK {
+		t.Fatalf("preview=%d %s", preview.Code, preview.Body.String())
+	}
+	var plan bundle.Plan
+	if err := json.Unmarshal(preview.Body.Bytes(), &plan); err != nil {
+		t.Fatal(err)
+	}
+	channel.Name = "renamed"
+	if err := s.store.UpdateNotificationChannel(channel); err != nil {
+		t.Fatal(err)
+	}
+	replacement := domain.NotificationChannel{Name: "ops", Kind: domain.NotificationChannelWebhook, Endpoint: "https://example.test/replacement", Enabled: true}
+	if err := s.store.CreateNotificationChannel(&replacement); err != nil {
+		t.Fatal(err)
+	}
+	apply := doJSON(t, s, http.MethodPost, "/v1/bundles/apply", BundleApplyRequest{PlanID: plan.ID, BundleDigest: plan.BundleDigest, TargetDaemonID: plan.TargetDaemonID, TargetFingerprint: plan.TargetFingerprint})
+	if apply.Code != http.StatusOK {
+		t.Fatalf("apply=%d %s", apply.Code, apply.Body.String())
+	}
+	var result BundleApplyResponse
+	if err := json.Unmarshal(apply.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	policyFailed := false
+	for _, item := range result.Outcomes {
+		if item.Kind == "notification_policy" && item.Action == bundle.ActionFailed && strings.Contains(item.Message, "preview again") {
+			policyFailed = true
+		}
+	}
+	if !policyFailed {
+		t.Fatalf("changed channel was accepted: %+v", result.Outcomes)
+	}
+	taskID, err := s.store.ObjectIDForPortableID("task", "task")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assignments, err := s.store.ListNotificationAssignments(domain.NotificationScopeTask, taskID)
+	if err != nil || len(assignments) != 0 {
+		t.Fatalf("unexpected policy assignments=%+v err=%v", assignments, err)
 	}
 }
