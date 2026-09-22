@@ -174,7 +174,14 @@ func Decode(data []byte) (Document, error) {
 // content before returning its stable JSON bytes and SHA-256 digest.
 func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
 	doc.Schema = strings.TrimSpace(doc.Schema)
+	for index := range doc.ExternalTriggers {
+		doc.ExternalTriggers[index].Name = strings.TrimSpace(doc.ExternalTriggers[index].Name)
+	}
+	for index := range doc.TriggerSets {
+		doc.TriggerSets[index].Name = strings.TrimSpace(doc.TriggerSets[index].Name)
+	}
 	for index := range doc.Watchers {
+		doc.Watchers[index].Name = strings.TrimSpace(doc.Watchers[index].Name)
 		if duration, err := time.ParseDuration(doc.Watchers[index].Debounce); err == nil {
 			doc.Watchers[index].Debounce = duration.String()
 		}
