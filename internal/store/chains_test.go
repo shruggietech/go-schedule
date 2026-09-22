@@ -95,6 +95,51 @@ func TestCompletionChainsCRUDAndCycleValidation(t *testing.T) {
 	}
 }
 
+func TestReplaceCompletionChainsStagesRelationshipSwap(t *testing.T) {
+	st := openMem(t)
+	a, b := chainTask(t, st, "a"), chainTask(t, st, "b")
+	c, d := chainTask(t, st, "c"), chainTask(t, st, "d")
+	first := domain.CompletionChain{SourceTaskID: a.ID, TargetTaskID: b.ID, OnOutcome: domain.CompletionOnAny}
+	second := domain.CompletionChain{SourceTaskID: c.ID, TargetTaskID: d.ID, OnOutcome: domain.CompletionOnAny}
+	if err := st.CreateCompletionChain(&first); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.CreateCompletionChain(&second); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReplaceCompletionChains([]domain.CompletionChain{{ID: first.ID, SourceTaskID: c.ID, TargetTaskID: d.ID, OnOutcome: domain.CompletionOnAny}, {ID: second.ID, SourceTaskID: a.ID, TargetTaskID: b.ID, OnOutcome: domain.CompletionOnAny}}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetCompletionChain(first.ID)
+	if err != nil || got.SourceTaskID != c.ID || got.TargetTaskID != d.ID {
+		t.Fatalf("first replacement=%+v err=%v", got, err)
+	}
+}
+
+func TestReplaceCompletionChainsRejectsMissingAndCyclicFinalState(t *testing.T) {
+	st := openMem(t)
+	a, b, c := chainTask(t, st, "a"), chainTask(t, st, "b"), chainTask(t, st, "c")
+	chain := domain.CompletionChain{SourceTaskID: a.ID, TargetTaskID: b.ID, OnOutcome: domain.CompletionOnAny}
+	if err := st.CreateCompletionChain(&chain); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReplaceCompletionChains(nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.ReplaceCompletionChains([]domain.CompletionChain{{ID: "missing", SourceTaskID: a.ID, TargetTaskID: b.ID, OnOutcome: domain.CompletionOnAny}}); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing replacement error=%v", err)
+	}
+	if err := st.ReplaceCompletionChains([]domain.CompletionChain{{ID: chain.ID, SourceTaskID: a.ID, TargetTaskID: a.ID, OnOutcome: domain.CompletionOnAny}}); !errors.Is(err, ErrChainCycle) {
+		t.Fatalf("cyclic replacement error=%v", err)
+	}
+	if got, err := st.GetCompletionChain(chain.ID); err != nil || got.SourceTaskID != a.ID || got.TargetTaskID != b.ID {
+		t.Fatalf("failed replacement changed persisted chain=%+v err=%v", got, err)
+	}
+	if err := st.ReplaceCompletionChains([]domain.CompletionChain{{ID: chain.ID, SourceTaskID: c.ID, TargetTaskID: b.ID, OnOutcome: domain.CompletionOnFailure}}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestDeletingFinalCompletionSourceDisablesUnscheduledTarget(t *testing.T) {
 	st := openMem(t)
 	source := chainTask(t, st, "source")

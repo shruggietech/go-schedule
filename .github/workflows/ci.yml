@@ -371,6 +371,10 @@ jobs:
       - name: Run engine benchmarks
         run: go test -run '^$' -bench . -benchmem ./internal/engine/... | tee bench.txt
       - name: Upload benchmark output
+        # Benchmark execution is the signal. GitHub's artifact service is
+        # auxiliary, so a transient artifact-finalization outage must not turn
+        # this informational job into a repository gate failure.
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: engine-benchmarks

@@ -136,6 +136,35 @@ paths:
           schema: {type: array, items: {$ref: "#/components/schemas/SearchKind"}}
         - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 50}}
       responses: {"200": {$ref: "#/components/responses/Search"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /bundles/export:
+    get:
+      operationId: bundles.export
+      description: Returns a versioned secret-free portable automation document.
+      responses: {"200": {description: Portable automation bundle}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /bundles/validate:
+    post:
+      operationId: bundles.validate
+      description: Validates an untrusted portable bundle without target mutation.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: true}}}}
+      responses: {"200": {description: Bundle validation result}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /bundles/preview:
+    post:
+      operationId: bundles.preview
+      description: Creates a short-lived target-bound plan without target mutation.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: true}}}}
+      responses: {"200": {description: Target-bound bundle plan}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /bundles/compare:
+    post:
+      operationId: bundles.compare
+      description: Reports bundle drift against one selected target without mutation.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: true}}}}
+      responses: {"200": {description: Read-only bundle drift plan}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /bundles/apply:
+    post:
+      operationId: bundles.apply
+      description: Applies only a short-lived reviewed target-bound plan.
+      requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: true}}}}
+      responses: {"200": {description: Per-item bundle apply outcomes}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
   /events:
     get:
       operationId: events.stream

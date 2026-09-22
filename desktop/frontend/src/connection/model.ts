@@ -1,6 +1,6 @@
 export type ConnectionState = 'connecting' | 'connected' | 'degraded' | 'recovering' | 'unavailable' | 'access_denied' | 'unauthorized' | 'revoked' | 'forbidden' | 'incompatible' | 'trust_changed' | 'identity_changed' | 'timed_out'
 export type Appearance = 'system' | 'light' | 'dark'
-export type Route = 'systems' | 'search' | 'tasks' | 'automation' | 'schedule' | 'activity' | 'notifications' | 'agentAccess' | 'connections' | 'settings'
+export type Route = 'systems' | 'search' | 'tasks' | 'automation' | 'bundles' | 'schedule' | 'activity' | 'notifications' | 'agentAccess' | 'connections' | 'settings'
 
 export interface Target {
   id: string

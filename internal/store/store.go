@@ -643,6 +643,22 @@ CREATE TABLE notification_daemon_health_states (
 CREATE INDEX idx_runs_outcome_effective_time ON runs(outcome, COALESCE(ended_at, scheduled_for));
 `,
 	},
+	{
+		// v22: retain an opaque portable identity separately from every
+		// daemon-local primary key. Identities are created lazily by the bundle
+		// workflow, so migration itself never changes automation behavior.
+		version: 22,
+		stmts: `
+CREATE TABLE portable_identities (
+	object_kind TEXT NOT NULL,
+	object_id   TEXT NOT NULL,
+	portable_id TEXT NOT NULL UNIQUE,
+	created_at  TEXT NOT NULL,
+	PRIMARY KEY (object_kind, object_id)
+);
+CREATE INDEX idx_portable_identities_portable ON portable_identities(portable_id);
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

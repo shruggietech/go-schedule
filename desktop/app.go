@@ -6,6 +6,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/desktop/agentaccess"
 	"github.com/shruggietech/go-schedule/desktop/automation"
+	"github.com/shruggietech/go-schedule/desktop/bundles"
 	"github.com/shruggietech/go-schedule/desktop/connection"
 	"github.com/shruggietech/go-schedule/desktop/connections"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
@@ -15,6 +16,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/settings"
 	"github.com/shruggietech/go-schedule/desktop/systems"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
+	"github.com/shruggietech/go-schedule/internal/bundle"
 )
 
 const (
@@ -44,6 +46,7 @@ type App struct {
 	manager       *connection.Manager
 	tasks         *taskgroup.Service
 	automation    *automation.Service
+	bundles       *bundles.Service
 	operations    *operations.Service
 	notifications *notifications.Service
 	settings      *settings.Service
@@ -128,6 +131,7 @@ func (a *App) RemoveConnection(id string) connections.Result {
 type appServices struct {
 	tasks         *taskgroup.Service
 	automation    *automation.Service
+	bundles       *bundles.Service
 	operations    *operations.Service
 	notifications *notifications.Service
 	settings      *settings.Service
@@ -140,6 +144,7 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 	if len(services) > 0 {
 		app.tasks = services[0].tasks
 		app.automation = services[0].automation
+		app.bundles = services[0].bundles
 		app.operations = services[0].operations
 		app.notifications = services[0].notifications
 		app.settings = services[0].settings
@@ -148,6 +153,41 @@ func newApp(backend connection.Backend, emitter eventEmitter, native nativeRunti
 	}
 	app.manager = connection.NewManager(backend, appObserver{app: app})
 	return app
+}
+
+func (a *App) PortableBundleExport() bundles.Result {
+	if a.bundles == nil || a.ctx == nil {
+		return bundles.Result{Action: "export_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}
+	}
+	return a.bundles.Export(a.ctx)
+}
+
+func (a *App) PortableBundleValidate(raw string) bundles.Result {
+	if a.bundles == nil || a.ctx == nil {
+		return bundles.Result{Action: "validate_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}
+	}
+	return a.bundles.Validate(a.ctx, raw)
+}
+
+func (a *App) PortableBundlePreview(raw string) bundles.Result {
+	if a.bundles == nil || a.ctx == nil {
+		return bundles.Result{Action: "preview_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}
+	}
+	return a.bundles.Preview(a.ctx, raw)
+}
+
+func (a *App) PortableBundleCompare(raw string) bundles.Result {
+	if a.bundles == nil || a.ctx == nil {
+		return bundles.Result{Action: "compare_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}
+	}
+	return a.bundles.Compare(a.ctx, raw)
+}
+
+func (a *App) PortableBundleApply(plan bundle.Plan) bundles.Result {
+	if a.bundles == nil || a.ctx == nil {
+		return bundles.Result{Action: "apply_bundle", Outcome: "unavailable", Message: "Portable bundles are unavailable."}
+	}
+	return a.bundles.Apply(a.ctx, plan)
 }
 
 func (a *App) PairRemote(draft remotepairing.Draft) remotepairing.Result {

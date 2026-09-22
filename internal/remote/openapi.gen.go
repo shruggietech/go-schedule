@@ -996,6 +996,18 @@ type AuditListParams struct {
 // AuditListParamsResult defines parameters for AuditList.
 type AuditListParamsResult string
 
+// BundlesApplyJSONBody defines parameters for BundlesApply.
+type BundlesApplyJSONBody map[string]interface{}
+
+// BundlesCompareJSONBody defines parameters for BundlesCompare.
+type BundlesCompareJSONBody map[string]interface{}
+
+// BundlesPreviewJSONBody defines parameters for BundlesPreview.
+type BundlesPreviewJSONBody map[string]interface{}
+
+// BundlesValidateJSONBody defines parameters for BundlesValidate.
+type BundlesValidateJSONBody map[string]interface{}
+
 // CalendarReadParams defines parameters for CalendarRead.
 type CalendarReadParams struct {
 	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
@@ -1031,6 +1043,18 @@ type TasksListParams struct {
 	Limit     *int                `form:"limit,omitempty" json:"limit,omitempty"`
 	TextLimit *int                `form:"text_limit,omitempty" json:"text_limit,omitempty"`
 }
+
+// BundlesApplyJSONRequestBody defines body for BundlesApply for application/json ContentType.
+type BundlesApplyJSONRequestBody BundlesApplyJSONBody
+
+// BundlesCompareJSONRequestBody defines body for BundlesCompare for application/json ContentType.
+type BundlesCompareJSONRequestBody BundlesCompareJSONBody
+
+// BundlesPreviewJSONRequestBody defines body for BundlesPreview for application/json ContentType.
+type BundlesPreviewJSONRequestBody BundlesPreviewJSONBody
+
+// BundlesValidateJSONRequestBody defines body for BundlesValidate for application/json ContentType.
+type BundlesValidateJSONRequestBody BundlesValidateJSONBody
 
 // EnrollmentExchangeJSONRequestBody defines body for EnrollmentExchange for application/json ContentType.
 type EnrollmentExchangeJSONRequestBody = EnrollmentRequest
@@ -1131,6 +1155,59 @@ type ClientInterface interface {
 
 	// AuditList performs a GET /audit (the `AuditList` operationId) request.
 	AuditList(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesApplyWithBody performs a POST /bundles/apply (the `BundlesApply` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Applies only a short-lived reviewed target-bound plan.
+	BundlesApplyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesApply performs a POST /bundles/apply (the `BundlesApply` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// Applies only a short-lived reviewed target-bound plan.
+	BundlesApply(ctx context.Context, body BundlesApplyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesCompareWithBody performs a POST /bundles/compare (the `BundlesCompare` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Reports bundle drift against one selected target without mutation.
+	BundlesCompareWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesCompare performs a POST /bundles/compare (the `BundlesCompare` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// Reports bundle drift against one selected target without mutation.
+	BundlesCompare(ctx context.Context, body BundlesCompareJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesExport performs a GET /bundles/export (the `BundlesExport` operationId) request.
+	//
+	// Returns a versioned secret-free portable automation document.
+	BundlesExport(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Creates a short-lived target-bound plan without target mutation.
+	BundlesPreviewWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesPreview performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// Creates a short-lived target-bound plan without target mutation.
+	BundlesPreview(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesValidateWithBody performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Validates an untrusted portable bundle without target mutation.
+	BundlesValidateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BundlesValidate performs a POST /bundles/validate (the `BundlesValidate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	//
+	// Validates an untrusted portable bundle without target mutation.
+	BundlesValidate(ctx context.Context, body BundlesValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CalendarRead performs a GET /calendar (the `CalendarRead` operationId) request.
 	CalendarRead(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1271,6 +1348,149 @@ func (c *Client) AlertsAcknowledge(ctx context.Context, id ID, reqEditors ...Req
 // AuditList performs a GET /audit (the `AuditList` operationId) request.
 func (c *Client) AuditList(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAuditListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesApplyWithBody performs a POST /bundles/apply (the `BundlesApply` operationId) request,
+// with any type of body and a specified content type.
+//
+// Applies only a short-lived reviewed target-bound plan.
+func (c *Client) BundlesApplyWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesApplyRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesApply performs a POST /bundles/apply (the `BundlesApply` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// Applies only a short-lived reviewed target-bound plan.
+func (c *Client) BundlesApply(ctx context.Context, body BundlesApplyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesApplyRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesCompareWithBody performs a POST /bundles/compare (the `BundlesCompare` operationId) request,
+// with any type of body and a specified content type.
+//
+// Reports bundle drift against one selected target without mutation.
+func (c *Client) BundlesCompareWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesCompareRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesCompare performs a POST /bundles/compare (the `BundlesCompare` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// Reports bundle drift against one selected target without mutation.
+func (c *Client) BundlesCompare(ctx context.Context, body BundlesCompareJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesCompareRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesExport performs a GET /bundles/export (the `BundlesExport` operationId) request.
+//
+// Returns a versioned secret-free portable automation document.
+func (c *Client) BundlesExport(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesExportRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
+// with any type of body and a specified content type.
+//
+// Creates a short-lived target-bound plan without target mutation.
+func (c *Client) BundlesPreviewWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesPreviewRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesPreview performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// Creates a short-lived target-bound plan without target mutation.
+func (c *Client) BundlesPreview(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesPreviewRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesValidateWithBody performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Validates an untrusted portable bundle without target mutation.
+func (c *Client) BundlesValidateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesValidateRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// BundlesValidate performs a POST /bundles/validate (the `BundlesValidate` operationId) request.
+// Takes a body of the `application/json` content type.
+//
+// Validates an untrusted portable bundle without target mutation.
+func (c *Client) BundlesValidate(ctx context.Context, body BundlesValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBundlesValidateRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1880,6 +2100,193 @@ func NewAuditListRequest(server string, params *AuditListParams) (*http.Request,
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewBundlesApplyRequest calls the generic BundlesApply builder with application/json body
+func NewBundlesApplyRequest(server string, body BundlesApplyJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBundlesApplyRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewBundlesApplyRequestWithBody constructs an http.Request for the BundlesApply method, with any body, and a specified content type
+func NewBundlesApplyRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/bundles/apply")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewBundlesCompareRequest calls the generic BundlesCompare builder with application/json body
+func NewBundlesCompareRequest(server string, body BundlesCompareJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBundlesCompareRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewBundlesCompareRequestWithBody constructs an http.Request for the BundlesCompare method, with any body, and a specified content type
+func NewBundlesCompareRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/bundles/compare")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewBundlesExportRequest constructs an http.Request for the BundlesExport method
+func NewBundlesExportRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/bundles/export")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewBundlesPreviewRequest calls the generic BundlesPreview builder with application/json body
+func NewBundlesPreviewRequest(server string, body BundlesPreviewJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBundlesPreviewRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewBundlesPreviewRequestWithBody constructs an http.Request for the BundlesPreview method, with any body, and a specified content type
+func NewBundlesPreviewRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/bundles/preview")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewBundlesValidateRequest calls the generic BundlesValidate builder with application/json body
+func NewBundlesValidateRequest(server string, body BundlesValidateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBundlesValidateRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewBundlesValidateRequestWithBody constructs an http.Request for the BundlesValidate method, with any body, and a specified content type
+func NewBundlesValidateRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/bundles/validate")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2853,6 +3260,69 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	AuditListWithResponse(ctx context.Context, params *AuditListParams, reqEditors ...RequestEditorFn) (*AuditListResponse, error)
 
+	// BundlesApplyWithBodyWithResponse performs a POST /bundles/apply (the `BundlesApply` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Applies only a short-lived reviewed target-bound plan.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	BundlesApplyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesApplyResponse, error)
+
+	// BundlesApplyWithResponse performs a POST /bundles/apply (the `BundlesApply` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Applies only a short-lived reviewed target-bound plan.
+	BundlesApplyWithResponse(ctx context.Context, body BundlesApplyJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesApplyResponse, error)
+
+	// BundlesCompareWithBodyWithResponse performs a POST /bundles/compare (the `BundlesCompare` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Reports bundle drift against one selected target without mutation.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	BundlesCompareWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesCompareResponse, error)
+
+	// BundlesCompareWithResponse performs a POST /bundles/compare (the `BundlesCompare` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Reports bundle drift against one selected target without mutation.
+	BundlesCompareWithResponse(ctx context.Context, body BundlesCompareJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesCompareResponse, error)
+
+	// BundlesExportWithResponse performs a GET /bundles/export (the `BundlesExport` operationId) request.
+	//
+	// Returns a versioned secret-free portable automation document.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	BundlesExportWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*BundlesExportResponse, error)
+
+	// BundlesPreviewWithBodyWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Creates a short-lived target-bound plan without target mutation.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	BundlesPreviewWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error)
+
+	// BundlesPreviewWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Creates a short-lived target-bound plan without target mutation.
+	BundlesPreviewWithResponse(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error)
+
+	// BundlesValidateWithBodyWithResponse performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Validates an untrusted portable bundle without target mutation.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	BundlesValidateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesValidateResponse, error)
+
+	// BundlesValidateWithResponse performs a POST /bundles/validate (the `BundlesValidate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Validates an untrusted portable bundle without target mutation.
+	BundlesValidateWithResponse(ctx context.Context, body BundlesValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesValidateResponse, error)
+
 	// CalendarReadWithResponse performs a GET /calendar (the `CalendarRead` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -3237,6 +3707,274 @@ func (r AuditListResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r AuditListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// BundlesApplyResponse401Headers the declared response headers of an HTTP 401 response for BundlesApply
+type BundlesApplyResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type BundlesApplyResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *BundlesApplyResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r BundlesApplyResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r BundlesApplyResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r BundlesApplyResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BundlesApplyResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BundlesApplyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BundlesApplyResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// BundlesCompareResponse401Headers the declared response headers of an HTTP 401 response for BundlesCompare
+type BundlesCompareResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type BundlesCompareResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *BundlesCompareResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r BundlesCompareResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r BundlesCompareResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r BundlesCompareResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BundlesCompareResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BundlesCompareResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BundlesCompareResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// BundlesExportResponse401Headers the declared response headers of an HTTP 401 response for BundlesExport
+type BundlesExportResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type BundlesExportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *BundlesExportResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r BundlesExportResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r BundlesExportResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BundlesExportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BundlesExportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BundlesExportResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// BundlesPreviewResponse401Headers the declared response headers of an HTTP 401 response for BundlesPreview
+type BundlesPreviewResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type BundlesPreviewResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *BundlesPreviewResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r BundlesPreviewResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r BundlesPreviewResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r BundlesPreviewResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BundlesPreviewResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BundlesPreviewResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BundlesPreviewResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// BundlesValidateResponse401Headers the declared response headers of an HTTP 401 response for BundlesValidate
+type BundlesValidateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type BundlesValidateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *BundlesValidateResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r BundlesValidateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r BundlesValidateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r BundlesValidateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r BundlesValidateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BundlesValidateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r BundlesValidateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4358,6 +5096,123 @@ func (c *ClientWithResponses) AuditListWithResponse(ctx context.Context, params 
 	return ParseAuditListResponse(rsp)
 }
 
+// BundlesApplyWithBodyWithResponse performs a POST /bundles/apply (the `BundlesApply` operationId) request,
+// with any type of body and a specified content type.
+//
+// Applies only a short-lived reviewed target-bound plan.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) BundlesApplyWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesApplyResponse, error) {
+	rsp, err := c.BundlesApplyWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesApplyResponse(rsp)
+}
+
+// BundlesApplyWithResponse performs a POST /bundles/apply (the `BundlesApply` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Applies only a short-lived reviewed target-bound plan.
+func (c *ClientWithResponses) BundlesApplyWithResponse(ctx context.Context, body BundlesApplyJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesApplyResponse, error) {
+	rsp, err := c.BundlesApply(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesApplyResponse(rsp)
+}
+
+// BundlesCompareWithBodyWithResponse performs a POST /bundles/compare (the `BundlesCompare` operationId) request,
+// with any type of body and a specified content type.
+//
+// Reports bundle drift against one selected target without mutation.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) BundlesCompareWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesCompareResponse, error) {
+	rsp, err := c.BundlesCompareWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesCompareResponse(rsp)
+}
+
+// BundlesCompareWithResponse performs a POST /bundles/compare (the `BundlesCompare` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Reports bundle drift against one selected target without mutation.
+func (c *ClientWithResponses) BundlesCompareWithResponse(ctx context.Context, body BundlesCompareJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesCompareResponse, error) {
+	rsp, err := c.BundlesCompare(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesCompareResponse(rsp)
+}
+
+// BundlesExportWithResponse performs a GET /bundles/export (the `BundlesExport` operationId) request.
+//
+// Returns a versioned secret-free portable automation document.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) BundlesExportWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*BundlesExportResponse, error) {
+	rsp, err := c.BundlesExport(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesExportResponse(rsp)
+}
+
+// BundlesPreviewWithBodyWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
+// with any type of body and a specified content type.
+//
+// Creates a short-lived target-bound plan without target mutation.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) BundlesPreviewWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error) {
+	rsp, err := c.BundlesPreviewWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesPreviewResponse(rsp)
+}
+
+// BundlesPreviewWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Creates a short-lived target-bound plan without target mutation.
+func (c *ClientWithResponses) BundlesPreviewWithResponse(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error) {
+	rsp, err := c.BundlesPreview(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesPreviewResponse(rsp)
+}
+
+// BundlesValidateWithBodyWithResponse performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Validates an untrusted portable bundle without target mutation.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) BundlesValidateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesValidateResponse, error) {
+	rsp, err := c.BundlesValidateWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesValidateResponse(rsp)
+}
+
+// BundlesValidateWithResponse performs a POST /bundles/validate (the `BundlesValidate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Validates an untrusted portable bundle without target mutation.
+func (c *ClientWithResponses) BundlesValidateWithResponse(ctx context.Context, body BundlesValidateJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesValidateResponse, error) {
+	rsp, err := c.BundlesValidate(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBundlesValidateResponse(rsp)
+}
+
 // CalendarReadWithResponse performs a GET /calendar (the `CalendarRead` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -4830,6 +5685,244 @@ func ParseAuditListResponse(rsp *http.Response) (*AuditListResponse, error) {
 	switch {
 	case rsp.StatusCode == 401:
 		var headers AuditListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseBundlesApplyResponse parses an HTTP response from a BundlesApplyWithResponse call
+func ParseBundlesApplyResponse(rsp *http.Response) (*BundlesApplyResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BundlesApplyResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers BundlesApplyResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseBundlesCompareResponse parses an HTTP response from a BundlesCompareWithResponse call
+func ParseBundlesCompareResponse(rsp *http.Response) (*BundlesCompareResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BundlesCompareResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers BundlesCompareResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseBundlesExportResponse parses an HTTP response from a BundlesExportWithResponse call
+func ParseBundlesExportResponse(rsp *http.Response) (*BundlesExportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BundlesExportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers BundlesExportResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseBundlesPreviewResponse parses an HTTP response from a BundlesPreviewWithResponse call
+func ParseBundlesPreviewResponse(rsp *http.Response) (*BundlesPreviewResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BundlesPreviewResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers BundlesPreviewResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseBundlesValidateResponse parses an HTTP response from a BundlesValidateWithResponse call
+func ParseBundlesValidateResponse(rsp *http.Response) (*BundlesValidateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BundlesValidateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers BundlesValidateResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
