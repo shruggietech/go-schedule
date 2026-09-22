@@ -9,6 +9,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"time"
 )
 
 // SchemaV1 identifies the original groups, tasks, and chains bundle.
@@ -173,6 +174,14 @@ func Decode(data []byte) (Document, error) {
 // content before returning its stable JSON bytes and SHA-256 digest.
 func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
 	doc.Schema = strings.TrimSpace(doc.Schema)
+	for index := range doc.Watchers {
+		if duration, err := time.ParseDuration(doc.Watchers[index].Debounce); err == nil {
+			doc.Watchers[index].Debounce = duration.String()
+		}
+		if duration, err := time.ParseDuration(doc.Watchers[index].Stability); err == nil {
+			doc.Watchers[index].Stability = duration.String()
+		}
+	}
 	issues := Validate(doc)
 	sort.Slice(doc.Groups, func(i, j int) bool { return doc.Groups[i].PortableID < doc.Groups[j].PortableID })
 	sort.Slice(doc.Tasks, func(i, j int) bool { return doc.Tasks[i].PortableID < doc.Tasks[j].PortableID })

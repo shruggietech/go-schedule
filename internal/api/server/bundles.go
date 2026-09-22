@@ -43,10 +43,16 @@ type BundleApplyResponse struct {
 }
 
 type storedBundlePlan struct {
-	Document     bundle.Document
-	Plan         bundle.Plan
-	WatcherPaths map[string]string
-	Created      time.Time
+	Document        bundle.Document
+	Plan            bundle.Plan
+	WatcherPaths    map[string]string
+	ChannelBindings map[string]bundleChannelBinding
+	Created         time.Time
+}
+
+type bundleChannelBinding struct {
+	ID        string
+	UpdatedAt time.Time
 }
 
 func (s *Server) handleBundleExport(w http.ResponseWriter, _ *http.Request) {
@@ -105,6 +111,7 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 		return
 	}
 	plan := bundle.Preview(bundlePlanID(), identity.InstallationID, canonical, target)
+	channelBindings := map[string]bundleChannelBinding{}
 	for index := range plan.Items {
 		item := &plan.Items[index]
 		if item.Kind == "trigger_set" && item.Action == bundle.ActionUpdate {
@@ -140,6 +147,7 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 					for _, channel := range channels {
 						if channel.Name == assignment.ChannelName {
 							count++
+							channelBindings[assignment.ChannelName] = bundleChannelBinding{ID: channel.ID, UpdatedAt: channel.UpdatedAt}
 						}
 					}
 					if count != 1 {
@@ -151,7 +159,7 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 		}
 	}
 	if retain {
-		s.rememberBundlePlan(canonical, plan, req.WatcherPaths)
+		s.rememberBundlePlan(canonical, plan, req.WatcherPaths, channelBindings)
 	}
 	writeJSON(w, http.StatusOK, plan)
 }
@@ -273,7 +281,7 @@ func (s *Server) applyBundleWatcher(source bundle.Watcher, path string) bundle.I
 	return item
 }
 
-func (s *Server) applyBundleNotificationPolicy(source bundle.NotificationPolicy) bundle.Item {
+func (s *Server) applyBundleNotificationPolicy(source bundle.NotificationPolicy, bindings map[string]bundleChannelBinding) bundle.Item {
 	id := source.ScopeType + ":" + source.ScopePortableID
 	item := bundle.Item{Kind: "notification_policy", PortableID: id, Name: id}
 	scopeID, err := s.store.ObjectIDForPortableID(source.ScopeType, source.ScopePortableID)
@@ -281,28 +289,19 @@ func (s *Server) applyBundleNotificationPolicy(source bundle.NotificationPolicy)
 		item.Action, item.Message = bundle.ActionFailed, "policy scope was not applied"
 		return item
 	}
-	channels, err := s.store.ListNotificationChannels()
-	if err != nil {
-		item.Action, item.Message = bundle.ActionFailed, err.Error()
-		return item
-	}
 	assignments := make([]domain.NotificationAssignment, 0, len(source.Assignments))
 	for _, assignment := range source.Assignments {
-		var channelID string
-		for _, channel := range channels {
-			if channel.Name == assignment.ChannelName {
-				if channelID != "" {
-					item.Action, item.Message = bundle.ActionFailed, "channel name became ambiguous"
-					return item
-				}
-				channelID = channel.ID
-			}
-		}
-		if channelID == "" {
-			item.Action, item.Message = bundle.ActionFailed, "channel is missing"
+		binding, exists := bindings[assignment.ChannelName]
+		if !exists {
+			item.Action, item.Message = bundle.ActionFailed, "reviewed channel binding is missing"
 			return item
 		}
-		assignments = append(assignments, domain.NotificationAssignment{ChannelID: channelID, OnSuccess: assignment.OnSuccess, OnFailure: assignment.OnFailure, FailureThreshold: assignment.FailureThreshold, OnFailureToStart: assignment.OnFailureToStart, DurationThresholdSeconds: assignment.DurationThresholdSeconds, OnRecovery: assignment.OnRecovery, ReminderIntervalSeconds: assignment.ReminderIntervalSeconds, QuietPeriodSeconds: assignment.QuietPeriodSeconds})
+		channel, err := s.store.GetNotificationChannel(binding.ID)
+		if err != nil || channel.Name != assignment.ChannelName || !channel.UpdatedAt.Equal(binding.UpdatedAt) {
+			item.Action, item.Message = bundle.ActionFailed, "reviewed channel changed after preview; preview again"
+			return item
+		}
+		assignments = append(assignments, domain.NotificationAssignment{ChannelID: binding.ID, OnSuccess: assignment.OnSuccess, OnFailure: assignment.OnFailure, FailureThreshold: assignment.FailureThreshold, OnFailureToStart: assignment.OnFailureToStart, DurationThresholdSeconds: assignment.DurationThresholdSeconds, OnRecovery: assignment.OnRecovery, ReminderIntervalSeconds: assignment.ReminderIntervalSeconds, QuietPeriodSeconds: assignment.QuietPeriodSeconds})
 	}
 	if err := s.store.ReplaceNotificationAssignments(domain.NotificationScopeType(source.ScopeType), scopeID, assignments); err != nil {
 		item.Action, item.Message = bundle.ActionFailed, err.Error()
@@ -399,12 +398,12 @@ func (s *Server) handleBundleApply(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, CodeConflict, "plan", "target changed after preview; preview again before apply")
 		return
 	}
-	outcomes := s.applyBundle(stored.Document, stored.Plan, stored.WatcherPaths)
+	outcomes := s.applyBundle(stored.Document, stored.Plan, stored.WatcherPaths, stored.ChannelBindings)
 	s.reload()
 	writeJSON(w, http.StatusOK, BundleApplyResponse{Plan: stored.Plan, Outcomes: outcomes})
 }
 
-func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan, watcherPaths map[string]string) {
+func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan, watcherPaths map[string]string, channelBindings map[string]bundleChannelBinding) {
 	s.bundlePlanMu.Lock()
 	defer s.bundlePlanMu.Unlock()
 	now := time.Now().UTC()
@@ -423,7 +422,7 @@ func (s *Server) rememberBundlePlan(doc bundle.Document, plan bundle.Plan, watch
 		}
 		delete(s.bundlePlans, oldestID)
 	}
-	s.bundlePlans[plan.ID] = storedBundlePlan{Document: doc, Plan: plan, WatcherPaths: watcherPaths, Created: now}
+	s.bundlePlans[plan.ID] = storedBundlePlan{Document: doc, Plan: plan, WatcherPaths: watcherPaths, ChannelBindings: channelBindings, Created: now}
 }
 
 func (s *Server) takeBundlePlan(req BundleApplyRequest) (storedBundlePlan, bool) {
@@ -438,7 +437,7 @@ func (s *Server) takeBundlePlan(req BundleApplyRequest) (storedBundlePlan, bool)
 }
 
 // applyBundle creates or updates only portable intent. Imported tasks remain disabled drafts because commands and all other execution inputs are excluded.
-func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths map[string]string) []bundle.Item {
+func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths map[string]string, channelBindings map[string]bundleChannelBinding) []bundle.Item {
 	outcomes := make([]bundle.Item, 0, len(plan.Items))
 	blocked := s.detachBundleGroupParents(doc, plan, &outcomes)
 	groups := append([]bundle.Group(nil), doc.Groups...)
@@ -492,7 +491,7 @@ func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths
 	}
 	for _, source := range doc.NotificationPolicies {
 		if bundlePlanChanges(plan, "notification_policy", source.ScopeType+":"+source.ScopePortableID) {
-			outcomes = append(outcomes, s.applyBundleNotificationPolicy(source))
+			outcomes = append(outcomes, s.applyBundleNotificationPolicy(source, channelBindings))
 		}
 	}
 	for _, item := range plan.Items {
