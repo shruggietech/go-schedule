@@ -87,7 +87,7 @@ gosched daemon manifest
 ```
 
 ```text
-daemon ok (version 1.4.0)
+daemon ok (version 1.5.0)
 ```
 
 The manifest reports the daemon's stable installation ID, editable display name, version, local-only mode, safe platform facts, and supported feature surfaces. See [Daemon identity](docs/daemon-identity.md) for rename, backup restore, database clone, and deliberate identity reset behavior.

@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [1.5.0]
+## [1.5.0] - 2026-09-23
 
 ### Added
 
@@ -45,6 +45,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-23: apply the maintainer's standing attended native-testing waiver to public releases (Refs #185).** Native attended scenarios are recorded as untested and are not release gates. Automated CI, exact reviewed-source staging, candidate identity, complete asset inventory, checksums, and truthful release disclosure remain required. The full attended-evidence promotion workflow is reserved for genuinely qualified evidence; waived releases use a separate reviewed workflow without fabricated results.
 
 - **2026-09-23: keep native popups desktop-local and defer SMTP past the v1.5.0 release boundary (Refs #177, #176, #19, #185).** Wails' maintained native runtime handles operating-system presentation, while independent read-only clients observe registered daemons without switching the selected target. Webhooks remain the unattended path. The broader notification epic and SMTP issue remain open, and the S103 PR prepares release copy without creating a tag or publication.
 
