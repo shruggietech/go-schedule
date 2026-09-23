@@ -170,11 +170,11 @@ Only `0` and `1` are valid values for `GOSCHEDULE_REMOVE_DATA`. The choice is no
 
 ## Release-candidate safety
 
-A version tag stages a draft release instead of immediately publishing it. The Windows installer, its candidate manifest, the other platform assets, and the attended evidence stay non-public until a maintainer completes the Windows 11 gate.
+A version tag stages a draft release instead of immediately publishing it. The installer, candidate manifest, and other platform assets stay non-public until source identity, staging, asset integrity, and checksums are confirmed.
 
-The gate binds the installed MSI to its repository, tag commit, staging workflow run and attempt, ProductVersion, ProductCode, filename, byte size, and SHA-256. It requires normal-user access, native window and DPI measurements, two-minute connection-error observations, real manual and scheduled task runs, and the attended setup and uninstall matrix. Missing, failed, unavailable, skipped, timed-out, partial, stale, or altered evidence leaves the release in draft state.
+The full attended-evidence gate binds an installed MSI to its repository, tag commit, staging workflow run and attempt, ProductVersion, ProductCode, filename, byte size, and SHA-256. It also checks normal-user access, native window and DPI measurements, connection-error observations, real task runs, and the setup and uninstall matrix. That gate remains available for a fully qualified release, but the maintainer's standing waiver means attended native testing is not performed as a release prerequisite. Untested observations are never represented as passes or replaced with fabricated evidence.
 
-Promotion downloads and revalidates the same MSI bytes. It does not rebuild a nominally equivalent installer after testing. Final checksums are created only after the attended evidence archive joins the complete asset set. See `test/windows/README.md` and `specs/081-v140-release-preparation/quickstart.md` for the current maintainer procedure. Creating a tag, promoting a draft, or publishing a release remains a separately authorized maintainer action.
+Both publication paths retain the exact staged MSI bytes rather than rebuilding a nominally equivalent installer. The full promotion workflow requires genuine passing attended evidence. Under the standing waiver, a separately documented manual publication path requires successful automated CI and staging, exact candidate identity, the complete expected asset set, SHA-256 checksums, and explicit disclosure that native checks were not performed. The waiver does not excuse failed automated checks or artifact mismatches. See `test/windows/README.md` and `specs/104-v150-release-publication/quickstart.md` for the current release procedure. Creating a tag or publishing a release still requires maintainer authorization.
 
 ## Troubleshooting
 

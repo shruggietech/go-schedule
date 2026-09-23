@@ -14,7 +14,7 @@
 
 ## Publication disposition
 
-- `mode`: full attended qualification, or release-specific maintainer-authorized native-check waiver.
+- `mode`: full attended qualification, or the standing maintainer-authorized native-check waiver applied to this release.
 - `observations`: genuine pass/fail/untested results, never inferred or backfilled from another candidate.
 - `public record`: release notes plus issue comment explaining the chosen mode and known limitations.
 

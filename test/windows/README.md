@@ -2,13 +2,13 @@
 
 These tools separate compiled-MSI evidence from native lifecycle evidence. They are maintainer procedures and never count a missing prerequisite as a pass.
 
-## S088 Sandbox testing waiver
+## Standing attended native-testing waiver
 
-On 2026-09-15, the maintainer directed reuse of Windows Sandbox, prohibited restarting the development host, and explicitly authorized release despite incomplete testing (see [#226](https://github.com/shruggietech/go-schedule/issues/226#issuecomment-5685176399)). Use Sandbox only; do not enable host features, provision another virtualization platform, change host security settings, or install the product on the active development host.
+On 2026-09-23, the maintainer clarified that the testing waiver is universal, not version-specific (see [#185](https://github.com/shruggietech/go-schedule/issues/185)). Attended native testing is not performed as a release prerequisite. The earlier S088 waiver prohibited restarting the development host or installing the product on it (see [#226](https://github.com/shruggietech/go-schedule/issues/226#issuecomment-5685176399)); no release should request those host changes or a Sandbox walkthrough under the standing waiver.
 
-The waiver changes release acceptance for unavailable checks, not their factual result. Run supported scenarios after reviewed-main staging and exact candidate verification. Record each unavailable scenario and capability as **not tested, release authorized by maintainer**, preserving failed and timed-out results separately. Historical candidate observations cannot be reassigned to new bytes. Do not manufacture passing fragments, omit required scenarios from the collector, or claim full qualification from partial evidence.
+The waiver changes release acceptance, not factual results. Record attended scenarios as **not tested, release authorized by maintainer**, preserving any known failed or timed-out results separately. Historical candidate observations cannot be reassigned to new bytes. Do not manufacture passing fragments or claim full native qualification.
 
-The existing collector and promotion validator still require the full evidence contract for fully qualified publication. A waiver is not a valid passing archive. Any waiver-aware promotion implementation must be explicitly reviewed and preserve source, artifact, checksum, and observation identity checks. Source-owned release metadata changes must merge before staging the final reviewed boundary.
+The existing collector and promotion validator still require the full evidence contract for fully qualified publication. A waiver is not a valid passing archive, so the attended-evidence promotion workflow must not be invoked under the standing waiver. Use the documented manual waiver path only after successful automated CI, exact-source staging, candidate identity, complete asset audit, and checksums. Source-owned release metadata changes must merge before staging the final reviewed boundary. The procedures below remain optional reference material, not release prerequisites.
 
 Use `-ArtifactClass local-demo` for a pre-publication exploratory build. This keeps its report distinct from a workflow-staged `candidate` and a release-downloaded `published` artifact. Local-demo inspection proves compiled authoring only and cannot produce a candidate manifest or satisfy the attended gate.
 

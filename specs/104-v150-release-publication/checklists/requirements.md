@@ -8,7 +8,7 @@
 
 - [x] Outcome and user value are explicit.
 - [x] No unsupported product capability is implied.
-- [x] Release-specific authorization is distinguished from historical waiver.
+- [x] Standing authorization is distinguished from each release's factual testing disposition.
 - [x] Mandatory sections are complete.
 
 ## Requirement Completeness

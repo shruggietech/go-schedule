@@ -16,7 +16,7 @@
 
 ## Phase 3: Public release
 
-- [ ] T007 [US2] Record release-specific native-check disposition and accurate public limitations on issue #185 and release notes (FR-003, FR-004).
+- [ ] T007 [US2] Record the standing waiver's application and accurate public limitations on issue #185 and release notes (FR-003, FR-004).
 - [ ] T008 [US1] Promote with the applicable full-evidence or expressly authorized waiver path, create `SHA256SUMS.txt`, and verify fresh public downloads (FR-002, FR-004, FR-005).
 - [ ] T009 [US1] Reconcile issue #185, v1.5.0 milestone, and project status after publication (FR-005).
 

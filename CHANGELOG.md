@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Decisions
 
+- **2026-09-23: apply the maintainer's standing attended native-testing waiver to public releases (Refs #185).** Native attended scenarios are recorded as untested and are not release gates. Automated CI, exact reviewed-source staging, candidate identity, complete asset inventory, checksums, and truthful release disclosure remain required. The full attended-evidence promotion workflow is reserved for genuinely qualified evidence; waived releases use the documented manual publication path without fabricated results.
+
 - **2026-09-23: keep native popups desktop-local and defer SMTP past the v1.5.0 release boundary (Refs #177, #176, #19, #185).** Wails' maintained native runtime handles operating-system presentation, while independent read-only clients observe registered daemons without switching the selected target. Webhooks remain the unattended path. The broader notification epic and SMTP issue remain open, and the S103 PR prepares release copy without creating a tag or publication.
 
 - **2026-09-23: use a separate user-session StatusNotifier process and a fixed Polkit service action for Linux desktop controls (Refs #256).** A system daemon cannot own session UI, and the GUI may close independently. The indicator uses a maintained pure-Go SNI/dbusmenu library and the existing compact brand asset; service mutations target only the fixed installed unit with no shell or elevated GUI. The release archive now carries the indicator and opt-in XDG autostart entry.

@@ -5,7 +5,7 @@
 
 ## Summary
 
-Correct the reviewed source-owned v1.5.0 metadata, merge it through the normal PR path, then tag exact green main and stage the standard platform assets as a draft. Verify source, workflow run, candidate manifest, downloaded bytes, and checksum inventory before publishing. The maintainer explicitly authorized a v1.5.0 native-check waiver, so use the established manual waiver publication path without pretending that the full-attended-evidence promotion workflow passed.
+Correct the reviewed source-owned v1.5.0 metadata, merge it through the normal PR path, then tag exact green main and stage the standard platform assets as a draft. Verify source, workflow run, candidate manifest, downloaded bytes, and checksum inventory before publishing. The maintainer clarified that the native-testing waiver is standing policy, so use the established manual waiver publication path without pretending that the full-attended-evidence promotion workflow passed.
 
 ## Technical Context
 
@@ -22,7 +22,7 @@ Correct the reviewed source-owned v1.5.0 metadata, merge it through the normal P
 ## Constitution Check
 
 - Principle I: No application behavior changes. Reviewed source and artifact identity stay exact.
-- Principle II: CI parity and hosted CI remain mandatory. Waiver applies only to expressly unavailable attended native checks if separately authorized for v1.5.0.
+- Principle II: CI parity and hosted CI remain mandatory under the current constitution. The standing waiver applies to attended native checks, not automated CI or artifact identity.
 - Principle III: Release documentation must be accurate and consistent across README, changelog, notes, and latest-release pointer.
 - Principle IV: No performance-sensitive path changes.
 - Principle V: Spec-kit artifacts and analysis precede implementation. Reviewed source changes use a PR; release publication is separately authorized by this S104 user request, subject to the mandatory pre-push halt.
@@ -51,10 +51,10 @@ specs/104-v150-release-publication/
 1. Review and merge source metadata corrections through a normal PR, with CI and external review handling.
 2. Confirm exact merge-commit CI and no public v1.5.0 release or tag.
 3. Create an annotated v1.5.0 tag on exact reviewed main and let the release workflow stage a draft.
-4. Audit all draft assets, candidate manifest, release notes, and immutable identity. Record the release-specific waiver and every untested native observation honestly.
+4. Audit all draft assets, candidate manifest, release notes, and immutable identity. Record the standing waiver's application and every untested native observation honestly.
 5. Generate and verify all-asset checksums, publish through the explicit waiver path, then verify the public release by fresh download.
 6. Reconcile #185, milestone, and delivery project only after publication is confirmed.
 
 ## Complexity / Deviation
 
-The existing attended promotion workflow remains unchanged. The maintainer authorized a v1.5.0 native-testing waiver in S104. Do not fabricate its required evidence archive or label untested observations as passing; use a documented manual waiver path with the same source, staging, candidate, asset, and checksum checks. This is a release-specific deviation from full attended qualification, not a change to automated CI or future releases.
+The existing attended promotion workflow remains unchanged. The maintainer clarified in S104 that native testing is waived for all releases. Do not fabricate its required evidence archive or label untested observations as passing; use a documented manual waiver path with the same source, staging, candidate, asset, and checksum checks. This is a standing operator disposition for attended native checks, not a change to automated CI or a claim of full qualification.

@@ -37,7 +37,7 @@ As a user, I can read release notes and documentation that describe the connecte
 - A draft may have some but not all assets while platform builds are still running. It must not be promoted during this state.
 - A tag or candidate manifest that names a different source revision must stop publication.
 - A failed automated check is not converted into a waiver or hidden by the release notes.
-- The maintainer's S104 authorization permits publication with exact-candidate attended Windows checks explicitly untested; it does not excuse any failed automated check.
+- The maintainer's standing waiver permits publication with exact-candidate attended Windows checks explicitly untested; it does not excuse any failed automated check.
 
 ## Requirements
 
@@ -46,7 +46,7 @@ As a user, I can read release notes and documentation that describe the connecte
 - **FR-001**: Publication MUST use one reviewed main commit with successful exact-commit CI and an immutable v1.5.0 tag identity.
 - **FR-002**: The release MUST include all supported daemon, CLI, desktop, Windows installer, candidate-manifest, and checksum assets from that tag without rebuilding an asset after staging.
 - **FR-003**: The public notes and tagged documentation MUST identify only delivered capabilities and explicitly defer SMTP and clustered execution.
-- **FR-004**: Any native-check waiver MUST be explicit, release-specific, attributable to the maintainer, and disclosed without representing an untested check as passed.
+- **FR-004**: The standing native-testing waiver MUST be attributable to the maintainer and disclosed for this release without representing an untested check as passed.
 - **FR-005**: The final public release MUST be the repository's latest release, and issue #185 and the v1.5.0 milestone MUST be reconciled only after functional publication is confirmed.
 
 ### Key Entities
@@ -67,5 +67,5 @@ As a user, I can read release notes and documentation that describe the connecte
 ## Assumptions
 
 - Issue #185 is the authoritative release outcome; SMTP #176 and coordinator #19 remain planned in a future milestone.
-- The maintainer explicitly confirmed a v1.5.0 native-check waiver during S104. The prior v1.4.0 waiver was precedent, not the authority for this release.
+- The maintainer clarified during S104 that the native-testing waiver is universal across releases, not a v1.5.0-specific grant. Automated CI and release artifact-integrity checks remain required by the existing pipeline.
 - The existing staged-asset workflow and exact-candidate validator remain authoritative for source and artifact identity.

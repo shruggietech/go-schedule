@@ -10,7 +10,7 @@ S103 merged as `8d04509f41c3ecd3dd12ff31c9cc2f993fa7d781` with successful exact-
 
 ## Historical precedent and decision
 
-The public v1.4.0 release used an explicit maintainer-authorized native-testing waiver documented on #226. Its untested checks were disclosed, not converted to passes, and publication used a manual waiver path after exact-source CI, successful staging, candidate verification, asset auditing, and checksums. That authorization is historical and does not automatically cover v1.5.0. The maintainer separately confirmed the same disposition for v1.5.0 during S104. Keep the full promotion workflow intact and use the constrained, documented manual waiver path for this release.
+The public v1.4.0 release used an explicit maintainer-authorized native-testing waiver documented on #226. Its untested checks were disclosed, not converted to passes, and publication used a manual waiver path after exact-source CI, successful staging, candidate verification, asset auditing, and checksums. The maintainer clarified during S104 that this native-testing waiver is standing policy across releases, not version-specific. Keep the full promotion workflow intact and use the constrained, documented manual waiver path for this release.
 
 ## Deferred scope
 
