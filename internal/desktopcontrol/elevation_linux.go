@@ -26,12 +26,12 @@ func linuxControlCommand(action string, root bool) (string, []string, error) {
 	return "/usr/bin/pkexec", []string{"/usr/bin/systemctl", action, linuxServiceUnit}, nil
 }
 
-func requestElevation(action string) error {
+func requestElevation(callerCtx context.Context, action string) error {
 	path, args, err := linuxControlCommand(action, os.Geteuid() == 0)
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+	ctx, cancel := context.WithTimeout(callerCtx, 35*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, path, args...)
 	output, err := cmd.CombinedOutput()

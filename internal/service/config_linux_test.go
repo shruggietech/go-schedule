@@ -20,9 +20,12 @@ func TestInstalledConfigArg(t *testing.T) {
 	}{
 		{[]string{"/usr/local/bin/goschedd"}, "", false},
 		{[]string{"/usr/local/bin/goschedd", "--config", "/etc/goschedule/custom config.json"}, "/etc/goschedule/custom config.json", false},
+		{[]string{"/usr/local/bin/goschedd", "--config=/etc/goschedule/custom config.json"}, "/etc/goschedule/custom config.json", false},
 		{[]string{"/usr/local/bin/goschedd", "--config"}, "", true},
+		{[]string{"/usr/local/bin/goschedd", "--config="}, "", true},
 		{[]string{"/usr/local/bin/goschedd", "--config", "relative.json"}, "", true},
 		{[]string{"/usr/local/bin/goschedd", "--config", "/a", "--config", "/b"}, "", true},
+		{[]string{"/usr/local/bin/goschedd", "--config=/a", "--config", "/b"}, "", true},
 	}
 	for _, tc := range cases {
 		got, err := configArg(tc.argv)

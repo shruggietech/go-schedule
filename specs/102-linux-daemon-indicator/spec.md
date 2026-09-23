@@ -55,6 +55,7 @@ As a user, I can open or focus the GUI from the indicator, and logging out or re
 - The service is missing, transitional, or reported running without fresh local health.
 - The installed unit retains a custom configuration path and IPC endpoint.
 - Authorization is denied, cancelled, or unavailable; the service changes state during an action.
+- The installed unit uses either `--config /path` or `--config=/path`, and the session ends while graphical authorization is pending.
 - Multiple GUI or indicator launch requests occur in one session.
 - A status host changes panel theme or restarts while the item is active.
 

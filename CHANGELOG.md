@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Opening the Linux GUI no longer auto-starts an installed service that was deliberately stopped (Refs #256).** The GUI and indicator discover the effective `--config` path from the installed systemd unit so custom IPC locations remain usable. A missing system service retains standalone desktop startup behavior, while an unreadable installed service definition fails closed.
+- **Opening the Linux GUI no longer auto-starts an installed service that was deliberately stopped (Refs #256).** The GUI and indicator discover either supported `--config` argument form from the installed systemd unit so custom IPC locations remain usable. A missing system service retains standalone desktop startup behavior, while an unreadable installed service definition fails closed. Session shutdown also cancels a pending graphical service authorization prompt.
 
 - **Opening the Windows GUI no longer auto-starts an installed service that an operator deliberately stopped (Refs #255).** Standalone desktop behavior without an installed service remains unchanged.
 

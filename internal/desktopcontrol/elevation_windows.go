@@ -3,6 +3,7 @@
 package desktopcontrol
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -35,7 +36,7 @@ type shellExecuteInfo struct {
 	process    windows.Handle
 }
 
-func requestElevation(action string) error {
+func requestElevation(_ context.Context, action string) error {
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("locate executable: %w", err)

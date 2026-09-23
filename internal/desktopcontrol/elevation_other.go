@@ -2,10 +2,13 @@
 
 package desktopcontrol
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 var errElevationCancelled = errors.New("elevation cancelled")
 
-func requestElevation(string) error {
+func requestElevation(context.Context, string) error {
 	return errors.New("windows service controls are unavailable on this platform")
 }

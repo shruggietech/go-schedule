@@ -91,6 +91,14 @@ func systemdExecArgs(ctx context.Context, unit string) ([]string, error) {
 func configArg(argv []string) (string, error) {
 	path := ""
 	for i := 0; i < len(argv); i++ {
+		if strings.HasPrefix(argv[i], "--config=") {
+			value := strings.TrimPrefix(argv[i], "--config=")
+			if value == "" || path != "" {
+				return "", fmt.Errorf("installed service has an invalid or repeated --config argument")
+			}
+			path = value
+			continue
+		}
 		if argv[i] != "--config" {
 			continue
 		}

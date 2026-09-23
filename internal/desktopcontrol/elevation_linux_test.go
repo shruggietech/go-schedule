@@ -3,8 +3,11 @@
 package desktopcontrol
 
 import (
+	"context"
+	"errors"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestLinuxControlCommandUsesFixedUnitAndNoShell(t *testing.T) {
@@ -21,5 +24,18 @@ func TestLinuxControlCommandUsesFixedUnitAndNoShell(t *testing.T) {
 	}
 	if _, _, err := linuxControlCommand("stop; rm -rf /", false); err == nil {
 		t.Fatal("unrecognized verb accepted")
+	}
+}
+
+func TestLinuxControlCancelledCallerDoesNotStartHelper(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	start := time.Now()
+	err := requestElevation(ctx, "start")
+	if !errors.Is(err, errHelperTimedOut) {
+		t.Fatalf("cancelled request error = %v, want interrupted helper", err)
+	}
+	if time.Since(start) > time.Second {
+		t.Fatalf("cancelled request waited for helper")
 	}
 }

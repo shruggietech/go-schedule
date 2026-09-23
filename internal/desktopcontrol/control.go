@@ -24,7 +24,7 @@ type Snapshot struct {
 type Monitor struct {
 	Query   func() (service.State, error)
 	Health  func(context.Context) error
-	Execute func(string) error
+	Execute func(context.Context, string) error
 }
 
 var errHelperTimedOut = errors.New("service helper timed out")
@@ -106,7 +106,7 @@ func (m Monitor) RequestAction(ctx context.Context, action string) ActionResult 
 		result.Outcome, result.Message = "unavailable", "Local service control is unavailable."
 		return result
 	}
-	if err := m.Execute(action); err != nil {
+	if err := m.Execute(ctx, action); err != nil {
 		result.Outcome = "failed"
 		if errors.Is(err, errElevationCancelled) {
 			result.Outcome, result.Message = "cancelled", "Service authorization was cancelled. The service was not changed."

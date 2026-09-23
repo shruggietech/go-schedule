@@ -49,7 +49,7 @@ func TestControlLocalServiceRejectsUnconfirmedStop(t *testing.T) {
 	monitor := &desktopcontrol.Monitor{
 		Query:   func() (service.State, error) { return service.StateRunning, nil },
 		Health:  func(context.Context) error { return nil },
-		Execute: func(string) error { calls++; return nil },
+		Execute: func(context.Context, string) error { calls++; return nil },
 	}
 	app := &App{ctx: context.Background(), localService: monitor}
 	result := app.ControlLocalService("stop", false)
