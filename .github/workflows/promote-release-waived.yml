@@ -42,14 +42,13 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Require exact tagged source and draft disclosure
+      - name: Require exact tagged source and release disclosure
         id: release
         run: |
           set -euo pipefail
           TAG_COMMIT=$(git rev-parse HEAD)
           test "${#TAG_COMMIT}" -eq 40
           RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
-          test "$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')" = true
           test "$(printf '%s' "$RELEASE_JSON" | jq -r '.tag_name')" = "$RELEASE_TAG"
           printf '%s' "$RELEASE_JSON" | jq -er '.body | select(test("untested"; "i"))' >/dev/null || {
             echo "::error::Draft release notes must disclose untested native checks."
@@ -57,7 +56,7 @@ jobs:
           }
           printf 'tag_commit=%s\n' "$TAG_COMMIT" >> "$GITHUB_OUTPUT"
 
-      - name: Download complete draft asset set
+      - name: Download complete release asset set
         run: |
           set -euo pipefail
           mkdir assets
@@ -115,16 +114,19 @@ jobs:
       - name: Generate and verify all-asset checksums
         run: |
           set -euo pipefail
-          test ! -e assets/SHA256SUMS.txt || {
-            echo "::error::Unexpected checksum asset already exists on draft."
-            exit 1
-          }
           (
             cd assets
-            LC_ALL=C sha256sum * > "$RUNNER_TEMP/SHA256SUMS.txt"
+            LC_ALL=C sha256sum -- go-schedule_* go-schedule-desktop_* windows-candidate-manifest.json | LC_ALL=C sort -k 2 > "$RUNNER_TEMP/SHA256SUMS.txt"
             sha256sum -c "$RUNNER_TEMP/SHA256SUMS.txt"
           )
-          gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/SHA256SUMS.txt" --repo "$GITHUB_REPOSITORY"
+          if [ -f assets/SHA256SUMS.txt ]; then
+            cmp -s assets/SHA256SUMS.txt "$RUNNER_TEMP/SHA256SUMS.txt" || {
+              echo "::error::Existing checksum asset does not match the exact staged bytes."
+              exit 1
+            }
+          else
+            gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/SHA256SUMS.txt" --repo "$GITHUB_REPOSITORY"
+          fi
 
       - name: Re-download and verify final draft assets
         run: |
@@ -152,7 +154,6 @@ jobs:
             exit 1
           }
           RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
-          test "$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')" = true
           test "$(printf '%s' "$RELEASE_JSON" | jq -r '.tag_name')" = "$RELEASE_TAG"
           printf '%s' "$RELEASE_JSON" | jq -er '.body | select(test("untested"; "i"))' >/dev/null
           RELEASE_ID=$(printf '%s' "$RELEASE_JSON" | jq -er '.id')
