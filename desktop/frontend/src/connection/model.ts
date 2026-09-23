@@ -44,6 +44,8 @@ export interface ActionResult { action: string; outcome: 'accepted' | 'rejected'
 export interface ConnectionProfile { id: string; label: string; endpoint: string; daemonId: string; shortDaemonId: string; fingerprint: string; capability: string; platform: string; architecture?: string; productVersion?: string; lastSuccessfulAt?: string; active: boolean }
 export interface ConnectionWorkspace { activeProfileId?: string; profiles: ConnectionProfile[] }
 export interface ConnectionResult extends ActionResult { workspace?: ConnectionWorkspace }
+export interface LocalServiceSnapshot { state: 'running' | 'stopped' | 'starting' | 'stopping' | 'not_installed' | 'unreachable' | 'unknown' | 'unsupported'; scmState: string; detail: string; observedAt: string }
+export interface LocalServiceActionResult { action: string; outcome: 'accepted' | 'rejected' | 'unavailable' | 'cancelled' | 'failed'; message: string; snapshot: LocalServiceSnapshot }
 
 export interface UpcomingSummary { task_id: string; task_name: string; scheduled_for: string }
 export interface FailureSummary { run_id: string; task_id: string; task_name: string; ended_at: string }
@@ -63,6 +65,8 @@ export interface DesktopBridge {
   renameConnection?(id: string, label: string): Promise<ConnectionResult>
   removeConnection?(id: string): Promise<ConnectionResult>
   allSystems?(): Promise<SystemsSnapshot>
+  localServiceSnapshot?(): Promise<LocalServiceSnapshot>
+  controlLocalService?(action: 'start' | 'stop' | 'restart', confirmed: boolean): Promise<LocalServiceActionResult>
   subscribeSystems?(listener: (snapshot: SystemsSnapshot) => void): () => void
   quit(): Promise<ActionResult>
   subscribe(listener: (event: DesktopEvent) => void): () => void

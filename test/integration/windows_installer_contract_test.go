@@ -562,6 +562,33 @@ func TestWindowsInstallerLifecycleAuthoringContract(t *testing.T) {
 	}
 }
 
+func TestWindowsTrayCompanionInstallerContract(t *testing.T) {
+	elements, err := parseInstallerElements(readRepositoryFile(t, "build", "windows", "goschedule.wxs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if file, ok := findInstallerElement(elements, "File", "gosched_tray.exe"); !ok || file.attrs["Source"] != `$(StageDir)\gosched-tray.exe` {
+		t.Fatal("MSI must install the windowless tray companion")
+	}
+	if close, ok := findInstallerElement(elements, "CloseApplication", "CloseRunningTray"); !ok || close.attrs["Target"] != "gosched-tray.exe" || close.attrs["TerminateProcess"] != "1" {
+		t.Fatal("MSI must retire a running tray companion on upgrade/removal")
+	}
+	foundRun := false
+	for _, element := range elements {
+		if element.name == "RegistryValue" && element.attrs["Root"] == "HKLM" && element.attrs["Key"] == `Software\Microsoft\Windows\CurrentVersion\Run` && element.attrs["Name"] == "go-schedule tray" {
+			foundRun = true
+		}
+	}
+	if !foundRun {
+		t.Fatal("MSI must register the companion for interactive logon")
+	}
+	for _, id := range []string{"go_schedule_light.ico", "go_schedule_dark.ico"} {
+		if _, ok := findInstallerElement(elements, "File", id); !ok {
+			t.Fatalf("MSI must install %s", id)
+		}
+	}
+}
+
 func TestWindowsInstallerCIScriptAcceptsCleanGUIProcessSnapshot(t *testing.T) {
 	script := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerContractCI.ps1"))
 	script = strings.ReplaceAll(script, "\r\n", "\n")

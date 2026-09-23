@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/kardianos/service"
+	"golang.org/x/sys/windows"
 )
 
 // The defect behind issue #6 was that a status query asked for start and stop
@@ -33,5 +34,22 @@ func TestPlatformStatusMissingServiceIsNotAnAccessError(t *testing.T) {
 	}
 	if got := statusString(st); got != "unknown (is the service installed?)" {
 		t.Errorf("wording = %q, want the existing not-installed wording", got)
+	}
+}
+
+func TestWindowsPendingStatesAreNotTerminal(t *testing.T) {
+	t.Parallel()
+	cases := map[uint32]State{
+		windows.SERVICE_START_PENDING:    StateStarting,
+		windows.SERVICE_CONTINUE_PENDING: StateStarting,
+		windows.SERVICE_STOP_PENDING:     StateStopping,
+		windows.SERVICE_RUNNING:          StateRunning,
+		windows.SERVICE_STOPPED:          StateStopped,
+		windows.SERVICE_PAUSED:           StateUnknown,
+	}
+	for input, want := range cases {
+		if got := classifyWindowsState(input); got != want {
+			t.Errorf("SCM state %d maps to %s, want %s", input, got, want)
+		}
 	}
 }

@@ -7,6 +7,22 @@ import type { ConnectionSnapshot, ConnectionState, DesktopBridge } from '../conn
 const base: ConnectionSnapshot = { generation: 1, revision: 1, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'windows', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.', lastSuccessfulAt: '2026-09-07T12:00:00Z' }
 
 describe('ConnectionsPage', () => {
+  it('keeps local service controls visible with a remote daemon selected', async () => {
+    const user = userEvent.setup()
+    const action = vi.fn()
+    render(<ConnectionsPage snapshot={{ ...base, target: { ...base.target, kind: 'remote', displayName: 'Workshop' } }} retryPending={false} onRetry={vi.fn()} localService={{ state: 'stopped', scmState: 'stopped', detail: 'Local daemon stopped. Scheduled tasks on this computer are not running.', observedAt: '' }} onLocalServiceAction={action} />)
+    expect(screen.getByRole('heading', { name: 'Local Windows service' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Start service' }))
+    expect(action).toHaveBeenCalledWith('start')
+  })
+
+  it('offers Stop and Restart only for a freshly healthy running local service', () => {
+    render(<ConnectionsPage snapshot={base} retryPending={false} onRetry={vi.fn()} localService={{ state: 'running', scmState: 'running', detail: 'Local daemon is running and healthy.', observedAt: '' }} />)
+    expect(screen.getByRole('button', { name: 'Stop service' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Restart service' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Start service' })).toBeNull()
+  })
+
   it('lists and selects same-named profiles by stable identity', async () => {
     const user = userEvent.setup()
     const selectConnection = vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted' as const, message: 'Selected.', workspace: { activeProfileId: 'two', profiles: [] } })

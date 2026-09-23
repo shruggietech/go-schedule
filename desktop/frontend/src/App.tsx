@@ -3,7 +3,7 @@ import { Button, Notice, StatePanel } from "./components";
 import { Shell, type ShellFeedback } from "./components/Shell";
 import { desktopBridge } from "./connection/bridge";
 import { useConnection } from "./connection/store";
-import type { Appearance, ConnectionSnapshot, DesktopBridge, Route } from "./connection/model";
+import type { Appearance, ConnectionSnapshot, DesktopBridge, LocalServiceSnapshot, Route } from "./connection/model";
 import { taskBridge as nativeTaskBridge } from "./tasks/bridge";
 import type { TaskBridge } from "./tasks/model";
 import { TasksPage } from "./tasks/TasksPage";
@@ -146,8 +146,42 @@ export function App({
     useState<ShellFeedback>();
   const [settingsError, setSettingsError] = useState<ShellFeedback>();
   const [drilldown, setDrilldown] = useState<Drilldown>();
+  const [localService, setLocalService] = useState<LocalServiceSnapshot>();
+  const [localServicePending, setLocalServicePending] = useState(false);
+  const [localServiceMessage, setLocalServiceMessage] = useState("");
   const feedbackSequence = useRef(0);
   const { snapshot, announcement, retryPending, retry } = useConnection(bridge);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void bridge.localServiceSnapshot?.().then((value) => {
+        if (active) setLocalService(value);
+      }).catch(() => {
+        if (active) setLocalService({ state: "unknown", scmState: "unknown", detail: "Could not read local Windows service status.", observedAt: "" });
+      });
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 4000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [bridge]);
+  const localServiceAction = async (action: "start" | "stop" | "restart") => {
+    if (action === "stop" && !window.confirm("Stop the local service? Scheduled tasks on this computer will cease until it is started again.")) return;
+    if (action === "restart" && !window.confirm("Restart the local service? Active tasks may be interrupted.")) return;
+    setLocalServicePending(true);
+    setLocalServiceMessage(`Requesting ${action} through Windows service control...`);
+    try {
+      const result = await bridge.controlLocalService?.(action, true);
+      if (result) {
+        setLocalService(result.snapshot);
+        setLocalServiceMessage(result.message);
+      }
+    } catch {
+      setLocalServiceMessage("The service action could not be completed. Check Windows Services and try again.");
+    } finally {
+      setLocalServicePending(false);
+      void bridge.localServiceSnapshot?.().then(setLocalService);
+    }
+  };
   const desktopSettings = useSettings(
     settings,
     `${snapshot.generation}:${snapshot.state}`,
@@ -217,11 +251,18 @@ export function App({
       onAppearance={saveAppearance}
       appearancePending={desktopSettings.pendingActions.has("appearance")}
       connection={snapshot}
+      localService={localService}
       announcement={announcementFeedback}
       persistentFeedback={settingsError}
       onRetry={() => void retry()}
       onQuit={() => void bridge.quit()}
     >
+      {localService?.state === "stopped" && (
+        <Notice title="Local daemon stopped" tone="warning" dismissible={false}>
+          Scheduled tasks on this computer are not running.{" "}
+          <Button pending={localServicePending} onClick={() => void localServiceAction("start")}>Start service</Button>
+        </Notice>
+      )}
       {drilldown && route === drilldown.destination && <Notice title={`Opened from ${drilldown.label}`} tone="info" dismissible={false}>{drilldown.context}{drilldown.taskId ? ` · Task ${drilldown.taskId}` : ""}{drilldown.recordId ? ` · Record ${drilldown.recordId}` : ""}</Notice>}
       {desktopSettings.loading ? (
         <StatePanel
@@ -347,6 +388,10 @@ export function App({
           retryPending={retryPending}
           onRetry={() => void retry()}
           bridge={bridge}
+          localService={localService}
+          localServicePending={localServicePending}
+          localServiceMessage={localServiceMessage}
+          onLocalServiceAction={(action) => void localServiceAction(action)}
         />
       ) : route === "settings" ? (
         <SettingsPage

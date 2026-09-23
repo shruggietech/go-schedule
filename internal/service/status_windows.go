@@ -28,41 +28,60 @@ import (
 // implementation. On Windows it is always true: a real failure is an error, not
 // a fallback, because falling back would silently reintroduce the wide mask.
 func platformStatus(name string) (service.Status, bool, error) {
-	scm, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
+	state, err := platformQueryState(name)
 	if err != nil {
 		return service.StatusUnknown, true, err
+	}
+	switch state {
+	case StateRunning, StateStarting:
+		return service.StatusRunning, true, nil
+	case StateStopped, StateStopping:
+		return service.StatusStopped, true, nil
+	default:
+		return service.StatusUnknown, true, nil
+	}
+}
+
+func platformQueryState(name string) (State, error) {
+	scm, err := windows.OpenSCManager(nil, nil, windows.SC_MANAGER_CONNECT)
+	if err != nil {
+		return StateUnknown, err
 	}
 	defer windows.CloseServiceHandle(scm) //nolint:errcheck // read-only handle
 
 	svcName, err := windows.UTF16PtrFromString(name)
 	if err != nil {
-		return service.StatusUnknown, true, err
+		return StateUnknown, err
 	}
 
 	h, err := windows.OpenService(scm, svcName, windows.SERVICE_QUERY_STATUS)
 	if err != nil {
 		if errors.Is(err, windows.ERROR_SERVICE_DOES_NOT_EXIST) {
-			// Same result the library reports for a missing service, so the CLI
-			// prints the existing "unknown (is the service installed?)" wording.
-			return service.StatusUnknown, true, nil
+			return StateNotInstalled, nil
 		}
-		return service.StatusUnknown, true, err
+		return StateUnknown, err
 	}
 	defer windows.CloseServiceHandle(h) //nolint:errcheck // read-only handle
 
 	var st windows.SERVICE_STATUS
 	if err := windows.QueryServiceStatus(h, &st); err != nil {
-		return service.StatusUnknown, true, err
+		return StateUnknown, err
 	}
 
-	switch st.CurrentState {
-	case windows.SERVICE_RUNNING, windows.SERVICE_START_PENDING:
-		return service.StatusRunning, true, nil
-	case windows.SERVICE_STOPPED, windows.SERVICE_STOP_PENDING,
-		windows.SERVICE_PAUSED, windows.SERVICE_PAUSE_PENDING,
-		windows.SERVICE_CONTINUE_PENDING:
-		return service.StatusStopped, true, nil
+	return classifyWindowsState(st.CurrentState), nil
+}
+
+func classifyWindowsState(current uint32) State {
+	switch current {
+	case windows.SERVICE_RUNNING:
+		return StateRunning
+	case windows.SERVICE_START_PENDING, windows.SERVICE_CONTINUE_PENDING:
+		return StateStarting
+	case windows.SERVICE_STOPPED:
+		return StateStopped
+	case windows.SERVICE_STOP_PENDING:
+		return StateStopping
 	default:
-		return service.StatusUnknown, true, nil
+		return StateUnknown
 	}
 }

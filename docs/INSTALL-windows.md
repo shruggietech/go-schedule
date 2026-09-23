@@ -22,6 +22,7 @@ The Windows service automatically loads `C:\ProgramData\goschedule\config.json` 
 
 - [Install](#install)
 - [Installer choices](#installer-choices)
+- [Local service indicator and controls](#local-service-indicator-and-controls)
 - [Using the CLI](#using-the-cli)
 - [Upgrading](#upgrading)
 - [Uninstalling](#uninstalling)
@@ -42,7 +43,7 @@ The Windows service automatically loads `C:\ProgramData\goschedule\config.json` 
 
 The installer creates or reuses the local **`goschedadmin`** group and adds the interactive account that launched setup. The daemon authorizes that direct user by its stable user SID, so the installing user can launch immediately without signing out or running the desktop application elevated. A fresh sign-in is only needed when normal Windows group-token refresh matters, such as for nested-group membership. The installer then:
 
-- installs `gosched-gui.exe`, `goschedd.exe`, and `gosched.exe` to `C:\Program Files\go-schedule\`;
+- installs `gosched-gui.exe`, `gosched-tray.exe`, `goschedd.exe`, and `gosched.exe` to `C:\Program Files\go-schedule\`;
 - registers **`goschedd`** as a Windows service set to **start automatically**, so your tasks run in the background and survive reboots even with no one logged in;
 - adds `C:\Program Files\go-schedule\` to the machine `PATH`, so `gosched` works as a command;
 - grants daemon IPC access to SYSTEM, built-in Administrators, and members of `goschedadmin`;
@@ -60,6 +61,14 @@ After a successful fresh attended install, the completion page offers two indepe
 Either, both, or neither may be selected. Setup never launches the application or browser after a silent install, repair, modification, upgrade, failed or canceled operation, rollback, or uninstall.
 
 Launch **go-schedule** from either installed shortcut to open the desktop app. It connects to the already-running service rather than starting a second copy, and it never shows a console window.
+
+## Local service indicator and controls
+
+Builds containing S101 start one go-schedule companion in each signed-in Windows session. Look for the go-schedule mark beside the clock; Windows may place it under the notification-area overflow arrow. The icon remains when the desktop window closes, while the service itself can run before sign-in. If the icon is not yet visible after installation, sign out and back in to trigger its logon registration.
+
+Hover for the status of **This computer**, then right-click for Open go-schedule and available Start, Stop, or Restart actions. Left-click opens or focuses the existing desktop window. The GUI's Connections page also shows local service controls even if you selected a remote scheduler. Stopped means scheduled tasks on this computer are not running; Not installed means the Windows service is absent; Starting and Stopping are transitions; Unreachable means the service manager reports Running but fresh local daemon health could not be confirmed.
+
+Start, Stop, and Restart change the Windows service and may prompt for administrator approval. Stop warns that scheduled tasks cease until restart, and Restart warns that active tasks may be interrupted. Declining UAC leaves the service unchanged. Closing the desktop window or quitting the companion does not stop the service. Opening the desktop window does not silently restart a deliberately stopped installed service; use the explicit Start service control.
 
 > **Data location:** tasks and logs live under `C:\ProgramData\goschedule\`, the database `goschedule.db` and the `logs\` folder. Both are created automatically on first run.
 

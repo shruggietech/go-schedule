@@ -17,6 +17,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/systems"
 	"github.com/shruggietech/go-schedule/desktop/taskgroup"
 	"github.com/shruggietech/go-schedule/internal/bundle"
+	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
 )
 
 const (
@@ -43,21 +44,43 @@ type ActionResult struct {
 
 // App is the deliberately small Wails bridge facade.
 type App struct {
-	manager       *connection.Manager
-	tasks         *taskgroup.Service
-	automation    *automation.Service
-	bundles       *bundles.Service
-	operations    *operations.Service
-	notifications *notifications.Service
-	settings      *settings.Service
-	agentAccess   *agentaccess.Service
-	remotePairing *remotepairing.Service
-	connections   *connections.Service
-	systems       *systems.Service
-	search        *search.Service
-	emitter       eventEmitter
-	native        nativeRuntime
-	ctx           context.Context
+	manager        *connection.Manager
+	tasks          *taskgroup.Service
+	automation     *automation.Service
+	bundles        *bundles.Service
+	operations     *operations.Service
+	notifications  *notifications.Service
+	settings       *settings.Service
+	agentAccess    *agentaccess.Service
+	remotePairing  *remotepairing.Service
+	connections    *connections.Service
+	systems        *systems.Service
+	search         *search.Service
+	localService   *desktopcontrol.Monitor
+	emitter        eventEmitter
+	native         nativeRuntime
+	ctx            context.Context
+	stopActivation func()
+}
+
+// LocalServiceSnapshot reads this computer's installed Windows service
+// independently of whichever daemon connection is selected.
+func (a *App) LocalServiceSnapshot() desktopcontrol.Snapshot {
+	if a.localService == nil || a.ctx == nil {
+		return desktopcontrol.Snapshot{State: "unsupported", Detail: "Local Windows service controls are unavailable on this platform."}
+	}
+	return a.localService.Observe(a.ctx)
+}
+
+// ControlLocalService requests one confirmed local service action.
+func (a *App) ControlLocalService(action string, confirmed bool) desktopcontrol.ActionResult {
+	if a.localService == nil || a.ctx == nil {
+		return desktopcontrol.ActionResult{Action: action, Outcome: "unavailable", Message: "Local Windows service controls are unavailable."}
+	}
+	if (action == "stop" || action == "restart") && !confirmed {
+		return desktopcontrol.ActionResult{Action: action, Outcome: "rejected", Message: "Confirm the service impact before proceeding.", Snapshot: a.localService.Observe(a.ctx)}
+	}
+	return a.localService.RequestAction(a.ctx, action)
 }
 
 // SearchAcrossSystems searches every current registration without changing the selected connection.
@@ -606,6 +629,11 @@ func (o appObserver) Publish(event connection.Event) {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	if stop, err := desktopcontrol.ListenGUI(ctx, func() {
+		wailsShowWindow(ctx)
+	}); err == nil {
+		a.stopActivation = stop
+	}
 	if a.connections != nil {
 		_ = a.connections.RestoreSelection(ctx)
 	}
@@ -613,6 +641,9 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) shutdown(context.Context) {
+	if a.stopActivation != nil {
+		a.stopActivation()
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	_ = a.manager.Stop(ctx)

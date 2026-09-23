@@ -14,8 +14,10 @@ import type {
   ConnectionSnapshot,
   ConnectionWorkspace,
   DesktopBridge,
+  LocalServiceSnapshot,
 } from "../connection/model";
 import { PairingForm } from "../remotepairing/PairingForm";
+import { LocalServiceControls } from "./LocalServiceControls";
 
 const guidance: Record<ConnectionSnapshot["state"], string> = {
   connecting: "Wait while go-schedule checks the selected endpoint.",
@@ -48,11 +50,19 @@ export function ConnectionsPage({
   retryPending,
   onRetry,
   bridge = desktopBridge,
+  localService,
+  localServicePending = false,
+  localServiceMessage = "",
+  onLocalServiceAction = () => undefined,
 }: {
   snapshot: ConnectionSnapshot;
   retryPending: boolean;
   onRetry(): void;
   bridge?: DesktopBridge;
+  localService?: LocalServiceSnapshot;
+  localServicePending?: boolean;
+  localServiceMessage?: string;
+  onLocalServiceAction?(action: "start" | "stop" | "restart"): void;
 }) {
   const [workspace, setWorkspace] = useState<ConnectionWorkspace>();
   const [message, setMessage] = useState("");
@@ -113,6 +123,7 @@ export function ConnectionsPage({
         </Notice>
       )}
       <div className="admin-stack">
+        <LocalServiceControls snapshot={localService} pending={localServicePending} message={localServiceMessage} onAction={onLocalServiceAction} />
         <CardSection
           eyebrow="Current diagnosis"
           title={snapshot.target.displayName}

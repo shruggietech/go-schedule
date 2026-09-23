@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Windows local service controls gain a per-session notification-area companion (Refs #255).** The companion reports installed service state plus fresh local health, offers Open and protected Start, Stop, and Restart actions, and survives GUI closure. The GUI exposes the same local controls even while a remote daemon is selected.
+
 ### Changed
+
+- **Opening the Windows GUI no longer auto-starts an installed service that an operator deliberately stopped (Refs #255).** Standalone desktop behavior without an installed service remains unchanged.
 
 - **Portable bundle operations now check the selected daemon before forwarding (Closes #184).** The daemon advertises bundle support, while the shared client derives required capabilities from each v1 or v2 document, reports individual missing features and unsupported watcher platforms, and freezes the selected target across discovery and operation. Validation returns machine-readable compatibility findings, preview and apply fail closed, and watcher paths remain target-local without changing bundle digests or inferring removals.
 
@@ -31,6 +37,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-22: keep the Windows service headless and use a separate user-session tray companion (Refs #255).** A service cannot own an interactive notification-area icon, and Wails can close independently. SCM status remains readable without elevation; only validated mutations enter a narrow elevated helper, and both UI surfaces confirm success from observed service state and local health.
+
+- **2026-09-22: approve exact-geometry white and black reduced-mark derivatives for the Windows tray (Refs #255).** The prior brand guide allowed monochrome full marks but prohibited recoloring the reduced mark. Full-detail marks lose legibility at 16 to 32 px, so the controlled derivatives retain the canonical reduced shapes and change only fill colors for taskbar contrast.
 
 - **2026-09-22: derive portable bundle compatibility from content and the selected target manifest (Refs #184).** A bundle-authored requirements claim could understate its dependencies and would change canonical digests. The shared client instead checks actual object families, treats missing manifest support as incompatible, and holds one selected target for discovery and operation. The daemon remains authoritative for target-local path validation and apply-time plan identity.
 

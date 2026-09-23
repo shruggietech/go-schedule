@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/wailsapp/wails/v2"
@@ -30,7 +31,9 @@ import (
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
 	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
 	"github.com/shruggietech/go-schedule/internal/ipc"
+	"github.com/shruggietech/go-schedule/internal/service"
 )
 
 //go:embed all:frontend/dist
@@ -59,23 +62,51 @@ func ensureBundledDaemon(ping func(context.Context) error, spawn func() error) e
 	return autostart.EnsureRunning(ctx, ping, spawn)
 }
 
+func shouldAutoSpawnInstalledService(state service.State, err error) bool {
+	if runtime.GOOS != "windows" {
+		return true
+	}
+	// A deliberate stop must survive opening the GUI. When SCM cannot be
+	// queried, failing closed also avoids spawning a competing daemon.
+	return err == nil && state == service.StateNotInstalled
+}
+
 func main() {
+	instance, owner, instanceErr := desktopcontrol.ClaimGUI()
+	if instanceErr != nil {
+		fmt.Fprintln(os.Stderr, instanceErr)
+		os.Exit(1)
+	}
+	if !owner {
+		_, _ = desktopcontrol.SignalGUI()
+		return
+	}
+	defer instance.Close() //nolint:errcheck // process-lifetime mutex handle
 	cfg, err := config.Load("")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	localDaemon := client.New(ipc.Endpoint(cfg))
-	_ = ensureBundledDaemon(func(ctx context.Context) error {
-		_, err := localDaemon.Health(ctx)
-		return err
-	}, autostart.SpawnDaemon)
+	if state, statusErr := service.QueryState(); shouldAutoSpawnInstalledService(state, statusErr) {
+		_ = ensureBundledDaemon(func(ctx context.Context) error {
+			_, err := localDaemon.Health(ctx)
+			return err
+		}, autostart.SpawnDaemon)
+	}
 	router := client.NewSwitchable(localDaemon)
 	backend := connection.NewLocalBackend(localDaemon)
 	profileStore := clientprofile.NewStore("")
 	secretStore := clientsecret.New()
 	native := wailsNative{}
 	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(router)), automation: automation.NewService(automation.NewLocalBackend(router)), bundles: bundles.NewService(bundles.NewLocalBackend(router)), operations: operations.NewService(operations.NewLocalBackend(router)), notifications: notifications.NewService(notifications.NewLocalBackend(router)), settings: settings.NewService(settings.NewLocalBackend(localDaemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(router), native), remotePairing: remotepairing.NewWithStores(secretStore, profileStore)})
+	if runtime.GOOS == "windows" {
+		monitor := desktopcontrol.NewMonitor(func(ctx context.Context) error {
+			_, err := localDaemon.Health(ctx)
+			return err
+		})
+		app.localService = &monitor
+	}
 	app.connections = connections.New(profileStore, secretStore, localDaemon, router, app.manager)
 	app.systems = systems.New(profileStore, secretStore, localDaemon)
 	app.search = search.New(profileStore, secretStore, localDaemon)
