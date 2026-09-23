@@ -26,11 +26,13 @@ describe('production shell', () => {
     let activated: ((intent: { profileId: string; daemonId: string; label: string; kind: 'run' | 'alert'; recordId: string }) => void) | undefined
     const selected: ConnectionSnapshot = { ...connected, target: { ...connected.target, id: 'daemon-identity' } }
     const popupBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(selected), selectConnection: vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' }), subscribePopup: (listener) => { activated = listener; return () => { activated = undefined } } }
-    render(<App bridge={popupBridge} tasks={tasks} operations={operations} settings={settings} />)
+    const exactOperations: OperationsBridge = { ...operations, activityRecord: vi.fn().mockResolvedValue({ action: 'load_activity_record', outcome: 'accepted', message: 'Opened.', activity: { runs: [], logs: [], alerts: [], logPath: '', loadedAt: '2026-09-07T00:00:00Z' } }) }
+    render(<App bridge={popupBridge} tasks={tasks} operations={exactOperations} settings={settings} />)
     await act(async () => { activated?.({ profileId: '', daemonId: 'daemon-identity', label: 'This computer', kind: 'run', recordId: 'run-1' }) })
     expect(await screen.findByRole('heading', { level: 1, name: 'Activity' })).toBeVisible()
     expect(screen.getByText(/Record run-1/)).toBeVisible()
     expect(popupBridge.selectConnection).toHaveBeenCalledWith('')
+    await waitFor(() => expect(exactOperations.activityRecord).toHaveBeenCalledWith('run', 'run-1'))
   })
 
   it('leaves search open when the selected registration resolves to a different daemon identity', async () => {
@@ -57,6 +59,18 @@ describe('production shell', () => {
     expect(screen.getByRole('heading', { name: 'Automation Sources is unavailable for remote targets' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Connection details' }))
     expect(screen.getByRole('dialog', { name: 'Production connection' })).toHaveTextContent('https://example.test')
+  })
+
+  it('keeps desktop popup mute reachable while a remote scheduler is selected', async () => {
+    const user = userEvent.setup()
+    const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks'], permissions: ['read'] } }
+    const remoteBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(remote) }
+    const remoteNotifications: NotificationBridge = { ...notifications, workspace: vi.fn() }
+    render(<App bridge={remoteBridge} tasks={tasks} settings={settings} notifications={remoteNotifications} />)
+    await user.click(screen.getByRole('button', { name: 'Notifications' }))
+    expect(await screen.findByRole('checkbox', { name: 'Enable desktop popups' })).toBeVisible()
+    expect(screen.getByText('Webhook setup is local only')).toBeVisible()
+    expect(remoteNotifications.workspace).not.toHaveBeenCalled()
   })
 
   it('keeps manage-only task configuration disabled for operate credentials', async () => {

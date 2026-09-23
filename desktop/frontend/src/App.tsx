@@ -217,7 +217,6 @@ export function App({
   const unsupportedRemote =
     remote &&
     (route === "automation" ||
-      route === "notifications" ||
       route === "agentAccess");
   const canOperate =
     snapshot.state === "connected" &&
@@ -374,6 +373,7 @@ export function App({
           bridge={notifications}
           settings={settings}
           desktop={bridge}
+          webhooksSupported={!remote}
           available={snapshot.state === "connected"}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0
