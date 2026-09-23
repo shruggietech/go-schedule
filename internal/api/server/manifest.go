@@ -39,7 +39,7 @@ type manifestResetRequest struct {
 	ConfirmInstallationID string `json:"confirm_installation_id"`
 }
 
-var daemonCapabilities = []string{"activity", "actor-authorization", "agent-access", "chains", "groups", "management-audit", "notifications", "schedule", "search", "tasks", "triggers", "watchers"}
+var daemonCapabilities = []string{"activity", "actor-authorization", "agent-access", "bundles", "chains", "groups", "management-audit", "notifications", "schedule", "search", "tasks", "triggers", "watchers"}
 
 func (s *Server) handleManifest(w http.ResponseWriter, r *http.Request) {
 	s.writeManifest(w, r)

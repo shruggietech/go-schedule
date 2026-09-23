@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -163,6 +164,19 @@ func TestBundleV2SourcesRequireBindingsAndApplyAsDisabled(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := t.TempDir()
+	foreignPath := `C:\source\watcher`
+	if runtime.GOOS == "windows" {
+		foreignPath = "/source/watcher"
+	}
+	foreign := doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc, WatcherPaths: map[string]string{"watcher": foreignPath}})
+	if foreign.Code != http.StatusOK || json.Unmarshal(foreign.Body.Bytes(), &plan) != nil {
+		t.Fatalf("foreign preview=%d %s", foreign.Code, foreign.Body.String())
+	}
+	for _, item := range plan.Items {
+		if item.Kind == "watcher" && item.Action != bundle.ActionConflict {
+			t.Fatalf("foreign path accepted on %s: %+v", runtime.GOOS, item)
+		}
+	}
 	preview = doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc, WatcherPaths: map[string]string{"watcher": path}})
 	if preview.Code != http.StatusOK || json.Unmarshal(preview.Body.Bytes(), &plan) != nil {
 		t.Fatalf("bound preview=%d %s", preview.Code, preview.Body.String())

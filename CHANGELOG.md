@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Portable bundle operations now check the selected daemon before forwarding (Closes #184).** The daemon advertises bundle support, while the shared client derives required capabilities from each v1 or v2 document, reports individual missing features and unsupported watcher platforms, and freezes the selected target across discovery and operation. Validation returns machine-readable compatibility findings, preview and apply fail closed, and watcher paths remain target-local without changing bundle digests or inferring removals.
+
 - **Portable bundles now include safe automation source and notification policy intent (Refs #184).** Version 2 exports standalone external triggers, trigger sets, filesystem watcher selection rules, and notification assignments without keys, endpoints, credentials, local paths, or enabled state. Target-bound preview accepts local watcher paths, checks notification channel names, and applies reviewed changes with new sources disabled and fresh local keys. Existing version 1 documents remain readable.
 
 - **Cross-daemon search finds and safely acts on automation across every registered scheduler (Closes #183; Refs #174).** A dedicated desktop workspace progressively searches tasks, groups, recent failures, upcoming schedules, and unacknowledged alerts with eight-target fan-out, three-second target deadlines, source identity, freshness, truncation, and independent failures. Exact-source opening validates the expected daemon identity, while explicit acknowledge, enable, disable, and run-now batches group confirmation by daemon, revalidate current identity, authority, and object state, and retain independent accepted, rejected, or uncertain outcomes without rollback or automatic replay.
@@ -29,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-22: derive portable bundle compatibility from content and the selected target manifest (Refs #184).** A bundle-authored requirements claim could understate its dependencies and would change canonical digests. The shared client instead checks actual object families, treats missing manifest support as incompatible, and holds one selected target for discovery and operation. The daemon remains authoritative for target-local path validation and apply-time plan identity.
 
 - **2026-09-22: keep target bindings outside portable bundle documents (Refs #184).** Watcher paths are supplied to preview for the selected daemon and retained only with its single-use plan. Notification policy references resolve to uniquely named channels already configured on the target. Trigger-set rename and member-count edits surface conflicts until the store has an atomic edit operation, preserving accurate preview outcomes.
 

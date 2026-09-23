@@ -21,6 +21,7 @@ nav_order: 3
 - [Exit codes](#exit-codes)
 - [`health`](#health)
 - [`daemon`](#daemon)
+- [`bundle`](#bundle)
 - [`mcp`](#mcp)
 - [`task`](#task)
 - [`cron`](#cron)
@@ -106,6 +107,20 @@ gosched daemon manifest --json
 Change only its operator-facing label with `gosched daemon rename "Workshop scheduler"`. Names are trimmed, contain 1 through 80 Unicode characters, and cannot contain control characters.
 
 After copying a daemon database for independent concurrent use, replace the clone's copied identity with `gosched daemon reset-identity --confirm <current-installation-id>`. The exact current identifier is required. Reset preserves the display name and every scheduler record. See [Daemon identity](daemon-identity.md) for clean-install, upgrade, restore, clone, and reset semantics.
+
+## `bundle`
+
+Move portable automation intent to a deliberately selected daemon without exporting credentials, notification endpoints, enabled state, or watcher paths. A bundle operation first reads that daemon's manifest. If bundle support or a feature required by the document is missing, validation reports each missing capability and preview or apply stops before forwarding the request. Watcher bundles require a Windows, Linux, or macOS target; watcher paths are supplied separately for the target to interpret.
+
+```sh
+gosched bundle export --output automation.json
+gosched --profile destination bundle validate automation.json
+gosched --profile destination bundle compare automation.json
+gosched --profile destination bundle preview automation.json --watcher-path WATCHER_ID=ABSOLUTE_TARGET_PATH --output plan.json
+gosched --profile destination bundle apply plan.json
+```
+
+Inspect validation findings, comparison drift, and the complete preview plan before applying. `compare` is read-only. A preview plan is single-use and bound to the selected daemon and its current state; applying after switching targets or after the plan becomes stale requires a fresh preview. Target-only objects are reported as drift, never inferred as removals. Version 1 and version 2 bundles remain readable, and the daemon performs final path and domain validation.
 
 ## Actors and management audit
 
