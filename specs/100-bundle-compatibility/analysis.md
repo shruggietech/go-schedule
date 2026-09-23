@@ -1,0 +1,3 @@
+# Cross-Artifact Analysis
+
+The specification, plan, data model, contract, and tasks consistently derive capability requirements from bundle and plan contents rather than adding a requirements claim to v1 or v2 JSON. Task definitions require both `schedule` and `tasks`; watcher definitions additionally require a supported target operating system and keep path interpretation on the target daemon. Every functional requirement maps to an implementation task and focused regression, and the existing bundle API tests cover read-only drift and no inferred removal. No unresolved critical conflict or constitution deviation was found before implementation.
