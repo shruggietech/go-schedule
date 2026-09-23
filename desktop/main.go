@@ -21,6 +21,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/connections"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
+	"github.com/shruggietech/go-schedule/desktop/popups"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
 	"github.com/shruggietech/go-schedule/desktop/search"
 	"github.com/shruggietech/go-schedule/desktop/settings"
@@ -126,12 +127,14 @@ func main() {
 	app.connections = connections.New(profileStore, secretStore, localDaemon, router, app.manager)
 	app.systems = systems.New(profileStore, secretStore, localDaemon)
 	app.search = search.New(profileStore, secretStore, localDaemon)
+	app.popupRuntime = &wailsPopup{}
+	app.popups = popups.New(popups.RegisteredSources(profileStore, secretStore, localDaemon), app.settings, app.popupRuntime)
 	if err := wails.Run(&options.App{
 		Title: "go-schedule", Width: 1440, Height: 900, MinWidth: 800, MinHeight: 600,
 		BackgroundColour: &options.RGBA{R: 245, G: 247, B: 250, A: 1},
 		Windows:          &windows.Options{Theme: windows.SystemDefault},
 		AssetServer:      &assetserver.Options{Assets: assets},
-		OnStartup:        app.startup, OnShutdown: app.shutdown, Bind: []any{app},
+		OnStartup:        app.startup, OnDomReady: app.domReady, OnShutdown: app.shutdown, Bind: []any{app},
 	}); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

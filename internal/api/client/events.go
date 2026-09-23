@@ -66,10 +66,10 @@ func (c *Client) StreamEvents(ctx context.Context, onEvent func(events.Event)) e
 	}
 }
 
-// StreamRemoteEvents consumes the secret-free remote event projection.
+// StreamRemoteEvents consumes the secret-free observation projection on local or remote transports.
 func (c *Client) StreamRemoteEvents(ctx context.Context, onEvent func(RemoteEvent)) error {
 	target := c.target()
-	req, err := target.newRequest(ctx, http.MethodGet, "/v1/events", nil)
+	req, err := target.newRequest(ctx, http.MethodGet, "/v1/events?observation=true", nil)
 	if err != nil {
 		return err
 	}

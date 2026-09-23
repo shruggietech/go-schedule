@@ -22,6 +22,17 @@ const searchSnapshot: SearchSnapshot = { generation: 1, query: 'archive', starte
 const search: SearchBridge = { search: vi.fn().mockResolvedValue(searchSnapshot), execute: vi.fn(), subscribe: () => () => undefined }
 
 describe('production shell', () => {
+  it('opens a popup activity record only after checking its daemon identity', async () => {
+    let activated: ((intent: { profileId: string; daemonId: string; label: string; kind: 'run' | 'alert'; recordId: string }) => void) | undefined
+    const selected: ConnectionSnapshot = { ...connected, target: { ...connected.target, id: 'daemon-identity' } }
+    const popupBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(selected), selectConnection: vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' }), subscribePopup: (listener) => { activated = listener; return () => { activated = undefined } } }
+    render(<App bridge={popupBridge} tasks={tasks} operations={operations} settings={settings} />)
+    await act(async () => { activated?.({ profileId: '', daemonId: 'daemon-identity', label: 'This computer', kind: 'run', recordId: 'run-1' }) })
+    expect(await screen.findByRole('heading', { level: 1, name: 'Activity' })).toBeVisible()
+    expect(screen.getByText(/Record run-1/)).toBeVisible()
+    expect(popupBridge.selectConnection).toHaveBeenCalledWith('')
+  })
+
   it('leaves search open when the selected registration resolves to a different daemon identity', async () => {
     const user = userEvent.setup()
     const identityChanged: ConnectionSnapshot = { ...connected, target: { ...connected.target, id: 'different-daemon', profileId: 'profile-7', kind: 'remote', displayName: 'Production' } }
@@ -31,7 +42,7 @@ describe('production shell', () => {
     await user.type(screen.getByLabelText('Search all systems'), 'archive')
     await user.click(screen.getAllByRole('button', { name: /^Search$/ }).at(-1)!)
     await user.click(await screen.findByRole('button', { name: 'Open' }))
-    expect(await screen.findByText('The scheduler identity changed. Search was left open and no record was opened.')).toBeVisible()
+    expect(await screen.findByText('The scheduler identity changed. No activity record was opened.')).toBeVisible()
     expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible()
   })
 

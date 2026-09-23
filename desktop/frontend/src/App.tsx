@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Notice, StatePanel } from "./components";
 import { Shell, type ShellFeedback } from "./components/Shell";
 import { desktopBridge } from "./connection/bridge";
@@ -59,7 +59,7 @@ const copy: Record<Route, { title: string; detail: string }> = {
   },
   notifications: {
     title: "Notifications",
-    detail: "Webhook channels, outcome policies, and delivery evidence.",
+    detail: "Optional desktop popups and independent webhook delivery.",
   },
   agentAccess: {
     title: "Agent Access",
@@ -98,7 +98,7 @@ async function selectAndWaitForTarget(bridge: DesktopBridge, registrationKey: st
     };
     const inspect = (snapshot: ConnectionSnapshot) => {
       if (!selectedTarget(snapshot, registrationKey)) return;
-      if (snapshot.state === "connected" && expectedDaemonId && snapshot.target.id !== expectedDaemonId) finish(undefined, "The scheduler identity changed. Search was left open and no record was opened.");
+      if (snapshot.state === "connected" && expectedDaemonId && snapshot.target.id !== expectedDaemonId) finish(undefined, "The scheduler identity changed. No activity record was opened.");
       else if (snapshot.state === "connected") finish(snapshot);
       else if (snapshot.state !== "connecting" && snapshot.state !== "recovering") finish(undefined, `${snapshot.message}${snapshot.action ? ` ${snapshot.action}` : ""}`);
     };
@@ -231,7 +231,7 @@ export function App({
   const saveAppearance = (value: Appearance) => {
     void desktopSettings.saveAppearance(value);
   };
-  const openSystem = async (intent: Drilldown) => {
+  const openSystem = useCallback(async (intent: Drilldown) => {
     feedbackSequence.current += 1;
     try {
       await selectAndWaitForTarget(bridge, intent.registrationKey, intent.expectedDaemonId);
@@ -242,7 +242,10 @@ export function App({
     setDrilldown(intent);
     setAnnouncementFeedback({ identity: `system:${feedbackSequence.current}`, message: `${intent.label} selected. Opened ${intent.context}.`, tone: "success" });
     setRoute(intent.destination);
-  };
+  }, [bridge]);
+  useEffect(() => bridge.subscribePopup?.((intent) => {
+    void openSystem({ registrationKey: intent.profileId || 'local', expectedDaemonId: intent.daemonId, label: intent.label, destination: 'activity', recordId: intent.recordId, recordKind: intent.kind, context: 'Native desktop notification' });
+  }) ?? (() => undefined), [bridge, openSystem]);
   return (
     <Shell
       route={route}
@@ -369,6 +372,8 @@ export function App({
       ) : route === "notifications" ? (
         <NotificationsPage
           bridge={notifications}
+          settings={settings}
+          desktop={bridge}
           available={snapshot.state === "connected"}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0

@@ -1,8 +1,8 @@
-import type { ActionResult, ConnectionResult, ConnectionSnapshot, DesktopBridge, DesktopEvent, LocalServiceActionResult, LocalServiceSnapshot, SystemsSnapshot } from './model'
+import type { ActionResult, ConnectionResult, ConnectionSnapshot, DesktopBridge, DesktopEvent, LocalServiceActionResult, LocalServiceSnapshot, PopupActivationIntent, SystemsSnapshot } from './model'
 
 type NativeWindow = Window & {
   go?: { main?: { App?: { Snapshot(): Promise<ConnectionSnapshot>; RetryConnection(): Promise<ActionResult>; Quit(): Promise<ActionResult>; ConnectionProfiles?(): Promise<ConnectionResult>; SelectConnection?(id: string): Promise<ConnectionResult>; RenameConnection?(id: string, label: string): Promise<ConnectionResult>; RemoveConnection?(id: string): Promise<ConnectionResult>; AllSystems?(): Promise<SystemsSnapshot>; LocalServiceSnapshot?(): Promise<LocalServiceSnapshot>; ControlLocalService?(action: string, confirmed: boolean): Promise<LocalServiceActionResult> } } }
-  runtime?: { EventsOn?(name: string, callback: (event: DesktopEvent | SystemsSnapshot) => void): () => void }
+  runtime?: { EventsOn?(name: string, callback: (event: DesktopEvent | SystemsSnapshot | PopupActivationIntent) => void): () => void }
 }
 
 export const unavailableSnapshot: ConnectionSnapshot = {
@@ -28,9 +28,10 @@ export function createBridge(nativeWindow: NativeWindow = window): DesktopBridge
     allSystems: () => app?.AllSystems?.() ?? Promise.resolve({ generation: 0, startedAt: '', completedAt: '', complete: true, observations: [] }),
     localServiceSnapshot: () => app?.LocalServiceSnapshot?.() ?? Promise.resolve({ state: 'unsupported', scmState: '', detail: 'Local service controls are unavailable in this browser.', observedAt: '' }),
     controlLocalService: (action, confirmed) => app?.ControlLocalService?.(action, confirmed) ?? Promise.resolve({ action, outcome: 'unavailable', message: 'Local service controls are unavailable.', snapshot: { state: 'unsupported', scmState: '', detail: '', observedAt: '' } }),
-    subscribeSystems: (listener) => nativeWindow.runtime?.EventsOn?.('systems:event', listener as (event: DesktopEvent | SystemsSnapshot) => void) ?? (() => undefined),
+    subscribeSystems: (listener) => nativeWindow.runtime?.EventsOn?.('systems:event', listener as (event: DesktopEvent | SystemsSnapshot | PopupActivationIntent) => void) ?? (() => undefined),
     quit: () => app?.Quit() ?? Promise.resolve({ action: 'quit', outcome: 'unavailable', message: 'Exit is available in the installed desktop application.' }),
-    subscribe: (listener) => nativeWindow.runtime?.EventsOn?.('desktop:event', listener as (event: DesktopEvent | SystemsSnapshot) => void) ?? (() => undefined),
+    subscribe: (listener) => nativeWindow.runtime?.EventsOn?.('desktop:event', listener as (event: DesktopEvent | SystemsSnapshot | PopupActivationIntent) => void) ?? (() => undefined),
+    subscribePopup: (listener) => nativeWindow.runtime?.EventsOn?.('desktop:popup-activated', listener as (event: DesktopEvent | SystemsSnapshot | PopupActivationIntent) => void) ?? (() => undefined),
   }
 }
 

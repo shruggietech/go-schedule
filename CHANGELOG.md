@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.0]
+
 ### Added
+
+- **Optional native desktop popups report new activity from registered schedulers while the GUI runs (Refs #177).** Windows, macOS, and supported Linux desktop sessions can opt in, silence popups, and filter by daemon, condition, and severity without changing durable webhook policy. Source-aware deduplication and identity-checked Activity activation avoid cross-daemon confusion; closed-app delivery is not claimed.
 
 - **Linux desktops gain local daemon presence and controls (Refs #256).** A per-session StatusNotifier companion reports the installed system service plus fresh local health, opens or focuses one GUI, and offers confirmed Start, Stop, and Restart operations through narrow graphical authorization. The Connections page provides the same local controls when no compatible status host is present or a remote daemon is selected.
 
@@ -41,6 +45,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-23: keep native popups desktop-local and defer SMTP past the v1.5.0 release boundary (Refs #177, #176, #19, #185).** Wails' maintained native runtime handles operating-system presentation, while independent read-only clients observe registered daemons without switching the selected target. Webhooks remain the unattended path. The broader notification epic and SMTP issue remain open, and the S103 PR prepares release copy without creating a tag or publication.
 
 - **2026-09-23: use a separate user-session StatusNotifier process and a fixed Polkit service action for Linux desktop controls (Refs #256).** A system daemon cannot own session UI, and the GUI may close independently. The indicator uses a maintained pure-Go SNI/dbusmenu library and the existing compact brand asset; service mutations target only the fixed installed unit with no shell or elevated GUI. The release archive now carries the indicator and opt-in XDG autostart entry.
 

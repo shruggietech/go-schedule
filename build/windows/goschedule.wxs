@@ -267,7 +267,9 @@
           Description="Open the go-schedule desktop app"
           Target="[INSTALLFOLDER]gosched-gui.exe"
           Icon="GoSchedule.ico"
-          WorkingDirectory="INSTALLFOLDER" />
+          WorkingDirectory="INSTALLFOLDER">
+        <ShortcutProperty Key="System.AppUserModel.ID" Value="gosched-gui.exe" />
+      </Shortcut>
       <RemoveFolder Id="RemoveAppMenuFolder" Directory="AppMenuFolder" On="uninstall" />
       <RegistryValue Root="HKLM" Key="Software\ShruggieTech\go-schedule" Name="installed" Type="integer" Value="1" KeyPath="yes" />
     </Component>

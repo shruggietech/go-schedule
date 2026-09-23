@@ -26,6 +26,19 @@ type DesktopPreferences struct {
 	Version    int                  `json:"version"`
 	Appearance Appearance           `json:"appearance"`
 	Transition PreferenceTransition `json:"transition"`
+	Popups     PopupPreferences     `json:"popups"`
+}
+
+// PopupPreferences affects only notifications emitted by this running desktop process.
+type PopupPreferences struct {
+	Enabled    bool     `json:"enabled"`
+	Conditions []string `json:"conditions"`
+	Severities []string `json:"severities"`
+	DaemonIDs  []string `json:"daemonIds"`
+}
+
+func DefaultPopupPreferences() PopupPreferences {
+	return PopupPreferences{Conditions: []string{"failure", "success", "alert"}, Severities: []string{"info", "warning", "error"}, DaemonIDs: []string{}}
 }
 
 // StorageRecord describes one exact storage source and its removal semantics.

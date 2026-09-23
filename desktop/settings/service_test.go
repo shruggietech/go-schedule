@@ -78,6 +78,33 @@ func writeFixture(t *testing.T, path, value string) {
 	}
 }
 
+func TestPopupPreferencesPersistAndRestoreDisabled(t *testing.T) {
+	deps := testDependencies(t)
+	service := NewServiceWithDependencies(nil, nil, deps)
+	defaultPrefs, err := service.PopupPreferences()
+	if err != nil || defaultPrefs.Enabled {
+		t.Fatalf("unsafe default: %+v %v", defaultPrefs, err)
+	}
+	defaultPrefs.Enabled = true
+	defaultPrefs.Conditions = []string{"failure"}
+	defaultPrefs.DaemonIDs = []string{"daemon-a"}
+	if result := service.SavePopups(context.Background(), defaultPrefs); result.Outcome != "accepted" {
+		t.Fatalf("save: %+v", result)
+	}
+	reloaded := NewServiceWithDependencies(nil, nil, deps)
+	saved, err := reloaded.PopupPreferences()
+	if err != nil || !reflect.DeepEqual(saved, defaultPrefs) {
+		t.Fatalf("persisted: %+v %v", saved, err)
+	}
+	if result := reloaded.Restore(context.Background()); result.Outcome != "accepted" {
+		t.Fatalf("restore: %+v", result)
+	}
+	defaultAgain, err := reloaded.PopupPreferences()
+	if err != nil || defaultAgain.Enabled || len(defaultAgain.DaemonIDs) != 0 {
+		t.Fatalf("restore: %+v %v", defaultAgain, err)
+	}
+}
+
 func TestPreferenceMigrationMatrixAndEstablishedAuthority(t *testing.T) {
 	tests := []struct {
 		name, legacy, status string

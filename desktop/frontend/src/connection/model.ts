@@ -56,6 +56,7 @@ export interface SystemRegistration { key: string; profileId?: string; kind: 'lo
 export interface SystemFailure { state: ConnectionState; message: string; action: string }
 export interface SystemObservation { registration: SystemRegistration; state: ConnectionState; observedAt?: string; stale: boolean; summary?: SystemSummary; failure?: SystemFailure }
 export interface SystemsSnapshot { generation: number; startedAt: string; completedAt: string; complete: boolean; observations: SystemObservation[] }
+export interface PopupActivationIntent { profileId: string; daemonId: string; label: string; kind: 'run' | 'alert'; recordId: string }
 
 export interface DesktopBridge {
   snapshot(): Promise<ConnectionSnapshot>
@@ -70,4 +71,5 @@ export interface DesktopBridge {
   subscribeSystems?(listener: (snapshot: SystemsSnapshot) => void): () => void
   quit(): Promise<ActionResult>
   subscribe(listener: (event: DesktopEvent) => void): () => void
+  subscribePopup?(listener: (intent: PopupActivationIntent) => void): () => void
 }
