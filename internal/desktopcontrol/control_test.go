@@ -3,6 +3,8 @@ package desktopcontrol
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/shruggietech/go-schedule/internal/service"
@@ -75,6 +77,18 @@ func TestRequestActionDoesNotClaimElevationCancellationAsSuccess(t *testing.T) {
 	}
 	result := m.RequestAction(context.Background(), "start")
 	if result.Outcome != "cancelled" || result.Snapshot.State != "stopped" {
+		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestRequestActionDoesNotClaimTimedOutHelperAsUnchanged(t *testing.T) {
+	t.Parallel()
+	m := Monitor{
+		Query:   func() (service.State, error) { return service.StateStopping, nil },
+		Execute: func(string) error { return fmt.Errorf("%w: process terminated", errHelperTimedOut) },
+	}
+	result := m.RequestAction(context.Background(), "stop")
+	if result.Outcome != "indeterminate" || result.Snapshot.State != "stopping" || !strings.Contains(result.Message, "may still transition") {
 		t.Fatalf("result = %+v", result)
 	}
 }

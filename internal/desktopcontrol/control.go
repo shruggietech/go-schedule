@@ -27,6 +27,8 @@ type Monitor struct {
 	Execute func(string) error
 }
 
+var errHelperTimedOut = errors.New("service helper timed out")
+
 // NewMonitor constructs a monitor with the installed-service query.
 func NewMonitor(health func(context.Context) error) Monitor {
 	return Monitor{Query: service.QueryState, Health: health, Execute: requestElevation}
@@ -108,6 +110,9 @@ func (m Monitor) RequestAction(ctx context.Context, action string) ActionResult 
 		result.Outcome = "failed"
 		if errors.Is(err, errElevationCancelled) {
 			result.Outcome, result.Message = "cancelled", "Windows elevation was cancelled. The service was not changed."
+		} else if errors.Is(err, errHelperTimedOut) {
+			result.Outcome = "indeterminate"
+			result.Message = fmt.Sprintf("The %s helper timed out: %v. The current service state is shown and may still transition.", action, err)
 		} else {
 			result.Message = fmt.Sprintf("Could not request %s: %v", action, err)
 		}

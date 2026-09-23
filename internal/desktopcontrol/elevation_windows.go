@@ -73,11 +73,31 @@ func requestElevation(action string) error {
 	if err != nil {
 		return fmt.Errorf("wait for service helper: %w", err)
 	}
-	if event != windows.WAIT_OBJECT_0 {
-		return errors.New("service helper did not finish within 35 seconds")
+	if event == uint32(windows.WAIT_TIMEOUT) {
+		// A timeout must not abandon an elevated helper that can change the
+		// service after the UI reports an unchanged state.
+		if err := windows.TerminateProcess(info.process, 1); err != nil {
+			finished, waitErr := windows.WaitForSingleObject(info.process, 0)
+			if waitErr == nil && finished == windows.WAIT_OBJECT_0 {
+				return serviceHelperExit(info.process, action)
+			}
+			return fmt.Errorf("%w after 35 seconds; could not terminate process: %v", errHelperTimedOut, err)
+		}
+		finished, err := windows.WaitForSingleObject(info.process, 5_000)
+		if err != nil || finished != windows.WAIT_OBJECT_0 {
+			return fmt.Errorf("%w after 35 seconds; process termination was not confirmed", errHelperTimedOut)
+		}
+		return fmt.Errorf("%w after 35 seconds; process terminated", errHelperTimedOut)
 	}
+	if event != windows.WAIT_OBJECT_0 {
+		return fmt.Errorf("unexpected service helper wait result: %d", event)
+	}
+	return serviceHelperExit(info.process, action)
+}
+
+func serviceHelperExit(process windows.Handle, action string) error {
 	var exitCode uint32
-	if err := windows.GetExitCodeProcess(info.process, &exitCode); err != nil {
+	if err := windows.GetExitCodeProcess(process, &exitCode); err != nil {
 		return fmt.Errorf("read service helper outcome: %w", err)
 	}
 	if exitCode != 0 {
