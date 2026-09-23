@@ -1,13 +1,21 @@
 ---
-title: Webhook notifications
+title: Notifications
 nav_order: 8
 ---
 
-# Webhook notifications
+# Notifications
 
 go-schedule can send a versioned JSON webhook for selected task outcomes, persistent problems, recoveries, excessive duration, process start failures, and daemon healthy-presence heartbeats. Webhook delivery is durable and asynchronous: a receiver outage cannot change a task result or occupy a scheduler task worker.
 
-Webhook is the only shipped notification transport. SMTP email and native desktop notifications are future work; this release does not claim or emulate either one.
+Webhook is the durable notification transport for unattended monitoring. The running desktop application also offers optional native operating-system popups for new task outcomes and alerts. SMTP email is planned separately and is not available.
+
+## Desktop popups
+
+Open Notifications in the desktop app and use Desktop popups to enable or silence local popups. They are off by default and remember your choice on this computer. Choose failed or successful task outcomes, scheduler alerts and their severity, and which registered daemons may interrupt you. Leaving all scheduler checkboxes empty includes all registered schedulers. These choices do not change webhook assignments, task outcomes, or another desktop's preferences.
+
+Windows, macOS, and Linux graphical sessions with a notification service use the operating system's notification facility. macOS asks for permission when popups are enabled. Denied permission, missing facilities, and a headless session leave scheduling and webhooks unaffected. The app must be running for these popups; closing it does not create a resident popup service or an unattended delivery guarantee. For unattended signals, configure a webhook receiver.
+
+Each new matching terminal run or alert is attributed to its source daemon and suppressed if the same record is observed again. Old activity is not replayed when the app starts or reconnects. On platforms that report activation, selecting a popup opens its exact Activity record after the app confirms the daemon identity. If activation is unsupported, the record has aged out, or the registration changed, open Activity manually; the app will not substitute another daemon's record.
 
 ## Create and assign a channel
 

@@ -20,6 +20,15 @@ describe('operations stores', () => {
     const { result } = renderHook(() => useActivity(bridge, true, 1)); await waitFor(() => expect(result.current.workspace?.loadedAt).toBe('complete')); await act(async () => { await result.current.load() }); expect(result.current.workspace?.loadedAt).toBe('complete'); expect(result.current.status?.outcome).toBe('unavailable')
   })
 
+  it('keeps an activated exact record separate from the recent Activity load', async () => {
+    const bridge = { activityWorkspace: vi.fn().mockResolvedValue(activity('recent')), activityRecord: vi.fn().mockResolvedValue(activity('exact')), subscribe: vi.fn(() => () => undefined) } as unknown as OperationsBridge
+    const { result } = renderHook(() => useActivity(bridge, true, 1, { kind: 'run', id: 'run-older' }))
+    await waitFor(() => expect(result.current.workspace?.loadedAt).toBe('exact'))
+    expect(bridge.activityRecord).toHaveBeenCalledWith('run', 'run-older')
+    expect(bridge.activityWorkspace).not.toHaveBeenCalled()
+    expect(bridge.subscribe).not.toHaveBeenCalled()
+  })
+
   it('retains schedule data while unavailable and refreshes on the recovered generation', async () => {
     const bridge = { scheduleWindow: vi.fn().mockResolvedValueOnce(schedule('known')).mockResolvedValueOnce(schedule('current')), subscribe: () => () => undefined } as unknown as OperationsBridge
     const { result, rerender } = renderHook(({ available, token }) => useSchedule(bridge, 7, available, token), { initialProps: { available: true, token: 1 } })

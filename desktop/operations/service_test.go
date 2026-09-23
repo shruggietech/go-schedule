@@ -43,6 +43,14 @@ func (s *stubBackend) ListActiveRuns(context.Context) ([]domain.Run, error) {
 	}
 	return s.active, nil
 }
+func (s *stubBackend) GetRun(_ context.Context, id string) (domain.Run, error) {
+	for _, run := range s.runs {
+		if run.ID == id {
+			return run, nil
+		}
+	}
+	return domain.Run{}, errors.New("run not found")
+}
 func (s *stubBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	if s.errAt == "logs" {
 		return server.LogsResponse{}, errors.New("boom")
@@ -112,6 +120,15 @@ func TestActivityWorkspaceIncludesAuthoritativeActiveRuns(t *testing.T) {
 	service.now = func() time.Time { return now }
 	result := service.ActivityWorkspace(context.Background())
 	if result.Outcome != "accepted" || len(result.Activity.Runs) != 1 || result.Activity.Runs[0].State != "running" {
+		t.Fatalf("result=%+v", result)
+	}
+}
+
+func TestActivityRecordAcceptsExactRunIntent(t *testing.T) {
+	now := time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC)
+	backend := &stubBackend{runs: []domain.Run{{ID: "run-older", TaskID: "task-1", ScheduledFor: now, EndedAt: &now, Outcome: domain.OutcomeSuccess}}}
+	result := NewService(backend).ActivityRecord(context.Background(), "run", "run-older")
+	if result.Outcome != "accepted" || result.Activity == nil || len(result.Activity.Runs) != 1 || result.Activity.Runs[0].ID != "run-older" {
 		t.Fatalf("result=%+v", result)
 	}
 }

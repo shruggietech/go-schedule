@@ -81,11 +81,38 @@ func (s *Service) SaveAppearance(ctx context.Context, value string) Result {
 	return Result{Action: "save_appearance", Outcome: "accepted", Message: "Appearance saved.", Workspace: &workspace}
 }
 
+// PopupPreferences reads the desktop-local notification choice without querying a daemon.
+func (s *Service) PopupPreferences() (PopupPreferences, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	prefs, err := loadPreferences(s.deps)
+	return prefs.Popups, err
+}
+
+// SavePopups persists validated local popup choices and leaves daemon policies untouched.
+func (s *Service) SavePopups(ctx context.Context, value PopupPreferences) Result {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := validatePopupPreferences(value); err != nil {
+		return Result{Action: "save_popups", Outcome: "rejected", Message: err.Error()}
+	}
+	prefs, err := loadPreferences(s.deps)
+	if err != nil {
+		return Result{Action: "save_popups", Outcome: "unavailable", Message: unavailableMessage}
+	}
+	prefs.Popups = value
+	if err := writePreferences(s.deps, prefs); err != nil {
+		return Result{Action: "save_popups", Outcome: "unavailable", Message: unavailableMessage}
+	}
+	workspace := s.workspaceWithPreferences(ctx, prefs)
+	return Result{Action: "save_popups", Outcome: "accepted", Message: "Desktop popup preferences saved.", Workspace: &workspace}
+}
+
 // Restore resets only desktop-local preferences to their current defaults.
 func (s *Service) Restore(ctx context.Context) Result {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	prefs := DesktopPreferences{Version: CurrentPreferenceVersion, Appearance: AppearanceSystem, Transition: PreferenceTransition{Status: "not_required", Retired: append([]string(nil), retiredPreferenceKeys...)}}
+	prefs := DesktopPreferences{Version: CurrentPreferenceVersion, Appearance: AppearanceSystem, Transition: PreferenceTransition{Status: "not_required", Retired: append([]string(nil), retiredPreferenceKeys...)}, Popups: DefaultPopupPreferences()}
 	if err := writePreferences(s.deps, prefs); err != nil {
 		return Result{Action: "restore_preferences", Outcome: "unavailable", Message: unavailableMessage}
 	}

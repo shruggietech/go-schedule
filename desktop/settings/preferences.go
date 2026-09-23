@@ -22,7 +22,7 @@ func loadPreferences(deps Dependencies) (DesktopPreferences, error) {
 	if !errors.Is(err, fs.ErrNotExist) {
 		return DesktopPreferences{}, fmt.Errorf("read desktop preferences: %w", err)
 	}
-	prefs := DesktopPreferences{Version: CurrentPreferenceVersion, Appearance: AppearanceSystem, Transition: PreferenceTransition{Status: "not_found", Retired: append([]string(nil), retiredPreferenceKeys...)}}
+	prefs := DesktopPreferences{Version: CurrentPreferenceVersion, Appearance: AppearanceSystem, Transition: PreferenceTransition{Status: "not_found", Retired: append([]string(nil), retiredPreferenceKeys...)}, Popups: DefaultPopupPreferences()}
 	legacy, legacyErr := os.ReadFile(deps.Paths.LegacyPreferences)
 	switch {
 	case legacyErr == nil:
@@ -58,6 +58,12 @@ func decodeCurrentPreferences(data []byte) (DesktopPreferences, error) {
 		return DesktopPreferences{}, fmt.Errorf("desktop preferences contain an unsupported appearance")
 	}
 	prefs.Transition.Retired = append([]string(nil), prefs.Transition.Retired...)
+	if prefs.Popups.Conditions == nil && prefs.Popups.Severities == nil && prefs.Popups.DaemonIDs == nil {
+		prefs.Popups = DefaultPopupPreferences()
+	}
+	if err := validatePopupPreferences(prefs.Popups); err != nil {
+		return DesktopPreferences{}, err
+	}
 	return prefs, nil
 }
 
@@ -67,6 +73,9 @@ func writePreferences(deps Dependencies, prefs DesktopPreferences) (resultErr er
 	}
 	if !validAppearance(prefs.Appearance) {
 		return fmt.Errorf("unsupported appearance %q", prefs.Appearance)
+	}
+	if err := validatePopupPreferences(prefs.Popups); err != nil {
+		return err
 	}
 	data, err := json.MarshalIndent(prefs, "", "  ")
 	if err != nil {

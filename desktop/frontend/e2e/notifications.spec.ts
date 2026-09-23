@@ -23,7 +23,7 @@ test('manages notification setup and large redacted history accessibly', async (
   await page.getByRole('button', { name: 'Edit' }).first().click(); await expect(page.getByLabel('New HTTPS endpoint')).toHaveCount(0); await page.getByLabel('Replace stored endpoint').check(); await expect(page.getByLabel('New HTTPS endpoint')).toHaveValue('')
   await expect(page.getByText('Bearer secret')).toHaveCount(0); await expect(page.getByText('/hook', { exact: true })).toHaveCount(0)
   await page.getByText('Manage assignment rules').click()
-  await page.getByLabel('Task or group').selectOption('task:t1'); await expect(page.getByText(/inherits from Operations/)).toBeVisible(); await page.getByLabel('Success').first().check(); await expect(page.getByText('Success notifications can be noisy')).toBeVisible()
+  await page.getByLabel('Task or group').selectOption('task:t1'); await expect(page.getByText(/inherits from Operations/)).toBeVisible(); await page.getByLabel('Success', { exact: true }).first().check(); await expect(page.getByText('Success notifications can be noisy')).toBeVisible()
   await page.getByText('Inspect delivery diagnostics').click(); await expect(page.getByText('200 matching deliveries')).toBeVisible()
   await page.getByLabel('State').selectOption('failed'); await expect(page.getByText('40 matching deliveries')).toBeVisible(); const delivery = page.locator('.row-select').first(); await delivery.focus(); await delivery.press('Enter'); await expect(page.getByText('receiver unavailable')).toBeVisible()
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze(); expect(results.violations.filter((item) => item.impact === 'serious' || item.impact === 'critical')).toEqual([])

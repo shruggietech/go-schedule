@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button, CardSection, Dialog, Disclosure, Field, Notice, StatePanel, StatusLabel } from '../components'
 import type { Assignment, Channel, ChannelDraft, Delivery, NotificationBridge, NotificationWorkspace, Policy } from './model'
 import { useNotifications } from './store'
+import { DesktopPopups } from './DesktopPopups'
+import type { SettingsBridge } from '../settings/model'
+import type { DesktopBridge } from '../connection/model'
 
 const blankDraft = (): ChannelDraft => ({ id: '', name: '', endpoint: '', authorization: '', replaceEndpoint: false, replaceAuthorization: false, isNew: true, healthIntervalMinutes: 0 })
 const label = (value: string) => value.replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase())
@@ -48,8 +51,8 @@ function DeliveryDetail({ delivery, missing }: { delivery?: Delivery; missing: b
   return <aside className="panel notification-detail"><h3>{delivery.kind === 'test' ? 'Test delivery' : delivery.kind === 'daemon_health' ? 'Daemon heartbeat' : 'Task outcome delivery'}</h3><p>{delivery.kind === 'test' ? 'A test verifies one destination and is not a task completion.' : delivery.kind === 'daemon_health' ? 'A healthy-presence signal lets the receiver detect a stopped daemon by noticing a missed heartbeat.' : 'This notification was created from a completed task run.'}</p><dl><dt>State</dt><dd>{label(delivery.state)}</dd><dt>Meaning</dt><dd>{deliveryGuidance[delivery.state]}</dd><dt>Condition</dt><dd>{delivery.conditionSummary || 'Not applicable'}</dd><dt>Channel</dt><dd>{delivery.channelName}</dd><dt>Destination</dt><dd>{delivery.destinationSummary || 'Removed or unavailable'}</dd><dt>Attempts</dt><dd>{delivery.attempts}</dd><dt>Created</dt><dd>{localTime(delivery.createdAt)}</dd><dt>Next attempt</dt><dd>{localTime(delivery.nextAttemptAt)}</dd><dt>Claimed</dt><dd>{localTime(delivery.claimedAt)}</dd><dt>Completed</dt><dd>{localTime(delivery.completedAt)}</dd><dt>Task</dt><dd>{delivery.taskName || 'Not applicable'}</dd><dt>Task ID</dt><dd><code>{delivery.taskId || 'Not applicable'}</code></dd><dt>Group</dt><dd>{delivery.groupName || 'Not applicable'}</dd><dt>Run ID</dt><dd><code>{delivery.runId || 'Not applicable'}</code></dd><dt>HTTP status</dt><dd>{delivery.lastStatus || 'Not available'}</dd><dt>Failure detail</dt><dd>{delivery.lastError || 'None'}</dd><dt>Delivery ID</dt><dd><code>{delivery.id}</code></dd></dl></aside>
 }
 
-export function NotificationsPage({ bridge, available, refreshToken }: { bridge: NotificationBridge; available: boolean; refreshToken: number }) {
-  const state = useNotifications(bridge, available, refreshToken)
+export function NotificationsPage({ bridge, available, refreshToken, settings, desktop, webhooksSupported = true }: { bridge: NotificationBridge; available: boolean; refreshToken: number; settings?: SettingsBridge; desktop?: DesktopBridge; webhooksSupported?: boolean }) {
+  const state = useNotifications(bridge, available && webhooksSupported, refreshToken)
   const [draft, setDraft] = useState<ChannelDraft>(blankDraft)
   const [scopeValue, setScopeValue] = useState('')
   const [assignments, setAssignments] = useState<Assignment[]>([])
@@ -82,8 +85,15 @@ export function NotificationsPage({ bridge, available, refreshToken }: { bridge:
   const changeAssignment = (channelId: string, changes: Partial<Assignment>) => setAssignments((current) => { const next = { ...assignment(current, channelId), ...changes }; return [...current.filter((item) => item.channelId !== channelId), next].filter((item) => item.onFailure || item.onSuccess || item.onFailureToStart || (item.durationThresholdSeconds ?? 0) > 0) })
   const savePolicy = () => { if (state.policy) void state.savePolicy({ scopeType: state.policy.scope.type, scopeId: state.policy.scope.id, assignments }) }
 
+  if (!webhooksSupported) return <>
+    <header className="page-header"><div><p className="eyebrow">This desktop</p><h1>Notifications</h1><p>Control desktop popups independently of the selected scheduler.</p></div></header>
+    {settings && desktop && <DesktopPopups settings={settings} desktop={desktop} />}
+    <Notice title="Webhook setup is local only">Select This computer to manage its webhook destinations, assignment rules, and delivery history. Desktop popup choices remain available here for every registered scheduler.</Notice>
+  </>
+
   return <>
     <header className="page-header"><div><p className="eyebrow">This computer</p><h1>Notifications</h1><p>See what is active, what happened recently, and what needs your attention.</p></div><Button variant="secondary" disabled={!available || state.pending} onClick={() => void state.load()}>Refresh</Button></header>
+    {settings && desktop && <DesktopPopups settings={settings} desktop={desktop} />}
     {!available && <Notice title="Notification data may be out of date" tone="warning">The last complete snapshot remains visible while the scheduler reconnects.</Notice>}
     {state.status && <div role="status" aria-live="polite" aria-atomic="true" aria-label={state.status.outcome === 'accepted' ? 'Notification action complete' : 'Notification action needs attention'}><Notice title={state.status.outcome === 'accepted' ? 'Notification action complete' : 'Notification action needs attention'} tone={state.status.outcome === 'accepted' ? 'success' : 'error'}>{state.status.message}</Notice></div>}
     <section className="notification-overview">

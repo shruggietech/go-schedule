@@ -85,7 +85,7 @@ func (s *Service) ActivityWorkspace(ctx context.Context) OperationResult {
 func (s *Service) ActivityRecord(ctx context.Context, kind, id string) OperationResult {
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	if kind == "failure" {
+	if kind == "run" || kind == "failure" {
 		reader, ok := s.backend.(interface {
 			GetRun(context.Context, string) (domain.Run, error)
 		})

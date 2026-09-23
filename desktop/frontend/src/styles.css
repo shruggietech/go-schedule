@@ -289,3 +289,9 @@ summary { cursor: pointer; font-weight: 600; }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+.popup-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; margin: 1rem 0; }
+.popup-filter-grid fieldset { min-width: 0; border: 1px solid var(--border, #8a9aac); border-radius: .5rem; padding: .75rem 1rem; }
+.popup-filter-grid legend { padding: 0 .25rem; font-weight: 600; }
+.popup-filter-grid p { margin: .2rem 0 .65rem; }
+.popup-choice { display: flex; align-items: center; gap: .5rem; margin: .4rem 0; cursor: pointer; }
+.popup-choice input { flex: none; }

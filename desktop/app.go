@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/go-schedule/desktop/connections"
 	"github.com/shruggietech/go-schedule/desktop/notifications"
 	"github.com/shruggietech/go-schedule/desktop/operations"
+	"github.com/shruggietech/go-schedule/desktop/popups"
 	"github.com/shruggietech/go-schedule/desktop/remotepairing"
 	"github.com/shruggietech/go-schedule/desktop/search"
 	"github.com/shruggietech/go-schedule/desktop/settings"
@@ -24,6 +25,7 @@ const (
 	desktopEventName = "desktop:event"
 	systemsEventName = "systems:event"
 	searchEventName  = "search:event"
+	popupEventName   = "desktop:popup-activated"
 )
 
 type eventEmitter interface {
@@ -50,6 +52,8 @@ type App struct {
 	bundles        *bundles.Service
 	operations     *operations.Service
 	notifications  *notifications.Service
+	popups         *popups.Service
+	popupRuntime   popupPlatform
 	settings       *settings.Service
 	agentAccess    *agentaccess.Service
 	remotePairing  *remotepairing.Service
@@ -134,6 +138,9 @@ func (a *App) RenameConnection(id, label string) connections.Result {
 		return connections.Result{Action: "rename_connection", Outcome: "unavailable", Message: "Connection profiles are unavailable."}
 	}
 	result := a.connections.Rename(id, label)
+	if result.Outcome == "accepted" && a.popups != nil {
+		a.popups.Refresh()
+	}
 	if result.Outcome == "accepted" && a.ctx != nil && a.manager.Snapshot().Target.ProfileID == id {
 		selected := a.connections.Select(a.ctx, id)
 		if selected.Outcome == "accepted" {
@@ -148,7 +155,11 @@ func (a *App) RemoveConnection(id string) connections.Result {
 	if a.connections == nil {
 		return connections.Result{Action: "remove_connection", Outcome: "unavailable", Message: "Connection profiles are unavailable."}
 	}
-	return a.connections.Remove(id)
+	result := a.connections.Remove(id)
+	if result.Outcome == "accepted" && a.popups != nil {
+		a.popups.Refresh()
+	}
+	return result
 }
 
 type appServices struct {
@@ -225,6 +236,9 @@ func (a *App) PairRemote(draft remotepairing.Draft) remotepairing.Result {
 		return remotepairing.Result{Action: "pair_remote", Outcome: "unavailable", Message: "Remote pairing is unavailable."}
 	}
 	result := a.remotePairing.Pair(a.ctx, draft)
+	if result.Outcome == "accepted" && a.popups != nil {
+		a.popups.Refresh()
+	}
 	if result.Outcome == "accepted" && draft.RepairProfileID != "" && a.connections != nil {
 		selected := a.connections.Select(a.ctx, result.ProfileID)
 		if selected.Outcome != "accepted" {
@@ -312,6 +326,46 @@ func (a *App) NotificationWorkspace() notifications.Result {
 	}
 	return a.notifications.Workspace(a.ctx)
 }
+
+type PopupStatus struct {
+	Available  bool   `json:"available"`
+	Authorized bool   `json:"authorized"`
+	Message    string `json:"message"`
+}
+
+// DesktopPopupStatus reports only local OS capability and authorization.
+func (a *App) DesktopPopupStatus() PopupStatus {
+	if a.popupRuntime == nil || a.ctx == nil {
+		return PopupStatus{Message: "Native desktop popups are unavailable in this environment."}
+	}
+	if !a.popupRuntime.Available() {
+		return PopupStatus{Message: "This desktop session has no native notification service."}
+	}
+	authorized := a.popupRuntime.Authorized()
+	message := "Native desktop popups are available while go-schedule is running."
+	if !authorized {
+		message = "Desktop notification permission is not granted. Enable popups to request permission or allow go-schedule in system settings."
+	}
+	return PopupStatus{Available: true, Authorized: authorized, Message: message}
+}
+
+// SaveDesktopPopups changes only this desktop's optional popup delivery.
+func (a *App) SaveDesktopPopups(value settings.PopupPreferences) settings.Result {
+	if a.settings == nil || a.ctx == nil {
+		return settings.Result{Action: "save_popups", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
+	}
+	if value.Enabled && (a.popupRuntime == nil || !a.popupRuntime.Available()) {
+		return settings.Result{Action: "save_popups", Outcome: "unavailable", Message: "This desktop session has no native notification service."}
+	}
+	if value.Enabled && !a.popupRuntime.RequestAuthorization() {
+		return settings.Result{Action: "save_popups", Outcome: "unavailable", Message: "Desktop notification permission was not granted. Allow go-schedule in system settings and try again."}
+	}
+	result := a.settings.SavePopups(a.ctx, value)
+	if result.Outcome == "accepted" && a.popups != nil {
+		a.popups.Refresh()
+	}
+	return result
+}
 func (a *App) SaveNotificationChannel(d notifications.ChannelDraft) notifications.Result {
 	if a.notifications == nil || a.ctx == nil {
 		return notifications.Result{Action: "save_notification_channel", Outcome: "unavailable", Message: "Notifications are unavailable."}
@@ -370,7 +424,11 @@ func (a *App) RestoreDesktopPreferences() settings.Result {
 	if a.settings == nil || a.ctx == nil {
 		return settings.Result{Action: "restore_preferences", Outcome: "unavailable", Message: "Desktop settings are unavailable."}
 	}
-	return a.settings.Restore(a.ctx)
+	result := a.settings.Restore(a.ctx)
+	if result.Outcome == "accepted" && a.popups != nil {
+		a.popups.Refresh()
+	}
+	return result
 }
 
 // CopyStoragePath copies one current backend-resolved storage path.
@@ -641,6 +699,12 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) shutdown(context.Context) {
+	if a.popups != nil {
+		a.popups.Stop()
+	}
+	if a.popupRuntime != nil {
+		a.popupRuntime.Cleanup()
+	}
 	if a.stopActivation != nil {
 		a.stopActivation()
 	}
