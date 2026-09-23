@@ -163,11 +163,11 @@ func main() {
 		return
 	}
 	defer instance.Close() //nolint:errcheck // process-lifetime mutex
-	cfg, err := config.Load("")
+	endpoint, err := localServiceEndpoint()
 	if err != nil {
 		os.Exit(1)
 	}
-	local := client.New(ipc.Endpoint(cfg))
+	local := client.New(endpoint)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	t := &tray{monitor: desktopcontrol.NewMonitor(func(ctx context.Context) error {
@@ -177,6 +177,16 @@ func main() {
 	if err := t.run(ctx); err != nil {
 		os.Exit(1)
 	}
+}
+
+func localServiceEndpoint() (string, error) {
+	// Match the installed daemon's effective IPC endpoint, including a custom
+	// ipc_path in its optional service configuration.
+	cfg, err := config.Load(config.DefaultPath())
+	if err != nil {
+		return "", err
+	}
+	return ipc.Endpoint(cfg), nil
 }
 
 func (t *tray) run(ctx context.Context) error {

@@ -71,6 +71,13 @@ func shouldAutoSpawnInstalledService(state service.State, err error) bool {
 	return err == nil && state == service.StateNotInstalled
 }
 
+func localConfigPath(goos string) string {
+	if goos == "windows" {
+		return config.DefaultPath()
+	}
+	return ""
+}
+
 func main() {
 	instance, owner, instanceErr := desktopcontrol.ClaimGUI()
 	if instanceErr != nil {
@@ -82,7 +89,7 @@ func main() {
 		return
 	}
 	defer instance.Close() //nolint:errcheck // process-lifetime mutex handle
-	cfg, err := config.Load("")
+	cfg, err := config.Load(localConfigPath(runtime.GOOS))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

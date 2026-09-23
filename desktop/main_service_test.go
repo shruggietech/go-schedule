@@ -6,9 +6,22 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
 	"github.com/shruggietech/go-schedule/internal/service"
 )
+
+func TestLocalServiceConfigPathMatchesInstalledDaemonOnWindows(t *testing.T) {
+	t.Parallel()
+	if got := localConfigPath("windows"); got != config.DefaultPath() {
+		t.Fatalf("Windows service config path = %q, want %q", got, config.DefaultPath())
+	}
+	for _, goos := range []string{"linux", "darwin"} {
+		if got := localConfigPath(goos); got != "" {
+			t.Fatalf("%s standalone GUI config path = %q, want empty", goos, got)
+		}
+	}
+}
 
 func TestInstalledServiceNeverAutospawns(t *testing.T) {
 	t.Parallel()
