@@ -76,6 +76,11 @@
         Target="gosched-gui.exe"
         TerminateProcess="1"
         RebootPrompt="no" />
+    <util:CloseApplication
+        Id="CloseRunningTray"
+        Target="gosched-tray.exe"
+        TerminateProcess="1"
+        RebootPrompt="no" />
 
     <WixVariable Id="WixUILicenseRtf" Value="build/windows/license.rtf" />
 
@@ -194,6 +199,19 @@
         <File Id="gosched_gui.exe" Source="$(StageDir)\gosched-gui.exe" KeyPath="yes" />
       </Component>
 
+      <!-- A per-user-session companion is launched at each interactive logon.
+           The HKLM Run value follows the MSI component on upgrade/removal. -->
+      <Component Id="GoschedTray" Guid="*">
+        <File Id="gosched_tray.exe" Source="$(StageDir)\gosched-tray.exe" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="go-schedule tray" Type="string" Value="&quot;[INSTALLFOLDER]gosched-tray.exe&quot;" />
+      </Component>
+      <Component Id="TrayLightIcon" Guid="*">
+        <File Id="go_schedule_light.ico" Name="go-schedule-light.ico" Source="$(StageDir)\go-schedule-light.ico" KeyPath="yes" />
+      </Component>
+      <Component Id="TrayDarkIcon" Guid="*">
+        <File Id="go_schedule_dark.ico" Name="go-schedule-dark.ico" Source="$(StageDir)\go-schedule-dark.ico" KeyPath="yes" />
+      </Component>
+
       <!-- The CLI, plus the PATH entry that makes it reachable by name.
 
            The <Environment> element lives on THIS component (KeyPath
@@ -283,6 +301,12 @@
 
     <CustomAction
         Id="LaunchGui"
+        BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+        DllEntry="WixUnelevatedShellExec"
+        Execute="immediate"
+        Return="ignore" />
+    <CustomAction
+        Id="LaunchTray"
         BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
         DllEntry="WixUnelevatedShellExec"
         Execute="immediate"
@@ -423,6 +447,8 @@
           <Publish Event="DoAction" Value="LaunchGui" Order="2" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND LAUNCH_GOSCHEDULE = "1"' />
           <Publish Property="WixUnelevatedShellExecTarget" Value="https://shruggietech.github.io/go-schedule/" Order="3" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND OPEN_GOSCHEDULE_DOCS = "1"' />
           <Publish Event="DoAction" Value="OpenDocs" Order="4" Condition='NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5 AND OPEN_GOSCHEDULE_DOCS = "1"' />
+          <Publish Property="WixUnelevatedShellExecTarget" Value="[#gosched_tray.exe]" Order="5" Condition='(NOT Installed OR WIX_UPGRADE_DETECTED) AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5' />
+          <Publish Event="DoAction" Value="LaunchTray" Order="6" Condition='(NOT Installed OR WIX_UPGRADE_DETECTED) AND NOT PATCH AND NOT RESUME AND ACTION = "INSTALL" AND UILevel = 5' />
           <Publish Event="EndDialog" Value="Return" Order="999" />
         </Control>
         <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Disabled="yes" Text="Cancel" />

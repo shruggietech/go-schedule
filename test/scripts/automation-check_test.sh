@@ -83,6 +83,7 @@ jobs:
       - run: echo cache-dependency-path: desktop/go.sum
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
       - run: echo desktop/build/bin/gosched-gui.exe
+      - run: echo "gosched-tray.exe') ./cmd/gosched-tray"
       - run: echo 'Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage'
       - name: Inspect stable desktop identity
         run: test -f build/bin/go-schedule.app/Contents/MacOS/gosched-gui
@@ -251,6 +252,7 @@ jobs:
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
+      - run: go build -o "$stage/gosched-tray.exe" ./cmd/gosched-tray
       - run: cp -R desktop/build/bin/go-schedule.app "$app"
       - run: app="$stage/gosched-gui.app"
       - run: cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"

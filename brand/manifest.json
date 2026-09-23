@@ -384,6 +384,16 @@
       "sha256": "bdfac5cd4d3348598353f4d9287b23eca01789e65480f67b4ce40d00820f43ee"
     },
     {
+      "path": "logos/svg/go-schedule-mark-reduced-black.svg",
+      "bytes": 965,
+      "sha256": "2b7d568ca8797ee70836a605e99877035dd984b73de60fbfed9ebf4db0046cd4"
+    },
+    {
+      "path": "logos/svg/go-schedule-mark-reduced-white.svg",
+      "bytes": 965,
+      "sha256": "877f14b20484f9748ca78d1eefe26d0ffa9d41d97f7ebccb3eb11ca5d908549e"
+    },
+    {
       "path": "logos/svg/go-schedule-mark-reduced.svg",
       "bytes": 937,
       "sha256": "ebf68dfe733d440b848b9015316a7c1a7d54177226c6e65517da11db21c36f47"
@@ -477,6 +487,16 @@
       "path": "platform/macos/go-schedule.icns",
       "bytes": 71340,
       "sha256": "447ee4e75384b2eabf822b14962413ed8f5b9fef35eb5c6da597beda1bbe2991"
+    },
+    {
+      "path": "platform/windows/go-schedule-dark.ico",
+      "bytes": 9622,
+      "sha256": "ac4bd00540e044175215f25a2f9cd7bda1420d3d9abd6488e9dde637714f2992"
+    },
+    {
+      "path": "platform/windows/go-schedule-light.ico",
+      "bytes": 9622,
+      "sha256": "a1b3dcd36cfc4e697347bb6fcbae6bc8b8564af928b9ef3fe1db4b42e774630e"
     },
     {
       "path": "platform/windows/go-schedule.ico",

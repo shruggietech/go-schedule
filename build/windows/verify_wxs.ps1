@@ -30,9 +30,11 @@ $wxsPath = Join-Path $PSScriptRoot 'goschedule.wxs'
 if (-not (Test-Path $wxsPath)) { throw "wxs not found at $wxsPath" }
 $wxs = Get-Content $wxsPath -Raw
 
-$expectedInstalledBinaries = @('goschedd.exe', 'gosched-gui.exe', 'gosched.exe')
+$expectedInstalledBinaries = @('goschedd.exe', 'gosched-gui.exe', 'gosched-tray.exe', 'gosched.exe')
 $expectedStageFiles = $expectedInstalledBinaries + @(
   'gosched-cleanup.exe',
+  'go-schedule-light.ico',
+  'go-schedule-dark.ico',
   'README.md',
   'LICENSE',
   'CHANGELOG.md',
@@ -55,6 +57,12 @@ if ($wxs -notmatch 'ServiceControl[^>]*Name="goschedd"') {
 }
 if ($wxs -notmatch 'Start="auto"') {
   $fail += 'service Start must be "auto" (start on boot)'
+}
+if ($wxs -notmatch 'Id="CloseRunningTray"[^>]*Target="gosched-tray.exe"') {
+  $fail += 'upgrade/removal must terminate the tray companion'
+}
+if ($wxs -notmatch 'Key="Software\\Microsoft\\Windows\\CurrentVersion\\Run"[^>]*Name="go-schedule tray"') {
+  $fail += 'tray companion must be registered for interactive logon'
 }
 if ($wxs -notmatch 'Directory Id="INSTALLFOLDER" Name="go-schedule"') {
   $fail += 'install folder must be "go-schedule"'

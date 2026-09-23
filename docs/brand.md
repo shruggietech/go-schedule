@@ -17,6 +17,7 @@ The governing idea is **familiar scheduling, explicit behavior**. The mark combi
 | --- | --- | --- |
 | General use at 36 px or larger | Full transparent mark | [SVG](assets/brand/go-schedule-mark-color.svg) · [PNG](assets/brand/go-schedule-mark-color-1024.png) |
 | Browser, title bar, or other use at 32 px or smaller | Reduced mark | [SVG](assets/brand/go-schedule-mark-reduced.svg) · [PNG](assets/favicons/favicon-256x256.png) |
+| Monochrome Windows notification-area surfaces at 32 px or smaller | Canonical reduced geometry in approved white or black | `brand/logos/svg/go-schedule-mark-reduced-white.svg` and `brand/logos/svg/go-schedule-mark-reduced-black.svg` |
 | Dark surface | Full-color horizontal lockup | [SVG](assets/brand/go-schedule-horizontal-color.svg) · [PNG](assets/brand/go-schedule-horizontal-dark-2400.png) |
 | Light surface | Black or light-surface lockup | [Black SVG](assets/brand/go-schedule-horizontal-black.svg) · [Color SVG](assets/brand/go-schedule-horizontal-light.svg) |
 | Single-color production | White or black mark | [White SVG](assets/brand/go-schedule-mark-white.svg) · [Black SVG](assets/brand/go-schedule-mark-black.svg) |
@@ -52,6 +53,7 @@ When parent attribution is useful, use **A ShruggieTech project** in a subordina
 ## Do not
 
 - Do not redraw, stretch, rotate, outline, or recolor the supplied artwork.
+- The named white and black reduced-mark derivatives above are the sole approved small-size monochrome exceptions for Windows taskbar contrast. Their geometry must match the canonical reduced mark exactly.
 - Do not put the full-color mark on a surface that obscures its rails or schedule cells.
 - Do not use the full mark where the reduced mark is required for legibility.
 - Do not typeset a replacement wordmark or depend on a locally installed font; distributed SVGs already contain portable outlines.

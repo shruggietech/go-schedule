@@ -178,6 +178,8 @@ jobs:
             Pop-Location
           }
           Copy-Item desktop/build/bin/gosched-gui.exe (Join-Path $stage 'gosched-gui.exe')
+          go build -ldflags '-H windowsgui' -o (Join-Path $stage 'gosched-tray.exe') ./cmd/gosched-tray
+          Copy-Item brand/platform/windows/go-schedule-light.ico, brand/platform/windows/go-schedule-dark.ico -Destination $stage
           go build -o (Join-Path $stage 'goschedd.exe') ./cmd/goschedd
           go build -o (Join-Path $stage 'gosched.exe') ./cmd/gosched
           go build -ldflags '-H windowsgui' `

@@ -125,6 +125,8 @@ else
     'production Wails browser contract job'
   require_ci_text 'desktop/build/bin/gosched-gui.exe' \
     'Windows installer Wails payload'
+  require_ci_text "gosched-tray.exe') ./cmd/gosched-tray" \
+    'windowless Windows tray payload'
   require_ci_text 'Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage' \
     'Windows installer documentation payload'
   require_ci_text 'Inspect stable desktop identity' \
@@ -369,6 +371,8 @@ if [ ! -f "$RELEASE" ]; then
 else
   require_release_text 'desktop/build/bin/gosched-gui.exe' \
     'production Windows Wails executable'
+  require_release_text 'gosched-tray.exe" ./cmd/gosched-tray' \
+    'windowless Windows tray executable'
   require_release_text \
     "cp brand/platform/macos/go-schedule.icns \"\$app/Contents/Resources/icon.icns\"" \
     'canonical macOS ICNS'
