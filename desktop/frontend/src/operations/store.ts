@@ -45,12 +45,17 @@ export function useActivity(bridge: OperationsBridge, available: boolean, refres
       if (request === sequence.current) apply(result)
     } finally { setPending(false) }
   }, [apply, available, bridge, pending])
-  useEffect(() => { void load() }, [load, refreshToken])
-	useEffect(() => { if (available && initialRecord) { const request = bridge.activityRecord?.(initialRecord.kind, initialRecord.id); if (request) void request.then(apply) } }, [apply, available, bridge, initialRecord?.id, initialRecord?.kind])
+  useEffect(() => { if (!initialRecord || !bridge.activityRecord) void load() }, [bridge, load, refreshToken, initialRecord?.id, initialRecord?.kind])
   useEffect(() => {
+    if (!available || !initialRecord || !bridge.activityRecord) return
+    const request = ++sequence.current
+    void bridge.activityRecord(initialRecord.kind, initialRecord.id).then((result) => { if (request === sequence.current) apply(result) })
+  }, [apply, available, bridge, initialRecord?.id, initialRecord?.kind])
+  useEffect(() => {
+    if (initialRecord && bridge.activityRecord) return
     let timer: ReturnType<typeof setTimeout> | undefined
     const unsubscribe = bridge.subscribe?.((event) => { if (relevant(event.kind)) { clearTimeout(timer); timer = setTimeout(() => void load(), 75) } })
     return () => { clearTimeout(timer); unsubscribe?.() }
-  }, [bridge, load])
+  }, [bridge, load, initialRecord?.id, initialRecord?.kind])
   return { workspace, status, pending, load, acknowledge }
 }

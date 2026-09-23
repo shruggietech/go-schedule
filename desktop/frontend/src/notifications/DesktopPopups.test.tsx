@@ -47,4 +47,17 @@ describe('DesktopPopups', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save popup choices' }))
     await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ enabled: false })))
   })
+
+  it('allows a removed scheduler filter to be cleared without resetting other preferences', async () => {
+    const bridge = settings()
+    bridge.workspace = async () => ({ action: 'load_settings', outcome: 'accepted', message: '', workspace: { ...workspace, preferences: { ...workspace.preferences, popups: { ...initial, daemonIds: ['daemon-removed'] } } } })
+    const save = vi.fn(async () => ({ action: 'save_popups', outcome: 'accepted' as const, message: 'Desktop popup preferences saved.' }))
+    bridge.savePopups = save
+    render(<DesktopPopups settings={bridge} desktop={desktop} />)
+    const missing = await screen.findByRole('checkbox', { name: /Unavailable scheduler daemon-remov/ })
+    expect(missing).toBeChecked()
+    await userEvent.click(missing)
+    await userEvent.click(screen.getByRole('button', { name: 'Save popup choices' }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...initial, daemonIds: [] }))
+  })
 })
