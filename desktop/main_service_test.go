@@ -13,10 +13,12 @@ import (
 
 func TestLocalServiceConfigPathMatchesInstalledDaemonOnWindows(t *testing.T) {
 	t.Parallel()
-	if got := localConfigPath("windows"); got != config.DefaultPath() {
-		t.Fatalf("Windows service config path = %q, want %q", got, config.DefaultPath())
+	for _, goos := range []string{"windows", "linux"} {
+		if got := localConfigPath(goos); got != config.DefaultPath() {
+			t.Fatalf("%s service config path = %q, want %q", goos, got, config.DefaultPath())
+		}
 	}
-	for _, goos := range []string{"linux", "darwin"} {
+	for _, goos := range []string{"darwin"} {
 		if got := localConfigPath(goos); got != "" {
 			t.Fatalf("%s standalone GUI config path = %q, want empty", goos, got)
 		}
@@ -25,8 +27,8 @@ func TestLocalServiceConfigPathMatchesInstalledDaemonOnWindows(t *testing.T) {
 
 func TestInstalledServiceNeverAutospawns(t *testing.T) {
 	t.Parallel()
-	if runtime.GOOS != "windows" {
-		t.Skip("installed Windows service semantics")
+	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
+		t.Skip("installed system service semantics")
 	}
 	for _, state := range []service.State{service.StateStopped, service.StateStarting, service.StateStopping, service.StateRunning, service.StateUnknown} {
 		if shouldAutoSpawnInstalledService(state, nil) {
@@ -47,7 +49,7 @@ func TestControlLocalServiceRejectsUnconfirmedStop(t *testing.T) {
 	monitor := &desktopcontrol.Monitor{
 		Query:   func() (service.State, error) { return service.StateRunning, nil },
 		Health:  func(context.Context) error { return nil },
-		Execute: func(string) error { calls++; return nil },
+		Execute: func(context.Context, string) error { calls++; return nil },
 	}
 	app := &App{ctx: context.Background(), localService: monitor}
 	result := app.ControlLocalService("stop", false)

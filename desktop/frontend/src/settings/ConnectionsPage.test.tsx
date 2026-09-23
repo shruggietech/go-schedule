@@ -11,7 +11,7 @@ describe('ConnectionsPage', () => {
     const user = userEvent.setup()
     const action = vi.fn()
     render(<ConnectionsPage snapshot={{ ...base, target: { ...base.target, kind: 'remote', displayName: 'Workshop' } }} retryPending={false} onRetry={vi.fn()} localService={{ state: 'stopped', scmState: 'stopped', detail: 'Local daemon stopped. Scheduled tasks on this computer are not running.', observedAt: '' }} onLocalServiceAction={action} />)
-    expect(screen.getByRole('heading', { name: 'Local Windows service' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Local service' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Start service' }))
     expect(action).toHaveBeenCalledWith('start')
   })

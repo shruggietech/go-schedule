@@ -313,6 +313,10 @@ jobs:
       - name: Build Linux desktop
         if: runner.os == 'Linux'
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -tags webkit2_41
+      - name: Build Linux session indicator
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: go build -o desktop/build/bin/gosched-indicator ./cmd/gosched-indicator
       - name: Build native desktop
         if: runner.os != 'Linux'
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean
@@ -329,6 +333,7 @@ jobs:
             test -f build/bin/go-schedule.app/Contents/MacOS/gosched-gui
           else
             test -f build/bin/gosched-gui
+            test -f build/bin/gosched-indicator
           fi
 
   wails-desktop-browser-contract:

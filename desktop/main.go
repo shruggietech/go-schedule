@@ -63,7 +63,7 @@ func ensureBundledDaemon(ping func(context.Context) error, spawn func() error) e
 }
 
 func shouldAutoSpawnInstalledService(state service.State, err error) bool {
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
 		return true
 	}
 	// A deliberate stop must survive opening the GUI. When SCM cannot be
@@ -72,7 +72,7 @@ func shouldAutoSpawnInstalledService(state service.State, err error) bool {
 }
 
 func localConfigPath(goos string) string {
-	if goos == "windows" {
+	if goos == "windows" || goos == "linux" {
 		return config.DefaultPath()
 	}
 	return ""
@@ -89,7 +89,16 @@ func main() {
 		return
 	}
 	defer instance.Close() //nolint:errcheck // process-lifetime mutex handle
-	cfg, err := config.Load(localConfigPath(runtime.GOOS))
+	configPath := localConfigPath(runtime.GOOS)
+	if runtime.GOOS == "linux" {
+		installedPath, configErr := service.InstalledConfigPath()
+		if configErr != nil {
+			fmt.Fprintln(os.Stderr, configErr)
+			os.Exit(1)
+		}
+		configPath = installedPath
+	}
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -107,7 +116,7 @@ func main() {
 	secretStore := clientsecret.New()
 	native := wailsNative{}
 	app := newApp(backend, wailsEmitter{}, native, appServices{tasks: taskgroup.NewService(taskgroup.NewLocalBackend(router)), automation: automation.NewService(automation.NewLocalBackend(router)), bundles: bundles.NewService(bundles.NewLocalBackend(router)), operations: operations.NewService(operations.NewLocalBackend(router)), notifications: notifications.NewService(notifications.NewLocalBackend(router)), settings: settings.NewService(settings.NewLocalBackend(localDaemon), native), agentAccess: agentaccess.NewService(agentaccess.NewLocalBackend(router), native), remotePairing: remotepairing.NewWithStores(secretStore, profileStore)})
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" || runtime.GOOS == "linux" {
 		monitor := desktopcontrol.NewMonitor(func(ctx context.Context) error {
 			_, err := localDaemon.Health(ctx)
 			return err

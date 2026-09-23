@@ -51,15 +51,30 @@ gosched --version
 
 ## Desktop bundle
 
-For an amd64 workstation, download `go-schedule-desktop_<ver>_linux_amd64.tar.gz`. It contains `gosched-gui`, `goschedd`, `gosched`, and a `share/` tree with the desktop entry and icons. The Wails application uses the system WebKitGTK 4.1 runtime. Keep the three binaries together or install them on `PATH`, then install the integration assets if wanted:
+For an amd64 workstation, download `go-schedule-desktop_<ver>_linux_amd64.tar.gz`. It contains `gosched-gui`, `gosched-indicator`, `goschedd`, `gosched`, and a `share/` tree with desktop entries and icons. The Wails application uses the system WebKitGTK 4.1 runtime. Keep the four binaries together or install them on `PATH`, then install the integration assets if wanted:
 
 ```sh
-sudo install -m 0755 gosched-gui goschedd gosched /usr/local/bin/
+sudo install -m 0755 gosched-gui gosched-indicator goschedd gosched /usr/local/bin/
 sudo cp -R share/applications share/icons /usr/local/share/
 gosched gui
 ```
 
 The `arm64` release remains daemon-and-CLI only.
+
+### Local daemon indicator
+
+For a Linux graphical session with a D-Bus session bus and compatible StatusNotifier host, install the supplied per-user autostart entry and sign out and back in:
+
+```sh
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+cp share/autostart/go-schedule-indicator.desktop "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/"
+```
+
+The item runs in your session, independent of the system daemon and GUI. Its menu shows the local service state, Open go-schedule, available Start/Stop/Restart actions, and Quit indicator. Running requires both an active system service and fresh local daemon health. Stop and Restart first ask for confirmation using `zenity` or `kdialog`; without either dialog helper, use the GUI's Connections page instead. An unprivileged change uses `pkexec` and the session's graphical Polkit authentication agent. Denial, cancellation, or a missing agent leaves the actual service state visible. Quit indicator never stops the daemon.
+
+KDE Plasma, Xfce, Cinnamon, MATE, and GNOME with a StatusNotifier/AppIndicator extension are potential hosts, but availability depends on the installed panel and session configuration. A stock GNOME Shell without an extension and a session without a D-Bus bus do not promise a visible item. The GUI Connections page and `gosched service status` remain the fallback, and the daemon continues scheduling without any desktop session. This indicator is long-lived service presence, not native task-outcome notifications.
+
+To stop launching the item at login, remove only your installed autostart copy and use Quit indicator for the current session. Removing the desktop bundle should also remove its binary and any installed autostart copy; the system daemon and scheduler data are separate.
 
 ## Register the service
 
@@ -78,7 +93,7 @@ Sign out and back in after changing membership. The daemon fails closed if its c
 sudo gosched service install
 ```
 
-The service loads `/var/lib/goschedule/config.json` automatically when it exists. For a different location, install it with `sudo gosched service install --config /etc/goschedule/daemon.json`. The file and any referenced TLS private key must be readable by the service identity. Follow [Remote access](remote-access.md#operator-runbook) to enable the optional HTTPS listener; installation alone never opens one.
+The service loads `/var/lib/goschedule/config.json` automatically when it exists. For a different location, install it with `sudo gosched service install --config /etc/goschedule/daemon.json`. The file must be readable by both the service identity and any signed-in user who uses the desktop GUI or indicator, since those clients read the service unit's effective `--config` argument to find its local IPC endpoint. A group-readable file is sufficient; the referenced TLS private key need only be readable by the service identity. Follow [Remote access](remote-access.md#operator-runbook) to enable the optional HTTPS listener; installation alone never opens one.
 
 ```sh
 sudo gosched service start
@@ -154,6 +169,8 @@ sudo gosched service uninstall
 sudo rm /usr/local/bin/goschedd /usr/local/bin/gosched
 ```
 
+If you installed the desktop bundle, first choose Quit indicator, then remove `gosched-gui` and `gosched-indicator` from the directory where you installed them. Remove your own `${XDG_CONFIG_HOME:-$HOME/.config}/autostart/go-schedule-indicator.desktop` copy if you enabled session startup. These steps do not remove the saved scheduler database.
+
 Your data is left in place. To remove it as well:
 
 ```sh
@@ -167,6 +184,8 @@ sudo rm -rf /var/lib/goschedule
 **`service install` fails with a permission error.** It writes a systemd unit; run it with `sudo`.
 
 **`gosched health` reports the daemon unreachable.** Check `gosched service status`. If it says `stopped`, start it. If it says the service is not installed, install it. If it says `running` but health still fails, read `gosched logs --severity error`, a daemon that failed at startup exits non-zero and says why.
+
+**The Linux indicator is missing.** Confirm a D-Bus graphical session and a compatible StatusNotifier host, plus the installed `gosched-indicator` binary, compact icon tree, and autostart entry. Start `gosched-indicator` from a terminal to see a specific startup error. The Connections page and `gosched service status` remain available even without a host.
 
 **The daemon reports an `admin_group` lookup or permission error.** Confirm the group and your fresh login membership with `getent group goschedadmin` and `id -nG`. For a custom `ipc_path`, its existing parent must already belong to the configured group with exact mode `0770`; the daemon does not rewrite a custom directory. As a temporary single-user compatibility choice, an operator can launch `goschedd --config <path>` with this explicit overlay:
 

@@ -55,7 +55,7 @@ func TestRequestActionUsesObservedState(t *testing.T) {
 	m := Monitor{
 		Query:  func() (service.State, error) { return state, nil },
 		Health: func(context.Context) error { return nil },
-		Execute: func(action string) error {
+		Execute: func(_ context.Context, action string) error {
 			if action != "start" {
 				t.Fatalf("action = %q", action)
 			}
@@ -73,7 +73,7 @@ func TestRequestActionDoesNotClaimElevationCancellationAsSuccess(t *testing.T) {
 	t.Parallel()
 	m := Monitor{
 		Query:   func() (service.State, error) { return service.StateStopped, nil },
-		Execute: func(string) error { return errElevationCancelled },
+		Execute: func(context.Context, string) error { return errElevationCancelled },
 	}
 	result := m.RequestAction(context.Background(), "start")
 	if result.Outcome != "cancelled" || result.Snapshot.State != "stopped" {
@@ -85,7 +85,7 @@ func TestRequestActionDoesNotClaimTimedOutHelperAsUnchanged(t *testing.T) {
 	t.Parallel()
 	m := Monitor{
 		Query:   func() (service.State, error) { return service.StateStopping, nil },
-		Execute: func(string) error { return fmt.Errorf("%w: process terminated", errHelperTimedOut) },
+		Execute: func(context.Context, string) error { return fmt.Errorf("%w: process terminated", errHelperTimedOut) },
 	}
 	result := m.RequestAction(context.Background(), "stop")
 	if result.Outcome != "indeterminate" || result.Snapshot.State != "stopping" || !strings.Contains(result.Message, "may still transition") {

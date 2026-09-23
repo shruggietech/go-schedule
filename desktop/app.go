@@ -63,11 +63,11 @@ type App struct {
 	stopActivation func()
 }
 
-// LocalServiceSnapshot reads this computer's installed Windows service
+// LocalServiceSnapshot reads this computer's installed system service
 // independently of whichever daemon connection is selected.
 func (a *App) LocalServiceSnapshot() desktopcontrol.Snapshot {
 	if a.localService == nil || a.ctx == nil {
-		return desktopcontrol.Snapshot{State: "unsupported", Detail: "Local Windows service controls are unavailable on this platform."}
+		return desktopcontrol.Snapshot{State: "unsupported", Detail: "Local service controls are unavailable on this platform."}
 	}
 	return a.localService.Observe(a.ctx)
 }
@@ -75,7 +75,7 @@ func (a *App) LocalServiceSnapshot() desktopcontrol.Snapshot {
 // ControlLocalService requests one confirmed local service action.
 func (a *App) ControlLocalService(action string, confirmed bool) desktopcontrol.ActionResult {
 	if a.localService == nil || a.ctx == nil {
-		return desktopcontrol.ActionResult{Action: action, Outcome: "unavailable", Message: "Local Windows service controls are unavailable."}
+		return desktopcontrol.ActionResult{Action: action, Outcome: "unavailable", Message: "Local service controls are unavailable."}
 	}
 	if (action == "stop" || action == "restart") && !confirmed {
 		return desktopcontrol.ActionResult{Action: action, Outcome: "rejected", Message: "Confirm the service impact before proceeding.", Snapshot: a.localService.Observe(a.ctx)}

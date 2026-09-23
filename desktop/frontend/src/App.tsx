@@ -157,7 +157,7 @@ export function App({
       void bridge.localServiceSnapshot?.().then((value) => {
         if (active) setLocalService(value);
       }).catch(() => {
-        if (active) setLocalService({ state: "unknown", scmState: "unknown", detail: "Could not read local Windows service status.", observedAt: "" });
+        if (active) setLocalService({ state: "unknown", scmState: "unknown", detail: "Could not read local service status.", observedAt: "" });
       });
     };
     refresh();
@@ -168,7 +168,7 @@ export function App({
     if (action === "stop" && !window.confirm("Stop the local service? Scheduled tasks on this computer will cease until it is started again.")) return;
     if (action === "restart" && !window.confirm("Restart the local service? Active tasks may be interrupted.")) return;
     setLocalServicePending(true);
-    setLocalServiceMessage(`Requesting ${action} through Windows service control...`);
+    setLocalServiceMessage(`Requesting ${action} through local service control...`);
     try {
       const result = await bridge.controlLocalService?.(action, true);
       if (result) {
@@ -176,7 +176,7 @@ export function App({
         setLocalServiceMessage(result.message);
       }
     } catch {
-      setLocalServiceMessage("The service action could not be completed. Check Windows Services and try again.");
+      setLocalServiceMessage("The service action could not be completed. Check the system service manager and try again.");
     } finally {
       setLocalServicePending(false);
       void bridge.localServiceSnapshot?.().then(setLocalService);

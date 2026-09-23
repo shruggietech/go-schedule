@@ -1,5 +1,5 @@
 // Package desktopcontrol projects the installed local service state for the
-// Windows desktop surfaces. It never confuses a selected remote daemon with
+// desktop surfaces. It never confuses a selected remote daemon with
 // the service on this computer.
 package desktopcontrol
 
@@ -24,7 +24,7 @@ type Snapshot struct {
 type Monitor struct {
 	Query   func() (service.State, error)
 	Health  func(context.Context) error
-	Execute func(string) error
+	Execute func(context.Context, string) error
 }
 
 var errHelperTimedOut = errors.New("service helper timed out")
@@ -34,7 +34,7 @@ func NewMonitor(health func(context.Context) error) Monitor {
 	return Monitor{Query: service.QueryState, Health: health, Execute: requestElevation}
 }
 
-// Observe reads the SCM first. A Running service requires a fresh health
+// Observe reads the service manager first. A Running service requires a fresh health
 // response before it can be represented as healthy.
 func (m Monitor) Observe(ctx context.Context) Snapshot {
 	at := time.Now().UTC().Format(time.RFC3339)
@@ -64,14 +64,14 @@ func (m Monitor) Observe(ctx context.Context) Snapshot {
 	case service.StateStopped:
 		out.Detail = "Local daemon stopped. Scheduled tasks on this computer are not running."
 	case service.StateNotInstalled:
-		out.Detail = "The local Windows service is not installed."
+		out.Detail = "The local service is not installed."
 	case service.StateStarting:
-		out.Detail = "The local Windows service is starting."
+		out.Detail = "The local service is starting."
 	case service.StateStopping:
-		out.Detail = "The local Windows service is stopping."
+		out.Detail = "The local service is stopping."
 	default:
 		out.State = "unknown"
-		out.Detail = "The local Windows service state is unknown."
+		out.Detail = "The local service state is unknown."
 	}
 	return out
 }
@@ -99,17 +99,17 @@ func (m Monitor) RequestAction(ctx context.Context, action string) ActionResult 
 		return result
 	}
 	if before.SCMState == string(service.StateUnknown) {
-		result.Outcome, result.Message = "unavailable", "The local service state cannot be read. Check Windows service permissions."
+		result.Outcome, result.Message = "unavailable", "The local service state cannot be read. Check service-manager permissions."
 		return result
 	}
 	if m.Execute == nil {
-		result.Outcome, result.Message = "unavailable", "Windows service control is unavailable."
+		result.Outcome, result.Message = "unavailable", "Local service control is unavailable."
 		return result
 	}
-	if err := m.Execute(action); err != nil {
+	if err := m.Execute(ctx, action); err != nil {
 		result.Outcome = "failed"
 		if errors.Is(err, errElevationCancelled) {
-			result.Outcome, result.Message = "cancelled", "Windows elevation was cancelled. The service was not changed."
+			result.Outcome, result.Message = "cancelled", "Service authorization was cancelled. The service was not changed."
 		} else if errors.Is(err, errHelperTimedOut) {
 			result.Outcome = "indeterminate"
 			result.Message = fmt.Sprintf("The %s helper timed out: %v. The current service state is shown and may still transition.", action, err)
@@ -137,7 +137,7 @@ func (m Monitor) RequestAction(ctx context.Context, action string) ActionResult 
 		select {
 		case <-waitCtx.Done():
 			result.Outcome = "failed"
-			result.Message = fmt.Sprintf("The %s request did not reach a healthy %s state. Check Windows Services and try again.", action, target)
+			result.Message = fmt.Sprintf("The %s request did not reach a healthy %s state. Check the system service manager and try again.", action, target)
 			return result
 		case <-ticker.C:
 		}

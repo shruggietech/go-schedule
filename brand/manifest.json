@@ -444,6 +444,11 @@
       "sha256": "6620bcd8f1061648c3670dafd080fd3328ec58ddca6001c0d4046d3d40226cf6"
     },
     {
+      "path": "platform/linux/go-schedule-indicator.desktop",
+      "bytes": 241,
+      "sha256": "ceac925ef38cfdfe5f12e2b9fead769e4b7971fdef34bb0cb466de7298afa18f"
+    },
+    {
       "path": "platform/linux/go-schedule.desktop",
       "bytes": 164,
       "sha256": "fe1955e508d127ba7e8609e52a9ee7d4256db03aaa8b4144b15b60e814250c31"
