@@ -13,10 +13,10 @@
 - [x] T004 Implement candidate filtering, live-only subscription boundary, terminal-run and alert mapping, bounded dedupe, and no mutation, with tests for two daemons, reconnect, mute, and exclusions (FR-001 through FR-004).
 - [x] T005 Wire activation intents through source-identity-checked Activity drilldown, with tests for switch, stale profile, and missing record (FR-005).
 - [x] T006 Build Notifications-page controls and capability explanation for mute, conditions, severity, daemon scope, denial, and closed-app limit; add frontend interaction tests (FR-001, FR-002, FR-006, FR-007).
-- [ ] T007 Update Windows/macOS/Linux packaged-notification integration as needed, and add platform build/behavior checks (FR-005, FR-006).
+- [x] T007 Update Windows/macOS/Linux packaged-notification integration as needed, and add platform build/behavior checks (FR-005, FR-006). S103 PR and exact-main CI passed; no additional package change was needed.
 
 ## Phase 3: Release and review
 
 - [x] T008 Update user documentation, changelog, v1.5.0 draft release notes, and GitHub planning dependencies without closing SMTP or parent issues (FR-007 through FR-009).
 - [x] T009 Run spec-kit analyze and resolve gaps, canonical verification, formatting, targeted tests, and audit issue-level acceptance (all FRs).
-- [ ] T010 Commit, push, publish structured PR, resolve CI and up to two review rounds, and hand off for merge. No tag or public release in this task (FR-008, FR-009).
+- [x] T010 Commit, push, publish structured PR, resolve CI and up to two review rounds, and hand off for merge. PR #260 merged; no tag or public release occurred in S103 (FR-008, FR-009).

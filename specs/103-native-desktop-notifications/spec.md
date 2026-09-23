@@ -2,8 +2,8 @@
 
 **Feature Branch**: `codex/103-native-desktop-notifications`
 **Created**: 2026-09-23
-**Status**: In Progress
-**Delivery**: Implementation and review in progress
+**Status**: Implemented
+**Delivery**: [PR #260](https://github.com/shruggietech/go-schedule/pull/260) merged as `8d04509f41c3ecd3dd12ff31c9cc2f993fa7d781` with exact-main [CI run 35857300930](https://github.com/shruggietech/go-schedule/actions/runs/35857300930); [#177](https://github.com/shruggietech/go-schedule/issues/177) closed. Public v1.5.0 publication remains S104 and #185.
 **Input**: S103 kickoff, GitHub #177 and #185. SMTP #176 remains separate and open.
 
 ## User Scenarios & Testing
