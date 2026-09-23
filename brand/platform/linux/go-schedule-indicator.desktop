@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=go-schedule indicator
+Comment=Local go-schedule daemon status and controls
+Exec=gosched-indicator
+Icon=go-schedule
+Terminal=false
+NoDisplay=true
+Categories=Utility;System;
+X-GNOME-Autostart-enabled=true

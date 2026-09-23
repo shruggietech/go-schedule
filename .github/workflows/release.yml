@@ -272,6 +272,7 @@ jobs:
           if [ "${{ matrix.goos }}" = "linux" ]; then
             (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -tags webkit2_41 -ldflags "$BASE")
             cp desktop/build/bin/gosched-gui "$stage/gosched-gui"
+            go build -ldflags "$BASE" -o "$stage/gosched-indicator" ./cmd/gosched-indicator
           else
             (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -clean -ldflags "$BASE ${{ matrix.ldflags }}")
           fi
@@ -303,8 +304,9 @@ jobs:
             # Ship freedesktop integration beside the portable desktop bundle.
             # Users or downstream packages can install this share/ tree without
             # having to recreate names, categories, or small-size artwork.
-            mkdir -p "$stage/share/applications" "$stage/share/icons"
+            mkdir -p "$stage/share/applications" "$stage/share/autostart" "$stage/share/icons"
             cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"
+            cp brand/platform/linux/go-schedule-indicator.desktop "$stage/share/autostart/"
             cp -R brand/platform/linux/hicolor "$stage/share/icons/"
           fi
           mkdir -p dist

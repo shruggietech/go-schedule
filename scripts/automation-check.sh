@@ -127,6 +127,8 @@ else
     'Windows installer Wails payload'
   require_ci_text "gosched-tray.exe') ./cmd/gosched-tray" \
     'windowless Windows tray payload'
+  require_ci_text 'go build -o desktop/build/bin/gosched-indicator ./cmd/gosched-indicator' \
+    'Linux session indicator build'
   require_ci_text 'Copy-Item README.md, LICENSE, CHANGELOG.md -Destination $stage' \
     'Windows installer documentation payload'
   require_ci_text 'Inspect stable desktop identity' \
@@ -373,12 +375,17 @@ else
     'production Windows Wails executable'
   require_release_text 'gosched-tray.exe" ./cmd/gosched-tray' \
     'windowless Windows tray executable'
+  require_release_text 'gosched-indicator" ./cmd/gosched-indicator' \
+    'Linux session indicator executable'
   require_release_text \
     "cp brand/platform/macos/go-schedule.icns \"\$app/Contents/Resources/icon.icns\"" \
     'canonical macOS ICNS'
   require_release_text \
     "cp brand/platform/linux/go-schedule.desktop \"\$stage/share/applications/\"" \
     'canonical Linux desktop entry'
+  require_release_text \
+    "cp brand/platform/linux/go-schedule-indicator.desktop \"\$stage/share/autostart/\"" \
+    'Linux session autostart entry'
   require_release_text \
     "cp -R brand/platform/linux/hicolor \"\$stage/share/icons/\"" \
     'canonical Linux hicolor tree'

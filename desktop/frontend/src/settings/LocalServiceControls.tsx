@@ -18,7 +18,7 @@ export function LocalServiceControls({
   return (
     <CardSection
       eyebrow="This computer"
-      title="Local Windows service"
+      title="Local service"
       status={
         <StatusLabel tone={snapshot.state === "running" ? "positive" : "warning"}>
           {snapshot.state.replaceAll("_", " ")}
@@ -34,8 +34,8 @@ export function LocalServiceControls({
           <Button variant="danger" pending={pending} onClick={() => onAction("stop")}>Stop service</Button>
         </>}
       </div>
-      {snapshot.state === "not_installed" && <p>Install the Windows desktop product to manage the local service.</p>}
-      {snapshot.state === "unreachable" && <p>Open Windows Services to inspect the running service, then retry its local connection.</p>}
+      {snapshot.state === "not_installed" && <p>Install the system service to manage it here.</p>}
+      {snapshot.state === "unreachable" && <p>Inspect the running service in your system service manager, then retry its local connection.</p>}
     </CardSection>
   );
 }

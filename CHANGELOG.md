@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Linux desktops gain local daemon presence and controls (Refs #256).** A per-session StatusNotifier companion reports the installed system service plus fresh local health, opens or focuses one GUI, and offers confirmed Start, Stop, and Restart operations through narrow graphical authorization. The Connections page provides the same local controls when no compatible status host is present or a remote daemon is selected.
+
 - **Windows local service controls gain a per-session notification-area companion (Refs #255).** The companion reports installed service state plus fresh local health, offers Open and protected Start, Stop, and Restart actions, and survives GUI closure. The GUI exposes the same local controls even while a remote daemon is selected.
 
 ### Changed
+
+- **Opening the Linux GUI no longer auto-starts an installed service that was deliberately stopped (Refs #256).** A missing system service retains standalone desktop startup behavior, while an unreadable service-manager state fails closed.
 
 - **Opening the Windows GUI no longer auto-starts an installed service that an operator deliberately stopped (Refs #255).** Standalone desktop behavior without an installed service remains unchanged.
 
@@ -37,6 +41,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **S087 refreshed the unpublished v1.4.0 candidate to reviewed S086 source and retained exact staging provenance (Refs #226, #228).** The old annotated tag, draft metadata, and all eight assets were backed up before an exact-lease refresh. Hosted staging and candidate identity validation passed; fresh installation and launch exposed a remaining selector regression. Complete native qualification and public promotion remain unfinished.
 
 ### Decisions
+
+- **2026-09-23: use a separate user-session StatusNotifier process and a fixed Polkit service action for Linux desktop controls (Refs #256).** A system daemon cannot own session UI, and the GUI may close independently. The indicator uses a maintained pure-Go SNI/dbusmenu library and the existing compact brand asset; service mutations target only the fixed installed unit with no shell or elevated GUI. The release archive now carries the indicator and opt-in XDG autostart entry.
 
 - **2026-09-22: keep the Windows service headless and use a separate user-session tray companion (Refs #255).** A service cannot own an interactive notification-area icon, and Wails can close independently. SCM status remains readable without elevation; only validated mutations enter a narrow elevated helper, and both UI surfaces confirm success from observed service state and local health.
 
