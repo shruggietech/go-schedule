@@ -5,7 +5,7 @@
 
 ## Summary
 
-Correct the reviewed source-owned v1.5.0 metadata, merge it through the normal PR path, then tag exact green main and stage the standard platform assets as a draft. Verify source, workflow run, candidate manifest, downloaded bytes, and checksum inventory before publishing. The maintainer clarified that the native-testing waiver is standing policy, so use the established manual waiver publication path without pretending that the full-attended-evidence promotion workflow passed.
+Correct the reviewed source-owned v1.5.0 metadata, merge it through the normal PR path, then tag exact green main and stage the standard platform assets as a draft. Verify source, workflow run, candidate manifest, downloaded bytes, and checksum inventory before publishing. The maintainer clarified that the native-testing waiver is standing policy, so use the reviewed standing-waiver promotion workflow without pretending that the full-attended-evidence promotion workflow passed.
 
 ## Technical Context
 
@@ -57,4 +57,4 @@ specs/104-v150-release-publication/
 
 ## Complexity / Deviation
 
-The existing attended promotion workflow remains unchanged. The maintainer clarified in S104 that native testing is waived for all releases. Do not fabricate its required evidence archive or label untested observations as passing; use a documented manual waiver path with the same source, staging, candidate, asset, and checksum checks. This is a standing operator disposition for attended native checks, not a change to automated CI or a claim of full qualification.
+The existing attended promotion workflow remains unchanged. The maintainer clarified in S104 that native testing is waived for all releases. Do not fabricate its required evidence archive or label untested observations as passing; use the reviewed standing-waiver promotion workflow with the same source, staging, candidate, asset, and checksum checks. This is a standing operator disposition for attended native checks, not a change to automated CI or a claim of full qualification.
