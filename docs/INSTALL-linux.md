@@ -93,7 +93,7 @@ Sign out and back in after changing membership. The daemon fails closed if its c
 sudo gosched service install
 ```
 
-The service loads `/var/lib/goschedule/config.json` automatically when it exists. For a different location, install it with `sudo gosched service install --config /etc/goschedule/daemon.json`. The file and any referenced TLS private key must be readable by the service identity. Follow [Remote access](remote-access.md#operator-runbook) to enable the optional HTTPS listener; installation alone never opens one.
+The service loads `/var/lib/goschedule/config.json` automatically when it exists. For a different location, install it with `sudo gosched service install --config /etc/goschedule/daemon.json`. The file must be readable by both the service identity and any signed-in user who uses the desktop GUI or indicator, since those clients read the service unit's effective `--config` argument to find its local IPC endpoint. A group-readable file is sufficient; the referenced TLS private key need only be readable by the service identity. Follow [Remote access](remote-access.md#operator-runbook) to enable the optional HTTPS listener; installation alone never opens one.
 
 ```sh
 sudo gosched service start

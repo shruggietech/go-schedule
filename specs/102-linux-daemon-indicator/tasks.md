@@ -45,6 +45,7 @@
 - [x] T015 [P] Document install, use, limitations, and removal in `docs/INSTALL-linux.md` and compact mark use in `docs/brand.md`.
 - [x] T016 Run `sh scripts/verify.sh all` and relevant Linux build tests, then resolve failures in the affected code.
 - [x] T017 Update `CHANGELOG.md`, mark this specification Implemented with delivery evidence, and commit S102 on `codex/102-linux-daemon-indicator`.
+- [x] T018 Resolve the effective installed systemd `--config` path for both Linux desktop processes and test custom IPC path handling after review.
 
 ## Dependencies and strategy
 

@@ -24,6 +24,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
 	"github.com/shruggietech/go-schedule/internal/ipc"
+	"github.com/shruggietech/go-schedule/internal/service"
 )
 
 type indicator struct {
@@ -66,7 +67,11 @@ func run() error {
 	if err := bus.Close(); err != nil {
 		return fmt.Errorf("close D-Bus preflight connection: %w", err)
 	}
-	cfg, err := config.Load(config.DefaultPath())
+	configPath, err := service.InstalledConfigPath()
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		return fmt.Errorf("load local daemon configuration: %w", err)
 	}

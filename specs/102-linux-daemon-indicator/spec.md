@@ -34,6 +34,7 @@ As a Linux desktop user, I can start, stop, or restart the installed service fro
 2. **Given** a running service, **when** I choose Stop or Restart, **then** I first see the impact on local work and can cancel without changing the service.
 3. **Given** a denied, failed, or timed-out action, **when** it ends, **then** I see the current observed state and an actionable error.
 4. **Given** a remote daemon selected in the GUI, **when** I use the local controls, **then** they still target This computer only.
+5. **Given** an installed local service with a custom `--config` path, **when** I open the GUI or indicator, **then** both use that service's configured IPC endpoint rather than the default.
 
 ### User Story 3 - Open one GUI and retain a clean session lifecycle (Priority: P2)
 
@@ -52,6 +53,7 @@ As a user, I can open or focus the GUI from the indicator, and logging out or re
 
 - The graphical session lacks a session bus or compatible status host, or the host appears after the item starts.
 - The service is missing, transitional, or reported running without fresh local health.
+- The installed unit retains a custom configuration path and IPC endpoint.
 - Authorization is denied, cancelled, or unavailable; the service changes state during an action.
 - Multiple GUI or indicator launch requests occur in one session.
 - A status host changes panel theme or restarts while the item is active.

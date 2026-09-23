@@ -14,6 +14,8 @@
 
 **Alternatives**: Launching `sudo` would ask for a terminal and fail in the tray. Elevating the GUI or indicator would grant broad UI-process authority. Bare `systemctl` may depend on desktop-specific authorization behavior.
 
+**Review refinement**: A service installed with `--config` can use a nondefault `data_dir` or `ipc_path`. Read the effective `ExecStart` argument vector from systemd's system D-Bus property, including drop-in overrides, and load that config for both desktop processes. Parsing `systemctl show` prose or assuming `/var/lib/goschedule/config.json` can select the wrong daemon. A custom config must be readable by the signed-in desktop user; failure to resolve an installed unit is an error, not a false healthy state.
+
 ## Session and distribution
 
 **Decision**: Use an XDG autostart desktop entry alongside the portable Linux desktop archive; instruct users and downstream packages to install it where appropriate. A per-user file lock prevents duplicate indicator or GUI instances. A local activation socket allows focus without a D-Bus session.

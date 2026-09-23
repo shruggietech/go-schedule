@@ -89,7 +89,16 @@ func main() {
 		return
 	}
 	defer instance.Close() //nolint:errcheck // process-lifetime mutex handle
-	cfg, err := config.Load(localConfigPath(runtime.GOOS))
+	configPath := localConfigPath(runtime.GOOS)
+	if runtime.GOOS == "linux" {
+		installedPath, configErr := service.InstalledConfigPath()
+		if configErr != nil {
+			fmt.Fprintln(os.Stderr, configErr)
+			os.Exit(1)
+		}
+		configPath = installedPath
+	}
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
