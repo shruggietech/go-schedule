@@ -582,10 +582,8 @@ func TestWindowsTrayCompanionInstallerContract(t *testing.T) {
 	if !foundRun {
 		t.Fatal("MSI must register the companion for interactive logon")
 	}
-	for _, id := range []string{"go_schedule_light.ico", "go_schedule_dark.ico"} {
-		if _, ok := findInstallerElement(elements, "File", id); !ok {
-			t.Fatalf("MSI must install %s", id)
-		}
+	if icon, ok := findInstallerElement(elements, "File", "go_schedule.ico"); !ok || icon.attrs["Source"] != `$(StageDir)\go-schedule.ico` {
+		t.Fatal("MSI must install the official tray icon")
 	}
 }
 

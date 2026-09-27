@@ -67,16 +67,16 @@ require_text specs/001-task-scheduler/contracts/local-api.md 'schedule_syntax' \
   'API syntax discriminator contract'
 require_text docs/brand.md 'go-schedule-mark-color\.svg' \
   'canonical full-mark download'
-require_text docs/brand.md 'go-schedule-mark-reduced\.svg' \
+require_text docs/brand.md 'go-schedule-mark-reduced-color\.svg' \
   'reduced small-size mark download'
 require_text docs/brand.md 'go-schedule-horizontal-(color|black)\.svg' \
   'horizontal lockup download'
 require_text docs/brand.md 'go-schedule-mark-(white|black)\.svg' \
   'monochrome mark download'
-require_text docs/brand.md 'go-schedule-social-preview-1280x640\.png' \
+require_text docs/brand.md 'go-schedule-social-preview-1280\.png' \
   'social-preview download'
 require_text docs/brand.md 'brand-guide\.pdf' 'long-form brand guide download'
-require_text docs/brand.md 'brand/manifest\.json' 'complete kit inventory link'
+require_text docs/brand.md 'go-schedule-brand-2\.0\.0-bb2\.4\.0\.zip' 'complete official kit link'
 require_text docs/brand.md '#071014.*#62D9B7.*#58A6FF' \
   'core palette values'
 require_text docs/brand.md 'Space Grotesk.*Geist.*Geist Mono' \

@@ -34,7 +34,7 @@ func reducedGeometry(t *testing.T, filename string) []string {
 		}
 		var attributes []string
 		for _, attr := range element.Attr {
-			if attr.Name.Local != "fill" {
+			if attr.Name.Local != "fill" && attr.Name.Local != "stroke" {
 				attributes = append(attributes, attr.Name.Local+"="+attr.Value)
 			}
 		}
@@ -44,7 +44,7 @@ func reducedGeometry(t *testing.T, filename string) []string {
 
 func TestMonochromeReducedMarksPreserveCanonicalGeometry(t *testing.T) {
 	t.Parallel()
-	canonical := reducedGeometry(t, "go-schedule-mark-reduced.svg")
+	canonical := reducedGeometry(t, "go-schedule-mark-reduced-color.svg")
 	if len(canonical) == 0 {
 		t.Fatal("canonical reduced mark has no geometry")
 	}

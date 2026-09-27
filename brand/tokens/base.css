@@ -1,8 +1,14 @@
 *, *::before, *::after { box-sizing: border-box; }
-html { color-scheme: dark; }
-body { margin: 0; background: var(--gs-bg); color: var(--gs-fg); font-family: var(--gs-font-body); line-height: var(--gs-body-line-height); }
-h1, h2, h3 { font-family: var(--gs-font-display); letter-spacing: var(--gs-display-tracking); line-height: 1.12; }
-code, pre, kbd, samp { font-family: var(--gs-font-mono); font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
-a { color: var(--gs-link); }
-:focus-visible { outline: var(--gs-focus-stroke) solid var(--gs-link); outline-offset: 3px; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+html { background: var(--go-bg); color: var(--go-fg); font-family: var(--go-font-body); font-size: var(--go-body-md); line-height: var(--go-leading-body); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body { margin: 0; }
+h1, h2, h3, h4 { margin: 0 0 var(--go-space-4); font-family: var(--go-font-display); font-weight: var(--go-weight-bold); letter-spacing: var(--go-tracking-display); line-height: var(--go-leading-display); }
+h1 { font-size: var(--go-display-md); }
+h2 { font-size: var(--go-display-sm); }
+h3 { font-size: var(--go-display-xs); font-weight: var(--go-weight-medium); }
+p { margin: 0 0 var(--go-space-4); }
+code, pre, kbd, samp { font-family: var(--go-font-mono); line-height: var(--go-leading-code); font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "calt" 0; }
+a { color: var(--go-link); text-decoration: none; }
+:focus-visible { outline: var(--go-stroke-focus) solid var(--go-focus); outline-offset: 2px; }
+.go-eyebrow { color: var(--go-accent); font-family: var(--go-font-mono); font-size: var(--go-body-xs); letter-spacing: var(--go-tracking-eyebrow); text-transform: uppercase; }
+.go-endorsement { color: var(--go-fg-muted); font-family: var(--go-font-mono); font-size: var(--go-body-xs); letter-spacing: var(--go-tracking-eyebrow); text-transform: uppercase; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
