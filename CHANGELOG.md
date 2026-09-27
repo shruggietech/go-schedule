@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-26
+
 ### Changed
 
 - **The repository now adopts the official go-schedule brand 2.0.0 release (Refs #267).** A pinned complete archive, checksum-verified import command, declared consumer map, and offline drift check keep product, documentation, and packaging artwork in sync with the current prompt-and-cursor mark. Windows packaging uses the official single ICO; the old framed identity and theme-specific tray ICOs are retired. Installed native appearance remains unverified.
