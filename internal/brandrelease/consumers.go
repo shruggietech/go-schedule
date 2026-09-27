@@ -12,11 +12,16 @@ import (
 
 // ReadConsumers loads a repository mapping. Version 2 supports controlled transforms.
 func ReadConsumers(filename string) (ConsumerMap, error) {
-	var result ConsumerMap
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return result, fmt.Errorf("read consumer map: %w", err)
+		return ConsumerMap{}, fmt.Errorf("read consumer map: %w", err)
 	}
+	return ParseConsumers(data)
+}
+
+// ParseConsumers parses the exact map bytes that an importer will install.
+func ParseConsumers(data []byte) (ConsumerMap, error) {
+	var result ConsumerMap
 	if err := json.Unmarshal(data, &result); err != nil {
 		return result, fmt.Errorf("parse consumer map: %w", err)
 	}
@@ -30,6 +35,8 @@ func ReadConsumers(filename string) (ConsumerMap, error) {
 func ValidateConsumers(root string, kit *Kit, consumers ConsumerMap) error {
 	seenSource := map[string]bool{}
 	seenTarget := map[string]bool{}
+	targetSource := map[string]string{}
+	var docsManifest *Mapping
 	for _, mapping := range consumers.Mappings {
 		if err := SafePath(mapping.Source); err != nil {
 			return fmt.Errorf("consumer source: %w", err)
@@ -47,6 +54,9 @@ func ValidateConsumers(root string, kit *Kit, consumers ConsumerMap) error {
 		if mapping.Transform == "docs-site-manifest" && mapping.Source != "favicons/site.webmanifest" {
 			return fmt.Errorf("docs-site-manifest transform has wrong source")
 		}
+		if mapping.Transform == "docs-site-manifest" {
+			docsManifest = &mapping
+		}
 		for _, target := range mapping.Targets {
 			if err := SafePath(target); err != nil {
 				return fmt.Errorf("consumer target: %w", err)
@@ -58,11 +68,32 @@ func ValidateConsumers(root string, kit *Kit, consumers ConsumerMap) error {
 				return fmt.Errorf("duplicate consumer target %q", target)
 			}
 			seenTarget[strings.ToLower(target)] = true
+			targetSource[target] = mapping.Source
 			if mapping.Transform == "docs-site-manifest" && target != "docs/assets/favicons/site.webmanifest" {
 				return fmt.Errorf("docs-site-manifest transform has wrong target")
 			}
 			if err := CheckNoSymlink(root, target); err != nil {
 				return err
+			}
+		}
+	}
+	if docsManifest != nil {
+		manifest, err := Render(kit, *docsManifest)
+		if err != nil {
+			return err
+		}
+		var doc struct {
+			Icons []struct {
+				Src string `json:"src"`
+			} `json:"icons"`
+		}
+		if err := json.Unmarshal(manifest, &doc); err != nil {
+			return fmt.Errorf("parse docs web manifest: %w", err)
+		}
+		for _, icon := range doc.Icons {
+			source := "favicons/" + icon.Src
+			if targetSource["docs/assets/favicons/"+icon.Src] != source {
+				return fmt.Errorf("docs web icon %q has no matching consumer", icon.Src)
 			}
 		}
 	}

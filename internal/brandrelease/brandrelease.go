@@ -58,6 +58,7 @@ type Kit struct {
 	Pin      Pin
 	Manifest Manifest
 	Files    map[string][]byte
+	Archive  []byte
 }
 
 // ReadPin loads a checked release pin.
@@ -195,7 +196,7 @@ func Open(pin Pin, archivePath string) (*Kit, error) {
 	if bundle.Package.ID != pin.Package || bundle.Package.Filename != pin.Package+".zip" || bundle.Package.BrandVersion != pin.BrandVersion || bundle.Package.BrandBuilderVersion != pin.BrandBuilderVersion || !strings.Contains(pin.ReleaseURL, "/"+bundle.Publication.Tag+"/") {
 		return nil, fmt.Errorf("brand bundle identity differs from pin")
 	}
-	return &Kit{Pin: pin, Manifest: manifest, Files: files}, nil
+	return &Kit{Pin: pin, Manifest: manifest, Files: files, Archive: archive}, nil
 }
 
 func isText(name string) bool {

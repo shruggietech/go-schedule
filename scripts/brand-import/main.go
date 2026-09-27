@@ -39,7 +39,11 @@ func run(root, archive, checksums, mapFile string) error {
 	if err != nil {
 		return err
 	}
-	newMap, err := brandrelease.ReadConsumers(mapFile)
+	mapData, err := os.ReadFile(mapFile)
+	if err != nil {
+		return fmt.Errorf("read new consumer map: %w", err)
+	}
+	newMap, err := brandrelease.ParseConsumers(mapData)
 	if err != nil {
 		return err
 	}
@@ -79,24 +83,13 @@ func run(root, archive, checksums, mapFile string) error {
 			}
 		}
 	}
-	archiveData, err := os.ReadFile(archive)
-	if err != nil {
-		return fmt.Errorf("reread brand archive: %w", err)
-	}
-	mapData, err := os.ReadFile(mapFile)
-	if err != nil {
-		return fmt.Errorf("reread new consumer map: %w", err)
-	}
-	if err := write(root, "brand/"+pin.Package+".zip", archiveData); err != nil {
+	if err := write(root, "brand/"+pin.Package+".zip", kit.Archive); err != nil {
 		return err
 	}
 	for _, item := range outputs {
 		if err := write(root, item.path, item.data); err != nil {
 			return err
 		}
-	}
-	if err := write(root, "brand/repository-consumers.json", mapData); err != nil {
-		return err
 	}
 	for _, mapping := range oldMap.Mappings {
 		for _, target := range mapping.Targets {
@@ -136,6 +129,9 @@ func run(root, archive, checksums, mapFile string) error {
 		}
 		return nil
 	}); err != nil {
+		return err
+	}
+	if err := write(root, "brand/repository-consumers.json", mapData); err != nil {
 		return err
 	}
 	if _, _, err := brandrelease.CheckInstalled(root); err != nil {

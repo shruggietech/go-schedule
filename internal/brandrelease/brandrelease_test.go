@@ -146,6 +146,22 @@ func TestRenderDocsManifestUsesRelativeIconPaths(t *testing.T) {
 	}
 }
 
+func TestValidateConsumersRequiresDocsManifestIcons(t *testing.T) {
+	root := t.TempDir()
+	kit := &Kit{Pin: Pin{Package: "kit"}, Files: map[string][]byte{
+		"favicons/site.webmanifest":          []byte(`{"icons":[{"src":"/maskable-icon-192x192.png"}]}`),
+		"favicons/maskable-icon-192x192.png": []byte("png"),
+	}}
+	consumers := ConsumerMap{Version: 2, Mappings: []Mapping{{Source: "favicons/site.webmanifest", Targets: []string{"docs/assets/favicons/site.webmanifest"}, Purpose: "docs", Transform: "docs-site-manifest"}}}
+	if err := ValidateConsumers(root, kit, consumers); err == nil || !strings.Contains(err.Error(), "no matching consumer") {
+		t.Fatalf("missing icon consumer error = %v", err)
+	}
+	consumers.Mappings = append(consumers.Mappings, Mapping{Source: "favicons/maskable-icon-192x192.png", Targets: []string{"docs/assets/favicons/maskable-icon-192x192.png"}, Purpose: "docs"})
+	if err := ValidateConsumers(root, kit, consumers); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestValidateConsumersRejectsEscapesAndSymlinks(t *testing.T) {
 	root := t.TempDir()
 	kit := &Kit{Pin: Pin{Package: "kit"}, Files: map[string][]byte{"README.md": []byte("source")}}
