@@ -1,0 +1,76 @@
+# Feature Specification: Adopt the official go-schedule brand 2.0.0 kit
+
+**Feature Branch**: `codex/105-brand-kit-update`
+**Created**: 2026-09-26
+**Status**: Implemented
+**Delivery**: Review branch `codex/105-brand-kit-update` contains the official archive, importer, consumers, documentation, and package updates; all eight local verification gates passed on 2026-09-26. Pull-request review and merge remain pending.
+**Input**: Owner request to establish a brand updating pipeline and adopt the latest kit from https://brand.shruggie.tech/go-schedule/downloads/.
+**Planning record**: [#267](https://github.com/shruggietech/go-schedule/issues/267), Brand 2.0 adoption milestone.
+
+## User Scenarios & Testing
+
+### User Story 1 - See the current identity (Priority: P1)
+
+As a user, I see the current prompt and cursor mark, paired with the approved wordmark where appropriate, across the repository, documentation, desktop application, and distributed platform assets.
+
+**Why this priority**: The official 2.0.0 release retires the former framed mark from current presentation.
+**Independent Test**: Compare the published kit and every repository presentation surface against the official current mark and usage guide.
+
+**Acceptance Scenarios**:
+
+1. **Given** the official 2.0.0 kit, **when** a user opens repository or documentation artwork, **then** current mark, lockup, and social assets show the approved simplified identity.
+2. **Given** a desktop build, **when** a user examines its source icons and packaging inputs, **then** they derive from the approved current kit or a documented repository-specific derivative of it.
+
+### User Story 2 - Update the brand repeatably (Priority: P1)
+
+As a maintainer, I can import a specific formal brand release, verify its identity and file inventory, update declared consumers, and detect drift before publishing.
+
+**Why this priority**: A copied kit without a repeatable and checked update route will drift from the official source.
+**Independent Test**: Attempt the documented import with the release archive and checksum inventory, then verify every declared consumer; repeat with a bad checksum or unexpected archive and observe a clear refusal.
+
+**Acceptance Scenarios**:
+
+1. **Given** the exact release archive and checksum inventory, **when** a maintainer runs the update process, **then** the canonical kit and all declared copies resolve to one pinned release identity.
+2. **Given** a changed archive, unsafe path, missing file, or mismatched consumer, **when** validation runs, **then** it fails before presenting the repository as current.
+
+### Edge Cases
+
+- Existing repository-only Linux desktop metadata must retain its role while the official kit changes structure. Windows notification-area packaging must use the current official icon.
+- A kit may rename or retire files; stale presentation copies must not remain advertised as current.
+- The official archive contains platform assets for targets this repository does not ship; retaining the complete inventory must not imply those targets are supported by go-schedule.
+- Attended desktop appearance is not established by source asset checks alone.
+
+## Requirements
+
+### Functional Requirements
+
+- **FR-001**: The repository MUST pin the formal 2.0.0 brand package, its BrandBuilder version, source URL, and SHA-256 from the official release checksum inventory.
+- **FR-002**: The repository MUST retain the complete distributable kit unchanged and verify each declared file against its bundled inventory.
+- **FR-003**: The update process MUST reject an unexpected package identity, checksum mismatch, unsafe archive entry, duplicate archive entry, or missing declared file before replacing canonical files.
+- **FR-004**: Every declared repository consumer MUST be synchronized from one canonical source and checked for byte equality, except the explicit documentation web-manifest URL transform, which MUST be checked against its rendered source.
+- **FR-005**: Repository and documentation guidance MUST identify the current mark, its paired lockups, social image, and platform icon roles accurately, without describing the retired framed mark as current.
+- **FR-006**: Build and release inputs MUST use the current identity, including existing Linux, macOS, Windows, web, and desktop surfaces.
+- **FR-007**: The update procedure MUST be documented so a maintainer can repeat it for a later formal release by changing an explicit pin and reviewing migrations.
+
+### Key Entities
+
+- **Pinned release**: Package filename, brand version, BrandBuilder version, release location, and exact archive digest.
+- **Canonical kit**: The unchanged verified file set from one formal archive.
+- **Consumer mapping**: A declared canonical source and one or more repository destination paths.
+- **Repository derivative**: A project-owned platform file whose relationship to the official kit is documented separately from upstream-generated bytes.
+
+## Success Criteria
+
+### Measurable Outcomes
+
+- **SC-001**: The repository's current brand presentation uses the approved 2.0.0 mark in every mapped surface, with zero advertised current references to the retired framed artwork.
+- **SC-002**: One documented update command imports all official distributable files and synchronizes 100% of declared consumer copies from a pinned release.
+- **SC-003**: A validation command reports zero missing, altered, or extra canonical kit files and zero mismatched declared consumers.
+- **SC-004**: An invalid archive or checksum produces a nonzero result and leaves the installed canonical kit intact.
+
+## Assumptions
+
+- The official release is `go-schedule-brand-2.0.0-bb2.4.0.zip` in `shruggie-brand` tag `v2.4.0`; the hosted download and formal release checksum agree.
+- Existing platform support remains unchanged; the brand update does not add Android, iOS, or MSIX distribution.
+- The owner-approved simplified mark in upstream issue #282 governs this adoption. Brand assets are imported, not redrawn in this repository.
+- The review branch will be pushed as requested, then held for owner approval before pull-request publication or merge.

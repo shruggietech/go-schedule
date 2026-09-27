@@ -1,41 +1,16 @@
-# Repository integration
+# Repository brand integration
 
-The complete standalone brand kit lives in this directory. `README.md` explains the identity; `brand-guide.pdf` is the long-form visual guide; `manifest.json` and `VERIFY.md` preserve the approved build's integrity evidence.
+The complete official kit is the immutable archive named in [`source.json`](source.json). Its `manifest.json` lists every official file and digest. The selected files outside the archive are installed according to [`repository-consumers.json`](repository-consumers.json); edit the map when a consumer path changes instead of editing a copied asset.
 
-## Source of truth
+## Update from the official release
 
-Files under `brand/` are canonical. A file under `docs/assets/`, `gui/assets/`, or `cmd/gosched-gui/` is a consumer copy only when `repository-consumers.json` declares the relationship. Do not edit a consumer copy by hand.
+1. Find the current go-schedule archive on [brand.shruggie.tech](https://brand.shruggie.tech) and its formal `shruggie-brand` GitHub release. Download the exact ZIP and that release's `SHA256SUMS` file. Confirm the archive name, brand version, BrandBuilder version, and checksum, then update `source.json`.
+2. Review the archive's migration notes and manifest. Update `repository-consumers.json` with each approved source path and repository target. Keep repository-owned Linux `.desktop` metadata separate; use the official size-matched raster exports for Linux icons when the release provides no Linux icon suite.
+3. From the repository root, run `go run ./scripts/brand-import <archive.zip> <SHA256SUMS> <new-consumer-map.json>`. The importer validates the pin, release checksum, ZIP entries, manifest, bundle identity, source paths, and destination paths before writing. It then stores the unchanged archive, synchronizes declared consumers, and removes retired declared assets.
+4. Update documentation, packaging references, and tests for any renamed assets. Run `go run ./scripts/brand-check`, `go run ./scripts/github-format`, and `sh scripts/verify.sh all` before publishing the branch.
 
-Run the ordinary offline check from repository root:
+The importer accepts only the version 2 consumer map. A mapping with `transform: "docs-site-manifest"` rewrites absolute favicon URLs to relative paths for the documentation site's `/go-schedule` base path. Every other mapping is byte-identical. The offline `brand-check` command verifies the stored archive against the pin, rechecks its internal manifest, validates all copied or transformed consumers, and reports undeclared files in the selected brand tree.
 
-```text
-go run ./scripts/brand-check
-```
+Use the current SVG logos in `logos/svg/`, social image `logos/png/go-schedule-social-preview-1280.png`, Windows icon `platform/windows/go-schedule.ico`, macOS icon `platform/macos/go-schedule.icns`, and Linux hicolor files in `platform/linux/hicolor/`. The official archive retains the full design guide and source material without introducing upstream prose formatting into this repository.
 
-This validates the approved manifest, UTF-8 integrity, portable SVG rules, and every declared byte-identical consumer. It requires only the Go toolchain already used by the project and is part of the automation gate.
-
-## Choosing an asset
-
-- Use `logos/svg/` for scalable artwork and new design surfaces.
-- Use the full mark at 36 px and above. Use `go-schedule-mark-reduced.svg` or the favicon family at 32 px and below.
-- Use dark/light lockups on their named surfaces. Use white or black variants when a single-color mark is required.
-- Use `logos/png/go-schedule-social-preview-1280x640.png` for repository and link-preview settings.
-- Use the ready-made files under `platform/` for Windows, macOS, and Linux packaging.
-- Use `tokens/` and `components/` when implementing a product surface. Do not sample colors from raster images.
-
-## Updating the kit
-
-Brand regeneration is a deliberate maintainer workflow, not a routine build step. The optional toolchain is documented in `build/README.md` and includes Python graphics/font packages plus Node.js, Playwright, and Chromium.
-
-1. Change the canonical geometry, tokens, guide source, or components under `brand/`.
-2. Run the complete generation sequence in `build/README.md`.
-3. Run `python build/verify.py` and require PASS.
-4. Copy changed outputs to every target declared in `repository-consumers.json`.
-5. Run `go test ./scripts/brand-check` and `go run ./scripts/brand-check`.
-6. Run `sh scripts/verify.sh all` before commit.
-
-Do not commit `.venv`, `__pycache__`, rendered audit pages, ZIP transports, or backup archives. If an approved asset is renamed, update documentation and the consumer map in the same change.
-
-## Evidence boundaries
-
-The standalone `VERIFY.md` records visual-kit validation. The repository verifier records import and consumer integrity. Neither is evidence that an installed Windows title-bar or taskbar icon was manually observed; GitHub issue #33 remains intentionally separate.
+Source and packaging checks prove asset identity and installer input wiring. They do not establish how an icon appears on every installed operating system or theme; report any such defect separately against the affected release.

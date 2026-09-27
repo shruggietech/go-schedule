@@ -205,11 +205,8 @@
         <File Id="gosched_tray.exe" Source="$(StageDir)\gosched-tray.exe" KeyPath="yes" />
         <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="go-schedule tray" Type="string" Value="&quot;[INSTALLFOLDER]gosched-tray.exe&quot;" />
       </Component>
-      <Component Id="TrayLightIcon" Guid="*">
-        <File Id="go_schedule_light.ico" Name="go-schedule-light.ico" Source="$(StageDir)\go-schedule-light.ico" KeyPath="yes" />
-      </Component>
-      <Component Id="TrayDarkIcon" Guid="*">
-        <File Id="go_schedule_dark.ico" Name="go-schedule-dark.ico" Source="$(StageDir)\go-schedule-dark.ico" KeyPath="yes" />
+      <Component Id="TrayIcon" Guid="*">
+        <File Id="go_schedule.ico" Name="go-schedule.ico" Source="$(StageDir)\go-schedule.ico" KeyPath="yes" />
       </Component>
 
       <!-- The CLI, plus the PATH entry that makes it reachable by name.

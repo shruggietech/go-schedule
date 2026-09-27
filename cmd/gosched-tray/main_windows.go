@@ -18,7 +18,6 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
-	"golang.org/x/sys/windows/registry"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/config"
@@ -122,8 +121,6 @@ var (
 	procGetCursor        = user32.NewProc("GetCursorPos")
 	procSetForeground    = user32.NewProc("SetForegroundWindow")
 	procMessageBox       = user32.NewProc("MessageBoxW")
-	procSystemParameters = user32.NewProc("SystemParametersInfoW")
-	procGetSysColor      = user32.NewProc("GetSysColor")
 	procNotifyIcon       = shell32.NewProc("Shell_NotifyIconW")
 	currentTray          *tray
 )
@@ -131,7 +128,6 @@ var (
 type tray struct {
 	hwnd           uintptr
 	icon           uintptr
-	lightTheme     bool
 	taskbarCreated uint32
 	monitor        desktopcontrol.Monitor
 	cancel         context.CancelFunc
@@ -259,43 +255,12 @@ func (t *tray) loadIcon() {
 	if err != nil {
 		return
 	}
-	t.lightTheme = lightTaskbar()
-	name := "go-schedule-light.ico"
-	if t.lightTheme {
-		name = "go-schedule-dark.ico"
-	}
-	path := filepath.Join(filepath.Dir(exe), name)
-	if _, err := os.Stat(path); err != nil {
-		path = filepath.Join(filepath.Dir(exe), "go-schedule.ico")
-	}
+	path := filepath.Join(filepath.Dir(exe), "go-schedule.ico")
 	ptr, err := windows.UTF16PtrFromString(path)
 	if err != nil {
 		return
 	}
 	t.icon, _, _ = procLoadImage.Call(0, uintptr(unsafe.Pointer(ptr)), imageIcon, 0, 0, lrLoadFromFile)
-}
-
-func lightTaskbar() bool {
-	// In high-contrast mode use the Windows text color as the actual surface
-	// contrast reference instead of the ordinary taskbar theme preference.
-	type highContrast struct {
-		size          uint32
-		flags         uint32
-		defaultScheme *uint16
-	}
-	hc := highContrast{size: uint32(unsafe.Sizeof(highContrast{}))}
-	if ok, _, _ := procSystemParameters.Call(0x42, uintptr(hc.size), uintptr(unsafe.Pointer(&hc)), 0); ok != 0 && hc.flags&1 != 0 {
-		color, _, _ := procGetSysColor.Call(8) // COLOR_WINDOWTEXT
-		red, green, blue := color&0xff, (color>>8)&0xff, (color>>16)&0xff
-		return red+green+blue < 384
-	}
-	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`, registry.QUERY_VALUE)
-	if err != nil {
-		return false
-	}
-	defer key.Close() //nolint:errcheck // read-only key
-	value, _, err := key.GetIntegerValue("SystemUsesLightTheme")
-	return err == nil && value != 0
 }
 
 func (t *tray) updateIcon(op uintptr) {
@@ -352,12 +317,6 @@ func wndProc(hwnd uintptr, message uint32, wParam, lParam uintptr) uintptr {
 		}
 		return 0
 	case wmRefresh:
-		if t.lightTheme != lightTaskbar() {
-			if t.icon != 0 {
-				_, _, _ = procDestroyIcon.Call(t.icon) // best-effort GDI cleanup
-			}
-			t.loadIcon()
-		}
 		t.updateIcon(nimModify)
 		return 0
 	case wmDestroy:

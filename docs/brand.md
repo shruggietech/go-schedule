@@ -5,69 +5,40 @@ nav_order: 6
 
 # go-schedule brand system
 
-Use this page to choose approved artwork for documentation, integrations, release notes, screenshots, and other external surfaces. The complete source of truth lives in the repository's [`brand/` directory](https://github.com/shruggietech/go-schedule/tree/main/brand); the downloadable [brand guide](assets/brand/brand-guide.pdf) contains the full construction and usage system.
+The official go-schedule identity is brand 2.0.0, published with BrandBuilder 2.4.0 on [brand.shruggie.tech](https://brand.shruggie.tech). Its primary mark is the compact terminal prompt and cursor. The former framed terminal and cron-field artwork is retired. Download the [brand guide](assets/brand/brand-guide.pdf) or the [complete pinned kit](https://github.com/shruggietech/go-schedule/blob/main/brand/go-schedule-brand-2.0.0-bb2.4.0.zip) for full usage guidance.
 
-![The go-schedule mark and wordmark on the Night background](assets/brand/go-schedule-horizontal-dark.svg)
+![The current go-schedule mark and wordmark](assets/brand/go-schedule-horizontal-color.svg)
 
-The governing idea is **familiar scheduling, explicit behavior**. The mark combines a terminal prompt, a ready-state cursor, and five schedule cells. The practical promise is **Know the next run.**
-
-## Choose the right logo
+## Choose an asset
 
 | Context | Use | Download |
 | --- | --- | --- |
-| General use at 36 px or larger | Full transparent mark | [SVG](assets/brand/go-schedule-mark-color.svg) · [PNG](assets/brand/go-schedule-mark-color-1024.png) |
-| Browser, title bar, or other use at 32 px or smaller | Reduced mark | [SVG](assets/brand/go-schedule-mark-reduced.svg) · [PNG](assets/favicons/favicon-256x256.png) |
-| Monochrome Windows notification-area surfaces at 32 px or smaller | Canonical reduced geometry in approved white or black | `brand/logos/svg/go-schedule-mark-reduced-white.svg` and `brand/logos/svg/go-schedule-mark-reduced-black.svg` |
-| Linux StatusNotifier panels | Supplied reduced 32 px mark on a Night tile, readable against light and dark panels | `brand/platform/linux/hicolor/32x32/apps/go-schedule.png` |
-| Dark surface | Full-color horizontal lockup | [SVG](assets/brand/go-schedule-horizontal-color.svg) · [PNG](assets/brand/go-schedule-horizontal-dark-2400.png) |
-| Light surface | Black or light-surface lockup | [Black SVG](assets/brand/go-schedule-horizontal-black.svg) · [Color SVG](assets/brand/go-schedule-horizontal-light.svg) |
+| Product mark at 24 px or larger | Full transparent prompt and cursor mark | [SVG](assets/brand/go-schedule-mark-color.svg) · [PNG](assets/brand/go-schedule-mark-color-1024.png) |
+| Browser and small icons below 32 px | Size-specific favicon or reduced mark | [SVG](assets/brand/go-schedule-mark-reduced-color.svg) · [PNG](assets/favicons/favicon-32x32.png) |
+| Dark surface or wide header | Color horizontal lockup | [SVG](assets/brand/go-schedule-horizontal-color.svg) · [PNG](assets/brand/go-schedule-horizontal-color-1024.png) |
+| Light surface | Light-surface horizontal lockup | [SVG](assets/brand/go-schedule-horizontal-light.svg) · [Black SVG](assets/brand/go-schedule-horizontal-black.svg) |
 | Single-color production | White or black mark | [White SVG](assets/brand/go-schedule-mark-white.svg) · [Black SVG](assets/brand/go-schedule-mark-black.svg) |
-| Social and link previews | Approved 1280 × 640 composition | [PNG](assets/brand/go-schedule-social-preview-1280x640.png) · [SVG](assets/brand/go-schedule-social-preview.svg) |
+| Square composition | Color stacked lockup | [SVG](assets/brand/go-schedule-stacked-color.svg) · [PNG](assets/brand/go-schedule-stacked-color-1024.png) |
+| Social and link previews | Approved 1280 px image | [PNG](assets/brand/go-schedule-social-preview-1280.png) · [SVG](assets/brand/go-schedule-social-preview.svg) |
 
-The mark may stand alone. Use a lockup when the audience may not already recognize the product. Keep clear space around the artwork equal to one schedule cell, and preserve the supplied proportions.
+Keep 54 source units of clear space around a lockup. Do not redraw, stretch, rotate, recolor, or retypeset the supplied artwork. The wordmark is outlined in the SVGs and needs no installed font. Use the official platform icons for Windows and macOS packages; the Linux hicolor tree contains size-matched official raster exports.
 
-## Color
+## Color and type
 
-The core palette is Night `#071014`, Interval Mint `#62D9B7`, Anchor Blue `#58A6FF`, Hold Amber `#F2B84B`, and Stop Red `#E05F5F`.
+The visual foundation uses Night `#071014`, Interval Mint `#62D9B7`, Anchor Blue `#58A6FF`, Hold Amber `#F2B84B`, and Stop Red `#E05F5F`. On light surfaces, use the deeper accessible accent values defined in the official guide and tokens. Pair status colors with text or symbols.
 
-| Token | Role | Dark-surface contrast |
-| --- | --- | --- |
-| Interval Mint `#62D9B7` | Recurrence, ready state, primary identity | 11.09:1 on Night |
-| Anchor Blue `#58A6FF` | Exact run points, links, and focus | 7.60:1 on Night |
-| Hold Amber `#F2B84B` | Pending policy and warnings | 10.73:1 on Night |
-| Stop Red `#E05F5F` | Failure and destructive state | 5.46:1 on Night |
-
-Interval Mint is not accessible for text on the Paper surface. Use the light-surface tokens defined in [`brand.tokens.json`](https://github.com/shruggietech/go-schedule/blob/main/brand/tokens/brand.tokens.json) when color carries text or essential meaning.
-
-## Typography
-
-Typography uses Space Grotesk for display, Geist for body and interface copy, and Geist Mono for schedules, commands, timestamps, and technical labels.
-
-The font files and SIL Open Font License texts are included in the [complete font inventory](https://github.com/shruggietech/go-schedule/tree/main/brand/fonts). Use sentence case for prose and controls. Reserve tracked uppercase monospace for short labels and eyebrows.
+Space Grotesk serves display text, Geist serves body and interface text, and Geist Mono serves commands, schedules, and technical labels. The supplied SVG wordmark is outlined Space Grotesk Bold.
 
 ## Voice and attribution
 
-Write plainly, precisely, and operationally. Prefer concrete outcomes such as “Next run: 09:00” over decorative scheduling language. Errors should say what failed, why, and what the operator can do.
+Write in short, precise sentences with explicit scheduling policy. Keep cron terminology accurate. When parent attribution is useful, place **A ShruggieTech project** outside the logo clear space as a subordinate endorsement.
 
-When parent attribution is useful, use **A ShruggieTech project** in a subordinate position. Do not combine the go-schedule and ShruggieTech marks into an unofficial lockup.
+## Downloads and provenance
 
-## Do not
+- [Complete official kit](https://github.com/shruggietech/go-schedule/blob/main/brand/go-schedule-brand-2.0.0-bb2.4.0.zip)
+- [Brand guide](assets/brand/brand-guide.pdf)
+- [Vector logos](https://github.com/shruggietech/go-schedule/tree/main/brand/logos/svg) and [raster logos](https://github.com/shruggietech/go-schedule/tree/main/brand/logos/png)
+- [Design tokens](https://github.com/shruggietech/go-schedule/tree/main/brand/tokens) and [platform assets](https://github.com/shruggietech/go-schedule/tree/main/brand/platform)
+- [Release pin and checksum](https://github.com/shruggietech/go-schedule/blob/main/brand/source.json) and [repository update procedure](https://github.com/shruggietech/go-schedule/blob/main/brand/REPOSITORY.md)
 
-- Do not redraw, stretch, rotate, outline, or recolor the supplied artwork.
-- The named white and black reduced-mark derivatives above are the sole approved small-size monochrome exceptions for Windows taskbar contrast. Their geometry must match the canonical reduced mark exactly.
-- Do not put the full-color mark on a surface that obscures its rails or schedule cells.
-- Do not use the full mark where the reduced mark is required for legibility.
-- Do not typeset a replacement wordmark or depend on a locally installed font; distributed SVGs already contain portable outlines.
-- Do not place the mark in a mismatched square tile. Background-bearing variants already use the exact approved surface.
-
-## Complete downloads and evidence
-
-- [Full brand guide (PDF)](assets/brand/brand-guide.pdf)
-- [Canonical artifact inventory (`brand/manifest.json`)](https://github.com/shruggietech/go-schedule/blob/main/brand/manifest.json)
-- [Standalone verification report](https://github.com/shruggietech/go-schedule/blob/main/brand/VERIFY.md)
-- [All vector logos](https://github.com/shruggietech/go-schedule/tree/main/brand/logos/svg)
-- [All raster logos](https://github.com/shruggietech/go-schedule/tree/main/brand/logos/png)
-- [Windows, macOS, and Linux assets](https://github.com/shruggietech/go-schedule/tree/main/brand/platform)
-- [Design tokens and UI references](https://github.com/shruggietech/go-schedule/tree/main/brand/tokens)
-
-Repository consumers are synchronized automatically against the canonical kit. Contributors should follow [`brand/REPOSITORY.md`](https://github.com/shruggietech/go-schedule/blob/main/brand/REPOSITORY.md) instead of editing copied assets by hand.
+Repository copies are checked against the official archive. Contributors should follow the repository update procedure when adopting a new release.

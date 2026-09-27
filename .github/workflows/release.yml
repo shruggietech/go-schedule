@@ -279,7 +279,7 @@ jobs:
           if [ "${{ matrix.goos }}" = "windows" ]; then
             cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
             go build -ldflags "$BASE -H windowsgui" -o "$stage/gosched-tray.exe" ./cmd/gosched-tray
-            cp brand/platform/windows/go-schedule-light.ico brand/platform/windows/go-schedule-dark.ico "$stage/"
+            cp brand/platform/windows/go-schedule.ico "$stage/"
           fi
           # Bundle the daemon and CLI so the desktop distribution is self-contained.
           go build -ldflags "$BASE" -o "$stage/goschedd${{ matrix.ext }}" ./cmd/goschedd

@@ -24,11 +24,11 @@ copy_fixture() {
 # Brand system
 
 Use `go-schedule-mark-color.svg` for the full mark and
-`go-schedule-mark-reduced.svg` below 32 px. Horizontal choices include
+`go-schedule-mark-reduced-color.svg` below 32 px. Horizontal choices include
 `go-schedule-horizontal-color.svg` and `go-schedule-horizontal-black.svg`;
 single-color choices include `go-schedule-mark-white.svg` and
-`go-schedule-mark-black.svg`. Download `go-schedule-social-preview-1280x640.png`,
-`brand-guide.pdf`, and inspect `brand/manifest.json` for the full inventory.
+`go-schedule-mark-black.svg`. Download `go-schedule-social-preview-1280.png`,
+`brand-guide.pdf`, and `go-schedule-brand-2.0.0-bb2.4.0.zip` for the full inventory.
 
 Palette: #071014 #62D9B7 #58A6FF #F2B84B #E05F5F.
 Typography: Space Grotesk, Geist, and Geist Mono.
@@ -68,7 +68,7 @@ fi
 
 MISSING_BRAND_ASSET="$TMP/missing-brand-asset"
 copy_fixture "$MISSING_BRAND_ASSET"
-sed 's/go-schedule-mark-reduced\.svg/reduced-mark-omitted.svg/' \
+sed 's/go-schedule-mark-reduced-color\.svg/reduced-mark-omitted.svg/' \
   "$MISSING_BRAND_ASSET/docs/brand.md" > "$MISSING_BRAND_ASSET/docs/brand.md.tmp"
 mv "$MISSING_BRAND_ASSET/docs/brand.md.tmp" "$MISSING_BRAND_ASSET/docs/brand.md"
 if sh "$CHECK" "$MISSING_BRAND_ASSET" >/dev/null 2>&1; then
