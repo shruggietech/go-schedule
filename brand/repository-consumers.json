@@ -1,60 +1,745 @@
 {
-  "version": 1,
+  "version": 2,
   "mappings": [
-    {"source":"brand-guide.pdf","targets":["docs/assets/brand/brand-guide.pdf"],"purpose":"Public long-form brand guide"},
-
-    {"source":"logos/svg/go-schedule-header.svg","targets":["docs/assets/brand/go-schedule-header.svg"],"purpose":"Scalable repository header"},
-    {"source":"logos/svg/go-schedule-horizontal-black.svg","targets":["docs/assets/brand/go-schedule-horizontal-black.svg"],"purpose":"Light-surface README lockup"},
-    {"source":"logos/svg/go-schedule-horizontal-color.svg","targets":["docs/assets/brand/go-schedule-horizontal-color.svg"],"purpose":"Transparent full-color lockup"},
-    {"source":"logos/svg/go-schedule-horizontal-dark.svg","targets":["docs/assets/brand/go-schedule-horizontal-dark.svg"],"purpose":"Documentation header lockup"},
-    {"source":"logos/svg/go-schedule-horizontal-light.svg","targets":["docs/assets/brand/go-schedule-horizontal-light.svg"],"purpose":"Light-surface color lockup"},
-    {"source":"logos/svg/go-schedule-horizontal-white.svg","targets":["docs/assets/brand/go-schedule-horizontal-white.svg"],"purpose":"White lockup download"},
-    {"source":"logos/svg/go-schedule-mark-black.svg","targets":["docs/assets/brand/go-schedule-mark-black.svg"],"purpose":"Black mark download"},
-    {"source":"logos/svg/go-schedule-mark-color.svg","targets":["docs/assets/brand/go-schedule-mark-color.svg"],"purpose":"Canonical mark download"},
-    {"source":"logos/svg/go-schedule-mark-dark-background.svg","targets":["docs/assets/brand/go-schedule-mark-dark-background.svg"],"purpose":"Dark tile mark download"},
-    {"source":"logos/svg/go-schedule-mark-light-background.svg","targets":["docs/assets/brand/go-schedule-mark-light-background.svg"],"purpose":"Light tile mark download"},
-    {"source":"logos/svg/go-schedule-mark-reduced.svg","targets":["docs/assets/brand/go-schedule-mark-reduced.svg","desktop/frontend/public/go-schedule-mark.svg"],"purpose":"Small-size documentation and desktop marks"},
-    {"source":"logos/svg/go-schedule-mark-white.svg","targets":["docs/assets/brand/go-schedule-mark-white.svg"],"purpose":"White mark download"},
-    {"source":"logos/svg/go-schedule-social-preview.svg","targets":["docs/assets/brand/go-schedule-social-preview.svg"],"purpose":"Scalable social artwork"},
-    {"source":"logos/svg/go-schedule-stacked-black.svg","targets":["docs/assets/brand/go-schedule-stacked-black.svg"],"purpose":"Black stacked lockup"},
-    {"source":"logos/svg/go-schedule-stacked-dark.svg","targets":["docs/assets/brand/go-schedule-stacked-dark.svg"],"purpose":"Dark stacked lockup"},
-    {"source":"logos/svg/go-schedule-stacked-light.svg","targets":["docs/assets/brand/go-schedule-stacked-light.svg"],"purpose":"Light stacked lockup"},
-    {"source":"logos/svg/go-schedule-stacked-white.svg","targets":["docs/assets/brand/go-schedule-stacked-white.svg"],"purpose":"White stacked lockup"},
-    {"source":"logos/svg/go-schedule-wordmark-black.svg","targets":["docs/assets/brand/go-schedule-wordmark-black.svg"],"purpose":"Black wordmark"},
-    {"source":"logos/svg/go-schedule-wordmark-interval.svg","targets":["docs/assets/brand/go-schedule-wordmark-interval.svg"],"purpose":"Interval-color wordmark"},
-    {"source":"logos/svg/go-schedule-wordmark-white.svg","targets":["docs/assets/brand/go-schedule-wordmark-white.svg"],"purpose":"White wordmark"},
-
-    {"source":"logos/png/go-schedule-header-1600x400.png","targets":["docs/assets/brand/go-schedule-header-1600x400.png"],"purpose":"Raster repository header"},
-    {"source":"logos/png/go-schedule-horizontal-dark-2400.png","targets":["docs/assets/brand/go-schedule-horizontal-dark-2400.png"],"purpose":"Dark raster lockup"},
-    {"source":"logos/png/go-schedule-horizontal-light-2400.png","targets":["docs/assets/brand/go-schedule-horizontal-light-2400.png"],"purpose":"Light raster lockup"},
-    {"source":"logos/png/go-schedule-horizontal-white-2400.png","targets":["docs/assets/brand/go-schedule-horizontal-white-2400.png"],"purpose":"White raster lockup"},
-    {"source":"logos/png/go-schedule-mark-color-1024.png","targets":["docs/assets/brand/go-schedule-mark-color-1024.png","desktop/build/appicon.png"],"purpose":"Full-size documentation and production desktop mark"},
-    {"source":"logos/png/go-schedule-mark-dark-1024.png","targets":["docs/assets/brand/go-schedule-mark-dark-1024.png"],"purpose":"Dark tile raster mark"},
-    {"source":"logos/png/go-schedule-mark-light-1024.png","targets":["docs/assets/brand/go-schedule-mark-light-1024.png"],"purpose":"Light tile raster mark"},
-    {"source":"logos/png/go-schedule-social-preview-1280x640.png","targets":["docs/assets/brand/go-schedule-social-preview-1280x640.png"],"purpose":"Open Graph and social preview"},
-    {"source":"logos/png/go-schedule-stacked-dark-2048.png","targets":["docs/assets/brand/go-schedule-stacked-dark-2048.png"],"purpose":"Dark stacked raster lockup"},
-    {"source":"logos/png/go-schedule-stacked-light-2048.png","targets":["docs/assets/brand/go-schedule-stacked-light-2048.png"],"purpose":"Light stacked raster lockup"},
-    {"source":"logos/png/go-schedule-wordmark-black-1440.png","targets":["docs/assets/brand/go-schedule-wordmark-black-1440.png"],"purpose":"Black raster wordmark"},
-    {"source":"logos/png/go-schedule-wordmark-interval-1440.png","targets":["docs/assets/brand/go-schedule-wordmark-interval-1440.png"],"purpose":"Interval raster wordmark"},
-    {"source":"logos/png/go-schedule-wordmark-white-1440.png","targets":["docs/assets/brand/go-schedule-wordmark-white-1440.png"],"purpose":"White raster wordmark"},
-
-    {"source":"favicons/android-chrome-192x192.png","targets":["docs/assets/favicons/android-chrome-192x192.png"],"purpose":"Web application icon"},
-    {"source":"favicons/android-chrome-512x512.png","targets":["docs/assets/favicons/android-chrome-512x512.png"],"purpose":"Large web application icon"},
-    {"source":"favicons/apple-touch-icon.png","targets":["docs/assets/favicons/apple-touch-icon.png"],"purpose":"Apple touch icon"},
-    {"source":"favicons/favicon-16x16.png","targets":["docs/assets/favicons/favicon-16x16.png"],"purpose":"Small browser icon"},
-    {"source":"favicons/favicon-256x256.png","targets":["docs/assets/favicons/favicon-256x256.png"],"purpose":"Reduced small-surface documentation mark"},
-    {"source":"favicons/favicon-32x32.png","targets":["docs/assets/favicons/favicon-32x32.png"],"purpose":"Browser icon"},
-    {"source":"favicons/favicon-48x48.png","targets":["docs/assets/favicons/favicon-48x48.png"],"purpose":"Browser icon"},
-    {"source":"favicons/favicon.ico","targets":["docs/assets/favicons/favicon.ico"],"purpose":"Multi-resolution browser icon"},
-    {"source":"favicons/favicon.svg","targets":["docs/assets/favicons/favicon.svg"],"purpose":"Scalable browser icon"},
-    {"source":"favicons/site.webmanifest","targets":["docs/assets/favicons/site.webmanifest"],"purpose":"Web application manifest"},
-
-    {"source":"fonts/woff2/Geist-Medium.woff2","targets":["docs/assets/fonts/Geist-Medium.woff2","desktop/frontend/public/fonts/Geist-Medium.woff2"],"purpose":"Documentation and desktop medium body font"},
-    {"source":"fonts/woff2/Geist-Regular.woff2","targets":["docs/assets/fonts/Geist-Regular.woff2","desktop/frontend/public/fonts/Geist-Regular.woff2"],"purpose":"Documentation and desktop body font"},
-    {"source":"fonts/woff2/GeistMono-Regular.woff2","targets":["docs/assets/fonts/GeistMono-Regular.woff2","desktop/frontend/public/fonts/GeistMono-Regular.woff2"],"purpose":"Documentation and desktop technical font"},
-    {"source":"fonts/woff2/SpaceGrotesk-Bold.woff2","targets":["docs/assets/fonts/SpaceGrotesk-Bold.woff2","desktop/frontend/public/fonts/SpaceGrotesk-Bold.woff2"],"purpose":"Documentation and desktop bold display font"},
-    {"source":"fonts/woff2/SpaceGrotesk-Medium.woff2","targets":["docs/assets/fonts/SpaceGrotesk-Medium.woff2","desktop/frontend/public/fonts/SpaceGrotesk-Medium.woff2"],"purpose":"Documentation and desktop display font"},
-    {"source":"fonts/licenses/OFL-Geist.txt","targets":["docs/assets/fonts/OFL-Geist.txt","desktop/frontend/public/licenses/OFL-Geist.txt"],"purpose":"Documentation and desktop Geist redistribution license"},
-    {"source":"fonts/licenses/OFL-Space-Grotesk.txt","targets":["docs/assets/fonts/OFL-Space-Grotesk.txt","desktop/frontend/public/licenses/OFL-Space-Grotesk.txt"],"purpose":"Documentation and desktop Space Grotesk redistribution license"}
+    {
+      "source": "logos/svg/go-schedule-horizontal-black.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-horizontal-black.svg",
+        "docs/assets/brand/go-schedule-horizontal-black.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-horizontal-color.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-horizontal-color.svg",
+        "docs/assets/brand/go-schedule-horizontal-color.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-horizontal-light.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-horizontal-light.svg",
+        "docs/assets/brand/go-schedule-horizontal-light.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-horizontal-white.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-horizontal-white.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-black.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-black.svg",
+        "docs/assets/brand/go-schedule-mark-black.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-color.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-color.svg",
+        "docs/assets/brand/go-schedule-mark-color.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-light.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-light.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-reduced-black.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-reduced-black.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-reduced-color.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-reduced-color.svg",
+        "docs/assets/brand/go-schedule-mark-reduced-color.svg",
+        "desktop/frontend/public/go-schedule-mark.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-reduced-light.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-reduced-light.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-reduced-white.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-reduced-white.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-mark-white.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-mark-white.svg",
+        "docs/assets/brand/go-schedule-mark-white.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-social-image.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-social-image.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-social-preview.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-social-preview.svg",
+        "docs/assets/brand/go-schedule-social-preview.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-stacked-black.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-stacked-black.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-stacked-color.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-stacked-color.svg",
+        "docs/assets/brand/go-schedule-stacked-color.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-stacked-light.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-stacked-light.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-stacked-white.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-stacked-white.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-wordmark-black.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-wordmark-black.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-wordmark-color.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-wordmark-color.svg",
+        "docs/assets/brand/go-schedule-wordmark-color.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-wordmark-light.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-wordmark-light.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/svg/go-schedule-wordmark-white.svg",
+      "targets": [
+        "brand/logos/svg/go-schedule-wordmark-white.svg"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-horizontal-black-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-horizontal-black-1024.png",
+        "docs/assets/brand/go-schedule-horizontal-black-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-horizontal-color-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-horizontal-color-1024.png",
+        "docs/assets/brand/go-schedule-horizontal-color-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-horizontal-light-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-horizontal-light-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-horizontal-white-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-horizontal-white-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-black-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-black-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-color-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-color-1024.png",
+        "docs/assets/brand/go-schedule-mark-color-1024.png",
+        "desktop/build/appicon.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-light-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-light-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-reduced-black-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-reduced-black-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-reduced-color-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-reduced-color-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-reduced-light-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-reduced-light-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-reduced-white-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-reduced-white-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-mark-white-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-mark-white-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-social-image-1280.png",
+      "targets": [
+        "brand/logos/png/go-schedule-social-image-1280.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-social-preview-1280.png",
+      "targets": [
+        "brand/logos/png/go-schedule-social-preview-1280.png",
+        "docs/assets/brand/go-schedule-social-preview-1280.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-stacked-black-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-stacked-black-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-stacked-color-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-stacked-color-1024.png",
+        "docs/assets/brand/go-schedule-stacked-color-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-stacked-light-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-stacked-light-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-stacked-white-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-stacked-white-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-wordmark-black-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-wordmark-black-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-wordmark-color-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-wordmark-color-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-wordmark-light-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-wordmark-light-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "logos/png/go-schedule-wordmark-white-1024.png",
+      "targets": [
+        "brand/logos/png/go-schedule-wordmark-white-1024.png"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/fonts.css",
+      "targets": [
+        "brand/fonts/fonts.css"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/licenses/OFL-Courier-Prime.txt",
+      "targets": [
+        "brand/fonts/licenses/OFL-Courier-Prime.txt"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/licenses/OFL-Geist.txt",
+      "targets": [
+        "brand/fonts/licenses/OFL-Geist.txt",
+        "docs/assets/fonts/OFL-Geist.txt",
+        "desktop/frontend/public/licenses/OFL-Geist.txt"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/licenses/OFL-Poppins.txt",
+      "targets": [
+        "brand/fonts/licenses/OFL-Poppins.txt"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/licenses/OFL-Source-Sans-3.txt",
+      "targets": [
+        "brand/fonts/licenses/OFL-Source-Sans-3.txt"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/licenses/OFL-Space-Grotesk.txt",
+      "targets": [
+        "brand/fonts/licenses/OFL-Space-Grotesk.txt",
+        "docs/assets/fonts/OFL-Space-Grotesk.txt",
+        "desktop/frontend/public/licenses/OFL-Space-Grotesk.txt"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/CourierPrime-Regular.ttf",
+      "targets": [
+        "brand/fonts/ttf/CourierPrime-Regular.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/Geist-Medium.ttf",
+      "targets": [
+        "brand/fonts/ttf/Geist-Medium.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/Geist-Regular.ttf",
+      "targets": [
+        "brand/fonts/ttf/Geist-Regular.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/GeistMono-Regular.ttf",
+      "targets": [
+        "brand/fonts/ttf/GeistMono-Regular.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/Poppins-Bold.ttf",
+      "targets": [
+        "brand/fonts/ttf/Poppins-Bold.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/SourceSans3-Regular.ttf",
+      "targets": [
+        "brand/fonts/ttf/SourceSans3-Regular.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/SourceSans3-SemiBold.ttf",
+      "targets": [
+        "brand/fonts/ttf/SourceSans3-SemiBold.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/SpaceGrotesk-Bold.ttf",
+      "targets": [
+        "brand/fonts/ttf/SpaceGrotesk-Bold.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/ttf/SpaceGrotesk-Medium.ttf",
+      "targets": [
+        "brand/fonts/ttf/SpaceGrotesk-Medium.ttf"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/woff2/Geist-Medium.woff2",
+      "targets": [
+        "brand/fonts/woff2/Geist-Medium.woff2",
+        "docs/assets/fonts/Geist-Medium.woff2",
+        "desktop/frontend/public/fonts/Geist-Medium.woff2"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/woff2/Geist-Regular.woff2",
+      "targets": [
+        "brand/fonts/woff2/Geist-Regular.woff2",
+        "docs/assets/fonts/Geist-Regular.woff2",
+        "desktop/frontend/public/fonts/Geist-Regular.woff2"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/woff2/GeistMono-Regular.woff2",
+      "targets": [
+        "brand/fonts/woff2/GeistMono-Regular.woff2",
+        "docs/assets/fonts/GeistMono-Regular.woff2",
+        "desktop/frontend/public/fonts/GeistMono-Regular.woff2"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "targets": [
+        "brand/fonts/woff2/SpaceGrotesk-Bold.woff2",
+        "docs/assets/fonts/SpaceGrotesk-Bold.woff2",
+        "desktop/frontend/public/fonts/SpaceGrotesk-Bold.woff2"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "targets": [
+        "brand/fonts/woff2/SpaceGrotesk-Medium.woff2",
+        "docs/assets/fonts/SpaceGrotesk-Medium.woff2",
+        "desktop/frontend/public/fonts/SpaceGrotesk-Medium.woff2"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "tokens/base.css",
+      "targets": [
+        "brand/tokens/base.css"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "tokens/brand.tokens.json",
+      "targets": [
+        "brand/tokens/brand.tokens.json"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "tokens/colors.css",
+      "targets": [
+        "brand/tokens/colors.css"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "tokens/interface.css",
+      "targets": [
+        "brand/tokens/interface.css"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "tokens/spacing.css",
+      "targets": [
+        "brand/tokens/spacing.css"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "tokens/typography.css",
+      "targets": [
+        "brand/tokens/typography.css"
+      ],
+      "purpose": "Repository reference asset"
+    },
+    {
+      "source": "favicons/android-chrome-192x192.png",
+      "targets": [
+        "brand/favicons/android-chrome-192x192.png",
+        "docs/assets/favicons/android-chrome-192x192.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/android-chrome-512x512.png",
+      "targets": [
+        "brand/favicons/android-chrome-512x512.png",
+        "docs/assets/favicons/android-chrome-512x512.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/apple-touch-icon.png",
+      "targets": [
+        "brand/favicons/apple-touch-icon.png",
+        "docs/assets/favicons/apple-touch-icon.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-128x128.png",
+      "targets": [
+        "brand/favicons/favicon-128x128.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-16x16.png",
+      "targets": [
+        "brand/favicons/favicon-16x16.png",
+        "docs/assets/favicons/favicon-16x16.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-180x180.png",
+      "targets": [
+        "brand/favicons/favicon-180x180.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-192x192.png",
+      "targets": [
+        "brand/favicons/favicon-192x192.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-24x24.png",
+      "targets": [
+        "brand/favicons/favicon-24x24.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-256x256.png",
+      "targets": [
+        "brand/favicons/favicon-256x256.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-32x32.png",
+      "targets": [
+        "brand/favicons/favicon-32x32.png",
+        "docs/assets/favicons/favicon-32x32.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-48x48.png",
+      "targets": [
+        "brand/favicons/favicon-48x48.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-512x512.png",
+      "targets": [
+        "brand/favicons/favicon-512x512.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-64x64.png",
+      "targets": [
+        "brand/favicons/favicon-64x64.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-96x96.png",
+      "targets": [
+        "brand/favicons/favicon-96x96.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon-full.svg",
+      "targets": [
+        "brand/favicons/favicon-full.svg"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon.ico",
+      "targets": [
+        "brand/favicons/favicon.ico"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/favicon.svg",
+      "targets": [
+        "brand/favicons/favicon.svg",
+        "docs/assets/favicons/favicon.svg"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/maskable-icon-192x192.png",
+      "targets": [
+        "brand/favicons/maskable-icon-192x192.png",
+        "docs/assets/favicons/maskable-icon-192x192.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "favicons/maskable-icon-512x512.png",
+      "targets": [
+        "brand/favicons/maskable-icon-512x512.png",
+        "docs/assets/favicons/maskable-icon-512x512.png"
+      ],
+      "purpose": "Repository favicon asset"
+    },
+    {
+      "source": "brand-guide.pdf",
+      "targets": [
+        "docs/assets/brand/brand-guide.pdf"
+      ],
+      "purpose": "Public brand guide"
+    },
+    {
+      "source": "favicons/site.webmanifest",
+      "targets": [
+        "docs/assets/favicons/site.webmanifest"
+      ],
+      "purpose": "Documentation site manifest with relative icon URLs",
+      "transform": "docs-site-manifest"
+    },
+    {
+      "source": "icons/windows/classic/app.ico",
+      "targets": [
+        "brand/platform/windows/go-schedule.ico"
+      ],
+      "purpose": "Windows executable and installer icon"
+    },
+    {
+      "source": "icons/apple/macos/AppIcon.icns",
+      "targets": [
+        "brand/platform/macos/go-schedule.icns"
+      ],
+      "purpose": "macOS application icon"
+    },
+    {
+      "source": "icons/web/favicon-16x16.png",
+      "targets": [
+        "brand/platform/linux/hicolor/16x16/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    },
+    {
+      "source": "icons/web/favicon-32x32.png",
+      "targets": [
+        "brand/platform/linux/hicolor/32x32/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    },
+    {
+      "source": "icons/web/favicon-48x48.png",
+      "targets": [
+        "brand/platform/linux/hicolor/48x48/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    },
+    {
+      "source": "icons/web/favicon-64x64.png",
+      "targets": [
+        "brand/platform/linux/hicolor/64x64/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    },
+    {
+      "source": "icons/web/favicon-128x128.png",
+      "targets": [
+        "brand/platform/linux/hicolor/128x128/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    },
+    {
+      "source": "icons/web/favicon-256x256.png",
+      "targets": [
+        "brand/platform/linux/hicolor/256x256/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    },
+    {
+      "source": "icons/web/favicon-512x512.png",
+      "targets": [
+        "brand/platform/linux/hicolor/512x512/apps/go-schedule.png"
+      ],
+      "purpose": "Linux application icon from the official web tier"
+    }
   ]
 }

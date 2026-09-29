@@ -117,8 +117,11 @@ func checkRepository(root string, fix bool) ([]string, error) {
 }
 
 func skipDirectory(name string) bool {
+	if strings.HasPrefix(name, ".automation-check-test.") {
+		return true
+	}
 	switch name {
-	case ".git", ".idea", ".vscode", "dist", "node_modules":
+	case ".git", ".idea", ".vscode", ".cache", ".test-temp", ".brand-import-temp", "dist", "node_modules":
 		return true
 	default:
 		return false

@@ -33,8 +33,7 @@ $wxs = Get-Content $wxsPath -Raw
 $expectedInstalledBinaries = @('goschedd.exe', 'gosched-gui.exe', 'gosched-tray.exe', 'gosched.exe')
 $expectedStageFiles = $expectedInstalledBinaries + @(
   'gosched-cleanup.exe',
-  'go-schedule-light.ico',
-  'go-schedule-dark.ico',
+  'go-schedule.ico',
   'README.md',
   'LICENSE',
   'CHANGELOG.md',

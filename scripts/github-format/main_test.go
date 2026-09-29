@@ -101,3 +101,22 @@ func TestRepositoryCheckRejectsInvalidUTF8AndBOM(t *testing.T) {
 		t.Fatalf("problems = %v, want invalid UTF-8 and BOM", problems)
 	}
 }
+
+func TestRepositoryCheckSkipsGeneratedWorkspaceDirectories(t *testing.T) {
+	root := t.TempDir()
+	for _, dir := range []string{".test-temp", ".cache", ".automation-check-test.sample", ".github"} {
+		if err := os.Mkdir(filepath.Join(root, dir), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, dir, "copy.md"), []byte("wrapped\nprose\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	problems, err := checkRepository(root, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(problems) != 1 || problems[0] != ".github/copy.md" {
+		t.Fatalf("problems = %v, want only authored GitHub content", problems)
+	}
+}

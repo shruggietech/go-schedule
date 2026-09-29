@@ -1,8 +1,23 @@
 :root {
-  --gs-font-display: "Space Grotesk", system-ui, sans-serif;
-  --gs-font-body: "Geist", system-ui, sans-serif;
-  --gs-font-mono: "Geist Mono", ui-monospace, monospace;
-  --gs-display-tracking: -0.025em; --gs-body-line-height: 1.65; --gs-label-tracking: 0.10em;
-  --gs-text-xs: 0.75rem; --gs-text-sm: 0.875rem; --gs-text-md: 1rem;
-  --gs-text-lg: 1.25rem; --gs-text-xl: 1.75rem; --gs-text-2xl: 2.5rem;
+  --go-font-display: "Space Grotesk", system-ui, sans-serif;
+  --go-font-body: "Geist", system-ui, sans-serif;
+  --go-font-mono: "Geist Mono", ui-monospace, monospace;
+  --go-weight-regular: 400;
+  --go-weight-medium: 500;
+  --go-weight-bold: 700;
+  --go-display-xl: 4.5rem;
+  --go-display-lg: 3.5rem;
+  --go-display-md: 2.5rem;
+  --go-display-sm: 1.75rem;
+  --go-display-xs: 1.25rem;
+  --go-body-lg: 1.15rem;
+  --go-body-md: 1rem;
+  --go-body-sm: 0.875rem;
+  --go-body-xs: 0.75rem;
+  --go-tracking-display: -0.025em;
+  --go-tracking-eyebrow: 0.12em;
+  --go-tracking-mono: 0.08em;
+  --go-leading-display: 1.1;
+  --go-leading-body: 1.7;
+  --go-leading-code: 1.6;
 }

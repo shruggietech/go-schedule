@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-09-26
+
+### Changed
+
+- **The repository now adopts the official go-schedule brand 2.0.0 release (Refs #267).** A pinned complete archive, checksum-verified import command, declared consumer map, and offline drift check keep product, documentation, and packaging artwork in sync with the current prompt-and-cursor mark. Windows packaging uses the official single ICO; the old framed identity and theme-specific tray ICOs are retired. Installed native appearance remains unverified.
+
 ## [1.5.0] - 2026-09-23
 
 ### Added
@@ -764,7 +770,9 @@ Upgrading is a normal install; the store migrates forward automatically. Note th
   - `internal/autostart`, the GUI now starts the background daemon automatically (detached, windowless) if none is reachable, and reuses an already-running one (e.g. the installed service); the daemon's single-instance lock prevents duplicates.
   - Releases now publish a self-contained `go-scheduler-desktop_<os>_<arch>` archive bundling the GUI + daemon + CLI, so desktop users download one file and just run the GUI.
 
-[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/shruggietech/go-schedule/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/shruggietech/go-schedule/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/shruggietech/go-schedule/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/shruggietech/go-schedule/compare/v1.1.1...v1.4.0
 [1.1.1]: https://github.com/shruggietech/go-schedule/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/shruggietech/go-schedule/compare/v1.0.0...v1.1.0

@@ -87,7 +87,7 @@ gosched daemon manifest
 ```
 
 ```text
-daemon ok (version 1.5.0)
+daemon ok (version 1.5.1)
 ```
 
 The manifest reports the daemon's stable installation ID, editable display name, version, local-only mode, safe platform facts, and supported feature surfaces. See [Daemon identity](docs/daemon-identity.md) for rename, backup restore, database clone, and deliberate identity reset behavior.
@@ -187,7 +187,7 @@ The full design is in [`specs/001-task-scheduler/plan.md`](specs/001-task-schedu
 
 ## Brand system
 
-The complete, repository-owned brand kit lives in [`brand/`](brand/). Start with [`brand/REPOSITORY.md`](brand/REPOSITORY.md) for approved assets, regeneration guidance, and the rules for synchronized product copies. The public [Brand system](docs/brand.md) page provides selection guidance and downloads without requiring the optional graphics toolchain.
+The complete official brand 2.0.0 kit is pinned as an archive in [`brand/`](brand/), with selected product and documentation assets synchronized through a checked consumer map. Start with [`brand/REPOSITORY.md`](brand/REPOSITORY.md) for the release import procedure. The public [Brand system](docs/brand.md) page provides selection guidance and downloads.
 
 ## Project layout
 
@@ -196,7 +196,7 @@ cmd/        goschedd (daemon) · gosched (CLI)
 internal/   engine · schedule · task · store · executor · catchup · timezone
             api · ipc · service · config · platform · logbus · autostart
 desktop/    Wails desktop control center · React frontend · native bridge
-brand/      canonical brand guide · masters · outputs · tokens · platform assets
+brand/      pinned official kit · synchronized assets · tokens · platform assets
 test/       integration tests · maintainer test scripts
 docs/       install guides · CLI reference · GUI fields · brand system
 specs/      spec-driven development artifacts
