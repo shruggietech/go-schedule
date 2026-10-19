@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **The desktop frontend lockfile resolves source-map-js 1.2.2, addressing GHSA-68fv-2mgg-jv7q and restoring the unchanged high-severity dependency audit (Refs #292).** Direct dependency versions remain unchanged.
 - **The legacy Pages configuration and README's live documentation links remain usable until coordinated website cutover (Refs #293).** The cutover procedure sequences replacement availability before legacy cleanup and new-domain discovery links.
+- **The watcher store budget test prepares directory fixtures before timing application work, matching S056 FR-022 (Refs #294).** All 100 inserts, readback and the one-second threshold remain in place.
 
 ## [1.5.1] - 2026-09-26
 

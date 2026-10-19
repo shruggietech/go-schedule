@@ -4,7 +4,7 @@ Replace the documentation-index home and Jekyll pipeline with a branded static N
 
 The dedicated comparison uses a sourced 80-cell v1.5.1 baseline, product/category filters and issue-linked opportunities. Staging and both promotion paths require a tag-specific review bound to dataset, changelog and release-note digests. Successful promotions refresh the site with the latest public snapshot.
 
-Closes #9, #281, #292, #293. Refs #278, #279, #280, #282. Parent #276. #278's live outcome remains pending domain cutover; authentication and the recorded empty DNS inventory are preparation only. The current Jekyll publishing inputs and README links to the live documentation remain available until replacement delivery.
+Closes #9. Closes #281. Closes #292. Closes #293. Closes #294. Refs #278, #279, #280, #282. Parent #276. #278's live outcome remains pending domain cutover; authentication and the recorded empty DNS inventory are preparation only. The current Jekyll publishing inputs and README links to the live documentation remain available until replacement delivery.
 
 ## Verification
 
@@ -30,7 +30,9 @@ automation-check-test: OK (automation)
 
 - [x] The complete foreground canonical aggregate passed locally.
 
-Final website: eight Node regressions, static export with link/fragment/asset audits and ten Chromium tests passed. Clean website and desktop dependency installs report zero vulnerabilities after the source-map-js lockfile fix. Windows Wails build and 158 desktop frontend tests passed. The full aggregate passed again after the round-1 and CI fixes. See the [S106 delivery record](https://github.com/shruggietech/go-schedule/blob/codex/106-public-web-presence/specs/106-public-web-presence/delivery.md) for evidence and public-delivery boundaries. Final hosted checks and the two-round Codex review record are maintained in this PR's conversation.
+Final website: eight Node regressions, static export with link/fragment/asset audits and ten Chromium tests passed. Clean website and desktop dependency installs report zero vulnerabilities after the source-map-js lockfile fix. Windows Wails build and 158 desktop frontend tests passed. The full aggregate passed again after the round-1 and dependency-audit fixes. See the [S106 delivery record](https://github.com/shruggietech/go-schedule/blob/codex/106-public-web-presence/specs/106-public-web-presence/delivery.md) for evidence and public-delivery boundaries. Final hosted checks and the two-round Codex review record are maintained in this PR's conversation.
+
+After the two Codex rounds, one Windows qualification attempt exposed a watcher budget measurement that included 100 temporary-directory creations. The focused correction moves fixture setup before the timer, matching S056 FR-022's exclusion of external filesystem delays. All 100 store inserts, readback and the one-second assertion remain unchanged; product runtime code is unchanged (#294). The full store race suite passed twice after this correction, and package vet and formatting passed. No third Codex round is requested.
 
 ## Checklist
 
