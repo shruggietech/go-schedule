@@ -47,7 +47,7 @@ jobs:
       - name: Build the reviewed static site
         working-directory: site
         run: npm ci && npm audit --audit-level=high && npm test && npm run build
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/out
   deploy:
