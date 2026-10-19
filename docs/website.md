@@ -5,7 +5,7 @@ nav_order: 24
 
 # Website and comparison maintenance
 
-The replacement site is a static Next.js export with Fumadocs. Until the coordinated Pages cutover, the existing Jekyll configuration, includes and styles remain in `docs/` to keep branch publishing usable, and README links retain the live GitHub Pages address. Edit documentation in `docs/`; `site/content/`, `.source/`, copied public assets and `out/` are generated. The site build consumes the same official assets declared for `docs/assets` in the brand consumer map. Do not edit generated copies.
+The public site at https://go-schedule.io/ is a static Next.js export with Fumadocs, deployed by GitHub Actions to GitHub Pages. Cloudflare provides DNS only. Edit documentation in `docs/`; `site/content/`, `.source/`, copied public assets and `out/` are generated. The site build consumes the same official assets declared for `docs/assets` in the brand consumer map. Do not edit generated copies.
 
 ## Build and content changes
 
@@ -50,9 +50,20 @@ The proposed DNS-only records are:
 
 Use DNS only initially (`proxied: false`) and automatic TTL. Match existing records by name/type/content and update only identified conflicts. Do not create a duplicate zone, include `/go-schedule` in DNS, or create wildcards. GitHub supplies the www-to-apex redirect when the apex is canonical and both are configured. Check CAA only if certificate issuance requires it; preserve unrelated TLS policy.
 
-After owner publication approval, switch Pages to GitHub Actions, retain/set custom domain go-schedule.io, deploy the reviewed export, apply the prepared DNS changes, wait for DNS/certificate provisioning and enforce HTTPS. Actions publishing uses the repository domain setting; it does not require a source CNAME file. Check apex/www/HTTP/old-site links, representative deep links/assets and IPv4/IPv6 HTTPS. Only after the replacement is serving successfully, change README documentation and comparison links to the new domain and remove the retained Jekyll configuration, includes and styles. Keep those source changes together with removal of the temporary transition regression in site/tests/publication.test.mjs. Rollback restores only changed records and prior deployment/settings in coordinated order, retaining ownership TXT and avoiding traffic pointed at an unbound site.
+For a domain cutover, switch Pages to GitHub Actions, retain/set the repository's custom domain, deploy the reviewed export, apply the prepared DNS changes, wait for DNS/certificate provisioning and enforce HTTPS. Actions publishing uses the repository domain setting; it does not require a source CNAME file. Check apex/www/HTTP/old-site links, representative deep links/assets and IPv4/IPv6 HTTPS. Only after replacement delivery should discovery links change and obsolete publishing inputs be retired.
 
-S106's build phase prepares these actions and stops before public mutation. Issue #278 remains open until its public functional outcome is delivered.
+The 2026-10-19 S106 cutover replaces the former main:/docs Jekyll publisher. The organization ownership TXT remains in Cloudflare alongside four apex A records, four apex AAAA records and the www CNAME, all with DNS-only status and automatic TTL. The repository homepage and README links use the canonical domain. The old Jekyll configuration, includes, styles and their temporary pre-cutover regression are retired together. Deployment and public verification evidence is recorded in [S106 delivery](https://github.com/shruggietech/go-schedule/blob/main/specs/106-public-web-presence/delivery.md) and issue #278.
+
+## Recovery
+
+For an Actions content rollback, retain the organization ownership TXT, repository custom-domain binding and all nine traffic records. Restore a known-good Pages Actions deployment or reviewed source revert. This keeps the custom domain and former-address redirect usable while content is restored.
+
+To retire the custom domain and restore the former GitHub Pages address with the pre-cutover empty traffic-DNS baseline, use this order:
+
+1. Prepare a reviewed source change that restores the five legacy Jekyll files from commit 432452e7e59843b279f902d15c92289e6726f062 and changes README/contact links and current deployment instructions back to the former project address. Retain the organization ownership TXT throughout recovery.
+2. Clear the repository's custom-domain binding and switch Pages to the legacy main:/docs publisher in a coordinated settings operation. Restore the repository homepage to https://shruggietech.github.io/go-schedule/.
+3. Confirm that https://shruggietech.github.io/go-schedule/ serves the restored site directly, without redirecting to go-schedule.io. If the fallback is unavailable, restore the Actions/domain configuration before proceeding; keep the traffic records until the recovery path is established.
+4. Once the former address is working, promptly remove only the four apex A records, four apex AAAA records and www CNAME introduced by this cutover. Preserve the organization ownership TXT and any unrelated records. Do not leave obsolete traffic records targeting an unbound Pages domain.
 
 ## Official references
 

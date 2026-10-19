@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Installation help
-    url: https://shruggietech.github.io/go-schedule/
+    url: https://go-schedule.io/docs/install/
     about: >
       Per-platform install guides, the CLI reference, and the Wails desktop field reference. Worth a look before filing, since several common reports are answered there.
   - name: Prove your install actually works
-    url: https://shruggietech.github.io/go-schedule/test-scripts.html
+    url: https://go-schedule.io/docs/test-scripts/
     about: >
       The maintainer test scripts demonstrate that the scheduler fires on time, survives restarts, catches up after downtime, and honors overlap policies. Their output makes an excellent bug report attachment.
   - name: Security vulnerability
