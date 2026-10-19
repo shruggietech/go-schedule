@@ -121,7 +121,7 @@ func skipDirectory(name string) bool {
 		return true
 	}
 	switch name {
-	case ".git", ".idea", ".vscode", ".cache", ".test-temp", ".brand-import-temp", "dist", "node_modules":
+	case ".git", ".idea", ".vscode", ".cache", ".test-temp", ".brand-import-temp", "dist", "node_modules", ".next", ".source", "out", "playwright-report", "test-results":
 		return true
 	default:
 		return false
@@ -130,7 +130,7 @@ func skipDirectory(name string) bool {
 
 func textFile(path string) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
-	case ".css", ".desktop", ".go", ".html", ".js", ".json", ".jsx", ".md", ".ps1", ".py", ".scss", ".sh", ".svg", ".toml", ".ts", ".tsx", ".txt", ".wxs", ".xml", ".yaml", ".yml":
+	case ".cjs", ".css", ".desktop", ".go", ".html", ".js", ".json", ".jsx", ".md", ".mjs", ".ps1", ".py", ".scss", ".sh", ".svg", ".toml", ".ts", ".tsx", ".txt", ".wxs", ".xml", ".yaml", ".yml":
 		return true
 	}
 	switch filepath.Base(path) {

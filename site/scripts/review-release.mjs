@@ -1,0 +1,23 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const tag = process.argv[2];
+if (!/^v\d+\.\d+\.\d+$/.test(tag || '')) throw new Error('Supply the exact vMAJOR.MINOR.PATCH release tag');
+const data = await fs.readFile(path.join(root, 'site/data/comparisons', `${tag}.json`));
+const snapshot = JSON.parse(data);
+const changelog = await fs.readFile(path.join(root, 'CHANGELOG.md'), 'utf8');
+const heading = `## [${tag.slice(1)}]`;
+const start = changelog.indexOf(heading);
+if (start < 0) throw new Error(`CHANGELOG.md needs a section for ${tag}`);
+const end = changelog.indexOf('\n## [', start + heading.length);
+const section = changelog.slice(start, end < 0 ? undefined : end + 1);
+const notes = await fs.readFile(path.join(root, '.github/release-notes', `${tag}.md`));
+const digest = value => createHash('sha256').update(value).digest('hex');
+const review = { tag, source_ref: `refs/tags/${tag}`, reviewed_at: new Date().toISOString().slice(0, 10), dataset_sha256: digest(data), changelog_sha256: digest(section), notes_sha256: digest(notes), decisions: Object.fromEntries(snapshot.capabilities.map(row => [row.id, 'review-required'])) };
+const target = path.join(root, 'site/data/reviews', `${tag}.json`);
+await fs.mkdir(path.dirname(target), {recursive:true});
+await fs.writeFile(target, `${JSON.stringify(review, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+console.log(`Created ${target}. Review every capability and replace each review-required decision; existing reviews are never overwritten.`);

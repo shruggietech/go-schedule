@@ -7,7 +7,7 @@
         "brand/logos/svg/go-schedule-horizontal-black.svg",
         "docs/assets/brand/go-schedule-horizontal-black.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-horizontal-color.svg",
@@ -15,7 +15,7 @@
         "brand/logos/svg/go-schedule-horizontal-color.svg",
         "docs/assets/brand/go-schedule-horizontal-color.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-horizontal-light.svg",
@@ -23,7 +23,7 @@
         "brand/logos/svg/go-schedule-horizontal-light.svg",
         "docs/assets/brand/go-schedule-horizontal-light.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-horizontal-white.svg",
@@ -38,7 +38,7 @@
         "brand/logos/svg/go-schedule-mark-black.svg",
         "docs/assets/brand/go-schedule-mark-black.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-mark-color.svg",
@@ -46,7 +46,7 @@
         "brand/logos/svg/go-schedule-mark-color.svg",
         "docs/assets/brand/go-schedule-mark-color.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-mark-light.svg",
@@ -69,7 +69,7 @@
         "docs/assets/brand/go-schedule-mark-reduced-color.svg",
         "desktop/frontend/public/go-schedule-mark.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-mark-reduced-light.svg",
@@ -91,7 +91,7 @@
         "brand/logos/svg/go-schedule-mark-white.svg",
         "docs/assets/brand/go-schedule-mark-white.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-social-image.svg",
@@ -106,7 +106,7 @@
         "brand/logos/svg/go-schedule-social-preview.svg",
         "docs/assets/brand/go-schedule-social-preview.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-stacked-black.svg",
@@ -121,7 +121,7 @@
         "brand/logos/svg/go-schedule-stacked-color.svg",
         "docs/assets/brand/go-schedule-stacked-color.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-stacked-light.svg",
@@ -150,7 +150,7 @@
         "brand/logos/svg/go-schedule-wordmark-color.svg",
         "docs/assets/brand/go-schedule-wordmark-color.svg"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/svg/go-schedule-wordmark-light.svg",
@@ -172,7 +172,7 @@
         "brand/logos/png/go-schedule-horizontal-black-1024.png",
         "docs/assets/brand/go-schedule-horizontal-black-1024.png"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/png/go-schedule-horizontal-color-1024.png",
@@ -180,7 +180,7 @@
         "brand/logos/png/go-schedule-horizontal-color-1024.png",
         "docs/assets/brand/go-schedule-horizontal-color-1024.png"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/png/go-schedule-horizontal-light-1024.png",
@@ -210,7 +210,7 @@
         "docs/assets/brand/go-schedule-mark-color-1024.png",
         "desktop/build/appicon.png"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/png/go-schedule-mark-light-1024.png",
@@ -267,7 +267,7 @@
         "brand/logos/png/go-schedule-social-preview-1280.png",
         "docs/assets/brand/go-schedule-social-preview-1280.png"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/png/go-schedule-stacked-black-1024.png",
@@ -282,7 +282,7 @@
         "brand/logos/png/go-schedule-stacked-color-1024.png",
         "docs/assets/brand/go-schedule-stacked-color-1024.png"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "logos/png/go-schedule-stacked-light-1024.png",
@@ -347,7 +347,7 @@
         "docs/assets/fonts/OFL-Geist.txt",
         "desktop/frontend/public/licenses/OFL-Geist.txt"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "fonts/licenses/OFL-Poppins.txt",
@@ -370,7 +370,7 @@
         "docs/assets/fonts/OFL-Space-Grotesk.txt",
         "desktop/frontend/public/licenses/OFL-Space-Grotesk.txt"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "fonts/ttf/CourierPrime-Regular.ttf",
@@ -442,7 +442,7 @@
         "docs/assets/fonts/Geist-Medium.woff2",
         "desktop/frontend/public/fonts/Geist-Medium.woff2"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "fonts/woff2/Geist-Regular.woff2",
@@ -451,7 +451,7 @@
         "docs/assets/fonts/Geist-Regular.woff2",
         "desktop/frontend/public/fonts/Geist-Regular.woff2"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "fonts/woff2/GeistMono-Regular.woff2",
@@ -460,7 +460,7 @@
         "docs/assets/fonts/GeistMono-Regular.woff2",
         "desktop/frontend/public/fonts/GeistMono-Regular.woff2"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "fonts/woff2/SpaceGrotesk-Bold.woff2",
@@ -469,7 +469,7 @@
         "docs/assets/fonts/SpaceGrotesk-Bold.woff2",
         "desktop/frontend/public/fonts/SpaceGrotesk-Bold.woff2"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "fonts/woff2/SpaceGrotesk-Medium.woff2",
@@ -478,7 +478,7 @@
         "docs/assets/fonts/SpaceGrotesk-Medium.woff2",
         "desktop/frontend/public/fonts/SpaceGrotesk-Medium.woff2"
       ],
-      "purpose": "Repository reference asset"
+      "purpose": "Repository reference asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "tokens/base.css",
@@ -528,7 +528,7 @@
         "brand/favicons/android-chrome-192x192.png",
         "docs/assets/favicons/android-chrome-192x192.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/android-chrome-512x512.png",
@@ -536,7 +536,7 @@
         "brand/favicons/android-chrome-512x512.png",
         "docs/assets/favicons/android-chrome-512x512.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/apple-touch-icon.png",
@@ -544,7 +544,7 @@
         "brand/favicons/apple-touch-icon.png",
         "docs/assets/favicons/apple-touch-icon.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/favicon-128x128.png",
@@ -559,7 +559,7 @@
         "brand/favicons/favicon-16x16.png",
         "docs/assets/favicons/favicon-16x16.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/favicon-180x180.png",
@@ -595,7 +595,7 @@
         "brand/favicons/favicon-32x32.png",
         "docs/assets/favicons/favicon-32x32.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/favicon-48x48.png",
@@ -645,7 +645,7 @@
         "brand/favicons/favicon.svg",
         "docs/assets/favicons/favicon.svg"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/maskable-icon-192x192.png",
@@ -653,7 +653,7 @@
         "brand/favicons/maskable-icon-192x192.png",
         "docs/assets/favicons/maskable-icon-192x192.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/maskable-icon-512x512.png",
@@ -661,21 +661,21 @@
         "brand/favicons/maskable-icon-512x512.png",
         "docs/assets/favicons/maskable-icon-512x512.png"
       ],
-      "purpose": "Repository favicon asset"
+      "purpose": "Repository favicon asset; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "brand-guide.pdf",
       "targets": [
         "docs/assets/brand/brand-guide.pdf"
       ],
-      "purpose": "Public brand guide"
+      "purpose": "Public brand guide; canonical website asset input, copied verbatim to generated site/public/assets by the static build"
     },
     {
       "source": "favicons/site.webmanifest",
       "targets": [
         "docs/assets/favicons/site.webmanifest"
       ],
-      "purpose": "Documentation site manifest with relative icon URLs",
+      "purpose": "Documentation site manifest with relative icon URLs; canonical website asset input, copied verbatim to generated site/public/assets by the static build",
       "transform": "docs-site-manifest"
     },
     {

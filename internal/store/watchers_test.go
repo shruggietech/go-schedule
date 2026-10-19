@@ -146,9 +146,14 @@ func TestFilesystemWatcherLifecycleBudgetAtOneHundred(t *testing.T) {
 	if err := st.CreateTask(task); err != nil {
 		t.Fatal(err)
 	}
+	// FR-022 excludes filesystem setup delays from the store lifecycle budget.
+	paths := make([]string, 100)
+	for i := range paths {
+		paths[i] = t.TempDir()
+	}
 	started := time.Now()
-	for i := 0; i < 100; i++ {
-		watcher := &domain.FilesystemWatcher{Name: "watcher", Kind: domain.WatcherDirectory, Path: t.TempDir(), TargetTaskID: task.ID, Enabled: i%2 == 0}
+	for i, path := range paths {
+		watcher := &domain.FilesystemWatcher{Name: "watcher", Kind: domain.WatcherDirectory, Path: path, TargetTaskID: task.ID, Enabled: i%2 == 0}
 		if err := st.CreateFilesystemWatcher(watcher); err != nil {
 			t.Fatal(err)
 		}

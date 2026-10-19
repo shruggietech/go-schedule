@@ -52,6 +52,14 @@ dist/
 desktop/frontend/dist/*
 !desktop/frontend/dist/placeholder.txt
 node_modules/
+site/.next/
+site/.source/
+site/content/
+site/out/
+site/public/assets/
+site/next-env.d.ts
+site/tsconfig.tsbuildinfo
+.test-temp/
 playwright-report/
 test-results/
 experiments/wails-foundation/build/bin/

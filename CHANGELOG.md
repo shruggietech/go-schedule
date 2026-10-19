@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **A static Next.js and Fumadocs website provides a branded home, documentation search and a dedicated sourced comparison (Refs #276, #279, #280, #282).** Canonical Markdown stays in `docs/`; legacy HTML paths retain query strings and fragments. Comparison snapshots identify the public release and link capability evidence and roadmap opportunities.
+
+### Changed
+
+- **The README puts installation, first use and project resources first, with linked ShruggieTech attribution (Refs #281, #9).**
+- **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
+
+### Fixed
+
+- **The desktop frontend lockfile resolves source-map-js 1.2.2, addressing GHSA-68fv-2mgg-jv7q and restoring the unchanged high-severity dependency audit (Refs #292).** Direct dependency versions remain unchanged.
+- **The legacy Pages configuration and README's live documentation links remain usable until coordinated website cutover (Refs #293).** The cutover procedure sequences replacement availability before legacy cleanup and new-domain discovery links.
+- **The watcher store budget test prepares directory fixtures before timing application work, matching S056 FR-022 (Refs #294).** All 100 inserts, readback and the one-second threshold remain in place.
+
 ## [1.5.1] - 2026-09-26
 
 ### Changed

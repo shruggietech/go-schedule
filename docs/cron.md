@@ -22,7 +22,7 @@ But you probably already have a crontab, or need to translate one schedule. Cron
 - [Explain one expression](#explain-one-expression)
 - [Export back to cron](#export-back-to-cron)
 - [Fidelity](#fidelity)
-- [What cron cannot say](#what-cron-cannot-say)
+- [What a timing expression cannot say](#what-a-timing-expression-cannot-say)
 - [Expression versus crontab file](#expression-versus-crontab-file)
 - [What this scheduler cannot say in cron](#what-this-scheduler-cannot-say-in-cron)
 

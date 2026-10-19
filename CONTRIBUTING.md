@@ -95,7 +95,7 @@ If a change appears to require weakening one of these, that is a design question
 
 ## Documentation
 
-User-facing documentation lives in `docs/` and is the **single source of truth**. It is published as a site, [shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/) served directly by GitHub Pages from the `docs/` folder on `main`, so the Markdown you edit *is* the page that ships. There is no separate build step and no generated output to commit; a page's `title` and `nav_order` front matter is all that places it in the site's navigation.
+User-facing documentation lives in `docs/` and remains the single source of truth. The static Next.js and Fumadocs application in `site/` prepares that Markdown, copies declared brand assets and exports the website. Generated content and HTML are ignored. Each page retains `title` and `nav_order` front matter for navigation. See [website maintenance](docs/website.md) for local preview, comparison release reviews and the planned Pages/domain cutover.
 
 Two rules keep the docs from drifting, and `scripts/docs-check.sh` enforces both:
 
@@ -135,3 +135,10 @@ Explain *why* in the body when the reason is not obvious from the diff. The comm
 Code follows ordinary Go idiom, matching the surrounding file's comment density and naming. Internal scheduling is UTC; per-task IANA timezones handle presentation and DST. Logging is structured, via `log/slog`.
 
 Markdown follows the house style: a single `#` heading, one physical source line per paragraph or list item with GitHub handling visual wrapping, prose where prose belongs and bullets only for genuinely enumerable things, and language-tagged code fences.
+
+## Release preparation checklist
+
+1. Prepare the exact version metadata, dated changelog section and tag-specific release notes through review. Preserve the release badge and health-example contracts.
+2. Add the matching comparison snapshot and complete its explicit capability decisions and content digests using the [website release-review procedure](docs/website.md#comparison-evidence-and-release-review). The staging, normal promotion and standing-waiver promotion paths all require it.
+3. Run the canonical checks and obtain maintainer authorization before creating a version tag or publishing a release. Follow the existing [Windows release procedure](test/windows/README.md) for artifact identity and the applicable qualification or standing-waiver path.
+4. After publication, the Pages workflow selects the latest public tag and its matching comparison snapshot. Update the local preview default in `site/data/published.json` to that published tag; keep candidate capability separate from the public baseline.
