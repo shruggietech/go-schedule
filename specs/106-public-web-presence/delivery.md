@@ -1,8 +1,8 @@
 # S106 delivery record
 
-## Source boundary
+## Local handoff boundary
 
-Base: 288128690d45b18cc5b0bade50bb138269f517ea, clean and equal to fetched origin/main before kickoff; remote refreshed and unchanged before the local commit. Review branch: codex/106-public-web-presence. No push, pull request, tag, release, deployment or live domain mutation was performed.
+Base: 288128690d45b18cc5b0bade50bb138269f517ea, clean and equal to fetched origin/main before kickoff; remote refreshed and unchanged before the local commit. Review branch: codex/106-public-web-presence. At the initial local handoff, no push, pull request, tag, release, deployment or live domain mutation had been performed. The subsequent authorized publication stage is recorded below.
 
 ## Issue-level outcomes
 
@@ -39,7 +39,7 @@ Rollback starts from this recorded empty traffic-DNS baseline and Pages source/d
 
 Hosted GitHub CI/CodeQL, real Pages deployment, public redirects, DNS propagation and public IPv4/IPv6 TLS remain unexecuted at the requested pre-publication boundary. No application release is being cut.
 
-## Review handoff
+## Initial review handoff
 
 Inspect the branch diff and proposed [PR body](pr-body.md). These publication commands are prepared only:
 
@@ -49,3 +49,13 @@ gh pr create --base main --head codex/106-public-web-presence --title "feat(106)
 ```
 
 Stop for owner review. The follow-on publication stage coordinates GitHub review/CI and domain cutover without treating #278 as already complete.
+
+## Authorized PR publication, 2026-10-19
+
+The owner approved pushing S106, opening its PR, monitoring CI and resolving findings through at most two Codex review rounds. The boundary remains before merge or public DNS changes. Branch commit 4d10db8489f98278a62c590e4f575c4f3652df0b was pushed and [PR #291](https://github.com/shruggietech/go-schedule/pull/291) opened under milestone Public website and project discovery. PR opening automatically started Codex round 1. No duplicate manual round was requested.
+
+The initial hosted production desktop audit failed on all three platforms because the inherited frontend lockfile resolved source-map-js 1.2.1, affected by [GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q). Defect [#292](https://github.com/shruggietech/go-schedule/issues/292) tracks the finding. The compatible lockfile-only update resolves 1.2.2; an exact install and the unchanged high-severity audit report zero vulnerabilities. The website lockfile already resolves 1.2.2. Review results and final hosted check evidence are maintained on the PR so this historical record does not imply success for an untested later revision.
+
+Codex round 1 completed on 4d10db8 with two publication-order findings, tracked together in [#293](https://github.com/shruggietech/go-schedule/issues/293). The five unchanged legacy Jekyll source files are retained while Pages still uses main:/docs. README discovery links use the live GitHub Pages address and repository comparison data. The cutover procedure makes successful replacement delivery precede source cleanup and domain-link changes, and a transition regression covers that boundary. No live settings were changed to address these findings.
+
+After these fixes, the full foreground sh scripts/verify.sh all aggregate completed again with exit 0, including all automation fixtures. The final website export passes eight Node regressions and all ten Chromium checks. The unchanged audit gate passes after an exact desktop install. No application release or public deployment was performed.

@@ -5,7 +5,7 @@ nav_order: 24
 
 # Website and comparison maintenance
 
-The public site is a static Next.js export with Fumadocs. Edit documentation in `docs/`; `site/content/`, `.source/`, copied public assets and `out/` are generated. The site build consumes the same official assets declared for `docs/assets` in the brand consumer map. Do not edit generated copies.
+The replacement site is a static Next.js export with Fumadocs. Until the coordinated Pages cutover, the existing Jekyll configuration, includes and styles remain in `docs/` to keep branch publishing usable, and README links retain the live GitHub Pages address. Edit documentation in `docs/`; `site/content/`, `.source/`, copied public assets and `out/` are generated. The site build consumes the same official assets declared for `docs/assets` in the brand consumer map. Do not edit generated copies.
 
 ## Build and content changes
 
@@ -50,7 +50,7 @@ The proposed DNS-only records are:
 
 Use DNS only initially (`proxied: false`) and automatic TTL. Match existing records by name/type/content and update only identified conflicts. Do not create a duplicate zone, include `/go-schedule` in DNS, or create wildcards. GitHub supplies the www-to-apex redirect when the apex is canonical and both are configured. Check CAA only if certificate issuance requires it; preserve unrelated TLS policy.
 
-After owner publication approval, switch Pages to GitHub Actions, retain/set custom domain go-schedule.io, deploy the reviewed export, apply the prepared DNS changes, wait for DNS/certificate provisioning and enforce HTTPS. Actions publishing uses the repository domain setting; it does not require a source CNAME file. Check apex/www/HTTP/old-site links, representative deep links/assets and IPv4/IPv6 HTTPS. Rollback restores only changed records and prior deployment/settings in coordinated order, retaining ownership TXT and avoiding traffic pointed at an unbound site.
+After owner publication approval, switch Pages to GitHub Actions, retain/set custom domain go-schedule.io, deploy the reviewed export, apply the prepared DNS changes, wait for DNS/certificate provisioning and enforce HTTPS. Actions publishing uses the repository domain setting; it does not require a source CNAME file. Check apex/www/HTTP/old-site links, representative deep links/assets and IPv4/IPv6 HTTPS. Only after the replacement is serving successfully, change README documentation and comparison links to the new domain and remove the retained Jekyll configuration, includes and styles. Keep those source changes together with removal of the temporary transition regression in site/tests/publication.test.mjs. Rollback restores only changed records and prior deployment/settings in coordinated order, retaining ownership TXT and avoiding traffic pointed at an unbound site.
 
 S106's build phase prepares these actions and stops before public mutation. Issue #278 remains open until its public functional outcome is delivered.
 

@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Review branch codex/106-public-web-presence delivers the local S106 bundle with all eight canonical gates and final production browser checks passed; [delivery record](delivery.md). Public domain delivery remains #278 and requires owner publication approval.
+**Delivery**: [PR #291](https://github.com/shruggietech/go-schedule/pull/291) contains the S106 bundle; [delivery record](delivery.md). All eight canonical gates and final production browser checks passed before the authorized branch publication. Public domain delivery remains #278. The owner authorized CI and up to two Codex review rounds, with a stop before merge or public DNS changes.
 
 **Input**: Owner kickoff of S106 under autopilot, full six-issue bundle #278, #279, #280, #281, #9 and #282, coordinated by #276. Stop before branch publication, pull request creation or live cutover.
 

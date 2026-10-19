@@ -1,0 +1,107 @@
+// go-schedule brand customizations layered on top of just-the-docs.
+// Auto-imported by the theme at the end of its SCSS chain (custom/custom.scss),
+// so these rules win over the theme defaults. @font-face declarations live in
+// _includes/head_custom.html (they need Liquid's relative_url for the baseurl).
+
+// Headings use Space Grotesk with the brand's tight display tracking. Geist
+// (body) and Geist Mono (code) come from the color-scheme font variables.
+h1, h2, h3, h4, h5, h6,
+.site-title {
+  font-family: "Space Grotesk", -apple-system, blinkmacsystemfont, "Segoe UI",
+    sans-serif;
+  letter-spacing: -0.025em;
+}
+
+// Uppercase mono eyebrow tracking for nav section labels, matching the brand's
+// 0.12em label tracking.
+.nav-category {
+  font-family: "Geist Mono", monospace;
+  letter-spacing: 0.12em;
+  color: #9baeb6; // Muted
+}
+
+// Anchor Blue focus ring on interactive elements (brand: visible 2px focus).
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+// Keep code blocks quiet and technical: Panel surface, hairline Line border,
+// small radius. (Values mirror the brand tokens.)
+.highlight,
+figure.highlight,
+pre.highlight {
+  border: 1px solid #28414b;
+  border-radius: 6px;
+}
+
+// The header logo sits on the dark sidebar. just-the-docs bounds the logo by
+// the (short) header height, which renders the wide lockup small, so grow the
+// header and pin an explicit logo height. The canonical lockup includes its
+// approved clear space, so contain it without cropping the artwork.
+.site-header {
+  min-height: 4.25rem;
+}
+.site-header .site-title {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.site-logo {
+  height: 2.75rem;
+  background-position: left center;
+  background-size: contain;
+}
+
+// Syntax highlighting for the dark code surface. The custom color scheme sets a
+// dark ($code-background) code background, but just-the-docs ships its default
+// LIGHT-theme Rouge token colors (dark ink) *after* this file in its import
+// chain, so plain `.highlight .token` overrides here would lose the cascade and
+// tokens render dark-on-dark. Scope to `.highlighter-rouge .highlight` (JTD's
+// code wrapper) so these rules outrank JTD's `.highlight .token` by specificity
+// regardless of import order. Base text is light; accents follow the brand
+// (Anchor Blue keywords/functions, Interval Mint strings, Hold Amber numbers,
+// Muted comments).
+.highlighter-rouge .highlight {
+  color: #f3f7f8; // base: any untyped token is light
+
+  // Fail safely when a lexer emits a class we have not seen: neutralize the
+  // inherited light-theme foreground before the intentional role colors below.
+  // These role selectors have equal specificity and appear later, so they win.
+  [class] { color: inherit; }
+
+  .c, .c1, .cm, .cd, .cp, .cs { color: #9baeb6; font-style: italic; } // comments
+  .k, .kc, .kd, .kn, .kp, .kr, .kt, .kv { color: #58a6ff; }           // keywords
+  .nb, .bp, .nf, .fm, .nn, .nc { color: #58a6ff; }                    // builtins / functions / classes
+  .n, .nx { color: #58a6ff; }                                        // names
+  .nd, .ne, .ni, .nl, .py, .gu { color: #58a6ff; }                   // decorators / exceptions / labels / headings
+  .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr, .dl, .sa, .ss { color: #62d9b7; } // strings
+  .m, .mi, .mf, .mh, .mo, .mb, .il { color: #f2b84b; }                // numbers
+  .l, .ld { color: #f2b84b; }                                        // literals
+  .nv, .vg, .vi, .vc, .no, .na { color: #f2b84b; }                    // variables / attributes
+  .nt { color: #62d9b7; }                                            // html/xml tags
+  .o, .ow, .p, .pi { color: #f3f7f8; }                               // operators / punctuation
+  .gp { color: #9baeb6; }                                            // shell prompt
+  .gi { color: #62d9b7; }                                            // diff inserted
+  .gd { color: #e05f5f; }                                            // diff deleted
+  .hll { background-color: #17262d; }                                 // highlighted line
+  // Don't flag lexer "error" tokens with an alarming red plate; keep them legible.
+  .err { color: #f3f7f8; background-color: transparent; }
+
+  // just-the-docs' light palette otherwise wins with white-on-white selection.
+  ::selection { color: #0d171c; background-color: #58a6ff; }
+}
+
+// The "A ShruggieTech project" endorsement in the sidebar footer.
+.gs-endorsement {
+  font-family: "Geist Mono", monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9baeb6; // Muted
+  padding: $sp-3 $gutter-spacing-sm;
+
+  @include mq(md) { padding-right: $gutter-spacing; padding-left: $gutter-spacing; }
+}
