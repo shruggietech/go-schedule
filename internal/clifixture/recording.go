@@ -1,6 +1,7 @@
 package clifixture
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -94,4 +95,12 @@ func (r *Recorder) Delete(service, user string) error {
 	defer r.mu.Unlock()
 	delete(r.values, service+"\x00"+user)
 	return nil
+}
+
+// GetContext reads only this recorder and honors invocation cancellation.
+func (r *Recorder) GetContext(ctx context.Context, service, user string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
+	return r.Get(service, user)
 }

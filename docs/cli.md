@@ -673,7 +673,9 @@ gosched systems search "failure" --all --kind failure,alert --json
 
 Search kinds are `task`, `group`, `failure`, `schedule` and `alert`. Query text contains 1 through 200 characters, and `--limit` allows 1 through 50 results per scheduler. Results identify the registration, endpoint, expected/observed daemon identity and observation time. Summaries include active-task, recent-failure, unacknowledged-alert and notification-problem information.
 
-At most four targets are observed concurrently, each with a five-second deadline inside the command's ten-second request deadline. Saved credentials resolve only when that target's worker runs. TLS, identity and current Observe authority are checked before feature reads. Native credential access uses the existing operating-system API, with cancellation checked before and after that call.
+At most four targets are observed concurrently, each with a five-second deadline inside the command's ten-second request deadline. Saved credentials resolve only when that target's worker runs. TLS, identity and current Observe authority are checked before feature reads.
+
+Native credential setup participates in operational request cancellation through hidden owned helper processes. Secrets remain in the native store and private redirected pipes. Request budgets exclude the separate bounded cleanup drain (at most five seconds); a cleanup failure remains an error and does not become a successful target observation.
 
 One failed target does not discard another target's successful response. JSON contains independent observations and failures; partial failure returns nonzero after writing usable results. `--all` cannot be combined with remote target flags. An explicit `--ipc-path` can select the local fixture included in an all-system query.
 

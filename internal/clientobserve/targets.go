@@ -13,7 +13,7 @@ type ProfileStore interface {
 	Load() (clientprofile.Collection, error)
 }
 type SecretStore interface {
-	Load(string, string) (string, error)
+	LoadContext(context.Context, string, string) (string, error)
 }
 type RemoteFactory func(endpoint, certificate, bearer, daemonID string) (Reader, error)
 
@@ -55,7 +55,7 @@ func Targets(ctx context.Context, local Target, profiles ProfileStore, secrets S
 			if secrets == nil {
 				return nil, &setupError{Failure{Code: "credential_unavailable", Message: "The saved credential is unavailable. Repair this connection."}}
 			}
-			token, loadErr := secrets.Load(profile.DaemonID, profile.CredentialID)
+			token, loadErr := secrets.LoadContext(ctx, profile.DaemonID, profile.CredentialID)
 			if err := ctx.Err(); err != nil {
 				return nil, err
 			}

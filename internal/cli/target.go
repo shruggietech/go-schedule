@@ -62,7 +62,7 @@ func resolveTargetWith(ctx context.Context, flags remoteTargetFlags, deps Depend
 		}
 		profile = clientprofile.Profile{Label: "explicit target", Endpoint: flags.Endpoint, DaemonID: flags.DaemonID, CredentialID: flags.CredentialID, CertificatePEM: string(certificate)}
 	}
-	token, err := deps.Secrets.Load(profile.DaemonID, profile.CredentialID)
+	token, err := deps.Secrets.LoadContext(ctx, profile.DaemonID, profile.CredentialID)
 	if err != nil {
 		return nil, "", fmt.Errorf("load native remote credential: %w", err)
 	}

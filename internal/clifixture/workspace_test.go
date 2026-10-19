@@ -15,7 +15,7 @@ import (
 )
 
 func TestWorkspaceIdentityAndContainment(t *testing.T) {
-	w, err := NewWorkspace(t.TempDir())
+	w, err := NewWorkspace("")
 	if err != nil {
 		t.Fatal(err)
 	}

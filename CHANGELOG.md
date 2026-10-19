@@ -14,12 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **2026-10-19 architecture decision (S107): share desktop preference schema/migration/atomic scoped updates with the root CLI and replace global CLI selection/output with invocation dependencies.** OS-owned preference locks coordinate writers and release ownership on process exit; production native credential handling and daemon defaults remain unchanged. Runtime IPC/PID metadata supports fixture identity checks. Read-only observation fan-out reuses existing API/authorization and preserves independent target outcomes (Refs #285, #286, #288).
+- **2026-10-19 architecture decision (S107): share desktop preference schema/migration/atomic scoped updates with the root CLI and replace global CLI selection/output with invocation dependencies.** OS-owned preference locks coordinate writers and release ownership on process exit; production native credential handling and daemon defaults remain unchanged. Runtime IPC/PID metadata supports fixture identity checks. Round-1 corrections isolate cancellable native credential reads in hidden helpers with private pipes and share bounded Unix process-group drainage. Read-only observation fan-out reuses existing API/authorization and preserves independent target outcomes (Refs #285, #286, #288).
 - **The public website uses go-schedule.io with Cloudflare DNS and GitHub Pages Actions publishing (Refs #278, #279, #280, #282).** README and repository discovery links use the canonical domain, and the temporary legacy Jekyll publisher is retired after replacement delivery.
 - **The README puts installation, first use and project resources first, with linked ShruggieTech attribution (Refs #281, #9).**
 - **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
 
 ### Fixed
+
+- **Operational credential setup now honors cancellation and joins owned native-read helpers (Refs #306).** Partial multi-system results remain available when the native credential service stalls; tokens stay in native storage and private redirected pipes.
+- **Unix fixture cleanup waits for every owned process-group member before removing runtime state (Refs #307).** Signal, probe and cleanup-deadline errors remain visible instead of reporting successful cleanup early.
+- **macOS disposable fixtures use short private socket paths, with early corrective errors for overlong explicit parents (Refs #308).** Identity and path ownership checks remain intact.
 
 - **Removing the final explicit task environment override now persists the clear intent across desktop, shared API and CLI (Refs #287).** Omitted fields remain unchanged and clearing overrides preserves the inherited process environment.
 - **A rejected combined group rename/reparent no longer persists the rename (Refs #304).** Hierarchy validation and the complete update share one store transaction, including notification-condition changes for accepted reparenting.

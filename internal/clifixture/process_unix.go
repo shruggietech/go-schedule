@@ -3,10 +3,12 @@
 package clifixture
 
 import (
-	"errors"
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
+
+	"github.com/shruggietech/go-schedule/internal/processgroup"
 )
 
 func startContained(command Command, input, stdout, stderr *os.File) (*Process, func() error, error) {
@@ -23,12 +25,6 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 		return nil, nil, err
 	}
 	p := &Process{PID: cmd.Process.Pid}
-	p.stop = func() error {
-		err := syscall.Kill(-p.PID, syscall.SIGKILL)
-		if errors.Is(err, syscall.ESRCH) {
-			return nil
-		}
-		return err
-	}
+	p.stop = func() error { return processgroup.Terminate(p.PID, 5*time.Second) }
 	return p, cmd.Wait, nil
 }

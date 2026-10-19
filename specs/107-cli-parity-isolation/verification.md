@@ -4,7 +4,7 @@
 
 2026-10-19: Installed specify, clarify, checklist, plan, tasks and read-only analyze completed. Fourteen functional requirements map to 30 tasks, 100% coverage. No critical/high finding, constitutional conflict or unmapped task. Requirements checklist 15/15 and contract/isolation checklist 13/13 pass. Optional agent-context update applied through the CLAUDE.md plan reference.
 
-Baseline: bae303071d1dd1af050cffb201267052ae58b2c7. Delivery branch: codex/107-cli-parity-isolation. This is local, unreleased implementation. No push, PR, merge, release, public DNS change or installed service operation is part of this handoff.
+Baseline: bae303071d1dd1af050cffb201267052ae58b2c7. Delivery branch: codex/107-cli-parity-isolation. Initial local implementation was published after owner approval as PR #305 at 44535cd336afc63cc539090e14c01295f40a9057. Publication remains limited to this review branch and PR. No merge, release, public DNS change or installed service operation is authorized by this handoff.
 
 ## Functional coverage
 
@@ -17,6 +17,9 @@ Baseline: bae303071d1dd1af050cffb201267052ae58b2c7. Delivery branch: codex/107-c
 | #287 | Explicit shared environment-clear transport used by CLI, desktop and MCP; omission/replacement preserved and conflicting intent rejected before mutation | internal/api/server/environment_clear_test.go, internal/api/client/environment_clear_test.go, internal/remote/environment_clear_test.go, desktop/taskgroup/environment_clear_test.go, internal/mcpmanage/environment_clear_test.go |
 | #288 | Invocation-scoped adapters, explicit IPC selection without fallback, authoritative runtime identity, owned workspace guards, hidden process containment and focused real-handler/package fixtures | internal/cli/invocation_test.go, internal/clifixture tests, test/integration/cli_isolation_test.go |
 | #304 | Rejected combined group rename/reparent leaves persisted state unchanged | internal/cli/group_atomic_test.go |
+| #306 | Cancellation-aware credential setup and joined native-read helpers, preserving successful observations | internal/clientobserve/observe_test.go, internal/clientsecret/context_test.go |
+| #307 | Complete bounded Unix process-group drainage shared by fixtures and native reads | internal/processgroup/terminate_unix_test.go, internal/clifixture/process_test.go |
+| #308 | Usable macOS default IPC placement and early corrective errors for overlong explicit parents | internal/clifixture/workspace_unix_test.go, workspace_test.go, test/integration/cli_isolation_test.go |
 
 All six original issues retain their own functional scope. Issue #304 records the inherited group mutation defect discovered during authoring work. The comprehensive unattended scenario coordinator, Windows/WSL orchestration, fixed report schema and maintainer prompts remain #289/#290; this slice supplies their required command coverage and isolation foundation.
 
@@ -59,4 +62,12 @@ Evidence kinds remain explicit: packaged_cli means an actual CLI executable and 
 
 Daemon and CLI cross-compilation passed for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64 and windows/arm64 using CGO_ENABLED=0, matching the existing CI build matrix. This is compile evidence, not runtime execution on those targets.
 
-The native execution environment is Windows. Unix process-group code has compile evidence only unless a separate execution result is recorded below. No Linux/WSL runtime result is implied by Windows tests or cross-compilation.
+Native execution evidence includes the complete Windows aggregate and the focused Linux/amd64 WSL checks recorded below. macOS runtime and the complete hosted platform matrix are reported separately in PR #305; neither Windows results nor cross-compilation imply those outcomes.
+
+## Publication and review round 1
+
+PR #305 is open in milestone 15. Codex completed round 1 against 44535cd336afc63cc539090e14c01295f40a9057 with two findings, independently tracked as #306 and #307. Hosted macOS race failures exposed the additional socket-placement defect #308. All three records link parent #277 and their original #285/#288 scope. No third review round is authorized.
+
+A new regression reproduced the credential hang in summary, search and cancellation. After context-aware adapter/native-helper changes, Windows race checks pass for clientsecret, clientobserve and CLI; private-pipe success, redacted failure, oversized output rejection and joined cancellation are covered without native keyring access. Unix group-drain contract tests and real owned process-tree tests pass under native Linux/amd64 Go 1.26.4 in WSL Ubuntu 24.04, alongside the affected CLI/observation/credential packages and actual packaged CLI/daemon execution. A WSL resolver cache miss was handled by reading the existing checksum-verified Windows Go module download cache as a file proxy; host DNS and checksum policies were unchanged.
+
+The corrected source completed sh scripts/verify.sh all with exit 0 after all three fixes: format, vet, lint, root race tests, GUI tests/build, coverage, documentation/static export and automation fixtures all pass. Core coverage remains engine 82.9%, schedule 89.1%, timezone 91.3%, store 80.0%, catchup 88.9% and logbus 91.1%. The final placement and response-cap regressions also pass in the renewed Linux/WSL run, including actual packaged CLI/daemon execution. Daemon/CLI cross-compilation passes all six supported targets again. Final metadata-only format and lifecycle checks precede the review-fix commit. No corrected-head hosted result is claimed from these local checks.

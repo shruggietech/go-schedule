@@ -115,7 +115,7 @@ type fakeSecrets struct {
 	loads *atomic.Int32
 }
 
-func (s fakeSecrets) Load(string, string) (string, error) {
+func (s fakeSecrets) LoadContext(context.Context, string, string) (string, error) {
 	if s.loads != nil {
 		s.loads.Add(1)
 	}
@@ -217,5 +217,93 @@ func TestSearchRejectsInvalidRequestBeforeAnyRead(t *testing.T) {
 	_, err := New().Search(context.Background(), []Target{{Client: f}}, SearchRequest{Query: "x", Limit: 51})
 	if !errors.Is(err, ErrInvalid) || f.reads.Load() != 0 {
 		t.Fatalf("err=%v", err)
+	}
+}
+
+// blockedSecrets models the pre-context boundary and its cancellation-aware replacement.
+type blockedSecrets struct {
+	release chan struct{}
+	active  atomic.Int32
+}
+
+func (s *blockedSecrets) Load(string, string) (string, error) {
+	s.active.Add(1)
+	defer s.active.Add(-1)
+	<-s.release
+	return "", context.Canceled
+}
+func (s *blockedSecrets) LoadContext(ctx context.Context, _, _ string) (string, error) {
+	s.active.Add(1)
+	defer s.active.Add(-1)
+	<-ctx.Done()
+	return "", ctx.Err()
+}
+func TestCredentialLookupDeadlinesReleaseAllWorkersAndKeepLocalResult(t *testing.T) {
+	for _, operation := range []string{"summary", "search", "cancel"} {
+		t.Run(operation, func(t *testing.T) {
+			secrets := &blockedSecrets{release: make(chan struct{})}
+			profile := validObservedProfile(t)
+			collection := clientprofile.Collection{Version: clientprofile.CurrentVersion}
+			for i := 0; i < 8; i++ {
+				p := profile
+				p.ID = string(rune('a' + i))
+				collection.Profiles = append(collection.Profiles, p)
+			}
+			localReader := &fakeReader{id: "local", searchResult: domain.DaemonSearch{Schema: domain.DaemonSearchSchema, ObservedAt: time.Now(), Query: "backup"}}
+			targets := Targets(context.Background(), Target{Registration: Registration{Key: "local"}, Client: localReader}, fakeProfiles{value: collection}, secrets, nil)
+			observer := New()
+			observer.Timeout = 20 * time.Millisecond
+			ctx := context.Background()
+			if operation == "cancel" {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
+				defer cancel()
+				observer.Timeout = time.Second
+			}
+			type response struct {
+				snapshot Snapshot
+				err      error
+			}
+			done := make(chan response, 1)
+			go func() {
+				var result Snapshot
+				var err error
+				if operation == "search" {
+					result, err = observer.Search(ctx, targets, SearchRequest{Query: "backup", Limit: 10})
+				} else {
+					result, err = observer.Summary(ctx, targets)
+				}
+				done <- response{result, err}
+			}()
+			select {
+			case got := <-done:
+				close(secrets.release)
+				expected := ErrPartial
+				if operation == "cancel" {
+					expected = context.DeadlineExceeded
+				}
+				if !errors.Is(got.err, expected) || len(got.snapshot.Observations) != 9 || secrets.active.Load() != 0 {
+					t.Fatalf("err=%v observations=%d active=%d", got.err, len(got.snapshot.Observations), secrets.active.Load())
+				}
+				good := 0
+				for _, o := range got.snapshot.Observations {
+					if o.Registration.Key == "local" {
+						if o.Failure != nil {
+							t.Fatal(o.Failure)
+						}
+						good++
+					} else if o.Failure == nil || o.Failure.Code != "timed_out" {
+						t.Fatalf("remote outcome %+v", o)
+					}
+				}
+				if good != 1 {
+					t.Fatal("successful local observation was lost")
+				}
+			case <-time.After(500 * time.Millisecond):
+				close(secrets.release)
+				<-done
+				t.Fatal("credential lookup prevented bounded partial results and worker shutdown")
+			}
+		})
 	}
 }

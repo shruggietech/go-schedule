@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -135,4 +136,8 @@ func TestSavedDesktopDefaultIsLocalPersistenceOnly(t *testing.T) {
 	if err != nil || !strings.Contains(out, "This computer") {
 		t.Fatalf("out=%q err=%v", out, err)
 	}
+}
+
+func (noPreferenceSecrets) LoadContext(context.Context, string, string) (string, error) {
+	return "", errors.New("unexpected credential read")
 }

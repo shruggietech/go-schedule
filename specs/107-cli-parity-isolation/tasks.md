@@ -19,7 +19,7 @@
 **Goal**: #288 complete. **Independent test**: selected packaged fixture and recording host-operation handlers affect only owned resources.
 
 - [x] T007 [US1] Add authoritative IPC/PID runtime metadata and tests in cmd/goschedd and internal/api/server (FR-003).
-- [x] T008 [US1] Add failing containment/identity/process-cleanup tests in internal/clifixture (FR-003, FR-014).
+- [x] T008 [US1] Add failing containment/identity/process-cleanup tests in internal/clifixture (FR-003, FR-014), including bounded Unix group drainage and usable macOS placement (#307, #308).
 - [x] T009 [US1] Implement owned workspace/target guard and Windows job/Unix group supervisor in internal/clifixture (FR-003, FR-014).
 - [x] T010 [US1] Add recording service/secret/GUI adapters, focused real-handler harness and evidence kinds in internal/clifixture and internal/cli (FR-004).
 - [x] T011 [US1] Exercise real packaged CLI and benign task against owned daemon in test/integration/cli_isolation_test.go (FR-003, FR-004, FR-014).
@@ -46,7 +46,7 @@
 **Goal**: #285 complete. **Independent test**: bounded calendar/exact runs, preserved legacy output and successful partial observation.
 
 - [x] T019 [P] [US4] Add observation identity/access/partial-failure/cancellation tests in internal/clientobserve (FR-010).
-- [x] T020 [US4] Implement bounded shared observation helper in internal/clientobserve (FR-010).
+- [x] T020 [US4] Implement bounded shared observation helper in internal/clientobserve (FR-010), including cancellation-aware native credential setup (#306).
 - [x] T021 [US4] Add calendar/runtime/active/exact/detail/log metadata commands and compatibility tests in internal/cli (FR-009).
 - [x] T022 [US4] Add systems summary/search with selected/all-target output and independent errors in internal/cli (FR-010, FR-013).
 

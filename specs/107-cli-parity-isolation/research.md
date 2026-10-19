@@ -33,3 +33,11 @@ Decision: Reuse profile Store.SetActive/Find and ActiveDesktopProfileID. Local a
 Retaining globals fails isolation; importing desktop couples the CLI to Wails; duplicate scheduler/preference implementations drift; a plaintext credential environment switch changes production behavior. All rejected.
 
 Installed /speckit-plan dispatched focused research agents for isolation, views and preferences; no source edits occurred during research. No dependency, owner decision or irreversible ambiguity remains. #289/#290 stay the complete evaluator/report follow-on.
+
+## Publication review, 2026-10-19
+
+Codex round 1 on PR #305 found unbounded credential setup and incomplete Unix descendant drainage (#306/#307). A context-only wrapper around the existing synchronous native read cannot interrupt it; a goroutine wrapper would strand work and violate the termination contract. Native reads therefore run in a hidden owned CLI subprocess with private request/response pipes. Injected adapters expose LoadContext explicitly. The normal keyring backend and persistent credential format remain unchanged.
+
+The cancellation design follows [Go exec CommandContext/Cancel/WaitDelay](https://pkg.go.dev/os/exec). Unix drainage follows the [POSIX kill process-group and null-signal contract](https://pubs.opengroup.org/onlinepubs/009604499/functions/kill.html): signal only the owned group and wait for absence, with bounded errors. The same group lifecycle helper serves fixtures and native reads, including macOS security-tool descendants.
+
+Hosted macOS race failures showed that the default per-user temporary prefix produced an unusable socket (#308). A short private UUID root beneath canonical /private/tmp preserves ownership while fitting the supported socket address. Explicit overlong parents fail before runtime creation.

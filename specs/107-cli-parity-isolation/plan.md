@@ -54,6 +54,10 @@ Source: internal/cli (invocations/commands), internal/api/server and cmd/gosched
 10. Owned fixtures assert installation identity, PID, IPC and effective paths before mutation. Add missing authoritative runtime IPC/PID. Windows job containment must precede child execution; Unix groups are owned, cleanup exact and artifacts retained.
 11. A disposable regression demonstrated that the inherited group API persisted a rename before rejecting a cyclic parent. Fix #304 within the authoring slice using one shared-store transaction; preserve rename-only, parent-only and notification reset semantics.
 
+12. Round-1 review found that context checks around synchronous credential access did not bound it (#306). Require LoadContext for observation adapters and run native reads in a hidden, cancellable CLI helper. Keep tokens exclusively in private redirected pipes; never detach blocking native calls into unjoinable goroutines. Selected-target preflight receives a request deadline too.
+13. Share bounded Unix group termination/drain between fixtures and native-read helpers (#307). Wait for group absence after SIGKILL; preserve runtime and report cleanup failure at the deadline. Windows native reads use the exact helper process handle and do not spawn descendants.
+14. Hosted macOS CI demonstrated oversized default socket paths (#308). Use a private UUID root beneath canonical /private/tmp on macOS and validate explicit Unix placement before creating state.
+
 ## Complexity Tracking
 
 No constitution exception. These small shared components replace global/duplicated behavior; no second scheduler, general test framework or model-service integration.

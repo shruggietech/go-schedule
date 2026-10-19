@@ -34,6 +34,7 @@ type SecretStore interface {
 	Probe() error
 	Save(string, string, string) error
 	Load(string, string) (string, error)
+	LoadContext(context.Context, string, string) (string, error)
 	Delete(string, string) error
 }
 
@@ -171,7 +172,9 @@ func (s *invocation) resolve(cmd *cobra.Command) error {
 	if s.flags.IPCPath == "" && s.flags.Profile == "" && s.flags.Endpoint == "" && s.flags.DaemonID == "" && s.flags.CredentialID == "" && s.flags.CertificateFile == "" && s.deps.Client != nil {
 		return nil
 	}
-	resolved, description, err := resolveTargetWith(cmd.Context(), s.flags, s.deps)
+	ctx, cancel := reqCtx(cmd)
+	defer cancel()
+	resolved, description, err := resolveTargetWith(ctx, s.flags, s.deps)
 	if err != nil {
 		return err
 	}

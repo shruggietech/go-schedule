@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Local review branch `codex/107-cli-parity-isolation` implements #283 through #288 and discovered correction #304. All eight canonical gates and the six-target daemon/CLI build matrix pass. Unreleased and awaiting publication review; see [verification.md](verification.md).
+**Delivery**: [PR #305](https://github.com/shruggietech/go-schedule/pull/305) publishes review branch `codex/107-cli-parity-isolation`, implementing #283 through #288 and corrections #304, #306, #307 and #308. The corrected source passes all eight local canonical gates, the six-target build matrix, and focused native Linux/WSL race and packaged-CLI checks; see [verification.md](verification.md). Hosted CI and Codex review evidence is maintained in the PR. The feature remains unreleased and unmerged.
 
 **Input**: Owner kickoff: run S107 under autopilot with the full six-issue bundle, #283, #284, #285, #286, #287 and #288, stopping before publication. Parent: #277. Baseline: `bae303071d1dd1af050cffb201267052ae58b2c7`.
 

@@ -41,6 +41,11 @@ type Workspace struct {
 func NewWorkspace(parent string) (*Workspace, error) {
 	if parent == "" {
 		parent = os.TempDir()
+		// macOS per-user temporary paths can exceed sockaddr_un capacity.
+		// A UUID directory under canonical /private/tmp remains private and owned.
+		if runtime.GOOS == "darwin" {
+			parent = "/tmp"
+		}
 	}
 	resolved, err := filepath.EvalSymlinks(parent)
 	if err != nil {
@@ -52,6 +57,14 @@ func NewWorkspace(parent string) (*Workspace, error) {
 	}
 	id := uuid.NewString()
 	root := filepath.Join(resolved, "gosched-"+id)
+	socketPath := filepath.Join(root, "runtime", "ipc", "daemon.sock")
+	limit := 108
+	if runtime.GOOS == "darwin" {
+		limit = 104
+	}
+	if runtime.GOOS != "windows" && len([]byte(socketPath)) >= limit {
+		return nil, errors.New("owned IPC path is too long; choose a shorter workspace parent directory")
+	}
 	if err := os.Mkdir(root, 0700); err != nil {
 		return nil, err
 	}
