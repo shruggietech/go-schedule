@@ -6,10 +6,10 @@ nav_order: 3
 # `gosched` command reference
 
 **Audience:** anyone using go-schedule from a terminal\
-**Applies to:** go-schedule 0.7.0 and later; see the release-status note below\
+**Applies to:** current source; see the release-status note below\
 **Source of truth:** `internal/cli/`, this document describes what the binary does. `specs/001-task-scheduler/contracts/cli.md` describes what it must do, and remains a specification artifact.
 
-> **Release status:** dual-syntax `task add` / `task edit` input and `cron convert` are currently unreleased changes planned for the first release after 0.8.0. Existing import, explain, and export workflows remain applicable from 0.7.0.
+> **Release status:** S107 additions are unreleased: explicit local IPC selection, complete authoring/preview, structured notification policies, operational views and headless preferences. Existing features retain their prior release availability; see [the changelog](https://github.com/shruggietech/go-schedule/blob/main/CHANGELOG.md) and the installed binary's help.
 
 `gosched` is a thin client. With no target flags it talks to `goschedd` over protected local IPC, so existing scripts remain local and unchanged. A deliberate `--profile` or complete explicit remote selection uses the same command surface through the authenticated HTTPS allowlist.
 
@@ -24,6 +24,11 @@ nav_order: 3
 - [`bundle`](#bundle)
 - [`mcp`](#mcp)
 - [`task`](#task)
+- [`schedule`](#schedule)
+- [`calendar`](#calendar)
+- [`runtime`](#runtime)
+- [`systems` and `search`](#systems-and-search)
+- [`preferences`](#preferences)
 - [`cron`](#cron)
 - [`group`](#group)
 - [`trigger`](#trigger)
@@ -46,6 +51,7 @@ Times you supply are RFC 3339 (`2026-08-04T09:00:00Z`). Times printed back are R
 
 | Flag | Effect |
 | --- | --- |
+| `--ipc-path PATH` | Explicit local socket or Windows named pipe, incompatible with remote target selection; invalid selectors never fall back (S107). |
 | `--json` | Emit machine-readable JSON instead of the table or summary. Available on every command that produces output. |
 | `--profile ID_OR_LABEL` | Use one saved remote profile for this invocation. Labels must be unambiguous. |
 | `--endpoint`, `--daemon-id`, `--credential-id`, `--certificate-file` | Select one explicit remote target. All four are required together and cannot be combined with `--profile`. |
@@ -53,6 +59,8 @@ Times you supply are RFC 3339 (`2026-08-04T09:00:00Z`). Times printed back are R
 | `-h`, `--help` | Help for any command or subcommand. |
 
 Remote human-mode commands identify the profile, endpoint, and shortened daemon ID on stderr. JSON stdout remains valid command JSON without a diagnostic prefix. Bearer values and pairing phrases are never accepted as target flags.
+
+For a disposable local target, use an absolute Unix socket such as `gosched --ipc-path /tmp/owned-gosched/daemon.sock health`, or a Windows pipe such as `gosched --ipc-path \\.\pipe\gosched-test health`. The socket/pipe must already belong to the daemon you intend to operate. Local preference/profile commands administer user persistence independently of daemon target selection.
 
 ## Remote profiles
 
@@ -153,6 +161,10 @@ Create a complete task or save an incomplete draft. `--schedule` and `--at` are 
 | `--command` | Program or script to run. Omit it to save a non-runnable draft. |
 | `--arg` | An argument to the command. Repeatable; each use adds one argument, so values containing spaces stay intact. |
 | `--cwd` | Working directory for the run. |
+| `--stdin`, `--stdin-file` | Task input as text or UTF-8 file; `--stdin-file -` reads this command's standard input (S107). |
+| `--run-as` | Execution identity supported by the selected daemon's operating system (S107). Unsupported identities return its existing validation error. |
+| `--disabled` | Create disabled in the creation request, without an enabled interval (S107). |
+| `--syntax` | `auto` (default), `human`, or `cron`; explicit selection requires a nonempty `--schedule` (S107). |
 | `--env` | An environment variable as `KEY=VALUE`. Repeatable. |
 | `--group` | Group ID to file the task under. |
 | `--tz` | IANA timezone, e.g. `America/New_York`. Defaults to the system zone. |
@@ -210,7 +222,7 @@ For `wall_clock`, **DST gap** decides whether a nonexistent spring-forward time 
 
 ### `task edit <id>`
 
-Modify a task. Only the fields you pass change; everything else is left alone. The flags are those of `task add`, with two differences worth knowing before you use them:
+Modify a task. Only the fields you pass change; everything else is left alone. The flags are those of `task add`, except disabled creation is not an edit operation.
 
 Pass `--name ""` or `--command ""` to clear that value, and pass `--clear-schedule` to remove automatic timing. Clearing command or the final automatic source disables the task atomically.
 
@@ -221,7 +233,9 @@ Pass `--name ""` or `--command ""` to clear that value, and pass `--clear-schedu
 gosched task edit 6f1c… --schedule "every weekday at 07:00"
 ```
 
-At most one of `--schedule` or `--at` may be given, since they are two ways of answering the same question.
+At most one of `--schedule` or `--at` may be given.
+
+S107 adds `--clear-args`, `--clear-env`, `--clear-cwd`, `--clear-run-as` and `--clear-stdin`. A clear flag cannot be combined with its replacement flag. Clearing environment overrides preserves the inherited base process environment. `--arg ""` remains one empty argument; `--clear-args` removes every argument. `--stdin ""`, `--cwd ""` and `--run-as ""` express their corresponding empty/default intent. `task show --json` includes the persisted execution inputs.
 
 ### `task list`
 
@@ -370,7 +384,16 @@ gosched group add backups
 gosched group add databases --parent 4b2e…
 ```
 
-`--parent` takes a group ID; omit it for a top-level group.
+`--parent` takes a group ID; omit it for a top-level group. S107 adds `--disabled` for atomic inactive creation.
+
+### `group edit <id>`
+
+S107 adds `--name` and `--parent` for direct editing. Use `--parent=` to move to the root, and omit a field to retain it. A group-cycle or missing-parent rejection leaves the entire combined update unchanged.
+
+```sh
+gosched group edit GROUP_ID --name "Nightly jobs" --parent PARENT_ID
+gosched group edit GROUP_ID --parent=
+```
 
 ### `group list`
 
@@ -405,7 +428,10 @@ gosched runs --task 6f1c… --limit 20
 
 The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for a chained execution. `SOURCE TRIGGER` identifies an external trigger without exposing its key. `SOURCE WATCHER` identifies a filesystem watcher without recording its matched path. These columns are `-` when they do not apply. The `EXIT` column is the process exit code, or `-` where there isn't one, a run that never started has no exit code, and printing `0` for it would be a lie.
 
+S107 adds `runs active`, `runs get RUN_ID` and `runs --details`. Detail includes run/task IDs, lifecycle timestamps, captured output/truncation, start failure and source task/run/trigger/watcher correlations. Default history text and JSON arrays retain their formats. `--limit 0` preserves the existing daemon-default query behavior.
+
 ## `trigger`
+
 
 External triggers let a local process request one run through the normal scheduler by presenting one opaque key.
 
@@ -510,7 +536,44 @@ gosched notification channel rm <channel-id>
 
 `--authorization` is write-only and may be visible in shell history, so use the shell's protected input practices when that matters. An empty rotation value clears authorization. `--health-interval 0` disables healthy-presence heartbeats. Condition durations accept Go duration syntax such as `30m` or `2h`; zero disables the condition. Task assignments replace inherited group assignments; otherwise the nearest group with assignments wins. Omitting every `--channel` from `task set` or `group set` clears the direct policy and resumes inheritance. The complete condition, suppression, restart, heartbeat, and receiver contracts are in [Webhook notifications](notifications.md).
 
+S107 adds structured per-destination replacement. Export a canonical request, edit its assignments and reapply it:
+
+```sh
+gosched notification task show TASK_ID --input > policy.json
+gosched notification task set TASK_ID --file policy.json --json
+gosched notification group set GROUP_ID --file -
+```
+
+`--file -` reads standard input. Input is one UTF-8 JSON object of at most 1 MiB, with a required non-null `assignments` array. Unknown fields, trailing values and conflicts with explicitly supplied shorthand flags are rejected. Every replacement is validated before persistence; an invalid/duplicate destination cannot partially replace the existing policy.
+
+```text
+{
+  "assignments": [
+    {
+      "channel_id": "SUCCESS_CHANNEL_ID",
+      "on_success": true,
+      "on_failure": false
+    },
+    {
+      "channel_id": "PROBLEM_CHANNEL_ID",
+      "on_success": false,
+      "on_failure": true,
+      "failure_threshold": 3,
+      "on_failure_to_start": true,
+      "duration_threshold_seconds": 600,
+      "on_recovery": true,
+      "reminder_interval_seconds": 3600,
+      "quiet_period_seconds": 600
+    }
+  ]
+}
+```
+
+Structured duration fields are integer seconds. `{"assignments":[]}` removes the direct policy and resumes inheritance. Canonical export omits database IDs, scope metadata and timestamps while preserving each supported destination condition. Default `show` output remains compatible. `notification task effective` identifies the selected direct/inherited source and each destination's effective conditions.
+
 The Activity view identifies itself as a limited recent view and displays the exact configured path to the daemon's complete rotating JSONL log. Platform install guides list the default locations, but `log_file_path` overrides them; the path reported in Activity is authoritative for the running daemon.
+
+`logs --metadata` (S107) includes the selected daemon's log path; JSON becomes a `logs`/`log_path` envelope. Default JSON remains a bare record array. `logs --limit 0` retains every record available in the bounded ring.
 
 ## `service`
 
@@ -562,3 +625,83 @@ The GUI must be present next to the `gosched` binary. If it is not, a server-onl
 `gosched pairing create <display-name>` creates a ten-minute one-time phrase through protected local IPC. Select `--kind desktop|cli|json|mcp`, `--capability observe|operate|manage|enroll`, and `--grant-duration 1h|24h|7d|30d|non-expiring`. The duration controls the resulting actor after exchange, while the separate ten-minute enrollment deadline limits only the phrase. The command displays the phrase once together with the pairing ID, daemon ID, enrollment expiration, and intended grant expiration; do not place those values in scripts or ordinary shell history.
 
 `gosched pairing list` shows metadata without phrases, and `gosched pairing cancel <pairing-id>` invalidates an active request. `gosched credential list` shows safe fingerprints and lifecycle metadata. `gosched credential rotate <credential-id>` displays one replacement token and immediately invalidates the old value. `gosched credential revoke <credential-id>` revokes both the credential and its actor relationship. Named CLI profiles use `gosched profile pair`, and one invocation selects a saved target with `gosched --profile <id-or-label> <command>`. See [Remote access](remote-access.md) for the complete operator sequence.
+
+## `schedule`
+
+S107 adds non-mutating full-policy preview for human-readable and supported cron expressions. It returns five predicted occurrences using the same evaluator as task creation.
+
+```sh
+gosched schedule preview "every month on the 31st at 09:00" --syntax human --tz America/New_York --missing-date last_valid --time-basis wall_clock --dst-gap skip --dst-overlap both
+gosched schedule preview "0 9 * * 1-5" --syntax cron --tz UTC --json
+```
+
+`--syntax auto|human|cron` defaults to automatic interpretation. Preview accepts `--tz`, `--missing-date`, `--time-basis`, `--dst-gap` and `--dst-overlap` with the same meanings as task authoring. Text labels predictions, syntax, timezone and effective policy; JSON includes the next-run timestamps and policy summary. No task is created or edited.
+
+## `calendar`
+
+S107 adds a window of recorded executions and predicted occurrences. Text labels these separately and includes task/run identity; JSON retains the source occurrence fields.
+
+```sh
+gosched calendar
+gosched calendar --from 2026-10-19T00:00:00Z --to 2026-10-26T00:00:00Z --json
+```
+
+The default interval starts now and ends seven days later. Explicit timestamps require RFC 3339 with a timezone. The end must follow the start by no more than 30 days. Predictions describe intended scheduling; recorded rows describe runs that exist.
+
+## `runtime`
+
+S107 adds local inspection of the connected daemon's actual data, database, configuration, log and lock paths, IPC endpoint and process ID.
+
+```sh
+gosched runtime
+gosched --ipc-path /tmp/owned-gosched/daemon.sock --json runtime
+```
+
+Runtime path inspection is a local API capability. A selected remote target returns explicit unavailable guidance; the command never substitutes paths from this computer for remote data.
+
+## `systems` and `search`
+
+S107 adds identified operational summaries and search. Commands use the selected target by default; `--all` explicitly includes the local target and every saved registration.
+
+```sh
+gosched systems summary
+gosched --profile production systems summary --json
+gosched systems summary --all --json
+gosched search "nightly" --kind task,group --limit 20
+gosched systems search "failure" --all --kind failure,alert --json
+```
+
+Search kinds are `task`, `group`, `failure`, `schedule` and `alert`. Query text contains 1 through 200 characters, and `--limit` allows 1 through 50 results per scheduler. Results identify the registration, endpoint, expected/observed daemon identity and observation time. Summaries include active-task, recent-failure, unacknowledged-alert and notification-problem information.
+
+At most four targets are observed concurrently, each with a five-second deadline inside the command's ten-second request deadline. Saved credentials resolve only when that target's worker runs. TLS, identity and current Observe authority are checked before feature reads. Native credential access uses the existing operating-system API, with cancellation checked before and after that call.
+
+One failed target does not discard another target's successful response. JSON contains independent observations and failures; partial failure returns nonzero after writing usable results. `--all` cannot be combined with remote target flags. An explicit `--ipc-path` can select the local fixture included in an all-system query.
+
+## `preferences`
+
+S107 adds headless read, partial update and explicitly scoped reset of the desktop's durable appearance and popup choices.
+
+```sh
+gosched preferences show --json
+gosched preferences set --appearance dark --popup-enabled=true
+gosched preferences set --popup-conditions failure,alert --popup-severities warning,error
+gosched preferences set --popup-daemons DAEMON_ID
+gosched preferences set --popup-daemons=
+gosched preferences reset --scope appearance
+gosched preferences reset --scope popups
+gosched preferences reset --scope all
+```
+
+Appearance accepts `system`, `light` or `dark`. Popup conditions accept `failure`, `success` and `alert`; severities accept `info`, `warning` and `error`. Empty source-daemon filters include all registered schedulers. Omitted fields remain unchanged; invalid input leaves the document unchanged. Condition/severity lists remain nonempty even while delivery is disabled.
+
+The CLI and desktop share the version-1 schema, legacy migration, defaults, validation and atomic persistence. Concurrent writers coordinate scoped edits so an appearance change does not overwrite popup choices. Output identifies the user and file path; JSON contains `user`, `path` and `preferences`. Commands do not need a daemon, open the desktop, emit a popup or change daemon webhook policies. `reset --scope all` also repairs an unreadable preference document.
+
+The saved desktop startup connection is separate:
+
+```sh
+gosched profile default show --json
+gosched profile default set production
+gosched profile default reset
+```
+
+The next desktop startup reads that choice; resetting selects this computer. These commands use existing registrations without reading native credentials or contacting a daemon. Per-invocation `--profile` and the ordinary CLI local default retain their existing meanings.

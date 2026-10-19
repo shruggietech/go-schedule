@@ -3,7 +3,6 @@ package cli
 import (
 	"errors"
 	"fmt"
-	"os"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -21,21 +20,21 @@ func newTriggerCmd() *cobra.Command {
 func triggerCreate() *cobra.Command {
 	var name, target string
 	var disabled bool
-	cmd := &cobra.Command{Use: "create", Short: "Create an external trigger", Args: cobra.NoArgs, RunE: func(_ *cobra.Command, _ []string) error {
+	cmd := &cobra.Command{Use: "create", Short: "Create an external trigger", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if name == "" || target == "" {
 			return fmtUsage("--name and --task are required")
 		}
 		enabled := !disabled
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		result, err := newClient().CreateTrigger(ctx, server.TriggerCreateRequest{Name: name, TargetTaskID: target, Enabled: &enabled})
+		result, err := clientFor(cmd).CreateTrigger(ctx, server.TriggerCreateRequest{Name: name, TargetTaskID: target, Enabled: &enabled})
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(result)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), result)
 		}
-		fmt.Fprintf(os.Stdout, "created trigger %s\nkey: %s\ncommand: %s\n", result.Trigger.ID, result.Key, result.Command)
+		fmt.Fprintf(cmd.OutOrStdout(), "created trigger %s\nkey: %s\ncommand: %s\n", result.Trigger.ID, result.Key, result.Command)
 		return nil
 	}}
 	cmd.Flags().StringVar(&name, "name", "", "trigger name")
@@ -45,17 +44,17 @@ func triggerCreate() *cobra.Command {
 }
 
 func triggerList() *cobra.Command {
-	return &cobra.Command{Use: "list", Short: "List external triggers", Args: cobra.NoArgs, RunE: func(_ *cobra.Command, _ []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "list", Short: "List external triggers", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		items, err := newClient().ListTriggers(ctx)
+		items, err := clientFor(cmd).ListTriggers(ctx)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(items)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), items)
 		}
-		tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+		tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 		fmt.Fprintln(tw, "ID\tNAME\tSET\tPOSITION\tTARGET\tENABLED\tREADINESS")
 		for _, item := range items {
 			setName, position := "Standalone", "-"
@@ -70,32 +69,32 @@ func triggerList() *cobra.Command {
 
 func triggerShow() *cobra.Command {
 	var reveal bool
-	cmd := &cobra.Command{Use: "show <trigger-id>", Short: "Show an external trigger", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	cmd := &cobra.Command{Use: "show <trigger-id>", Short: "Show an external trigger", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		if reveal {
-			result, err := newClient().RevealTrigger(ctx, args[0])
+			result, err := clientFor(cmd).RevealTrigger(ctx, args[0])
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(result)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), result)
 			}
-			fmt.Fprintf(os.Stdout, "%s\nname: %s\ntarget: %s (%s)\nenabled: %t\nreadiness: %s\nkey: %s\ncommand: %s\n", result.Trigger.ID, result.Trigger.Name, result.Trigger.TargetTaskName, result.Trigger.TargetTaskID, result.Trigger.Enabled, result.Trigger.Readiness, result.Key, result.Command)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\nname: %s\ntarget: %s (%s)\nenabled: %t\nreadiness: %s\nkey: %s\ncommand: %s\n", result.Trigger.ID, result.Trigger.Name, result.Trigger.TargetTaskName, result.Trigger.TargetTaskID, result.Trigger.Enabled, result.Trigger.Readiness, result.Key, result.Command)
 			return nil
 		}
-		item, err := newClient().GetTrigger(ctx, args[0])
+		item, err := clientFor(cmd).GetTrigger(ctx, args[0])
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(item)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), item)
 		}
 		setName, position := "Standalone", "-"
 		if item.SetID != "" {
 			setName, position = item.SetName, fmt.Sprintf("%d", item.SetPosition)
 		}
-		fmt.Fprintf(os.Stdout, "%s\nname: %s\nset: %s\nposition: %s\ntarget: %s (%s)\nenabled: %t\nreadiness: %s\n", item.ID, item.Name, setName, position, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Readiness)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s\nname: %s\nset: %s\nposition: %s\ntarget: %s (%s)\nenabled: %t\nreadiness: %s\n", item.ID, item.Name, setName, position, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Readiness)
 		return nil
 	}}
 	cmd.Flags().BoolVar(&reveal, "reveal-key", false, "include the sensitive trigger key")
@@ -121,16 +120,16 @@ func triggerUpdate() *cobra.Command {
 		if req.Name == nil && req.TargetTaskID == nil {
 			return fmtUsage("provide --name or --task")
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		item, err := newClient().UpdateTrigger(ctx, args[0], req)
+		item, err := clientFor(cmd).UpdateTrigger(ctx, args[0], req)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(item)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), item)
 		}
-		fmt.Fprintf(os.Stdout, "updated trigger %s\n", item.ID)
+		fmt.Fprintf(cmd.OutOrStdout(), "updated trigger %s\n", item.ID)
 		return nil
 	}}
 	cmd.Flags().StringVar(&name, "name", "", "trigger name")
@@ -143,70 +142,70 @@ func triggerSetEnabled(enabled bool) *cobra.Command {
 	if enabled {
 		action, past = "enable", "enabled"
 	}
-	return &cobra.Command{Use: action + " <trigger-id>", Short: action + " an external trigger", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: action + " <trigger-id>", Short: action + " an external trigger", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		item, err := newClient().SetTriggerEnabled(ctx, args[0], enabled)
+		item, err := clientFor(cmd).SetTriggerEnabled(ctx, args[0], enabled)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(item)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), item)
 		}
-		fmt.Fprintf(os.Stdout, "%s trigger %s\n", past, item.ID)
+		fmt.Fprintf(cmd.OutOrStdout(), "%s trigger %s\n", past, item.ID)
 		return nil
 	}}
 }
 
 func triggerRotate() *cobra.Command {
-	return &cobra.Command{Use: "rotate <trigger-id>", Short: "Replace an external trigger key", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "rotate <trigger-id>", Short: "Replace an external trigger key", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		result, err := newClient().RotateTrigger(ctx, args[0])
+		result, err := clientFor(cmd).RotateTrigger(ctx, args[0])
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(result)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), result)
 		}
-		fmt.Fprintf(os.Stdout, "rotated trigger %s\nkey: %s\ncommand: %s\n", result.Trigger.ID, result.Key, result.Command)
+		fmt.Fprintf(cmd.OutOrStdout(), "rotated trigger %s\nkey: %s\ncommand: %s\n", result.Trigger.ID, result.Key, result.Command)
 		return nil
 	}}
 }
 
 func triggerRemove() *cobra.Command {
-	return &cobra.Command{Use: "rm <trigger-id>", Short: "Delete an external trigger", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "rm <trigger-id>", Short: "Delete an external trigger", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		if err := newClient().DeleteTrigger(ctx, args[0]); err != nil {
+		if err := clientFor(cmd).DeleteTrigger(ctx, args[0]); err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(map[string]string{"id": args[0], "status": "deleted"})
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), map[string]string{"id": args[0], "status": "deleted"})
 		}
-		fmt.Fprintf(os.Stdout, "deleted trigger %s\n", args[0])
+		fmt.Fprintf(cmd.OutOrStdout(), "deleted trigger %s\n", args[0])
 		return nil
 	}}
 }
 
 func triggerFire() *cobra.Command {
-	return &cobra.Command{Use: "fire <key>", Short: "Invoke an external trigger", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "fire <key>", Short: "Invoke an external trigger", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		if err := newClient().FireTrigger(ctx, args[0]); err != nil {
+		if err := clientFor(cmd).FireTrigger(ctx, args[0]); err != nil {
 			var status *client.StatusError
-			if jsonOut && errors.As(err, &status) {
-				if printErr := printJSONTo(os.Stderr, server.APIError{Error: server.ErrorBody{Code: status.Code, Field: status.Field, Message: status.Message}}); printErr != nil {
+			if jsonOutput(cmd) && errors.As(err, &status) {
+				if printErr := printJSONTo(cmd.ErrOrStderr(), server.APIError{Error: server.ErrorBody{Code: status.Code, Field: status.Field, Message: status.Message}}); printErr != nil {
 					return printErr
 				}
 				return reported(err)
 			}
 			return err
 		}
-		if jsonOut {
-			return printJSON(map[string]string{"status": "accepted"})
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), map[string]string{"status": "accepted"})
 		}
-		fmt.Fprintln(os.Stdout, "trigger accepted")
+		fmt.Fprintln(cmd.OutOrStdout(), "trigger accepted")
 		return nil
 	}}
 }

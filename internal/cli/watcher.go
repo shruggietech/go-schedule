@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -20,15 +19,15 @@ func newWatcherCmd() *cobra.Command {
 func newWatcherCreateCmd() *cobra.Command {
 	var req server.FilesystemWatcherCreateRequest
 	var enabled bool
-	cmd := &cobra.Command{Use: "create", Short: "Create a filesystem watcher", Args: cobra.NoArgs, RunE: func(_ *cobra.Command, _ []string) error {
+	cmd := &cobra.Command{Use: "create", Short: "Create a filesystem watcher", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		req.Enabled = &enabled
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		result, err := newClient().CreateFilesystemWatcher(ctx, req)
+		result, err := clientFor(cmd).CreateFilesystemWatcher(ctx, req)
 		if err != nil {
 			return err
 		}
-		return printWatcher(result)
+		return printWatcher(cmd, result)
 	}}
 	cmd.Flags().StringVar(&req.Name, "name", "", "watcher name")
 	cmd.Flags().Var((*watcherKindValue)(&req.Kind), "kind", "file or directory")
@@ -60,32 +59,32 @@ func (value *watcherKindValue) Set(raw string) error {
 }
 
 func newWatcherListCmd() *cobra.Command {
-	return &cobra.Command{Use: "list", Short: "List filesystem watchers", Args: cobra.NoArgs, RunE: func(_ *cobra.Command, _ []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "list", Short: "List filesystem watchers", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		items, err := newClient().ListFilesystemWatchers(ctx)
+		items, err := clientFor(cmd).ListFilesystemWatchers(ctx)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
-			return printJSON(items)
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), items)
 		}
 		for _, item := range items {
-			fmt.Fprintf(os.Stdout, "%s\t%s\t%s\t%s\t%s\n", item.ID, item.Name, item.Kind, item.Readiness, item.Path)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\t%s\n", item.ID, item.Name, item.Kind, item.Readiness, item.Path)
 		}
 		return nil
 	}}
 }
 
 func newWatcherShowCmd() *cobra.Command {
-	return &cobra.Command{Use: "show <watcher-id>", Short: "Show a filesystem watcher", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "show <watcher-id>", Short: "Show a filesystem watcher", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		item, err := newClient().GetFilesystemWatcher(ctx, args[0])
+		item, err := clientFor(cmd).GetFilesystemWatcher(ctx, args[0])
 		if err != nil {
 			return err
 		}
-		return printWatcher(item)
+		return printWatcher(cmd, item)
 	}}
 }
 
@@ -119,13 +118,13 @@ func newWatcherUpdateCmd() *cobra.Command {
 		if cmd.Flags().Changed("task") {
 			req.TargetTaskID = &task
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		item, err := newClient().UpdateFilesystemWatcher(ctx, args[0], req)
+		item, err := clientFor(cmd).UpdateFilesystemWatcher(ctx, args[0], req)
 		if err != nil {
 			return err
 		}
-		return printWatcher(item)
+		return printWatcher(cmd, item)
 	}}
 	cmd.Flags().StringVar(&name, "name", "", "watcher name")
 	cmd.Flags().Var((*watcherKindValue)(&kind), "kind", "file or directory")
@@ -143,30 +142,30 @@ func newWatcherEnabledCmd(enabled bool) *cobra.Command {
 	if enabled {
 		action = "enable"
 	}
-	return &cobra.Command{Use: action + " <watcher-id>", Short: action + " a filesystem watcher", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: action + " <watcher-id>", Short: action + " a filesystem watcher", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		item, err := newClient().SetFilesystemWatcherEnabled(ctx, args[0], enabled)
+		item, err := clientFor(cmd).SetFilesystemWatcherEnabled(ctx, args[0], enabled)
 		if err != nil {
 			return err
 		}
-		return printWatcher(item)
+		return printWatcher(cmd, item)
 	}}
 }
 
 func newWatcherDeleteCmd() *cobra.Command {
-	return &cobra.Command{Use: "rm <watcher-id>", Short: "Delete a filesystem watcher", Args: cobra.ExactArgs(1), RunE: func(_ *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+	return &cobra.Command{Use: "rm <watcher-id>", Short: "Delete a filesystem watcher", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		return newClient().DeleteFilesystemWatcher(ctx, args[0])
+		return clientFor(cmd).DeleteFilesystemWatcher(ctx, args[0])
 	}}
 }
 
-func printWatcher(item server.FilesystemWatcherResponse) error {
-	if jsonOut {
-		return printJSON(item)
+func printWatcher(cmd *cobra.Command, item server.FilesystemWatcherResponse) error {
+	if jsonOutput(cmd) {
+		return printJSONTo(cmd.OutOrStdout(), item)
 	}
-	return printWatcherTo(os.Stdout, item)
+	return printWatcherTo(cmd.OutOrStdout(), item)
 }
 
 func printWatcherTo(output io.Writer, item server.FilesystemWatcherResponse) error {

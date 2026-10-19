@@ -84,21 +84,13 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON")
 		return
 	}
-	if _, err := s.store.GetGroup(id); err != nil {
-		s.notFoundOr(w, err)
-		return
-	}
+	var name *string
 	if req.Name != "" {
-		if err := s.store.RenameGroup(id, req.Name); err != nil {
-			s.internal(w, err)
-			return
-		}
+		name = &req.Name
 	}
-	if req.Parent != nil {
-		if err := s.store.SetGroupParent(id, *req.Parent); err != nil {
-			s.groupErr(w, err)
-			return
-		}
+	if err := s.store.UpdateGroup(id, name, req.Parent); err != nil {
+		s.groupErr(w, err)
+		return
 	}
 	s.reload()
 	g, err := s.store.GetGroup(id)

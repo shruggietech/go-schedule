@@ -12,6 +12,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/internal/userprefs"
 )
 
 const unavailableMessage = "Desktop settings are unavailable. Check access to the user configuration directory, then try again."
@@ -69,12 +70,12 @@ func (s *Service) SaveAppearance(ctx context.Context, value string) Result {
 	if !validAppearance(appearance) {
 		return Result{Action: "save_appearance", Outcome: "rejected", Message: "Choose System, Light, or Dark appearance."}
 	}
-	prefs, err := loadPreferences(s.deps)
+	store, err := preferenceStore(s.deps)
 	if err != nil {
 		return Result{Action: "save_appearance", Outcome: "unavailable", Message: unavailableMessage}
 	}
-	prefs.Appearance = appearance
-	if err := writePreferences(s.deps, prefs); err != nil {
+	prefs, err := store.Patch(userprefs.Patch{Appearance: &appearance})
+	if err != nil {
 		return Result{Action: "save_appearance", Outcome: "unavailable", Message: unavailableMessage}
 	}
 	workspace := s.workspaceWithPreferences(ctx, prefs)
@@ -96,12 +97,12 @@ func (s *Service) SavePopups(ctx context.Context, value PopupPreferences) Result
 	if err := validatePopupPreferences(value); err != nil {
 		return Result{Action: "save_popups", Outcome: "rejected", Message: err.Error()}
 	}
-	prefs, err := loadPreferences(s.deps)
+	store, err := preferenceStore(s.deps)
 	if err != nil {
 		return Result{Action: "save_popups", Outcome: "unavailable", Message: unavailableMessage}
 	}
-	prefs.Popups = value
-	if err := writePreferences(s.deps, prefs); err != nil {
+	prefs, err := store.Patch(userprefs.Patch{PopupEnabled: &value.Enabled, PopupConditions: &value.Conditions, PopupSeverities: &value.Severities, PopupDaemonIDs: &value.DaemonIDs})
+	if err != nil {
 		return Result{Action: "save_popups", Outcome: "unavailable", Message: unavailableMessage}
 	}
 	workspace := s.workspaceWithPreferences(ctx, prefs)
@@ -112,8 +113,12 @@ func (s *Service) SavePopups(ctx context.Context, value PopupPreferences) Result
 func (s *Service) Restore(ctx context.Context) Result {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	prefs := DesktopPreferences{Version: CurrentPreferenceVersion, Appearance: AppearanceSystem, Transition: PreferenceTransition{Status: "not_required", Retired: append([]string(nil), retiredPreferenceKeys...)}, Popups: DefaultPopupPreferences()}
-	if err := writePreferences(s.deps, prefs); err != nil {
+	store, err := preferenceStore(s.deps)
+	if err != nil {
+		return Result{Action: "restore_preferences", Outcome: "unavailable", Message: unavailableMessage}
+	}
+	prefs, err := store.Reset("all")
+	if err != nil {
 		return Result{Action: "restore_preferences", Outcome: "unavailable", Message: unavailableMessage}
 	}
 	workspace := s.workspaceWithPreferences(ctx, prefs)

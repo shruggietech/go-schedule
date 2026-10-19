@@ -58,11 +58,9 @@ func TestDaemonCommandsExposeManifestRenameAndReset(t *testing.T) {
 
 func TestDaemonManifestSupportsJSONAndValidation(t *testing.T) {
 	fake := &daemonIdentityClientFake{manifest: server.ManifestResponse{InstallationID: "daemon-1"}}
-	oldJSON := jsonOut
-	jsonOut = true
-	defer func() { jsonOut = oldJSON }()
 	var output bytes.Buffer
 	cmd := newDaemonCmdWithClient(fake)
+	stateFor(cmd).json = true
 	cmd.SetOut(&output)
 	cmd.SetArgs([]string{"manifest"})
 	if err := cmd.Execute(); err != nil {
@@ -71,7 +69,6 @@ func TestDaemonManifestSupportsJSONAndValidation(t *testing.T) {
 	if !strings.Contains(output.String(), `"installation_id": "daemon-1"`) {
 		t.Fatalf("JSON output = %q", output.String())
 	}
-	jsonOut = false
 	for _, args := range [][]string{{"rename", ""}, {"reset-identity"}} {
 		cmd := newDaemonCmdWithClient(fake)
 		cmd.SetArgs(args)

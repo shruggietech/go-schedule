@@ -384,6 +384,7 @@ components:
         clear_name: {type: boolean}
         clear_command: {type: boolean}
         clear_working_dir: {type: boolean}
+        clear_env: {type: boolean, description: Remove task overrides while retaining the inherited process environment.}
         clear_run_as: {type: boolean}
         clear_schedule: {type: boolean}
     TaskList:

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/userprefs"
 )
 
 type fakeBackend struct {
@@ -102,6 +103,31 @@ func TestPopupPreferencesPersistAndRestoreDisabled(t *testing.T) {
 	defaultAgain, err := reloaded.PopupPreferences()
 	if err != nil || defaultAgain.Enabled || len(defaultAgain.DaemonIDs) != 0 {
 		t.Fatalf("restore: %+v %v", defaultAgain, err)
+	}
+}
+
+func TestSharedPreferenceStoreAndDesktopConvergeWithoutNativeActions(t *testing.T) {
+	deps := testDependencies(t)
+	native := &fakeNative{}
+	service := NewServiceWithDependencies(nil, native, deps)
+	store := userprefs.NewStore(userprefs.Options{Path: deps.Paths.Preferences, LegacyPath: deps.Paths.LegacyPreferences})
+	dark, enabled := userprefs.AppearanceDark, true
+	if _, err := store.Patch(userprefs.Patch{Appearance: &dark, PopupEnabled: &enabled}); err != nil {
+		t.Fatal(err)
+	}
+	workspace := service.Workspace(context.Background())
+	if workspace.Outcome != "accepted" || workspace.Workspace.Preferences.Appearance != AppearanceDark || !workspace.Workspace.Preferences.Popups.Enabled {
+		t.Fatalf("desktop did not read shared mutation: %+v", workspace)
+	}
+	if result := service.SaveAppearance(context.Background(), "light"); result.Outcome != "accepted" {
+		t.Fatal(result)
+	}
+	prefs, err := store.Load()
+	if err != nil || prefs.Appearance != userprefs.AppearanceLight || !prefs.Popups.Enabled {
+		t.Fatalf("desktop update lost shared popup setting: %+v %v", prefs, err)
+	}
+	if native.copied != "" || native.opened != "" {
+		t.Fatal("preference mutation invoked a native action")
 	}
 }
 

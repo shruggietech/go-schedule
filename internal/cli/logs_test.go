@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
@@ -24,6 +25,19 @@ func TestWriteLogsJSONPreservesBareArray(t *testing.T) {
 	}
 	if strings.Contains(got, `"logs"`) || strings.Contains(got, `"log_path"`) {
 		t.Fatalf("JSON output leaked response envelope: %s", got)
+	}
+}
+
+func TestLogsMetadataIsOptInAndKeepsRecords(t *testing.T) {
+	var out bytes.Buffer
+	response := server.LogsResponse{LogPath: "owned/log.jsonl", Logs: []domain.LogRecord{{ID: "entry-1", Message: "ready"}}}
+	if err := writeLogsMetadata(&out, response, true); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"logs"`, `"log_path": "owned/log.jsonl"`, `"entry-1"`} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("missing %s in %s", want, out.String())
+		}
 	}
 }
 

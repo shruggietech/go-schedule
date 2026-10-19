@@ -155,7 +155,7 @@ func (input TaskCreate) request() server.TaskCreateRequest {
 func (input TaskUpdate) request() server.TaskUpdateRequest {
 	request := server.TaskUpdateRequest{Name: input.Name, GroupID: input.GroupID, Command: input.Command, Args: input.Args, WorkingDir: input.WorkingDir, RunAs: input.RunAs, Timezone: input.Timezone, Schedule: input.Schedule, ScheduleSyntax: input.ScheduleSyntax, At: input.At, OverlapPolicy: input.OverlapPolicy, CatchupPolicy: input.CatchupPolicy, MissingDatePolicy: input.MissingDatePolicy, TimeBasis: input.TimeBasis, DSTGapPolicy: input.DSTGapPolicy, DSTOverlapPolicy: input.DSTOverlapPolicy, ClearName: input.ClearName, ClearCommand: input.ClearCommand, ClearWorkingDir: input.ClearWorkingDir, ClearRunAs: input.ClearRunAs, ClearSchedule: input.ClearSchedule}
 	if input.ClearSensitive {
-		request.Env = map[string]string{}
+		request.ClearEnv = true
 		empty := ""
 		request.Stdin = &empty
 	}

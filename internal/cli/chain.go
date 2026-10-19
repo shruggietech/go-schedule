@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -22,20 +21,20 @@ func chainCreate() *cobra.Command {
 		Use:   "create",
 		Short: "Create a task-completion chain",
 		Args:  cobra.NoArgs,
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := validateChainFlags(source, target, outcome); err != nil {
 				return err
 			}
-			ctx, cancel := reqCtx()
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			chain, err := newClient().CreateChain(ctx, server.ChainCreateRequest{SourceTaskID: source, TargetTaskID: target, OnOutcome: outcome})
+			chain, err := clientFor(cmd).CreateChain(ctx, server.ChainCreateRequest{SourceTaskID: source, TargetTaskID: target, OnOutcome: outcome})
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(chain)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), chain)
 			}
-			fmt.Fprintf(os.Stdout, "created chain %s: %s (%s) -> %s (%s) on %s\n", chain.ID, chain.SourceTaskName, chain.SourceTaskID, chain.TargetTaskName, chain.TargetTaskID, chain.OnOutcome)
+			fmt.Fprintf(cmd.OutOrStdout(), "created chain %s: %s (%s) -> %s (%s) on %s\n", chain.ID, chain.SourceTaskName, chain.SourceTaskID, chain.TargetTaskName, chain.TargetTaskID, chain.OnOutcome)
 			return nil
 		},
 	}
@@ -48,17 +47,17 @@ func chainList() *cobra.Command {
 		Use:   "list",
 		Short: "List task-completion chains",
 		Args:  cobra.NoArgs,
-		RunE: func(_ *cobra.Command, _ []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			chains, err := newClient().ListChains(ctx)
+			chains, err := clientFor(cmd).ListChains(ctx)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(chains)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), chains)
 			}
-			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+			tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 			fmt.Fprintln(tw, "ID\tSOURCE\tTARGET\tON")
 			for _, chain := range chains {
 				fmt.Fprintf(tw, "%s\t%s (%s)\t%s (%s)\t%s\n", chain.ID, chain.SourceTaskName, chain.SourceTaskID, chain.TargetTaskName, chain.TargetTaskID, chain.OnOutcome)
@@ -71,17 +70,17 @@ func chainList() *cobra.Command {
 func chainShow() *cobra.Command {
 	return &cobra.Command{
 		Use: "show <chain-id>", Short: "Show a task-completion chain", Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			chain, err := newClient().GetChain(ctx, args[0])
+			chain, err := clientFor(cmd).GetChain(ctx, args[0])
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(chain)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), chain)
 			}
-			fmt.Fprintf(os.Stdout, "%s\nsource: %s (%s)\ntarget: %s (%s)\non: %s\n", chain.ID, chain.SourceTaskName, chain.SourceTaskID, chain.TargetTaskName, chain.TargetTaskID, chain.OnOutcome)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s\nsource: %s (%s)\ntarget: %s (%s)\non: %s\n", chain.ID, chain.SourceTaskName, chain.SourceTaskID, chain.TargetTaskName, chain.TargetTaskID, chain.OnOutcome)
 			return nil
 		},
 	}
@@ -114,16 +113,16 @@ func chainUpdate() *cobra.Command {
 			if request.SourceTaskID == nil && request.TargetTaskID == nil && request.OnOutcome == nil {
 				return fmtUsage("provide at least one of --source, --target, or --on")
 			}
-			ctx, cancel := reqCtx()
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			chain, err := newClient().UpdateChain(ctx, args[0], request)
+			chain, err := clientFor(cmd).UpdateChain(ctx, args[0], request)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(chain)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), chain)
 			}
-			fmt.Fprintf(os.Stdout, "updated chain %s\n", chain.ID)
+			fmt.Fprintf(cmd.OutOrStdout(), "updated chain %s\n", chain.ID)
 			return nil
 		},
 	}
@@ -134,13 +133,13 @@ func chainUpdate() *cobra.Command {
 func chainRemove() *cobra.Command {
 	return &cobra.Command{
 		Use: "rm <chain-id>", Short: "Delete a task-completion chain", Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			if err := newClient().DeleteChain(ctx, args[0]); err != nil {
+			if err := clientFor(cmd).DeleteChain(ctx, args[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "deleted chain %s\n", args[0])
+			fmt.Fprintf(cmd.OutOrStdout(), "deleted chain %s\n", args[0])
 			return nil
 		},
 	}

@@ -8,9 +8,6 @@ import (
 )
 
 func TestPrintTriggerSetSecretIsOrderedOneCommandPerLine(t *testing.T) {
-	old := jsonOut
-	jsonOut = false
-	defer func() { jsonOut = old }()
 	var out bytes.Buffer
 	result := server.TriggerSetSecretResponse{Members: []server.TriggerSetSecretMember{{Position: 1, Command: "gosched trigger fire first"}, {Position: 3, Command: "gosched trigger fire third"}}}
 	if err := printTriggerSetSecret(&out, result); err != nil {

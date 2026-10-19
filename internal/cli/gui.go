@@ -13,25 +13,35 @@ import (
 )
 
 func newGUICmd() *cobra.Command {
-	return &cobra.Command{
+	command := &cobra.Command{
 		Use:   "gui",
 		Short: "Launch the desktop GUI (no console window)",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			bin, err := guiPath()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			bin, err := stateFor(cmd).deps.GUIPath()
 			if err != nil {
 				return err
 			}
-			cmd := exec.Command(bin)
-			platform.HideConsole(cmd) // no console window for the GUI process
-			if err := cmd.Start(); err != nil {
+			if err := stateFor(cmd).deps.LaunchGUI(bin); err != nil {
 				return fmt.Errorf("launch gui: %w", err)
 			}
-			// Detach: don't wait for the GUI to exit.
-			_ = cmd.Process.Release()
-			fmt.Fprintln(os.Stdout, "launched gosched-gui")
+			fmt.Fprintln(cmd.OutOrStdout(), "launched gosched-gui")
 			return nil
 		},
 	}
+	MarkLocal(command)
+	return command
+}
+
+func launchGUI(bin string) error {
+	cmd := exec.Command(bin)
+	platform.HideConsole(cmd)
+	cmd.Stdin = nil
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
 }
 
 func guiPath() (string, error) {

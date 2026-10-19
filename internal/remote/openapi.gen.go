@@ -904,10 +904,13 @@ type TaskObservation struct {
 
 // TaskUpdateRequest defines model for TaskUpdateRequest.
 type TaskUpdateRequest struct {
-	Args              *[]string                           `json:"args,omitempty"`
-	At                *time.Time                          `json:"at,omitempty"`
-	CatchupPolicy     *TaskUpdateRequestCatchupPolicy     `json:"catchup_policy,omitempty"`
-	ClearCommand      *bool                               `json:"clear_command,omitempty"`
+	Args          *[]string                       `json:"args,omitempty"`
+	At            *time.Time                      `json:"at,omitempty"`
+	CatchupPolicy *TaskUpdateRequestCatchupPolicy `json:"catchup_policy,omitempty"`
+	ClearCommand  *bool                           `json:"clear_command,omitempty"`
+
+	// ClearEnv Remove task overrides while retaining the inherited process environment.
+	ClearEnv          *bool                               `json:"clear_env,omitempty"`
 	ClearName         *bool                               `json:"clear_name,omitempty"`
 	ClearRunAs        *bool                               `json:"clear_run_as,omitempty"`
 	ClearSchedule     *bool                               `json:"clear_schedule,omitempty"`
@@ -1182,19 +1185,19 @@ type ClientInterface interface {
 
 	// BundlesExport performs a GET /bundles/export (the `BundlesExport` operationId) request.
 	//
-	// Returns a versioned secret-free portable automation document.
+	// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
 	BundlesExport(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// Creates a short-lived target-bound plan without target mutation.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 	BundlesPreviewWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BundlesPreview performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 	// Takes a body of the `application/json` content type.
 	//
-	// Creates a short-lived target-bound plan without target mutation.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 	BundlesPreview(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BundlesValidateWithBody performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
@@ -1424,7 +1427,7 @@ func (c *Client) BundlesCompare(ctx context.Context, body BundlesCompareJSONRequ
 
 // BundlesExport performs a GET /bundles/export (the `BundlesExport` operationId) request.
 //
-// Returns a versioned secret-free portable automation document.
+// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
 func (c *Client) BundlesExport(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBundlesExportRequest(c.Server)
 	if err != nil {
@@ -1440,7 +1443,7 @@ func (c *Client) BundlesExport(ctx context.Context, reqEditors ...RequestEditorF
 // BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 // with any type of body and a specified content type.
 //
-// Creates a short-lived target-bound plan without target mutation.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 func (c *Client) BundlesPreviewWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBundlesPreviewRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -1456,7 +1459,7 @@ func (c *Client) BundlesPreviewWithBody(ctx context.Context, contentType string,
 // BundlesPreview performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 // Takes a body of the `application/json` content type.
 //
-// Creates a short-lived target-bound plan without target mutation.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 func (c *Client) BundlesPreview(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBundlesPreviewRequest(c.Server, body)
 	if err != nil {
@@ -3290,7 +3293,7 @@ type ClientWithResponsesInterface interface {
 
 	// BundlesExportWithResponse performs a GET /bundles/export (the `BundlesExport` operationId) request.
 	//
-	// Returns a versioned secret-free portable automation document.
+	// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	BundlesExportWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*BundlesExportResponse, error)
@@ -3298,7 +3301,7 @@ type ClientWithResponsesInterface interface {
 	// BundlesPreviewWithBodyWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// Creates a short-lived target-bound plan without target mutation.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	BundlesPreviewWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error)
@@ -3306,7 +3309,7 @@ type ClientWithResponsesInterface interface {
 	// BundlesPreviewWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
-	// Creates a short-lived target-bound plan without target mutation.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 	BundlesPreviewWithResponse(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error)
 
 	// BundlesValidateWithBodyWithResponse performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
@@ -5150,7 +5153,7 @@ func (c *ClientWithResponses) BundlesCompareWithResponse(ctx context.Context, bo
 
 // BundlesExportWithResponse performs a GET /bundles/export (the `BundlesExport` operationId) request.
 //
-// Returns a versioned secret-free portable automation document.
+// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) BundlesExportWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*BundlesExportResponse, error) {
@@ -5164,7 +5167,7 @@ func (c *ClientWithResponses) BundlesExportWithResponse(ctx context.Context, req
 // BundlesPreviewWithBodyWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 // with any type of body and a specified content type.
 //
-// Creates a short-lived target-bound plan without target mutation.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) BundlesPreviewWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error) {
@@ -5178,7 +5181,7 @@ func (c *ClientWithResponses) BundlesPreviewWithBodyWithResponse(ctx context.Con
 // BundlesPreviewWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
-// Creates a short-lived target-bound plan without target mutation.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
 func (c *ClientWithResponses) BundlesPreviewWithResponse(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error) {
 	rsp, err := c.BundlesPreview(ctx, body, reqEditors...)
 	if err != nil {
