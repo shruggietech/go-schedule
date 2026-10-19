@@ -144,6 +144,11 @@ jobs:
             --tag "$RELEASE_TAG" \
             --commit "$TAG_COMMIT"
 
+      - name: Require reviewed comparison for exact tagged source
+        env:
+          TAG_COMMIT: ${{ steps.release.outputs.tag_commit }}
+        run: go run ./scripts/comparison-check -tag "$RELEASE_TAG" -commit "$TAG_COMMIT"
+
       - name: Generate and verify final all-asset checksums
         run: |
           set -euo pipefail

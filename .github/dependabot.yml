@@ -67,6 +67,21 @@ updates:
     labels:
       - dependencies
 
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      routine-minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

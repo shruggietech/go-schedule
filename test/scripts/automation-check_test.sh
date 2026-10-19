@@ -160,6 +160,18 @@ updates:
           - patch
     labels:
       - dependencies
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      routine-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -238,6 +250,7 @@ jobs:
           CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"
           CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."
           test "$(grep -Fxc -- "$CHANGELOG_LINE" "$RELEASE_NOTES")" -eq 1
+      - run: go run ./scripts/comparison-check -tag "$GITHUB_REF_NAME" -commit "$GITHUB_SHA"
   release-state:
     needs: [readme-version, ci-success]
     steps:
@@ -289,6 +302,7 @@ jobs:
              --candidate-manifest "$MANIFEST"
           gh api "repos/x/actions/runs/${RUN_ID}/attempts/${RUN_ATTEMPT}/jobs?per_page=100"
           Build & stage GUI (windows-latest)
+          go run ./scripts/comparison-check -tag "$RELEASE_TAG" -commit "$TAG_COMMIT"
           LC_ALL=C sha256sum * > SHA256SUMS.txt
           sha256sum -c SHA256SUMS.txt
            gh release upload "$RELEASE_TAG" SHA256SUMS.txt
@@ -296,6 +310,7 @@ jobs:
            git ls-remote origin "refs/tags/${RELEASE_TAG}"
            gh api -F draft=false
 EOF
+  cp "$fixture/.github/workflows/promote-release.yml" "$fixture/.github/workflows/promote-release-waived.yml"
   cat > "$fixture/.github/release-notes/v0.9.0.md" <<'EOF'
 ## Highlights
 
@@ -333,6 +348,26 @@ run_automation_cases() {
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
   run_expect_pass approved sh "$CHECK" "$good"
+
+  for release_file in release.yml promote-release.yml promote-release-waived.yml; do
+    for defect in missing bypass late conditional soft-failure; do
+      comparison_fixture="$tmp/comparison-$release_file-$defect"
+      cp -R "$good" "$comparison_fixture"
+      target="$comparison_fixture/.github/workflows/$release_file"
+      case "$defect" in
+        missing) sed '/comparison-check/d' "$good/.github/workflows/$release_file" > "$target" ;;
+        bypass) sed '/comparison-check/s/$/ || true/' "$good/.github/workflows/$release_file" > "$target" ;;
+        conditional) sed '/comparison-check/a\        if: false' "$good/.github/workflows/$release_file" > "$target" ;;
+        soft-failure) sed '/comparison-check/a\        continue-on-error: true' "$good/.github/workflows/$release_file" > "$target" ;;
+        late)
+          sed '/comparison-check/d' "$good/.github/workflows/$release_file" > "$target"
+          grep 'go run ./scripts/comparison-check' "$good/.github/workflows/$release_file" >> "$target"
+          ;;
+      esac
+      run_expect_fail "comparison-$release_file-$defect" 'comparison review' sh "$CHECK" "$comparison_fixture"
+    done
+  done
+
 
   no_changelog_preflight="$tmp/no-changelog-preflight"
   cp -R "$good" "$no_changelog_preflight"
@@ -797,7 +832,7 @@ run_automation_cases() {
     '    directory: /' \
     '    schedule:' \
     '      interval: weekly' >> "$extra_ecosystem/.github/dependabot.yml"
-  run_expect_fail extra-ecosystem 'expected root Go, desktop Go, desktop npm, and GitHub Actions entries' \
+  run_expect_fail extra-ecosystem 'expected root Go, desktop Go, desktop npm, website npm, and GitHub Actions entries' \
     sh "$CHECK" "$extra_ecosystem"
 
   grouped_major="$tmp/grouped-major"

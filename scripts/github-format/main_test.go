@@ -93,12 +93,15 @@ func TestRepositoryCheckRejectsInvalidUTF8AndBOM(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "bom.md"), []byte("\ufeff# Title\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(root, "source.mjs"), []byte("// Invalid "+emDash+" punctuation\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	problems, err := checkRepository(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(problems) != 2 {
-		t.Fatalf("problems = %v, want invalid UTF-8 and BOM", problems)
+	if len(problems) != 3 {
+		t.Fatalf("problems = %v, want invalid UTF-8, BOM and module punctuation", problems)
 	}
 }
 
@@ -118,5 +121,22 @@ func TestRepositoryCheckSkipsGeneratedWorkspaceDirectories(t *testing.T) {
 	}
 	if len(problems) != 1 || problems[0] != ".github/copy.md" {
 		t.Fatalf("problems = %v, want only authored GitHub content", problems)
+	}
+}
+
+func TestRepositoryCheckIgnoresGeneratedSiteTrees(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{".next", ".source", "out", "playwright-report", "test-results"} {
+		dir := filepath.Join(root, name)
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "generated.md"), []byte("generated "+emDash+" third party"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	problems, err := checkRepository(root, false)
+	if err != nil || len(problems) != 0 {
+		t.Fatalf("generated artifacts scanned: %v, %v", problems, err)
 	}
 }

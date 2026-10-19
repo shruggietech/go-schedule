@@ -6,19 +6,18 @@
 #   2. every non-http(s), non-fragment Markdown link resolves on disk; and
 #   3. no link escapes the docs/ directory (content outside docs/ must be an
 #      absolute https://github.com/… URL, which is skipped).
-#   4. the custom syntax theme provides a complete, safe dark-palette contract.
+#   4. the static website exports every page, fragment and canonical asset;
 #   5. every published fenced block declares an approved content category; and
 #   6. current product surfaces satisfy the fixture-backed dual-syntax policy.
 # It also checks that the pointer README(s) reference an existing docs/ page.
 #
-# Pure POSIX sh + coreutils: no network, no Ruby, no build. Anchors (#frag) are
-# stripped, not validated. Contract:
+# Source checks use POSIX sh + coreutils. The exact Node build validates exported
+# anchors and asset bytes; Go validates comparison evidence. Original contract:
 # specs/010-docs-site-pages/contracts/docs-check.md
 set -eu
 
 DOCS_DIR="docs"
 POINTERS="test/scripts/README.md"
-THEME_SCSS="$DOCS_DIR/_sass/custom/custom.scss"
 
 # Failures accumulate here, one `file: reason: detail` line each. Counting lines
 # afterwards avoids the subshell-scoping trap of piping into a while-loop.
@@ -26,40 +25,6 @@ FAILURES=$(mktemp)
 trap 'rm -f "$FAILURES"' EXIT
 
 report() { printf '%s: %s: %s\n' "$1" "$2" "$3" >> "$FAILURES"; }
-
-# require_style <extended-regex> <contract-description>
-require_style() {
-  if ! grep -Eq "$1" "$THEME_SCSS"; then
-    report "$THEME_SCSS" "missing dark-theme contract" "$2"
-  fi
-}
-
-check_theme_contract() {
-  if [ ! -f "$THEME_SCSS" ]; then
-    report "$THEME_SCSS" "missing stylesheet" "$THEME_SCSS"
-    return 0
-  fi
-
-  require_style '\[class\][[:space:]]*\{[[:space:]]*color:[[:space:]]*inherit;' \
-    "safe fallback for every classified token"
-  require_style '\.n,[[:space:]]*\.nx[[:space:]]*\{[[:space:]]*color:[[:space:]]*#58a6ff;' \
-    "name tokens use Anchor Blue"
-  require_style '\.l,[[:space:]]*\.ld[[:space:]]*\{[[:space:]]*color:[[:space:]]*#f2b84b;' \
-    "literal tokens use Hold Amber"
-  require_style '\.nd,[[:space:]]*\.ne,[[:space:]]*\.ni,[[:space:]]*\.nl,[[:space:]]*\.py,[[:space:]]*\.gu[[:space:]]*\{[[:space:]]*color:[[:space:]]*#58a6ff;' \
-    "decorator, exception, label, and heading tokens use Anchor Blue"
-  require_style '\.hll[[:space:]]*\{[[:space:]]*background-color:[[:space:]]*#17262d;' \
-    "highlighted lines use a dark surface"
-  require_style '::selection[[:space:]]*\{[[:space:]]*color:[[:space:]]*#0d171c;[[:space:]]*background-color:[[:space:]]*#58a6ff;' \
-    "selected code uses Panel ink on Anchor Blue"
-  # These patterns intentionally match literal SCSS variables.
-  # shellcheck disable=SC2016
-  require_style 'padding:[[:space:]]*\$sp-3[[:space:]]+\$gutter-spacing-sm;' \
-    "endorsement uses vertical spacing and the small navigation gutter"
-  # shellcheck disable=SC2016
-  require_style '@include[[:space:]]+mq\(md\)[[:space:]]*\{[[:space:]]*padding-right:[[:space:]]*\$gutter-spacing;[[:space:]]*padding-left:[[:space:]]*\$gutter-spacing;' \
-    "endorsement uses the desktop navigation gutter"
-}
 
 # check_fences <file>, require one of the documented fence categories.
 check_fences() {
@@ -71,7 +36,7 @@ check_fences() {
       sub(/^ /, "", fence)
       if (!open) {
         language = substr(fence, 4)
-        if (language !~ /^(sh|bash|powershell|text)$/) {
+        if (language !~ /^(sh|bash|powershell|text|mermaid)$/) {
           detail = language == "" ? "untagged opening fence" : "unsupported fence: " language
           print NR "|" detail
         }
@@ -154,7 +119,6 @@ sh scripts/docs-policy-check.sh
 sh test/scripts/docs-policy-check_test.sh
 sh scripts/remote-architecture-check.sh .
 sh test/scripts/remote-architecture-check_test.sh
-check_theme_contract
 for f in "$DOCS_DIR"/*.md; do
   [ -e "$f" ] || continue
   page_count=$((page_count + 1))
@@ -182,4 +146,6 @@ if [ -s "$FAILURES" ]; then
     "$(wc -l < "$FAILURES" | tr -d ' ')" "$page_count" >&2
   exit 1
 fi
-printf 'docs-check: OK, %s pages, links, front matter, fences, theme, and product policy clean\n' "$page_count"
+go run ./scripts/comparison-check
+(cd site && npm test && npm run build)
+printf 'docs-check: OK, %s pages, links, metadata, fences, static export, and product policy clean\n' "$page_count"

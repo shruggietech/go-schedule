@@ -24,6 +24,9 @@ approved_for() {
     actions/checkout) printf '%s' 'actions/checkout@v7' ;;
     actions/setup-go) printf '%s' 'actions/setup-go@v7' ;;
     actions/setup-node) printf '%s' 'actions/setup-node@v7' ;;
+    actions/configure-pages) printf '%s' 'actions/configure-pages@v5' ;;
+    actions/upload-pages-artifact) printf '%s' 'actions/upload-pages-artifact@v4' ;;
+    actions/deploy-pages) printf '%s' 'actions/deploy-pages@v4' ;;
     actions/upload-artifact) printf '%s' 'actions/upload-artifact@v7' ;;
     github/codeql-action/init) printf '%s' 'github/codeql-action/init@v4' ;;
     github/codeql-action/analyze) printf '%s' 'github/codeql-action/analyze@v4' ;;
@@ -266,8 +269,8 @@ if [ ! -f "$DEPENDABOT" ]; then
   report "$DEPENDABOT: Dependabot configuration not found"
 else
   ecosystem_count=$(grep -Ec '^  - package-ecosystem:' "$DEPENDABOT" || true)
-  if [ "$ecosystem_count" -ne 4 ]; then
-    report "$DEPENDABOT: expected root Go, desktop Go, desktop npm, and GitHub Actions entries"
+  if [ "$ecosystem_count" -ne 5 ]; then
+    report "$DEPENDABOT: expected root Go, desktop Go, desktop npm, website npm, and GitHub Actions entries"
   fi
 
   invalid_ecosystems=$(awk '
@@ -337,6 +340,7 @@ else
   for required in \
     '    directory: /desktop' \
     '    directory: /desktop/frontend' \
+      '    directory: /site' \
     '          - github.com/wailsapp/wails/v2'; do
     if ! grep -Fq -- "$required" "$DEPENDABOT"; then
       report "$DEPENDABOT: missing production desktop dependency boundary: $required"
@@ -649,6 +653,36 @@ elif [ "$observed" != "$EXPECTED_GATES" ]; then
   report "observed:"
   report "$observed"
 fi
+
+
+# Every publication entry point must run the shared review before its first mutation.
+for release_file in release.yml promote-release.yml promote-release-waived.yml; do
+  workflow="$ROOT/.github/workflows/$release_file"
+  if [ ! -f "$workflow" ]; then
+    report "$workflow: missing comparison review publication entry point"
+    continue
+  fi
+  review_line=$(awk '
+    function finish() {
+      if (command && !bypass && !found) { print command; found=1 }
+    }
+    /^      - / { finish(); command=0; bypass=0 }
+    /^[[:space:]]*(-[[:space:]]*)?(run:[[:space:]]*)?go run \.\/scripts\/comparison-check -tag / { command=NR }
+    /\|\||continue-on-error:|^[[:space:]]+if:/ { bypass=1 }
+    END { finish() }
+  ' "$workflow")
+  mutation_line=$(grep -n -E 'uses: softprops/action-gh-release|gh release upload|draft=false' "$workflow" | head -n 1 | cut -d: -f1 || true)
+  if [ -z "$review_line" ] || [ -z "$mutation_line" ] || [ "$review_line" -ge "$mutation_line" ]; then
+    report "$workflow: comparison review must run before release mutation without bypass"
+  fi
+  if [ "$release_file" = release.yml ]; then
+    if ! grep -Fq -- '-commit "$GITHUB_SHA"' "$workflow"; then
+      report "$workflow: comparison review must bind the exact staging source"
+    fi
+  elif ! grep -Fq -- '-commit "$TAG_COMMIT"' "$workflow"; then
+    report "$workflow: comparison review must bind the resolved tagged source"
+  fi
+done
 
 if [ -s "$FAILURES" ]; then
   cat "$FAILURES" >&2

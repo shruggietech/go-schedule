@@ -7,220 +7,82 @@
   <a href="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg"></a>
 <a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-62D9B7"></a>
-  <a href="https://shruggietech.github.io/go-schedule/"><img alt="Docs" src="https://img.shields.io/badge/docs-shruggietech.github.io-58A6FF"></a>
+  <a href="https://go-schedule.io/docs/"><img alt="Docs" src="https://img.shields.io/badge/docs-go--schedule.io-58A6FF"></a>
 </p>
 
-**A cross-platform scheduler in Go with readable schedules and supported cron.**\
-**Platforms:** Linux · macOS · Windows\
-**Interfaces:** CLI, desktop GUI, and a system-wide background daemon\
-**Documentation:** [shruggietech.github.io/go-schedule](https://shruggietech.github.io/go-schedule/) · **Changes:** [CHANGELOG.md](CHANGELOG.md)
+**Open-source workload automation with readable schedules and supported cron.**
 
-Write recurring schedules the way you would say them, such as "every 15 minutes" or "weekdays at 09:00", or use go-schedule's documented cron subset when that is already familiar. Cron knowledge is optional. You can also schedule a single one-off run. A background daemon keeps the schedule whether or not any window is open, and a desktop app gives you a calendar view of it all.
+Schedule scripts, react to files and external events, and connect dependent jobs. A background daemon owns the schedule; the CLI, Wails desktop control center and JSON API let you manage it.
 
-## Contents
+**Windows, Linux and macOS.** [Documentation](https://go-schedule.io/docs/) | [Latest release](https://github.com/shruggietech/go-schedule/releases/latest) | [Changelog](CHANGELOG.md) | [Compare capabilities](https://go-schedule.io/compare/)
 
-- [Why](#why)
-- [What it does](#what-it-does)
-- [Install](#install)
-- [Quick start](#quick-start)
-- [Architecture](#architecture)
-- [Brand system](#brand-system)
-- [Project layout](#project-layout)
-- [Development](#development)
-- [Contributing](#contributing)
-- [License](#license)
+## What you can do
 
-## Why
-
-Scheduling is one of those problems where the hard part is not the scheduling. It is knowing whether the thing you scheduled will actually fire, at the right moment, in the right timezone, after the laptop was asleep, without piling up forty copies of itself.
-
-go-schedule is built around that. Schedules can be written in plain language or as supported five- or six-field cron, then are echoed back the way the scheduler understood them so a misreading is visible immediately rather than at 02:30 tomorrow. Times resolve in a real IANA timezone, so a Daylight Saving transition moves the run rather than breaking it. Missed runs produce **one** catch-up, not a stampede. And when a run is still going as the next comes due, an explicit overlap policy decides what happens instead of leaving it to chance.
-
-## What it does
-
-**Schedules with a readable result.** Author recurring tasks in plain language or the documented cron subset. The CLI, API, and desktop editor accept both. Under the hood, RFC 5545 recurrence is authoritative, and every accepted input is summarized before it runs.
-
-**Timezones that hold up.** Every task carries an IANA timezone and states whether recurrence follows the local wall clock, a fixed elapsed interval, or UTC. Spring gaps can advance or skip, and fall overlaps can use the first, both, or last occurrence. Scheduling and storage remain UTC throughout.
-
-**Runs that survive the machine.** The daemon registers as a system service (systemd, launchd, or a Windows service), so the schedule starts on boot and keeps running with nobody logged in. After downtime, each task that missed runs gets exactly one catch-up run and then resumes normally.
-
-**Control over collisions.** Overlap policy is per task: queue one pending run (the default), skip the new one, or allow them to run concurrently.
-
-**A calendar that admits what it cannot do.** A task on the 31st, on 29 February, or on the fifth Friday will meet months that have no such date. Rather than firing seven months in twelve and saying nothing, each task states what it should do, skip the period, fall back to the last valid date, or roll into the next one, and the schedule describes itself accordingly.
-
-**Bring your crontab.** `gosched cron import` reads an existing crontab, shows you what every line means in plain language and when it would next run, and creates the tasks, with `--dry-run` to see the whole thing before anything changes. `gosched cron explain` translates a single expression, and `gosched cron export` gives your jobs back as cron. Anything that cannot be carried across faithfully is refused by name rather than approximated. Imported tasks retain their cron expression for later editing. See [Cron interoperability](docs/cron.md) for the fidelity table.
-
-**Run once whenever the scheduler starts.** `@reboot` and the readable `at scheduler startup` form create the same cross-platform startup task. It runs once per daemon process start, not on task edits or engine reloads, and it does not claim that the physical host rebooted or that dependent services are ready yet.
-
-**Groups that nest.** Tasks live in groups, groups live in groups, and enabling or disabling one cascades through its whole subtree, one command to silence a region of the schedule.
-
-**Draft first, activate when ready.** Tasks and groups can be saved before every detail is known. Nameless tasks display as `unnamed`, tasks without commands are visibly not runnable, and tasks with commands but no automatic source remain available for Run now as manual-only work.
-
-**A native Wails desktop control center.** The desktop provides calendar and schedule views, a guided task editor that previews the schedule as you build it, a group tree, and a live Activity view. Opening it never leaves a console window behind. See the [GUI field reference](docs/gui-fields.md) for what each editor field accepts.
+- Write readable schedules such as `weekdays at 09:00` or supported cron such as `0 9 * * 1-5`, with explicit timezone, DST, missed-date, catch-up and overlap policies.
+- Start tasks from schedules, daemon startup, file changes, external triggers or another task's success/failure.
+- Group related tasks and inspect upcoming work, execution history, output and diagnostics.
+- Manage explicitly enrolled independent daemons, search across systems and move portable configuration.
+- Integrate through webhooks, the JSON API and optional permission-controlled MCP access.
 
 ## Install
 
-Every [release](https://github.com/shruggietech/go-schedule/releases/latest) ships installers and archives per platform. Verify downloads against `SHA256SUMS.txt`; the artifacts are not signed. Beginning with v1.4.0, the desktop downloads contain the Wails control center described below. The latest-release page remains authoritative while a candidate is staged and qualified.
+Download from the [latest public release](https://github.com/shruggietech/go-schedule/releases/latest). Verify artifacts against `SHA256SUMS.txt`; artifacts are currently unsigned.
 
-| Platform | Download | Guide |
+| Platform | Package | Guide |
 | --- | --- | --- |
-| **Windows** | `go-schedule_<ver>_windows_amd64.msi` | [Windows install guide](docs/INSTALL-windows.md) |
-| **macOS desktop** | `go-schedule-desktop_<ver>_darwin_arm64.tar.gz` | [macOS install guide](docs/INSTALL-macos.md) |
-| **Linux desktop** | `go-schedule-desktop_<ver>_linux_amd64.tar.gz` | [Linux install guide](docs/INSTALL-linux.md) |
-| **Linux / macOS headless** | `go-schedule_<ver>_<os>_<arch>.tar.gz` | [Installation guides](docs/install.md) |
+| Windows amd64 | `go-schedule_<ver>_windows_amd64.msi` | [Windows](docs/INSTALL-windows.md) |
+| Linux desktop amd64 | `go-schedule-desktop_<ver>_linux_amd64.tar.gz` | [Linux](docs/INSTALL-linux.md) |
+| macOS desktop arm64 | `go-schedule-desktop_<ver>_darwin_arm64.tar.gz` | [macOS](docs/INSTALL-macos.md) |
+| Linux/macOS headless | `go-schedule_<ver>_<os>_<arch>.tar.gz` | [All guides](docs/install.md) |
 
-On **Windows**, the `.msi` is a formal system installer: it installs to *Program Files*, registers the scheduler as an auto-starting Windows service, adds itself to `PATH`, and adds a Start-Menu shortcut. Uninstall through *Apps & features*.
+The Windows MSI installs the service and updates PATH; open a new terminal afterward. Linux and macOS service registration is covered in the platform guides. The macOS desktop's first-launch daemon is not itself a boot-persistent service.
 
-On **macOS**, the desktop bundle is self-contained, the GUI, daemon, and CLI in one `.app`, and starts the daemon itself on first launch. That daemon is not a service, so if you want the schedule to survive a reboot, register the service as well. The macOS guide covers this; it is the one thing people miss.
+## First task
 
-On **Linux**, choose the amd64 Wails desktop bundle or the cgo-free daemon-and-CLI archive. Register the daemon as a service when the schedule must start on boot.
-
-## Quick start
-
-Install, register the service, then confirm the daemon is answering:
+After installation, check the daemon:
 
 ```sh
-sudo gosched service install
-sudo gosched service start
 gosched health
-gosched daemon manifest
 ```
 
 ```text
 daemon ok (version 1.5.1)
 ```
 
-The manifest reports the daemon's stable installation ID, editable display name, version, local-only mode, safe platform facts, and supported feature surfaces. See [Daemon identity](docs/daemon-identity.md) for rename, backup restore, database clone, and deliberate identity reset behavior.
+Create a harmless weekday task. On Windows:
 
-Create a weekday report with a readable phrase:
+```powershell
+gosched task add hello --command cmd.exe --arg /c --arg "echo hello" --schedule "weekdays at 09:00"
+```
+
+On Linux or macOS:
 
 ```sh
-gosched task add weekday-report \
-  --command /usr/local/bin/report.sh \
-  --schedule "weekdays at 09:00" \
-  --tz America/New_York
+gosched task add hello --command /bin/echo --arg hello --schedule "weekdays at 09:00"
 ```
 
-The same schedule can be supplied as supported cron. Conventional five-field input and a bounded Quartz-style six-field seconds form are accepted:
+The response includes the task ID, interpreted schedule and upcoming runs. Substitute that ID below to run it immediately and inspect its history:
 
 ```sh
-gosched task add weekday-report \
-  --command /usr/local/bin/report.sh \
-  --schedule "0 9 * * 1-5" \
-  --tz America/New_York
+gosched task run-now <task-id>
+gosched runs --task <task-id>
 ```
 
-For example, `*/10 9-17 * * MON,WED,FRI` runs every ten minutes during business hours on Monday, Wednesday, and Friday. Cron's special day-of-month/day-of-week OR behavior remains an explicit refusal. The non-clock `@reboot` form is supported as a daemon-start event and has no upcoming clock times.
+Open the desktop with `gosched gui` if installed. Continue with the [CLI reference](docs/cli.md), [desktop fields](docs/gui-fields.md) and [cron guide](docs/cron.md) for complete options and workflow examples.
 
-Seconds precision uses six fields, for example `*/30 * * * * *`. Quartz `?` is supported in a day field, and the fidelity guide states the exact dialect and operational crontab boundaries.
+## Documentation and support
 
-It replies with how it understood you, and when it will next fire:
+- [Settings and storage](docs/options.md), [remote access](docs/remote-access.md) and [architecture](docs/architecture.md)
+- [JSON API](docs/api.md), [notifications](docs/notifications.md) and [MCP](docs/mcp.md)
+- [Maintainer checks](docs/test-scripts.md) and [website maintenance](docs/website.md)
+- [Report a bug or request a feature](https://github.com/shruggietech/go-schedule/issues/new/choose)
 
-```text
-created task 6f1c… (weekday-report)
-schedule: weekdays at 09:00 (America/New_York)
-next runs:
-  2026-07-24T13:00:00Z
-  2026-07-27T13:00:00Z
-```
+Development uses [Spec Kit](https://github.com/github/spec-kit), review branches and pull requests. Start with [CONTRIBUTING.md](CONTRIBUTING.md). The [constitution](.specify/memory/constitution.md) defines engineering requirements; [brand integration](brand/REPOSITORY.md) describes approved assets and updates.
 
-Do not wait until 02:30 to find out whether it works:
-
-```sh
-gosched task run-now 6f1c…
-gosched runs --task 6f1c…
-```
-
-Connect independent tasks into a completion workflow without removing either task's normal schedule:
-
-```sh
-gosched chain create --source 6f1c… --target a82d… --on success
-gosched chain list
-```
-
-Chains can match `success`, `failure`, or `any` terminal result. The target uses its existing enabled state, group eligibility, worker limit, and overlap policy. Completion runs identify their source task and source run in history. Pending work survives daemon restart; an interrupted delivery may run again if the daemon stops after launching the command but before recording its result, so commands used in durable chains should be safe to retry.
-
-Local external triggers let another process request one normal scheduler run using one opaque key:
-
-```sh
-gosched trigger create --name "Build hook" --task <task-id>
-gosched trigger fire <key>
-```
-
-Trigger requests use the task's current enabled state, group eligibility, worker limit, and overlap policy. Treat each key as a secret. Ordinary lists, history, logs, events, and errors omit it.
-
-Trigger Sets create and administer 1 through 99 independently usable keys for one task. `gosched trigger set create --name "Build agents" --task <task-id> --count 10` prints the ordered invocation commands once, and `gosched trigger set reveal <set-id>` retrieves them explicitly when needed. Set-level retarget, enable, disable, rotate, and remove operations are atomic; individual members can still be renamed, enabled, disabled, rotated, revealed, fired, or deleted without changing siblings.
-
-Filesystem watchers request a normal task run when a selected file is created, written, or atomically replaced and then becomes stable. File watchers select one exact path; directory watchers use a basename glob and can optionally include real subdirectories. Configure them in the desktop Triggers view or with `gosched watcher create --name "Incoming JSON" --kind directory --path ./incoming --pattern "*.json" --task <task-id>`. Missing or inaccessible roots remain saved with degraded health and recover automatically. Network filesystems are best effort, linked directory traversal is excluded, events that occur while the daemon is stopped are not replayed, and matched file paths are never retained in run history.
-
-Then open the desktop app, if you installed it:
-
-```sh
-gosched gui
-```
-
-Every command and flag is in the [CLI reference](docs/cli.md). On Windows the commands are identical, open a **new** PowerShell after installing, so the `PATH` entry is visible.
-
-**Proving an install, properly.** The [maintainer test scripts](docs/test-scripts.md) demonstrate that a real, installed daemon fires on time, survives restarts, catches up after downtime, and honors its overlap policies, with recorded evidence rather than a hopeful glance at a log.
-
-## Architecture
-
-A single background **daemon** hosts everything that matters: the scheduling engine, the SQLite store, and the executor. The CLI and the desktop GUI are thin clients over a local IPC endpoint, so they act on identical state and neither one owns the schedule.
-
-```mermaid
-flowchart LR
-    CLI["gosched<br/>(CLI)"] -->|local IPC| D
-    GUI["gosched-gui<br/>(desktop app)"] -->|local IPC| D
-    D["goschedd (daemon)"]
-    D --> E["scheduling engine<br/>injected clock · RRULE · IANA timezones"]
-    D --> S[("SQLite store<br/>forward-only migrations")]
-    D --> X["executor<br/>windowless task spawn"]
-	E --> C["completion delivery<br/>durable at-least-once chaining"]
-    SVC["systemd · launchd · Windows Service"] -->|starts on boot| D
-```
-
-IPC is a Unix domain socket on Linux and macOS, a named pipe on Windows. Because the engine lives in the daemon rather than in a client, closing the GUI does not stop the schedule, and the CLI and GUI can never disagree about what is scheduled.
-
-The daemon restricts this privileged local API to the `goschedadmin` operating- system group by default and fails startup if that policy cannot be applied and verified. The Windows MSI provisions membership automatically; Linux and macOS operators create the group before starting the service. An explicitly empty `admin_group` restores broad local compatibility access with a startup warning. See the platform installation guide and [security policy](SECURITY.md).
-
-The full design is in [`specs/001-task-scheduler/plan.md`](specs/001-task-scheduler/plan.md).
-
-## Brand system
-
-The complete official brand 2.0.0 kit is pinned as an archive in [`brand/`](brand/), with selected product and documentation assets synchronized through a checked consumer map. Start with [`brand/REPOSITORY.md`](brand/REPOSITORY.md) for the release import procedure. The public [Brand system](docs/brand.md) page provides selection guidance and downloads.
-
-## Project layout
-
-```text
-cmd/        goschedd (daemon) · gosched (CLI)
-internal/   engine · schedule · task · store · executor · catchup · timezone
-            api · ipc · service · config · platform · logbus · autostart
-desktop/    Wails desktop control center · React frontend · native bridge
-brand/      pinned official kit · synchronized assets · tokens · platform assets
-test/       integration tests · maintainer test scripts
-docs/       install guides · CLI reference · GUI fields · brand system
-specs/      spec-driven development artifacts
-```
-
-## Development
-
-Development is spec-driven, via [Spec Kit](https://github.com/github/spec-kit). The source of truth lives under [`specs/001-task-scheduler/`](specs/001-task-scheduler/):
-
-- [`spec.md`](specs/001-task-scheduler/spec.md), what and why
-- [`plan.md`](specs/001-task-scheduler/plan.md), architecture and tech choices
-- [`tasks.md`](specs/001-task-scheduler/tasks.md), dependency-ordered task list
-- [`contracts/`](specs/001-task-scheduler/contracts/), CLI and local API contracts
-
-Later features have their own directories under `specs/`. Engineering standards are governed by the project [constitution](.specify/memory/constitution.md): `gofmt`, `go vet`, and `golangci-lint` clean, `go test -race` green, at least 80 percent coverage on core packages, and a documented dispatch-latency budget.
-
-The daemon and CLI are cgo-free. The separate Wails desktop module needs Node.js, npm, a C toolchain, and the platform WebView development prerequisites; on Windows it is built windowless and spawns tasks with no console window.
-
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. This project is spec-driven, and changes use review branches and pull requests so third-party AI reviewers can comment before the maintainer decides whether to merge. Bugs and feature requests go through [the issue forms](https://github.com/shruggietech/go-schedule/issues/new/choose); security reports go through the private route in [SECURITY.md](SECURITY.md). Participation is governed by our [Code of Conduct](CODE_OF_CONDUCT.md).
+Report security issues privately through [SECURITY.md](SECURITY.md). Participation follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE). © 2026 [ShruggieTech](https://shruggie.tech).
+[Apache License 2.0](LICENSE). © 2026 [ShruggieTech](https://shruggie.tech).
 
-<sub>A ShruggieTech project.</sub>
+<sub>A [ShruggieTech](https://shruggie.tech) project.</sub>

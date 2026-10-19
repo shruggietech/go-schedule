@@ -112,6 +112,12 @@ jobs:
             exit 1
           fi
 
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Require reviewed comparison for exact tagged source
+        run: go run ./scripts/comparison-check -tag "$GITHUB_REF_NAME" -commit "$GITHUB_SHA"
+
   release-state:
     name: Require absent or draft release state
     needs: [readme-version, ci-success]
