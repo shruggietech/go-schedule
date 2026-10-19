@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	if handled, code := clientsecret.RunReadHelper(os.Args[1:], os.Stdin, os.Stdout); handled {
+	if handled, code := clientsecret.RunReadHelper(os.Args[1:]); handled {
 		os.Exit(code)
 	}
 	os.Exit(cli.Execute())

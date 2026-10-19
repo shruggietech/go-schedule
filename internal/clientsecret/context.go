@@ -3,9 +3,11 @@ package clientsecret
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -49,19 +51,74 @@ func (nativeBackend) GetContext(ctx context.Context, service, user string) (stri
 	return runReadCommand(ctx, executable, []string{readHelperArgument}, readRequest{DaemonID: strings.TrimPrefix(service, servicePrefix), CredentialID: user})
 }
 
-// RunReadHelper handles only the private native-read subprocess protocol.
-// CLI hosts call it before their normal entry point. Secrets travel only over redirected pipes.
-func RunReadHelper(args []string, input io.Reader, output io.Writer) (bool, int) {
-	if len(args) != 1 || args[0] != readHelperArgument {
+// RunReadHelper handles only the private, peer-authenticated native-read channel.
+// Standard input and output are never credential protocol endpoints.
+func RunReadHelper(args []string) (bool, int) {
+	if len(args) == 0 || args[0] != readHelperArgument {
 		return false, 0
 	}
-	return true, serveReadHelper(input, output, nativeBackend{})
+	if len(args) != 2 {
+		return true, 1
+	}
+	return true, runAuthenticatedHelper(args[1], nativeBackend{}, 15*time.Second)
+}
+
+// An independent process deadline also ends a stalled read if its parent dies.
+func runAuthenticatedHelper(endpoint string, backend Backend, limit time.Duration) int {
+	timer := time.AfterFunc(limit, expireReadHelper)
+	defer timer.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), limit)
+	defer cancel()
+	return serveAuthenticatedHelper(ctx, endpoint, backend)
+}
+func serveAuthenticatedHelper(ctx context.Context, endpoint string, backend Backend) int {
+	connection, err := dialReadChannel(ctx, endpoint)
+	if err != nil {
+		return 1
+	}
+	defer func() { _ = connection.Close() }()
+	stop := context.AfterFunc(ctx, func() { _ = connection.Close() })
+	defer stop()
+	peer, err := readPeerPID(connection, false)
+	if err != nil || authenticateReadParent(peer) != nil {
+		return 1
+	}
+	return serveReadHelper(connection, connection, backend)
+}
+func authenticateReadParent(peer int) error {
+	if peer <= 1 || peer != os.Getppid() {
+		return errReadUnavailable
+	}
+	path, err := readProcessExecutable(peer)
+	if err != nil {
+		return errReadUnavailable
+	}
+	self, err := os.Executable()
+	if err != nil {
+		return errReadUnavailable
+	}
+	return sameReadExecutable(self, path)
+}
+func sameReadExecutable(self, parent string) error {
+	own, err := os.Stat(self)
+	if err != nil {
+		return errReadUnavailable
+	}
+	other, err := os.Stat(parent)
+	if err != nil || !os.SameFile(own, other) {
+		return errReadUnavailable
+	}
+	return nil
 }
 func serveReadHelper(input io.Reader, output io.Writer, backend Backend) int {
+	data, err := readFrame(input, 16*1024)
+	if err != nil {
+		return 1
+	}
 	var request readRequest
-	decoder := json.NewDecoder(io.LimitReader(input, 16*1024))
+	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&request); err != nil {
+	if decoder.Decode(&request) != nil {
 		return 1
 	}
 	var extra any
@@ -73,49 +130,103 @@ func serveReadHelper(input io.Reader, output io.Writer, backend Backend) int {
 	if err != nil {
 		response = readResponse{Unavailable: true}
 	}
-	if json.NewEncoder(output).Encode(response) != nil {
+	encoded, err := json.Marshal(response)
+	if err != nil || len(encoded) > readResponseLimit {
+		return 1
+	}
+	if writeFrame(output, encoded) != nil {
 		return 1
 	}
 	return 0
 }
-
-type boundedResponse struct{ data bytes.Buffer }
-
-func (b *boundedResponse) Write(data []byte) (int, error) {
-	if b.Len()+len(data) > readResponseLimit {
-		return 0, errReadUnavailable
+func readFrame(input io.Reader, limit int) ([]byte, error) {
+	var size uint32
+	if binary.Read(input, binary.BigEndian, &size) != nil || size == 0 || uint64(size) > uint64(limit) {
+		return nil, errReadUnavailable
 	}
-	return b.data.Write(data)
+	data := make([]byte, int(size))
+	if _, err := io.ReadFull(input, data); err != nil {
+		return nil, errReadUnavailable
+	}
+	return data, nil
+}
+func writeFrame(output io.Writer, data []byte) error {
+	if err := binary.Write(output, binary.BigEndian, uint32(len(data))); err != nil {
+		return err
+	}
+	_, err := io.Copy(output, bytes.NewReader(data))
+	return err
+}
+func acceptReadHelper(ctx context.Context, listener net.Listener, pid int) (net.Conn, error) {
+	for {
+		connection, err := listener.Accept()
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return nil, errReadUnavailable
+		}
+		peer, err := readPeerPID(connection, true)
+		if err == nil && peer == pid {
+			return connection, nil
+		}
+		_ = connection.Close()
+	}
 }
 func runReadCommand(ctx context.Context, executable string, args []string, request readRequest) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	input, err := json.Marshal(request)
+	listener, endpoint, closeChannel, err := listenReadChannel()
 	if err != nil {
 		return "", errReadUnavailable
 	}
-	command := exec.CommandContext(ctx, executable, args...)
-	command.Stdin = bytes.NewReader(input)
-	var output boundedResponse
-	command.Stdout = &output
+	defer closeChannel()
+	stopAccept := context.AfterFunc(ctx, func() { _ = listener.Close() })
+	defer stopAccept()
+	command := exec.CommandContext(ctx, executable, append(append([]string{}, args...), endpoint)...)
+	command.Stdin = nil
+	command.Stdout = io.Discard
 	command.Stderr = io.Discard
 	command.WaitDelay = 250 * time.Millisecond
 	cleanup := configureReadCommand(command)
-	runErr := command.Run()
-	cleanupErr := cleanup()
-	if err := ctx.Err(); err != nil {
-		return "", errors.Join(err, cleanupErr)
-	}
-	if runErr != nil || cleanupErr != nil {
+	if command.Start() != nil {
 		return "", errReadUnavailable
 	}
+	finished := make(chan error, 1)
+	go func() { finished <- command.Wait(); _ = listener.Close() }()
+	connection, exchangeErr := acceptReadHelper(ctx, listener, command.Process.Pid)
 	var response readResponse
-	if json.Unmarshal(output.Bytes(), &response) != nil || response.Unavailable || response.Token == "" {
+	if exchangeErr == nil {
+		stopConnection := context.AfterFunc(ctx, func() { _ = connection.Close() })
+		encoded, _ := json.Marshal(request)
+		exchangeErr = writeFrame(connection, encoded)
+		if exchangeErr == nil {
+			var data []byte
+			data, exchangeErr = readFrame(connection, readResponseLimit)
+			if exchangeErr == nil {
+				exchangeErr = json.Unmarshal(data, &response)
+			}
+		}
+		_ = connection.Close()
+		stopConnection()
+	}
+	requestErr := ctx.Err()
+	if exchangeErr != nil {
+		cancel()
+	}
+	runErr := <-finished
+	cleanupErr := cleanup()
+	if requestErr == nil && exchangeErr == nil {
+		requestErr = ctx.Err()
+	}
+	if requestErr != nil {
+		return "", errors.Join(requestErr, cleanupErr)
+	}
+	if exchangeErr != nil || runErr != nil || cleanupErr != nil || response.Unavailable || response.Token == "" {
 		return "", errReadUnavailable
 	}
 	return response.Token, nil
 }
-
-func (b *boundedResponse) Len() int      { return b.data.Len() }
-func (b *boundedResponse) Bytes() []byte { return b.data.Bytes() }

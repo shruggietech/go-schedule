@@ -675,7 +675,7 @@ Search kinds are `task`, `group`, `failure`, `schedule` and `alert`. Query text 
 
 At most four targets are observed concurrently, each with a five-second deadline inside the command's ten-second request deadline. Saved credentials resolve only when that target's worker runs. TLS, identity and current Observe authority are checked before feature reads.
 
-Native credential setup participates in operational request cancellation through hidden owned helper processes. Secrets remain in the native store and private redirected pipes. Request budgets exclude the separate bounded cleanup drain (at most five seconds); a cleanup failure remains an error and does not become a successful target observation.
+Native credential setup participates in operational request cancellation through hidden owned helper processes. Secrets remain in the native store and peer-authenticated private local channels. Helper requests and responses never use CLI standard streams. Request budgets exclude the separate bounded cleanup drain (at most five seconds); a cleanup failure remains an error and does not become a successful target observation.
 
 One failed target does not discard another target's successful response. JSON contains independent observations and failures; partial failure returns nonzero after writing usable results. `--all` cannot be combined with remote target flags. An explicit `--ipc-path` can select the local fixture included in an all-system query.
 

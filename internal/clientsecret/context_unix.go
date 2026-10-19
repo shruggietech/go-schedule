@@ -3,6 +3,7 @@
 package clientsecret
 
 import (
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -26,4 +27,11 @@ func configureReadCommand(command *exec.Cmd) func() error {
 	// macOS native keyring access uses a security child. Own and drain that group too.
 	command.Cancel = cleanup
 	return cleanup
+}
+
+func expireReadHelper() {
+	if syscall.Getpgrp() == os.Getpid() {
+		_ = syscall.Kill(-os.Getpid(), syscall.SIGKILL)
+	}
+	os.Exit(1)
 }

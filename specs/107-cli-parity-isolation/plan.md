@@ -58,6 +58,8 @@ Source: internal/cli (invocations/commands), internal/api/server and cmd/gosched
 13. Share bounded Unix group termination/drain between fixtures and native-read helpers (#307). Wait for group absence after SIGKILL; preserve runtime and report cleanup failure at the deadline. Windows native reads use the exact helper process handle and do not spawn descendants.
 14. Hosted macOS CI demonstrated oversized default socket paths (#308). Use a private UUID root beneath canonical /private/tmp on macOS and validate explicit Unix placement before creating state.
 
+15. Round 2 found that an internal argument did not authenticate the credential helper (#309). Replace standard-stream requests/responses with a private operation-owned local channel, mutually checked kernel peer PIDs and the actual parent executable image. Reject ordinary direct invocation before native access. Use bounded frames, cancellation and an independent helper lifetime. Windows uses native pipe peer/image APIs; Linux uses SO_PEERCRED and /proc executable identity; macOS uses LOCAL_PEERPID and the kernel executable-vnode path (not mutable argv). No third Codex round is requested.
+
 ## Complexity Tracking
 
 No constitution exception. These small shared components replace global/duplicated behavior; no second scheduler, general test framework or model-service integration.

@@ -21,7 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- **Operational credential setup now honors cancellation and joins owned native-read helpers (Refs #306).** Partial multi-system results remain available when the native credential service stalls; tokens stay in native storage and private redirected pipes.
+- **The private native credential helper authenticates its owning CLI before reading stored tokens (Refs #309).** Kernel peer identity and executable-image checks protect a dedicated bounded local channel; direct helper invocation cannot extract tokens through standard streams.
+
+- **Operational credential setup now honors cancellation and joins owned native-read helpers (Refs #306).** Partial multi-system results remain available when the native credential service stalls; tokens stay in native storage and peer-authenticated private local channels.
 - **Unix fixture cleanup waits for every owned process-group member before removing runtime state (Refs #307).** Signal, probe and cleanup-deadline errors remain visible instead of reporting successful cleanup early.
 - **macOS disposable fixtures use short private socket paths, with early corrective errors for overlong explicit parents (Refs #308).** Identity and path ownership checks remain intact.
 

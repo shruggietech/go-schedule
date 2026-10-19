@@ -48,3 +48,31 @@ func TestTerminateRetainsFailedCleanupAndRejectsUnownedGroups(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestTerminateRetriesPostSignalPermissionProbeWithoutFalseSuccess(t *testing.T) {
+	probes := 0
+	err := terminate(12345, time.Second, func(_ int, signal syscall.Signal) error {
+		if signal == syscall.SIGKILL {
+			return nil
+		}
+		probes++
+		if probes == 1 {
+			return syscall.EPERM
+		}
+		if probes == 2 {
+			return nil
+		}
+		return syscall.ESRCH
+	})
+	if err != nil || probes != 3 {
+		t.Fatalf("post-signal probe ended cleanup prematurely: %v, probes=%d", err, probes)
+	}
+	if err := terminate(12345, 0, func(_ int, signal syscall.Signal) error {
+		if signal == syscall.SIGKILL {
+			return nil
+		}
+		return syscall.EPERM
+	}); err == nil {
+		t.Fatal("unconfirmed group reported clean")
+	}
+}

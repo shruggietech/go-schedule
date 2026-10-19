@@ -41,3 +41,9 @@ Codex round 1 on PR #305 found unbounded credential setup and incomplete Unix de
 The cancellation design follows [Go exec CommandContext/Cancel/WaitDelay](https://pkg.go.dev/os/exec). Unix drainage follows the [POSIX kill process-group and null-signal contract](https://pubs.opengroup.org/onlinepubs/009604499/functions/kill.html): signal only the owned group and wait for absence, with bounded errors. The same group lifecycle helper serves fixtures and native reads, including macOS security-tool descendants.
 
 Hosted macOS race failures showed that the default per-user temporary prefix produced an unusable socket (#308). A short private UUID root beneath canonical /private/tmp preserves ownership while fitting the supported socket address. Explicit overlong parents fail before runtime creation.
+
+## Second review correction, 2026-10-19
+
+The ordinary private-flag entry still allowed a caller to supply profile IDs on stdin and obtain a native token on stdout (#309). An internal name and a same-user ACL alone do not establish parent authority. The corrected design uses mutually verified OS peer process identities, the actual parent relationship and executable-image equality before credential access; the parent accepts only its exact child. All token traffic uses a dedicated operation-owned local channel with bounded framing, and standard streams are discarded.
+
+Windows peer identity follows [GetNamedPipeServerProcessId](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getnamedpipeserverprocessid) and its client counterpart. macOS executable authentication follows [Apple libproc proc_pidpath](https://github.com/apple-oss-distributions/xnu/blob/main/libsyscall/wrappers/libproc/libproc.c) and its kernel executable path, rather than mutable process arguments. No new dependency, native credential format, end-user eligibility rule or authentication prompt is introduced.

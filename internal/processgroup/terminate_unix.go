@@ -32,10 +32,15 @@ func terminate(pgid int, timeout time.Duration, signal func(int, syscall.Signal)
 		if errors.Is(err, syscall.ESRCH) {
 			return nil
 		}
-		if err != nil {
+		// An accepted termination can be followed by an ambiguous permission probe.
+		// Keep waiting for ESRCH; permission ambiguity is never successful cleanup.
+		if err != nil && !errors.Is(err, syscall.EPERM) {
 			return fmt.Errorf("inspect owned process group during cleanup: %w", err)
 		}
 		if !time.Now().Before(deadline) {
+			if err != nil {
+				return fmt.Errorf("owned process group exit could not be confirmed at cleanup deadline: %w", err)
+			}
 			return errors.New("owned process group still has members at cleanup deadline")
 		}
 		time.Sleep(min(10*time.Millisecond, time.Until(deadline)))
