@@ -54,7 +54,16 @@ For a domain cutover, switch Pages to GitHub Actions, retain/set the repository'
 
 The 2026-10-19 S106 cutover replaces the former main:/docs Jekyll publisher. The organization ownership TXT remains in Cloudflare alongside four apex A records, four apex AAAA records and the www CNAME, all with DNS-only status and automatic TTL. The repository homepage and README links use the canonical domain. The old Jekyll configuration, includes, styles and their temporary pre-cutover regression are retired together. Deployment and public verification evidence is recorded in [S106 delivery](https://github.com/shruggietech/go-schedule/blob/main/specs/106-public-web-presence/delivery.md) and issue #278.
 
-Rollback retains the organization ownership TXT and custom-domain binding while restoring a known-good Pages Actions deployment or reviewed source revert. Returning to the original branch publisher additionally requires restoring the five legacy Jekyll files from commit 432452e7e59843b279f902d15c92289e6726f062 before switching Pages to main:/docs. The pre-cutover domain had no traffic records; remove only the nine traffic records introduced by this cutover if restoring that DNS baseline, and coordinate settings/content so traffic never targets an unbound site.
+## Recovery
+
+For an Actions content rollback, retain the organization ownership TXT, repository custom-domain binding and all nine traffic records. Restore a known-good Pages Actions deployment or reviewed source revert. This keeps the custom domain and former-address redirect usable while content is restored.
+
+To retire the custom domain and restore the former GitHub Pages address with the pre-cutover empty traffic-DNS baseline, use this order:
+
+1. Prepare a reviewed source change that restores the five legacy Jekyll files from commit 432452e7e59843b279f902d15c92289e6726f062 and changes README/contact links and current deployment instructions back to the former project address. Retain the organization ownership TXT throughout recovery.
+2. Clear the repository's custom-domain binding and switch Pages to the legacy main:/docs publisher in a coordinated settings operation. Restore the repository homepage to https://shruggietech.github.io/go-schedule/.
+3. Confirm that https://shruggietech.github.io/go-schedule/ serves the restored site directly, without redirecting to go-schedule.io. If the fallback is unavailable, restore the Actions/domain configuration before proceeding; keep the traffic records until the recovery path is established.
+4. Once the former address is working, promptly remove only the four apex A records, four apex AAAA records and www CNAME introduced by this cutover. Preserve the organization ownership TXT and any unrelated records. Do not leave obsolete traffic records targeting an unbound Pages domain.
 
 ## Official references
 
