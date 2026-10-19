@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **The public website uses go-schedule.io with Cloudflare DNS and GitHub Pages Actions publishing (Refs #278, #279, #280, #282).** README and repository discovery links use the canonical domain, and the temporary legacy Jekyll publisher is retired after replacement delivery.
 - **The README puts installation, first use and project resources first, with linked ShruggieTech attribution (Refs #281, #9).**
 - **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
 

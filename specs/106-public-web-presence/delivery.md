@@ -4,7 +4,7 @@
 
 Base: 288128690d45b18cc5b0bade50bb138269f517ea, clean and equal to fetched origin/main before kickoff; remote refreshed and unchanged before the local commit. Review branch: codex/106-public-web-presence. At the initial local handoff, no push, pull request, tag, release, deployment or live domain mutation had been performed. The subsequent authorized publication stage is recorded below.
 
-## Issue-level outcomes
+## Initial local handoff outcomes
 
 | Issue | Local result | Public delivery |
 | --- | --- | --- |
@@ -63,3 +63,17 @@ After these fixes, the full foreground sh scripts/verify.sh all aggregate comple
 Codex round 2 completed on c8a5cd2f7cb41ad7f2caf79c87b3a5a6f5c9e885 with no findings. Both round-1 threads are resolved. A subsequent hosted Windows qualification timing failure is tracked in [#294](https://github.com/shruggietech/go-schedule/issues/294): the existing store budget included 100 temporary-directory creations, although S056 FR-022 explicitly excludes external filesystem and OS delays. The focused correction prepares those same fixtures before timing, preserving all 100 inserts, readback and the one-second threshold. Runtime code is unchanged. The two-round cap remains in force; final CI evidence distinguishes the later test-only correction from the commit reviewed in round 2.
 
 After the #294 correction, go test -race ./internal/store -count=2 completed with exit 0 (166.181 seconds), and package vet and formatting passed. The unchanged test had also passed twenty focused local race repetitions before correction, so the hosted failure does not by itself establish a runtime regression. The measurement change follows the approved requirement rather than increasing its budget.
+
+## Owner-authorized public cutover, 2026-10-19
+
+After confirming PR #291 was merged, the owner authorized autonomous Pages/Cloudflare cutover and public HTTPS verification. Local main was synchronized to 432452e7e59843b279f902d15c92289e6726f062, containing the S106 merge and the subsequent desktop dependency update. The existing authenticated browser sessions supplied organization-owner and DNS-edit access; no additional login or new API credential was required.
+
+The organization verified go-schedule.io using its exact Pages ownership TXT. Cloudflare now holds that retained TXT plus four apex A records, four apex AAAA records and www CNAME shruggietech.github.io, all DNS-only with automatic TTL. Both 1.1.1.1 and 8.8.8.8 returned the expected traffic records and no CAA restriction. The active authoritative nameservers remain norah.ns.cloudflare.com and rex.ns.cloudflare.com. No unrelated DNS records existed or were changed.
+
+Repository Pages now uses build_type workflow, cname go-schedule.io, protected_domain_state verified and https_enforced true. [The requested deployment](https://github.com/shruggietech/go-schedule/actions/runs/39265648988) succeeded at 432452e7e59843b279f902d15c92289e6726f062. Certificate provisioning required one documented clear-and-restore of the repository domain binding after DNS was correct; organization verification and DNS remained in place. The issued certificate covers go-schedule.io and www.go-schedule.io, is approved by GitHub and expires 2027-01-17. Normal certificate validation was used throughout.
+
+Public checks at 2026-10-19 14:26 UTC returned 200 for the HTTPS home, documentation, comparison and static search index; the legacy installation alias served its preserved destination, and an unknown route returned the custom 404. CSS and JavaScript resources returned 200. Direct IPv4 and IPv6 requests validated the certificate for both apex and www; www redirects to the HTTPS apex, and apex HTTP redirects to HTTPS. The former project address and HTTP www resolve through the apex redirect chain to the intended site.
+
+All ten existing Chromium production checks passed against https://go-schedule.io/ (12.2 seconds), including search, persisted/system appearance, unavailable preference storage, keyboard entry, diagrams, legacy query/hash destinations, original headings, 390/768/1440px layouts and comparison filters. The source cleanup's full foreground sh scripts/verify.sh all aggregate also completed with exit 0, including all automation fixtures. Its seven remaining Node regressions and audited 21-document export passed; the retired eighth regression guarded only the now-completed pre-cutover phase.
+
+Follow-up branch codex/106-domain-cutover updates the README and issue-template links to the canonical domain, documents current operation/recovery, and removes the five unused Jekyll files with their temporary transition regression. The repository homepage is https://go-schedule.io/. No application tag or release is cut by this website deployment. Current rollback instructions are in [website maintenance](../../docs/website.md); the recorded pre-cutover traffic-DNS baseline is empty, with ownership TXT retained during recovery.
