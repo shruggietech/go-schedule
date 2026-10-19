@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/task"
@@ -54,33 +53,60 @@ func (s *Store) ValidateParent(groupID, parentID string) error {
 
 // SetGroupParent reparents a group, rejecting cycles.
 func (s *Store) SetGroupParent(groupID, parentID string) error {
-	if err := s.ValidateParent(groupID, parentID); err != nil {
-		return err
-	}
+	return s.UpdateGroup(groupID, nil, &parentID)
+}
+
+// UpdateGroup atomically changes name and parent intent after validating the
+// hierarchy within the same transaction. Nil fields retain their current value.
+func (s *Store) UpdateGroup(id string, name, parent *string) error {
 	tx, err := s.db.Begin()
 	if err != nil {
-		return fmt.Errorf("store: begin set group parent: %w", err)
+		return fmt.Errorf("store: begin update group: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	res, err := tx.Exec(`UPDATE groups SET parent_id=?, updated_at=? WHERE id=?`,
-		nullStr(parentID), fmtTime(time.Now().UTC()), groupID)
-	if err := affected(res, err, "set group parent"); err != nil {
+	group, err := scanGroup(tx.QueryRow(`SELECT id,name,parent_id,enabled,created_at,updated_at FROM groups WHERE id=?`, id))
+	if err != nil {
 		return err
 	}
-	if err := resetNotificationConditionStatesForScope(tx, domain.NotificationScopeGroup, groupID); err != nil {
+	if parent != nil && *parent != "" {
+		var exists, cycle bool
+		if err := tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM groups WHERE id=?)`, *parent).Scan(&exists); err != nil {
+			return fmt.Errorf("store: inspect group parent: %w", err)
+		}
+		if !exists {
+			return fmt.Errorf("store: parent group %q does not exist", *parent)
+		}
+		if err := tx.QueryRow(`WITH RECURSIVE ancestors(id,parent_id) AS (SELECT id,parent_id FROM groups WHERE id=? UNION SELECT g.id,g.parent_id FROM groups g JOIN ancestors a ON g.id=a.parent_id) SELECT EXISTS(SELECT 1 FROM ancestors WHERE id=?)`, *parent, id).Scan(&cycle); err != nil {
+			return fmt.Errorf("store: inspect group ancestry: %w", err)
+		}
+		if cycle {
+			return ErrCycle
+		}
+	}
+	if name != nil {
+		group.Name = *name
+	}
+	if parent != nil {
+		group.ParentID = *parent
+	}
+	res, err := tx.Exec(`UPDATE groups SET name=?,parent_id=?,updated_at=? WHERE id=?`, group.Name, nullStr(group.ParentID), fmtTime(s.now().UTC()), id)
+	if err := affected(res, err, "update group"); err != nil {
 		return err
+	}
+	if parent != nil {
+		if err := resetNotificationConditionStatesForScope(tx, domain.NotificationScopeGroup, id); err != nil {
+			return err
+		}
 	}
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("store: commit set group parent: %w", err)
+		return fmt.Errorf("store: commit update group: %w", err)
 	}
 	return nil
 }
 
 // RenameGroup updates a group's name.
 func (s *Store) RenameGroup(id, name string) error {
-	res, err := s.db.Exec(`UPDATE groups SET name=?, updated_at=? WHERE id=?`,
-		name, fmtTime(time.Now().UTC()), id)
-	return affected(res, err, "rename group")
+	return s.UpdateGroup(id, &name, nil)
 }
 
 // GroupTree returns the group hierarchy as a forest.

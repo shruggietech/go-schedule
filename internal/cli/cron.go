@@ -58,7 +58,7 @@ func cronConvert() *cobra.Command {
 				return fmtUsage(err.Error())
 			}
 			if result.RefusalReason != "" {
-				if jsonOut {
+				if jsonOutput(cmd) {
 					if err := printJSONTo(cmd.ErrOrStderr(), result); err != nil {
 						return fmt.Errorf("write conversion refusal: %w", err)
 					}
@@ -66,7 +66,7 @@ func cronConvert() *cobra.Command {
 				}
 				return fmtUsage(result.RefusalReason)
 			}
-			if jsonOut {
+			if jsonOutput(cmd) {
 				return printJSONTo(cmd.OutOrStdout(), result)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), result.Output)
@@ -90,7 +90,7 @@ func cronExplain() *cobra.Command {
 			"An expression that cannot be represented is reported by name, that is an\n" +
 			"answer, not a failure, so the exit code stays 0.",
 		Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error {
+		RunE: func(cmd *cobra.Command, a []string) error {
 			expr := a[0]
 			phrase, bad, err := cron.Explain(expr)
 			if err != nil {
@@ -102,16 +102,16 @@ func cronExplain() *cobra.Command {
 				out.Unsupported = bad.Reason
 			} else {
 				out.Phrase = phrase
-				runs, rerr := previewRuns(expr, string(cron.SyntaxCron), zone, count)
+				runs, rerr := previewRuns(cmd, expr, string(cron.SyntaxCron), zone, count)
 				if rerr != nil {
 					return rerr
 				}
 				out.NextRuns = runs
 			}
-			if jsonOut {
-				return printJSON(out)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), out)
 			}
-			printExplain(os.Stdout, out)
+			printExplain(cmd.OutOrStdout(), out)
 			return nil
 		},
 	}
@@ -148,10 +148,10 @@ func printExplain(w io.Writer, r explainResult) {
 
 // previewRuns asks the daemon what an input resolves to, so the times shown come
 // from the same evaluator that will run the task rather than a second one here.
-func previewRuns(input, syntax, tz string, count int) ([]time.Time, error) {
-	ctx, cancel := reqCtx()
+func previewRuns(cmd *cobra.Command, input, syntax, tz string, count int) ([]time.Time, error) {
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	resp, err := newClient().Preview(ctx, server.PreviewRequest{
+	resp, err := clientFor(cmd).Preview(ctx, server.PreviewRequest{
 		Schedule: input, ScheduleSyntax: syntax, Timezone: tz,
 	})
 	if err != nil {
@@ -179,6 +179,7 @@ type taskCreator interface {
 }
 
 type importOptions struct {
+	ctx      context.Context
 	dryRun   bool
 	timezone string
 	runAs    string
@@ -202,14 +203,14 @@ func cronImport() *cobra.Command {
 			"Each line is reported with the phrase it maps to; lines that cannot be\n" +
 			"represented are reported by name rather than dropped. Use --dry-run to see\n" +
 			"the whole report without creating anything.",
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			if file == "" {
 				return fmt.Errorf("%w: --file is required (use - for standard input)", errUsage)
 			}
 			if system && opts.runAs != "" {
 				return fmt.Errorf("%w: --run-as cannot be combined with --system", errUsage)
 			}
-			r, closeFn, err := openInput(file)
+			r, closeFn, err := openInput(cmd, file)
 			if err != nil {
 				return fmt.Errorf("%w: %v", errUsage, err)
 			}
@@ -221,10 +222,13 @@ func cronImport() *cobra.Command {
 			}
 			var creator taskCreator
 			if !opts.dryRun {
-				creator = newClient()
+				creator = clientFor(cmd)
 			}
-			opts.runs = previewRuns
-			return runImport(os.Stdout, &rep, opts, creator)
+			opts.runs = func(input, syntax, tz string, count int) ([]time.Time, error) {
+				return previewRuns(cmd, input, syntax, tz, count)
+			}
+			opts.ctx = cmd.Context()
+			return runImport(cmd.OutOrStdout(), &rep, opts, creator)
 		},
 	}
 	f := cmd.Flags()
@@ -239,9 +243,9 @@ func cronImport() *cobra.Command {
 	return cmd
 }
 
-func openInput(path string) (io.Reader, func(), error) {
+func openInput(cmd *cobra.Command, path string) (io.Reader, func(), error) {
 	if path == "-" {
-		return os.Stdin, func() {}, nil
+		return cmd.InOrStdin(), func() {}, nil
 	}
 	f, err := os.Open(path) //nolint:gosec // the path is the operator's own argument
 	if err != nil {
@@ -285,7 +289,7 @@ func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCr
 			if creator == nil {
 				continue
 			}
-			if err := createFromLine(w, creator, line, zone, opts.group, opts.runAs, rep); err != nil {
+			if err := createFromLineWithContext(opts.ctx, w, creator, line, zone, opts.group, opts.runAs, rep); err != nil {
 				return err
 			}
 		}
@@ -335,8 +339,11 @@ func printLineRuns(w io.Writer, expression, zone string, opts importOptions) {
 	}
 }
 
-func createFromLine(w io.Writer, creator taskCreator, line cron.Line, zone, group, runAs string, rep *cron.Report) error {
-	ctx, cancel := reqCtx()
+func createFromLineWithContext(parent context.Context, w io.Writer, creator taskCreator, line cron.Line, zone, group, runAs string, rep *cron.Report) error {
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, 10*time.Second)
 	defer cancel()
 	resp, err := creator.CreateTask(ctx, server.TaskCreateRequest{
 		Name:           importName(line),
@@ -428,15 +435,15 @@ func cronExport() *cobra.Command {
 		Long: "Print a crontab line for every task whose schedule cron can carry, and a\n" +
 			"commented refusal naming every task it cannot. Nothing is approximated and\n" +
 			"no task is silently omitted.",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			details, err := exportTargets(taskID)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			details, err := exportTargets(cmd, taskID)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(exportLines(details))
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), exportLines(details))
 			}
-			printExport(os.Stdout, details)
+			printExport(cmd.OutOrStdout(), details)
 			return nil
 		},
 	}
@@ -444,10 +451,10 @@ func cronExport() *cobra.Command {
 	return cmd
 }
 
-func exportTargets(taskID string) ([]server.TaskResponse, error) {
-	ctx, cancel := reqCtx()
+func exportTargets(cmd *cobra.Command, taskID string) ([]server.TaskResponse, error) {
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	c := newClient()
+	c := clientFor(cmd)
 	if taskID != "" {
 		resp, err := c.GetTask(ctx, taskID)
 		if err != nil {

@@ -20,9 +20,9 @@ func newBundleCmd() *cobra.Command {
 func bundleExport() *cobra.Command {
 	var output string
 	command := &cobra.Command{Use: "export", Short: "Export deterministic, secret-free automation intent", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		document, err := newClient().ExportBundle(ctx)
+		document, err := clientFor(cmd).ExportBundle(ctx)
 		if err != nil {
 			return err
 		}
@@ -38,9 +38,9 @@ func bundleValidate() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		result, err := newClient().ValidateBundle(ctx, document)
+		result, err := clientFor(cmd).ValidateBundle(ctx, document)
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ func bundlePreview() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		paths := map[string]string{}
 		for _, binding := range watcherPaths {
@@ -72,7 +72,7 @@ func bundlePreview() *cobra.Command {
 			}
 			paths[id] = path
 		}
-		plan, err := newClient().PreviewBundleWithPaths(ctx, document, paths)
+		plan, err := clientFor(cmd).PreviewBundleWithPaths(ctx, document, paths)
 		if err != nil {
 			return err
 		}
@@ -89,9 +89,9 @@ func bundleCompare() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		plan, err := newClient().CompareBundle(ctx, document)
+		plan, err := clientFor(cmd).CompareBundle(ctx, document)
 		if err != nil {
 			return err
 		}
@@ -105,9 +105,9 @@ func bundleApply() *cobra.Command {
 		if err := readBundleJSON(args[0], &plan); err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		result, err := newClient().ApplyBundle(ctx, plan)
+		result, err := clientFor(cmd).ApplyBundle(ctx, plan)
 		if err != nil {
 			return err
 		}

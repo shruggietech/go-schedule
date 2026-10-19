@@ -15,7 +15,7 @@ import (
 type serviceControlFunc func(action, executable string, arguments []string) (string, error)
 
 func newServiceCmd() *cobra.Command {
-	return newServiceCmdWith(service.Control, daemonPath)
+	return newServiceCmdWith(nil, nil)
 }
 
 func newServiceCmdWith(control serviceControlFunc, resolveDaemon func() (string, error)) *cobra.Command {
@@ -23,6 +23,7 @@ func newServiceCmdWith(control serviceControlFunc, resolveDaemon func() (string,
 		Use:   "service",
 		Short: "Manage the system-wide background service (install requires admin)",
 	}
+	MarkLocal(cmd)
 	for _, action := range service.Actions() {
 		cmd.AddCommand(serviceAction(action, control, resolveDaemon))
 	}
@@ -34,7 +35,13 @@ func serviceAction(action string, control serviceControlFunc, resolveDaemon func
 	command := &cobra.Command{
 		Use:   action,
 		Short: "Service: " + action,
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if control == nil {
+				control = stateFor(cmd).deps.ServiceControl
+			}
+			if resolveDaemon == nil {
+				resolveDaemon = stateFor(cmd).deps.DaemonPath
+			}
 			arguments, err := serviceArguments(action, configPath)
 			if err != nil {
 				return err
@@ -47,7 +54,7 @@ func serviceAction(action string, control serviceControlFunc, resolveDaemon func
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "%s: %s\n", action, msg)
+			fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", action, msg)
 			return nil
 		},
 	}
@@ -93,4 +100,8 @@ func daemonPath() (string, error) {
 		return "", fmt.Errorf("daemon binary not found next to gosched (looked for %s)", p)
 	}
 	return p, nil
+}
+
+func defaultServiceControl(action, executable string, arguments []string) (string, error) {
+	return service.Control(action, executable, arguments)
 }

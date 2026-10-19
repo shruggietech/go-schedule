@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -22,22 +23,21 @@ type accessClient interface {
 	ExportAudit(context.Context, domain.AuditQuery) ([]byte, error)
 }
 
-func newPairingCmd() *cobra.Command {
-	api := newClient()
+func newPairingCmdWithClient(api *client.Client) *cobra.Command {
 	command := &cobra.Command{Use: "pairing", Short: "Create and manage one-time remote pairing phrases"}
 	var kind, capability, grantDuration string
 	create := &cobra.Command{Use: "create <display-name>", Short: "Create a phrase displayed once", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		grantExpiresAt, err := grantExpiration(time.Now().UTC(), grantDuration)
+		grantExpiresAt, err := grantExpiration(stateFor(cmd).deps.Now().UTC(), grantDuration)
 		if err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.CreatePairing(ctx, server.PairingCreateRequest{DisplayName: args[0], Kind: domain.ActorKind(kind), Capability: domain.Capability(capability), ExpiresAt: grantExpiresAt})
 		if err != nil {
 			return err
 		}
-		if jsonOut {
+		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), item)
 		}
 		grantExpiry := "non-expiring"
@@ -51,13 +51,13 @@ func newPairingCmd() *cobra.Command {
 	create.Flags().StringVar(&capability, "capability", string(domain.CapabilityObserve), "capability: observe, operate, manage, or enroll")
 	create.Flags().StringVar(&grantDuration, "grant-duration", "non-expiring", "access duration: 1h, 24h, 7d, 30d, or non-expiring")
 	list := &cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		items, err := api.ListPairings(ctx)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
+		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), items)
 		}
 		for _, item := range items {
@@ -66,7 +66,7 @@ func newPairingCmd() *cobra.Command {
 		return nil
 	}}
 	cancelCmd := &cobra.Command{Use: "cancel <pairing-id>", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.CancelPairing(ctx, args[0])
 		if err != nil {
@@ -91,11 +91,10 @@ func grantExpiration(now time.Time, value string) (*time.Time, error) {
 	return &expires, nil
 }
 
-func newCredentialCmd() *cobra.Command {
-	api := newClient()
+func newCredentialCmdWithClient(api *client.Client) *cobra.Command {
 	command := &cobra.Command{Use: "credential", Short: "Inspect, rotate, and revoke remote credentials"}
 	command.AddCommand(&cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		items, err := api.ListCredentials(ctx)
 		if err != nil {
@@ -104,7 +103,7 @@ func newCredentialCmd() *cobra.Command {
 		return printJSONTo(cmd.OutOrStdout(), items)
 	}})
 	command.AddCommand(&cobra.Command{Use: "rotate <credential-id>", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.RotateCredential(ctx, args[0])
 		if err != nil {
@@ -113,7 +112,7 @@ func newCredentialCmd() *cobra.Command {
 		return printJSONTo(cmd.OutOrStdout(), item)
 	}})
 	command.AddCommand(&cobra.Command{Use: "revoke <credential-id>", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.RevokeCredential(ctx, args[0])
 		if err != nil {
@@ -124,8 +123,6 @@ func newCredentialCmd() *cobra.Command {
 	return command
 }
 
-func newActorCmd() *cobra.Command { return newActorCmdWithClient(newClient()) }
-
 func newActorCmdWithClient(api accessClient) *cobra.Command {
 	command := &cobra.Command{Use: "actor", Short: "Manage client actors"}
 	command.AddCommand(newActorListCmd(api), newActorCreateCmd(api), newActorUpdateCmd(api), newActorRevokeCmd(api))
@@ -134,13 +131,13 @@ func newActorCmdWithClient(api accessClient) *cobra.Command {
 
 func newActorListCmd(api accessClient) *cobra.Command {
 	return &cobra.Command{Use: "list", Short: "List actors", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		actors, err := api.ListActors(ctx)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
+		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), actors)
 		}
 		for _, actor := range actors {
@@ -163,7 +160,7 @@ func newActorCreateCmd(api accessClient) *cobra.Command {
 			}
 			request.ExpiresAt = &parsed
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		actor, err := api.CreateActor(ctx, request)
 		if err != nil {
@@ -200,7 +197,7 @@ func newActorUpdateCmd(api accessClient) *cobra.Command {
 			}
 			request.ExpiresAt = &parsed
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		actor, err := api.UpdateActor(ctx, args[0], request)
 		if err != nil {
@@ -218,7 +215,7 @@ func newActorUpdateCmd(api accessClient) *cobra.Command {
 
 func newActorRevokeCmd(api accessClient) *cobra.Command {
 	return &cobra.Command{Use: "revoke <actor-id>", Short: "Revoke an actor", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		actor, err := api.RevokeActor(ctx, args[0])
 		if err != nil {
@@ -229,14 +226,12 @@ func newActorRevokeCmd(api accessClient) *cobra.Command {
 }
 
 func printActor(cmd *cobra.Command, actor domain.Actor, verb string) error {
-	if jsonOut {
+	if jsonOutput(cmd) {
 		return printJSONTo(cmd.OutOrStdout(), actor)
 	}
 	_, err := fmt.Fprintf(cmd.OutOrStdout(), "%s actor %s (%s).\n", verb, actor.DisplayName, actor.ID)
 	return err
 }
-
-func newAuditCmd() *cobra.Command { return newAuditCmdWithClient(newClient()) }
 
 func newAuditCmdWithClient(api accessClient) *cobra.Command {
 	command := &cobra.Command{Use: "audit", Short: "Inspect management audit history"}
@@ -287,13 +282,13 @@ func newAuditListCmd(api accessClient) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		events, err := api.ListAudit(ctx, query)
 		if err != nil {
 			return err
 		}
-		if jsonOut {
+		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), events)
 		}
 		for _, event := range events {
@@ -315,7 +310,7 @@ func newAuditExportCmd(api accessClient) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		ctx, cancel := reqCtx()
+		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		data, err := api.ExportAudit(ctx, query)
 		if err != nil {

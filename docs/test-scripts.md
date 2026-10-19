@@ -344,6 +344,26 @@ The `.ps1` twins follow the ShruggieTech PowerShell standard, enforced by [`.cla
 
 ## Automated tests
 
+### Isolated CLI operation (S107, unreleased)
+
+S107 provides reusable isolation and focused command adapters for the future unattended evaluator. The complete Windows/WSL coordinator and fixed report contract remain tracked in #289 and #290. Operator commands are documented in the [CLI reference](cli.md).
+
+The root `internal/clifixture` package creates a UUID workspace with separate disposable runtime and retained evidence directories. Its guard checks installation identity, exact daemon PID, selected IPC and effective configuration/database/log/lock paths before a mutating packaged-CLI operation. It rejects changed ownership and symlink/junction escapes. Caller-selected watcher/task/export paths must also pass containment checks. Cleanup targets only the owned runtime path and exact process capability; evidence survives.
+
+Real binaries connect using `--ipc-path` to the owned daemon. Windows children are hidden, noninteractive and suspended until assigned to their kill-on-close Job Object, inheriting only redirected stdin/stdout/stderr handles. Unix children use an owned process group. Cleanup waits for the exact process tree before removing runtime state and never terminates by executable name.
+
+`cli.ExecuteWithDependencies` runs the actual handlers with scoped profile/preferences, secret, service, launcher, clock and I/O dependencies. Recording service/GUI/credential adapters exercise OS-facing success/failure semantics without calling the host manager, opening a window or touching a native keyring. Production defaults keep their existing native behavior; no environment-variable credential downgrade is introduced. Help/completion needs no daemon or remote credential, and cancellation reaches request contexts and explicit owned MCP streams.
+
+Evidence kinds are `packaged_cli`, `command_harness` and `deterministic_engine`. They identify the execution boundary and do not substitute one kind of evidence for another. The focused qualification entry is:
+
+```sh
+go test ./internal/cli ./internal/userprefs ./internal/clientobserve ./internal/clifixture ./test/integration -run 'TestInvocation|TestExplicitIPC|TestRecording|TestGuard|TestOwnedProcessTree|TestPackagedCLIUsesOnlyOwnedDaemon' -count=1
+```
+
+Run it through the repository's verified hidden launcher on Windows. The normal aggregate remains `sh scripts/verify.sh all`; the packaged fixture is included in its root test coverage. Full scenario coverage, interrupted-run reporting and the agent capture/review/finalize prompt are subsequent delivery work.
+
+### Existing maintainer script contracts
+
 ```bash
 go test ./test/integration/ -run TestScripts -v
 ```

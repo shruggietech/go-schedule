@@ -6,8 +6,12 @@ import (
 	"os"
 
 	"github.com/shruggietech/go-schedule/internal/cli"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 )
 
 func main() {
+	if handled, code := clientsecret.RunReadHelper(os.Args[1:]); handled {
+		os.Exit(code)
+	}
 	os.Exit(cli.Execute())
 }

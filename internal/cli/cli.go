@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,21 +17,15 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
 // errUsage marks validation/usage failures so Execute can return exit code 2.
 var errUsage = errors.New("usage")
 
-var jsonOut bool
-var selectedClient *client.Client
-var targetFlags remoteTargetFlags
-
 // Execute runs the root command and returns a process exit code.
 func Execute() int {
 	root := newRoot()
-	return handleExecuteError(os.Stderr, root.Execute())
+	return handleExecuteError(root.ErrOrStderr(), root.Execute())
 }
 
 func handleExecuteError(stderr io.Writer, err error) int {
@@ -67,11 +60,11 @@ func isReported(err error) bool {
 
 func fmtUsage(message string) error { return fmt.Errorf("%w: %s", errUsage, message) }
 
-func newRoot() *cobra.Command {
-	jsonOut = false
-	cfg, _ := config.Load("")
-	selectedClient = client.NewSwitchable(client.New(ipc.Endpoint(cfg)))
-	targetFlags = remoteTargetFlags{}
+func newRoot() *cobra.Command { return newRootWithDependencies(Dependencies{}) }
+
+func newRootWithDependencies(deps Dependencies) *cobra.Command {
+	state := makeInvocation(deps)
+	targetFlags := &state.flags
 	root := &cobra.Command{
 		Use:           "gosched",
 		Short:         "Cross-platform scheduler with readable schedules and supported cron",
@@ -79,25 +72,26 @@ func newRoot() *cobra.Command {
 		SilenceErrors: true,
 		Version:       buildinfo.Version,
 	}
+	root.SetContext(context.WithValue(context.Background(), invocationKey{}, state))
+	invocationStreams(root, deps)
 	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
-		resolved, description, err := resolveTarget(cmd.Context(), targetFlags)
-		if err != nil {
-			return err
-		}
-		selectedClient.Use(resolved)
-		if description != "" && !jsonOut {
-			fmt.Fprintln(cmd.ErrOrStderr(), description)
-		}
-		return nil
+		cmd.SetContext(context.WithValue(cmd.Context(), invocationKey{}, state))
+		return state.resolve(cmd)
 	}
-	root.PersistentFlags().BoolVar(&jsonOut, "json", false, "machine-readable JSON output")
+	root.PersistentFlags().BoolVar(&state.json, "json", false, "machine-readable JSON output")
 	root.PersistentFlags().StringVar(&targetFlags.Profile, "profile", "", "saved remote profile ID or unambiguous label")
 	root.PersistentFlags().StringVar(&targetFlags.Endpoint, "endpoint", "", "explicit remote HTTPS origin")
 	root.PersistentFlags().StringVar(&targetFlags.DaemonID, "daemon-id", "", "expected daemon installation ID for an explicit target")
 	root.PersistentFlags().StringVar(&targetFlags.CredentialID, "credential-id", "", "native credential reference for an explicit target")
 	root.PersistentFlags().StringVar(&targetFlags.CertificateFile, "certificate-file", "", "trusted PEM certificate file for an explicit target")
+	root.PersistentFlags().StringVar(&targetFlags.IPCPath, "ipc-path", "", "explicit absolute local socket path or Windows named pipe")
 	root.AddCommand(
 		newTaskCmd(),
+		newScheduleCmd(),
+		newCalendarCmd(),
+		newRuntimeCmd(),
+		newSystemsCmd(),
+		newSearchCmd(),
 		newChainCmd(),
 		newTriggerCmd(),
 		newWatcherCmd(),
@@ -110,35 +104,24 @@ func newRoot() *cobra.Command {
 		newServiceCmd(),
 		newGUICmd(),
 		newHealthCmd(),
-		newDaemonCmd(),
+		newDaemonCmdWithClient(state.client),
 		newMCPCmd(),
-		newActorCmd(),
-		newAuditCmd(),
-		newPairingCmd(),
-		newCredentialCmd(),
+		newActorCmdWithClient(state.client),
+		newAuditCmdWithClient(state.client),
+		newPairingCmdWithClient(state.client),
+		newCredentialCmdWithClient(state.client),
 		newProfileCmd(),
+		newPreferencesCmd(),
 		newBundleCmd(),
 	)
 	return root
 }
 
-func newClient() *client.Client {
-	if selectedClient != nil {
-		return selectedClient
-	}
-	cfg, _ := config.Load("")
-	return client.New(ipc.Endpoint(cfg))
+func reqCtx(cmd *cobra.Command) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(cmd.Context(), 10*time.Second)
 }
 
-func reqCtx() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), 10*time.Second)
-}
-
-// printJSON writes v as indented JSON to stdout.
-func printJSON(v any) error {
-	return printJSONTo(os.Stdout, v)
-}
-
+// printJSONTo writes v as indented JSON to the invocation's selected output.
 func printJSONTo(w io.Writer, v any) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
@@ -150,16 +133,16 @@ func newHealthCmd() *cobra.Command {
 		Use:   "health",
 		Short: "Check that the daemon is running",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx, cancel := reqCtx()
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			h, err := newClient().Health(ctx)
+			h, err := clientFor(cmd).Health(ctx)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(h)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), h)
 			}
-			fmt.Fprintf(os.Stdout, "daemon ok (version %s)\n", h.Version)
+			fmt.Fprintf(cmd.OutOrStdout(), "daemon ok (version %s)\n", h.Version)
 			return nil
 		},
 	}

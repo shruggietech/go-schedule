@@ -35,14 +35,13 @@ func TestMCPHTTPCommandRegistersCompleteRuntimeSurface(t *testing.T) {
 }
 
 func TestMCPHTTPEnableRequiresExplicitValidPermission(t *testing.T) {
-	previous := mcpHTTPEnable
-	t.Cleanup(func() { mcpHTTPEnable = previous })
 	var captured server.MCPHTTPEnableRequest
-	mcpHTTPEnable = func(_ *cobra.Command, request server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
+	callback := func(_ *cobra.Command, request server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
 		captured = request
 		return server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: server.MCPHTTPStatusResponse{Enabled: true, Endpoint: "http://127.0.0.1:43123/mcp", Permission: request.Permission}, Credential: "secret"}, nil
 	}
 	command := newMCPHTTPEnableCmd()
+	stateFor(command).deps.MCPHTTPEnable = callback
 	command.SetOut(io.Discard)
 	command.SetArgs([]string{"--port", "43123", "--permission", "operate", "--name", "Codex"})
 	if err := command.Execute(); err != nil {
@@ -52,6 +51,7 @@ func TestMCPHTTPEnableRequiresExplicitValidPermission(t *testing.T) {
 		t.Fatalf("request=%+v", captured)
 	}
 	manage := newMCPHTTPEnableCmd()
+	stateFor(manage).deps.MCPHTTPEnable = callback
 	manage.SetArgs([]string{"--port", "43123", "--permission", "manage", "--require-confirmation"})
 	if err := manage.Execute(); err != nil || captured.Permission != domain.CapabilityManage || !captured.RequireConfirmation {
 		t.Fatalf("manage request=%+v err=%v", captured, err)
@@ -64,40 +64,21 @@ func TestMCPHTTPEnableRequiresExplicitValidPermission(t *testing.T) {
 }
 
 func TestMCPHTTPCredentialOutputIsExplicitlyOneTime(t *testing.T) {
-	previousJSON := jsonOut
-	jsonOut = false
-	t.Cleanup(func() { jsonOut = previousJSON })
-	previousStdout := os.Stdout
-	read, write, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	os.Stdout = write
-	t.Cleanup(func() { os.Stdout = previousStdout })
+	var output strings.Builder
+	command := &cobra.Command{}
+	command.SetOut(&output)
 	result := server.MCPHTTPCredentialResponse{MCPHTTPStatusResponse: server.MCPHTTPStatusResponse{Enabled: true, Endpoint: "http://127.0.0.1:43123/mcp", AllowedOrigins: []string{}}, Credential: "one-time-secret"}
-	if err := printMCPHTTPCredential(result, "localhost MCP enabled"); err != nil {
+	if err := printMCPHTTPCredential(command, result, "localhost MCP enabled"); err != nil {
 		t.Fatal(err)
 	}
-	if err := write.Close(); err != nil {
-		t.Fatal(err)
-	}
-	output, err := io.ReadAll(read)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := read.Close(); err != nil {
-		t.Fatal(err)
-	}
-	if got := string(output); !strings.Contains(got, "credential (shown once): one-time-secret") || !strings.Contains(got, result.Endpoint) {
+	if got := output.String(); !strings.Contains(got, "credential (shown once): one-time-secret") || !strings.Contains(got, result.Endpoint) {
 		t.Fatalf("output=%q", got)
 	}
 }
 
 func TestMCPStdioOperateRejectsRemoteTargetBeforeSessionCreation(t *testing.T) {
-	previous := selectedClient
-	selectedClient = client.NewUnavailableRemote("https://remote.example.test")
-	t.Cleanup(func() { selectedClient = previous })
 	command := newMCPServeCmd()
+	stateFor(command).client.Use(client.NewUnavailableRemote("https://remote.example.test"))
 	command.SetArgs([]string{"--permission", "operate"})
 	err := command.Execute()
 	if err == nil || !strings.Contains(err.Error(), "available only for the local daemon") {

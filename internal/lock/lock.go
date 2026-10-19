@@ -4,6 +4,11 @@
 // OS releases the lock automatically if the process dies, so a crashed daemon
 // does not leave a stale lock.
 //
-// Acquire and the Lock type are defined per-platform (flock on Unix, LockFileEx
-// on Windows).
+// Acquire, AcquireFile and the Lock type are defined per-platform (flock on Unix,
+// LockFileEx on Windows).
 package lock
+
+import "errors"
+
+// ErrHeld identifies an exclusive file lock currently owned by another handle.
+var ErrHeld = errors.New("exclusive file lock is already held")

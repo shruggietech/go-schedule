@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -24,9 +25,13 @@ func TestDaemonRuntimeInfoResolvesEffectivePaths(t *testing.T) {
 	cfg := config.Default()
 	cfg.DataDir = filepath.Join("relative", "daemon-data")
 	cfg.LogFilePath = filepath.Join("relative", "logs", "events.log")
+	cfg.IPCPath = `\\.\pipe\s107-runtime`
 	got, err := daemonRuntimeInfo(cfg, filepath.Join("relative", "daemon.json"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if got.ProcessID != os.Getpid() || got.IPCPath != cfg.IPCPath {
+		t.Fatalf("identity metadata=%+v", got)
 	}
 	for name, path := range map[string]string{
 		"data": got.DataDir, "database": got.DatabasePath, "config": got.ConfigPath,

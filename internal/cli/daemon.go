@@ -17,8 +17,6 @@ type daemonIdentityClient interface {
 	ResetDaemonIdentity(context.Context, string) (server.ManifestResponse, error)
 }
 
-func newDaemonCmd() *cobra.Command { return newDaemonCmdWithClient(newClient()) }
-
 func newDaemonCmdWithClient(api daemonIdentityClient) *cobra.Command {
 	command := &cobra.Command{Use: "daemon", Short: "Inspect and manage daemon identity"}
 	command.AddCommand(
@@ -27,7 +25,7 @@ func newDaemonCmdWithClient(api daemonIdentityClient) *cobra.Command {
 			Short: "Show daemon identity and capabilities",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				ctx, cancel := reqCtx()
+				ctx, cancel := reqCtx(cmd)
 				defer cancel()
 				manifest, err := api.Manifest(ctx)
 				if err != nil {
@@ -45,13 +43,13 @@ func newDaemonCmdWithClient(api daemonIdentityClient) *cobra.Command {
 				if err != nil {
 					return fmtUsage("display name must contain 1 through 80 characters and no control characters")
 				}
-				ctx, cancel := reqCtx()
+				ctx, cancel := reqCtx(cmd)
 				defer cancel()
 				manifest, err := api.RenameDaemon(ctx, name)
 				if err != nil {
 					return err
 				}
-				if jsonOut {
+				if jsonOutput(cmd) {
 					return printJSONTo(cmd.OutOrStdout(), manifest)
 				}
 				_, err = fmt.Fprintf(cmd.OutOrStdout(), "Daemon renamed to %s (%s).\n", manifest.DisplayName, manifest.InstallationID)
@@ -73,13 +71,13 @@ func newDaemonResetCmd(api daemonIdentityClient) *cobra.Command {
 			if confirmation == "" {
 				return fmtUsage("--confirm must contain the current installation ID")
 			}
-			ctx, cancel := reqCtx()
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
 			manifest, err := api.ResetDaemonIdentity(ctx, confirmation)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
+			if jsonOutput(cmd) {
 				return printJSONTo(cmd.OutOrStdout(), manifest)
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Installation identity reset to %s for %s.\n", manifest.InstallationID, manifest.DisplayName)
@@ -91,7 +89,7 @@ func newDaemonResetCmd(api daemonIdentityClient) *cobra.Command {
 }
 
 func printManifest(cmd *cobra.Command, manifest server.ManifestResponse) error {
-	if jsonOut {
+	if jsonOutput(cmd) {
 		return printJSONTo(cmd.OutOrStdout(), manifest)
 	}
 	_, err := fmt.Fprintf(cmd.OutOrStdout(), "Daemon: %s\nInstallation ID: %s\nVersion: %s\nMode: %s\nPlatform: %s/%s\nCapabilities: %s\n", manifest.DisplayName, manifest.InstallationID, manifest.ProductVersion, manifest.OperatingMode, manifest.Platform.OS, manifest.Platform.Architecture, strings.Join(manifest.Capabilities, ", "))

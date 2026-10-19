@@ -3,6 +3,7 @@
 package lock
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -17,7 +18,17 @@ type Lock struct {
 // Acquire takes an exclusive, fail-immediately lock on path, creating the file
 // if needed. It returns an error if another process already holds the lock.
 func Acquire(path string) (*Lock, error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
+	held, err := AcquireFile(path, 0o644)
+	if errors.Is(err, ErrHeld) {
+		return nil, fmt.Errorf("another goschedd instance is already running (lock held: %s)", path)
+	}
+	return held, err
+}
+
+// AcquireFile takes an exclusive nonblocking OS lock, creating its file with mode.
+// A leftover file is harmless; handle closure or process exit releases ownership.
+func AcquireFile(path string, mode os.FileMode) (*Lock, error) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, mode)
 	if err != nil {
 		return nil, fmt.Errorf("lock: open %s: %w", path, err)
 	}
@@ -29,7 +40,10 @@ func Acquire(path string) (*Lock, error) {
 	)
 	if err != nil {
 		_ = f.Close()
-		return nil, fmt.Errorf("another goschedd instance is already running (lock held: %s)", path)
+		if errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
+			return nil, fmt.Errorf("lock %s: %w", path, ErrHeld)
+		}
+		return nil, fmt.Errorf("lock: acquire %s: %w", path, err)
 	}
 	return &Lock{f: f}, nil
 }

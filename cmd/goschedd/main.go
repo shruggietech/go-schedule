@@ -245,6 +245,8 @@ func daemonRuntimeInfo(cfg config.Config, configPath string) (server.RuntimeInfo
 		*path = filepath.Clean(absolute)
 	}
 	return server.RuntimeInfoResponse{
+		IPCPath:      ipc.Endpoint(cfg),
+		ProcessID:    os.Getpid(),
 		DataDir:      dataDir,
 		DatabasePath: databasePath,
 		ConfigPath:   configPath,

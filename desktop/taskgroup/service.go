@@ -476,7 +476,11 @@ func updateRequest(d TaskDraft, current server.TaskResponse, i commandline.Invoc
 		req.Args = i.Args
 	}
 	if !maps.Equal(env, current.Task.Env) {
-		req.Env = env
+		if len(env) == 0 {
+			req.ClearEnv = true
+		} else {
+			req.Env = env
+		}
 	}
 	if d.Stdin != current.Task.Stdin {
 		req.Stdin = &d.Stdin

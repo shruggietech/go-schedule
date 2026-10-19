@@ -125,11 +125,10 @@ func TestCronConvert_ForcedTextAndInvalidDestination(t *testing.T) {
 }
 
 func TestCronConvert_JSONUsesStableSuccessAndRefusalStreams(t *testing.T) {
-	jsonOut = true
-	t.Cleanup(func() { jsonOut = false })
 
 	t.Run("success on stdout", func(t *testing.T) {
 		cmd := cronConvert()
+		stateFor(cmd).json = true
 		var stdout, stderr bytes.Buffer
 		cmd.SetOut(&stdout)
 		cmd.SetErr(&stderr)
@@ -152,6 +151,7 @@ func TestCronConvert_JSONUsesStableSuccessAndRefusalStreams(t *testing.T) {
 
 	t.Run("refusal on stderr", func(t *testing.T) {
 		cmd := cronConvert()
+		stateFor(cmd).json = true
 		var stdout, stderr bytes.Buffer
 		cmd.SetOut(&stdout)
 		cmd.SetErr(&stderr)

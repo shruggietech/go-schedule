@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -17,28 +18,40 @@ import (
 	"github.com/shruggietech/go-schedule/internal/mcpoperate"
 )
 
-var mcpHTTPStatus = func(cmd *cobra.Command) (server.MCPHTTPStatusResponse, error) {
-	ctx, cancel := reqCtx()
+func mcpHTTPStatus(cmd *cobra.Command) (server.MCPHTTPStatusResponse, error) {
+	if callback := stateFor(cmd).deps.MCPHTTPStatus; callback != nil {
+		return callback(cmd)
+	}
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	return newClient().MCPHTTPStatus(ctx)
+	return clientFor(cmd).MCPHTTPStatus(ctx)
 }
 
-var mcpHTTPEnable = func(cmd *cobra.Command, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
-	ctx, cancel := reqCtx()
+func mcpHTTPEnable(cmd *cobra.Command, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
+	if callback := stateFor(cmd).deps.MCPHTTPEnable; callback != nil {
+		return callback(cmd, req)
+	}
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	return newClient().EnableMCPHTTP(ctx, req)
+	return clientFor(cmd).EnableMCPHTTP(ctx, req)
 }
 
-var mcpHTTPRotate = func(cmd *cobra.Command) (server.MCPHTTPCredentialResponse, error) {
-	ctx, cancel := reqCtx()
+func mcpHTTPRotate(cmd *cobra.Command) (server.MCPHTTPCredentialResponse, error) {
+	if callback := stateFor(cmd).deps.MCPHTTPRotate; callback != nil {
+		return callback(cmd)
+	}
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	return newClient().RotateMCPHTTPCredential(ctx)
+	return clientFor(cmd).RotateMCPHTTPCredential(ctx)
 }
 
-var mcpHTTPDisable = func(cmd *cobra.Command) (server.MCPHTTPStatusResponse, error) {
-	ctx, cancel := reqCtx()
+func mcpHTTPDisable(cmd *cobra.Command) (server.MCPHTTPStatusResponse, error) {
+	if callback := stateFor(cmd).deps.MCPHTTPDisable; callback != nil {
+		return callback(cmd)
+	}
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	return newClient().DisableMCPHTTP(ctx)
+	return clientFor(cmd).DisableMCPHTTP(ctx)
 }
 
 func newMCPCmd() *cobra.Command {
@@ -59,7 +72,7 @@ func newMCPServeCmd() *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, _ []string) error {
 		capability := domain.Capability(permission)
 		if capability == domain.CapabilityObserve {
-			return mcpobserve.RunStdio(cmd.Context(), newClient(), buildinfo.Version)
+			return mcpobserve.NewServer(clientFor(cmd), buildinfo.Version).Run(cmd.Context(), scopedMCPTransport(cmd))
 		}
 		if capability != domain.CapabilityOperate && capability != domain.CapabilityManage {
 			return fmtUsage("--permission must be observe, operate, or manage")
@@ -67,7 +80,7 @@ func newMCPServeCmd() *cobra.Command {
 		if requireConfirmation && capability != domain.CapabilityManage {
 			return fmtUsage("--require-confirmation requires --permission manage")
 		}
-		base := newClient()
+		base := clientFor(cmd)
 		if base.Remote() {
 			return fmtUsage("MCP Operate stdio is available only for the local daemon")
 		}
@@ -87,7 +100,7 @@ func newMCPServeCmd() *cobra.Command {
 		if capability == domain.CapabilityManage {
 			mcpmanage.AddTools(mcpServer, mcpmanage.New(base.WithMCPSession(session.Credential), requireConfirmation))
 		}
-		return mcpServer.Run(cmd.Context(), &mcp.StdioTransport{})
+		return mcpServer.Run(cmd.Context(), scopedMCPTransport(cmd))
 	}
 	return cmd
 }
@@ -100,14 +113,14 @@ func newMCPHTTPCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(status)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), status)
 			}
 			if !status.Enabled {
-				fmt.Fprintln(os.Stdout, "localhost MCP disabled")
+				fmt.Fprintln(cmd.OutOrStdout(), "localhost MCP disabled")
 				return nil
 			}
-			fmt.Fprintf(os.Stdout, "localhost MCP %s enabled for %s at %s (credential %s, successful requests %d)\n", status.Permission, status.ClientName, status.Endpoint, status.CredentialFingerprint, status.RequestCount)
+			fmt.Fprintf(cmd.OutOrStdout(), "localhost MCP %s enabled for %s at %s (credential %s, successful requests %d)\n", status.Permission, status.ClientName, status.Endpoint, status.CredentialFingerprint, status.RequestCount)
 			return nil
 		}},
 		newMCPHTTPEnableCmd(),
@@ -116,17 +129,17 @@ func newMCPHTTPCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printMCPHTTPCredential(result, "localhost MCP credential rotated")
+			return printMCPHTTPCredential(cmd, result, "localhost MCP credential rotated")
 		}},
 		&cobra.Command{Use: "disable", Short: "Revoke and stop localhost MCP access", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 			status, err := mcpHTTPDisable(cmd)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(status)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), status)
 			}
-			fmt.Fprintln(os.Stdout, "localhost MCP disabled")
+			fmt.Fprintln(cmd.OutOrStdout(), "localhost MCP disabled")
 			return nil
 		}},
 	)
@@ -154,7 +167,7 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		return printMCPHTTPCredential(result, "localhost MCP enabled")
+		return printMCPHTTPCredential(cmd, result, "localhost MCP enabled")
 	}}
 	cmd.Flags().IntVar(&port, "port", 0, "loopback TCP port (required)")
 	cmd.Flags().StringSliceVar(&origins, "origin", nil, "allowed loopback browser origin (repeatable)")
@@ -165,11 +178,29 @@ func newMCPHTTPEnableCmd() *cobra.Command {
 	return cmd
 }
 
-func printMCPHTTPCredential(result server.MCPHTTPCredentialResponse, heading string) error {
-	if jsonOut {
-		return printJSON(result)
+func printMCPHTTPCredential(cmd *cobra.Command, result server.MCPHTTPCredentialResponse, heading string) error {
+	if jsonOutput(cmd) {
+		return printJSONTo(cmd.OutOrStdout(), result)
 	}
-	fmt.Fprintf(os.Stdout, "%s for %s at %s\n", heading, result.ClientName, result.Endpoint)
-	fmt.Fprintf(os.Stdout, "credential (shown once): %s\n", result.Credential)
+	fmt.Fprintf(cmd.OutOrStdout(), "%s for %s at %s\n", heading, result.ClientName, result.Endpoint)
+	fmt.Fprintf(cmd.OutOrStdout(), "credential (shown once): %s\n", result.Credential)
 	return nil
+}
+
+type nopWriteCloser struct{ io.Writer }
+
+func (nopWriteCloser) Close() error { return nil }
+func scopedMCPTransport(cmd *cobra.Command) *mcp.IOTransport {
+	reader, ok := cmd.InOrStdin().(io.ReadCloser)
+	if !ok {
+		reader = io.NopCloser(cmd.InOrStdin())
+	}
+	var writer io.WriteCloser = nopWriteCloser{cmd.OutOrStdout()}
+	// Explicit owned pipes must close on cancellation. Shared process stdout stays open.
+	if out := cmd.OutOrStdout(); out != os.Stdout {
+		if closer, ok := out.(io.WriteCloser); ok {
+			writer = closer
+		}
+	}
+	return &mcp.IOTransport{Reader: reader, Writer: writer}
 }
