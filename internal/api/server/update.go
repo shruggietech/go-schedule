@@ -48,8 +48,10 @@ type TaskUpdateRequest struct {
 	ClearName         bool   `json:"clear_name,omitempty"`
 	ClearCommand      bool   `json:"clear_command,omitempty"`
 	ClearWorkingDir   bool   `json:"clear_working_dir,omitempty"`
-	ClearRunAs        bool   `json:"clear_run_as,omitempty"`
-	ClearSchedule     bool   `json:"clear_schedule,omitempty"`
+	// ClearEnv removes only the task's overrides, retaining the inherited process environment.
+	ClearEnv      bool `json:"clear_env,omitempty"`
+	ClearRunAs    bool `json:"clear_run_as,omitempty"`
+	ClearSchedule bool `json:"clear_schedule,omitempty"`
 }
 
 func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +86,10 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "run_as", "cannot clear and replace run-as identity together")
 		return
 	}
+	if req.ClearEnv && len(req.Env) != 0 {
+		writeError(w, http.StatusBadRequest, CodeValidation, "env", "cannot clear and replace environment overrides together")
+		return
+	}
 	if req.ClearSchedule && (req.Schedule != "" || req.At != nil) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "schedule", "cannot clear and replace schedule together")
 		return
@@ -107,7 +113,9 @@ func (s *Server) handleUpdateTask(w http.ResponseWriter, r *http.Request) {
 	} else if req.WorkingDir != "" {
 		task.WorkingDir = req.WorkingDir
 	}
-	if req.Env != nil {
+	if req.ClearEnv {
+		task.Env = map[string]string{}
+	} else if req.Env != nil {
 		task.Env = req.Env
 	}
 	if req.Stdin != nil {

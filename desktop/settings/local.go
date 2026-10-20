@@ -9,6 +9,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/internal/userprefs"
 	"github.com/shruggietech/go-schedule/internal/winuninstall"
 )
 
@@ -44,17 +45,11 @@ type Dependencies struct {
 
 // DefaultDependencies resolves production paths and standard-library operations.
 func DefaultDependencies() Dependencies {
-	configDir, _ := os.UserConfigDir()
-	homeDir, _ := os.UserHomeDir()
+	preferencePaths := userprefs.DefaultPaths()
 	executable, _ := os.Executable()
 	applicationData := ""
-	legacyRoot := ""
-	if configDir != "" {
-		applicationData = filepath.Join(configDir, "go-schedule", "desktop")
-		legacyRoot = filepath.Join(configDir, "fyne", "tech.shruggie.goschedule")
-	}
-	if runtime.GOOS == "darwin" && homeDir != "" {
-		legacyRoot = filepath.Join(homeDir, "Library", "Preferences", "fyne", "tech.shruggie.goschedule")
+	if preferencePaths.Preferences != "" {
+		applicationData = filepath.Dir(preferencePaths.Preferences)
 	}
 	machineData := platform.DataDir()
 	maintenance := ""
@@ -62,7 +57,7 @@ func DefaultDependencies() Dependencies {
 		maintenance = winuninstall.CleanupResultPath(filepath.Dir(machineData))
 	}
 	return Dependencies{
-		Paths: Paths{Preferences: joinWhenSet(applicationData, "preferences.json"), LegacyPreferences: joinWhenSet(legacyRoot, "preferences.json"), ApplicationData: applicationData, MachineData: machineData, Executable: executable, Maintenance: maintenance, GOOS: runtime.GOOS},
+		Paths: Paths{Preferences: preferencePaths.Preferences, LegacyPreferences: preferencePaths.LegacyPreferences, ApplicationData: applicationData, MachineData: machineData, Executable: executable, Maintenance: maintenance, GOOS: runtime.GOOS},
 		Stat:  os.Stat, Now: time.Now, Rename: os.Rename,
 	}
 }

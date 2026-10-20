@@ -1,44 +1,35 @@
 // Package settings owns desktop-local preferences, storage visibility, product information, and bounded native actions.
 package settings
 
-import "time"
+import (
+	"time"
+
+	"github.com/shruggietech/go-schedule/internal/userprefs"
+)
 
 // CurrentPreferenceVersion is the only preference document schema accepted by this build.
-const CurrentPreferenceVersion = 1
+const CurrentPreferenceVersion = userprefs.CurrentVersion
 
 // Appearance is the complete durable desktop color-mode vocabulary.
-type Appearance string
+type Appearance = userprefs.Appearance
 
 const (
-	AppearanceSystem Appearance = "system"
-	AppearanceLight  Appearance = "light"
-	AppearanceDark   Appearance = "dark"
+	AppearanceSystem = userprefs.AppearanceSystem
+	AppearanceLight  = userprefs.AppearanceLight
+	AppearanceDark   = userprefs.AppearanceDark
 )
 
 // PreferenceTransition records the one-time legacy preference disposition.
-type PreferenceTransition struct {
-	Status  string   `json:"status"`
-	Retired []string `json:"retired"`
-}
+type PreferenceTransition = userprefs.Transition
 
 // DesktopPreferences is the versioned desktop-local preference document.
-type DesktopPreferences struct {
-	Version    int                  `json:"version"`
-	Appearance Appearance           `json:"appearance"`
-	Transition PreferenceTransition `json:"transition"`
-	Popups     PopupPreferences     `json:"popups"`
-}
+type DesktopPreferences = userprefs.Preferences
 
 // PopupPreferences affects only notifications emitted by this running desktop process.
-type PopupPreferences struct {
-	Enabled    bool     `json:"enabled"`
-	Conditions []string `json:"conditions"`
-	Severities []string `json:"severities"`
-	DaemonIDs  []string `json:"daemonIds"`
-}
+type PopupPreferences = userprefs.PopupPreferences
 
 func DefaultPopupPreferences() PopupPreferences {
-	return PopupPreferences{Conditions: []string{"failure", "success", "alert"}, Severities: []string{"info", "warning", "error"}, DaemonIDs: []string{}}
+	return userprefs.DefaultPopups()
 }
 
 // StorageRecord describes one exact storage source and its removal semantics.
@@ -88,7 +79,7 @@ type Result struct {
 }
 
 func validAppearance(value Appearance) bool {
-	return value == AppearanceSystem || value == AppearanceLight || value == AppearanceDark
+	return userprefs.ValidAppearance(value)
 }
 
 func loadedAt(now time.Time) string { return now.UTC().Format(time.RFC3339Nano) }

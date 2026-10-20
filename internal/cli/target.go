@@ -8,20 +8,32 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
-	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
-type remoteTargetFlags struct{ Profile, Endpoint, DaemonID, CredentialID, CertificateFile string }
+type remoteTargetFlags struct{ Profile, Endpoint, DaemonID, CredentialID, CertificateFile, IPCPath string }
 
 func resolveTarget(ctx context.Context, flags remoteTargetFlags) (*client.Client, string, error) {
+	return resolveTargetWith(ctx, flags, makeInvocation(Dependencies{}).deps)
+}
+
+func resolveTargetWith(ctx context.Context, flags remoteTargetFlags, deps Dependencies) (*client.Client, string, error) {
 	explicit := []string{flags.Endpoint, flags.DaemonID, flags.CredentialID, flags.CertificateFile}
 	count := 0
 	for _, value := range explicit {
 		if strings.TrimSpace(value) != "" {
 			count++
 		}
+	}
+	if flags.IPCPath != "" {
+		if flags.Profile != "" || count != 0 {
+			return nil, "", fmtUsage("--ipc-path cannot be combined with remote target flags")
+		}
+		if err := validateIPCPath(flags.IPCPath); err != nil {
+			return nil, "", err
+		}
+		return client.New(flags.IPCPath), "", nil
 	}
 	if flags.Profile != "" && count != 0 {
 		return nil, "", fmtUsage("--profile cannot be combined with explicit remote target flags")
@@ -32,7 +44,7 @@ func resolveTarget(ctx context.Context, flags remoteTargetFlags) (*client.Client
 	}
 	var profile clientprofile.Profile
 	if flags.Profile != "" {
-		collection, err := clientprofile.NewStore("").Load()
+		collection, err := deps.Profiles.Load()
 		if err != nil {
 			return nil, "", fmt.Errorf("load connection profiles: %w", err)
 		}
@@ -50,7 +62,7 @@ func resolveTarget(ctx context.Context, flags remoteTargetFlags) (*client.Client
 		}
 		profile = clientprofile.Profile{Label: "explicit target", Endpoint: flags.Endpoint, DaemonID: flags.DaemonID, CredentialID: flags.CredentialID, CertificatePEM: string(certificate)}
 	}
-	token, err := clientsecret.New().Load(profile.DaemonID, profile.CredentialID)
+	token, err := deps.Secrets.LoadContext(ctx, profile.DaemonID, profile.CredentialID)
 	if err != nil {
 		return nil, "", fmt.Errorf("load native remote credential: %w", err)
 	}

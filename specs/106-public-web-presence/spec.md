@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: [PR #291](https://github.com/shruggietech/go-schedule/pull/291) contains the S106 bundle; [delivery record](delivery.md). All eight canonical gates and final production browser checks passed before the authorized branch publication. Public domain delivery remains #278. The owner authorized CI and up to two Codex review rounds, with a stop before merge or public DNS changes.
+**Delivery**: [PR #291](https://github.com/shruggietech/go-schedule/pull/291) delivered the S106 implementation. The owner's subsequent 2026-10-19 cutover authorization establishes https://go-schedule.io/ through organization-verified GitHub Pages Actions and Cloudflare DNS, with enforced HTTPS and verified IPv4/IPv6 service. Follow-up [PR #302](https://github.com/shruggietech/go-schedule/pull/302) retires the temporary legacy publisher and updates discovery links; [delivery record](delivery.md) records the deployment and verification evidence.
 
 **Input**: Owner kickoff of S106 under autopilot, full six-issue bundle #278, #279, #280, #281, #9 and #282, coordinated by #276. Stop before branch publication, pull request creation or live cutover.
 

@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -47,6 +46,7 @@ func taskEdit() *cobra.Command {
 	var timeBasis, dstGap, dstOverlap string
 	var clearSchedule bool
 	var args, env []string
+	var inputs taskInputFlags
 	cmd := &cobra.Command{
 		Use:   "edit <id>",
 		Short: "Modify a task (only provided fields change)",
@@ -67,6 +67,9 @@ func taskEdit() *cobra.Command {
 				ClearName: cmd.Flags().Changed("name") && name == "", ClearCommand: cmd.Flags().Changed("command") && command == "", ClearSchedule: clearSchedule,
 			}
 			req.GroupID = groupIntent(cmd, group)
+			if err := inputs.update(cmd, &req); err != nil {
+				return err
+			}
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
 				if err != nil {
@@ -74,18 +77,18 @@ func taskEdit() *cobra.Command {
 				}
 				req.At = &ts
 			}
-			ctx, cancel := reqCtx()
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			resp, err := newClient().UpdateTask(ctx, a[0], req)
+			resp, err := clientFor(cmd).UpdateTask(ctx, a[0], req)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(resp)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), resp)
 			}
-			fmt.Fprintf(os.Stdout, "updated task %s\nschedule: %s\nreadiness: %s\n", resp.Task.ID, taskScheduleSummary(resp), resp.Readiness.Status)
-			printPolicySummary(resp.PolicySummary)
-			printNextRuns(resp.NextRuns)
+			fmt.Fprintf(cmd.OutOrStdout(), "updated task %s\nschedule: %s\nreadiness: %s\n", resp.Task.ID, taskScheduleSummary(resp), resp.Readiness.Status)
+			printPolicySummary(cmd, resp.PolicySummary)
+			printNextRuns(cmd, resp.NextRuns)
 			return nil
 		},
 	}
@@ -106,10 +109,12 @@ func taskEdit() *cobra.Command {
 	f.StringVar(&timeBasis, "time-basis", "", timeBasisUsage)
 	f.StringVar(&dstGap, "dst-gap", "", dstGapUsage)
 	f.StringVar(&dstOverlap, "dst-overlap", "", dstOverlapUsage)
+	inputs.bind(cmd, true)
 	return cmd
 }
 
 func taskAdd() *cobra.Command {
+	var inputs taskInputFlags
 	var (
 		command     string
 		args        []string
@@ -130,7 +135,7 @@ func taskAdd() *cobra.Command {
 		Use:   "add [name]",
 		Short: "Create a task (schedule or startup event via --schedule; one-off via --at)",
 		Args:  cobra.MaximumNArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error {
+		RunE: func(cmd *cobra.Command, a []string) error {
 			if sched != "" && at != "" {
 				return fmt.Errorf("%w: provide at most one of --schedule or --at", errUsage)
 			}
@@ -148,6 +153,9 @@ func taskAdd() *cobra.Command {
 				MissingDatePolicy: missingDate,
 				TimeBasis:         timeBasis, DSTGapPolicy: dstGap, DSTOverlapPolicy: dstOverlap,
 			}
+			if err := inputs.create(cmd, &req); err != nil {
+				return err
+			}
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
 				if err != nil {
@@ -155,18 +163,18 @@ func taskAdd() *cobra.Command {
 				}
 				req.At = &ts
 			}
-			ctx, cancel := reqCtx()
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			resp, err := newClient().CreateTask(ctx, req)
+			resp, err := clientFor(cmd).CreateTask(ctx, req)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(resp)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), resp)
 			}
-			fmt.Fprintf(os.Stdout, "created task %s (%s)\nschedule: %s\nreadiness: %s\n", resp.Task.ID, tasklogic.DisplayName(resp.Task), taskScheduleSummary(resp), resp.Readiness.Status)
-			printPolicySummary(resp.PolicySummary)
-			printNextRuns(resp.NextRuns)
+			fmt.Fprintf(cmd.OutOrStdout(), "created task %s (%s)\nschedule: %s\nreadiness: %s\n", resp.Task.ID, tasklogic.DisplayName(resp.Task), taskScheduleSummary(resp), resp.Readiness.Status)
+			printPolicySummary(cmd, resp.PolicySummary)
+			printNextRuns(cmd, resp.NextRuns)
 			return nil
 		},
 	}
@@ -185,6 +193,7 @@ func taskAdd() *cobra.Command {
 	f.StringVar(&timeBasis, "time-basis", "", timeBasisUsage)
 	f.StringVar(&dstGap, "dst-gap", "", dstGapUsage)
 	f.StringVar(&dstOverlap, "dst-overlap", "", dstOverlapUsage)
+	inputs.bind(cmd, false)
 	return cmd
 }
 
@@ -193,18 +202,18 @@ func taskList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List tasks",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			client := newClient()
+			client := clientFor(cmd)
 			tasks, err := client.ListTasks(ctx, group, state)
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(tasks)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), tasks)
 			}
-			tw := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+			tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 2, 2, ' ', 0)
 			fmt.Fprintln(tw, "ID\tNAME\tSTATE\tENABLED\tREADINESS\tTZ")
 			for _, t := range tasks {
 				detail, err := client.GetTask(ctx, t.ID)
@@ -226,27 +235,27 @@ func taskShow() *cobra.Command {
 		Use:   "show <id>",
 		Short: "Show task detail and upcoming runs",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, a []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			resp, err := newClient().GetTask(ctx, a[0])
+			resp, err := clientFor(cmd).GetTask(ctx, a[0])
 			if err != nil {
 				return err
 			}
-			if jsonOut {
-				return printJSON(resp)
+			if jsonOutput(cmd) {
+				return printJSONTo(cmd.OutOrStdout(), resp)
 			}
 			t := resp.Task
-			fmt.Fprintf(os.Stdout, "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\nreadiness: %s\n",
+			fmt.Fprintf(cmd.OutOrStdout(), "%s  %s\nstate: %s  enabled: %t  tz: %s\ncommand: %s %s\nschedule: %s\nreadiness: %s\n",
 				t.ID, tasklogic.DisplayName(t), t.State, t.Enabled, t.Timezone, t.Command, strings.Join(t.Args, " "), taskScheduleSummary(resp), resp.Readiness.Status)
 			if resp.Schedule != nil && resp.Schedule.Kind == domain.ScheduleEvent {
-				fmt.Fprintf(os.Stdout, "overlap: %s\n", t.OverlapPolicy)
+				fmt.Fprintf(cmd.OutOrStdout(), "overlap: %s\n", t.OverlapPolicy)
 			} else {
-				printPolicySummary(resp.PolicySummary)
-				fmt.Fprintf(os.Stdout, "overlap: %s  catch-up: %s  missing dates: %s\ntime basis: %s  DST gap: %s  DST overlap: %s\n",
+				printPolicySummary(cmd, resp.PolicySummary)
+				fmt.Fprintf(cmd.OutOrStdout(), "overlap: %s  catch-up: %s  missing dates: %s\ntime basis: %s  DST gap: %s  DST overlap: %s\n",
 					t.OverlapPolicy, t.CatchupPolicy, t.MissingDatePolicy, t.TimeBasis, t.DSTGapPolicy, t.DSTOverlapPolicy)
 			}
-			printNextRuns(resp.NextRuns)
+			printNextRuns(cmd, resp.NextRuns)
 			return nil
 		},
 	}
@@ -262,41 +271,41 @@ func taskScheduleSummary(resp server.TaskResponse) string {
 func taskEnable() *cobra.Command {
 	return &cobra.Command{
 		Use: "enable <id>", Short: "Enable a task", Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error { return toggle(a[0], true) },
+		RunE: func(cmd *cobra.Command, a []string) error { return toggle(cmd, a[0], true) },
 	}
 }
 
 func taskDisable() *cobra.Command {
 	return &cobra.Command{
 		Use: "disable <id>", Short: "Disable a task", Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error { return toggle(a[0], false) },
+		RunE: func(cmd *cobra.Command, a []string) error { return toggle(cmd, a[0], false) },
 	}
 }
 
-func toggle(id string, enabled bool) error {
-	ctx, cancel := reqCtx()
+func toggle(cmd *cobra.Command, id string, enabled bool) error {
+	ctx, cancel := reqCtx(cmd)
 	defer cancel()
-	if err := newClient().SetTaskEnabled(ctx, id, enabled); err != nil {
+	if err := clientFor(cmd).SetTaskEnabled(ctx, id, enabled); err != nil {
 		return err
 	}
 	state := "disabled"
 	if enabled {
 		state = "enabled"
 	}
-	fmt.Fprintf(os.Stdout, "task %s %s\n", id, state)
+	fmt.Fprintf(cmd.OutOrStdout(), "task %s %s\n", id, state)
 	return nil
 }
 
 func taskRm() *cobra.Command {
 	return &cobra.Command{
 		Use: "rm <id>", Short: "Delete a task", Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, a []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			if err := newClient().DeleteTask(ctx, a[0]); err != nil {
+			if err := clientFor(cmd).DeleteTask(ctx, a[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "deleted task %s\n", a[0])
+			fmt.Fprintf(cmd.OutOrStdout(), "deleted task %s\n", a[0])
 			return nil
 		},
 	}
@@ -305,13 +314,13 @@ func taskRm() *cobra.Command {
 func taskRunNow() *cobra.Command {
 	return &cobra.Command{
 		Use: "run-now <id>", Short: "Trigger an immediate run", Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, a []string) error {
-			ctx, cancel := reqCtx()
+		RunE: func(cmd *cobra.Command, a []string) error {
+			ctx, cancel := reqCtx(cmd)
 			defer cancel()
-			if err := newClient().RunNow(ctx, a[0]); err != nil {
+			if err := clientFor(cmd).RunNow(ctx, a[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stdout, "triggered run for task %s\n", a[0])
+			fmt.Fprintf(cmd.OutOrStdout(), "triggered run for task %s\n", a[0])
 			return nil
 		},
 	}
@@ -332,18 +341,18 @@ func parseEnv(pairs []string) (map[string]string, error) {
 	return m, nil
 }
 
-func printNextRuns(runs []time.Time) {
+func printNextRuns(cmd *cobra.Command, runs []time.Time) {
 	if len(runs) == 0 {
 		return
 	}
-	fmt.Fprintln(os.Stdout, "next runs:")
+	fmt.Fprintln(cmd.OutOrStdout(), "next runs:")
 	for _, r := range runs {
-		fmt.Fprintf(os.Stdout, "  %s\n", r.Format(time.RFC3339))
+		fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", r.Format(time.RFC3339))
 	}
 }
 
-func printPolicySummary(summary string) {
+func printPolicySummary(cmd *cobra.Command, summary string) {
 	if summary != "" {
-		fmt.Fprintf(os.Stdout, "timing: %s\n", summary)
+		fmt.Fprintf(cmd.OutOrStdout(), "timing: %s\n", summary)
 	}
 }

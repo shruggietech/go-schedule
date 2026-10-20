@@ -53,6 +53,8 @@ type Server struct {
 // These values come from the configuration used by the running daemon, not
 // from client-side defaults.
 type RuntimeInfoResponse struct {
+	IPCPath      string `json:"ipc_path,omitempty"`
+	ProcessID    int    `json:"process_id,omitempty"`
 	DataDir      string `json:"data_dir"`
 	DatabasePath string `json:"database_path"`
 	ConfigPath   string `json:"config_path,omitempty"`

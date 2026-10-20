@@ -7,14 +7,14 @@
   <a href="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/shruggietech/go-schedule/actions/workflows/ci.yml/badge.svg"></a>
 <a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-62D9B7"></a>
-  <a href="https://shruggietech.github.io/go-schedule/"><img alt="Docs" src="https://img.shields.io/badge/docs-GitHub_Pages-58A6FF"></a>
+  <a href="https://go-schedule.io/docs/"><img alt="Docs" src="https://img.shields.io/badge/docs-go--schedule.io-58A6FF"></a>
 </p>
 
 **Open-source workload automation with readable schedules and supported cron.**
 
 Schedule scripts, react to files and external events, and connect dependent jobs. A background daemon owns the schedule; the CLI, Wails desktop control center and JSON API let you manage it.
 
-**Windows, Linux and macOS.** [Documentation](https://shruggietech.github.io/go-schedule/) | [Latest release](https://github.com/shruggietech/go-schedule/releases/latest) | [Changelog](CHANGELOG.md) | [Comparison data](site/data/comparisons/v1.5.1.json)
+**Windows, Linux and macOS.** [Documentation](https://go-schedule.io/docs/) | [Latest release](https://github.com/shruggietech/go-schedule/releases/latest) | [Changelog](CHANGELOG.md) | [Compare capabilities](https://go-schedule.io/compare/)
 
 ## What you can do
 
