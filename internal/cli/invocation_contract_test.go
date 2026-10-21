@@ -19,6 +19,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
+	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 	"github.com/shruggietech/go-schedule/internal/config"
@@ -84,7 +85,20 @@ func TestWebhookDestinationAndDaemonTargetAreIndependent(t *testing.T) {
 	if err := os.WriteFile(certFile, certificate, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	endpoint := filepath.Join(t.TempDir(), "owned.sock")
+	socketDir := t.TempDir()
+	if runtime.GOOS == "darwin" {
+		shortDir, err := os.MkdirTemp("/tmp", "gs-cli-")
+		if err != nil {
+			t.Fatal(err)
+		}
+		socketDir = shortDir
+		t.Cleanup(func() {
+			if err := os.RemoveAll(shortDir); err != nil {
+				t.Errorf("remove owned IPC directory: %v", err)
+			}
+		})
+	}
+	endpoint := filepath.Join(socketDir, "owned.sock")
 	if runtime.GOOS == "windows" {
 		endpoint = `\\.\pipe\s109-` + uuid.NewString()
 	}
@@ -228,6 +242,17 @@ func TestDuplicateWatcherBindingsRefuseBeforePreviewRequest(t *testing.T) {
 		code := ExecuteWithDependencies(context.Background(), []string{"bundle", "preview", file, "--watcher-path=owned=/first", "--watcher-path=" + second}, Dependencies{Client: api, Out: io.Discard, Err: &diagnostics})
 		if code != 2 || requests != 0 || !strings.Contains(diagnostics.String(), "owned") || !strings.Contains(diagnostics.String(), "duplicate") {
 			t.Fatalf("exit=%d requests=%d stderr=%q", code, requests, diagnostics.String())
+		}
+	}
+}
+
+func TestRootVersionRetainsParsedFlagWithoutTargetResolution(t *testing.T) {
+	for _, args := range [][]string{{"--version"}, {"-v"}, {"--version=true"}, {"--profile=missing", "--version"}} {
+		var out, diagnostic bytes.Buffer
+		code := ExecuteWithDependencies(context.Background(), args, Dependencies{Profiles: &invocationProfileMemory{}, Out: &out, Err: &diagnostic})
+		want := "gosched version " + buildinfo.Version + "\n"
+		if code != 0 || out.String() != want || diagnostic.Len() != 0 {
+			t.Errorf("%v exit=%d stdout=%q want=%q stderr=%q", args, code, out.String(), want, diagnostic.String())
 		}
 	}
 }

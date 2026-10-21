@@ -105,7 +105,7 @@ gosched cron import --file quartz.cron --dialect quartz --dry-run
 | `--group` | Group ID to file the imported tasks under. |
 | `--count` | How many upcoming runs to show per line. Default 3. |
 
-A line that cannot be converted never stops the ones that can: the supported lines are still created, and the summary counts every line of the file. Reading the file successfully is a success, whatever the mix of outcomes. A crontab of nothing but `@reboot` lines previews or creates startup tasks. Only an unreadable file, an unknown timezone, or a failed creation is a failure.
+Supported lines continue even when another line is invalid or unsupported, and the summary counts every line. Unsupported well-formed lines do not by themselves fail the import; invalid lines return exit 2 after the complete report, while operational failures return exit 1. A crontab containing only `@reboot` lines previews or creates startup tasks.
 
 Importing the same crontab twice creates two sets of tasks. There is no deduplication; the counts are how you notice.
 

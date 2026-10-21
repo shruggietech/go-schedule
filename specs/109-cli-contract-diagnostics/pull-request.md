@@ -6,6 +6,8 @@ The existing unattended QA contracts are retained. The initialized inventory now
 
 Validation: all eight foreground local gates passed; the final Windows/WSL canonical evaluation passed 1,685 of 1,688 planned combinations with three manifest-defined exclusions, zero failures/blocked cases, 1,049 complete contextual reviews and no remaining owned resources. Focused native Linux race checks and Linux-target lint passed. Finalize/validate/render passed and repeated Markdown rendering was byte-identical. Detailed source identities, artifact hashes, earlier corrective runs, functional issue dispositions and platform observation boundaries are recorded in specs/109-cli-contract-diagnostics/verification.md. The captured subject is the receipt-bound dirty source digest recorded there, before subsequent delivery metadata; hosted CI is separate.
 
+CI/review corrections: #333 gives the real IPC targeting fixture a short private macOS socket directory; #334 removes the contradictory cron success paragraph. Exact root-version assertions confirm the reported version regression does not occur on the reviewed code, so parser semantics are retained.
+
 Decisions: reuse Cobra and typed error causes, retain legacy --endpoint compatibility, add observation fields without persisted schema changes, and assemble rotation identities before transaction commit without new eligibility rules. No new dependency or intentionally deferred functional outcome.
 
 - Closes #311
@@ -21,5 +23,7 @@ Decisions: reuse Cobra and typed error causes, retain legacy --endpoint compatib
 - Closes #321
 - Closes #322
 - Closes #331
+- Closes #333
+- Closes #334
 
 Refs #277. Milestone: CLI completeness and unattended application QA. Spec-Kit slice: S109 (specs/109-cli-contract-diagnostics).
