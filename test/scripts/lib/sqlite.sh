@@ -257,7 +257,7 @@ sqlite_exec() {
     # machine. String-interpolated SQL here would be both an injection vector
     # and an ordinary bug for any user named O'Brien.
     local db="$1" mode="$2" sql="$3"; shift 3
-    local script attempt out rc pair key value esc
+    local script attempt out rc pair key value encoded
 
     # PRAGMA statements return rows; left unredirected they land in the
     # caller's result and get mistaken for data. Silence them at the source.
@@ -277,8 +277,12 @@ PRAGMA busy_timeout=5000;
             script="$script.param set :$key NULL
 "
         else
-            esc="${value//\'/\'\'}"
-            script="$script.param set :$key '$esc'
+            # The CLI removes one quote layer before evaluating a parameter as
+            # an SQL expression. Literal-looking IDs such as 1e999... can become
+            # Inf, and a newline can become another dot command. Encode bytes
+            # into one quoted expression whose evaluated value is exact text.
+            encoded="$(printf '%s' "$value" | od -An -v -tx1 | tr -d ' \n')"
+            script="$script.param set :$key \"CAST(X'$encoded' AS TEXT)\"
 "
         fi
     done
@@ -303,7 +307,7 @@ PRAGMA busy_timeout=5000;
                 ;;
         esac
     done
-    log ERROR "Database still contended after 3 attempts. The record was NOT written."
+    log ERROR "Database still contended after 3 attempts. The record was NOT written. Last sqlite3 error: $out"
     die_runtime "This is a test-harness failure, not a scheduler defect."
 }
 

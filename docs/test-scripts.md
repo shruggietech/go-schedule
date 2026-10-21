@@ -326,6 +326,8 @@ The `.ps1` twins follow the ShruggieTech PowerShell standard, enforced by [`.cla
 - Quote every expansion. Values written to the database include hostnames and usernames, which can contain quotes and spaces.
 - **Never build SQL by string interpolation.** Use `sqlite_exec`'s bound parameters. Interpolating a username into SQL is both an injection vector and an ordinary bug for anyone named `O'Brien`.
 
+Both SQLite adapters bind non-null values as literal UTF-8 text through a CLI-quoted `CAST(X'...' AS TEXT)` expression. Numeric-looking session IDs, leading zeroes, quotes, newlines and non-ASCII text retain their exact values; explicit null values (the existing Bash `__NULL__` marker and PowerShell `$null`) remain SQL `NULL`. Bash reserves `__NULL__` for that purpose. The SQL statement performs any intended numeric conversion. This prevents distinct hexadecimal session IDs that resemble scientific notation from being evaluated as the same numeric value.
+
 ## Troubleshooting
 
 **`exit 2` with "No usable sqlite3 found"**, none of the three search locations held a usable 3.33.0+. Use `--install-sqlite` or your package manager.
@@ -342,7 +344,9 @@ The `.ps1` twins follow the ShruggieTech PowerShell standard, enforced by [`.cla
 
 **`drift` returns no rows**, every beat had `expected_source = 'none'`, meaning no anchor was supplied at record time. The excluded-count warning says how many. Pass `-AnchorIso` *and* `-IntervalSeconds` when recording, not when reading. If the beats are already recorded and you cannot re-run, use `-Query jitter`.
 
-**Contention errors under `allow_concurrent`**, the scripts use WAL with a 5-second busy timeout and three retries. Exhausting that is reported as a *harness* failure, explicitly, so it is not mistaken for a scheduler defect.
+**Contention errors under `allow_concurrent`**, the scripts use WAL with a 5-second busy timeout and at most three SQLite attempts. A diagnostic containing `locked` or `busy` takes the bounded retry path. Exhaustion reports that the record was not written and retains the final SQLite diagnostic. Other failures, such as a read-only database or a constraint violation, exit 1 immediately with the underlying error instead of being retried as contention.
+
+The concurrent-writer integration check retains each failed child's actual output alongside its exit status and persisted-row count. Preserve that complete failure when investigating missing records. A later passing run does not establish the cause of an earlier failure whose diagnostic was not captured.
 
 ## Automated tests
 
@@ -370,4 +374,4 @@ Run it through the repository's verified hidden launcher on Windows. The normal 
 go test ./test/integration/ -run TestScripts -v
 ```
 
-Covers single-shot recording, boundary drift, the exit-code contract, the bounded loop, concurrent writers, twin parity, snapshots, and every canned query. It **skips with a stated reason** when `sqlite3`, `pwsh`, or `bash` is missing, a skip is not a pass, and the reason is printed so the two cannot be confused.
+Covers single-shot recording, boundary drift, the exit-code contract, the bounded loop, concurrent writers, exact literal-text binding, distinct numeric-looking session IDs, bounded retry and failure diagnostics, twin parity, snapshots, and every canned query. It **skips with a stated reason** when `sqlite3`, `pwsh`, or `bash` is missing, a skip is not a pass, and the reason is printed so the two cannot be confused.

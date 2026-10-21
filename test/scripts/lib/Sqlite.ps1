@@ -331,8 +331,10 @@ Param(
             if ($null -eq $v) {
                 $lines += ('.param set :{0} NULL' -f $k)
             } else {
-                $esc = ([string]$v).Replace("'", "''")
-                $lines += (".param set :{0} '{1}'" -f $k, $esc)
+                # Keep one CLI-quoted expression. SQLite otherwise evaluates
+                # numeric-looking text (including session IDs) or dot commands.
+                $encoded = [BitConverter]::ToString([Text.Encoding]::UTF8.GetBytes([string]$v)).Replace('-', '')
+                $lines += ('.param set :{0} "CAST(X''{1}'' AS TEXT)"' -f $k, $encoded)
             }
         }
         $lines += $Sql
@@ -350,7 +352,7 @@ Param(
             Write-Log ("sqlite3 failed: {0}" -f $text.Trim()) -Level Error
             exit 1
         }
-        Write-Log ("Database still contended after {0} attempts. The record was NOT written." -f $Attempts) -Level Error
+        Write-Log ("Database still contended after {0} attempts. The record was NOT written. Last sqlite3 error: {1}" -f $Attempts, $text.Trim()) -Level Error
         Write-Log "This is a test-harness failure, not a scheduler defect." -Level Error
         exit 1
     }

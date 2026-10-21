@@ -34,6 +34,19 @@ jobs:
 
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build promotion helper from the exact workflow source
+        run: go build -o "$RUNNER_TEMP/release-promotion" ./scripts/release-promotion
+
+      - uses: actions/checkout@v7
+        with:
           ref: refs/tags/${{ inputs.tag }}
           fetch-depth: 1
 
@@ -48,19 +61,13 @@ jobs:
           set -euo pipefail
           TAG_COMMIT=$(git rev-parse HEAD)
           test "${#TAG_COMMIT}" -eq 40
-          RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
-          test "$(printf '%s' "$RELEASE_JSON" | jq -r '.tag_name')" = "$RELEASE_TAG"
-          printf '%s' "$RELEASE_JSON" | jq -er '.body | select(test("untested"; "i"))' >/dev/null || {
-            echo "::error::Draft release notes must disclose untested native checks."
-            exit 1
-          }
+          "$RUNNER_TEMP/release-promotion" resolve --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG" --state "$RUNNER_TEMP/release-selection.json"
           printf 'tag_commit=%s\n' "$TAG_COMMIT" >> "$GITHUB_OUTPUT"
 
       - name: Download complete release asset set
         run: |
           set -euo pipefail
-          mkdir assets
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir assets --pattern '*'
+          "$RUNNER_TEMP/release-promotion" download --state "$RUNNER_TEMP/release-selection.json" --dir assets
 
       - name: Verify asset allowlist, successful staging attempt, and Windows candidate
         env:
@@ -129,15 +136,13 @@ jobs:
               echo "::error::Existing checksum asset does not match the exact staged bytes."
               exit 1
             }
-          else
-            gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/SHA256SUMS.txt" --repo "$GITHUB_REPOSITORY"
           fi
+          "$RUNNER_TEMP/release-promotion" ensure-checksum --state "$RUNNER_TEMP/release-selection.json" --file "$RUNNER_TEMP/SHA256SUMS.txt"
 
-      - name: Re-download and verify final draft assets
+      - name: Re-download and verify final selected assets
         run: |
           set -euo pipefail
-          mkdir final-assets
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir final-assets --pattern '*'
+          "$RUNNER_TEMP/release-promotion" download --state "$RUNNER_TEMP/release-selection.json" --dir final-assets
           (
             cd final-assets
             sha256sum -c SHA256SUMS.txt
@@ -158,10 +163,4 @@ jobs:
             echo "::error::Release tag moved after candidate validation."
             exit 1
           }
-          RELEASE_JSON=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
-          test "$(printf '%s' "$RELEASE_JSON" | jq -r '.tag_name')" = "$RELEASE_TAG"
-          printf '%s' "$RELEASE_JSON" | jq -er '.body | select(test("untested"; "i"))' >/dev/null
-          RELEASE_ID=$(printf '%s' "$RELEASE_JSON" | jq -er '.id')
-          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" -F draft=false -f make_latest=true >/dev/null
-          LATEST_TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name)
-          test "$LATEST_TAG" = "$RELEASE_TAG"
+          "$RUNNER_TEMP/release-promotion" publish --state "$RUNNER_TEMP/release-selection.json"

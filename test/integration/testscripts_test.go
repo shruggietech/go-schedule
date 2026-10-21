@@ -36,7 +36,7 @@ func powershellTwin() twin {
 	return twin{
 		name: "powershell",
 		command: func(script string, args ...string) []string {
-			return append([]string{"pwsh", "-NoProfile", "-File", script}, args...)
+			return append([]string{"pwsh", "-NoProfile", "-NonInteractive", "-File", script}, args...)
 		},
 		// -FooBar
 		flag: func(c string) string {
@@ -133,7 +133,7 @@ func requireTwin(t *testing.T, tw twin) {
 func runScript(t *testing.T, tw twin, dataDir, script string, args ...string) (string, int) {
 	t.Helper()
 	argv := tw.command(script, args...)
-	cmd := exec.Command(argv[0], argv[1:]...) //nolint:gosec // fixed argv built above
+	cmd := scriptCommand(argv[0], argv[1:]...) //nolint:gosec // fixed argv built above
 	env := os.Environ()
 	if tw.name == "posix" && runtime.GOOS == "windows" && isWSLBash() {
 		wslEnv := os.Getenv("WSLENV")
@@ -156,6 +156,13 @@ func runScript(t *testing.T, tw twin, dataDir, script string, args ...string) (s
 	return string(out), code
 }
 
+// scriptCommand keeps all payload fixture children hidden and non-interactive.
+func scriptCommand(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...) //nolint:gosec // test-owned interpreter and arguments
+	configureScriptProcess(cmd)
+	return cmd
+}
+
 func asExitError(err error, target **exec.ExitError) bool {
 	ee, ok := err.(*exec.ExitError)
 	if ok {
@@ -167,7 +174,7 @@ func asExitError(err error, target **exec.ExitError) bool {
 // queryScalar runs a single-value query against a database via sqlite3.
 func queryScalar(t *testing.T, sqlite, db, query string) string {
 	t.Helper()
-	out, err := exec.Command(sqlite, db, query).Output() //nolint:gosec // test-local
+	out, err := scriptCommand(sqlite, db, query).Output() //nolint:gosec // test-local
 	if err != nil {
 		t.Fatalf("querying %q: %v", query, err)
 	}
@@ -746,7 +753,7 @@ CREATE TABLE snapshot (
 INSERT INTO snapshot (unixtime_ms,iso_local,iso_utc,tz_offset_minutes,hostname,
   os_platform,script_pid,script_flavor,invocation_source)
 VALUES (1,'x','y',0,'legacyhost','linux',1,'posix','legacy');`
-	if err := exec.Command(sqlite, db, legacy).Run(); err != nil { //nolint:gosec // test-local
+	if err := scriptCommand(sqlite, db, legacy).Run(); err != nil { //nolint:gosec // test-local
 		t.Fatalf("building legacy database: %v", err)
 	}
 

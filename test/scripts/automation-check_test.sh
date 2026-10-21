@@ -310,7 +310,8 @@ jobs:
            git ls-remote origin "refs/tags/${RELEASE_TAG}"
            gh api -F draft=false
 EOF
-  cp "$fixture/.github/workflows/promote-release.yml" "$fixture/.github/workflows/promote-release-waived.yml"
+  sed 's|gh release upload.*|"$RUNNER_TEMP/release-promotion" ensure-checksum --state "$RUNNER_TEMP/selection.json" --file SHA256SUMS.txt|; s|gh api -F draft=false|"$RUNNER_TEMP/release-promotion" publish --state "$RUNNER_TEMP/selection.json"|' \
+    "$fixture/.github/workflows/promote-release.yml" > "$fixture/.github/workflows/promote-release-waived.yml"
   cat > "$fixture/.github/release-notes/v0.9.0.md" <<'EOF'
 ## Highlights
 
