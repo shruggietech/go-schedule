@@ -10,9 +10,11 @@ Standing-waiver promotion can lose access to a draft through tag lookup, observe
 
 - Stabilize the Windows native credential forged-parent fixture by establishing real endpoints before authentication can reject and close the peer. Kernel peer, parent and image checks remain unchanged (#339).
 
+- Give canned reader queries a deterministic cadence while retaining automatic inference, inference disclosure, gaps coverage, insufficient-data errors and explicit interval override (#340).
+
 ## Issue traceability
 
-Closes #262. Closes #271. Closes #335. Closes #339. Refs #277. Existing issue milestones remain authoritative.
+Closes #262. Closes #271. Closes #335. Closes #339. Closes #340. Refs #277. Existing issue milestones remain authoritative.
 
 ## Validation
 
@@ -20,4 +22,4 @@ The initial S110 implementation passed all eight local canonical gates with aggr
 
 ## Boundaries
 
-The earlier hosted heartbeat failure discarded the diagnostics needed to establish its exact cause. The binding defect is independently reproduced and corrected; passing repetitions are not presented as a diagnosis of that historical run. All 22 hosted checks, including native macOS, passed on the first reviewed head 8badade. Both bounded Codex rounds completed without findings before a subsequent Windows fixture failure (#339). The correction passes 100 native Windows race repetitions and the full credential-helper package on Windows and Linux. Final-head results and precise review subjects are tracked in the PR handoff and [publication record](specs/110-reliability-release-repairs/review.md); no third review is requested. No live release promotion, tag, release or DNS operation was performed.
+The earlier hosted heartbeat failure discarded the diagnostics needed to establish its exact cause. The binding defect is independently reproduced and corrected; passing repetitions are not presented as a diagnosis of that historical run. All 22 hosted checks, including native macOS, passed on the first reviewed head 8badade. Both bounded Codex rounds completed without findings before a subsequent Windows fixture failure (#339). The credential fixture correction passes 100 native Windows race repetitions and the full credential-helper package on Windows and Linux. A later Linux reader-fixture failure (#340) is corrected with deterministic analysis inputs and stronger inference/error coverage; three Windows and 20 Linux race repetitions pass. Its historical seed timestamps are unknown, and no particular clock cause is claimed. Final-head results and precise review subjects are tracked in the PR handoff and [publication record](specs/110-reliability-release-repairs/review.md); no third review is requested. No live release promotion, tag, release or DNS operation was performed.

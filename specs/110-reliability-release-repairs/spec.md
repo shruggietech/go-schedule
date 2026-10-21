@@ -107,3 +107,5 @@ Concurrent heartbeat payloads persist one durable record per successful invocati
 ## Post-publication CI correction
 
 Owner-authorized CI monitoring for PR #338 exposed independent fixture defect #339. Establish both real native channel endpoints before running the unchanged forged-parent authentication checks. The correction retains all original S110 outcomes, does not change credential access policy, and is tracked in [review.md](review.md) and [the issue record](findings/windows-peer-fixture.md). Both allowed Codex rounds are complete; fresh hosted checks follow the correction without a third review.
+
+A subsequent reader-fixture failure is tracked as #340. Deterministic analysis inputs retain real recorder rows, automatic interval inference and disclosure, insufficient-data refusal and declared interval overrides. The original hosted seed timestamp values remain unknown. The bounded fixture correction is recorded independently in [review.md](review.md) and [its issue record](findings/reader-cadence.md).

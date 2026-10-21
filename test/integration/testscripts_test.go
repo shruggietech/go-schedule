@@ -778,7 +778,7 @@ VALUES (1,'x','y',0,'legacyhost','linux',1,'posix','legacy');`
 // TestScriptsReaderQueries: every canned query runs and returns something
 // parseable against a populated database.
 func TestScriptsReaderQueries(t *testing.T) {
-	requireSqlite(t)
+	sqlite := requireSqlite(t)
 	script := map[string]string{
 		"powershell": scriptPath(t, "Test-ReadTestDB.ps1"),
 		"posix":      scriptPath(t, "Test-ReadTestDB.sh"),
@@ -788,23 +788,59 @@ func TestScriptsReaderQueries(t *testing.T) {
 		"posix":      scriptPath(t, "Test-Heartbeat.sh"),
 	}
 	heartbeatQueries := []string{
-		"summary", "recent", "cadence", "drift", "jitter", "overlaps",
+		"summary", "recent", "cadence", "drift", "jitter", "gaps", "overlaps",
 		"failures", "restarts", "hosts", "schema",
 	}
 	for _, tw := range allTwins() {
 		t.Run(tw.name, func(t *testing.T) {
 			requireTwin(t, tw)
 			dir := t.TempDir()
-			if _, code := runScript(t, tw, dir, beat[tw.name],
+			if output, code := runScript(t, tw, dir, beat[tw.name],
 				tw.flag("loop"), tw.flag("max-beats"), "2", tw.flag("interval-seconds"), "1"); code != 0 {
-				t.Fatalf("seeding beats failed with exit %d", code)
+				t.Fatalf("seeding beats failed with exit %d: %s", code, output)
+			}
+			db := filepath.Join(dir, "heartbeat.db")
+			if count := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM beat;"); count != 2 {
+				t.Fatalf("seeded %d beats, want 2", count)
+			}
+			// Reader coverage owns its observation timeline. Keep real recorder
+			// rows, but do not make inferred cadence depend on the host wall clock.
+			const timeline = `UPDATE beat SET
+ started_ms=1577836800000+(sequence-1)*1000,
+ started_iso=strftime('%Y-%m-%dT%H:%M:%fZ', (1577836800000+(sequence-1)*1000)/1000.0, 'unixepoch'),
+ finished_ms=1577836800010+(sequence-1)*1000, duration_ms=10;`
+			if output, err := scriptCommand(sqlite, db, timeline).CombinedOutput(); err != nil {
+				t.Fatalf("set reader timeline: %v %s", err, output)
 			}
 			for _, q := range heartbeatQueries {
 				out, code := runScript(t, tw, dir, script[tw.name],
 					tw.flag("database"), "heartbeat", tw.flag("query"), q, tw.flag("quiet"))
 				if code != 0 {
-					t.Errorf("query %q exited %d\n%s", q, code, out)
+					rows := queryScalar(t, sqlite, db, "SELECT sequence,started_ms,finished_ms,interval_seconds FROM beat ORDER BY sequence;")
+					t.Errorf("query %q exited %d\n%s\nreader seed rows:\n%s", q, code, out, rows)
 				}
+				if (q == "drift" || q == "jitter" || q == "gaps") && !strings.Contains(out, "inferred 1s") {
+					t.Errorf("query %q did not disclose its inferred one-second interval:\n%s", q, out)
+				}
+			}
+			for _, scenario := range []struct {
+				name, sql string
+			}{
+				{"equal-times", "UPDATE beat SET started_ms=1577836800000,started_iso='2020-01-01T00:00:00.000Z',finished_ms=1577836800010;"},
+				{"single-beat", "DELETE FROM beat WHERE sequence=2;"},
+			} {
+				t.Run(scenario.name, func(t *testing.T) {
+					if output, err := scriptCommand(sqlite, db, scenario.sql).CombinedOutput(); err != nil {
+						t.Fatalf("set insufficient-cadence fixture: %v %s", err, output)
+					}
+					out, code := runScript(t, tw, dir, script[tw.name], tw.flag("database"), "heartbeat", tw.flag("query"), "jitter", tw.flag("quiet"))
+					if code != 2 || !strings.Contains(out, "jitter needs an interval") {
+						t.Errorf("missing observed cadence: exit=%d, want 2 with interval guidance:\n%s", code, out)
+					}
+					if out, code := runScript(t, tw, dir, script[tw.name], tw.flag("database"), "heartbeat", tw.flag("query"), "jitter", tw.flag("interval-seconds"), "1", tw.flag("quiet")); code != 0 {
+						t.Errorf("declared interval rejected: exit=%d\n%s", code, out)
+					}
+				})
 			}
 			// An unknown query is a usage error, not a runtime one.
 			if _, code := runScript(t, tw, dir, script[tw.name],

@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Give canned heartbeat reader queries deterministic cadence data while retaining automatic inference, gaps coverage, insufficient-data errors and explicit interval overrides (#340).
+
 - Stabilize the Windows native credential peer-rejection fixture by establishing both real channel endpoints before invoking unchanged authentication checks, avoiding an early-close setup race (#339).
 
 - **Exact-file watchers retain replacement identities and pending work through observer recovery (Refs #271).** Same-revision recovery reconciles against the prior state, suspends inactive pending timers, and suppresses recovery duplicates without resetting explicit reload semantics or ordinary later native writes.
