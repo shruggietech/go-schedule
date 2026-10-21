@@ -41,6 +41,7 @@ These are written for maintainers but are equally useful to anyone who wants the
 | --- | --- |
 | [Contributing](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) | Trunk-based workflow, the spec-kit requirement, the CI-parity gates, pinned artifacts. |
 | [Build-phase autopilot](build-autopilot.md) | The protocol under which features are executed end to end with a single human halt. Maintainer-facing. |
+| [Unattended CLI evaluation](cli-qa.md) | Quiet Windows and WSL evaluation, complete message review, canonical reports and separate issue-triage prompts. |
 | [Architecture](architecture.md) | Daemon ownership, durable completion delivery, replay semantics, and graph safety. |
 | [Constitution](https://github.com/shruggietech/go-schedule/blob/main/.specify/memory/constitution.md) | The engineering principles the project is governed by. |
 | [Master specification](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/spec.md) | What the scheduler is and why, with the plan, data model, and contracts alongside it. |

@@ -1,0 +1,220 @@
+{
+  "repository": "shruggietech/go-schedule",
+  "source_run_id": "0f1e9217-fd59-4f0e-bee9-f9c1d8d441a3",
+  "report_sha256": "ddb3be057c98c75540b244d5c223c085445d474b5d7c06e2d0c780bd8d945733",
+  "issues": [
+    {
+      "finding_id": "F001",
+      "title": "[bug] Use the documented usage exit code for parser and local validation failures",
+      "labels": [
+        "bug",
+        "area: cli",
+        "platform: windows",
+        "platform: linux",
+        "effort: M"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F001.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/311",
+      "publication_state": "published",
+      "issue_number": 311
+    },
+    {
+      "finding_id": "F002",
+      "title": "[bug] Reject unexpected operands before executing CLI commands",
+      "labels": [
+        "bug",
+        "area: cli",
+        "platform: windows",
+        "platform: linux",
+        "effort: M"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F002.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/312",
+      "publication_state": "published",
+      "issue_number": 312
+    },
+    {
+      "finding_id": "F003",
+      "title": "[bug] Keep alerts deprecation notices out of JSON stdout",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: docs",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F003.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/313",
+      "publication_state": "published",
+      "issue_number": 313
+    },
+    {
+      "finding_id": "F004",
+      "title": "[bug] Separate webhook endpoint flags from remote target selection",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: notifications",
+        "platform: windows",
+        "platform: linux",
+        "effort: M"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F004.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/314",
+      "publication_state": "published",
+      "issue_number": 314
+    },
+    {
+      "finding_id": "F005",
+      "title": "[bug] Reject watcher path bindings for unknown bundle identities",
+      "labels": [
+        "bug",
+        "area: cli",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F005.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/315",
+      "publication_state": "published",
+      "issue_number": 315
+    },
+    {
+      "finding_id": "F006",
+      "title": "[bug] Return failure when a cron dry-run report contains invalid input lines",
+      "labels": [
+        "bug",
+        "area: cli",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F006.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/316",
+      "publication_state": "published",
+      "issue_number": 316
+    },
+    {
+      "finding_id": "F007",
+      "title": "[bug] Replace missing and placeholder command help with useful descriptions",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: docs",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F007.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/317",
+      "publication_state": "published",
+      "issue_number": 317
+    },
+    {
+      "finding_id": "F008",
+      "title": "[bug] Identify affected objects and invalid fields in CLI diagnostics",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: api",
+        "platform: windows",
+        "platform: linux",
+        "effort: M"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F008.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/318",
+      "publication_state": "published",
+      "issue_number": 318
+    },
+    {
+      "finding_id": "F009",
+      "title": "[bug] Avoid empty actor identity scaffolding in credential rotation output",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: api",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F009.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/319",
+      "publication_state": "published",
+      "issue_number": 319
+    },
+    {
+      "finding_id": "F010",
+      "title": "[bug] Label columns in human-readable operational lists",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: docs",
+        "platform: windows",
+        "platform: linux",
+        "effort: M"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F010.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/320",
+      "publication_state": "published",
+      "issue_number": 320
+    },
+    {
+      "finding_id": "F011",
+      "title": "[bug] Explain pending watcher health after an enable or disable operation",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: docs",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F011.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/321",
+      "publication_state": "published",
+      "issue_number": 321
+    },
+    {
+      "finding_id": "F012",
+      "title": "[bug] Explain the IPC compatibility-mode warning and its configuration context",
+      "labels": [
+        "bug",
+        "area: cli",
+        "area: daemon",
+        "area: ipc",
+        "platform: windows",
+        "platform: linux",
+        "effort: S"
+      ],
+      "milestone": 15,
+      "parent_issue": 277,
+      "body_file": "F012.md",
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/322",
+      "publication_state": "published",
+      "issue_number": 322
+    }
+  ]
+}

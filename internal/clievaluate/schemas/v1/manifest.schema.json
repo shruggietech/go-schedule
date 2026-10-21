@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "CaseSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "applicability_reason": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "argv": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CheckSpec"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "command_path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "coverage": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "execution_kind": {
+          "enum": [
+            "packaged_cli",
+            "command_harness",
+            "deterministic_engine"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "expected_exit": {
+          "maximum": 4294967295,
+          "minimum": -1,
+          "type": "integer"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "scenario_class": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "command_path",
+        "scenario_class",
+        "execution_kind",
+        "platforms",
+        "applicability_reason",
+        "argv",
+        "expected_exit",
+        "checks",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "CheckSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "expected"
+      ],
+      "type": "object"
+    },
+    "Command": {
+      "additionalProperties": false,
+      "properties": {
+        "aliases": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "flags": {
+          "items": {
+            "$ref": "#/$defs/Flag"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "long": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "runnable": {
+          "type": "boolean"
+        },
+        "short": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "use": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "use",
+        "short",
+        "long",
+        "aliases",
+        "hidden",
+        "runnable",
+        "flags"
+      ],
+      "type": "object"
+    },
+    "Flag": {
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "deprecated": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "scope": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "shorthand": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "usage": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "shorthand",
+        "type",
+        "default",
+        "usage",
+        "scope",
+        "hidden",
+        "deprecated",
+        "required"
+      ],
+      "type": "object"
+    },
+    "Manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseSpec"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "commands": {
+          "items": {
+            "$ref": "#/$defs/Command"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "kind": {
+          "const": "go-schedule.cli-qa-manifest",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "commands",
+        "cases"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/manifest.schema.json",
+  "$ref": "#/$defs/Manifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

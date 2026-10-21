@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "CaseRef": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "environment_id": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_id",
+        "case_id"
+      ],
+      "type": "object"
+    },
+    "Corpus": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "go-schedule.cli-qa-corpus",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "no_messages": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "run_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "run_id",
+        "messages",
+        "no_messages"
+      ],
+      "type": "object"
+    },
+    "Message": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "channel": {
+          "enum": [
+            "help",
+            "description",
+            "stdout",
+            "stderr",
+            "log"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "command_path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "scenario_class": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "command_path",
+        "scenario_class",
+        "channel",
+        "text",
+        "cases"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/corpus.schema.json",
+  "$ref": "#/$defs/Corpus",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

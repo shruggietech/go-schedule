@@ -1,0 +1,88 @@
+{
+  "$defs": {
+    "Event": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "format": "date-time",
+          "maxLength": 262144,
+          "pattern": "Z$",
+          "type": "string"
+        },
+        "case_id": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "detail": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "environment_id": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "const": "go-schedule.cli-qa-event",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "sequence": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "type": {
+          "enum": [
+            "environment_ready",
+            "preflight_failed",
+            "case_started",
+            "case_finished",
+            "case_blocked",
+            "cleanup_failed",
+            "capture_finished"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "run_id",
+        "sequence",
+        "at",
+        "type",
+        "environment_id",
+        "case_id",
+        "detail"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/event.schema.json",
+  "$ref": "#/$defs/Event",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

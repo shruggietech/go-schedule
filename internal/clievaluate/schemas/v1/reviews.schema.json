@@ -1,0 +1,352 @@
+{
+  "$defs": {
+    "CaseRef": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "environment_id": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_id",
+        "case_id"
+      ],
+      "type": "object"
+    },
+    "EvidenceSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "end_line": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "start_line": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact",
+        "sha256",
+        "start_line",
+        "end_line"
+      ],
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_criteria": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "actual": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "argv": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "category": {
+          "enum": [
+            "functional",
+            "cli-parity",
+            "help",
+            "error-message",
+            "logging",
+            "performance",
+            "harness"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "commit": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "deduplication_key": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSpan"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "existing_issue_url": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "impact": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "preconditions": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "reproduction": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "severity": {
+          "enum": [
+            "P1",
+            "P2",
+            "P3"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "product",
+            "harness"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "deduplication_key",
+        "title",
+        "severity",
+        "category",
+        "target",
+        "commit",
+        "version",
+        "platforms",
+        "cases",
+        "preconditions",
+        "argv",
+        "reproduction",
+        "expected",
+        "actual",
+        "impact",
+        "evidence",
+        "acceptance_criteria",
+        "existing_issue_url"
+      ],
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "channel": {
+          "enum": [
+            "help",
+            "description",
+            "stdout",
+            "stderr",
+            "log"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "excerpt": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "message_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "rubric": {
+          "items": {
+            "$ref": "#/$defs/Rubric"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "message_id",
+        "cases",
+        "channel",
+        "excerpt",
+        "rubric",
+        "verdict",
+        "finding_ids"
+      ],
+      "type": "object"
+    },
+    "ReviewSet": {
+      "additionalProperties": false,
+      "properties": {
+        "corpus_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "kind": {
+          "const": "go-schedule.cli-qa-reviews",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "reviews": {
+          "items": {
+            "$ref": "#/$defs/Review"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "run_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "run_id",
+        "corpus_sha256",
+        "reviews",
+        "findings"
+      ],
+      "type": "object"
+    },
+    "Rubric": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_applicable"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "verdict",
+        "reason"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/reviews.schema.json",
+  "$ref": "#/$defs/ReviewSet",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

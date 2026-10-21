@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -22,9 +23,23 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 	}
 	limits := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	limits.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+	if command.Limits != nil {
+		limits.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_JOB_MEMORY | windows.JOB_OBJECT_LIMIT_ACTIVE_PROCESS
+		limits.BasicLimitInformation.ActiveProcessLimit = command.Limits.MaxProcesses
+		limits.JobMemoryLimit = uintptr(command.Limits.MemoryBytes)
+	}
 	if _, err := windows.SetInformationJobObject(job, windows.JobObjectExtendedLimitInformation, uintptr(unsafe.Pointer(&limits)), uint32(unsafe.Sizeof(limits))); err != nil {
 		_ = windows.CloseHandle(job)
 		return nil, nil, err
+	}
+	if command.Limits != nil {
+		cpu := struct {
+			Flags uint32
+			Rate  uint32
+		}{1 | 4, uint32(command.Limits.CPUPercent * 100)}
+		if _, err := windows.SetInformationJobObject(job, windows.JobObjectCpuRateControlInformation, uintptr(unsafe.Pointer(&cpu)), uint32(unsafe.Sizeof(cpu))); err != nil {
+			return nil, nil, errors.Join(err, windows.CloseHandle(job))
+		}
 	}
 	var inherited []windows.Handle
 	defer func() {
@@ -77,7 +92,11 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 	var environment *uint16
 	var block []uint16
 	if command.Environment != nil {
-		joined := strings.Join(command.Environment, "\x00") + "\x00\x00"
+		values, err := normalizedWindowsEnvironment(command.Environment)
+		if err != nil {
+			return nil, nil, errors.Join(err, windows.CloseHandle(job))
+		}
+		joined := strings.Join(values, "\x00") + "\x00\x00"
 		block = utf16.Encode([]rune(joined))
 		environment = &block[0]
 	}
@@ -95,6 +114,9 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 	info := windows.StartupInfoEx{StartupInfo: windows.StartupInfo{Cb: uint32(unsafe.Sizeof(windows.StartupInfoEx{})), Flags: windows.STARTF_USESTDHANDLES | windows.STARTF_USESHOWWINDOW, ShowWindow: windows.SW_HIDE, StdInput: in, StdOutput: out, StdErr: errout}, ProcThreadAttributeList: attributes.List()}
 	var child windows.ProcessInformation
 	flags := uint32(windows.CREATE_NO_WINDOW | windows.CREATE_SUSPENDED | windows.CREATE_UNICODE_ENVIRONMENT | windows.EXTENDED_STARTUPINFO_PRESENT)
+	if command.Limits != nil {
+		flags |= windows.BELOW_NORMAL_PRIORITY_CLASS
+	}
 	if err := windows.CreateProcess(app, line, nil, nil, true, flags, environment, directory, &info.StartupInfo, &child); err != nil {
 		_ = windows.CloseHandle(job)
 		return nil, nil, err
@@ -134,11 +156,47 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 			return err
 		}
 		if code != 0 {
-			return fmt.Errorf("owned child exited with code %d", code)
+			return childExitError{code: int(code)}
 		}
 		return nil
 	}
 	return p, wait, nil
+}
+
+type childExitError struct{ code int }
+
+func (e childExitError) Error() string { return fmt.Sprintf("owned child exited with code %d", e.code) }
+func (e childExitError) ExitCode() int { return e.code }
+
+func normalizedWindowsEnvironment(values []string) ([]string, error) {
+	byName := map[string]string{}
+	for _, value := range values {
+		if strings.ContainsRune(value, '\x00') {
+			return nil, errors.New("owned child environment contains NUL")
+		}
+		index := strings.IndexByte(value, '=')
+		if index == 0 {
+			next := strings.IndexByte(value[1:], '=')
+			if next >= 0 {
+				index = next + 1
+			}
+		}
+		if index <= 0 {
+			return nil, errors.New("owned child environment requires name=value entries")
+		}
+		name := strings.ToUpper(value[:index])
+		byName[name] = value
+	}
+	names := make([]string, 0, len(byName))
+	for name := range byName {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	result := make([]string, 0, len(names))
+	for _, name := range names {
+		result = append(result, byName[name])
+	}
+	return result, nil
 }
 
 // jobAccounting matches JOBOBJECT_BASIC_ACCOUNTING_INFORMATION in WinNT.h.

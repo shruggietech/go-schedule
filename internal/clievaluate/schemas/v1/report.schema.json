@@ -1,0 +1,1124 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "redacted": {
+          "type": "boolean"
+        },
+        "redaction_policy": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "media_type",
+        "bytes",
+        "sha256",
+        "redacted",
+        "redaction_policy"
+      ],
+      "type": "object"
+    },
+    "Binary": {
+      "additionalProperties": false,
+      "properties": {
+        "arch": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "os": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "role": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "os",
+        "arch",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "Budget": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "case_timeout_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "channel_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "cpu_percent": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "linux_tasks": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "memory_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "total_timeout_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "windows_processes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "cpu_percent",
+        "memory_bytes",
+        "windows_processes",
+        "linux_tasks",
+        "case_timeout_ms",
+        "total_timeout_ms",
+        "channel_bytes",
+        "artifact_bytes"
+      ],
+      "type": "object"
+    },
+    "CaseRef": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "environment_id": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "environment_id",
+        "case_id"
+      ],
+      "type": "object"
+    },
+    "CaseResult": {
+      "additionalProperties": false,
+      "properties": {
+        "argv": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "command_path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "communication_review_ids": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "environment_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "execution_kind": {
+          "enum": [
+            "packaged_cli",
+            "command_harness",
+            "deterministic_engine"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "execution_status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked",
+            "not_applicable"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "expected_checks": {
+          "items": {
+            "$ref": "#/$defs/CheckSpec"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "expected_exit": {
+          "maximum": 4294967295,
+          "minimum": -1,
+          "type": "integer"
+        },
+        "finding_ids": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "maxLength": 262144,
+          "pattern": "Z$",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "log_artifacts": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "observed": {
+          "$ref": "#/$defs/Observation"
+        },
+        "reason_code": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "scenario_class": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "side_effects": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "started_at": {
+          "format": "date-time",
+          "maxLength": 262144,
+          "pattern": "Z$",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked",
+            "not_applicable"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "stderr_artifact": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stdin_artifact": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stdout_artifact": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "environment_id",
+        "command_path",
+        "scenario_class",
+        "execution_kind",
+        "status",
+        "execution_status",
+        "reason_code",
+        "argv",
+        "stdin_artifact",
+        "expected_exit",
+        "expected_checks",
+        "observed",
+        "stdout_artifact",
+        "stderr_artifact",
+        "log_artifacts",
+        "side_effects",
+        "communication_review_ids",
+        "finding_ids",
+        "started_at",
+        "finished_at"
+      ],
+      "type": "object"
+    },
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "actual": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "expected": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "passed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "expected",
+        "actual",
+        "passed",
+        "evidence"
+      ],
+      "type": "object"
+    },
+    "CheckSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "expected"
+      ],
+      "type": "object"
+    },
+    "Cleanup": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "environment_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "remaining": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/NamedValue"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "retained": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        }
+      },
+      "required": [
+        "environment_id",
+        "resources",
+        "actions",
+        "remaining",
+        "retained"
+      ],
+      "type": "object"
+    },
+    "Environment": {
+      "additionalProperties": false,
+      "properties": {
+        "arch": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "distro": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "kernel": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limits": {
+          "items": {
+            "$ref": "#/$defs/NamedValue"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "os": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "reason_code": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "blocked"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "$ref": "#/$defs/NamedValue"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "os",
+        "version",
+        "arch",
+        "distro",
+        "user",
+        "kernel",
+        "tools",
+        "limits",
+        "status",
+        "reason_code"
+      ],
+      "type": "object"
+    },
+    "EvidenceSpan": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "end_line": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "start_line": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact",
+        "sha256",
+        "start_line",
+        "end_line"
+      ],
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_criteria": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "actual": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "argv": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "category": {
+          "enum": [
+            "functional",
+            "cli-parity",
+            "help",
+            "error-message",
+            "logging",
+            "performance",
+            "harness"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "commit": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "deduplication_key": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSpan"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "existing_issue_url": {
+          "anyOf": [
+            {
+              "maxLength": 262144,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "impact": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "preconditions": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "reproduction": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "severity": {
+          "enum": [
+            "P1",
+            "P2",
+            "P3"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "target": {
+          "enum": [
+            "product",
+            "harness"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "deduplication_key",
+        "title",
+        "severity",
+        "category",
+        "target",
+        "commit",
+        "version",
+        "platforms",
+        "cases",
+        "preconditions",
+        "argv",
+        "reproduction",
+        "expected",
+        "actual",
+        "impact",
+        "evidence",
+        "acceptance_criteria",
+        "existing_issue_url"
+      ],
+      "type": "object"
+    },
+    "NamedValue": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "duration_ms": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "maximum": 4294967295,
+              "minimum": -1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "exit_code",
+        "duration_ms",
+        "checks"
+      ],
+      "type": "object"
+    },
+    "Report": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseResult"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "cleanup": {
+          "items": {
+            "$ref": "#/$defs/Cleanup"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "communication_reviews": {
+          "items": {
+            "$ref": "#/$defs/Review"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "completion_state": {
+          "enum": [
+            "running",
+            "completed",
+            "interrupted"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "corpus_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "environments": {
+          "items": {
+            "$ref": "#/$defs/Environment"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "maxLength": 262144,
+          "pattern": "Z$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "go-schedule.cli-qa-report",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "capturing",
+            "pending_review",
+            "finalized"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "runner": {
+          "$ref": "#/$defs/Runner"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "maxLength": 262144,
+          "pattern": "Z$",
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "summary": {
+          "$ref": "#/$defs/Summary"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "run_id",
+        "started_at",
+        "finished_at",
+        "phase",
+        "completion_state",
+        "corpus_sha256",
+        "subject",
+        "runner",
+        "environments",
+        "summary",
+        "cases",
+        "communication_reviews",
+        "findings",
+        "artifacts",
+        "cleanup"
+      ],
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "cases": {
+          "items": {
+            "$ref": "#/$defs/CaseRef"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "channel": {
+          "enum": [
+            "help",
+            "description",
+            "stdout",
+            "stderr",
+            "log"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "excerpt": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "maxLength": 262144,
+            "type": "string"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "message_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "rubric": {
+          "items": {
+            "$ref": "#/$defs/Rubric"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "message_id",
+        "cases",
+        "channel",
+        "excerpt",
+        "rubric",
+        "verdict",
+        "finding_ids"
+      ],
+      "type": "object"
+    },
+    "Rubric": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_applicable"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "verdict",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "Runner": {
+      "additionalProperties": false,
+      "properties": {
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "evidence_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "manifest_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/NamedValue"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "version": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "manifest_sha256",
+        "evidence_sha256",
+        "budget",
+        "parameters"
+      ],
+      "type": "object"
+    },
+    "Subject": {
+      "additionalProperties": false,
+      "properties": {
+        "binaries": {
+          "items": {
+            "$ref": "#/$defs/Binary"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "commit": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "repository": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "source_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "commit",
+        "dirty",
+        "source_sha256",
+        "version",
+        "binaries"
+      ],
+      "type": "object"
+    },
+    "Summary": {
+      "additionalProperties": false,
+      "properties": {
+        "blocked": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "execution_failed": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "execution_passed": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "failed": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "findings": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "not_applicable": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "outcome": {
+          "enum": [
+            "pass",
+            "fail",
+            "blocked",
+            "not_applicable"
+          ],
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "passed": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "planned": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "outcome",
+        "planned",
+        "passed",
+        "failed",
+        "blocked",
+        "not_applicable",
+        "findings",
+        "execution_passed",
+        "execution_failed"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/report.schema.json",
+  "$ref": "#/$defs/Report",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
