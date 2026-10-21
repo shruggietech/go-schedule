@@ -1,6 +1,6 @@
 # [bug] Observe created notification channel identities in human-output QA cases
 
-Publication state: local draft awaiting the S109 pre-publication review. Proposed existing taxonomy: bug, area: testing, area: cli, effort: S, platform: windows, platform: linux. Milestone: 15, CLI completeness and unattended application QA. Parent: #277. No assignee, deadline or release claim.
+Published as [#331](https://github.com/shruggietech/go-schedule/issues/331) on 2026-10-21 under milestone 15 and parent #277, with existing bug, area: testing, area: cli, effort: S, platform: windows and platform: linux labels. Its functional correction is included in S109; the issue remains open pending merge.
 
 ## Outcome and bounded scope
 
@@ -32,4 +32,4 @@ Actual: the mapping covers tasks/groups/chains/actors/pairings/triggers/watchers
 
 ## Dependencies and implementation
 
-Depends on merged #289/#290 for the evaluator. #314 makes this successful path reachable in the normal full suite. The correction is implemented locally in S109 using a shared command-to-snapshot identity helper and a regression covering a new channel alongside an unrelated new task, unchanged state and ambiguous channel creation. Publish this independent bug record with S109, then link the implementation; do not reopen delivered #289/#290 or weaken the product assertions.
+Depends on merged #289/#290 for the evaluator. #314 makes this successful path reachable in the normal full suite. The correction is implemented locally in S109 using a shared command-to-snapshot identity helper and a regression covering a new channel alongside an unrelated new task, unchanged state and ambiguous channel creation. The owner authorized publication with S109. #289/#290 remain delivered, and the product assertions are retained.
