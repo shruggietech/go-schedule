@@ -8,7 +8,7 @@ Shared CLI invocation contracts classify parser and operand failures before targ
 
 Credential, pairing and service help describes actual effects. Human lists label each column. Diagnostics identify relevant objects, fields, files and useful corrections while retaining causes. Credential rotation assembles actual actor and daemon context without authentication side effects, with a transaction retaining the old credential on response-assembly failure. Watcher API, CLI and desktop responses distinguish saved definitions from observations and pending reconciliation. IPC compatibility warnings explain admin_group and restart configuration.
 
-The specification, plan, contracts, 29 completed tasks, issue traceability and detailed verification live in this feature directory. The refreshed inventory has 152 initialized command nodes and 844 scenarios per environment. An additional evaluator channel-identity mapping defect found during real capture is corrected locally and has a separate [issue publication draft](findings/human-channel-identity.md).
+The specification, plan, contracts, 29 completed tasks, issue traceability and detailed verification live in this feature directory. The refreshed inventory has 152 initialized command nodes and 844 scenarios per environment. An additional evaluator channel-identity mapping defect found during real capture is corrected locally and has a separate [published issue record](findings/human-channel-identity.md).
 
 ## Decisions and deviations
 
@@ -20,15 +20,8 @@ All eight foreground local gates passed; the final Windows/WSL canonical evaluat
 
 The evaluation uses the receipt-bound dirty-source identity, not a claim that a later documentation-only delivery commit was its captured subject. See [verification.md](verification.md) for exact source/binary identities, artifact hashes, earlier corrective runs and platform boundaries. Hosted CI and publication review follow authorization.
 
-## Publication boundary
+## Publication and merge boundary
 
-Stopped before publication as requested. Nothing has been pushed, no S109 PR or new defect issue has been published, and no merge, tag or release is performed. Existing #311-#322 remain open until their functional corrections merge. No authentication or other owner involvement was required during local implementation.
+The initial pre-publication halt completed at local implementation commit 34ab5cb544ac6bb2671dde30238163e213120d4d. On 2026-10-21 the owner authorized pushing S109, opening the PR, publishing the additional defect, monitoring CI and completing up to two Codex review rounds with autonomous corrections.
 
-The exact review-branch commands awaiting authorization are:
-
-```powershell
-git push -u origin codex/109-cli-contract-diagnostics
-gh pr create --repo shruggietech/go-schedule --base main --head codex/109-cli-contract-diagnostics --title "feat(109): repair CLI contracts and diagnostics" --body-file specs/109-cli-contract-diagnostics/pull-request.md --milestone "CLI completeness and unattended application QA"
-```
-
-At publication, create the separately drafted evaluator defect with the verified existing labels and milestone, add its real issue identity to the PR closing references and parent #277 child checklist, and retain the issue-level functional outcomes. The PR draft already includes closing references for all 12 authorized product issues.
+[PR #332](https://github.com/shruggietech/go-schedule/pull/332) is published for the complete #311-#322 bundle plus independently tracked evaluator defect [#331](https://github.com/shruggietech/go-schedule/issues/331). All issue records remain open pending merge. The [publication and review record](review.md) records exact reviewed revisions, corrections and hosted checks. Stop before merging; no merge, tag or release is authorized.

@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Review branch `codex/109-cli-contract-diagnostics`; [local implementation and verification complete](delivery.md), publication pending at the owner-requested pre-publication boundary.
+**Delivery**: [PR #332](https://github.com/shruggietech/go-schedule/pull/332), open and unmerged; [delivery](delivery.md), [verification](verification.md) and [publication/review record](review.md).
 
 **Input**: Owner-authorized S109 autopilot, bundling #311 through #322 in full under parent #277 and milestone 15. Baseline main is c6d50a17c4b16a9025f9f7137e3cc05b0a6391bd, containing merged S108 PR #310.
 
