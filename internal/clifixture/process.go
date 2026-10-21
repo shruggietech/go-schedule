@@ -14,6 +14,7 @@ type Command struct {
 	Executable                        string
 	Arguments, Environment            []string
 	Directory, StdoutPath, StderrPath string
+	Limits                            *ProcessLimits
 }
 
 // Process retains the exact process-tree capability created by StartProcess.
@@ -29,6 +30,9 @@ type Process struct {
 // StartProcess establishes process-tree containment before child execution.
 // Call Stop during cleanup even when the direct child has already exited.
 func StartProcess(command Command) (*Process, error) {
+	if err := validateProcessLimits(command.Limits); err != nil {
+		return nil, err
+	}
 	if !filepath.IsAbs(command.Executable) || !filepath.IsAbs(command.Directory) || !filepath.IsAbs(command.StdoutPath) || !filepath.IsAbs(command.StderrPath) {
 		return nil, errors.New("owned child requires absolute executable, directory and output paths")
 	}

@@ -3,6 +3,7 @@
 package clifixture
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"syscall"
@@ -12,6 +13,9 @@ import (
 )
 
 func startContained(command Command, input, stdout, stderr *os.File) (*Process, func() error, error) {
+	if command.Limits != nil {
+		return nil, nil, errors.New("Unix environment limits require a verified owned cgroup worker")
+	}
 	cmd := exec.Command(command.Executable, command.Arguments...)
 	cmd.Dir = command.Directory
 	cmd.Stdin = input

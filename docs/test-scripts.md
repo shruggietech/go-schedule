@@ -11,6 +11,8 @@ Scripts that let you prove an installed scheduler actually fires when it said it
 
 ## Contents
 
+For a complete disposable CLI evaluation, use the [unattended Windows and WSL coordinator](cli-qa.md) and its versioned maintainer prompts. The installation payloads below serve their existing installed-scheduler purpose.
+
 - [Why these exist](#why-these-exist)
 - [Prerequisites](#prerequisites)
 - [Quickstart](#quickstart)

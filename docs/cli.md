@@ -15,6 +15,8 @@ nav_order: 3
 
 ## Contents
 
+Maintainers can evaluate the complete command inventory with the [unattended CLI coordinator](cli-qa.md), including human and JSON output, deliberate bad inputs, scoped host adapters and canonical after-action reports.
+
 - [Conventions](#conventions)
 - [Global flags](#global-flags)
 - [Remote profiles](#remote-profiles)

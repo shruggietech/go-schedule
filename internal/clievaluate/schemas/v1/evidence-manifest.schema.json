@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "redacted": {
+          "type": "boolean"
+        },
+        "redaction_policy": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "media_type",
+        "bytes",
+        "sha256",
+        "redacted",
+        "redaction_policy"
+      ],
+      "type": "object"
+    },
+    "EvidenceManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "corpus_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "kind": {
+          "const": "go-schedule.cli-qa-evidence-manifest",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "run_id",
+        "corpus_sha256",
+        "artifacts"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/evidence-manifest.schema.json",
+  "$ref": "#/$defs/EvidenceManifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
