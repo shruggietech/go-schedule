@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"slices"
+	"strings"
+
+	"github.com/shruggietech/go-schedule/internal/clifixture"
 )
 
 // digestSourceFiles binds exact working-tree bytes, including nonignored untracked files.
@@ -65,4 +69,40 @@ func (r sourceReader) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	return r.reader.Read(p)
+}
+
+func identifySource(ctx context.Context, source string) (Subject, error) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return Subject{}, err
+	}
+	s := Subject{Repository: "https://github.com/shruggietech/go-schedule", Version: "development"}
+	for _, query := range []struct {
+		args   []string
+		target *string
+	}{{[]string{"rev-parse", "HEAD"}, &s.Commit}, {[]string{"remote", "get-url", "origin"}, &s.Repository}} {
+		r := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: query.args, Directory: source, Environment: quietEnvironment()}, nil, 4096)
+		if r.Code != 0 || r.Failure != nil {
+			return s, fmt.Errorf("cannot identify evaluated Git source: exit=%d failure=%v stderr=%s", r.Code, r.Failure, r.Err)
+		}
+		*query.target = strings.TrimSpace(string(r.Out))
+	}
+	status := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: []string{"status", "--porcelain"}, Directory: source, Environment: quietEnvironment()}, nil, 65536)
+	if status.Code != 0 || status.Exceeded {
+		return s, errors.New("cannot establish source dirtiness")
+	}
+	s.Dirty = len(status.Out) > 0
+	files := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: []string{"ls-files", "--cached", "--others", "--exclude-standard", "-z"}, Directory: source, Environment: quietEnvironment()}, nil, 1<<20)
+	if files.Code != 0 || files.Failure != nil || files.Exceeded {
+		return s, errors.New("cannot enumerate evaluated source files")
+	}
+	s.SourceSHA256, err = digestSourceFiles(ctx, source, strings.Split(strings.TrimSuffix(string(files.Out), "\x00"), "\x00"))
+	if err != nil {
+		return s, err
+	}
+	s.Repository, err = canonicalRemote(s.Repository)
+	if err != nil {
+		return s, err
+	}
+	return s, nil
 }

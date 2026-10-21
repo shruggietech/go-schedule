@@ -17,6 +17,7 @@ var schemaFiles embed.FS
 
 var contractTypes = map[string]reflect.Type{
 	"manifest": reflect.TypeFor[Manifest](), "report": reflect.TypeFor[Report](), "corpus": reflect.TypeFor[Corpus](), "reviews": reflect.TypeFor[ReviewSet](), "event": reflect.TypeFor[Event](), "evidence-manifest": reflect.TypeFor[EvidenceManifest](),
+	"build-receipt": reflect.TypeFor[BuildReceipt](),
 }
 
 // SchemaDocuments deterministically derives strict schemas for the concrete contracts.
@@ -91,7 +92,7 @@ func schemaField(owner, key string, t reflect.Type, defs map[string]any) map[str
 		s["const"] = Version
 	}
 	if key == "kind" {
-		names := map[string]string{"Manifest": "manifest", "Report": "report", "Corpus": "corpus", "ReviewSet": "reviews", "Event": "event", "EvidenceManifest": "evidence-manifest"}
+		names := map[string]string{"Manifest": "manifest", "Report": "report", "Corpus": "corpus", "ReviewSet": "reviews", "Event": "event", "EvidenceManifest": "evidence-manifest", "BuildReceipt": "build-receipt"}
 		s["const"] = "go-schedule.cli-qa-" + names[owner]
 	}
 	if key == "started_at" || key == "finished_at" || key == "at" {

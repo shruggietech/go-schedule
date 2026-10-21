@@ -11,3 +11,5 @@ Reviews bind run_id, schema_version and corpus_sha256. Require exact immutable m
 Evidence uses confined portable paths, regular files, bounded bytes, hashes and redaction metadata. Capture sanitizes complete bounded streams in memory, registering fixture-only dynamic secrets before persistence. Evidence manifest covers frozen case artifacts/events/corpus; derived reports do not recursively hash themselves. Semantic validation checks uniqueness/references, expected checks, completeness, timestamps, totals, spans and cleanup truthfulness.
 
 Human report outline: 1 identity/outcome, 2 environment/budget, 3 coverage, 4 functional results, 5 help/error/log review, 6 defects in fixed field order, 7 cleanup/artifact index. All content derives from canonical JSON with escaped Markdown and stable sorting.
+
+Prepared inputs additionally carry a strict version 1 build receipt. Its source digest, commit, dirty state and six executable digests must match capture inputs. Preparation checks source identity before and after building and issues no completed receipt when those observations differ. This is an unreleased extension of the version 1 contracts within S108.

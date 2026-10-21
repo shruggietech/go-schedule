@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "Binary": {
+      "additionalProperties": false,
+      "properties": {
+        "arch": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "os": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "role": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "os",
+        "arch",
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "BuildReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "binaries": {
+          "items": {
+            "$ref": "#/$defs/Binary"
+          },
+          "maxItems": 20000,
+          "type": "array"
+        },
+        "commit": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "go-schedule.cli-qa-build-receipt",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "repository": {
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1",
+          "maxLength": 262144,
+          "type": "string"
+        },
+        "source_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "repository",
+        "commit",
+        "dirty",
+        "source_sha256",
+        "binaries"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://go-schedule.io/schemas/cli-qa/v1/build-receipt.schema.json",
+  "$ref": "#/$defs/BuildReceipt",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

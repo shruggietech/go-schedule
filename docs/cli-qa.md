@@ -19,7 +19,7 @@ pwsh -NoProfile -NonInteractive -File scripts/cli-qa.ps1 -WSLDistribution Ubuntu
 
 The script prints the exact input and artifact directories. It bootstraps the Go coordinator with two Go workers and build parallelism two, then prepares the Windows and Linux CLI, daemon and coordinator binaries under bounded Windows Jobs. Dependencies must already exist in the module cache. Preparation uses GOTOOLCHAIN=local and GOPROXY=off and does not provision tools, distributions, users or host configuration.
 
-To evaluate already prepared inputs, supply BinaryDirectory. Capture creates a new OutputDirectory and refuses to overwrite an existing run. Keep the six input files unchanged throughout capture and review.
+To evaluate already prepared inputs, supply BinaryDirectory. Capture creates a new OutputDirectory and refuses to overwrite an existing run. Keep the six executables and their build-receipt.json unchanged throughout capture and review. Preparation records the exact source-content digest, commit, dirty state and six executable hashes in a strict version 1 build receipt. It refuses to issue a receipt if source changes while building. Capture and resume require a matching receipt, including dirty-to-clean changes and different edits at the same commit; prepare a new input directory when the source changes.
 
 ```powershell
 pwsh -NoProfile -NonInteractive -File scripts/cli-qa.ps1 -Action capture -BinaryDirectory A:\qa\inputs -OutputDirectory A:\qa\run-001 -WSLDistribution Ubuntu-24.04 -WSLUser EXISTING_USER
@@ -87,3 +87,5 @@ Canonical JSON is the source for these sections. The deterministic Markdown rend
 The human report summarizes execution boundaries and communication failures before the defect blocks. Expand its complete case ledger, large affected-case lists and artifact index as needed; canonical JSON retains every successful and failed rubric record.
 
 The subject source_sha256 binds sorted tracked and nonignored untracked paths, file modes and exact file contents, including deletions. Resume rejects a changed digest even when the checkout was already dirty. Keep run artifacts in the default ignored .test-temp tree or outside the source checkout. Frozen capture metadata also binds the complete cleanup ledger and immutable case observations; only review verdicts, review references and finding references may change during finalization. A collected WSL unit is accepted as stopped only when the exact prior owned name has explicit not-found/inactive properties; ambiguous or failed state queries remain refused.
+
+The [version 1 build-receipt schema](https://github.com/shruggietech/go-schedule/blob/main/internal/clievaluate/schemas/v1/build-receipt.schema.json) is the seventh strict contract alongside manifest, report, corpus, reviews, event and evidence-manifest. Six executable inputs remain the execution subject; the receipt binds their provenance and stays with the prepared input directory.

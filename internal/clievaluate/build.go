@@ -40,11 +40,15 @@ func BuildBinaries(ctx context.Context, source, directory, goExecutable string, 
 	if err != nil {
 		return errors.New("go is unavailable; use the repository's existing toolchain before preparing evaluation inputs")
 	}
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(budget.TotalTimeoutMS)*time.Millisecond)
+	defer cancel()
+	before, err := identifySource(ctx, source)
+	if err != nil {
+		return err
+	}
 	if err := os.Mkdir(directory, 0700); err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(budget.TotalTimeoutMS)*time.Millisecond)
-	defer cancel()
 	for _, platform := range []string{"windows", "linux"} {
 		output := filepath.Join(directory, platform)
 		if err := os.Mkdir(output, 0700); err != nil {
@@ -79,5 +83,16 @@ func BuildBinaries(ctx context.Context, source, directory, goExecutable string, 
 			return fmt.Errorf("%s evaluation build did not complete: exit=%d diagnostic=%s: %w", platform, capture.Code, capture.Err, cause)
 		}
 	}
-	return nil
+	binaries, err := preparedBinaryDigests(directory)
+	if err != nil {
+		return err
+	}
+	after, err := identifySource(ctx, source)
+	if err != nil {
+		return err
+	}
+	if !sameSource(before, after) {
+		return errors.New("source changed during evaluation preparation; use a new input directory and keep the checkout unchanged while building")
+	}
+	return writeBuildReceipt(directory, BuildReceipt{Version, "go-schedule.cli-qa-build-receipt", before.Repository, before.Commit, before.Dirty, before.SourceSHA256, binaries})
 }

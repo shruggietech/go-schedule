@@ -28,6 +28,17 @@ type Binary struct {
 	SHA256 string `json:"sha256"`
 }
 
+// BuildReceipt binds prepared executable bytes to their build-time source contents.
+type BuildReceipt struct {
+	SchemaVersion string   `json:"schema_version"`
+	Kind          string   `json:"kind"`
+	Repository    string   `json:"repository"`
+	Commit        string   `json:"commit"`
+	Dirty         bool     `json:"dirty"`
+	SourceSHA256  string   `json:"source_sha256"`
+	Binaries      []Binary `json:"binaries"`
+}
+
 // Subject identifies the evaluated source and executable set.
 type Subject struct {
 	Repository   string   `json:"repository"`

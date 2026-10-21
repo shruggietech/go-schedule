@@ -1,12 +1,12 @@
 Adds the complete S108 unattended CLI evaluation and reporting bundle. Maintainers can build fixed inputs, capture all command/behavior/negative scenarios on Windows and an explicitly selected existing WSL2 environment, have an agent review the frozen communication corpus, then validate and render canonical after-action reports.
 
-Closes #289. Closes #290. Closes #323. Closes #324. Closes #325. Closes #326. Closes #327. Closes #328. Closes #329. Parent: #277.
+Closes #289. Closes #290. Closes #323. Closes #324. Closes #325. Closes #326. Closes #327. Closes #328. Closes #329. Closes #330. Parent: #277.
 
 ## Behavior
 
 - Inventory the initialized 152-node Cobra tree, with 839 stable scenarios per environment and explicit packaged CLI, scoped handler and deterministic engine boundaries.
 - Run only owned fixtures under independently applied Windows Job and Linux cgroup budgets, with hidden noninteractive processes, bounded evidence, exact cleanup, interruption checkpoints and identity-checked resume.
-- Validate six versioned strict schemas and semantic evidence invariants, require complete contextual agent reviews, and render a deterministic seven-section report with actionable defect records.
+- Validate seven versioned strict schemas and semantic evidence invariants, require complete contextual agent reviews, and render a deterministic seven-section report with actionable defect records.
 - Provide versioned execution and separate issue-triage prompts, plus complete implementation and verification records in specs/108-unattended-cli-qa/.
 
 ## Validation

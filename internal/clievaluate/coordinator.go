@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	pathpkg "path"
 	"path/filepath"
 	"runtime"
@@ -357,45 +356,13 @@ func wslPath(path string) (string, error) {
 }
 
 func captureSubject(ctx context.Context, o CaptureOptions) (Subject, error) {
-	gitPath, err := exec.LookPath("git")
-	if err != nil {
-		return Subject{}, err
-	}
-	s := Subject{Repository: "https://github.com/shruggietech/go-schedule", Version: "development"}
-	for _, query := range []struct {
-		args   []string
-		target *string
-	}{{[]string{"rev-parse", "HEAD"}, &s.Commit}, {[]string{"remote", "get-url", "origin"}, &s.Repository}} {
-		r := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: query.args, Directory: o.Source, Environment: quietEnvironment()}, nil, 4096)
-		if r.Code != 0 || r.Failure != nil {
-			return s, fmt.Errorf("cannot identify evaluated Git source: exit=%d failure=%v stderr=%s", r.Code, r.Failure, r.Err)
-		}
-		*query.target = strings.TrimSpace(string(r.Out))
-	}
-	status := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: []string{"status", "--porcelain"}, Directory: o.Source, Environment: quietEnvironment()}, nil, 65536)
-	if status.Code != 0 || status.Exceeded {
-		return s, errors.New("cannot establish source dirtiness")
-	}
-	s.Dirty = len(status.Out) > 0
-	files := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: []string{"ls-files", "--cached", "--others", "--exclude-standard", "-z"}, Directory: o.Source, Environment: quietEnvironment()}, nil, 1<<20)
-	if files.Code != 0 || files.Failure != nil || files.Exceeded {
-		return s, errors.New("cannot enumerate evaluated source files")
-	}
-	s.SourceSHA256, err = digestSourceFiles(ctx, o.Source, strings.Split(strings.TrimSuffix(string(files.Out), "\x00"), "\x00"))
-	if err != nil {
-		return s, err
-	}
-	s.Repository, err = canonicalRemote(s.Repository)
+	s, err := identifySource(ctx, o.Source)
 	if err != nil {
 		return s, err
 	}
 	for _, platform := range []string{"windows", "linux"} {
 		for _, role := range []string{"cli", "daemon", "runner"} {
-			name := map[string]string{"cli": "gosched", "daemon": "goschedd", "runner": "gosched-qa"}[role]
-			if platform == "windows" {
-				name += ".exe"
-			}
-			path, err := filepath.Abs(filepath.Join(o.BinDirectory, platform, name))
+			path, err := filepath.Abs(filepath.Join(o.BinDirectory, filepath.FromSlash(preparedName(role, platform))))
 			if err != nil {
 				return s, err
 			}
@@ -414,8 +381,8 @@ func captureSubject(ctx context.Context, o CaptureOptions) (Subject, error) {
 			if settings["vcs.revision"] != s.Commit || settings["GOOS"] != platform || settings["GOARCH"] != "amd64" {
 				return s, errors.New("evaluation binary source revision or platform differs from the selected checkout")
 			}
-			if settings["vcs.modified"] != "true" && s.Dirty {
-				return s, errors.New("clean evaluation binaries do not identify the selected dirty checkout")
+			if (settings["vcs.modified"] == "true") != s.Dirty {
+				return s, errors.New("evaluation binary dirtiness differs from the selected checkout")
 			}
 			if platform == "linux" {
 				path, err = wslPath(path)
@@ -425,6 +392,9 @@ func captureSubject(ctx context.Context, o CaptureOptions) (Subject, error) {
 			}
 			s.Binaries = append(s.Binaries, Binary{role, platform, "amd64", path, Digest(data)})
 		}
+	}
+	if err := requireBuildReceipt(o.BinDirectory, s); err != nil {
+		return s, err
 	}
 	version := captureCommand(ctx, clifixture.Command{Executable: binaryPath(s, "cli", "windows"), Arguments: []string{"--version"}, Directory: o.Source, Environment: quietEnvironment()}, nil, 4096)
 	if version.Code != 0 || version.Failure != nil {
