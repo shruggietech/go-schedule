@@ -103,3 +103,7 @@ Concurrent heartbeat payloads persist one durable record per successful invocati
 - Q: Does release repair authorize live promotion? A: No; fixtures cover mutation paths, and any real promotion needs separate release authorization.
 - Q: Can passing retry runs establish intermittent defect completion? A: No; establish the concrete failure and retain the original concurrent and dispatch assertions.
 - Q: Should unrelated roadmap features join this slice? A: No; the authorized full bundle is #262, #271 and #335.
+
+## Post-publication CI correction
+
+Owner-authorized CI monitoring for PR #338 exposed independent fixture defect #339. Establish both real native channel endpoints before running the unchanged forged-parent authentication checks. The correction retains all original S110 outcomes, does not change credential access policy, and is tracked in [review.md](review.md) and [the issue record](findings/windows-peer-fixture.md). Both allowed Codex rounds are complete; fresh hosted checks follow the correction without a third review.

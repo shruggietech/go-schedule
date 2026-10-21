@@ -8,14 +8,16 @@ Standing-waiver promotion can lose access to a draft through tag lookup, observe
 - Preserve unchanged watcher revisions, pending work and observed file identities through full or root observer recovery; suppress recovery duplicates while retaining later writes.
 - Bind payload values as exact UTF-8 text in both Bash and PowerShell, retain final SQLite errors, and keep existing bounded contention attempts and concurrent record-count assertions.
 
+- Stabilize the Windows native credential forged-parent fixture by establishing real endpoints before authentication can reject and close the peer. Kernel peer, parent and image checks remain unchanged (#339).
+
 ## Issue traceability
 
-Closes #262. Closes #271. Closes #335. Refs #277. Existing issue milestones remain authoritative.
+Closes #262. Closes #271. Closes #335. Closes #339. Refs #277. Existing issue milestones remain authoritative.
 
 ## Validation
 
-All eight local canonical gates passed with aggregate exit 0: format, vet, lint, race, GUI, coverage, docs and automation. The GUI suite passed 160 tests. Focused watcher, release-helper and payload checks also passed under the race detector on native Windows and Linux. See [verification](specs/110-reliability-release-repairs/verification.md) for failing-before and passing-after evidence and exact aggregate log identity.
+The initial S110 implementation passed all eight local canonical gates with aggregate exit 0: format, vet, lint, race, GUI, coverage, docs and automation. The GUI suite passed 160 tests. Focused watcher, release-helper and payload checks also passed under the race detector on native Windows and Linux. See [verification](specs/110-reliability-release-repairs/verification.md) for failing-before and passing-after evidence and exact aggregate log identity.
 
 ## Boundaries
 
-The earlier hosted heartbeat failure discarded the diagnostics needed to establish its exact cause. The binding defect is independently reproduced and corrected; passing repetitions are not presented as a diagnosis of that historical run. All 22 hosted checks, including native macOS, passed on the first reviewed head 8badade. Final-head results and the two bounded Codex review rounds are tracked in the PR handoff and [publication record](specs/110-reliability-release-repairs/review.md). No live release promotion, tag, release or DNS operation was performed.
+The earlier hosted heartbeat failure discarded the diagnostics needed to establish its exact cause. The binding defect is independently reproduced and corrected; passing repetitions are not presented as a diagnosis of that historical run. All 22 hosted checks, including native macOS, passed on the first reviewed head 8badade. Both bounded Codex rounds completed without findings before a subsequent Windows fixture failure (#339). The correction passes 100 native Windows race repetitions and the full credential-helper package on Windows and Linux. Final-head results and precise review subjects are tracked in the PR handoff and [publication record](specs/110-reliability-release-repairs/review.md); no third review is requested. No live release promotion, tag, release or DNS operation was performed.

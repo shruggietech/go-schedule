@@ -42,7 +42,7 @@ The foreground command sh scripts/verify.sh all completed on 2026-10-21 with exi
 | docs | PASS, 22 canonical documents, links, metadata and static export |
 | automation | PASS, repository policy and complete negative-fixture suite |
 
-Only delivery and lifecycle records were finalized after this run. Final formatting, lifecycle and automation-policy checks are recorded below; no implementation source was changed after the aggregate.
+At the initial pre-publication boundary, only delivery and lifecycle records were finalized after this run. The subsequent owner-authorized CI correction #339 is recorded below and has its own validation.
 
 Earlier attempts are retained separately. The first stopped at an import-order lint failure, corrected before the final run (.test-temp/verify-s110-import-order.log). The second was interrupted by a tool runtime limit during automation fixtures and has no terminal aggregate result (.test-temp/verify-s110-tool-interrupted.log). Its owned orphan fixture process tree and temporary directory were removed before the replacement run. Neither attempt is counted as aggregate success.
 
@@ -54,4 +54,12 @@ Native Linux PowerShell was unavailable; its twin ran natively on Windows. The o
 
 ## Final record audit
 
-After finalizing lifecycle and delivery records, go run ./scripts/github-format, sh scripts/spec-lifecycle-check.sh . and sh scripts/automation-check.sh . each passed with exit code 0. The lifecycle checker reports 108 consistent specifications. All 24 S110 tasks are complete. The 36 changed text files pass fatal UTF-8 decoding, BOM, mojibake and em-dash checks; git diff --check passes. The automation fixture scratch directories were removed by the successful suite. No implementation source changed after the aggregate.
+After finalizing lifecycle and delivery records, go run ./scripts/github-format, sh scripts/spec-lifecycle-check.sh . and sh scripts/automation-check.sh . each passed with exit code 0. The lifecycle checker reports 108 consistent specifications. All 24 S110 tasks are complete. The 36 changed text files pass fatal UTF-8 decoding, BOM, mojibake and em-dash checks; git diff --check passes. The automation fixture scratch directories were removed by the successful suite. No implementation source had changed at that initial local boundary; subsequent #339 validation follows.
+
+## Post-publication Windows peer-fixture correction (#339)
+
+The Windows race job on cb614525cfe650330a0a2847568069a11122ae2c failed at context_test.go:123 after correct untrusted-peer rejection closed the client before Accept completed. Forced early rejection reproduces the closed-listener failure against unchanged source under the race detector (2.164s, exit 1), .test-temp/s110-peer-rejection/before.log. This is distinct from all three original S110 corrections.
+
+The fixture now establishes both native endpoints before invoking the extracted, otherwise unchanged established-connection authentication handler. Real kernel peer PID, parent and image checks remain, as do direct-entry refusal, zero backend calls, framed exchange, cancellation and the existing two-second context. Windows race repetitions (count 100) pass in 43.694s, and the full package passes in 7.229s; logs: .test-temp/s110-peer-rejection/{after,package}.log. The full package also passes native Linux race checks in 15.368s. Canonical format, vet and lint pass on the correction, with zero lint issues. Hosted final-head checks run independently. Both Codex rounds preceded this CI correction; no third review is requested or claimed.
+
+Post-correction publication formatting, lifecycle consistency (108 specifications) and repository automation-policy checks also pass. No prior failed hosted result was rerun or relabeled as success. The new correction head receives its own hosted checks.

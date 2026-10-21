@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Stabilize the Windows native credential peer-rejection fixture by establishing both real channel endpoints before invoking unchanged authentication checks, avoiding an early-close setup race (#339).
+
 - **Exact-file watchers retain replacement identities and pending work through observer recovery (Refs #271).** Same-revision recovery reconciles against the prior state, suspends inactive pending timers, and suppresses recovery duplicates without resetting explicit reload semantics or ordinary later native writes.
 - **Maintainer payload adapters preserve literal UTF-8 parameter values and real writer failures (Refs #335).** Both script twins retain distinct numeric-looking session IDs, quotes and newlines, keep existing bounded waits/retries, and include the final SQLite diagnostic after contention exhaustion. Windows payload fixture processes are hidden and non-interactive.
 
