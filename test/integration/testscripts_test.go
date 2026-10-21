@@ -514,18 +514,19 @@ func TestScriptsConcurrentWriters(t *testing.T) {
 
 	var wg sync.WaitGroup
 	codes := make([]int, writers)
+	outputs := make([]string, writers)
 	for i := 0; i < writers; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			_, codes[i] = runScript(t, tw, dir, script)
+			outputs[i], codes[i] = runScript(t, tw, dir, script)
 		}(i)
 	}
 	wg.Wait()
 
 	for i, c := range codes {
 		if c != 0 {
-			t.Errorf("concurrent writer %d exited %d; contention must be waited out, not surfaced", i, c)
+			t.Errorf("concurrent writer %d exited %d; contention must be waited out, not surfaced\n%s", i, c, outputs[i])
 		}
 	}
 	db := filepath.Join(dir, "heartbeat.db")

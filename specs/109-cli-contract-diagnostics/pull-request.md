@@ -8,7 +8,7 @@ Validation: the initial implementation passed all eight foreground local gates; 
 
 Included corrections: #333 gives the real IPC targeting fixture a short private macOS socket directory; #334 makes the import guide consistent with invalid-input exit status. Exact root-version assertions cover long, short, explicit-true and missing-profile requests. The complete Windows and native Linux CLI race packages and the full docs gate passed after these changes. Two Codex review rounds completed, with no findings in round 2; details and distinct source identities are in specs/109-cli-contract-diagnostics/review.md.
 
-Decisions: reuse Cobra and typed error causes, retain legacy --endpoint compatibility, add observation fields without persisted schema changes, and assemble rotation identities before transaction commit without new eligibility rules. No new dependency or intentionally deferred functional outcome.
+Decisions: reuse Cobra and typed error causes, retain legacy --endpoint compatibility, add observation fields without persisted schema changes, and assemble rotation identities before transaction commit without new eligibility rules. No new dependency or intentionally deferred outcome in the requested CLI bundle.
 
 - Closes #311
 - Closes #312
@@ -27,3 +27,5 @@ Decisions: reuse Cobra and typed error causes, retain legacy --endpoint compatib
 - Closes #334
 
 Refs #277. Milestone: CLI completeness and unattended application QA. Spec-Kit slice: S109 (specs/109-cli-contract-diagnostics).
+
+Refs #335: final-head Linux CI exposed an intermittent failure in the unchanged heartbeat-script integration fixture. Per-writer errors are now retained; concurrent execution and success/record assertions are unchanged. Twenty native Linux race repetitions passed, but the cause is unconfirmed and #335 remains open. The runtime evaluation and previous review identities remain distinct from this later diagnostic-only change.
