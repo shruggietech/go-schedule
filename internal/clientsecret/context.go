@@ -76,6 +76,12 @@ func serveAuthenticatedHelper(ctx context.Context, endpoint string, backend Back
 	if err != nil {
 		return 1
 	}
+	return serveAuthenticatedConnection(ctx, connection, backend)
+}
+
+// serveAuthenticatedConnection owns an established channel and authenticates its
+// native peer before reading requests or accessing the credential backend.
+func serveAuthenticatedConnection(ctx context.Context, connection net.Conn, backend Backend) int {
 	defer func() { _ = connection.Close() }()
 	stop := context.AfterFunc(ctx, func() { _ = connection.Close() })
 	defer stop()

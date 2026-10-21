@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **2026-10-21 architecture and pinned-workflow decision (S110): bind standing-waiver promotion to one authenticated release ID using a small standard-library helper built from the exact workflow revision before tagged-source checkout.** The waiver workflow, automation policy and operator guidance in docs/INSTALL-windows.md retain staging-attempt, candidate, comparison, checksum and immutable-tag checks. Draft lookup, asset operations, interrupted resumption and published latest-pointer recovery share the frozen release identity; the attended-evidence workflow is unchanged (Refs #262).
+
 - **2026-10-21 architecture decision (S109): distinguish endpoint ownership and correlate watcher observations with the exact saved definition.** The additive global `--daemon-endpoint` keeps legacy and channel destination flags usable, while runtime observation revisions distinguish pending reconciliation without waits. Credential rotation assembles actor context and replacement state in one transaction before returning its one-time token (Refs #314, #319, #321).
 
 - **2026-10-21 architecture decision (S108): use one owned daemon at a time, independently verified Windows Jobs and Linux user cgroups, and a capture-review-finalize contract.** Explicit budgets bound execution and artifacts. Exact source, executable and manifest identities govern resumed attempts; strict schema and semantic validators reject missing evidence or reviews. Service, GUI, preference and credential operations use scoped adapters, and findings remain distinct from runner completion (Refs #289, #290).
@@ -26,6 +28,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
 
 ### Fixed
+
+- Give canned heartbeat reader queries deterministic cadence data while retaining automatic inference, gaps coverage, insufficient-data errors and explicit interval overrides (#340).
+
+- Stabilize the Windows native credential peer-rejection fixture by establishing both real channel endpoints before invoking unchanged authentication checks, avoiding an early-close setup race (#339).
+
+- **Exact-file watchers retain replacement identities and pending work through observer recovery (Refs #271).** Same-revision recovery reconciles against the prior state, suspends inactive pending timers, and suppresses recovery duplicates without resetting explicit reload semantics or ordinary later native writes.
+- **Maintainer payload adapters preserve literal UTF-8 parameter values and real writer failures (Refs #335).** Both script twins retain distinct numeric-looking session IDs, quotes and newlines, keep existing bounded waits/retries, and include the final SQLite diagnostic after contention exhaustion. Windows payload fixture processes are hidden and non-interactive.
 
 - **Human-output CLI QA recognizes independently created notification channel identities.** The existing persisted-state and stdout identity checks now use the channel snapshot, allowing later human channel/policy cases to continue after successful authoring (Refs #277).
 

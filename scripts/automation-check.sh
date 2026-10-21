@@ -671,7 +671,7 @@ for release_file in release.yml promote-release.yml promote-release-waived.yml; 
     /\|\||continue-on-error:|^[[:space:]]+if:/ { bypass=1 }
     END { finish() }
   ' "$workflow")
-  mutation_line=$(grep -n -E 'uses: softprops/action-gh-release|gh release upload|draft=false' "$workflow" | head -n 1 | cut -d: -f1 || true)
+  mutation_line=$(grep -n -E 'uses: softprops/action-gh-release|gh release upload|draft=false|release-promotion.*[[:space:]](ensure-checksum|publish)([[:space:]]|$)' "$workflow" | head -n 1 | cut -d: -f1 || true)
   if [ -z "$review_line" ] || [ -z "$mutation_line" ] || [ "$review_line" -ge "$mutation_line" ]; then
     report "$workflow: comparison review must run before release mutation without bypass"
   fi

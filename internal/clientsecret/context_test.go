@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"runtime"
@@ -115,13 +116,32 @@ func TestReadHelperRejectsDirectEntryAndUntrustedLivePeer(t *testing.T) {
 	defer cancel()
 	stop := context.AfterFunc(ctx, func() { _ = listener.Close() })
 	defer stop()
+	// Windows may discard a pipe client that closes before Accept completes.
+	// Establish both real endpoints before running peer authentication so an
+	// immediate, correct rejection cannot race the fixture setup.
+	type dialResult struct {
+		connection net.Conn
+		err        error
+	}
+	dialed := make(chan dialResult, 1)
+	go func() {
+		connection, err := dialReadChannel(ctx, endpoint)
+		dialed <- dialResult{connection, err}
+	}()
+	connection, acceptErr := listener.Accept()
+	peer := <-dialed
+	if peer.connection != nil {
+		defer func() { _ = peer.connection.Close() }()
+	}
+	if connection != nil {
+		defer func() { _ = connection.Close() }()
+	}
+	if acceptErr != nil || peer.err != nil {
+		t.Fatalf("establish native peer fixture: accept=%v dial=%v", acceptErr, peer.err)
+	}
 	backend := &readBackend{}
 	done := make(chan int, 1)
-	go func() { done <- serveAuthenticatedHelper(ctx, endpoint, backend) }()
-	connection, err := listener.Accept()
-	if err != nil {
-		t.Fatal(err)
-	}
+	go func() { done <- serveAuthenticatedConnection(ctx, peer.connection, backend) }()
 	// This endpoint belongs to the test itself, not its actual parent. Even valid
 	// request metadata must never cause a credential read from this forged peer.
 	_ = writeFrame(connection, []byte(`{"daemon_id":"d","credential_id":"c"}`))
