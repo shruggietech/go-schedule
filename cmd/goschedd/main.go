@@ -261,7 +261,7 @@ func logDaemonReady(log *slog.Logger, endpoint, dbPath, logPath string) {
 
 func logIPCAccess(log *slog.Logger, access ipc.AccessInfo) {
 	if access.Mode == ipc.AccessModeCompatibility {
-		log.Warn("IPC compatibility mode enabled", "access_mode", string(access.Mode), "admin_group", access.AdminGroup)
+		log.Warn("IPC compatibility mode enabled: an empty admin_group allows broad local access to this daemon; set admin_group in the daemon config to the OS group permitted to manage it, then restart the daemon to apply the change", "access_mode", string(access.Mode), "admin_group", access.AdminGroup)
 		return
 	}
 	log.Info("IPC access configured", "access_mode", string(access.Mode), "admin_group", access.AdminGroup)

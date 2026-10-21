@@ -66,6 +66,8 @@ gosched cron import --file /etc/crontab --dry-run
 
 The preview prints, for every line, the expression, phrase, effective timezone, shell command, and any run-as, environment, or stdin context. For a real import it also prints the task it created. Imported tasks retain the original normalized cron expression. Nothing is created while `--dry-run` is set.
 
+If any line is invalid, current source retains the complete per-line and aggregate report and returns exit 2, including in a dry run. Unsupported but well-formed lines retain their reported unsupported outcome. Successfully created tasks remain recorded when other lines fail; task-creation, input-read and output-write failures are operational failures with exit 1. Correct the reported invalid lines before retrying, and review already created tasks before repeating a real import.
+
 ```text
 line 3: 0 2 * * *
   phrase:  every day at 02:00

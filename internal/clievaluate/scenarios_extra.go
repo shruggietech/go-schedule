@@ -10,6 +10,9 @@ func additionalSteps() []step {
 		return &steps[len(steps)-1]
 	}
 	add("negative.unknown-command", "", "unknown-command", "command_harness", 2, "unchanged", "qa-command-does-not-exist")
+	add("help.remote-selection-independent", "help", "documentation", "packaged_cli", 0, "read", "--profile=qa-missing-profile", "help", "task", "show")
+	add("help.unknown-topic", "help", "validation", "command_harness", 2, "unchanged", "help", "task", "qa-missing-topic")
+	add("completion.reject-operands", "completion bash", "arity", "command_harness", 2, "unchanged", "completion", "bash", "qa-unexpected")
 	add("bundle.occupied-output", "bundle export", "validation", "packaged_cli", 1, "unchanged", "--ipc-path", "${ipc}", "bundle", "export", "--output", "${runtime}")
 	add("bundle.readonly-output", "bundle export", "validation", "packaged_cli", 1, "readonly-output", "--ipc-path", "${ipc}", "bundle", "export", "--output", "${readonly_file}")
 	add("daemon.invalid-config", "@isolation", "configuration", "command_harness", 1, "invalid-daemon-config")
@@ -32,10 +35,12 @@ func additionalSteps() []step {
 	add("selector.conflicts", "health", "validation", "command_harness", 2, "unchanged", "health", "--profile=fixture", "--endpoint=https://127.0.0.1:1", "--daemon-id=fixture", "--credential-id=fixture", "--certificate-file", "${certificate}", "--ipc-path", "${ipc}")
 	add("selector.profile", "health", "remote-target", "command_harness", 0, "remote-authority", "health", "--profile", "${remote_profile}", "--json")
 	add("selector.explicit-tls", "health", "remote-target", "command_harness", 0, "remote-authority", "health", "--endpoint", "${remote}", "--daemon-id", "${daemon_id}", "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}", "--json")
+	add("selector.daemon-endpoint", "health", "remote-target", "command_harness", 0, "remote-authority", "health", "--daemon-endpoint", "${remote}", "--daemon-id", "${daemon_id}", "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}", "--json").Spec.Coverage = []string{" --daemon-endpoint"}
 	add("selector.wrong-certificate", "health", "validation", "command_harness", 2, "wrong-certificate", "health", "--endpoint", "${remote}", "--daemon-id", "${daemon_id}", "--credential-id", "${remote_credential}", "--certificate-file", "${bad_certificate}")
 	add("selector.wrong-identity", "health", "validation", "command_harness", 1, "unchanged", "health", "--endpoint", "${remote}", "--daemon-id=wrong-daemon", "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}")
 	add("selector.no-fallback", "health", "validation", "packaged_cli", 1, "no-fallback", "health", "--ipc-path", "${missing_ipc}")
 	add("selector.empty-ipc", "health", "validation", "command_harness", 2, "unchanged", "health", "--ipc-path=")
+	add("selector.empty-remote", "health", "validation", "command_harness", 2, "unchanged", "health", "--daemon-endpoint=")
 	add("selector.canceled-secret", "systems summary", "cancellation", "command_harness", 1, "canceled-secret", "systems", "summary", "--all")
 	add("selector.partial-systems", "systems summary", "partial-result", "command_harness", 1, "partial-systems", "systems", "summary", "--all", "--json")
 	add("transport.authority-audit", "@transport", "authority", "command_harness", 0, "authority-audit")
@@ -77,7 +82,7 @@ func additionalSteps() []step {
 	add("cron.import-file", "cron import", "create", "packaged_cli", 0, "cron-file", "--ipc-path", "${ipc}", "cron", "import", "--file", "${cron_file}", "--timezone=UTC", "--dialect=unix", "--count=1")
 	add("cron.system-dry-run", "cron import", "read", "packaged_cli", 0, "cron-system", "--ipc-path", "${ipc}", "cron", "import", "--file=-", "--dry-run", "--system", "--dialect=unix", "--timezone=UTC").Input = "0 0 1 1 * fixture-user echo fixture\n"
 	add("cron.quartz-dry-run", "cron import", "read", "packaged_cli", 0, "cron-quartz", "--ipc-path", "${ipc}", "cron", "import", "--file=-", "--dry-run", "--dialect=quartz", "--timezone=UTC").Input = "0 0 9 ? * MON-FRI echo fixture\n"
-	add("cron.partial-invalid", "cron import", "validation", "packaged_cli", 1, "cron-partial", "--ipc-path", "${ipc}", "cron", "import", "--file=-", "--dry-run", "--timezone=UTC").Input = "0 0 1 1 * echo fixture\ninvalid line\n"
+	add("cron.partial-invalid", "cron import", "validation", "packaged_cli", 2, "cron-partial", "--ipc-path", "${ipc}", "cron", "import", "--file=-", "--dry-run", "--timezone=UTC").Input = "0 0 1 1 * echo fixture\ninvalid line\n"
 	for i := range steps {
 		steps[i].Spec.Coverage = append(steps[i].Spec.Coverage, coverageFor(steps[i].Spec.CommandPath, steps[i].Spec.Argv)...)
 		if strings.HasPrefix(steps[i].Spec.ID, "selector.") {

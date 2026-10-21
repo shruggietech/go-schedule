@@ -86,6 +86,35 @@ func TestWorkspaceRejectsPartialSnapshots(t *testing.T) {
 	}
 }
 
+func TestWorkspaceRetainsWatcherObservationAndUnknownLegacyMetadata(t *testing.T) {
+	var watcher server.FilesystemWatcherResponse
+	if err := json.Unmarshal([]byte(`{"id":"watcher-1","enabled":false,"health":{"state":"active","observed_at":"2026-10-21T12:00:00Z","observed_definition_revision":"previous"},"definition_revision":"saved","reconciliation_pending":true,"readiness":"disabled"}`), &watcher); err != nil {
+		t.Fatal(err)
+	}
+	workspace := buildWorkspace(nil, nil, nil, nil, []server.FilesystemWatcherResponse{watcher})
+	data, err := json.Marshal(workspace.Watchers[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]string{"reconciliationPending": "true", "observedAt": `"2026-10-21T12:00:00Z"`, "observedDefinitionRevision": `"previous"`, "definitionRevision": `"saved"`, "enabled": "false", "health": `"active"`, "readiness": `"disabled"`} {
+		if string(fields[key]) != want {
+			t.Fatalf("%s = %s, want %s", key, fields[key], want)
+		}
+	}
+	workspace = buildWorkspace(nil, nil, nil, nil, []server.FilesystemWatcherResponse{{ID: "legacy", Health: domain.WatcherHealth{State: domain.WatcherActive}}})
+	data, err = json.Marshal(workspace.Watchers[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "reconciliationPending") || strings.Contains(string(data), "observedAt") {
+		t.Fatalf("legacy observation was fabricated: %s", data)
+	}
+}
+
 func TestStaleChainRequiresExplicitOverwrite(t *testing.T) {
 	now := time.Now().UTC()
 	fake := &fakeBackend{chains: []domain.CompletionChain{{ID: "chain-1", SourceTaskID: "a", TargetTaskID: "b", OnOutcome: domain.CompletionOnSuccess, UpdatedAt: now}}}

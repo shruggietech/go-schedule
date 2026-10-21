@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **2026-10-21 architecture decision (S109): distinguish endpoint ownership and correlate watcher observations with the exact saved definition.** The additive global `--daemon-endpoint` keeps legacy and channel destination flags usable, while runtime observation revisions distinguish pending reconciliation without waits. Credential rotation assembles actor context and replacement state in one transaction before returning its one-time token (Refs #314, #319, #321).
+
 - **2026-10-21 architecture decision (S108): use one owned daemon at a time, independently verified Windows Jobs and Linux user cgroups, and a capture-review-finalize contract.** Explicit budgets bound execution and artifacts. Exact source, executable and manifest identities govern resumed attempts; strict schema and semantic validators reject missing evidence or reviews. Service, GUI, preference and credential operations use scoped adapters, and findings remain distinct from runner completion (Refs #289, #290).
 
 - **2026-10-19 architecture decision (S107): share desktop preference schema/migration/atomic scoped updates with the root CLI and replace global CLI selection/output with invocation dependencies.** OS-owned preference locks coordinate writers and release ownership on process exit; production native credential handling and daemon defaults remain unchanged. Runtime IPC/PID metadata supports fixture identity checks. Round-1 corrections isolate cancellable native credential reads in hidden helpers with private pipes and share bounded Unix process-group drainage. Read-only observation fan-out reuses existing API/authorization and preserves independent target outcomes (Refs #285, #286, #288).
@@ -24,6 +26,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
 
 ### Fixed
+
+- **Human-output CLI QA recognizes independently created notification channel identities.** The existing persisted-state and stdout identity checks now use the channel snapshot, allowing later human channel/policy cases to continue after successful authoring (Refs #277).
+
+- **CLI invocations and reports now consistently distinguish validation refusals from runtime failures (Refs #311, #312, #313, #314, #315, #316).** Invalid flags/operands and malformed documents return usage failure, refused operations cannot trigger host adapters, alerts JSON stays clean, webhook targeting is independent, unknown/duplicate watcher bindings are rejected before planning, and invalid cron lines retain complete reporting with unsuccessful status.
+- **CLI help, diagnostics, operational lists and response context explain the action and resulting state (Refs #317, #318, #319, #320, #321, #322).** Errors identify objects and fields, rotation reports actual associated identities, watcher views separate saved settings from observed health, list columns are labeled, and IPC compatibility warnings identify the effective access configuration and correction. These source changes are unreleased.
 
 - **The private native credential helper authenticates its owning CLI before reading stored tokens (Refs #309).** Kernel peer identity and executable-image checks protect a dedicated bounded local channel; direct helper invocation cannot extract tokens through standard streams.
 

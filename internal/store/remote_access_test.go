@@ -46,7 +46,7 @@ func TestRemoteAccessPersistenceLifecycleAndFailureBounds(t *testing.T) {
 	if _, _, err := st.AuthenticateCredential(digest, now); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := st.RotateCredential("missing", digest, "new", now); !errors.Is(err, ErrNotFound) {
+	if _, _, err := st.RotateCredential("missing", digest, "new", now); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("rotate err=%v", err)
 	}
 	if _, err := st.RevokeCredential("missing", now); !errors.Is(err, ErrNotFound) {

@@ -58,10 +58,11 @@ type Dependencies struct {
 }
 
 type invocation struct {
-	deps   Dependencies
-	json   bool
-	flags  remoteTargetFlags
-	client *client.Client
+	deps      Dependencies
+	json      bool
+	flags     remoteTargetFlags
+	client    *client.Client
+	helpError error
 }
 type invocationKey struct{}
 
@@ -127,11 +128,20 @@ func MarkLocal(cmd *cobra.Command) {
 	cmd.Annotations["cli.local"] = "true"
 }
 func isLocal(cmd *cobra.Command) bool {
+	if isDocumentation(cmd) {
+		return true
+	}
 	for item := cmd; item != nil; item = item.Parent() {
-		if item.Name() == "completion" || item.Name() == "__complete" || item.Name() == "__completeNoDesc" {
+		if item.Annotations["cli.local"] == "true" {
 			return true
 		}
-		if item.Annotations["cli.local"] == "true" {
+	}
+	return false
+}
+
+func isDocumentation(cmd *cobra.Command) bool {
+	for item := cmd; item != nil; item = item.Parent() {
+		if item.Name() == "help" || item.Name() == "completion" || item.Name() == "__complete" || item.Name() == "__completeNoDesc" {
 			return true
 		}
 	}
@@ -153,18 +163,44 @@ func validateIPCPath(path string) error {
 }
 
 func (s *invocation) resolve(cmd *cobra.Command) error {
-	if cmd.Flags().Changed("ipc-path") {
-		for _, name := range []string{"profile", "endpoint", "daemon-id", "credential-id", "certificate-file"} {
-			if cmd.Flags().Changed(name) {
+	if isDocumentation(cmd) {
+		return nil
+	}
+	global := cmd.Root().PersistentFlags()
+	if global.Changed("endpoint") && global.Changed("daemon-endpoint") {
+		return fmtUsage("choose only one remote selector: --daemon-endpoint or --endpoint")
+	}
+	if global.Changed("profile") {
+		for _, name := range []string{"endpoint", "daemon-endpoint", "daemon-id", "credential-id", "certificate-file"} {
+			if global.Changed(name) {
+				return fmtUsage("--profile cannot be combined with explicit remote target flags")
+			}
+		}
+	}
+	if err := cmd.ValidateRequiredFlags(); err != nil {
+		return usageCause(err)
+	}
+	if err := cmd.ValidateFlagGroups(); err != nil {
+		return usageCause(err)
+	}
+	if global.Changed("ipc-path") {
+		for _, name := range []string{"profile", "endpoint", "daemon-endpoint", "daemon-id", "credential-id", "certificate-file"} {
+			if global.Changed(name) {
 				return fmtUsage("--ipc-path cannot be combined with remote target flags")
 			}
 		}
 	}
-	if cmd.Flags().Changed("ipc-path") && s.flags.IPCPath == "" {
+	if global.Changed("ipc-path") && s.flags.IPCPath == "" {
 		return fmtUsage("--ipc-path must name a nonempty absolute local socket or named pipe")
 	}
 	if isLocal(cmd) {
 		return nil
+	}
+	for _, name := range []string{"profile", "endpoint", "daemon-endpoint", "daemon-id", "credential-id", "certificate-file"} {
+		flag := global.Lookup(name)
+		if flag.Changed && strings.TrimSpace(flag.Value.String()) == "" {
+			return fmtUsage("--" + name + " must not be empty; supply the intended remote selector or omit it for a local operation")
+		}
 	}
 	if flag := cmd.Flags().Lookup("all"); flag != nil && flag.Value.String() == "true" && cmd.Annotations["cli.aggregate"] == "true" {
 		return nil
@@ -189,8 +225,7 @@ func (s *invocation) resolve(cmd *cobra.Command) error {
 // This is the entry point for focused unattended command harnesses.
 func ExecuteWithDependencies(ctx context.Context, args []string, deps Dependencies) int {
 	root := newRootWithDependencies(deps)
-	root.SetArgs(args)
-	return handleExecuteError(root.ErrOrStderr(), root.ExecuteContext(ctx))
+	return executeInvocation(ctx, root, args)
 }
 
 func invocationStreams(root *cobra.Command, deps Dependencies) {

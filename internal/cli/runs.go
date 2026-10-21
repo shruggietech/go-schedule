@@ -143,9 +143,13 @@ func runSourceColumns(run domain.Run) (string, string) {
 func newAlertsCmd() *cobra.Command {
 	var unacked bool
 	cmd := &cobra.Command{
-		Use:        "alerts",
-		Short:      "Show alerts (deprecated: see `logs`)",
-		Deprecated: "use `gosched logs` for the unified log view; `alerts` will be removed in a future release.",
+		Use:   "alerts",
+		Short: "Show alerts (deprecated: see `logs`)",
+		Long:  "Show legacy alerts. This command is deprecated; use gosched logs for the unified log view.",
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			_, err := fmt.Fprintln(cmd.ErrOrStderr(), "gosched: alerts is deprecated; use gosched logs for the unified log view. alerts will be removed in a future release.")
+			return err
+		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx, cancel := reqCtx(cmd)
 			defer cancel()

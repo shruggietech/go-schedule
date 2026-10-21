@@ -210,9 +210,12 @@ func cronImport() *cobra.Command {
 			if system && opts.runAs != "" {
 				return fmt.Errorf("%w: --run-as cannot be combined with --system", errUsage)
 			}
+			if dialect != string(cron.DialectUnix) && dialect != string(cron.DialectQuartz) {
+				return fmtUsage("--dialect must be unix (five fields) or quartz (six fields)")
+			}
 			r, closeFn, err := openInput(cmd, file)
 			if err != nil {
-				return fmt.Errorf("%w: %v", errUsage, err)
+				return fmt.Errorf("read crontab input %q: %w", file, err)
 			}
 			defer closeFn()
 
@@ -261,6 +264,8 @@ func openInput(cmd *cobra.Command, path string) (io.Reader, func(), error) {
 // A declined line never stops the run: the supported lines are still created and
 // the summary accounts for every line (FR-005a, FR-010a).
 func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCreator) error {
+	output := &trackingWriter{writer: w}
+	w = output
 	for _, line := range rep.Lines {
 		for _, warn := range line.Warnings {
 			fmt.Fprintf(w, "! %s\n", warn)
@@ -296,8 +301,14 @@ func runImport(w io.Writer, rep *cron.Report, opts importOptions, creator taskCr
 	}
 
 	printImportSummary(w, rep, opts.timezone, opts.dryRun)
+	if output.err != nil {
+		return fmt.Errorf("write crontab import report: %w", output.err)
+	}
 	if rep.Failed > 0 {
 		return fmt.Errorf("%d of %d task(s) could not be created; the rest were", rep.Failed, rep.Jobs)
+	}
+	if rep.Errors > 0 {
+		return fmtUsage(fmt.Sprintf("crontab contains %d invalid input line(s); correct the reported lines and retry", rep.Errors))
 	}
 	return nil
 }

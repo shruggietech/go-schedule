@@ -280,15 +280,35 @@ func (s *Store) AuthenticateCredential(digest []byte, now time.Time) (domain.Cli
 	return credential, actor, nil
 }
 
-func (s *Store) RotateCredential(id string, digest []byte, fingerprint string, now time.Time) (domain.ClientCredential, error) {
-	result, err := s.db.Exec(`UPDATE client_credentials SET digest=?,fingerprint=?,updated_at=?,last_used_at=NULL WHERE id=? AND state='active'`, digest, fingerprint, fmtTime(now), id)
+func (s *Store) RotateCredential(id string, digest []byte, fingerprint string, now time.Time) (domain.ClientCredential, domain.Actor, error) {
+	tx, err := s.db.Begin()
 	if err != nil {
-		return domain.ClientCredential{}, fmt.Errorf("store: rotate credential: %w", err)
+		return domain.ClientCredential{}, domain.Actor{}, fmt.Errorf("store: begin credential rotation: %w", err)
 	}
-	if count, _ := result.RowsAffected(); count != 1 {
-		return domain.ClientCredential{}, ErrNotFound
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.Exec(`UPDATE client_credentials SET digest=?,fingerprint=?,updated_at=?,last_used_at=NULL WHERE id=? AND state='active'`, digest, fingerprint, fmtTime(now), id)
+	if err != nil {
+		return domain.ClientCredential{}, domain.Actor{}, fmt.Errorf("store: rotate credential: %w", err)
 	}
-	return s.getCredential(id)
+	count, err := result.RowsAffected()
+	if err != nil {
+		return domain.ClientCredential{}, domain.Actor{}, fmt.Errorf("store: count rotated credentials: %w", err)
+	}
+	if count != 1 {
+		return domain.ClientCredential{}, domain.Actor{}, ErrNotFound
+	}
+	credential, err := scanCredential(tx.QueryRow(`SELECT id,actor_id,fingerprint,state,created_at,updated_at,last_used_at,expires_at,revoked_at FROM client_credentials WHERE id=?`, id))
+	if err != nil {
+		return domain.ClientCredential{}, domain.Actor{}, fmt.Errorf("store: read rotated credential: %w", err)
+	}
+	actor, err := s.scanActor(tx.QueryRow(`SELECT id,kind,display_name,capability,state,builtin,created_at,updated_at,expires_at FROM actors WHERE id=?`, credential.ActorID))
+	if err != nil {
+		return domain.ClientCredential{}, domain.Actor{}, fmt.Errorf("store: read credential actor: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return domain.ClientCredential{}, domain.Actor{}, fmt.Errorf("store: commit credential rotation: %w", err)
+	}
+	return credential, actor, nil
 }
 
 func (s *Store) RevokeCredential(id string, now time.Time) (domain.ClientCredential, error) {

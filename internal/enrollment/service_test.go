@@ -2,6 +2,7 @@ package enrollment
 
 import (
 	"errors"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -18,7 +19,8 @@ func TestPairingIsSingleUseAndCredentialCanRotateAndRevoke(t *testing.T) {
 	defer st.Close()
 	service := New(st)
 	service.memory = 64
-	pairing, err := service.Create("My laptop", domain.ActorKindDesktop, domain.CapabilityManage)
+	grantExpires := time.Now().UTC().Add(24 * time.Hour)
+	pairing, err := service.Create("My laptop", domain.ActorKindDesktop, domain.CapabilityManage, &grantExpires)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,6 +43,15 @@ func TestPairingIsSingleUseAndCredentialCanRotateAndRevoke(t *testing.T) {
 	rotated, err := service.Rotate(issued.ID)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(rotated.Actor, issued.Actor) || rotated.Actor.ID != rotated.ActorID || rotated.DaemonID != issued.DaemonID {
+		t.Fatal("rotation did not preserve the actual actor and daemon context")
+	}
+	if !reflect.DeepEqual(rotated.ExpiresAt, issued.ExpiresAt) || rotated.Actor.ExpiresAt == nil || !rotated.Actor.ExpiresAt.Equal(grantExpires) {
+		t.Fatal("rotation changed the grant deadline")
+	}
+	if rotated.ID != issued.ID || rotated.Token == issued.Token || rotated.Fingerprint == issued.Fingerprint || rotated.LastUsedAt != nil {
+		t.Fatal("rotation changed credential identity or recorded authentication before token use")
 	}
 	if _, _, err := service.Authenticate(issued.Token); !errors.Is(err, ErrRejected) {
 		t.Fatalf("old token err=%v", err)
@@ -156,5 +167,36 @@ func TestWrongPhraseConsumesAttempts(t *testing.T) {
 	items, _ := service.List()
 	if items[0].State != domain.PairingExhausted || items[0].AttemptsRemaining != 0 {
 		t.Fatalf("pairing=%+v", items[0])
+	}
+}
+
+type unavailableRotationIdentity struct{ persistence }
+
+func (unavailableRotationIdentity) DaemonIdentity() (domain.DaemonIdentity, error) {
+	return domain.DaemonIdentity{}, errors.New("identity storage unavailable")
+}
+
+func TestRotateIdentityFailureLeavesExistingTokenUsable(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	service := New(st)
+	service.memory = 64
+	pairing, err := service.Create("Rotation client", domain.ActorKindCLI, domain.CapabilityManage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issued, err := service.Exchange(pairing.ID, pairing.Phrase, pairing.DaemonID, pairing.DisplayName, pairing.Kind, pairing.Capability)
+	if err != nil {
+		t.Fatal(err)
+	}
+	broken := New(unavailableRotationIdentity{st})
+	if _, err := broken.Rotate(issued.ID); err == nil {
+		t.Error("rotation succeeded without persistent daemon identity")
+	}
+	if _, _, err := service.Authenticate(issued.Token); err != nil {
+		t.Fatal("identity failure invalidated the existing token")
 	}
 }

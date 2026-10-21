@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -25,7 +26,7 @@ var errUsage = errors.New("usage")
 // Execute runs the root command and returns a process exit code.
 func Execute() int {
 	root := newRoot()
-	return handleExecuteError(root.ErrOrStderr(), root.Execute())
+	return executeInvocation(context.Background(), root, os.Args[1:])
 }
 
 func handleExecuteError(stderr io.Writer, err error) int {
@@ -74,13 +75,14 @@ func newRootWithDependencies(deps Dependencies) *cobra.Command {
 	}
 	root.SetContext(context.WithValue(context.Background(), invocationKey{}, state))
 	invocationStreams(root, deps)
-	root.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		cmd.SetContext(context.WithValue(cmd.Context(), invocationKey{}, state))
-		return state.resolve(cmd)
+		return contextualCommandError(cmd, args, state.resolve(cmd))
 	}
 	root.PersistentFlags().BoolVar(&state.json, "json", false, "machine-readable JSON output")
 	root.PersistentFlags().StringVar(&targetFlags.Profile, "profile", "", "saved remote profile ID or unambiguous label")
 	root.PersistentFlags().StringVar(&targetFlags.Endpoint, "endpoint", "", "explicit remote HTTPS origin")
+	root.PersistentFlags().StringVar(&targetFlags.Endpoint, "daemon-endpoint", "", "explicit remote daemon HTTPS origin (independent of webhook --endpoint)")
 	root.PersistentFlags().StringVar(&targetFlags.DaemonID, "daemon-id", "", "expected daemon installation ID for an explicit target")
 	root.PersistentFlags().StringVar(&targetFlags.CredentialID, "credential-id", "", "native credential reference for an explicit target")
 	root.PersistentFlags().StringVar(&targetFlags.CertificateFile, "certificate-file", "", "trusted PEM certificate file for an explicit target")
@@ -114,6 +116,7 @@ func newRootWithDependencies(deps Dependencies) *cobra.Command {
 		newPreferencesCmd(),
 		newBundleCmd(),
 	)
+	configureCommandContracts(root)
 	return root
 }
 

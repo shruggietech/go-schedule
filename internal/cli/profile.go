@@ -96,7 +96,7 @@ func newProfileDefaultCmd() *cobra.Command {
 		}
 		profile, err := collection.Find(args[0])
 		if err != nil {
-			return fmtUsage("profile does not exist or its label is ambiguous; use profile list to choose an ID")
+			return profileLookupError(args[0], err)
 		}
 		if err := store.SetActive(profile.ID); err != nil {
 			return fmt.Errorf("save desktop startup connection: %w", err)
@@ -130,10 +130,14 @@ func newProfileListCmd() *cobra.Command {
 		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), map[string]any{"active_desktop_profile_id": collection.ActiveDesktopProfileID, "profiles": items})
 		}
-		for _, p := range items {
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\t%s\n", p.ID, p.Label, p.Endpoint, shortID(p.DaemonID), p.Capability)
-		}
-		return nil
+		return writeHumanTable(cmd.OutOrStdout(), "PROFILE ID\tLABEL\tENDPOINT\tDAEMON ID\tCAPABILITY", func(out io.Writer) error {
+			for _, p := range items {
+				if _, err := fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\n", p.ID, p.Label, p.Endpoint, shortID(p.DaemonID), p.Capability); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
 	}}
 }
 
@@ -145,7 +149,7 @@ func newProfileShowCmd() *cobra.Command {
 		}
 		profile, err := collection.Find(args[0])
 		if err != nil {
-			return fmtUsage("profile does not exist or its label is ambiguous")
+			return profileLookupError(args[0], err)
 		}
 		safe := safeProfileOf(profile)
 		if jsonOutput(cmd) {
@@ -184,7 +188,7 @@ func renameProfile(store profileRenamer, reference, label string) (clientprofile
 	}
 	current, err := collection.Find(reference)
 	if err != nil {
-		return clientprofile.Profile{}, fmtUsage("profile does not exist or its label is ambiguous")
+		return clientprofile.Profile{}, profileLookupError(reference, err)
 	}
 	return store.Rename(current.ID, label)
 }
@@ -199,7 +203,7 @@ func newProfileRemoveCmd() *cobra.Command {
 		}
 		profile, err := collection.Find(args[0])
 		if err != nil {
-			return fmtUsage("profile does not exist or its label is ambiguous")
+			return profileLookupError(args[0], err)
 		}
 		if confirm != profile.ID {
 			return fmtUsage("--confirm must exactly match the profile ID")
@@ -291,4 +295,8 @@ func shortID(value string) string {
 		return value[:8]
 	}
 	return value
+}
+
+func profileLookupError(reference string, err error) error {
+	return usageCause(fmt.Errorf("profile %s: %w; use gosched profile list to choose an exact ID or unambiguous label", diagnosticIdentity(reference), err))
 }

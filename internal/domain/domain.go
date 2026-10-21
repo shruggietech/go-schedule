@@ -365,9 +365,11 @@ type FilesystemWatcher struct {
 
 // WatcherHealth is the daemon-owned observation state for one watcher.
 type WatcherHealth struct {
-	State     WatcherHealthState `json:"state"`
-	Reason    string             `json:"reason,omitempty"`
-	ChangedAt time.Time          `json:"changed_at"`
+	State                      WatcherHealthState `json:"state"`
+	Reason                     string             `json:"reason,omitempty"`
+	ChangedAt                  time.Time          `json:"changed_at"`
+	ObservedAt                 time.Time          `json:"observed_at,omitzero"`
+	ObservedDefinitionRevision string             `json:"observed_definition_revision,omitempty"`
 }
 
 // CompletionChain connects a source task's terminal outcome to a target task.
