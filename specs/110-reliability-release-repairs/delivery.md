@@ -22,15 +22,10 @@ All eight local canonical gates passed with aggregate exit code 0: format, vet, 
 
 Hosted CI and Codex review have not run for S110. Native macOS confirmation will use the existing hosted workflow after publication. Live release promotion was modeled with HTTP fixtures and was not performed. No tag, release or public configuration was changed.
 
-## Publication boundary
+## Publication and merge boundary
 
-The implementation is committed locally with Codex attribution. The branch remains unpublished. [pull-request.md](pull-request.md) is the prepared PR body. Issues #262, #271 and #335 remain open with their existing milestones; #335 retains parent #277. No new defect record or milestone was needed.
+The initial pre-publication halt completed at local implementation commit 19df5010f697a9a9c4ff2cdedf1e8ab95f68f9b5. On 2026-10-21 the owner authorized pushing S110, opening the PR, monitoring CI and completing up to two Codex review rounds with autonomous corrections, stopping before merge.
 
-After owner authorization, the publication commands are:
+[PR #338](https://github.com/shruggietech/go-schedule/pull/338) is open for the complete #262, #271 and #335 bundle. All three issues remain open pending merge with their existing milestones; #335 retains parent #277. Existing bug and functional-area labels identify the PR. Its cross-milestone scope does not create a new release milestone.
 
-```sh
-git push -u origin codex/110-reliability-release-repairs
-gh pr create --repo shruggietech/go-schedule --base main --head codex/110-reliability-release-repairs --title "feat(110): repair recovery and release promotion" --body-file specs/110-reliability-release-repairs/pull-request.md
-```
-
-After successful PR creation, attach its URL to this chat, then perform only the CI/review work authorized by the owner. Publication, merge, tagging and release are distinct operations; none was performed during this local slice.
+The [publication and review record](review.md) tracks exact revisions, review rounds and hosted results. The PR was initially created as a draft while this metadata was reconciled. No merge, auto-merge, tag, release or live promotion is authorized. Local verification claims remain scoped to the implementation checks in [verification.md](verification.md); hosted checks and review are recorded separately.

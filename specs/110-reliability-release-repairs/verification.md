@@ -2,7 +2,7 @@
 
 ## Subject and scope
 
-Baseline main: 95c05692e41bdb3630aa0b3c1bf946e5d443c2af. Review branch: codex/110-reliability-release-repairs. Results below are local engineering observations. No branch push, hosted review, live promotion, tag or release was performed.
+Baseline main: 95c05692e41bdb3630aa0b3c1bf946e5d443c2af. Review branch: codex/110-reliability-release-repairs. Results below are local engineering observations. At the local implementation boundary, no branch push, hosted review, live promotion, tag or release had been performed. Subsequent owner-authorized publication is tracked in [review.md](review.md).
 
 ## Failing-before evidence
 

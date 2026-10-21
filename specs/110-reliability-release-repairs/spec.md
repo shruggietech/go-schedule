@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Local implementation commit on review branch codex/110-reliability-release-repairs; [delivery](delivery.md) and [verification](verification.md). Unpublished at the owner-directed review boundary.
+**Delivery**: [PR #338](https://github.com/shruggietech/go-schedule/pull/338), open and unmerged; [delivery](delivery.md), [local verification](verification.md) and [publication/review record](review.md).
 
 **Input**: Owner-authorized S110 autopilot, bundling #262, #271 and #335 in full, with one local pre-publication halt.
 
