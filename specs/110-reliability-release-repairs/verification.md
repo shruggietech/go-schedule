@@ -50,7 +50,7 @@ Earlier attempts are retained separately. The first stopped at an import-order l
 
 Windows used the existing Go toolchain, GCC, PowerShell 7.6.6 and Git Bash. Portable SQLite 3.47.2 was fetched into ignored scratch from the existing repository manifest and verified with SHA256 8c7fffbf4eec1f43e63153cca6deb018e4360d4d6b0d99bbdd2a541c53b7fa1c before extraction. No global installation or host service was changed. Isolated tool environments restore ordinary executable suffixes because the inherited PATHEXT=.CPL prevented PowerShell native executable invocation. Empty initial output is not counted as a passing check. Payload children are hidden and PowerShell is non-interactive.
 
-Native Linux PowerShell was unavailable; its twin ran natively on Windows. The original macOS observer degradation trigger is not established by the platform-independent state-loss reproduction. Native macOS confirmation follows existing hosted CI after publication. Release mutations were modeled with HTTP fixtures; no live release promotion was attempted.
+Native Linux PowerShell was unavailable; its twin ran natively on Windows. The original macOS observer degradation trigger is not established by the platform-independent state-loss reproduction. Native macOS was not exercised locally; its subsequent successful hosted result is recorded in [review.md](review.md). Release mutations were modeled with HTTP fixtures; no live release promotion was attempted.
 
 ## Final record audit
 

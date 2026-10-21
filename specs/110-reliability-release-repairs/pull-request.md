@@ -18,4 +18,4 @@ All eight local canonical gates passed with aggregate exit 0: format, vet, lint,
 
 ## Boundaries
 
-The earlier hosted heartbeat failure discarded the diagnostics needed to establish its exact cause. The binding defect is independently reproduced and corrected; passing repetitions are not presented as a diagnosis of that historical run. Native Windows and Linux checks are distinct from future hosted macOS checks. No live release promotion, tag, release or DNS operation was performed.
+The earlier hosted heartbeat failure discarded the diagnostics needed to establish its exact cause. The binding defect is independently reproduced and corrected; passing repetitions are not presented as a diagnosis of that historical run. All 22 hosted checks, including native macOS, passed on the first reviewed head 8badade. Final-head results and the two bounded Codex review rounds are tracked in the PR handoff and [publication record](specs/110-reliability-release-repairs/review.md). No live release promotion, tag, release or DNS operation was performed.

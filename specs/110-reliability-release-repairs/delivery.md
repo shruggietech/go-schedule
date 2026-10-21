@@ -20,7 +20,7 @@ The exact cause of the earlier hosted heartbeat failure remains unconfirmed beca
 
 All eight local canonical gates passed with aggregate exit code 0: format, vet, lint, race, GUI, coverage, docs and automation. The GUI suite passed 160 tests; the docs export checked 22 canonical documents. Focused native Windows and native Linux race checks cover all three corrections. Final delivery-only records receive formatting, lifecycle and automation-policy checks. See [verification.md](verification.md) for exact log identity, failing-before evidence, individual results and earlier interrupted attempts.
 
-Hosted CI and Codex review have not run for S110. Native macOS confirmation will use the existing hosted workflow after publication. Live release promotion was modeled with HTTP fixtures and was not performed. No tag, release or public configuration was changed.
+Codex round 1 on 8badadee838c9d10f620162deee20720b254245e completed without findings. All 22 checks on that exact head reached success, including native macOS. The final publication-record head receives its own checks and the second allowed review; their actual conclusions are recorded in the final PR handoff comment. Live release promotion was modeled with HTTP fixtures and was not performed. No tag, release or public configuration was changed.
 
 ## Publication and merge boundary
 
