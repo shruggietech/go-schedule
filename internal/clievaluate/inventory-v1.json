@@ -31,6 +31,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "persistent",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -143,6 +154,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -236,6 +258,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -346,6 +379,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -473,6 +517,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -566,6 +621,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -693,6 +759,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -797,7 +874,7 @@
     "path": "alerts",
     "use": "alerts",
     "short": "Show alerts (deprecated: see `logs`)",
-    "long": "",
+    "long": "Show legacy alerts. This command is deprecated; use gosched logs for the unified log view.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -819,6 +896,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -935,6 +1023,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -1028,6 +1127,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -1138,6 +1248,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -1320,6 +1441,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -1474,6 +1606,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -1567,6 +1710,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -1672,6 +1826,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -1765,6 +1930,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -1875,6 +2051,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -2002,6 +2189,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -2095,6 +2293,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -2222,6 +2431,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -2315,6 +2535,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -2453,6 +2684,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -2546,6 +2788,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -2651,6 +2904,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -2744,6 +3008,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -2882,6 +3157,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -2975,6 +3261,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -3091,6 +3388,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -3195,6 +3503,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -3311,6 +3630,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -3421,6 +3751,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -3491,8 +3832,8 @@
   {
     "path": "credential list",
     "use": "list",
-    "short": "",
-    "long": "",
+    "short": "List remote credential identities and their state",
+    "long": "List remote credential IDs, associated actor IDs, expiry and state on the selected daemon. Tokens are never included. Use these IDs with credential rotate or credential revoke.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -3514,6 +3855,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -3590,8 +3942,8 @@
   {
     "path": "credential revoke",
     "use": "revoke \u003ccredential-id\u003e",
-    "short": "",
-    "long": "",
+    "short": "Revoke a remote credential so its token no longer works",
+    "long": "Revoke the specified credential ID on the selected daemon. The credential's token can no longer authenticate; its associated actor record and other credentials remain. Use credential list to find the ID.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -3613,6 +3965,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -3689,8 +4052,8 @@
   {
     "path": "credential rotate",
     "use": "rotate \u003ccredential-id\u003e",
-    "short": "",
-    "long": "",
+    "short": "Replace a credential token and display the replacement once",
+    "long": "Rotate the specified remote credential ID on the selected daemon. The old token stops working and the replacement token is returned once with its actor and daemon identities. Store it before leaving this response; this does not update saved client profiles automatically.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -3712,6 +4075,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -3817,6 +4191,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -3910,6 +4295,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -4037,6 +4433,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -4141,6 +4548,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -4262,6 +4680,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -4444,6 +4873,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -4543,6 +4983,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -4636,6 +5087,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -4752,6 +5214,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -4851,6 +5324,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -4944,6 +5428,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -5071,6 +5566,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -5164,6 +5670,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -5291,6 +5808,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -5384,6 +5912,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -5500,6 +6039,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -5593,6 +6143,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -5698,6 +6259,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -5797,6 +6369,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -5890,6 +6473,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -6028,6 +6622,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -6121,6 +6726,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -6226,6 +6842,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -6319,6 +6946,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -6479,6 +7117,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -6578,6 +7227,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -6671,6 +7331,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -6809,6 +7480,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -6902,6 +7584,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -7012,6 +7705,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -7139,6 +7843,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -7232,6 +7947,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -7337,6 +8063,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -7436,6 +8173,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -7529,6 +8277,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -7645,6 +8404,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -7744,6 +8514,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -7837,6 +8618,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -7969,6 +8761,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -8118,6 +8921,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -8222,6 +9036,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -8415,6 +9240,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -8525,6 +9361,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -8618,6 +9465,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -8728,6 +9586,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -8921,6 +9790,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -9031,6 +9911,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -9101,8 +9992,8 @@
   {
     "path": "pairing cancel",
     "use": "cancel \u003cpairing-id\u003e",
-    "short": "",
-    "long": "",
+    "short": "Cancel a pairing session so its phrase cannot enroll a client",
+    "long": "Cancel the specified pairing ID on the selected daemon. Its one-time phrase can no longer enroll a client; already issued credentials are unaffected. Use pairing list to find the ID.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -9124,6 +10015,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -9240,6 +10142,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -9332,8 +10245,8 @@
   {
     "path": "pairing list",
     "use": "list",
-    "short": "",
-    "long": "",
+    "short": "List pairing sessions and remaining enrollment attempts",
+    "long": "List one-time remote pairing sessions on the selected daemon, including each pairing ID, state, capability, client name and remaining attempts. This does not reveal pairing phrases or create credentials.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -9355,6 +10268,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -9460,6 +10384,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -9553,6 +10488,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -9674,6 +10620,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -9823,6 +10780,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -9916,6 +10884,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -10021,6 +11000,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -10114,6 +11104,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -10219,6 +11220,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -10318,6 +11330,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -10411,6 +11434,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -10543,6 +11577,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -10692,6 +11737,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -10785,6 +11841,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -10890,6 +11957,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -10983,6 +12061,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -11121,6 +12210,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -11214,6 +12314,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -11319,6 +12430,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -11418,6 +12540,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -11511,6 +12644,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -11693,6 +12837,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -11814,6 +12969,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -11884,8 +13050,8 @@
   {
     "path": "service install",
     "use": "install",
-    "short": "Service: install",
-    "long": "",
+    "short": "Register the system background service with an optional daemon config",
+    "long": "Register goschedd with the operating system service manager. Use --config PATH to retain an existing daemon configuration file in the service definition; without it the daemon uses its normal platform configuration path. Registration may require administrator privileges. This does not select a remote daemon.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -11918,6 +13084,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -11994,8 +13171,8 @@
   {
     "path": "service restart",
     "use": "restart",
-    "short": "Service: restart",
-    "long": "",
+    "short": "Restart the registered background service",
+    "long": "Restart the registered background service. This controls or observes the local operating system service, using the configuration retained when it was installed. It does not select a remote daemon or accept --config; use service install --help for registration configuration. Operating system permissions apply.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -12017,6 +13194,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12093,8 +13281,8 @@
   {
     "path": "service start",
     "use": "start",
-    "short": "Service: start",
-    "long": "",
+    "short": "Start the registered background service",
+    "long": "Start the registered background service. This controls or observes the local operating system service, using the configuration retained when it was installed. It does not select a remote daemon or accept --config; use service install --help for registration configuration. Operating system permissions apply.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -12116,6 +13304,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12192,8 +13391,8 @@
   {
     "path": "service status",
     "use": "status",
-    "short": "Service: status",
-    "long": "",
+    "short": "Show whether the registered background service is running",
+    "long": "Show whether the registered background service is running. This controls or observes the local operating system service, using the configuration retained when it was installed. It does not select a remote daemon or accept --config; use service install --help for registration configuration. Operating system permissions apply.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -12215,6 +13414,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12291,8 +13501,8 @@
   {
     "path": "service stop",
     "use": "stop",
-    "short": "Service: stop",
-    "long": "",
+    "short": "Stop the registered background service",
+    "long": "Stop the registered background service. This controls or observes the local operating system service, using the configuration retained when it was installed. It does not select a remote daemon or accept --config; use service install --help for registration configuration. Operating system permissions apply.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -12314,6 +13524,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12390,8 +13611,8 @@
   {
     "path": "service uninstall",
     "use": "uninstall",
-    "short": "Service: uninstall",
-    "long": "",
+    "short": "Remove the system background service registration",
+    "long": "Remove the system background service registration. This controls or observes the local operating system service, using the configuration retained when it was installed. It does not select a remote daemon or accept --config; use service install --help for registration configuration. Operating system permissions apply.",
     "aliases": [],
     "hidden": false,
     "runnable": true,
@@ -12413,6 +13634,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12512,6 +13744,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12622,6 +13865,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -12760,6 +14014,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -12853,6 +14118,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -13008,6 +14284,17 @@
         "default": "",
         "usage": "working directory",
         "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
         "hidden": false,
         "deprecated": "",
         "required": false
@@ -13266,6 +14553,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -13481,6 +14779,17 @@
         "default": "",
         "usage": "working directory",
         "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
         "hidden": false,
         "deprecated": "",
         "required": false
@@ -13739,6 +15048,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -13832,6 +15152,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -13959,6 +15290,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -14052,6 +15394,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -14157,6 +15510,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -14256,6 +15620,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -14349,6 +15724,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -14487,6 +15873,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -14580,6 +15977,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -14685,6 +16093,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -14778,6 +16197,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -14883,6 +16313,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -14982,6 +16423,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -15075,6 +16527,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -15185,6 +16648,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -15323,6 +16797,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -15416,6 +16901,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -15521,6 +17017,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -15614,6 +17121,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -15730,6 +17248,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -15823,6 +17352,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -15928,6 +17468,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -16027,6 +17578,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -16120,6 +17682,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -16230,6 +17803,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -16359,6 +17943,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -16452,6 +18047,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -16656,6 +18262,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -16749,6 +18366,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -16854,6 +18482,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -16947,6 +18586,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",
@@ -17052,6 +18702,17 @@
         "required": false
       },
       {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "daemon-id",
         "shorthand": "",
         "type": "string",
@@ -17145,6 +18806,17 @@
         "type": "string",
         "default": "",
         "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
         "scope": "inherited",
         "hidden": false,
         "deprecated": "",

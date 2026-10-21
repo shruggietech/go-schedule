@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -69,10 +70,14 @@ func newWatcherListCmd() *cobra.Command {
 		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), items)
 		}
-		for _, item := range items {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\t%s\n", item.ID, item.Name, item.Kind, item.Readiness, item.Path)
-		}
-		return nil
+		return writeHumanTable(cmd.OutOrStdout(), "WATCHER ID\tNAME\tKIND\tREADINESS\tPATH", func(out io.Writer) error {
+			for _, item := range items {
+				if _, err := fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\n", item.ID, item.Name, item.Kind, item.Readiness, item.Path); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
 	}}
 }
 
@@ -169,6 +174,18 @@ func printWatcher(cmd *cobra.Command, item server.FilesystemWatcherResponse) err
 }
 
 func printWatcherTo(output io.Writer, item server.FilesystemWatcherResponse) error {
-	_, err := fmt.Fprintf(output, "ID: %s\nName: %s\nKind: %s\nPath: %s\nPattern: %s\nRecursive: %t\nDebounce: %s\nStability: %s\nTarget: %s (%s)\nEnabled: %t\nHealth: %s\nHealth reason: %s\nReadiness: %s\nReadiness reason: %s\n", item.ID, item.Name, item.Kind, item.Path, item.Pattern, item.Recursive, item.Debounce, item.Stability, item.TargetTaskName, item.TargetTaskID, item.Enabled, item.Health.State, item.Health.Reason, item.Readiness, item.Reason)
+	observed := "not yet observed"
+	if !item.Health.ObservedAt.IsZero() {
+		observed = item.Health.ObservedAt.Format(time.RFC3339)
+	}
+	reconciliation := "unknown (the daemon did not supply observation revision metadata or the runtime is unavailable)"
+	if item.ReconciliationPending != nil {
+		if *item.ReconciliationPending {
+			reconciliation = fmt.Sprintf("pending (saved settings have not yet been observed); run gosched watcher show %s again to inspect reconciliation", item.ID)
+		} else {
+			reconciliation = "current (last observation matches the saved settings)"
+		}
+	}
+	_, err := fmt.Fprintf(output, "ID: %s\nName: %s\nKind: %s\nPath: %s\nPattern: %s\nRecursive: %t\nDebounce: %s\nStability: %s\nTarget: %s (%s)\nSaved enabled: %t\nLast observed health: %s\nHealth reason: %s\nLast observed at: %s\nReconciliation: %s\nTarget readiness: %s\nReadiness reason: %s\n", item.ID, item.Name, item.Kind, item.Path, item.Pattern, item.Recursive, item.Debounce, item.Stability, item.TargetTaskName, item.TargetTaskID, item.Enabled, displayOrDash(string(item.Health.State)), displayOrDash(item.Health.Reason), observed, reconciliation, item.Readiness, displayOrDash(item.Reason))
 	return err
 }

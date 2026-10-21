@@ -37,7 +37,7 @@ type Dispatcher interface {
 	FireFilesystemWatcher(string) error
 }
 
-// HealthReporter receives deduplicated runtime health transitions.
+// HealthReporter receives health transitions and newly observed definitions.
 type HealthReporter func(domain.FilesystemWatcher, domain.WatcherHealth)
 
 type observerFactory func() (observer, error)
@@ -88,7 +88,7 @@ func newManager(store Store, dispatcher Dispatcher, clk clock.Clock, log *slog.L
 	return &Manager{store: store, dispatcher: dispatcher, clock: clk, log: log, factory: factory, reload: make(chan struct{}, 1), ready: make(chan struct{}), health: map[string]domain.WatcherHealth{}, configs: map[string]domain.FilesystemWatcher{}}
 }
 
-// SetHealthReporter registers the transition callback used by live events.
+// SetHealthReporter registers the health and definition observation callback used by live events.
 func (m *Manager) SetHealthReporter(reporter HealthReporter) { m.reporter = reporter }
 
 // Reload asks the event loop to replace all registrations. Requests are coalesced.
@@ -617,20 +617,28 @@ func observationRoot(definition domain.FilesystemWatcher) string {
 
 func (m *Manager) setHealth(definition domain.FilesystemWatcher, state domain.WatcherHealthState, reason string) {
 	reason = boundedReason(reason)
+	revision := domain.FilesystemWatcherRevision(definition)
 	m.mu.Lock()
 	previous, exists := m.health[definition.ID]
-	if exists && previous.State == state && previous.Reason == reason {
+	unchangedHealth := exists && previous.State == state && previous.Reason == reason
+	if unchangedHealth && previous.ObservedDefinitionRevision == revision {
 		m.mu.Unlock()
 		return
 	}
-	health := domain.WatcherHealth{State: state, Reason: reason, ChangedAt: m.clock.Now().UTC()}
+	now := m.clock.Now().UTC()
+	health := domain.WatcherHealth{State: state, Reason: reason, ChangedAt: now, ObservedAt: now, ObservedDefinitionRevision: revision}
+	if unchangedHealth {
+		health.ChangedAt = previous.ChangedAt
+	}
 	m.health[definition.ID] = health
 	reporter := m.reporter
 	m.mu.Unlock()
 	if reporter != nil {
 		reporter(definition, health)
 	}
-	m.log.Info("watcher: health transition", "watcher", definition.ID, "name", definition.Name, "state", state, "reason", reason)
+	if !unchangedHealth {
+		m.log.Info("watcher: health transition", "watcher", definition.ID, "name", definition.Name, "state", state, "reason", reason)
+	}
 }
 
 func (m *Manager) replaceConfigs(configs map[string]domain.FilesystemWatcher) {

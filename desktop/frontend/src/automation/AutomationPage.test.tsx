@@ -20,6 +20,30 @@ function mockBridge(overrides: Partial<AutomationBridge> = {}): AutomationBridge
 }
 
 describe('AutomationPage', () => {
+  it('distinguishes saved disabled state from the active observation awaiting reconciliation', async () => {
+    const pendingWorkspace = { ...workspace, watchers: [{ ...workspace.watchers[0], enabled: false, health: 'active', healthReason: '', readiness: 'disabled', reason: 'Watcher is disabled.', reconciliationPending: true, observedAt: '2026-10-21T12:00:00Z' }] }
+    render(<AutomationPage bridge={mockBridge({ workspace: vi.fn().mockResolvedValue({ ...accepted, workspace: pendingWorkspace }) })} />)
+    const heading = await screen.findByRole('heading', { name: 'Inbox' }); const card = within(heading.closest('article')!)
+    expect(card.getByText('disabled', { exact: true })).toBeVisible()
+    expect(card.getByText('active', { exact: true })).toBeVisible()
+    expect(card.getByText(/Pending: the daemon has not observed the saved definition yet/)).toBeVisible()
+    expect(card.getByText('2026-10-21T12:00:00Z')).toBeVisible()
+    expect(card.getByText('Watcher is disabled.')).toBeVisible()
+    expect(card.queryByText('Ready.')).not.toBeInTheDocument()
+  })
+
+  it('retains unknown observation metadata for legacy daemons and ready pending sources in attention filters', async () => {
+    const user = userEvent.setup()
+    const pendingWorkspace = { ...workspace, watchers: [{ ...workspace.watchers[0], health: 'active', healthReason: '', readiness: 'ready', reconciliationPending: true }] }
+    const bridge = mockBridge({ workspace: vi.fn().mockResolvedValueOnce({ ...accepted, workspace: pendingWorkspace }).mockResolvedValue({ ...accepted, workspace }) })
+    const { rerender } = render(<AutomationPage bridge={bridge} />)
+    await screen.findByRole('heading', { name: 'Inbox' }); await user.click(screen.getByRole('checkbox', { name: 'Needs attention only' }))
+    expect(screen.getByRole('heading', { name: 'Inbox' })).toBeVisible()
+    rerender(<AutomationPage bridge={bridge} refreshToken={1} />)
+    expect(await screen.findByText('Observation revision unavailable from this daemon.')).toBeVisible()
+    expect(screen.getByText('Permission denied.')).toBeVisible()
+  })
+
   it('presents all sources with textual state and passes accessibility checks', async () => {
     const { container } = render(<AutomationPage bridge={mockBridge()} />)
     expect(await screen.findByRole('heading', { name: 'Completion chains' })).toBeVisible()

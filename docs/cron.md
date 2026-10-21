@@ -66,6 +66,8 @@ gosched cron import --file /etc/crontab --dry-run
 
 The preview prints, for every line, the expression, phrase, effective timezone, shell command, and any run-as, environment, or stdin context. For a real import it also prints the task it created. Imported tasks retain the original normalized cron expression. Nothing is created while `--dry-run` is set.
 
+If any line is invalid, current source retains the complete per-line and aggregate report and returns exit 2, including in a dry run. Unsupported but well-formed lines retain their reported unsupported outcome. Successfully created tasks remain recorded when other lines fail; task-creation, input-read and output-write failures are operational failures with exit 1. Correct the reported invalid lines before retrying, and review already created tasks before repeating a real import.
+
 ```text
 line 3: 0 2 * * *
   phrase:  every day at 02:00
@@ -103,7 +105,7 @@ gosched cron import --file quartz.cron --dialect quartz --dry-run
 | `--group` | Group ID to file the imported tasks under. |
 | `--count` | How many upcoming runs to show per line. Default 3. |
 
-A line that cannot be converted never stops the ones that can: the supported lines are still created, and the summary counts every line of the file. Reading the file successfully is a success, whatever the mix of outcomes. A crontab of nothing but `@reboot` lines previews or creates startup tasks. Only an unreadable file, an unknown timezone, or a failed creation is a failure.
+Supported lines continue even when another line is invalid or unsupported, and the summary counts every line. Unsupported well-formed lines do not by themselves fail the import; invalid lines return exit 2 after the complete report, while operational failures return exit 1. A crontab containing only `@reboot` lines previews or creates startup tasks.
 
 Importing the same crontab twice creates two sets of tasks. There is no deduplication; the counts are how you notice.
 

@@ -94,7 +94,7 @@ func TestLogIPCAccessCompatibilityWarnsOnce(t *testing.T) {
 	logIPCAccess(log, ipc.AccessInfo{Mode: ipc.AccessModeCompatibility})
 
 	records := ring.Snapshot("", 0)
-	if len(records) != 1 || records[0].Message != "IPC compatibility mode enabled" {
+	if len(records) != 1 || !strings.HasPrefix(records[0].Message, "IPC compatibility mode enabled:") {
 		t.Fatalf("records = %+v", records)
 	}
 	if records[0].Severity != domain.SeverityWarning {

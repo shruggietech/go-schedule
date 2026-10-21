@@ -34,7 +34,8 @@ func serviceAction(action string, control serviceControlFunc, resolveDaemon func
 	var configPath string
 	command := &cobra.Command{
 		Use:   action,
-		Short: "Service: " + action,
+		Short: serviceActionSummary(action),
+		Long:  serviceActionDescription(action),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if control == nil {
 				control = stateFor(cmd).deps.ServiceControl
@@ -62,6 +63,24 @@ func serviceAction(action string, control serviceControlFunc, resolveDaemon func
 		command.Flags().StringVar(&configPath, "config", "", "absolute or relative daemon configuration file to retain in the service definition")
 	}
 	return command
+}
+
+func serviceActionSummary(action string) string {
+	return map[string]string{
+		"install":   "Register the system background service with an optional daemon config",
+		"uninstall": "Remove the system background service registration",
+		"start":     "Start the registered background service",
+		"stop":      "Stop the registered background service",
+		"restart":   "Restart the registered background service",
+		"status":    "Show whether the registered background service is running",
+	}[action]
+}
+
+func serviceActionDescription(action string) string {
+	if action == "install" {
+		return "Register goschedd with the operating system service manager. Use --config PATH to retain an existing daemon configuration file in the service definition; without it the daemon uses its normal platform configuration path. Registration may require administrator privileges. This does not select a remote daemon."
+	}
+	return serviceActionSummary(action) + ". This controls or observes the local operating system service, using the configuration retained when it was installed. It does not select a remote daemon or accept --config; use service install --help for registration configuration. Operating system permissions apply."
 }
 
 func serviceArguments(action, configPath string) ([]string, error) {

@@ -60,10 +60,6 @@ func (s *session) humanResponse(ctx context.Context, definition step, output []b
 			return nil, err
 		}
 		parts := strings.Fields(definition.Spec.CommandPath)
-		entity := map[string]string{"task": "tasks", "group": "groups", "chain": "chains", "actor": "actors", "pairing": "pairings", "trigger": "triggers", "watcher": "watchers"}[parts[0]]
-		if len(parts) > 1 && parts[0] == "trigger" && parts[1] == "set" {
-			entity = "sets"
-		}
 		id := ""
 		if parts[0] == "profile" {
 			old, _ := before["profiles"].(map[string]any)
@@ -86,7 +82,7 @@ func (s *session) humanResponse(ctx context.Context, definition step, output []b
 				}
 			}
 		} else {
-			id, err = newIdentity(before, after, entity)
+			id, err = newCommandIdentity(definition.Spec.CommandPath, before, after)
 			if err != nil {
 				return nil, err
 			}
@@ -153,4 +149,16 @@ func (s *session) humanResponse(ctx context.Context, definition step, output []b
 		body["credential"] = token
 	}
 	return body, nil
+}
+
+func newCommandIdentity(path string, before, after map[string]any) (string, error) {
+	parts := strings.Fields(path)
+	if len(parts) == 0 {
+		return "", errors.New("human creation command path is missing")
+	}
+	entity := map[string]string{"task": "tasks", "group": "groups", "chain": "chains", "actor": "actors", "pairing": "pairings", "trigger": "triggers", "watcher": "watchers", "notification": "channels"}[parts[0]]
+	if len(parts) > 1 && parts[0] == "trigger" && parts[1] == "set" {
+		entity = "sets"
+	}
+	return newIdentity(before, after, entity)
 }

@@ -44,7 +44,7 @@ type persistence interface {
 	CancelPairing(string) (domain.PairingSession, error)
 	ExchangePairing(string, []byte, domain.Actor, domain.ClientCredential, []byte, time.Time) (domain.Actor, domain.ClientCredential, error)
 	ListCredentials() ([]domain.ClientCredential, error)
-	RotateCredential(string, []byte, string, time.Time) (domain.ClientCredential, error)
+	RotateCredential(string, []byte, string, time.Time) (domain.ClientCredential, domain.Actor, error)
 	RevokeCredential(string, time.Time) (domain.ClientCredential, error)
 	AuthenticateCredential([]byte, time.Time) (domain.ClientCredential, domain.Actor, error)
 	DaemonIdentity() (domain.DaemonIdentity, error)
@@ -172,17 +172,21 @@ func (s *Service) AuthenticateDigest(digest []byte) (domain.ClientCredential, do
 func (s *Service) Identity() (domain.DaemonIdentity, error) { return s.store.DaemonIdentity() }
 
 func (s *Service) Rotate(id string) (domain.IssuedCredential, error) {
+	identity, err := s.store.DaemonIdentity()
+	if err != nil {
+		return domain.IssuedCredential{}, err
+	}
 	raw := make([]byte, 32)
 	if _, err := io.ReadFull(s.random, raw); err != nil {
 		return domain.IssuedCredential{}, err
 	}
 	digest := sha256.Sum256(raw)
 	fingerprint := base64.RawURLEncoding.EncodeToString(digest[:])[:12]
-	credential, err := s.store.RotateCredential(id, digest[:], fingerprint, s.now())
+	credential, actor, err := s.store.RotateCredential(id, digest[:], fingerprint, s.now())
 	if err != nil {
 		return domain.IssuedCredential{}, err
 	}
-	return domain.IssuedCredential{ClientCredential: credential, Token: base64.RawURLEncoding.EncodeToString(raw)}, nil
+	return domain.IssuedCredential{ClientCredential: credential, Actor: actor, Token: base64.RawURLEncoding.EncodeToString(raw), DaemonID: identity.InstallationID}, nil
 }
 
 func (s *Service) Revoke(id string) (domain.ClientCredential, error) {

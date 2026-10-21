@@ -37,22 +37,24 @@ type FilesystemWatcherUpdateRequest struct {
 }
 
 type FilesystemWatcherResponse struct {
-	ID             string               `json:"id"`
-	Name           string               `json:"name"`
-	Kind           domain.WatcherKind   `json:"kind"`
-	Path           string               `json:"path"`
-	Pattern        string               `json:"pattern,omitempty"`
-	Recursive      bool                 `json:"recursive"`
-	Debounce       string               `json:"debounce"`
-	Stability      string               `json:"stability"`
-	TargetTaskID   string               `json:"target_task_id"`
-	TargetTaskName string               `json:"target_task_name,omitempty"`
-	Enabled        bool                 `json:"enabled"`
-	Health         domain.WatcherHealth `json:"health"`
-	Readiness      string               `json:"readiness"`
-	Reason         string               `json:"reason,omitempty"`
-	CreatedAt      time.Time            `json:"created_at"`
-	UpdatedAt      time.Time            `json:"updated_at"`
+	ID                    string               `json:"id"`
+	Name                  string               `json:"name"`
+	Kind                  domain.WatcherKind   `json:"kind"`
+	Path                  string               `json:"path"`
+	Pattern               string               `json:"pattern,omitempty"`
+	Recursive             bool                 `json:"recursive"`
+	Debounce              string               `json:"debounce"`
+	Stability             string               `json:"stability"`
+	TargetTaskID          string               `json:"target_task_id"`
+	TargetTaskName        string               `json:"target_task_name,omitempty"`
+	Enabled               bool                 `json:"enabled"`
+	Health                domain.WatcherHealth `json:"health"`
+	DefinitionRevision    string               `json:"definition_revision"`
+	ReconciliationPending *bool                `json:"reconciliation_pending,omitempty"`
+	Readiness             string               `json:"readiness"`
+	Reason                string               `json:"reason,omitempty"`
+	CreatedAt             time.Time            `json:"created_at"`
+	UpdatedAt             time.Time            `json:"updated_at"`
 }
 
 type watcherRuntime interface {
@@ -62,8 +64,11 @@ type watcherRuntime interface {
 
 func (s *Server) watcherResponse(watcher domain.FilesystemWatcher) FilesystemWatcherResponse {
 	response := FilesystemWatcherResponse{ID: watcher.ID, Name: watcher.Name, Kind: watcher.Kind, Path: watcher.Path, Pattern: watcher.Pattern, Recursive: watcher.Recursive, Debounce: watcher.Debounce.String(), Stability: watcher.Stability.String(), TargetTaskID: watcher.TargetTaskID, TargetTaskName: watcher.TargetTaskName, Enabled: watcher.Enabled, CreatedAt: watcher.CreatedAt, UpdatedAt: watcher.UpdatedAt}
+	response.DefinitionRevision = domain.FilesystemWatcherRevision(watcher)
 	if runtime, ok := s.sched.(watcherRuntime); ok {
 		response.Health = runtime.WatcherHealth(watcher.ID)
+		pending := response.Health.ObservedDefinitionRevision != response.DefinitionRevision
+		response.ReconciliationPending = &pending
 	} else if watcher.Enabled {
 		response.Health = domain.WatcherHealth{State: domain.WatcherDegraded, Reason: "watcher runtime is unavailable"}
 	} else {

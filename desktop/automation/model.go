@@ -60,22 +60,26 @@ type TriggerSetSummary struct {
 }
 
 type WatcherSummary struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	Kind           string `json:"kind"`
-	Path           string `json:"path"`
-	Pattern        string `json:"pattern"`
-	Debounce       string `json:"debounce"`
-	Stability      string `json:"stability"`
-	TargetTaskID   string `json:"targetTaskId"`
-	TargetTaskName string `json:"targetTaskName"`
-	Health         string `json:"health"`
-	HealthReason   string `json:"healthReason"`
-	Readiness      string `json:"readiness"`
-	Reason         string `json:"reason"`
-	UpdatedAt      string `json:"updatedAt"`
-	Recursive      bool   `json:"recursive"`
-	Enabled        bool   `json:"enabled"`
+	ID                         string `json:"id"`
+	Name                       string `json:"name"`
+	Kind                       string `json:"kind"`
+	Path                       string `json:"path"`
+	Pattern                    string `json:"pattern"`
+	Debounce                   string `json:"debounce"`
+	Stability                  string `json:"stability"`
+	TargetTaskID               string `json:"targetTaskId"`
+	TargetTaskName             string `json:"targetTaskName"`
+	Health                     string `json:"health"`
+	HealthReason               string `json:"healthReason"`
+	ObservedAt                 string `json:"observedAt,omitempty"`
+	ObservedDefinitionRevision string `json:"observedDefinitionRevision,omitempty"`
+	DefinitionRevision         string `json:"definitionRevision,omitempty"`
+	ReconciliationPending      *bool  `json:"reconciliationPending,omitempty"`
+	Readiness                  string `json:"readiness"`
+	Reason                     string `json:"reason"`
+	UpdatedAt                  string `json:"updatedAt"`
+	Recursive                  bool   `json:"recursive"`
+	Enabled                    bool   `json:"enabled"`
 }
 
 type Workspace struct {

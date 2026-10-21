@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"os"
 	"strings"
@@ -43,6 +44,7 @@ func resolveTargetWith(ctx context.Context, flags remoteTargetFlags, deps Depend
 		return client.New(ipc.Endpoint(cfg)), "", nil
 	}
 	var profile clientprofile.Profile
+	certificateSource := "--profile " + diagnosticIdentity(flags.Profile) + " stored trusted certificate"
 	if flags.Profile != "" {
 		collection, err := deps.Profiles.Load()
 		if err != nil {
@@ -50,17 +52,21 @@ func resolveTargetWith(ctx context.Context, flags remoteTargetFlags, deps Depend
 		}
 		profile, err = collection.Find(flags.Profile)
 		if err != nil {
-			return nil, "", fmtUsage("remote profile does not exist or its label is ambiguous")
+			return nil, "", usageCause(fmt.Errorf("--profile %s: %w; run gosched profile list and select an exact profile ID or an unambiguous label", diagnosticIdentity(flags.Profile), err))
 		}
 	} else {
 		if count != len(explicit) {
-			return nil, "", fmtUsage("--endpoint, --daemon-id, --credential-id, and --certificate-file are required together")
+			return nil, "", fmtUsage("--daemon-endpoint (or legacy --endpoint), --daemon-id, --credential-id, and --certificate-file are required together")
 		}
 		certificate, err := os.ReadFile(flags.CertificateFile)
 		if err != nil {
-			return nil, "", fmt.Errorf("read trusted certificate: %w", err)
+			return nil, "", fmt.Errorf("read --certificate-file %q; check that this PEM file exists and is readable: %w", flags.CertificateFile, err)
 		}
 		profile = clientprofile.Profile{Label: "explicit target", Endpoint: flags.Endpoint, DaemonID: flags.DaemonID, CredentialID: flags.CredentialID, CertificatePEM: string(certificate)}
+		certificateSource = "--certificate-file " + diagnosticIdentity(flags.CertificateFile)
+	}
+	if !x509.NewCertPool().AppendCertsFromPEM([]byte(profile.CertificatePEM)) {
+		return nil, "", fmtUsage(certificateSource + " contains no valid PEM certificate; save the trusted daemon certificate in PEM format and select that file or re-pair the saved profile")
 	}
 	token, err := deps.Secrets.LoadContext(ctx, profile.DaemonID, profile.CredentialID)
 	if err != nil {
@@ -68,7 +74,7 @@ func resolveTargetWith(ctx context.Context, flags remoteTargetFlags, deps Depend
 	}
 	remote, err := client.NewRemote(profile.Endpoint, profile.CertificatePEM, token, profile.DaemonID)
 	if err != nil {
-		return nil, "", fmtUsage("remote target configuration is invalid")
+		return nil, "", usageCause(fmt.Errorf("remote target configuration: %w; check --daemon-endpoint, --daemon-id, --credential-id and --certificate-file, or re-pair the selected --profile", err))
 	}
 	if _, err := remote.VerifyIdentity(ctx); err != nil {
 		return nil, "", fmt.Errorf("verify remote daemon identity: %w", err)

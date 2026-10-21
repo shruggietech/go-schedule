@@ -68,7 +68,7 @@ func (s *Server) handleBundleExport(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) handleBundleValidate(w http.ResponseWriter, r *http.Request) {
 	req, err := decodeBundleRequest(r.Body)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON")
+		writeBundleRequestError(w, err)
 		return
 	}
 	canonical, _, digest, issues := bundle.Canonicalize(req.Bundle)
@@ -86,13 +86,17 @@ func (s *Server) handleBundleCompare(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain bool) {
 	req, err := decodeBundleRequest(r.Body)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON")
+		writeBundleRequestError(w, err)
 		return
 	}
 	canonical, _, _, issues := bundle.Canonicalize(req.Bundle)
 	issues = append(issues, bundleCompatibilityIssues(canonical)...)
 	if len(issues) > 0 {
 		writeError(w, http.StatusBadRequest, CodeValidation, "bundle", "bundle is invalid")
+		return
+	}
+	if err := validateWatcherPathBindings(canonical, req.WatcherPaths); err != nil {
+		writeBundleRequestError(w, err)
 		return
 	}
 	target, err := s.bundleDocument()
@@ -312,10 +316,13 @@ func (s *Server) applyBundleNotificationPolicy(source bundle.NotificationPolicy,
 }
 
 func decodeBundleRequest(body io.Reader) (BundleRequest, error) {
-	var req BundleRequest
+	var wire struct {
+		Bundle       bundle.Document     `json:"bundle"`
+		WatcherPaths watcherPathBindings `json:"watcher_paths,omitempty"`
+	}
 	decoder := json.NewDecoder(body)
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
+	if err := decoder.Decode(&wire); err != nil {
 		return BundleRequest{}, err
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
@@ -324,7 +331,7 @@ func decodeBundleRequest(body io.Reader) (BundleRequest, error) {
 		}
 		return BundleRequest{}, err
 	}
-	return req, nil
+	return BundleRequest{Bundle: wire.Bundle, WatcherPaths: wire.WatcherPaths.paths}, nil
 }
 
 func bundleCompatibilityIssues(doc bundle.Document) []bundle.Issue {

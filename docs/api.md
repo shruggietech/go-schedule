@@ -87,6 +87,8 @@ Fire failures use stable codes: `trigger_unknown`, `trigger_disabled`, `trigger_
 
 A filesystem watcher representation contains `id`, `name`, `kind`, `path`, optional `pattern`, `recursive`, string durations `debounce` and `stability`, target identity, enabled state, runtime `health`, readiness, reason, and timestamps. `kind` is `file` for one exact path or `directory` for basename-glob selection. A directory pattern defaults to `*`; recursive selection excludes linked directories. Durations accept Go duration syntax such as `250ms`, `2s`, or `1m` and must be from 25 milliseconds through one hour.
 
+Current source adds `definition_revision`, plus `health.observed_definition_revision` and `health.observed_at` when a runtime observation exists. `reconciliation_pending: true` means the last observation does not describe the saved definition yet; `false` means the revisions match. An absent pending field means observation metadata is unavailable, including a missing runtime or an older daemon, rather than a claim of reconciliation. `health.changed_at` remains the time the health state or reason changed; observing an edited definition with the same health advances observation metadata without changing that transition timestamp. Reload is asynchronous, so an immediate update response can truthfully contain a new saved enabled value and an older observed health. Readiness describes target execution prerequisites separately. Clients should retain that distinction and inspect the watcher again for a later observation.
+
 | Method | Path | Behavior |
 |---|---|---|
 | `GET` | `/v1/filesystem-watchers` | List definitions joined with current runtime health |

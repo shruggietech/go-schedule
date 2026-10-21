@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -50,7 +51,7 @@ func newPairingCmdWithClient(api *client.Client) *cobra.Command {
 	create.Flags().StringVar(&kind, "kind", string(domain.ActorKindDesktop), "client kind: desktop, cli, json, or mcp")
 	create.Flags().StringVar(&capability, "capability", string(domain.CapabilityObserve), "capability: observe, operate, manage, or enroll")
 	create.Flags().StringVar(&grantDuration, "grant-duration", "non-expiring", "access duration: 1h, 24h, 7d, 30d, or non-expiring")
-	list := &cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	list := &cobra.Command{Use: "list", Short: "List pairing sessions and remaining enrollment attempts", Long: "List one-time remote pairing sessions on the selected daemon, including each pairing ID, state, capability, client name and remaining attempts. This does not reveal pairing phrases or create credentials.", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		items, err := api.ListPairings(ctx)
@@ -60,12 +61,16 @@ func newPairingCmdWithClient(api *client.Client) *cobra.Command {
 		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), items)
 		}
-		for _, item := range items {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\t%d\n", item.ID, item.State, item.Capability, item.DisplayName, item.AttemptsRemaining)
-		}
-		return nil
+		return writeHumanTable(cmd.OutOrStdout(), "PAIRING ID\tSTATE\tCAPABILITY\tCLIENT NAME\tATTEMPTS REMAINING", func(out io.Writer) error {
+			for _, item := range items {
+				if _, err := fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%d\n", item.ID, item.State, item.Capability, item.DisplayName, item.AttemptsRemaining); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
 	}}
-	cancelCmd := &cobra.Command{Use: "cancel <pairing-id>", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	cancelCmd := &cobra.Command{Use: "cancel <pairing-id>", Short: "Cancel a pairing session so its phrase cannot enroll a client", Long: "Cancel the specified pairing ID on the selected daemon. Its one-time phrase can no longer enroll a client; already issued credentials are unaffected. Use pairing list to find the ID.", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.CancelPairing(ctx, args[0])
@@ -93,7 +98,7 @@ func grantExpiration(now time.Time, value string) (*time.Time, error) {
 
 func newCredentialCmdWithClient(api *client.Client) *cobra.Command {
 	command := &cobra.Command{Use: "credential", Short: "Inspect, rotate, and revoke remote credentials"}
-	command.AddCommand(&cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	command.AddCommand(&cobra.Command{Use: "list", Short: "List remote credential identities and their state", Long: "List remote credential IDs, associated actor IDs, expiry and state on the selected daemon. Tokens are never included. Use these IDs with credential rotate or credential revoke.", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		items, err := api.ListCredentials(ctx)
@@ -102,7 +107,7 @@ func newCredentialCmdWithClient(api *client.Client) *cobra.Command {
 		}
 		return printJSONTo(cmd.OutOrStdout(), items)
 	}})
-	command.AddCommand(&cobra.Command{Use: "rotate <credential-id>", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	command.AddCommand(&cobra.Command{Use: "rotate <credential-id>", Short: "Replace a credential token and display the replacement once", Long: "Rotate the specified remote credential ID on the selected daemon. The old token stops working and the replacement token is returned once with its actor and daemon identities. Store it before leaving this response; this does not update saved client profiles automatically.", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.RotateCredential(ctx, args[0])
@@ -111,7 +116,7 @@ func newCredentialCmdWithClient(api *client.Client) *cobra.Command {
 		}
 		return printJSONTo(cmd.OutOrStdout(), item)
 	}})
-	command.AddCommand(&cobra.Command{Use: "revoke <credential-id>", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	command.AddCommand(&cobra.Command{Use: "revoke <credential-id>", Short: "Revoke a remote credential so its token no longer works", Long: "Revoke the specified credential ID on the selected daemon. The credential's token can no longer authenticate; its associated actor record and other credentials remain. Use credential list to find the ID.", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		item, err := api.RevokeCredential(ctx, args[0])
@@ -140,12 +145,14 @@ func newActorListCmd(api accessClient) *cobra.Command {
 		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), actors)
 		}
-		for _, actor := range actors {
-			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\t%s\n", actor.ID, actor.Kind, actor.Capability, actor.State, actor.DisplayName); err != nil {
-				return err
+		return writeHumanTable(cmd.OutOrStdout(), "ACTOR ID\tKIND\tCAPABILITY\tSTATE\tNAME", func(out io.Writer) error {
+			for _, actor := range actors {
+				if _, err := fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\n", actor.ID, actor.Kind, actor.Capability, actor.State, actor.DisplayName); err != nil {
+					return err
+				}
 			}
-		}
-		return nil
+			return nil
+		})
 	}}
 }
 
@@ -269,8 +276,11 @@ func (f auditFlags) query() (domain.AuditQuery, error) {
 		}
 		query.Until = &value
 	}
-	if f.limit < 1 || f.limit > 1000 || (query.Result != "" && !query.Result.Valid()) {
-		return query, fmtUsage("audit filters are invalid")
+	if f.limit < 1 || f.limit > 1000 {
+		return query, fmtUsage("--limit must be between 1 and 1000 audit events")
+	}
+	if query.Result != "" && !query.Result.Valid() {
+		return query, fmtUsage("--result must be succeeded, denied, failed, or uncertain; omit it to include all audit results")
 	}
 	return query, nil
 }
@@ -291,12 +301,14 @@ func newAuditListCmd(api accessClient) *cobra.Command {
 		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), events)
 		}
-		for _, event := range events {
-			if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\t%s\n", event.OccurredAt.Format(time.RFC3339), event.Result, event.ActorID, event.Operation, event.TargetID); err != nil {
-				return err
+		return writeHumanTable(cmd.OutOrStdout(), "TIME\tRESULT\tACTOR ID\tOPERATION\tTARGET ID", func(out io.Writer) error {
+			for _, event := range events {
+				if _, err := fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\n", event.OccurredAt.Format(time.RFC3339), event.Result, event.ActorID, event.Operation, event.TargetID); err != nil {
+					return err
+				}
 			}
-		}
-		return nil
+			return nil
+		})
 	}}
 	flags.bind(command)
 	return command

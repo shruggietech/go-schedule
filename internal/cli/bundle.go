@@ -70,6 +70,9 @@ func bundlePreview() *cobra.Command {
 			if !found || id == "" || path == "" {
 				return fmtUsage("watcher path must be portable-id=absolute-path")
 			}
+			if _, exists := paths[id]; exists {
+				return fmtUsage(fmt.Sprintf("duplicate --watcher-path identity %q; supply each bundled watcher ID only once", id))
+			}
 			paths[id] = path
 		}
 		plan, err := clientFor(cmd).PreviewBundleWithPaths(ctx, document, paths)
@@ -122,7 +125,7 @@ func readBundleDocument(path string) (bundle.Document, error) {
 	}
 	document, err := bundle.Decode(data)
 	if err != nil {
-		return bundle.Document{}, err
+		return bundle.Document{}, usageCause(fmt.Errorf("read bundle file %q: %w; correct the document and retry", path, err))
 	}
 	return document, nil
 }
@@ -133,7 +136,7 @@ func readBundleJSON(path string, value any) error {
 		return err
 	}
 	if err := json.Unmarshal(data, value); err != nil {
-		return fmt.Errorf("read bundle JSON: %w", err)
+		return usageCause(fmt.Errorf("read bundle JSON file %q: %w; correct the document and retry", path, err))
 	}
 	return nil
 }

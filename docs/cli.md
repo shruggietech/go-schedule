@@ -11,6 +11,8 @@ nav_order: 3
 
 > **Release status:** S107 additions are unreleased: explicit local IPC selection, complete authoring/preview, structured notification policies, operational views and headless preferences. Existing features retain their prior release availability; see [the changelog](https://github.com/shruggietech/go-schedule/blob/main/CHANGELOG.md) and the installed binary's help.
 
+S109's CLI contract corrections are also unreleased: parser/operand validation, independent webhook/daemon endpoints, complete failed-import status, contextual diagnostics, labeled lists and accurate credential/watcher responses. The descriptions below apply to current source.
+
 `gosched` is a thin client. With no target flags it talks to `goschedd` over protected local IPC, so existing scripts remain local and unchanged. A deliberate `--profile` or complete explicit remote selection uses the same command surface through the authenticated HTTPS allowlist.
 
 ## Contents
@@ -56,7 +58,8 @@ Times you supply are RFC 3339 (`2026-08-04T09:00:00Z`). Times printed back are R
 | `--ipc-path PATH` | Explicit local socket or Windows named pipe, incompatible with remote target selection; invalid selectors never fall back (S107). |
 | `--json` | Emit machine-readable JSON instead of the table or summary. Available on every command that produces output. |
 | `--profile ID_OR_LABEL` | Use one saved remote profile for this invocation. Labels must be unambiguous. |
-| `--endpoint`, `--daemon-id`, `--credential-id`, `--certificate-file` | Select one explicit remote target. All four are required together and cannot be combined with `--profile`. |
+| `--daemon-endpoint`, `--daemon-id`, `--credential-id`, `--certificate-file` | Select one explicit remote target. All four are required together and cannot be combined with `--profile`. |
+| `--endpoint` | Legacy alias for the global remote endpoint where a command has no local flag of that name. Notification channel add/update use this name for the webhook destination; use `--daemon-endpoint` for their remote daemon. Both global endpoint aliases together are refused. |
 | `-v`, `--version` | Print the CLI version. This is the *client* version; see [`health`](#health) for the daemon's. |
 | `-h`, `--help` | Help for any command or subcommand. |
 
@@ -90,6 +93,8 @@ gosched --profile PROFILE_ID --json runs list
 | `2` | Usage or validation failure, a missing required flag, a malformed timestamp, an invalid policy value. Server-side validation failures map here too, so bad input is reported the same way wherever it is caught. |
 
 Results go to stdout; diagnostics and errors go to stderr. That split is what makes `gosched task list --json | ...` safe in a pipeline.
+
+Unknown commands/flags, invalid typed flag values, missing or surplus operands and malformed local bundle documents return 2. File read/write, connection and OS failures return 1. Commands reject extra operands before contacting a daemon or invoking a service/GUI adapter. Human actor, audit, pairing, profile, channel and watcher lists include column headings; their JSON shapes remain unchanged.
 
 ## `health`
 
@@ -132,9 +137,25 @@ gosched --profile destination bundle apply plan.json
 
 Inspect validation findings, comparison drift, and the complete preview plan before applying. `compare` is read-only. A preview plan is single-use and bound to the selected daemon and its current state; applying after switching targets or after the plan becomes stale requires a fresh preview. Target-only objects are reported as drift, never inferred as removals. Version 1 and version 2 bundles remain readable, and the daemon performs final path and domain validation.
 
+Each `--watcher-path` must name a watcher portable ID present in the selected bundle, and each ID can be supplied only once, even if repeated paths are identical. Unknown or duplicate bindings return validation failure before a usable plan is created. Use the bundle's watcher `portable_id`, rather than a task/group ID or a daemon-local watcher ID.
+
+## Webhook destinations and daemon selection
+
+Channel add/update use their local `--endpoint` for the webhook destination. It can be combined with local IPC, a saved profile or the unambiguous explicit daemon selector:
+
+```sh
+gosched --ipc-path /tmp/owned-gosched/daemon.sock notification channel add Operations --endpoint https://hooks.example.test/events
+gosched --profile production notification channel update CHANNEL_ID --endpoint https://hooks.example.test/events
+gosched --daemon-endpoint https://daemon.example.test:8443 --daemon-id DAEMON_ID --credential-id CREDENTIAL_ID --certificate-file daemon.pem notification channel add Operations --endpoint https://hooks.example.test/events
+```
+
+Cobra resolves the final command's flags regardless of whether they appear before or after its name. On these two channel commands, `--endpoint` therefore always means the destination. Use `--daemon-endpoint` to select the daemon instead of relying on argument placement.
+
 ## Actors and management audit
 
 Use `gosched actor list`, `create`, `update`, and `revoke` to administer credential-independent client identities. Use `gosched audit list` and `export` to inspect deterministic, redacted management evidence. See [Actor Permissions and Management Audit](access-control.md) for the capability matrix, lifecycle rules, retention limits, filters, and examples.
+
+`gosched pairing list` identifies enrollment sessions and remaining attempts; `pairing cancel PAIRING_ID` prevents that phrase from enrolling another client. `credential list` lists remote credential records without tokens. `credential rotate CREDENTIAL_ID` returns the replacement token once, with its actual actor and daemon association, and invalidates the previous token. Store the replacement before leaving the response; saved profiles are not automatically updated. `credential revoke CREDENTIAL_ID` invalidates that credential without deleting its actor or other credentials.
 
 ## `mcp`
 
@@ -483,6 +504,8 @@ gosched watcher rm <watcher-id>
 ```
 
 Use `--kind file` for one exact file or `--kind directory` for basename glob matching. Missing paths can be configured and appear as degraded until observation succeeds. Recursive directory observation excludes symbolic links and junctions. Network filesystems are best effort. The default debounce is 250 milliseconds and the default stability interval is 500 milliseconds; both accept values from 25 milliseconds through one hour. Changes while the daemon is stopped or degraded are not replayed.
+
+Detail output separates `Saved enabled`, `Last observed health`, `Last observed at`, `Reconciliation` and `Target readiness`. An immediate enable/disable reply may still contain the previous health observation while reconciliation is pending; run `gosched watcher show WATCHER_ID` again to inspect the later observation. `current` means the observation matches the saved definition; `unknown` means the daemon did not supply revision metadata or its runtime is unavailable. JSON exposes the same distinction through additive definition/observation revisions and `reconciliation_pending`; existing health fields retain their meaning.
 
 ## `chain`
 

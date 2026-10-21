@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -58,10 +59,14 @@ func notificationChannelList() *cobra.Command {
 		if jsonOutput(cmd) {
 			return printJSONTo(cmd.OutOrStdout(), channels)
 		}
-		for _, channel := range channels {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\tenabled=%t\tauthorization=%t\n", channel.ID, channel.Name, channel.EndpointSummary, channel.Enabled, channel.HasAuthorization)
-		}
-		return nil
+		return writeHumanTable(cmd.OutOrStdout(), "CHANNEL ID\tNAME\tENDPOINT\tENABLED\tHAS AUTHORIZATION", func(out io.Writer) error {
+			for _, channel := range channels {
+				if _, err := fmt.Fprintf(out, "%s\t%s\t%s\t%t\t%t\n", channel.ID, channel.Name, channel.EndpointSummary, channel.Enabled, channel.HasAuthorization); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
 	}}
 }
 func notificationChannelGet() *cobra.Command {

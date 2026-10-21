@@ -81,7 +81,11 @@ func buildWorkspace(tasks []server.TaskResponse, chains []domain.CompletionChain
 		w.TriggerSets = append(w.TriggerSets, summary)
 	}
 	for _, value := range watchers {
-		w.Watchers = append(w.Watchers, WatcherSummary{ID: value.ID, Name: value.Name, Kind: string(value.Kind), Path: value.Path, Pattern: value.Pattern, Recursive: value.Recursive, Debounce: value.Debounce, Stability: value.Stability, TargetTaskID: value.TargetTaskID, TargetTaskName: fallback(value.TargetTaskName, "Missing task"), Enabled: value.Enabled, Health: string(value.Health.State), HealthReason: value.Health.Reason, Readiness: value.Readiness, Reason: value.Reason, UpdatedAt: value.UpdatedAt.Format(time.RFC3339Nano)})
+		observedAt := ""
+		if !value.Health.ObservedAt.IsZero() {
+			observedAt = value.Health.ObservedAt.UTC().Format(time.RFC3339Nano)
+		}
+		w.Watchers = append(w.Watchers, WatcherSummary{ID: value.ID, Name: value.Name, Kind: string(value.Kind), Path: value.Path, Pattern: value.Pattern, Recursive: value.Recursive, Debounce: value.Debounce, Stability: value.Stability, TargetTaskID: value.TargetTaskID, TargetTaskName: fallback(value.TargetTaskName, "Missing task"), Enabled: value.Enabled, Health: string(value.Health.State), HealthReason: value.Health.Reason, ObservedAt: observedAt, ObservedDefinitionRevision: value.Health.ObservedDefinitionRevision, DefinitionRevision: value.DefinitionRevision, ReconciliationPending: value.ReconciliationPending, Readiness: value.Readiness, Reason: value.Reason, UpdatedAt: value.UpdatedAt.Format(time.RFC3339Nano)})
 	}
 	sort.SliceStable(w.Tasks, func(i, j int) bool { return strings.ToLower(w.Tasks[i].Name) < strings.ToLower(w.Tasks[j].Name) })
 	return w

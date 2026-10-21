@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -227,8 +228,8 @@ func scan(t *testing.T, text string) *cron.Report {
 func TestImport_DryRunCreatesNothing(t *testing.T) {
 	rep := scan(t, sampleCrontab)
 	var buf bytes.Buffer
-	if err := runImport(&buf, rep, importOptions{dryRun: true, timezone: "UTC"}, nil); err != nil {
-		t.Fatalf("dry run returned an error: %v", err)
+	if err := runImport(&buf, rep, importOptions{dryRun: true, timezone: "UTC"}, nil); !errors.Is(err, errUsage) {
+		t.Fatalf("invalid sample dry run must report usage failure: %v", err)
 	}
 	out := buf.String()
 
@@ -249,6 +250,14 @@ func TestImport_DryRunCreatesNothing(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("dry-run output missing %q\n---\n%s", want, out)
 		}
+	}
+}
+
+func TestImportReportWriteFailureIsOperational(t *testing.T) {
+	rep := scan(t, "0 9 * * * echo owned\ninvalid line\n")
+	err := runImport(failingOutput{}, rep, importOptions{dryRun: true, timezone: "UTC"}, nil)
+	if !errors.Is(err, io.ErrClosedPipe) || errors.Is(err, errUsage) {
+		t.Fatalf("report write failure lost runtime category: %v", err)
 	}
 }
 
@@ -282,8 +291,8 @@ func TestImport_CreatesSupportedLines(t *testing.T) {
 	rep := scan(t, sampleCrontab)
 	fc := &fakeCreator{}
 	var buf bytes.Buffer
-	if err := runImport(&buf, rep, importOptions{timezone: "UTC", group: "g1"}, fc); err != nil {
-		t.Fatalf("import returned an error: %v", err)
+	if err := runImport(&buf, rep, importOptions{timezone: "UTC", group: "g1"}, fc); !errors.Is(err, errUsage) {
+		t.Fatalf("invalid sample import must report usage failure after creating valid jobs: %v", err)
 	}
 	if len(fc.reqs) != 4 {
 		t.Fatalf("created %d task(s), want 4", len(fc.reqs))
