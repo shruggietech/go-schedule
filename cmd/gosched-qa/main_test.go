@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"testing"
 )
 
@@ -31,6 +32,17 @@ func TestPublicCommandsRejectUnexpectedOperandsBeforeOpeningState(t *testing.T) 
 				t.Fatal("rejected command emitted a success result")
 			}
 		})
+	}
+}
+
+func TestEvaluationAndProcessingExitCodesAreDistinct(t *testing.T) {
+	for _, test := range []struct {
+		err  error
+		want int
+	}{{nil, 0}, {flag.ErrHelp, 0}, {errors.New("invalid evidence"), 1}, {outcomeError{outcome: "fail"}, 2}, {outcomeError{outcome: "blocked"}, 3}, {fmt.Errorf("wrapped: %w", outcomeError{outcome: "fail"}), 2}} {
+		if got := exitStatus(test.err); got != test.want {
+			t.Errorf("%v: exit=%d want=%d", test.err, got, test.want)
+		}
 	}
 }
 

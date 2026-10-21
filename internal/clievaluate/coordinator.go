@@ -377,6 +377,14 @@ func captureSubject(ctx context.Context, o CaptureOptions) (Subject, error) {
 		return s, errors.New("cannot establish source dirtiness")
 	}
 	s.Dirty = len(status.Out) > 0
+	files := captureCommand(ctx, clifixture.Command{Executable: gitPath, Arguments: []string{"ls-files", "--cached", "--others", "--exclude-standard", "-z"}, Directory: o.Source, Environment: quietEnvironment()}, nil, 1<<20)
+	if files.Code != 0 || files.Failure != nil || files.Exceeded {
+		return s, errors.New("cannot enumerate evaluated source files")
+	}
+	s.SourceSHA256, err = digestSourceFiles(ctx, o.Source, strings.Split(strings.TrimSuffix(string(files.Out), "\x00"), "\x00"))
+	if err != nil {
+		return s, err
+	}
 	s.Repository, err = canonicalRemote(s.Repository)
 	if err != nil {
 		return s, err

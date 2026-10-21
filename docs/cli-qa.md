@@ -30,6 +30,8 @@ pwsh -NoProfile -NonInteractive -File scripts/cli-qa.ps1 -Action render -BinaryD
 
 The underlying command is cmd/gosched-qa. Its build, inventory, capture, resume, finalize, validate and render commands expose the same workflow. Validate reads the frozen artifacts without rewriting them. Render derives report.md from validated report.json. Capture never supplies semantic review verdicts on an agent's behalf.
 
+Exit 0 means successful command processing or a complete capture awaiting review; it does not make pending review a passing QA result. Finalize, validate and render return 0 for a passing evaluation, 2 for a failed evaluation and 3 for a blocked evaluation. A partial or interrupted capture also returns 3. Usage, prerequisite-processing and evidence-integrity errors return 1. The PowerShell entry point preserves evaluation codes 2 and 3 and still prints retained artifact locations.
+
 ## Execution boundaries and coverage
 
 JSON and human-readable command output run against separate fresh fixtures, so rendering checks do not reuse IDs or mutation state across modes. The manifest comes from the initialized Cobra command tree, including aliases, generated commands, inherited flags and local shadows. A checked-in inventory detects metadata drift. Help and invalid-flag cases complement behavioral cases; they do not stand in for implementing a command's actual scenario. Generated IDs derive from command paths, so adding an unrelated command preserves existing case references. Stable IDs and the complete environment cross-product remain in every report.
@@ -83,3 +85,5 @@ The validator checks Draft 2020-12 schemas, duplicate JSON keys, required fields
 Canonical JSON is the source for these sections. The deterministic Markdown renderer does not consult a clock, network service, model or current repository state. Keep the complete artifact directory with its relative paths intact when handing the report to another maintainer.
 
 The human report summarizes execution boundaries and communication failures before the defect blocks. Expand its complete case ledger, large affected-case lists and artifact index as needed; canonical JSON retains every successful and failed rubric record.
+
+The subject source_sha256 binds sorted tracked and nonignored untracked paths, file modes and exact file contents, including deletions. Resume rejects a changed digest even when the checkout was already dirty. Keep run artifacts in the default ignored .test-temp tree or outside the source checkout. Frozen capture metadata also binds the complete cleanup ledger and immutable case observations; only review verdicts, review references and finding references may change during finalization. A collected WSL unit is accepted as stopped only when the exact prior owned name has explicit not-found/inactive properties; ambiguous or failed state queries remain refused.

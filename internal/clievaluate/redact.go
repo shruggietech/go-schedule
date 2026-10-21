@@ -65,7 +65,7 @@ func (r *Redactor) Sanitize(data []byte) []byte {
 	}
 	r.mu.Lock()
 	if r.replacer == nil && len(r.values) > 0 {
-		pairs := make([]string, 0, len(r.values)*2)
+		var pairs []string
 		for _, value := range r.values {
 			pairs = append(pairs, value, "[REDACTED]")
 		}

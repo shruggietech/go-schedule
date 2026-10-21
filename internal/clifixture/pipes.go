@@ -2,7 +2,6 @@ package clifixture
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -75,11 +74,6 @@ func StartPiped(command Command) (*Process, *Pipes, error) {
 	}
 	return p, pipes, nil
 }
-
-type childExitError struct{ code int }
-
-func (e childExitError) Error() string { return fmt.Sprintf("owned child exited with code %d", e.code) }
-func (e childExitError) ExitCode() int { return e.code }
 
 // ExitCode reports an actual completed child exit, independently of Wait cancellation.
 func (p *Process) ExitCode() (int, bool) {

@@ -16,8 +16,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F001.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/311",
+      "publication_state": "published",
+      "issue_number": 311
     },
     {
       "finding_id": "F002",
@@ -32,8 +33,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F002.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/312",
+      "publication_state": "published",
+      "issue_number": 312
     },
     {
       "finding_id": "F003",
@@ -49,8 +51,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F003.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/313",
+      "publication_state": "published",
+      "issue_number": 313
     },
     {
       "finding_id": "F004",
@@ -66,8 +69,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F004.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/314",
+      "publication_state": "published",
+      "issue_number": 314
     },
     {
       "finding_id": "F005",
@@ -82,8 +86,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F005.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/315",
+      "publication_state": "published",
+      "issue_number": 315
     },
     {
       "finding_id": "F006",
@@ -98,8 +103,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F006.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/316",
+      "publication_state": "published",
+      "issue_number": 316
     },
     {
       "finding_id": "F007",
@@ -115,8 +121,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F007.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/317",
+      "publication_state": "published",
+      "issue_number": 317
     },
     {
       "finding_id": "F008",
@@ -132,8 +139,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F008.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/318",
+      "publication_state": "published",
+      "issue_number": 318
     },
     {
       "finding_id": "F009",
@@ -149,8 +157,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F009.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/319",
+      "publication_state": "published",
+      "issue_number": 319
     },
     {
       "finding_id": "F010",
@@ -166,8 +175,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F010.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/320",
+      "publication_state": "published",
+      "issue_number": 320
     },
     {
       "finding_id": "F011",
@@ -183,8 +193,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F011.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/321",
+      "publication_state": "published",
+      "issue_number": 321
     },
     {
       "finding_id": "F012",
@@ -201,8 +212,9 @@
       "milestone": 15,
       "parent_issue": 277,
       "body_file": "F012.md",
-      "existing_issue_url": null,
-      "publication_state": "draft"
+      "existing_issue_url": "https://github.com/shruggietech/go-schedule/issues/322",
+      "publication_state": "published",
+      "issue_number": 322
     }
   ]
 }

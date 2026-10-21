@@ -42,7 +42,7 @@ func TestResumeRequiresEstablishedStoppedUnit(t *testing.T) {
 		code     int
 		state    string
 		accepted bool
-	}{{0, "inactive", true}, {0, "failed", true}, {1, "", false}, {1, "inactive", false}, {0, "", false}, {0, "active", false}, {0, "deactivating", false}} {
+	}{{0, "LoadState=loaded\nActiveState=inactive", true}, {0, "ActiveState=failed\nLoadState=loaded", true}, {1, "LoadState=not-found\nActiveState=inactive", true}, {0, "LoadState=not-found\nActiveState=inactive", true}, {4, "LoadState=not-found\nActiveState=inactive", true}, {1, "", false}, {1, "LoadState=loaded\nActiveState=inactive", false}, {0, "LoadState=loaded\nActiveState=active", false}, {0, "LoadState=loaded\nActiveState=deactivating", false}, {0, "LoadState=not-found\nActiveState=active", false}, {5, "LoadState=not-found\nActiveState=inactive", false}, {0, "LoadState=loaded\nLoadState=not-found\nActiveState=inactive", false}, {0, "ActiveState=inactive", false}} {
 		if got := validateStoppedUnit(test.code, test.state) == nil; got != test.accepted {
 			t.Errorf("code=%d state=%q accepted=%v", test.code, test.state, got)
 		}

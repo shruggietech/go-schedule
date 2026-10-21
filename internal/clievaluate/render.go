@@ -32,6 +32,7 @@ func Render(r Report) ([]byte, error) {
 	}
 	var out strings.Builder
 	fmt.Fprintf(&out, "# CLI QA after-action report\n\n## 1. Run identity and outcome\n\nRun: %s. Outcome: %s. Phase: %s. Completion: %s.\n\nSubject: %s at %s, dirty=%t, version %s. Started: %s. Finished: %s.\n\n", markdown(r.RunID), markdown(r.Summary.Outcome), markdown(r.Phase), markdown(r.CompletionState), markdown(r.Subject.Repository), markdown(r.Subject.Commit), r.Subject.Dirty, markdown(r.Subject.Version), markdown(r.StartedAt), markdown(r.FinishedAt))
+	fmt.Fprintf(&out, "Source content SHA-256: %s.\n\n", markdown(r.Subject.SourceSHA256))
 	fmt.Fprintf(&out, "## 2. Environment and budget\n\nCPU: %d%% (denominator recorded per environment). Memory: %d bytes. Windows processes: %d. Linux tasks including threads: %d. Per-case deadline: %d ms. Total coordinator deadline: %d ms. Per-channel cap: %d bytes. Artifact cap: %d bytes.\n\n", r.Runner.Budget.CPUPercent, r.Runner.Budget.MemoryBytes, r.Runner.Budget.WindowsProcesses, r.Runner.Budget.LinuxTasks, r.Runner.Budget.CaseTimeoutMS, r.Runner.Budget.TotalTimeoutMS, r.Runner.Budget.ChannelBytes, r.Runner.Budget.ArtifactBytes)
 	envs := append([]Environment{}, r.Environments...)
 	sort.Slice(envs, func(i, j int) bool { return envs[i].ID < envs[j].ID })

@@ -20,7 +20,7 @@ $qaTemporary = Join-Path $qaSource '.test-temp'
 [void][IO.Directory]::CreateDirectory($qaTemporary)
 
 function Invoke-QaHidden {
-    param([string]$Executable, [string[]]$Arguments, [int]$TimeoutMilliseconds = 1900000, [switch]$CaptureOutput)
+    param([string]$Executable, [string[]]$Arguments, [int]$TimeoutMilliseconds = 1900000, [switch]$CaptureOutput, [switch]$Evaluation)
     $qaStart = [Diagnostics.ProcessStartInfo]::new()
     $qaStart.FileName = $Executable
     $qaStart.WorkingDirectory = $qaSource
@@ -59,6 +59,7 @@ function Invoke-QaHidden {
     [Console]::Error.Write($qaDiagnostic.GetAwaiter().GetResult())
     $qaExit = $qaProcess.ExitCode
     $qaProcess.Dispose()
+    if ($Evaluation -and $qaExit -in @(0, 2, 3)) { return $qaExit }
     if ($qaExit -ne 0) { throw "The owned QA command returned exit $qaExit; read the diagnostic above." }
     if ($CaptureOutput) { return $qaCapturedOutput }
 }
@@ -114,6 +115,7 @@ if ($Action -eq 'finalize') {
     if (-not $Reviews) { throw 'Supply the completed agent Reviews JSON against this frozen corpus.' }
     $qaArguments += @('--reviews', [IO.Path]::GetFullPath($Reviews))
 }
-Invoke-QaHidden -Executable $qaExecutable -Arguments $qaArguments
+$qaEvaluationExit = Invoke-QaHidden -Executable $qaExecutable -Arguments $qaArguments -Evaluation
 Write-Output "Evaluation inputs: $BinaryDirectory"
 Write-Output "Evaluation artifacts: $OutputDirectory"
+exit $qaEvaluationExit

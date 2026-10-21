@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: review branch codex/108-unattended-cli-qa, locally verified and unpublished; [delivery record](delivery.md) and [verification](verification.md).
+**Delivery**: [PR #310](https://github.com/shruggietech/go-schedule/pull/310), open and unmerged; [delivery record](delivery.md), [verification](verification.md) and [publication/review record](review.md).
 
 **Input**: Owner kickoff: S108 under autopilot, bundling #289 and #290 in full; parent #277. Baseline main: `57461fc`. Run autonomously and halt before publication.
 

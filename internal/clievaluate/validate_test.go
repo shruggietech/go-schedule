@@ -40,7 +40,7 @@ func reportFixture(t *testing.T) (*ArtifactStore, Report, Manifest, Corpus) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := Report{SchemaVersion: Version, Kind: "go-schedule.cli-qa-report", RunID: "run-1", StartedAt: at, FinishedAt: at, Phase: "pending_review", CompletionState: "completed", CorpusSHA256: Digest(cd), Subject: Subject{Repository: "shruggietech/go-schedule", Commit: strings.Repeat("a", 40), Version: "dev"}, Runner: Runner{Version: Version, ManifestSHA256: Digest(md), Budget: DefaultBudget()}, Environments: []Environment{{ID: "env", OS: "windows", Arch: "amd64", Status: "ready"}}, Cases: []CaseResult{result}, Artifacts: []Artifact{out, stderr}, Cleanup: []Cleanup{{EnvironmentID: "env", Actions: []Check{{Name: "owned tree stopped", Expected: "true", Actual: "true", Passed: true}}}}}
+	r := Report{SchemaVersion: Version, Kind: "go-schedule.cli-qa-report", RunID: "run-1", StartedAt: at, FinishedAt: at, Phase: "pending_review", CompletionState: "completed", CorpusSHA256: Digest(cd), Subject: Subject{Repository: "shruggietech/go-schedule", Commit: strings.Repeat("a", 40), Version: "dev"}, Runner: Runner{Version: Version, ManifestSHA256: Digest(md), Budget: DefaultBudget()}, Environments: []Environment{{ID: "env", OS: "windows", Arch: "amd64", Status: "ready"}}, Cases: []CaseResult{result}, Artifacts: []Artifact{out, stderr}, Cleanup: []Cleanup{{EnvironmentID: "env", Actions: []Check{{Name: "owned tree stopped", Expected: "true", Actual: "true", Passed: true, Evidence: []string{out.Path}}}}}}
 	r.Summary = DeriveSummary(r)
 	return store, r, m, c
 }

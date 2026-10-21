@@ -81,18 +81,14 @@ func confirmPreviousWorkersStopped(ctx context.Context, store *ArtifactStore, pr
 			return errors.New("the previous owned launcher is still active; resume after its bounded shutdown finishes")
 		}
 		if env == "wsl" {
-			command := clifixture.Command{Executable: filepath.Join(os.Getenv("WINDIR"), "System32", "wsl.exe"), Arguments: []string{"--distribution", prior.Distro, "--user", prior.User, "--exec", "systemctl", "--user", "show", "gosched-qa-" + prior.RunID + ".service", "--property=ActiveState", "--value"}, Directory: filepath.Dir(os.Args[0]), Environment: quietEnvironment()}
+			command := clifixture.Command{Executable: filepath.Join(os.Getenv("WINDIR"), "System32", "wsl.exe"), Arguments: []string{"--distribution", prior.Distro, "--user", prior.User, "--exec", "systemctl", "--user", "show", "gosched-qa-" + prior.RunID + ".service", "--property=LoadState", "--property=ActiveState"}, Directory: filepath.Dir(os.Args[0]), Environment: quietEnvironment()}
 			probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			capture := captureCommand(probeCtx, command, nil, 4096)
 			cancel()
 			if capture.Failure != nil {
 				return capture.Failure
 			}
-			state := strings.TrimSpace(string(capture.Out))
-			if state == "active" || state == "activating" || state == "deactivating" {
-				return errors.New("the previous owned WSL unit is still draining; resume after its bounded shutdown finishes")
-			}
-			if err := validateStoppedUnit(capture.Code, state); err != nil {
+			if err := validateStoppedUnit(capture.Code, strings.TrimSpace(string(capture.Out))); err != nil {
 				return err
 			}
 		}
@@ -100,8 +96,19 @@ func confirmPreviousWorkersStopped(ctx context.Context, store *ArtifactStore, pr
 	return nil
 }
 
-func validateStoppedUnit(code int, state string) error {
-	if code != 0 || (state != "inactive" && state != "failed") {
+func validateStoppedUnit(code int, output string) error {
+	fields := map[string]string{}
+	for _, line := range strings.Split(output, "\n") {
+		key, value, ok := strings.Cut(line, "=")
+		_, duplicate := fields[key]
+		if !ok || duplicate || key != "LoadState" && key != "ActiveState" {
+			return errors.New("malformed prior WSL unit state; check the selected distribution and user, then retry resume")
+		}
+		fields[key] = value
+	}
+	loadedStopped := code == 0 && fields["LoadState"] == "loaded" && (fields["ActiveState"] == "inactive" || fields["ActiveState"] == "failed")
+	collected := (code == 0 || code == 1 || code == 4) && fields["LoadState"] == "not-found" && fields["ActiveState"] == "inactive"
+	if len(fields) != 2 || !loadedStopped && !collected {
 		return errors.New("could not establish the prior WSL unit's stopped state; check the selected distribution and user, then retry resume")
 	}
 	return nil

@@ -10,7 +10,7 @@ import (
 func TestExecutablePolicyScenarios(t *testing.T) {
 	for _, name := range []string{"dst-gap-fold", "month-boundaries", "bundle-reference-integrity", "expired-pairing", "notification-retry", "notification-transport", "catchup-startup", "one-off-completion", "overlap-policies", "popup-filtering"} {
 		t.Run(name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(DefaultBudget().CaseTimeoutMS)*time.Millisecond)
 			defer cancel()
 			var result execution
 			switch name {

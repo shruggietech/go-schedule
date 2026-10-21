@@ -17,7 +17,7 @@ func CurrentLimits(runID string, b Budget) ([]NamedValue, error) {
 		return nil, err
 	}
 	if !validRunID(runID) || os.Geteuid() == 0 {
-		return nil, errors.New("Linux QA worker requires an existing nonroot user and owned run identity")
+		return nil, errors.New("linux QA worker requires an existing nonroot user and owned run identity")
 	}
 	data, err := os.ReadFile("/proc/self/cgroup")
 	if err != nil {
@@ -30,7 +30,7 @@ func CurrentLimits(runID string, b Budget) ([]NamedValue, error) {
 		}
 	}
 	if filepath.Base(group) != "gosched-qa-"+runID+".service" || os.Getenv("INVOCATION_ID") == "" {
-		return nil, errors.New("Linux worker is not inside its owned transient user cgroup")
+		return nil, errors.New("linux worker is not inside its owned transient user cgroup")
 	}
 	root := filepath.Join("/sys/fs/cgroup", strings.TrimPrefix(group, "/"))
 	read := func(name string) (string, error) {
@@ -66,7 +66,7 @@ func CurrentLimits(runID string, b Budget) ([]NamedValue, error) {
 		return nil, err
 	}
 	if period <= 0 || quota*100 != int64(b.CPUPercent)*period || memory != strconv.FormatInt(b.MemoryBytes, 10) || tasks != strconv.Itoa(b.LinuxTasks) || swap != "0" {
-		return nil, fmt.Errorf("Linux worker controls do not match budget: cpu=%s memory=%s tasks=%s swap=%s", cpu, memory, tasks, swap)
+		return nil, fmt.Errorf("linux worker controls do not match budget: cpu=%s memory=%s tasks=%s swap=%s", cpu, memory, tasks, swap)
 	}
 	stat, err := os.ReadFile("/proc/self/stat")
 	if err != nil {
@@ -78,7 +78,7 @@ func CurrentLimits(runID string, b Budget) ([]NamedValue, error) {
 	}
 	fields := strings.Fields(string(stat)[end+1:])
 	if len(fields) < 17 || fields[16] != "10" {
-		return nil, errors.New("Linux worker must have the requested nice value 10")
+		return nil, errors.New("linux worker must have the requested nice value 10")
 	}
 	return []NamedValue{{Name: "mechanism", Value: "cgroup-v2 transient user service"}, {Name: "cgroup", Value: group}, {Name: "invocation_id", Value: os.Getenv("INVOCATION_ID")}, {Name: "cpu_percent", Value: strconv.Itoa(b.CPUPercent)}, {Name: "cpu_denominator", Value: "one logical CPU"}, {Name: "memory_bytes", Value: memory}, {Name: "tasks_including_threads", Value: tasks}, {Name: "swap_bytes", Value: swap}, {Name: "nice", Value: fields[16]}}, nil
 }

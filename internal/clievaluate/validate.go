@@ -283,6 +283,16 @@ func ValidateReport(store *ArtifactStore, r Report, m Manifest, corpus Corpus) e
 			return errors.New("invalid cleanup environment")
 		}
 		cleaned[c.EnvironmentID] = true
+		for _, action := range c.Actions {
+			if action.Name == "" || action.Passed != (action.Actual == action.Expected) || len(action.Evidence) == 0 {
+				return errors.New("cleanup action contradicts its observation or lacks evidence")
+			}
+			for _, path := range action.Evidence {
+				if _, ok := artifacts[path]; !ok {
+					return errors.New("cleanup action references absent evidence")
+				}
+			}
+		}
 	}
 	if len(cleaned) != len(envs) {
 		return errors.New("cleanup ledger incomplete")

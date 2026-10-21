@@ -25,7 +25,7 @@ func main() {
 			return
 		}
 		fmt.Fprintln(os.Stderr, "gosched-qa:", err)
-		os.Exit(1)
+		os.Exit(exitStatus(err))
 	}
 }
 
@@ -178,6 +178,9 @@ func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 			return err
 		}
 		_, err = fmt.Fprintf(out, "Captured %d cases; %s. Review corpus.json, then finalize with the completed review submission.\n", len(report.Cases), report.Phase)
+		if err == nil && (report.CompletionState != "completed" || report.Summary.ExecutionPassed+report.Summary.ExecutionFailed+report.Summary.NotApplicable != report.Summary.Planned) {
+			return outcomeError{outcome: "blocked"}
+		}
 		return err
 	}
 	review := flags.String("reviews", "", "agent review JSON against the frozen corpus (finalize only)")
@@ -210,5 +213,28 @@ func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 		return err
 	}
 	_, err = fmt.Fprintf(out, "%s: %s (%s), %d planned cases\n", command, report.Summary.Outcome, report.Phase, report.Summary.Planned)
+	if err == nil && report.Summary.Outcome != "pass" {
+		return outcomeError{outcome: report.Summary.Outcome}
+	}
 	return err
+}
+
+type outcomeError struct{ outcome string }
+
+func (e outcomeError) Error() string {
+	return "evaluation outcome is " + e.outcome + "; inspect the retained report and findings"
+}
+
+func exitStatus(err error) int {
+	if err == nil || errors.Is(err, flag.ErrHelp) {
+		return 0
+	}
+	var outcome outcomeError
+	if errors.As(err, &outcome) {
+		if outcome.outcome == "fail" {
+			return 2
+		}
+		return 3
+	}
+	return 1
 }

@@ -1,6 +1,6 @@
 # S108 Implementation and Verification Record
 
-Status: Implemented and locally verified. All feature tasks are complete; local delivery is on review branch codex/108-unattended-cli-qa. Nothing has been pushed or published.
+Status: Implemented and locally verified. All feature tasks are complete; local delivery is on review branch codex/108-unattended-cli-qa. The initial implementation halted locally; subsequent authorized publication and review are recorded in [review.md](review.md).
 
 ## Workflow and baseline
 
@@ -65,4 +65,4 @@ All #289/#290 functional acceptance criteria are delivered; [spec.md](spec.md) a
 
 Native service, GUI launch and credential-store mutation cases use their intended scoped adapters; private-helper entry/foreign-parent/channel behavior exercises the actual boundary without requesting a native credential. These results do not claim installed-service, interactive GUI or native credential-storage qualification. macOS was compiled, not executed. No material functional scope was deferred.
 
-CLAUDE.md and the owner's selected normal autopilot boundary require halting before publication. No new defect issue, push, pull request, merge, release or public-site change is published by this slice. The local [PR description](pull-request.md) and delivery handoff identify the concrete next commands awaiting owner authorization.
+The initial implementation stopped at the requested pre-publication boundary. The owner subsequently authorized publication and bounded review on 2026-10-21. PR #310 and product defects #311 through #322 are published; CI/review corrections #323 through #329 and their validation are documented in [review.md](review.md). No merge, release or public-site change is performed.

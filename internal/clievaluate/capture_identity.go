@@ -9,10 +9,21 @@ type captureMetadata struct {
 	StartedAt       string        `json:"started_at"`
 	FinishedAt      string        `json:"finished_at"`
 	CompletionState string        `json:"completion_state"`
+	Cleanup         []Cleanup     `json:"cleanup"`
+	Cases           []CaseResult  `json:"cases"`
 }
 
 func frozenMetadata(r Report) captureMetadata {
 	runner := r.Runner
 	runner.EvidenceSHA256 = ""
-	return captureMetadata{r.Subject, runner, r.Environments, r.StartedAt, r.FinishedAt, r.CompletionState}
+	cases := append([]CaseResult{}, r.Cases...)
+	for i := range cases {
+		cases[i].Status = cases[i].ExecutionStatus
+		if cases[i].ExecutionStatus == "pass" {
+			cases[i].ReasonCode = "executed"
+		}
+		cases[i].CommunicationReviewIDs = nil
+		cases[i].FindingIDs = nil
+	}
+	return captureMetadata{r.Subject, runner, r.Environments, r.StartedAt, r.FinishedAt, r.CompletionState, r.Cleanup, cases}
 }

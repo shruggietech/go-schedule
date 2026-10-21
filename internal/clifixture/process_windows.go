@@ -163,6 +163,11 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 	return p, wait, nil
 }
 
+type childExitError struct{ code int }
+
+func (e childExitError) Error() string { return fmt.Sprintf("owned child exited with code %d", e.code) }
+func (e childExitError) ExitCode() int { return e.code }
+
 func normalizedWindowsEnvironment(values []string) ([]string, error) {
 	byName := map[string]string{}
 	for _, value := range values {

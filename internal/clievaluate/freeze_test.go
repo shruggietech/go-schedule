@@ -7,9 +7,13 @@ import (
 	"testing"
 )
 
-func frozenFixture(t *testing.T) (*ArtifactStore, Report, Manifest, Corpus) {
+func frozenFixture(t *testing.T, changes ...func(*Report)) (*ArtifactStore, Report, Manifest, Corpus) {
 	t.Helper()
 	store, r, m, c := reportFixture(t)
+	for _, change := range changes {
+		change(&r)
+	}
+	r.Summary = DeriveSummary(r)
 	manifest, _ := Encode(m)
 	corpus, _ := Encode(c)
 	identity, _ := Encode(frozenMetadata(r))
@@ -51,6 +55,41 @@ func frozenFixture(t *testing.T) (*ArtifactStore, Report, Manifest, Corpus) {
 		t.Fatal(err)
 	}
 	return store, r, m, c
+}
+
+func TestFrozenCleanupAndExecutionRejectRewrittenObservations(t *testing.T) {
+	store, report, manifest, corpus := frozenFixture(t, func(r *Report) {
+		r.Cleanup[0].Actions = []Check{{Name: "owned runtime removed", Expected: "true", Actual: "false", Passed: false, Evidence: []string{*r.Cases[0].StdoutArtifact}}}
+		r.Cleanup[0].Remaining = []string{"owned/runtime"}
+	})
+	if err := ValidateReport(store, report, manifest, corpus); err != nil {
+		t.Fatal(err)
+	}
+	for _, change := range []func(*Report){
+		func(r *Report) { r.Cleanup[0].Actions[0].Passed = true },
+		func(r *Report) { r.Cleanup[0].Actions[0].Evidence = []string{"missing.txt"} },
+		func(r *Report) {
+			r.Cleanup[0].Actions[0].Actual = "true"
+			r.Cleanup[0].Actions[0].Passed = true
+			r.Cleanup[0].Remaining = nil
+		},
+		func(r *Report) { *r.Cases[0].Observed.ExitCode = 7 },
+		func(r *Report) { r.Cases[0].Observed.Checks[0].Actual = "invented" },
+	} {
+		data, err := Encode(report)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var altered Report
+		if err := Decode(bytes.NewReader(data), &altered); err != nil {
+			t.Fatal(err)
+		}
+		change(&altered)
+		altered.Summary = DeriveSummary(altered)
+		if err := validateFrozen(store, altered); err == nil {
+			t.Fatal("rewritten capture observations were accepted")
+		}
+	}
 }
 
 func TestFrozenIdentityRejectsRewrittenSourceAndResourceClaims(t *testing.T) {

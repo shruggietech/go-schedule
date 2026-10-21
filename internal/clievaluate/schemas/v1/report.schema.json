@@ -1031,6 +1031,10 @@
           "maxLength": 262144,
           "type": "string"
         },
+        "source_sha256": {
+          "maxLength": 262144,
+          "type": "string"
+        },
         "version": {
           "maxLength": 262144,
           "type": "string"
@@ -1040,6 +1044,7 @@
         "repository",
         "commit",
         "dirty",
+        "source_sha256",
         "version",
         "binaries"
       ],

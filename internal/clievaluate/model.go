@@ -30,11 +30,12 @@ type Binary struct {
 
 // Subject identifies the evaluated source and executable set.
 type Subject struct {
-	Repository string   `json:"repository"`
-	Commit     string   `json:"commit"`
-	Dirty      bool     `json:"dirty"`
-	Version    string   `json:"version"`
-	Binaries   []Binary `json:"binaries"`
+	Repository   string   `json:"repository"`
+	Commit       string   `json:"commit"`
+	Dirty        bool     `json:"dirty"`
+	SourceSHA256 string   `json:"source_sha256"`
+	Version      string   `json:"version"`
+	Binaries     []Binary `json:"binaries"`
 }
 
 // Runner identifies the evaluation implementation and frozen inputs.
