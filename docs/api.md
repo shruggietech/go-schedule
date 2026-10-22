@@ -194,3 +194,30 @@ The optional network API is a separate allowlisted adapter under `/api/v1`; it d
 `GET /api/v1/access/current` returns the authenticated actor's current server-owned capability without requiring Enroll authority. Clients use this protected read during connection negotiation, compare it with the selected profile's expected grant, and fail closed when an administrator has reduced that grant.
 
 The enrollment request is `POST /api/v1/enroll` with JSON fields `pairing_id`, `phrase`, and `daemon_id`. Successful exchange returns the bearer token exactly once. Authentication failures use `401 unauthorized`, browser-origin requests use `403 origin_rejected`, unknown or deliberately excluded routes use `404 not_found`, and rate limits use `429 rate_limited` with `Retry-After: 1`.
+
+## SMTP notification contracts (Unreleased S111)
+
+Notification routes are also available under `/api/v1` on an authenticated remote listener, with the operation identities and capabilities in the generated remote OpenAPI contract. Reads require Observe, channel/policy mutations Manage, test delivery Operate, and credential rotation Enroll. A settings change that retargets stored credentials also requires Enroll. Mutation requests are not automatically replayed by the remote client.
+
+Channel create defaults an omitted `kind` to `webhook`. SMTP create uses this body:
+
+```text
+{
+  "name": "Operations email",
+  "kind": "smtp",
+  "smtp": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "tls_mode": "starttls",
+    "from": "scheduler@example.com",
+    "recipients": ["ops@example.com"],
+    "timeout_seconds": 10,
+    "html": false
+  },
+  "smtp_auth": {"username": "SMTP username", "password": "SMTP password"}
+}
+```
+
+The `smtp_auth` input is optional and write-only. A channel read exposes `smtp` settings and `has_authorization`, never stored authentication. Update accepts a complete `smtp` settings object; kind is immutable and omitted credentials are retained. The existing authorization rotation endpoint accepts `{"smtp_auth":{"username":"replacement","password":"replacement"}}` or `{"smtp_auth":{}}` to clear. SMTP fields on webhook channels and webhook destination fields on SMTP channels are rejected. The legacy write-only authorization input remains compatible with existing clients.
+
+Delivery responses add transport `kind`, frozen `smtp` settings and `recipients`, whose entries contain `address`, `state`, `code` and `diagnostic`. Accepted recipients are excluded from retries. Unconfirmed interrupted submissions are reported as uncertain with duplicate-risk guidance. See [Notifications](notifications.md) for shared validation, lifecycle and retry semantics.

@@ -537,7 +537,7 @@ gosched logs --severity error --limit 200
 
 ## `notification`
 
-Manage reusable webhook channels, task and group policies, and redacted delivery evidence. Add `--json` to every read or mutation that returns an object.
+Manage reusable webhook or SMTP channels, task and group policies, and redacted delivery evidence. Add `--json` to every read or mutation that returns an object.
 
 ```sh
 gosched notification channel add "Operations" --endpoint https://receiver.example/hook --authorization "Bearer value" --health-interval 5m
@@ -732,3 +732,11 @@ gosched profile default reset
 ```
 
 The next desktop startup reads that choice; resetting selects this computer. These commands use existing registrations without reading native credentials or contacting a daemon. Per-invocation `--profile` and the ordinary CLI local default retain their existing meanings.
+
+## SMTP channel administration (Unreleased S111)
+
+The notification channel verbs also support `--kind smtp`. Supply `--smtp-host`, `--smtp-from`, `--smtp-to` and optional `--smtp-port`, `--smtp-tls starttls|tls|plain`, `--smtp-timeout 10s` and `--smtp-html`. Update merges explicitly supplied settings with the selected channel's current settings. Transport kind cannot be changed. SMTP settings flags do not select a daemon; use the existing profile or global `--daemon-endpoint` selector for that purpose.
+
+Create and rotate accept `--smtp-auth-file PATH` or `--smtp-auth-file -` for bounded UTF-8 JSON from a file or standard input. The object is `{"username":"...","password":"..."}`; `{}` clears authentication during rotation. Values are never returned by get/list/history. Human history includes each recipient's state, numeric SMTP status and authored explanation. JSON keeps the same command response shape with additive SMTP settings and recipient fields.
+
+See [Notifications](notifications.md#smtp-email-channels-unreleased-s111) for all settings, encryption choices, provider setup, retries and portable local-credential binding.

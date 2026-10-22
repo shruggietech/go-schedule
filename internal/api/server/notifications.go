@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/notification"
@@ -14,24 +15,30 @@ import (
 
 // NotificationChannelCreateRequest is the write-only channel creation contract.
 type NotificationChannelCreateRequest struct {
-	Name                  string `json:"name"`
-	Endpoint              string `json:"endpoint"`
-	Authorization         string `json:"authorization,omitempty"`
-	Enabled               *bool  `json:"enabled,omitempty"`
-	HealthIntervalSeconds int64  `json:"health_interval_seconds,omitempty"`
+	Kind                  domain.NotificationChannelKind `json:"kind,omitempty"`
+	SMTP                  *domain.SMTPConfig             `json:"smtp,omitempty"`
+	SMTPAuth              *domain.SMTPAuth               `json:"smtp_auth,omitempty"`
+	Name                  string                         `json:"name"`
+	Endpoint              string                         `json:"endpoint"`
+	Authorization         string                         `json:"authorization,omitempty"`
+	Enabled               *bool                          `json:"enabled,omitempty"`
+	HealthIntervalSeconds int64                          `json:"health_interval_seconds,omitempty"`
 }
 
 // NotificationChannelUpdateRequest changes non-authorization channel fields.
 type NotificationChannelUpdateRequest struct {
-	Name                  *string `json:"name,omitempty"`
-	Endpoint              *string `json:"endpoint,omitempty"`
-	Enabled               *bool   `json:"enabled,omitempty"`
-	HealthIntervalSeconds *int64  `json:"health_interval_seconds,omitempty"`
+	Kind                  *domain.NotificationChannelKind `json:"kind,omitempty"`
+	SMTP                  *domain.SMTPConfig              `json:"smtp,omitempty"`
+	Name                  *string                         `json:"name,omitempty"`
+	Endpoint              *string                         `json:"endpoint,omitempty"`
+	Enabled               *bool                           `json:"enabled,omitempty"`
+	HealthIntervalSeconds *int64                          `json:"health_interval_seconds,omitempty"`
 }
 
 // NotificationChannelRotateRequest replaces or removes authorization.
 type NotificationChannelRotateRequest struct {
-	Authorization string `json:"authorization"`
+	SMTPAuth      *domain.SMTPAuth `json:"smtp_auth,omitempty"`
+	Authorization string           `json:"authorization"`
 }
 
 // NotificationAssignmentInput is one item in a complete scope replacement.
@@ -59,29 +66,86 @@ func (s *Server) handleCreateNotificationChannel(w http.ResponseWriter, r *http.
 		return
 	}
 	name := strings.TrimSpace(req.Name)
-	if name == "" {
-		writeError(w, http.StatusBadRequest, CodeValidation, "name", "name is required")
+	if name == "" || len(name) > 256 {
+		writeError(w, http.StatusBadRequest, CodeValidation, "name", "name is required and must be at most 256 bytes")
 		return
 	}
-	summary, err := notification.ValidateEndpoint(req.Endpoint)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "endpoint", err.Error())
-		return
+	kind := req.Kind
+	if kind == "" {
+		kind = domain.NotificationChannelWebhook
 	}
-	enabled := true
+	channel := domain.NotificationChannel{Name: name, Kind: kind, Endpoint: strings.TrimSpace(req.Endpoint), Authorization: req.Authorization, SMTP: req.SMTP, Enabled: true, HealthIntervalSeconds: req.HealthIntervalSeconds}
 	if req.Enabled != nil {
-		enabled = *req.Enabled
+		channel.Enabled = *req.Enabled
 	}
 	if !validNotificationInterval(req.HealthIntervalSeconds, 60, 86400) {
 		writeError(w, http.StatusBadRequest, CodeValidation, "health_interval_seconds", "health interval must be 0 or between 60 and 86400 seconds")
 		return
 	}
-	channel := domain.NotificationChannel{Name: name, Kind: domain.NotificationChannelWebhook, Endpoint: strings.TrimSpace(req.Endpoint), EndpointSummary: summary, Authorization: req.Authorization, Enabled: enabled, HealthIntervalSeconds: req.HealthIntervalSeconds}
+	if req.SMTPAuth != nil {
+		if kind != domain.NotificationChannelSMTP || req.Authorization != "" {
+			writeError(w, http.StatusBadRequest, CodeValidation, "smtp_auth", "SMTP credentials require an SMTP channel and cannot be combined with authorization")
+			return
+		}
+		value, err := notification.EncodeSMTPAuth(*req.SMTPAuth)
+		if s.notificationConfigError(w, err) {
+			return
+		}
+		channel.Authorization = value
+	}
+	if s.notificationConfigError(w, validateNotificationChannel(&channel)) {
+		return
+	}
 	if err := s.store.CreateNotificationChannel(&channel); err != nil {
 		s.internalError(w, "create notification channel", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, channel)
+}
+
+func validateNotificationChannel(channel *domain.NotificationChannel) error {
+	switch channel.Kind {
+	case domain.NotificationChannelWebhook:
+		if channel.SMTP != nil {
+			return &notification.SMTPConfigError{Field: "settings", Message: "SMTP settings require kind smtp"}
+		}
+		summary, err := notification.ValidateEndpoint(channel.Endpoint)
+		if err != nil {
+			return err
+		}
+		channel.EndpointSummary = summary
+	case domain.NotificationChannelSMTP:
+		if channel.Endpoint != "" {
+			return &notification.SMTPConfigError{Field: "endpoint", Message: "SMTP channels use smtp settings instead of a webhook endpoint"}
+		}
+		if channel.SMTP == nil {
+			return &notification.SMTPConfigError{Field: "settings", Message: "SMTP settings are required"}
+		}
+		config, err := notification.ValidateSMTP(*channel.SMTP)
+		if err != nil {
+			return err
+		}
+		if _, err := notification.ParseSMTPAuth(channel.Authorization); err != nil {
+			return err
+		}
+		channel.SMTP = &config
+		channel.EndpointSummary = notification.SMTPSummary(config)
+	default:
+		return &notification.SMTPConfigError{Field: "kind", Message: "choose webhook or smtp"}
+	}
+	return nil
+}
+func (s *Server) notificationConfigError(w http.ResponseWriter, err error) bool {
+	if err == nil {
+		return false
+	}
+	field := "endpoint"
+	var smtpError *notification.SMTPConfigError
+	if errors.As(err, &smtpError) {
+		field = "smtp." + smtpError.Field
+	}
+	writeError(w, http.StatusBadRequest, CodeValidation, field, err.Error())
+	return true
 }
 
 func (s *Server) handleListNotificationChannels(w http.ResponseWriter, _ *http.Request) {
@@ -116,6 +180,25 @@ func (s *Server) handleUpdateNotificationChannel(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid JSON body")
 		return
 	}
+	if req.Kind != nil && *req.Kind != channel.Kind {
+		writeError(w, http.StatusBadRequest, CodeValidation, "kind", "channel kind cannot be changed; create a separate channel")
+		return
+	}
+	if req.SMTP != nil {
+		replacement := channel
+		replacement.SMTP = req.SMTP
+		if s.notificationConfigError(w, validateNotificationChannel(&replacement)) {
+			return
+		}
+		if channel.HasAuthorization && !smtpSameAuthority(channel.SMTP, replacement.SMTP) && !s.notificationSecretAuthority(w, r) {
+			return
+		}
+		channel = replacement
+	}
+	if channel.Kind == domain.NotificationChannelSMTP && req.Endpoint != nil {
+		writeError(w, http.StatusBadRequest, CodeValidation, "endpoint", "SMTP channels use smtp settings instead of a webhook endpoint")
+		return
+	}
 	if req.Name != nil {
 		channel.Name = strings.TrimSpace(*req.Name)
 		if channel.Name == "" {
@@ -123,6 +206,10 @@ func (s *Server) handleUpdateNotificationChannel(w http.ResponseWriter, r *http.
 			return
 		}
 	}
+	if req.Endpoint != nil && channel.HasAuthorization && *req.Endpoint != channel.Endpoint && !s.notificationSecretAuthority(w, r) {
+		return
+	}
+
 	if req.Endpoint != nil {
 		summary, err := notification.ValidateEndpoint(*req.Endpoint)
 		if err != nil {
@@ -140,6 +227,9 @@ func (s *Server) handleUpdateNotificationChannel(w http.ResponseWriter, r *http.
 			return
 		}
 		channel.HealthIntervalSeconds = *req.HealthIntervalSeconds
+	}
+	if s.notificationConfigError(w, validateNotificationChannel(&channel)) {
+		return
 	}
 	if err := s.store.UpdateNotificationChannel(channel); err != nil {
 		s.internalError(w, "update notification channel", err)
@@ -184,10 +274,30 @@ func (s *Server) handleRotateNotificationChannel(w http.ResponseWriter, r *http.
 		return
 	}
 	id := r.PathValue("id")
+	channel, err := s.store.GetNotificationChannel(id)
+	if s.notificationStoreError(w, err, "get notification channel") {
+		return
+	}
+	if req.SMTPAuth != nil {
+		if channel.Kind != domain.NotificationChannelSMTP || req.Authorization != "" {
+			writeError(w, http.StatusBadRequest, CodeValidation, "smtp_auth", "SMTP credentials require an SMTP channel and cannot be combined with authorization")
+			return
+		}
+		value, err := notification.EncodeSMTPAuth(*req.SMTPAuth)
+		if s.notificationConfigError(w, err) {
+			return
+		}
+		req.Authorization = value
+	}
+	if channel.Kind == domain.NotificationChannelSMTP {
+		if _, err := notification.ParseSMTPAuth(req.Authorization); s.notificationConfigError(w, err) {
+			return
+		}
+	}
 	if s.notificationStoreError(w, s.store.RotateNotificationChannelAuthorization(id, req.Authorization), "rotate notification authorization") {
 		return
 	}
-	channel, err := s.store.GetNotificationChannel(id)
+	channel, err = s.store.GetNotificationChannel(id)
 	if s.notificationStoreError(w, err, "get rotated notification channel") {
 		return
 	}
@@ -346,4 +456,16 @@ func (s *Server) internalError(w http.ResponseWriter, operation string, err erro
 		s.log.Error("api: "+operation, "err", err)
 	}
 	writeError(w, http.StatusInternalServerError, CodeInternal, "", operation+" failed")
+}
+
+func (s *Server) notificationSecretAuthority(w http.ResponseWriter, r *http.Request) bool {
+	id, err := s.resolveActor(r)
+	if err == nil {
+		actor, actorErr := s.store.GetActor(id)
+		if actorErr == nil && actor.ActiveAt(time.Now()) && actor.Capability.Allows(domain.CapabilityEnroll) {
+			return true
+		}
+	}
+	writeError(w, http.StatusForbidden, CodeForbidden, "authorization", "Changing a destination that retains stored credentials requires Enroll authority; ask an authorized administrator to update or clear the credentials.")
+	return false
 }

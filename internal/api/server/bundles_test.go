@@ -259,28 +259,11 @@ func TestBundlePolicyRejectsChannelReplacementAfterPreview(t *testing.T) {
 		t.Fatal(err)
 	}
 	apply := doJSON(t, s, http.MethodPost, "/v1/bundles/apply", BundleApplyRequest{PlanID: plan.ID, BundleDigest: plan.BundleDigest, TargetDaemonID: plan.TargetDaemonID, TargetFingerprint: plan.TargetFingerprint})
-	if apply.Code != http.StatusOK {
-		t.Fatalf("apply=%d %s", apply.Code, apply.Body.String())
+	if apply.Code != http.StatusConflict || !strings.Contains(apply.Body.String(), "preview again") {
+		t.Fatalf("stale apply=%d %s", apply.Code, apply.Body.String())
 	}
-	var result BundleApplyResponse
-	if err := json.Unmarshal(apply.Body.Bytes(), &result); err != nil {
-		t.Fatal(err)
-	}
-	policyFailed := false
-	for _, item := range result.Outcomes {
-		if item.Kind == "notification_policy" && item.Action == bundle.ActionFailed && strings.Contains(item.Message, "preview again") {
-			policyFailed = true
-		}
-	}
-	if !policyFailed {
-		t.Fatalf("changed channel was accepted: %+v", result.Outcomes)
-	}
-	taskID, err := s.store.ObjectIDForPortableID("task", "task")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assignments, err := s.store.ListNotificationAssignments(domain.NotificationScopeTask, taskID)
-	if err != nil || len(assignments) != 0 {
-		t.Fatalf("unexpected policy assignments=%+v err=%v", assignments, err)
+	tasks, err := s.store.ListTasks("", "")
+	if err != nil || len(tasks) != 0 {
+		t.Fatalf("stale apply changed tasks: %+v %v", tasks, err)
 	}
 }

@@ -109,6 +109,12 @@ func (d *Dispatcher) process(ctx context.Context) error {
 					return
 				}
 				delivery := deliveries[0]
+				if delivery.Kind == domain.NotificationChannelSMTP {
+					if err := d.processSMTP(ctx, delivery); err != nil {
+						errOnce.Do(func() { firstErr = err })
+					}
+					continue
+				}
 				status, diagnostic, sendErr := d.sender.Send(ctx, delivery)
 				d.finishAttempt(delivery, status, diagnostic, sendErr)
 			}
@@ -138,4 +144,27 @@ func (d *Dispatcher) finishAttempt(delivery domain.NotificationDelivery, status 
 		return
 	}
 	d.log.Warn("notification: delivery failed", "delivery", delivery.ID, "channel", delivery.ChannelID, "task", delivery.TaskID, "run", delivery.RunID, "attempts", delivery.Attempts, "status", status, "reason", diagnostic)
+}
+
+// smtpDeliveryStore extends the existing queue with durable recipient checkpoints.
+type smtpDeliveryStore interface {
+	CheckpointSMTPRecipients(string, []domain.NotificationRecipient) error
+	FinishSMTPAttempt(domain.NotificationDelivery, domain.SMTPAttemptResult, time.Time, time.Time) error
+}
+type smtpAttemptSender interface {
+	SendSMTP(context.Context, domain.NotificationDelivery, func([]domain.NotificationRecipient) error) domain.SMTPAttemptResult
+}
+
+func (d *Dispatcher) processSMTP(ctx context.Context, delivery domain.NotificationDelivery) error {
+	store, ok := d.store.(smtpDeliveryStore)
+	sender, hasSender := d.sender.(smtpAttemptSender)
+	if !ok || !hasSender {
+		return d.store.CompleteNotificationDelivery(delivery.ID, false, 0, "SMTP delivery support is unavailable; check daemon configuration.", d.clock.Now().UTC())
+	}
+	result := sender.SendSMTP(ctx, delivery, func(recipients []domain.NotificationRecipient) error {
+		return store.CheckpointSMTPRecipients(delivery.ID, recipients)
+	})
+	now := d.clock.Now().UTC()
+	delay := time.Duration(1<<(delivery.Attempts-1)) * time.Second
+	return store.FinishSMTPAttempt(delivery, result, now.Add(delay), now)
 }

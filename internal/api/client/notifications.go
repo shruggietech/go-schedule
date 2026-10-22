@@ -10,7 +10,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-// CreateNotificationChannel creates one write-only webhook destination.
+// CreateNotificationChannel creates one reusable notification destination.
 func (c *Client) CreateNotificationChannel(ctx context.Context, req server.NotificationChannelCreateRequest) (domain.NotificationChannel, error) {
 	var out domain.NotificationChannel
 	err := c.do(ctx, http.MethodPost, "/v1/notification-channels", req, &out)

@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: [PR #338](https://github.com/shruggietech/go-schedule/pull/338), open and unmerged; [delivery](delivery.md), [local verification](verification.md) and [publication/review record](review.md).
+**Delivery**: [PR #338](https://github.com/shruggietech/go-schedule/pull/338), squash merged at e5aa3240676b1bbc0d215bdb6a7b120ce1240d86 on 2026-10-21; [delivery](delivery.md), [local verification](verification.md) and [publication/review record](review.md).
 
 **Input**: Owner-authorized S110 autopilot, bundling #262, #271 and #335 in full, with one local pre-publication halt.
 

@@ -137,3 +137,76 @@ describe('NotificationsPage', () => {
     await user.selectOptions(screen.getByLabelText('State'), 'failed'); expect(screen.getByText('1 matching deliveries')).toBeInTheDocument(); await user.click(screen.getByRole('button', { name: /9\/7\/2026/ })); expect(screen.getByText('receiver unavailable')).toBeInTheDocument()
   })
 })
+
+it('authors SMTP settings and clears write-only credentials after save', async () => {
+  const user = userEvent.setup()
+  const save = vi.fn().mockResolvedValue({ action: 'save_notification_channel', outcome: 'accepted', message: 'Saved.', workspace })
+  render(<NotificationsPage bridge={bridge({ saveChannel: save })} available refreshToken={1} />)
+  await screen.findByRole('heading', { name: 'Notifications need attention' })
+  await user.click(screen.getByText('Manage destinations'))
+  await user.selectOptions(screen.getByLabelText('Transport'), 'smtp')
+  await user.type(screen.getByLabelText('Channel name'), 'Mail')
+  await user.type(screen.getByLabelText('SMTP server'), 'mail.example.test')
+  await user.type(screen.getByLabelText('Sender email'), 'sender@example.test')
+  await user.type(screen.getByLabelText('Recipient emails'), 'one@example.test, \"ops,night\"@example.test')
+  await user.type(screen.getByLabelText('SMTP username (optional)'), 'fixture-user')
+  await user.type(screen.getByLabelText('SMTP password'), 'fixture-secret')
+  await user.click(screen.getByRole('button', { name: 'Save channel' }))
+  await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ kind: 'smtp', smtpUsername: 'fixture-user', smtpPassword: 'fixture-secret', smtp: expect.objectContaining({ host: 'mail.example.test', recipients: ['one@example.test', '\"ops,night\"@example.test'], tls_mode: 'starttls' }) })))
+  await waitFor(() => expect(screen.getByLabelText('Transport')).toHaveValue('webhook'))
+  expect(screen.queryByDisplayValue('fixture-secret')).not.toBeInTheDocument()
+})
+
+
+describe('remote notification permissions', () => {
+  it.each([
+    { role: 'observe', canManage: false, canOperate: false, canEnroll: false },
+    { role: 'operate', canManage: false, canOperate: true, canEnroll: false },
+    { role: 'manage', canManage: true, canOperate: false, canEnroll: false },
+    { role: 'administrator', canManage: true, canOperate: true, canEnroll: true },
+  ])('matches controls to $role authority', async ({ canManage, canOperate, canEnroll }) => {
+    const user = userEvent.setup()
+    const testChannel = vi.fn(bridge().testChannel)
+    const savePolicy = vi.fn(bridge().savePolicy)
+    const saveChannel = vi.fn(bridge().saveChannel)
+    render(<NotificationsPage bridge={bridge({ testChannel, saveChannel, savePolicy, policy: async () => ({ action: 'load_notification_policy', outcome: 'accepted', message: 'Done.', policy: { ...policy, directAssignments: [{ channelId: 'c1', onFailure: true, onSuccess: false, onFailureToStart: false, failureThreshold: 1, durationThresholdSeconds: 0, onRecovery: false, reminderIntervalMinutes: 0, quietPeriodMinutes: 0 }] } }) })} available refreshToken={1} canManage={canManage} canOperate={canOperate} canEnroll={canEnroll} />)
+    await screen.findByText('1 active destination')
+    await user.click(screen.getByText('Manage destinations'))
+    const card = screen.getAllByRole('article')[0]
+    expect(within(card).getByRole('button', { name: 'Send test' }).hasAttribute('disabled')).toBe(!canOperate)
+    expect(within(card).getByRole('button', { name: 'Disable' }).hasAttribute('disabled')).toBe(!canManage)
+    expect(within(card).getByRole('button', { name: 'Remove' }).hasAttribute('disabled')).toBe(!canManage)
+    await user.click(within(card).getByRole('button', { name: 'Send test' }))
+    expect(testChannel).toHaveBeenCalledTimes(canOperate ? 1 : 0)
+    await user.click(within(card).getByRole('button', { name: 'Edit' }))
+    expect(screen.getByLabelText('Channel name').matches(':disabled')).toBe(!canManage)
+    expect(screen.getByLabelText('Replace stored endpoint').matches(':disabled')).toBe(!canManage || !canEnroll)
+    expect(screen.getByLabelText('Replace or remove stored authorization').matches(':disabled')).toBe(!canManage || !canEnroll)
+    await user.click(screen.getByRole('button', { name: 'Save channel' }))
+    expect(saveChannel).toHaveBeenCalledTimes(canManage ? 1 : 0)
+    await user.click(screen.getByText('Manage assignment rules'))
+    await user.selectOptions(screen.getByLabelText('Task or group'), 'task:t1')
+    await screen.findByText('Direct assignments for Backup')
+    expect(screen.getByRole('button', { name: 'Save direct rule' }).hasAttribute('disabled')).toBe(!canManage)
+    expect(screen.getAllByLabelText('Success')[0].matches(':disabled')).toBe(!canManage)
+    expect(screen.getByRole('button', { name: 'Use inherited rule' }).hasAttribute('disabled')).toBe(!canManage)
+    await user.click(screen.getByRole('button', { name: 'Use inherited rule' }))
+    expect(savePolicy).toHaveBeenCalledTimes(canManage ? 1 : 0)
+  })
+
+  it('allows Manage to edit recipients while preserving authenticated SMTP server and credentials', async () => {
+    const user = userEvent.setup()
+    const mail = { ...workspace.channels[0], kind: 'smtp', smtp: { host: 'mail.example.test', port: 587, tls_mode: 'starttls' as const, from: 'sender@example.test', recipients: ['ops@example.test'], timeout_seconds: 10, html: false } }
+    const saveChannel = vi.fn(bridge().saveChannel)
+    render(<NotificationsPage bridge={bridge({ workspace: async () => ({ action: 'load_notifications', outcome: 'accepted', message: 'Done.', workspace: { ...workspace, channels: [mail] } }), saveChannel })} available refreshToken={1} canManage canOperate={false} canEnroll={false} />)
+    await screen.findByText('1 active destination')
+    await user.click(screen.getByText('Manage destinations'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    for (const field of ['SMTP server', 'SMTP port', 'Encryption', 'Replace or remove stored SMTP credentials']) expect(screen.getByLabelText(field)).toBeDisabled()
+    expect(screen.getByLabelText('Recipient emails')).toBeEnabled()
+    await user.clear(screen.getByLabelText('Recipient emails'))
+    await user.type(screen.getByLabelText('Recipient emails'), 'new@example.test')
+    await user.click(screen.getByRole('button', { name: 'Save channel' }))
+    expect(saveChannel).toHaveBeenCalledWith(expect.objectContaining({ replaceAuthorization: false, smtp: expect.objectContaining({ host: 'mail.example.test', port: 587, tls_mode: 'starttls', recipients: ['new@example.test'] }) }))
+  })
+})

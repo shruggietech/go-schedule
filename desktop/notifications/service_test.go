@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -301,5 +302,41 @@ func TestPolicyUsesAuthoritativeEffectiveSourceAndValidatesAssignments(t *testin
 	good := s.SavePolicy(context.Background(), PolicyDraft{ScopeType: "task", ScopeID: "t1", Assignments: []Assignment{{ChannelID: "c1", DurationThresholdSeconds: 30}}})
 	if good.Outcome != "accepted" || len(f.replaced.Assignments) != 1 || f.replaced.Assignments[0].DurationThresholdSeconds != 30 {
 		t.Fatalf("good=%+v request=%+v", good, f.replaced)
+	}
+}
+
+func TestSMTPDesktopCreateEditClearAndSecretFreeWorkspace(t *testing.T) {
+	f := fixture()
+	service := NewService(f)
+	config := &domain.SMTPConfig{Host: "mail.example.test", Port: 587, TLSMode: "starttls", From: "sender@example.test", Recipients: []string{"ops@example.test"}, TimeoutSeconds: 10}
+	draft := ChannelDraft{Name: "Mail", Kind: "smtp", SMTP: config, SMTPUsername: "fixture-user", SMTPPassword: "fixture-password", IsNew: true}
+	result := service.SaveChannel(context.Background(), draft)
+	if result.Outcome != "accepted" || f.created.Kind != domain.NotificationChannelSMTP || f.created.SMTP == nil || !strings.Contains(f.created.Authorization, "fixture-password") {
+		t.Fatalf("create: %+v %+v", result, f.created)
+	}
+	f.channels = append(f.channels, domain.NotificationChannel{ID: "mail", Name: "Mail", Kind: domain.NotificationChannelSMTP, SMTP: config, HasAuthorization: true, Authorization: f.created.Authorization})
+	draft.ID = "mail"
+	draft.IsNew = false
+	draft.SMTPUsername = ""
+	draft.SMTPPassword = ""
+	draft.ReplaceAuthorization = true
+	result = service.SaveChannel(context.Background(), draft)
+	if result.Outcome != "accepted" || f.updated.SMTP == nil || f.rotated == nil || *f.rotated != "" {
+		t.Fatalf("clear: %+v", result)
+	}
+	result = service.Workspace(context.Background())
+	data, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "fixture-password") || strings.Contains(string(data), "fixture-user") {
+		t.Fatal("workspace leaked credentials")
+	}
+}
+
+func TestNotificationPermissionDenialIsNotAvailabilityFailure(t *testing.T) {
+	result := failure("save_notification_channel", &client.StatusError{Code: server.CodeForbidden})
+	if result.Outcome != "rejected" || !strings.Contains(result.Message, "permission") || strings.Contains(result.Message, "unavailable") {
+		t.Fatalf("permission diagnostic: %+v", result)
 	}
 }

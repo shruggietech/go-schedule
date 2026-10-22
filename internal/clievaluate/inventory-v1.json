@@ -7561,7 +7561,7 @@
   {
     "path": "notification channel",
     "use": "channel",
-    "short": "Manage reusable webhook channels",
+    "short": "Manage reusable notification channels",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -7671,7 +7671,7 @@
   {
     "path": "notification channel add",
     "use": "add \u003cname\u003e",
-    "short": "Create a webhook channel",
+    "short": "Create a notification channel",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -7799,6 +7799,17 @@
         "required": false
       },
       {
+        "name": "kind",
+        "shorthand": "",
+        "type": "string",
+        "default": "webhook",
+        "usage": "notification transport: webhook or smtp",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "profile",
         "shorthand": "",
         "type": "string",
@@ -7808,13 +7819,101 @@
         "hidden": false,
         "deprecated": "",
         "required": false
+      },
+      {
+        "name": "smtp-auth-file",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "write-only SMTP username/password JSON file; - reads standard input",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-from",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "sender email address",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-host",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "SMTP server hostname or IP address",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-html",
+        "shorthand": "",
+        "type": "bool",
+        "default": "false",
+        "usage": "include simple escaped HTML alongside plain text",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-port",
+        "shorthand": "",
+        "type": "int",
+        "default": "0",
+        "usage": "SMTP port (default follows the encryption mode)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-timeout",
+        "shorthand": "",
+        "type": "duration",
+        "default": "10s",
+        "usage": "shared SMTP attempt timeout (whole seconds, 1s-60s)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-tls",
+        "shorthand": "",
+        "type": "string",
+        "default": "starttls",
+        "usage": "SMTP encryption: starttls (required), tls (implicit), or plain (unencrypted)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-to",
+        "shorthand": "",
+        "type": "stringArray",
+        "default": "[]",
+        "usage": "recipient email address (repeatable or comma-separated, at most 100)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
       }
     ]
   },
   {
     "path": "notification channel disable",
     "use": "disable \u003cid\u003e",
-    "short": "Disable a webhook channel",
+    "short": "Disable a notification channel",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -7924,7 +8023,7 @@
   {
     "path": "notification channel enable",
     "use": "enable \u003cid\u003e",
-    "short": "Enable a webhook channel",
+    "short": "Enable a notification channel",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -8034,7 +8133,7 @@
   {
     "path": "notification channel get",
     "use": "get \u003cid\u003e",
-    "short": "Show a webhook channel",
+    "short": "Show a notification channel",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -8144,7 +8243,7 @@
   {
     "path": "notification channel list",
     "use": "list",
-    "short": "List webhook channels",
+    "short": "List notification channels",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -8254,7 +8353,7 @@
   {
     "path": "notification channel rm",
     "use": "rm \u003cid\u003e",
-    "short": "Remove a webhook channel",
+    "short": "Remove a notification channel",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -8375,7 +8474,7 @@
         "shorthand": "",
         "type": "string",
         "default": "",
-        "usage": "new write-only Authorization value (empty clears)",
+        "usage": "new write-only authorization value (empty clears)",
         "scope": "local",
         "hidden": false,
         "deprecated": "",
@@ -8479,13 +8578,24 @@
         "hidden": false,
         "deprecated": "",
         "required": false
+      },
+      {
+        "name": "smtp-auth-file",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "write-only SMTP username/password JSON file; - reads standard input; {} clears",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
       }
     ]
   },
   {
     "path": "notification channel test",
     "use": "test \u003cid\u003e",
-    "short": "Queue a test webhook",
+    "short": "Queue a test notification",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -8595,7 +8705,7 @@
   {
     "path": "notification channel update",
     "use": "update \u003cid\u003e",
-    "short": "Update a webhook channel",
+    "short": "Update a notification channel",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -8718,6 +8828,83 @@
         "default": "",
         "usage": "saved remote profile ID or unambiguous label",
         "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-from",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "sender email address",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-host",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "SMTP server hostname or IP address",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-html",
+        "shorthand": "",
+        "type": "bool",
+        "default": "false",
+        "usage": "include simple escaped HTML alongside plain text",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-port",
+        "shorthand": "",
+        "type": "int",
+        "default": "0",
+        "usage": "SMTP port (default follows the encryption mode)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-timeout",
+        "shorthand": "",
+        "type": "duration",
+        "default": "10s",
+        "usage": "shared SMTP attempt timeout (whole seconds, 1s-60s)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-tls",
+        "shorthand": "",
+        "type": "string",
+        "default": "starttls",
+        "usage": "SMTP encryption: starttls (required), tls (implicit), or plain (unencrypted)",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "smtp-to",
+        "shorthand": "",
+        "type": "stringArray",
+        "default": "[]",
+        "usage": "recipient email address (repeatable or comma-separated, at most 100)",
+        "scope": "local",
         "hidden": false,
         "deprecated": "",
         "required": false

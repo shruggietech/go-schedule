@@ -180,6 +180,78 @@ func (e IssuedCredentialState) Valid() bool {
 	}
 }
 
+// Defines values for NotificationChannelKind.
+const (
+	NotificationChannelKindSmtp    NotificationChannelKind = "smtp"
+	NotificationChannelKindWebhook NotificationChannelKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationChannelKind enum.
+func (e NotificationChannelKind) Valid() bool {
+	switch e {
+	case NotificationChannelKindSmtp:
+		return true
+	case NotificationChannelKindWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationChannelCreateKind.
+const (
+	NotificationChannelCreateKindSmtp    NotificationChannelCreateKind = "smtp"
+	NotificationChannelCreateKindWebhook NotificationChannelCreateKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationChannelCreateKind enum.
+func (e NotificationChannelCreateKind) Valid() bool {
+	switch e {
+	case NotificationChannelCreateKindSmtp:
+		return true
+	case NotificationChannelCreateKindWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationChannelUpdateKind.
+const (
+	NotificationChannelUpdateKindSmtp    NotificationChannelUpdateKind = "smtp"
+	NotificationChannelUpdateKindWebhook NotificationChannelUpdateKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationChannelUpdateKind enum.
+func (e NotificationChannelUpdateKind) Valid() bool {
+	switch e {
+	case NotificationChannelUpdateKindSmtp:
+		return true
+	case NotificationChannelUpdateKindWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NotificationDeliveryKind.
+const (
+	NotificationDeliveryKindSmtp    NotificationDeliveryKind = "smtp"
+	NotificationDeliveryKindWebhook NotificationDeliveryKind = "webhook"
+)
+
+// Valid indicates whether the value is a known member of the NotificationDeliveryKind enum.
+func (e NotificationDeliveryKind) Valid() bool {
+	switch e {
+	case NotificationDeliveryKindSmtp:
+		return true
+	case NotificationDeliveryKindWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NotificationProblemSummaryState.
 const (
 	NotificationProblemSummaryStateClaimed NotificationProblemSummaryState = "claimed"
@@ -201,6 +273,36 @@ func (e NotificationProblemSummaryState) Valid() bool {
 	}
 }
 
+// Defines values for NotificationRecipientState.
+const (
+	NotificationRecipientStateAccepted         NotificationRecipientState = "accepted"
+	NotificationRecipientStatePending          NotificationRecipientState = "pending"
+	NotificationRecipientStatePermanentFailure NotificationRecipientState = "permanent_failure"
+	NotificationRecipientStateSubmitting       NotificationRecipientState = "submitting"
+	NotificationRecipientStateTemporaryFailure NotificationRecipientState = "temporary_failure"
+	NotificationRecipientStateUncertain        NotificationRecipientState = "uncertain"
+)
+
+// Valid indicates whether the value is a known member of the NotificationRecipientState enum.
+func (e NotificationRecipientState) Valid() bool {
+	switch e {
+	case NotificationRecipientStateAccepted:
+		return true
+	case NotificationRecipientStatePending:
+		return true
+	case NotificationRecipientStatePermanentFailure:
+		return true
+	case NotificationRecipientStateSubmitting:
+		return true
+	case NotificationRecipientStateTemporaryFailure:
+		return true
+	case NotificationRecipientStateUncertain:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for OccurrenceKind.
 const (
 	Past      OccurrenceKind = "past"
@@ -213,6 +315,27 @@ func (e OccurrenceKind) Valid() bool {
 	case Past:
 		return true
 	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SMTPConfigTlsMode.
+const (
+	Plain    SMTPConfigTlsMode = "plain"
+	Starttls SMTPConfigTlsMode = "starttls"
+	Tls      SMTPConfigTlsMode = "tls"
+)
+
+// Valid indicates whether the value is a known member of the SMTPConfigTlsMode enum.
+func (e SMTPConfigTlsMode) Valid() bool {
+	switch e {
+	case Plain:
+		return true
+	case Starttls:
+		return true
+	case Tls:
 		return true
 	default:
 		return false
@@ -651,6 +774,14 @@ type DaemonSearch struct {
 // DaemonSearchSchema defines model for DaemonSearch.Schema.
 type DaemonSearchSchema string
 
+// EffectiveNotificationPolicy defines model for EffectiveNotificationPolicy.
+type EffectiveNotificationPolicy struct {
+	Assignments     []NotificationAssignment `json:"assignments"`
+	SourceScopeId   *string                  `json:"source_scope_id,omitempty"`
+	SourceScopeType string                   `json:"source_scope_type"`
+	TaskId          string                   `json:"task_id"`
+}
+
 // EnrollmentRequest defines model for EnrollmentRequest.
 type EnrollmentRequest struct {
 	Capability  Capability         `json:"capability"`
@@ -745,6 +876,123 @@ type Manifest struct {
 	RemoteApiVersions []string           `json:"remote_api_versions"`
 }
 
+// NotificationAssignment defines model for NotificationAssignment.
+type NotificationAssignment struct {
+	ChannelId                *string    `json:"channel_id,omitempty"`
+	CreatedAt                *time.Time `json:"created_at,omitempty"`
+	DurationThresholdSeconds *int       `json:"duration_threshold_seconds,omitempty"`
+	FailureThreshold         *int       `json:"failure_threshold,omitempty"`
+	Id                       *string    `json:"id,omitempty"`
+	OnFailure                *bool      `json:"on_failure,omitempty"`
+	OnFailureToStart         *bool      `json:"on_failure_to_start,omitempty"`
+	OnRecovery               *bool      `json:"on_recovery,omitempty"`
+	OnSuccess                *bool      `json:"on_success,omitempty"`
+	QuietPeriodSeconds       *int       `json:"quiet_period_seconds,omitempty"`
+	ReminderIntervalSeconds  *int       `json:"reminder_interval_seconds,omitempty"`
+	ScopeId                  *string    `json:"scope_id,omitempty"`
+	ScopeType                *string    `json:"scope_type,omitempty"`
+	UpdatedAt                *time.Time `json:"updated_at,omitempty"`
+}
+
+// NotificationAssignments defines model for NotificationAssignments.
+type NotificationAssignments struct {
+	Assignments []NotificationAssignment `json:"assignments"`
+}
+
+// NotificationChannel defines model for NotificationChannel.
+type NotificationChannel struct {
+	CreatedAt             time.Time               `json:"created_at"`
+	Enabled               bool                    `json:"enabled"`
+	EndpointSummary       string                  `json:"endpoint_summary"`
+	HasAuthorization      bool                    `json:"has_authorization"`
+	HealthIntervalSeconds *int                    `json:"health_interval_seconds,omitempty"`
+	Id                    string                  `json:"id"`
+	Kind                  NotificationChannelKind `json:"kind"`
+	Name                  string                  `json:"name"`
+	Smtp                  *SMTPConfig             `json:"smtp,omitempty"`
+	UpdatedAt             time.Time               `json:"updated_at"`
+}
+
+// NotificationChannelKind defines model for NotificationChannel.Kind.
+type NotificationChannelKind string
+
+// NotificationChannelCreate defines model for NotificationChannelCreate.
+type NotificationChannelCreate struct {
+	Authorization         *string                        `json:"authorization,omitempty"`
+	Enabled               *bool                          `json:"enabled,omitempty"`
+	Endpoint              *string                        `json:"endpoint,omitempty"`
+	HealthIntervalSeconds *int                           `json:"health_interval_seconds,omitempty"`
+	Kind                  *NotificationChannelCreateKind `json:"kind,omitempty"`
+	Name                  string                         `json:"name"`
+	Smtp                  *SMTPConfig                    `json:"smtp,omitempty"`
+	SmtpAuth              *SMTPAuth                      `json:"smtp_auth,omitempty"`
+}
+
+// NotificationChannelCreateKind defines model for NotificationChannelCreate.Kind.
+type NotificationChannelCreateKind string
+
+// NotificationChannelList defines model for NotificationChannelList.
+type NotificationChannelList struct {
+	NotificationChannels []NotificationChannel `json:"notification_channels"`
+}
+
+// NotificationChannelRotate defines model for NotificationChannelRotate.
+type NotificationChannelRotate struct {
+	Authorization *string   `json:"authorization,omitempty"`
+	SmtpAuth      *SMTPAuth `json:"smtp_auth,omitempty"`
+}
+
+// NotificationChannelUpdate defines model for NotificationChannelUpdate.
+type NotificationChannelUpdate struct {
+	Enabled               *bool   `json:"enabled,omitempty"`
+	Endpoint              *string `json:"endpoint,omitempty"`
+	HealthIntervalSeconds *int    `json:"health_interval_seconds,omitempty"`
+
+	// Kind Must match the existing immutable kind.
+	Kind *NotificationChannelUpdateKind `json:"kind,omitempty"`
+	Name *string                        `json:"name,omitempty"`
+	Smtp *SMTPConfig                    `json:"smtp,omitempty"`
+}
+
+// NotificationChannelUpdateKind Must match the existing immutable kind.
+type NotificationChannelUpdateKind string
+
+// NotificationDelivery defines model for NotificationDelivery.
+type NotificationDelivery struct {
+	Attempts           int                       `json:"attempts"`
+	ChannelId          *string                   `json:"channel_id,omitempty"`
+	ChannelName        string                    `json:"channel_name"`
+	ClaimedAt          *time.Time                `json:"claimed_at,omitempty"`
+	CompletedAt        *time.Time                `json:"completed_at,omitempty"`
+	ConditionKind      *string                   `json:"condition_kind,omitempty"`
+	ConditionSummary   *string                   `json:"condition_summary,omitempty"`
+	CreatedAt          time.Time                 `json:"created_at"`
+	DestinationSummary string                    `json:"destination_summary"`
+	Event              *map[string]interface{}   `json:"event,omitempty"`
+	EventKind          string                    `json:"event_kind"`
+	GroupId            *string                   `json:"group_id,omitempty"`
+	GroupName          *string                   `json:"group_name,omitempty"`
+	Id                 string                    `json:"id"`
+	Kind               *NotificationDeliveryKind `json:"kind,omitempty"`
+	LastError          *string                   `json:"last_error,omitempty"`
+	LastStatus         *int                      `json:"last_status,omitempty"`
+	NextAttemptAt      *time.Time                `json:"next_attempt_at,omitempty"`
+	Recipients         *[]NotificationRecipient  `json:"recipients,omitempty"`
+	RunId              *string                   `json:"run_id,omitempty"`
+	Smtp               *SMTPConfig               `json:"smtp,omitempty"`
+	State              string                    `json:"state"`
+	TaskId             *string                   `json:"task_id,omitempty"`
+	TaskName           *string                   `json:"task_name,omitempty"`
+}
+
+// NotificationDeliveryKind defines model for NotificationDelivery.Kind.
+type NotificationDeliveryKind string
+
+// NotificationDeliveryList defines model for NotificationDeliveryList.
+type NotificationDeliveryList struct {
+	NotificationDeliveries []NotificationDelivery `json:"notification_deliveries"`
+}
+
 // NotificationProblemSummary defines model for NotificationProblemSummary.
 type NotificationProblemSummary struct {
 	ChannelName string                          `json:"channel_name"`
@@ -757,6 +1005,17 @@ type NotificationProblemSummary struct {
 
 // NotificationProblemSummaryState defines model for NotificationProblemSummary.State.
 type NotificationProblemSummaryState string
+
+// NotificationRecipient defines model for NotificationRecipient.
+type NotificationRecipient struct {
+	Address    string                     `json:"address"`
+	Code       *int                       `json:"code,omitempty"`
+	Diagnostic *string                    `json:"diagnostic,omitempty"`
+	State      NotificationRecipientState `json:"state"`
+}
+
+// NotificationRecipientState defines model for NotificationRecipient.State.
+type NotificationRecipientState string
 
 // Occurrence defines model for Occurrence.
 type Occurrence struct {
@@ -799,6 +1058,26 @@ type Run struct {
 type RunList struct {
 	Runs []Run `json:"runs"`
 }
+
+// SMTPAuth defines model for SMTPAuth.
+type SMTPAuth struct {
+	Password *string `json:"password,omitempty"`
+	Username *string `json:"username,omitempty"`
+}
+
+// SMTPConfig defines model for SMTPConfig.
+type SMTPConfig struct {
+	From           string            `json:"from"`
+	Host           string            `json:"host"`
+	Html           *bool             `json:"html,omitempty"`
+	Port           *int              `json:"port,omitempty"`
+	Recipients     []string          `json:"recipients"`
+	TimeoutSeconds *int              `json:"timeout_seconds,omitempty"`
+	TlsMode        SMTPConfigTlsMode `json:"tls_mode"`
+}
+
+// SMTPConfigTlsMode defines model for SMTPConfig.TlsMode.
+type SMTPConfigTlsMode string
 
 // SearchAction defines model for SearchAction.
 type SearchAction string
@@ -1062,11 +1341,26 @@ type BundlesValidateJSONRequestBody BundlesValidateJSONBody
 // EnrollmentExchangeJSONRequestBody defines body for EnrollmentExchange for application/json ContentType.
 type EnrollmentExchangeJSONRequestBody = EnrollmentRequest
 
+// GroupsNotificationsUpdateJSONRequestBody defines body for GroupsNotificationsUpdate for application/json ContentType.
+type GroupsNotificationsUpdateJSONRequestBody = NotificationAssignments
+
+// NotificationsChannelsCreateJSONRequestBody defines body for NotificationsChannelsCreate for application/json ContentType.
+type NotificationsChannelsCreateJSONRequestBody = NotificationChannelCreate
+
+// NotificationsChannelsUpdateJSONRequestBody defines body for NotificationsChannelsUpdate for application/json ContentType.
+type NotificationsChannelsUpdateJSONRequestBody = NotificationChannelUpdate
+
+// NotificationsChannelsRotateJSONRequestBody defines body for NotificationsChannelsRotate for application/json ContentType.
+type NotificationsChannelsRotateJSONRequestBody = NotificationChannelRotate
+
 // TasksCreateJSONRequestBody defines body for TasksCreate for application/json ContentType.
 type TasksCreateJSONRequestBody = TaskCreateRequest
 
 // TasksUpdateJSONRequestBody defines body for TasksUpdate for application/json ContentType.
 type TasksUpdateJSONRequestBody = TaskUpdateRequest
+
+// TasksNotificationsUpdateJSONRequestBody defines body for TasksNotificationsUpdate for application/json ContentType.
+type TasksNotificationsUpdateJSONRequestBody = NotificationAssignments
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -1234,11 +1528,67 @@ type ClientInterface interface {
 	// GroupsRead performs a GET /groups/{id} (the `GroupsRead` operationId) request.
 	GroupsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GroupsNotificationsRead performs a GET /groups/{id}/notifications (the `GroupsNotificationsRead` operationId) request.
+	GroupsNotificationsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GroupsNotificationsUpdateWithBody performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	GroupsNotificationsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GroupsNotificationsUpdate performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	GroupsNotificationsUpdate(ctx context.Context, id ID, body GroupsNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// HealthRead performs a GET /health (the `HealthRead` operationId) request.
 	HealthRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ManifestRead performs a GET /manifest (the `ManifestRead` operationId) request.
 	ManifestRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsList performs a GET /notification-channels (the `NotificationsChannelsList` operationId) request.
+	NotificationsChannelsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsCreateWithBody performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request,
+	// with any type of body and a specified content type.
+	NotificationsChannelsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsCreate performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	NotificationsChannelsCreate(ctx context.Context, body NotificationsChannelsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsDelete performs a DELETE /notification-channels/{id} (the `NotificationsChannelsDelete` operationId) request.
+	NotificationsChannelsDelete(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsRead performs a GET /notification-channels/{id} (the `NotificationsChannelsRead` operationId) request.
+	NotificationsChannelsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsUpdateWithBody performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	NotificationsChannelsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsUpdate performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	NotificationsChannelsUpdate(ctx context.Context, id ID, body NotificationsChannelsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsDisable performs a POST /notification-channels/{id}/disable (the `NotificationsChannelsDisable` operationId) request.
+	NotificationsChannelsDisable(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsEnable performs a POST /notification-channels/{id}/enable (the `NotificationsChannelsEnable` operationId) request.
+	NotificationsChannelsEnable(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsRotateWithBody performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request,
+	// with any type of body and a specified content type.
+	NotificationsChannelsRotateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsRotate performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	NotificationsChannelsRotate(ctx context.Context, id ID, body NotificationsChannelsRotateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsChannelsTest performs a POST /notification-channels/{id}/test (the `NotificationsChannelsTest` operationId) request.
+	NotificationsChannelsTest(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// NotificationsDeliveriesList performs a GET /notification-deliveries (the `NotificationsDeliveriesList` operationId) request.
+	NotificationsDeliveriesList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RunsList performs a GET /runs (the `RunsList` operationId) request.
 	RunsList(ctx context.Context, params *RunsListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1289,6 +1639,20 @@ type ClientInterface interface {
 
 	// TasksEnable performs a POST /tasks/{id}/enable (the `TasksEnable` operationId) request.
 	TasksEnable(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TasksNotificationsRead performs a GET /tasks/{id}/notifications (the `TasksNotificationsRead` operationId) request.
+	TasksNotificationsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TasksNotificationsUpdateWithBody performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	TasksNotificationsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TasksNotificationsUpdate performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	TasksNotificationsUpdate(ctx context.Context, id ID, body TasksNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TasksNotificationsEffectiveRead performs a GET /tasks/{id}/notifications/effective (the `TasksNotificationsEffectiveRead` operationId) request.
+	TasksNotificationsEffectiveRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TasksRunNow performs a POST /tasks/{id}/run-now (the `TasksRunNow` operationId) request.
 	TasksRunNow(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1586,6 +1950,47 @@ func (c *Client) GroupsRead(ctx context.Context, id ID, reqEditors ...RequestEdi
 	return c.Client.Do(req)
 }
 
+// GroupsNotificationsRead performs a GET /groups/{id}/notifications (the `GroupsNotificationsRead` operationId) request.
+func (c *Client) GroupsNotificationsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGroupsNotificationsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GroupsNotificationsUpdateWithBody performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) GroupsNotificationsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGroupsNotificationsUpdateRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GroupsNotificationsUpdate performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) GroupsNotificationsUpdate(ctx context.Context, id ID, body GroupsNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGroupsNotificationsUpdateRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // HealthRead performs a GET /health (the `HealthRead` operationId) request.
 func (c *Client) HealthRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewHealthReadRequest(c.Server)
@@ -1602,6 +2007,181 @@ func (c *Client) HealthRead(ctx context.Context, reqEditors ...RequestEditorFn) 
 // ManifestRead performs a GET /manifest (the `ManifestRead` operationId) request.
 func (c *Client) ManifestRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewManifestReadRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsList performs a GET /notification-channels (the `NotificationsChannelsList` operationId) request.
+func (c *Client) NotificationsChannelsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsListRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsCreateWithBody performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) NotificationsChannelsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsCreateRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsCreate performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) NotificationsChannelsCreate(ctx context.Context, body NotificationsChannelsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsCreateRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsDelete performs a DELETE /notification-channels/{id} (the `NotificationsChannelsDelete` operationId) request.
+func (c *Client) NotificationsChannelsDelete(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsDeleteRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsRead performs a GET /notification-channels/{id} (the `NotificationsChannelsRead` operationId) request.
+func (c *Client) NotificationsChannelsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsUpdateWithBody performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) NotificationsChannelsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsUpdateRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsUpdate performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) NotificationsChannelsUpdate(ctx context.Context, id ID, body NotificationsChannelsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsUpdateRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsDisable performs a POST /notification-channels/{id}/disable (the `NotificationsChannelsDisable` operationId) request.
+func (c *Client) NotificationsChannelsDisable(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsDisableRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsEnable performs a POST /notification-channels/{id}/enable (the `NotificationsChannelsEnable` operationId) request.
+func (c *Client) NotificationsChannelsEnable(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsEnableRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsRotateWithBody performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) NotificationsChannelsRotateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsRotateRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsRotate performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) NotificationsChannelsRotate(ctx context.Context, id ID, body NotificationsChannelsRotateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsRotateRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsChannelsTest performs a POST /notification-channels/{id}/test (the `NotificationsChannelsTest` operationId) request.
+func (c *Client) NotificationsChannelsTest(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsChannelsTestRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NotificationsDeliveriesList performs a GET /notification-deliveries (the `NotificationsDeliveriesList` operationId) request.
+func (c *Client) NotificationsDeliveriesList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewNotificationsDeliveriesListRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1792,6 +2372,60 @@ func (c *Client) TasksDisable(ctx context.Context, id ID, reqEditors ...RequestE
 // TasksEnable performs a POST /tasks/{id}/enable (the `TasksEnable` operationId) request.
 func (c *Client) TasksEnable(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewTasksEnableRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TasksNotificationsRead performs a GET /tasks/{id}/notifications (the `TasksNotificationsRead` operationId) request.
+func (c *Client) TasksNotificationsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTasksNotificationsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TasksNotificationsUpdateWithBody performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) TasksNotificationsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTasksNotificationsUpdateRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TasksNotificationsUpdate performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) TasksNotificationsUpdate(ctx context.Context, id ID, body TasksNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTasksNotificationsUpdateRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// TasksNotificationsEffectiveRead performs a GET /tasks/{id}/notifications/effective (the `TasksNotificationsEffectiveRead` operationId) request.
+func (c *Client) TasksNotificationsEffectiveRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTasksNotificationsEffectiveReadRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -2515,6 +3149,87 @@ func NewGroupsReadRequest(server string, id ID) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGroupsNotificationsReadRequest constructs an http.Request for the GroupsNotificationsRead method
+func NewGroupsNotificationsReadRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/groups/%s/notifications", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGroupsNotificationsUpdateRequest calls the generic GroupsNotificationsUpdate builder with application/json body
+func NewGroupsNotificationsUpdateRequest(server string, id ID, body GroupsNotificationsUpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewGroupsNotificationsUpdateRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewGroupsNotificationsUpdateRequestWithBody constructs an http.Request for the GroupsNotificationsUpdate method, with any body, and a specified content type
+func NewGroupsNotificationsUpdateRequestWithBody(server string, id ID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/groups/%s/notifications", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewHealthReadRequest constructs an http.Request for the HealthRead method
 func NewHealthReadRequest(server string) (*http.Request, error) {
 	var err error
@@ -2552,6 +3267,364 @@ func NewManifestReadRequest(server string) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/manifest")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsChannelsListRequest constructs an http.Request for the NotificationsChannelsList method
+func NewNotificationsChannelsListRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsChannelsCreateRequest calls the generic NotificationsChannelsCreate builder with application/json body
+func NewNotificationsChannelsCreateRequest(server string, body NotificationsChannelsCreateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewNotificationsChannelsCreateRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewNotificationsChannelsCreateRequestWithBody constructs an http.Request for the NotificationsChannelsCreate method, with any body, and a specified content type
+func NewNotificationsChannelsCreateRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewNotificationsChannelsDeleteRequest constructs an http.Request for the NotificationsChannelsDelete method
+func NewNotificationsChannelsDeleteRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsChannelsReadRequest constructs an http.Request for the NotificationsChannelsRead method
+func NewNotificationsChannelsReadRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsChannelsUpdateRequest calls the generic NotificationsChannelsUpdate builder with application/json body
+func NewNotificationsChannelsUpdateRequest(server string, id ID, body NotificationsChannelsUpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewNotificationsChannelsUpdateRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewNotificationsChannelsUpdateRequestWithBody constructs an http.Request for the NotificationsChannelsUpdate method, with any body, and a specified content type
+func NewNotificationsChannelsUpdateRequestWithBody(server string, id ID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewNotificationsChannelsDisableRequest constructs an http.Request for the NotificationsChannelsDisable method
+func NewNotificationsChannelsDisableRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s/disable", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsChannelsEnableRequest constructs an http.Request for the NotificationsChannelsEnable method
+func NewNotificationsChannelsEnableRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s/enable", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsChannelsRotateRequest calls the generic NotificationsChannelsRotate builder with application/json body
+func NewNotificationsChannelsRotateRequest(server string, id ID, body NotificationsChannelsRotateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewNotificationsChannelsRotateRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewNotificationsChannelsRotateRequestWithBody constructs an http.Request for the NotificationsChannelsRotate method, with any body, and a specified content type
+func NewNotificationsChannelsRotateRequestWithBody(server string, id ID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s/rotate", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewNotificationsChannelsTestRequest constructs an http.Request for the NotificationsChannelsTest method
+func NewNotificationsChannelsTestRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-channels/%s/test", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewNotificationsDeliveriesListRequest constructs an http.Request for the NotificationsDeliveriesList method
+func NewNotificationsDeliveriesListRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/notification-deliveries")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -3158,6 +4231,121 @@ func NewTasksEnableRequest(server string, id ID) (*http.Request, error) {
 	return req, nil
 }
 
+// NewTasksNotificationsReadRequest constructs an http.Request for the TasksNotificationsRead method
+func NewTasksNotificationsReadRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tasks/%s/notifications", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTasksNotificationsUpdateRequest calls the generic TasksNotificationsUpdate builder with application/json body
+func NewTasksNotificationsUpdateRequest(server string, id ID, body TasksNotificationsUpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTasksNotificationsUpdateRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewTasksNotificationsUpdateRequestWithBody constructs an http.Request for the TasksNotificationsUpdate method, with any body, and a specified content type
+func NewTasksNotificationsUpdateRequestWithBody(server string, id ID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tasks/%s/notifications", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTasksNotificationsEffectiveReadRequest constructs an http.Request for the TasksNotificationsEffectiveRead method
+func NewTasksNotificationsEffectiveReadRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tasks/%s/notifications/effective", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewTasksRunNowRequest constructs an http.Request for the TasksRunNow method
 func NewTasksRunNowRequest(server string, id ID) (*http.Request, error) {
 	var err error
@@ -3358,6 +4546,21 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	GroupsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*GroupsReadResponse, error)
 
+	// GroupsNotificationsReadWithResponse performs a GET /groups/{id}/notifications (the `GroupsNotificationsRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GroupsNotificationsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*GroupsNotificationsReadResponse, error)
+
+	// GroupsNotificationsUpdateWithBodyWithResponse performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	GroupsNotificationsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GroupsNotificationsUpdateResponse, error)
+
+	// GroupsNotificationsUpdateWithResponse performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	GroupsNotificationsUpdateWithResponse(ctx context.Context, id ID, body GroupsNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*GroupsNotificationsUpdateResponse, error)
+
 	// HealthReadWithResponse performs a GET /health (the `HealthRead` operationId) request.
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -3367,6 +4570,71 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	ManifestReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ManifestReadResponse, error)
+
+	// NotificationsChannelsListWithResponse performs a GET /notification-channels (the `NotificationsChannelsList` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*NotificationsChannelsListResponse, error)
+
+	// NotificationsChannelsCreateWithBodyWithResponse performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*NotificationsChannelsCreateResponse, error)
+
+	// NotificationsChannelsCreateWithResponse performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	NotificationsChannelsCreateWithResponse(ctx context.Context, body NotificationsChannelsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*NotificationsChannelsCreateResponse, error)
+
+	// NotificationsChannelsDeleteWithResponse performs a DELETE /notification-channels/{id} (the `NotificationsChannelsDelete` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsDeleteWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsDeleteResponse, error)
+
+	// NotificationsChannelsReadWithResponse performs a GET /notification-channels/{id} (the `NotificationsChannelsRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsReadResponse, error)
+
+	// NotificationsChannelsUpdateWithBodyWithResponse performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*NotificationsChannelsUpdateResponse, error)
+
+	// NotificationsChannelsUpdateWithResponse performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	NotificationsChannelsUpdateWithResponse(ctx context.Context, id ID, body NotificationsChannelsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*NotificationsChannelsUpdateResponse, error)
+
+	// NotificationsChannelsDisableWithResponse performs a POST /notification-channels/{id}/disable (the `NotificationsChannelsDisable` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsDisableWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsDisableResponse, error)
+
+	// NotificationsChannelsEnableWithResponse performs a POST /notification-channels/{id}/enable (the `NotificationsChannelsEnable` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsEnableWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsEnableResponse, error)
+
+	// NotificationsChannelsRotateWithBodyWithResponse performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsRotateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*NotificationsChannelsRotateResponse, error)
+
+	// NotificationsChannelsRotateWithResponse performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	NotificationsChannelsRotateWithResponse(ctx context.Context, id ID, body NotificationsChannelsRotateJSONRequestBody, reqEditors ...RequestEditorFn) (*NotificationsChannelsRotateResponse, error)
+
+	// NotificationsChannelsTestWithResponse performs a POST /notification-channels/{id}/test (the `NotificationsChannelsTest` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsChannelsTestWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsTestResponse, error)
+
+	// NotificationsDeliveriesListWithResponse performs a GET /notification-deliveries (the `NotificationsDeliveriesList` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	NotificationsDeliveriesListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*NotificationsDeliveriesListResponse, error)
 
 	// RunsListWithResponse performs a GET /runs (the `RunsList` operationId) request.
 	//
@@ -3441,6 +4709,26 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	TasksEnableWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*TasksEnableResponse, error)
+
+	// TasksNotificationsReadWithResponse performs a GET /tasks/{id}/notifications (the `TasksNotificationsRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	TasksNotificationsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*TasksNotificationsReadResponse, error)
+
+	// TasksNotificationsUpdateWithBodyWithResponse performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	TasksNotificationsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TasksNotificationsUpdateResponse, error)
+
+	// TasksNotificationsUpdateWithResponse performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	TasksNotificationsUpdateWithResponse(ctx context.Context, id ID, body TasksNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*TasksNotificationsUpdateResponse, error)
+
+	// TasksNotificationsEffectiveReadWithResponse performs a GET /tasks/{id}/notifications/effective (the `TasksNotificationsEffectiveRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	TasksNotificationsEffectiveReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*TasksNotificationsEffectiveReadResponse, error)
 
 	// TasksRunNowWithResponse performs a POST /tasks/{id}/run-now (the `TasksRunNow` operationId) request.
 	//
@@ -4259,6 +5547,116 @@ func (r GroupsReadResponse) ContentType() string {
 	return ""
 }
 
+// GroupsNotificationsReadResponse401Headers the declared response headers of an HTTP 401 response for GroupsNotificationsRead
+type GroupsNotificationsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type GroupsNotificationsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationAssignments
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *GroupsNotificationsReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GroupsNotificationsReadResponse) GetJSON200() *NotificationAssignments {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GroupsNotificationsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r GroupsNotificationsReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GroupsNotificationsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GroupsNotificationsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GroupsNotificationsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// GroupsNotificationsUpdateResponse401Headers the declared response headers of an HTTP 401 response for GroupsNotificationsUpdate
+type GroupsNotificationsUpdateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type GroupsNotificationsUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationAssignments
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *GroupsNotificationsUpdateResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GroupsNotificationsUpdateResponse) GetJSON200() *NotificationAssignments {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GroupsNotificationsUpdateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r GroupsNotificationsUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GroupsNotificationsUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GroupsNotificationsUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GroupsNotificationsUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type HealthReadResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4335,6 +5733,549 @@ func (r ManifestReadResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ManifestReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsListResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsList
+type NotificationsChannelsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannelList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsListResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsChannelsListResponse) GetJSON200() *NotificationChannelList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsListResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsCreateResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsCreate
+type NotificationsChannelsCreateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsCreateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *NotificationChannel
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsCreateResponse401Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r NotificationsChannelsCreateResponse) GetJSON201() *NotificationChannel {
+	return r.JSON201
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsCreateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsCreateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsCreateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsCreateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsCreateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsDeleteResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsDelete
+type NotificationsChannelsDeleteResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsDeleteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsDeleteResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsDeleteResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsDeleteResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsDeleteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsDeleteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsDeleteResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsReadResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsRead
+type NotificationsChannelsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannel
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsChannelsReadResponse) GetJSON200() *NotificationChannel {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsUpdateResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsUpdate
+type NotificationsChannelsUpdateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannel
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsUpdateResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsChannelsUpdateResponse) GetJSON200() *NotificationChannel {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsUpdateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsDisableResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsDisable
+type NotificationsChannelsDisableResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsDisableResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannel
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsDisableResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsChannelsDisableResponse) GetJSON200() *NotificationChannel {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsDisableResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsDisableResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsDisableResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsDisableResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsDisableResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsEnableResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsEnable
+type NotificationsChannelsEnableResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsEnableResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannel
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsEnableResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsChannelsEnableResponse) GetJSON200() *NotificationChannel {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsEnableResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsEnableResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsEnableResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsEnableResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsEnableResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsRotateResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsRotate
+type NotificationsChannelsRotateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsRotateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationChannel
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsRotateResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsChannelsRotateResponse) GetJSON200() *NotificationChannel {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsRotateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsRotateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsRotateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsRotateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsRotateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsChannelsTestResponse401Headers the declared response headers of an HTTP 401 response for NotificationsChannelsTest
+type NotificationsChannelsTestResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsChannelsTestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *NotificationDelivery
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsChannelsTestResponse401Headers
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r NotificationsChannelsTestResponse) GetJSON202() *NotificationDelivery {
+	return r.JSON202
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsChannelsTestResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsChannelsTestResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsChannelsTestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsChannelsTestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsChannelsTestResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// NotificationsDeliveriesListResponse401Headers the declared response headers of an HTTP 401 response for NotificationsDeliveriesList
+type NotificationsDeliveriesListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type NotificationsDeliveriesListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationDeliveryList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *NotificationsDeliveriesListResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r NotificationsDeliveriesListResponse) GetJSON200() *NotificationDeliveryList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r NotificationsDeliveriesListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r NotificationsDeliveriesListResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r NotificationsDeliveriesListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r NotificationsDeliveriesListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r NotificationsDeliveriesListResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4994,6 +6935,171 @@ func (r TasksEnableResponse) ContentType() string {
 	return ""
 }
 
+// TasksNotificationsReadResponse401Headers the declared response headers of an HTTP 401 response for TasksNotificationsRead
+type TasksNotificationsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type TasksNotificationsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationAssignments
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksNotificationsReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TasksNotificationsReadResponse) GetJSON200() *NotificationAssignments {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksNotificationsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r TasksNotificationsReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TasksNotificationsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TasksNotificationsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TasksNotificationsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// TasksNotificationsUpdateResponse401Headers the declared response headers of an HTTP 401 response for TasksNotificationsUpdate
+type TasksNotificationsUpdateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type TasksNotificationsUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *NotificationAssignments
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksNotificationsUpdateResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TasksNotificationsUpdateResponse) GetJSON200() *NotificationAssignments {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksNotificationsUpdateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r TasksNotificationsUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TasksNotificationsUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TasksNotificationsUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TasksNotificationsUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// TasksNotificationsEffectiveReadResponse401Headers the declared response headers of an HTTP 401 response for TasksNotificationsEffectiveRead
+type TasksNotificationsEffectiveReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type TasksNotificationsEffectiveReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *EffectiveNotificationPolicy
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *TasksNotificationsEffectiveReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r TasksNotificationsEffectiveReadResponse) GetJSON200() *EffectiveNotificationPolicy {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r TasksNotificationsEffectiveReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r TasksNotificationsEffectiveReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r TasksNotificationsEffectiveReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TasksNotificationsEffectiveReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r TasksNotificationsEffectiveReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // TasksRunNowResponse401Headers the declared response headers of an HTTP 401 response for TasksRunNow
 type TasksRunNowResponse401Headers struct {
 	WWWAuthenticate *string
@@ -5284,6 +7390,39 @@ func (c *ClientWithResponses) GroupsReadWithResponse(ctx context.Context, id ID,
 	return ParseGroupsReadResponse(rsp)
 }
 
+// GroupsNotificationsReadWithResponse performs a GET /groups/{id}/notifications (the `GroupsNotificationsRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GroupsNotificationsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*GroupsNotificationsReadResponse, error) {
+	rsp, err := c.GroupsNotificationsRead(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGroupsNotificationsReadResponse(rsp)
+}
+
+// GroupsNotificationsUpdateWithBodyWithResponse performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GroupsNotificationsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GroupsNotificationsUpdateResponse, error) {
+	rsp, err := c.GroupsNotificationsUpdateWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGroupsNotificationsUpdateResponse(rsp)
+}
+
+// GroupsNotificationsUpdateWithResponse performs a PUT /groups/{id}/notifications (the `GroupsNotificationsUpdate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) GroupsNotificationsUpdateWithResponse(ctx context.Context, id ID, body GroupsNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*GroupsNotificationsUpdateResponse, error) {
+	rsp, err := c.GroupsNotificationsUpdate(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGroupsNotificationsUpdateResponse(rsp)
+}
+
 // HealthReadWithResponse performs a GET /health (the `HealthRead` operationId) request.
 //
 // Returns a wrapper object for the known response body format(s).
@@ -5304,6 +7443,149 @@ func (c *ClientWithResponses) ManifestReadWithResponse(ctx context.Context, reqE
 		return nil, err
 	}
 	return ParseManifestReadResponse(rsp)
+}
+
+// NotificationsChannelsListWithResponse performs a GET /notification-channels (the `NotificationsChannelsList` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*NotificationsChannelsListResponse, error) {
+	rsp, err := c.NotificationsChannelsList(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsListResponse(rsp)
+}
+
+// NotificationsChannelsCreateWithBodyWithResponse performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*NotificationsChannelsCreateResponse, error) {
+	rsp, err := c.NotificationsChannelsCreateWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsCreateResponse(rsp)
+}
+
+// NotificationsChannelsCreateWithResponse performs a POST /notification-channels (the `NotificationsChannelsCreate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsCreateWithResponse(ctx context.Context, body NotificationsChannelsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*NotificationsChannelsCreateResponse, error) {
+	rsp, err := c.NotificationsChannelsCreate(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsCreateResponse(rsp)
+}
+
+// NotificationsChannelsDeleteWithResponse performs a DELETE /notification-channels/{id} (the `NotificationsChannelsDelete` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsDeleteWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsDeleteResponse, error) {
+	rsp, err := c.NotificationsChannelsDelete(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsDeleteResponse(rsp)
+}
+
+// NotificationsChannelsReadWithResponse performs a GET /notification-channels/{id} (the `NotificationsChannelsRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsReadResponse, error) {
+	rsp, err := c.NotificationsChannelsRead(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsReadResponse(rsp)
+}
+
+// NotificationsChannelsUpdateWithBodyWithResponse performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*NotificationsChannelsUpdateResponse, error) {
+	rsp, err := c.NotificationsChannelsUpdateWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsUpdateResponse(rsp)
+}
+
+// NotificationsChannelsUpdateWithResponse performs a PATCH /notification-channels/{id} (the `NotificationsChannelsUpdate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsUpdateWithResponse(ctx context.Context, id ID, body NotificationsChannelsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*NotificationsChannelsUpdateResponse, error) {
+	rsp, err := c.NotificationsChannelsUpdate(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsUpdateResponse(rsp)
+}
+
+// NotificationsChannelsDisableWithResponse performs a POST /notification-channels/{id}/disable (the `NotificationsChannelsDisable` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsDisableWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsDisableResponse, error) {
+	rsp, err := c.NotificationsChannelsDisable(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsDisableResponse(rsp)
+}
+
+// NotificationsChannelsEnableWithResponse performs a POST /notification-channels/{id}/enable (the `NotificationsChannelsEnable` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsEnableWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsEnableResponse, error) {
+	rsp, err := c.NotificationsChannelsEnable(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsEnableResponse(rsp)
+}
+
+// NotificationsChannelsRotateWithBodyWithResponse performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsRotateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*NotificationsChannelsRotateResponse, error) {
+	rsp, err := c.NotificationsChannelsRotateWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsRotateResponse(rsp)
+}
+
+// NotificationsChannelsRotateWithResponse performs a POST /notification-channels/{id}/rotate (the `NotificationsChannelsRotate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsRotateWithResponse(ctx context.Context, id ID, body NotificationsChannelsRotateJSONRequestBody, reqEditors ...RequestEditorFn) (*NotificationsChannelsRotateResponse, error) {
+	rsp, err := c.NotificationsChannelsRotate(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsRotateResponse(rsp)
+}
+
+// NotificationsChannelsTestWithResponse performs a POST /notification-channels/{id}/test (the `NotificationsChannelsTest` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsChannelsTestWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*NotificationsChannelsTestResponse, error) {
+	rsp, err := c.NotificationsChannelsTest(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsChannelsTestResponse(rsp)
+}
+
+// NotificationsDeliveriesListWithResponse performs a GET /notification-deliveries (the `NotificationsDeliveriesList` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) NotificationsDeliveriesListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*NotificationsDeliveriesListResponse, error) {
+	rsp, err := c.NotificationsDeliveriesList(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseNotificationsDeliveriesListResponse(rsp)
 }
 
 // RunsListWithResponse performs a GET /runs (the `RunsList` operationId) request.
@@ -5462,6 +7744,50 @@ func (c *ClientWithResponses) TasksEnableWithResponse(ctx context.Context, id ID
 		return nil, err
 	}
 	return ParseTasksEnableResponse(rsp)
+}
+
+// TasksNotificationsReadWithResponse performs a GET /tasks/{id}/notifications (the `TasksNotificationsRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) TasksNotificationsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*TasksNotificationsReadResponse, error) {
+	rsp, err := c.TasksNotificationsRead(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTasksNotificationsReadResponse(rsp)
+}
+
+// TasksNotificationsUpdateWithBodyWithResponse performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) TasksNotificationsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TasksNotificationsUpdateResponse, error) {
+	rsp, err := c.TasksNotificationsUpdateWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTasksNotificationsUpdateResponse(rsp)
+}
+
+// TasksNotificationsUpdateWithResponse performs a PUT /tasks/{id}/notifications (the `TasksNotificationsUpdate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) TasksNotificationsUpdateWithResponse(ctx context.Context, id ID, body TasksNotificationsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*TasksNotificationsUpdateResponse, error) {
+	rsp, err := c.TasksNotificationsUpdate(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTasksNotificationsUpdateResponse(rsp)
+}
+
+// TasksNotificationsEffectiveReadWithResponse performs a GET /tasks/{id}/notifications/effective (the `TasksNotificationsEffectiveRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) TasksNotificationsEffectiveReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*TasksNotificationsEffectiveReadResponse, error) {
+	rsp, err := c.TasksNotificationsEffectiveRead(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTasksNotificationsEffectiveReadResponse(rsp)
 }
 
 // TasksRunNowWithResponse performs a POST /tasks/{id}/run-now (the `TasksRunNow` operationId) request.
@@ -6169,6 +8495,98 @@ func ParseGroupsReadResponse(rsp *http.Response) (*GroupsReadResponse, error) {
 	return response, nil
 }
 
+// ParseGroupsNotificationsReadResponse parses an HTTP response from a GroupsNotificationsReadWithResponse call
+func ParseGroupsNotificationsReadResponse(rsp *http.Response) (*GroupsNotificationsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GroupsNotificationsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationAssignments
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers GroupsNotificationsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGroupsNotificationsUpdateResponse parses an HTTP response from a GroupsNotificationsUpdateWithResponse call
+func ParseGroupsNotificationsUpdateResponse(rsp *http.Response) (*GroupsNotificationsUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GroupsNotificationsUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationAssignments
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers GroupsNotificationsUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseHealthReadResponse parses an HTTP response from a HealthReadWithResponse call
 func ParseHealthReadResponse(rsp *http.Response) (*HealthReadResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6216,6 +8634,462 @@ func ParseManifestReadResponse(rsp *http.Response) (*ManifestReadResponse, error
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsListResponse parses an HTTP response from a NotificationsChannelsListWithResponse call
+func ParseNotificationsChannelsListResponse(rsp *http.Response) (*NotificationsChannelsListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannelList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsCreateResponse parses an HTTP response from a NotificationsChannelsCreateWithResponse call
+func ParseNotificationsChannelsCreateResponse(rsp *http.Response) (*NotificationsChannelsCreateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsCreateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsCreateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsDeleteResponse parses an HTTP response from a NotificationsChannelsDeleteWithResponse call
+func ParseNotificationsChannelsDeleteResponse(rsp *http.Response) (*NotificationsChannelsDeleteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsDeleteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsDeleteResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsReadResponse parses an HTTP response from a NotificationsChannelsReadWithResponse call
+func ParseNotificationsChannelsReadResponse(rsp *http.Response) (*NotificationsChannelsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsUpdateResponse parses an HTTP response from a NotificationsChannelsUpdateWithResponse call
+func ParseNotificationsChannelsUpdateResponse(rsp *http.Response) (*NotificationsChannelsUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsDisableResponse parses an HTTP response from a NotificationsChannelsDisableWithResponse call
+func ParseNotificationsChannelsDisableResponse(rsp *http.Response) (*NotificationsChannelsDisableResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsDisableResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsDisableResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsEnableResponse parses an HTTP response from a NotificationsChannelsEnableWithResponse call
+func ParseNotificationsChannelsEnableResponse(rsp *http.Response) (*NotificationsChannelsEnableResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsEnableResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsEnableResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsRotateResponse parses an HTTP response from a NotificationsChannelsRotateWithResponse call
+func ParseNotificationsChannelsRotateResponse(rsp *http.Response) (*NotificationsChannelsRotateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsRotateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsRotateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsChannelsTestResponse parses an HTTP response from a NotificationsChannelsTestWithResponse call
+func ParseNotificationsChannelsTestResponse(rsp *http.Response) (*NotificationsChannelsTestResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsChannelsTestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest NotificationDelivery
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsChannelsTestResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseNotificationsDeliveriesListResponse parses an HTTP response from a NotificationsDeliveriesListWithResponse call
+func ParseNotificationsDeliveriesListResponse(rsp *http.Response) (*NotificationsDeliveriesListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &NotificationsDeliveriesListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationDeliveryList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers NotificationsDeliveriesListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil
@@ -6762,6 +9636,144 @@ func ParseTasksEnableResponse(rsp *http.Response) (*TasksEnableResponse, error) 
 	switch {
 	case rsp.StatusCode == 401:
 		var headers TasksEnableResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseTasksNotificationsReadResponse parses an HTTP response from a TasksNotificationsReadWithResponse call
+func ParseTasksNotificationsReadResponse(rsp *http.Response) (*TasksNotificationsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TasksNotificationsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationAssignments
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksNotificationsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseTasksNotificationsUpdateResponse parses an HTTP response from a TasksNotificationsUpdateWithResponse call
+func ParseTasksNotificationsUpdateResponse(rsp *http.Response) (*TasksNotificationsUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TasksNotificationsUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationAssignments
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksNotificationsUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseTasksNotificationsEffectiveReadResponse parses an HTTP response from a TasksNotificationsEffectiveReadWithResponse call
+func ParseTasksNotificationsEffectiveReadResponse(rsp *http.Response) (*TasksNotificationsEffectiveReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TasksNotificationsEffectiveReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest EffectiveNotificationPolicy
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers TasksNotificationsEffectiveReadResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {

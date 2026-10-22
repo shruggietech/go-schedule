@@ -136,7 +136,22 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 				item.Action, item.Message = bundle.ActionConflict, "supply an absolute target-local watcher path before preview"
 			}
 		}
-		if item.Kind == "notification_policy" && (item.Action == bundle.ActionCreate || item.Action == bundle.ActionUpdate) {
+		if item.Kind == "smtp_channel" && item.Action != bundle.ActionTargetOnly {
+			for _, source := range canonical.SMTPChannels {
+				if source.Name != item.PortableID {
+					continue
+				}
+				action, message, err := s.bindBundleSMTP(source, channelBindings)
+				if err != nil {
+					s.internal(w, err)
+					return
+				}
+				if action != "" {
+					item.Action, item.Message = action, message
+				}
+			}
+		}
+		if item.Kind == "notification_policy" && item.Action != bundle.ActionTargetOnly {
 			for _, policy := range canonical.NotificationPolicies {
 				if policy.ScopeType+":"+policy.ScopePortableID != item.PortableID {
 					continue
@@ -157,6 +172,24 @@ func (s *Server) handleBundlePlan(w http.ResponseWriter, r *http.Request, retain
 					if count != 1 {
 						item.Action, item.Message = bundle.ActionConflict, "target needs exactly one local channel named "+assignment.ChannelName
 						break
+					}
+				}
+			}
+		}
+	}
+	for index := range plan.Items {
+		item := &plan.Items[index]
+		if item.Kind != "notification_policy" || item.Action == bundle.ActionTargetOnly {
+			continue
+		}
+		for _, policy := range canonical.NotificationPolicies {
+			if policy.ScopeType+":"+policy.ScopePortableID != item.PortableID {
+				continue
+			}
+			for _, assignment := range policy.Assignments {
+				for _, other := range plan.Items {
+					if other.Kind == "smtp_channel" && other.PortableID == assignment.ChannelName && other.Action == bundle.ActionConflict {
+						item.Action, item.Message = bundle.ActionConflict, "Resolve the SMTP channel binding before applying this policy."
 					}
 				}
 			}
@@ -405,6 +438,16 @@ func (s *Server) handleBundleApply(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, CodeConflict, "plan", "target changed after preview; preview again before apply")
 		return
 	}
+	for _, item := range stored.Plan.Items {
+		if item.Kind == "smtp_channel" && (item.Action == bundle.ActionConflict || item.Action == bundle.ActionInvalid) {
+			writeError(w, http.StatusConflict, CodeConflict, "smtp_channels", "Resolve SMTP channel provisioning conflicts and preview again before apply.")
+			return
+		}
+	}
+	if err := s.validateBundleChannels(stored.ChannelBindings); err != nil {
+		writeError(w, http.StatusConflict, CodeConflict, "plan", err.Error())
+		return
+	}
 	outcomes := s.applyBundle(stored.Document, stored.Plan, stored.WatcherPaths, stored.ChannelBindings)
 	s.reload()
 	writeJSON(w, http.StatusOK, BundleApplyResponse{Plan: stored.Plan, Outcomes: outcomes})
@@ -494,6 +537,11 @@ func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths
 	for _, source := range doc.Watchers {
 		if bundlePlanChanges(plan, "watcher", source.PortableID) {
 			outcomes = append(outcomes, s.applyBundleWatcher(source, watcherPaths[source.PortableID]))
+		}
+	}
+	for _, source := range doc.SMTPChannels {
+		if bundlePlanChanges(plan, "smtp_channel", source.Name) {
+			outcomes = append(outcomes, s.applyBundleSMTP(source, channelBindings))
 		}
 	}
 	for _, source := range doc.NotificationPolicies {
@@ -858,8 +906,18 @@ func (s *Server) bundleDocument() (bundle.Document, error) {
 		return doc, err
 	}
 	channelNames := map[string]string{}
+	channelNameCounts := map[string]int{}
+	for _, channel := range channels {
+		channelNameCounts[channel.Name]++
+	}
 	for _, channel := range channels {
 		channelNames[channel.ID] = channel.Name
+		if channel.Kind == domain.NotificationChannelSMTP && channelNameCounts[channel.Name] > 1 {
+			doc.Exclusions = append(doc.Exclusions, bundle.Issue{Kind: "smtp_channel", Identity: channel.Name, Message: "Duplicate channel names prevent an unambiguous portable binding; rename the channels before exporting their settings."})
+		}
+		if channel.Kind == domain.NotificationChannelSMTP && channel.SMTP != nil && channelNameCounts[channel.Name] == 1 {
+			doc.SMTPChannels = append(doc.SMTPChannels, bundle.SMTPChannel{Name: channel.Name, Settings: *channel.SMTP, Enabled: channel.Enabled, HealthIntervalSeconds: channel.HealthIntervalSeconds, RequiresAuthorization: channel.HasAuthorization})
+		}
 	}
 	for _, group := range groups {
 		assignments, err := s.store.ListNotificationAssignments(domain.NotificationScopeGroup, group.ID)

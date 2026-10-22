@@ -147,6 +147,10 @@ resolve_expected() {
 write_beat() {
     local seq="$1" started="$2" finished="$3" code="$4"
     local outcome source expected drift started_iso
+    if [ "$finished" -lt "$started" ]; then
+        log WARN "Completion timestamp ${finished}ms precedes start ${started}ms; retaining this beat with a zero duration. Check the system clock."
+        finished="$started"
+    fi
     read -r source expected drift <<<"$(resolve_expected "$started")"
     outcome=ok; [ "$code" -eq 0 ] || outcome=failed
     started_iso="$(iso_local)"

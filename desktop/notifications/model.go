@@ -1,26 +1,33 @@
 // Package notifications exposes secret-free desktop notification models.
 package notifications
 
+import "github.com/shruggietech/go-schedule/internal/domain"
+
 type Channel struct {
-	ID                    string `json:"id"`
-	Name                  string `json:"name"`
-	Kind                  string `json:"kind"`
-	EndpointSummary       string `json:"endpointSummary"`
-	HasAuthorization      bool   `json:"hasAuthorization"`
-	Enabled               bool   `json:"enabled"`
-	HealthIntervalMinutes int64  `json:"healthIntervalMinutes"`
-	UpdatedAt             string `json:"updatedAt"`
+	SMTP                  *domain.SMTPConfig `json:"smtp,omitempty"`
+	ID                    string             `json:"id"`
+	Name                  string             `json:"name"`
+	Kind                  string             `json:"kind"`
+	EndpointSummary       string             `json:"endpointSummary"`
+	HasAuthorization      bool               `json:"hasAuthorization"`
+	Enabled               bool               `json:"enabled"`
+	HealthIntervalMinutes int64              `json:"healthIntervalMinutes"`
+	UpdatedAt             string             `json:"updatedAt"`
 }
 
 type ChannelDraft struct {
-	ID                    string `json:"id"`
-	Name                  string `json:"name"`
-	Endpoint              string `json:"endpoint"`
-	Authorization         string `json:"authorization"`
-	ReplaceEndpoint       bool   `json:"replaceEndpoint"`
-	ReplaceAuthorization  bool   `json:"replaceAuthorization"`
-	IsNew                 bool   `json:"isNew"`
-	HealthIntervalMinutes int64  `json:"healthIntervalMinutes"`
+	Kind                  string             `json:"kind"`
+	SMTP                  *domain.SMTPConfig `json:"smtp,omitempty"`
+	SMTPUsername          string             `json:"smtpUsername"`
+	SMTPPassword          string             `json:"smtpPassword"`
+	ID                    string             `json:"id"`
+	Name                  string             `json:"name"`
+	Endpoint              string             `json:"endpoint"`
+	Authorization         string             `json:"authorization"`
+	ReplaceEndpoint       bool               `json:"replaceEndpoint"`
+	ReplaceAuthorization  bool               `json:"replaceAuthorization"`
+	IsNew                 bool               `json:"isNew"`
+	HealthIntervalMinutes int64              `json:"healthIntervalMinutes"`
 }
 
 type Scope struct {
@@ -75,26 +82,28 @@ type ConfiguredScope struct {
 }
 
 type Delivery struct {
-	ID                 string `json:"id"`
-	ChannelID          string `json:"channelId,omitempty"`
-	ChannelName        string `json:"channelName"`
-	DestinationSummary string `json:"destinationSummary"`
-	Kind               string `json:"kind"`
-	TaskID             string `json:"taskId,omitempty"`
-	TaskName           string `json:"taskName,omitempty"`
-	GroupID            string `json:"groupId,omitempty"`
-	GroupName          string `json:"groupName,omitempty"`
-	RunID              string `json:"runId,omitempty"`
-	State              string `json:"state"`
-	Attempts           int    `json:"attempts"`
-	NextAttemptAt      string `json:"nextAttemptAt,omitempty"`
-	CreatedAt          string `json:"createdAt"`
-	ClaimedAt          string `json:"claimedAt,omitempty"`
-	CompletedAt        string `json:"completedAt,omitempty"`
-	LastStatus         int    `json:"lastStatus,omitempty"`
-	LastError          string `json:"lastError,omitempty"`
-	ConditionKind      string `json:"conditionKind,omitempty"`
-	ConditionSummary   string `json:"conditionSummary,omitempty"`
+	Transport          string                         `json:"transport"`
+	Recipients         []domain.NotificationRecipient `json:"recipients,omitempty"`
+	ID                 string                         `json:"id"`
+	ChannelID          string                         `json:"channelId,omitempty"`
+	ChannelName        string                         `json:"channelName"`
+	DestinationSummary string                         `json:"destinationSummary"`
+	Kind               string                         `json:"kind"`
+	TaskID             string                         `json:"taskId,omitempty"`
+	TaskName           string                         `json:"taskName,omitempty"`
+	GroupID            string                         `json:"groupId,omitempty"`
+	GroupName          string                         `json:"groupName,omitempty"`
+	RunID              string                         `json:"runId,omitempty"`
+	State              string                         `json:"state"`
+	Attempts           int                            `json:"attempts"`
+	NextAttemptAt      string                         `json:"nextAttemptAt,omitempty"`
+	CreatedAt          string                         `json:"createdAt"`
+	ClaimedAt          string                         `json:"claimedAt,omitempty"`
+	CompletedAt        string                         `json:"completedAt,omitempty"`
+	LastStatus         int                            `json:"lastStatus,omitempty"`
+	LastError          string                         `json:"lastError,omitempty"`
+	ConditionKind      string                         `json:"conditionKind,omitempty"`
+	ConditionSummary   string                         `json:"conditionSummary,omitempty"`
 }
 
 type Workspace struct {

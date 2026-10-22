@@ -25,7 +25,7 @@ func TestPortableIdentityIsStableAndIndependentFromObjectID(t *testing.T) {
 		t.Fatalf("portable identities %q %q", first, second)
 	}
 	var version int
-	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 22 {
+	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 23 {
 		t.Fatalf("version=%d err=%v", version, err)
 	}
 }

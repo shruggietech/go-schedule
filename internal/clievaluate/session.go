@@ -32,9 +32,13 @@ import (
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/remoteenroll"
+	"github.com/shruggietech/go-schedule/internal/testsmtp"
 )
 
 type session struct {
+	smtp                 *testsmtp.Server
+	smtpRotation         domain.SMTPAuth
+	smtpBeforeCount      int
 	priorRuns            map[string]bool
 	w                    *clifixture.Workspace
 	api                  *client.Client
@@ -176,6 +180,9 @@ func newSession(ctx context.Context, binaries map[string]string, budget Budget, 
 		}
 		s.webhookDone <- err
 	}()
+	if err := s.startSMTP(); err != nil {
+		return s, err
+	}
 	if err := s.seed(ctx); err != nil {
 		return s, err
 	}
@@ -379,6 +386,10 @@ func (s *session) close() error {
 			result = errors.Join(result, s.daemonPipes.Close())
 		}
 		s.daemon = nil
+	}
+	if s.smtp != nil {
+		result = errors.Join(result, s.smtp.Close())
+		s.smtp = nil
 	}
 	if result == nil && s.w != nil {
 		result = s.w.CleanupRuntime()

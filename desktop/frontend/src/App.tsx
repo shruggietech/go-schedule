@@ -224,6 +224,9 @@ export function App({
   const canManage =
     snapshot.state === "connected" &&
     (!remote || snapshot.target.permissions.includes("manage"));
+  const canEnroll =
+    snapshot.state === "connected" &&
+    (!remote || snapshot.target.permissions.includes("enroll"));
   const targetContext = remote
     ? `${snapshot.target.displayName} (${snapshot.target.endpoint ?? "remote"}, ${snapshot.target.id.slice(0, 8)})`
     : "This computer";
@@ -373,7 +376,10 @@ export function App({
           bridge={notifications}
           settings={settings}
           desktop={bridge}
-          webhooksSupported={!remote}
+          webhooksSupported
+          canOperate={canOperate}
+          canManage={canManage}
+          canEnroll={canEnroll}
           available={snapshot.state === "connected"}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0

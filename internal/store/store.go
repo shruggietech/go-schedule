@@ -659,6 +659,34 @@ CREATE TABLE portable_identities (
 CREATE INDEX idx_portable_identities_portable ON portable_identities(portable_id);
 `,
 	},
+	{
+		// v23: add SMTP without rewriting webhook identities or dependent rows.
+		version:        23,
+		foreignKeysOff: true,
+		stmts: `
+CREATE TABLE notification_channels_v23 (
+ id TEXT PRIMARY KEY,
+ name TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('webhook','smtp')),
+ endpoint TEXT NOT NULL,
+ endpoint_summary TEXT NOT NULL,
+ authorization TEXT NOT NULL DEFAULT '',
+ enabled INTEGER NOT NULL DEFAULT 1,
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL,
+ health_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(health_interval_seconds = 0 OR health_interval_seconds BETWEEN 60 AND 86400),
+ smtp_config TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO notification_channels_v23(id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds)
+SELECT id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds FROM notification_channels;
+DROP TABLE notification_channels;
+ALTER TABLE notification_channels_v23 RENAME TO notification_channels;
+CREATE INDEX idx_notification_channels_enabled ON notification_channels(enabled);
+ALTER TABLE notification_deliveries ADD COLUMN kind TEXT NOT NULL DEFAULT 'webhook' CHECK(kind IN ('webhook','smtp'));
+ALTER TABLE notification_deliveries ADD COLUMN smtp_config TEXT NOT NULL DEFAULT '';
+ALTER TABLE notification_deliveries ADD COLUMN recipients TEXT NOT NULL DEFAULT '[]';
+`,
+	},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

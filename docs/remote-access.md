@@ -340,3 +340,9 @@ gosched credential revoke <credential-id>
 Rotation prints the new bearer value once and invalidates the former value immediately. Revocation also revokes its actor. Treat terminal output containing a phrase or newly rotated credential as sensitive and follow protected shell-output practices. There is no credential export or recovery path.
 
 Remote clients use `Authorization: Bearer <credential>` against the documented `/api/v1` operations. Missing, malformed, unknown, and expired values receive `401 unauthorized`; a credential that matches a revoked record receives `401 credential_revoked` so an authenticated profile holder can distinguish repair from a transient outage. Browser-origin requests are rejected, rate limits return `429` with `Retry-After`, and unsupported local-only routes return `404`. See `api/openapi/remote-v1.yaml` for the machine-readable contract.
+
+## Remote notifications (Unreleased S111)
+
+The authenticated remote operation catalog includes all notification channel, task/group policy, effective-policy and delivery-history routes. The selected daemon owns its channels, credentials, policy and delivery evidence. The desktop Notifications page and CLI use that selected target; credentials are never fetched from another daemon.
+
+Observe permits reads, Manage permits channel/policy edits, Operate permits a test notification, and Enroll permits credential rotation. Redirecting existing stored credentials by changing a webhook endpoint or SMTP host/port/encryption mode also requires Enroll. Request sizes remain bounded and notification mutations use the catalog's no-replay behavior. See [Notifications](notifications.md) for SMTP provisioning and [API](api.md) for request examples.

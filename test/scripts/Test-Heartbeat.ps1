@@ -259,6 +259,10 @@ Param(
             [Parameter(Mandatory=$true)][long]$FinishedMs,
             [Parameter(Mandatory=$true)][int]$ExitCode
         )
+        if ($FinishedMs -lt $StartedMs) {
+            Write-Log ("Completion timestamp {0}ms precedes start {1}ms; retaining this beat with a zero duration. Check the system clock." -f $FinishedMs, $StartedMs) -Level Warn
+            $FinishedMs = $StartedMs
+        }
         $expected = Resolve-ExpectedMoment -StartedMs $StartedMs -Interval $IntervalSeconds -Anchor $AnchorIso
         $startedIso = ([DateTimeOffset]::FromUnixTimeMilliseconds($StartedMs)).ToLocalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffzzz')
 
