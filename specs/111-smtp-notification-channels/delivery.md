@@ -29,4 +29,4 @@ All eight canonical gates pass, along with three browser/accessibility tests and
 
 The owner explicitly authorized automatic push and official PR publication, CI/security review handling and at most two Codex rounds without another pre-publication halt. Stop before merge. No merge, auto-merge, tag or release is authorized. The review branch is codex/111-smtp-notification-channels.
 
-The initial commit records local implementation. Publication identity, exact hosted checks and bounded review evidence belong in the PR and [review.md](review.md).
+Initial implementation commit b34c58e66411cb6d4c6fd725c29bfc598bb0d4d6 was pushed and [PR #345](https://github.com/shruggietech/go-schedule/pull/345) was created as a draft while publication metadata was reconciled. Authentication succeeded without owner involvement. Publication identity, exact hosted checks and bounded review evidence belong in the PR and [review.md](review.md).

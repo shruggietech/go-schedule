@@ -6,4 +6,10 @@ The owner authorized automatic S111 branch push and official PR creation, monito
 
 S111 completes #176, #19 and independently tracked defects #341, #342, #343 and #344. The local canonical aggregate and corrected source-bound Windows/WSL evaluation passed; see [verification.md](verification.md). The initial diagnostic capture and its failures remain separate evidence.
 
-Publication has not yet occurred. Zero Codex rounds have been requested or completed. Record subsequent publication and review identities chronologically; an automatic ready-for-review round counts toward the same two-round maximum. Do not request a duplicate or third review.
+Initial local completion preceded publication. Zero Codex rounds had been requested or completed at that point. Record subsequent publication and review identities chronologically; an automatic ready-for-review round counts toward the same two-round maximum. Do not request a duplicate or third review.
+
+## 2026-10-22: Authorized publication
+
+Pushed b34c58e66411cb6d4c6fd725c29bfc598bb0d4d6 and created [PR #345](https://github.com/shruggietech/go-schedule/pull/345) as a draft to reconcile publication metadata before automatic review. Authentication worked without owner involvement. The PR is open and unmerged, with auto-merge disabled, and closes #176, #19 and #341-#344 upon merge. Existing milestone and label conventions are retained.
+
+The next commit changes delivery/publication metadata only. Marking the PR ready starts automatic Codex round 1; do not send a duplicate manual request. Subsequent actual review subjects, findings, thread responses and final-head CI conclusions are recorded in PR comments. At most one second-round request is authorized after round 1. No third review or merge is authorized.

@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Review branch codex/111-smtp-notification-channels; [local delivery](delivery.md) and [verification](verification.md), all eight canonical gates and finalized Windows/WSL evaluation passed 2026-10-22; authorized publication follows, maintainer retains merge authority.
+**Delivery**: [PR #345](https://github.com/shruggietech/go-schedule/pull/345), open and unmerged; review branch codex/111-smtp-notification-channels; [local delivery](delivery.md) and [verification](verification.md), all eight canonical gates and finalized Windows/WSL evaluation passed 2026-10-22; authorized publication follows, maintainer retains merge authority.
 
 **Input**: Owner-authorized S111 delivers #176 in full and completes notification coordinator #19 using the recommended end-to-end scope, including discovered remote-administration defect #341. Baseline: e5aa3240676b1bbc0d215bdb6a7b120ce1240d86.
 
