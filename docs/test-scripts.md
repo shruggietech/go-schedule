@@ -219,6 +219,8 @@ gosched service restart
 pwsh -File test/scripts/Test-ReadTestDB.ps1 -Query restarts
 ```
 
+If a sampled completion timestamp precedes its start, the heartbeat still records one beat with finished time equal to start and duration zero. An unsuppressed warning includes both observed timestamps and asks the maintainer to check the system clock. That zero duration records the timing anomaly, not a reliable elapsed-time measurement; the intended task exit code and other observations are retained.
+
 Each invocation is its own session, so under a scheduler the session boundary marks every beat, the evidence is the uninterrupted `started_ms` sequence across the restart.
 
 ### Does catch-up work?

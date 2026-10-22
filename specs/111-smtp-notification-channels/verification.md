@@ -76,3 +76,17 @@ The correction aggregate sh scripts/verify.sh all completed with exit 0 across a
 The second and final Codex round on 8fa2a7ae1b1ce073b164c7d29e33c07f18a1dfab exposed #348 (bodyless remote action mismatch) and #349 (SMTP authority comparison before normalization). A real TLS-verified authenticated Go client reproduced both failures before correction. Updated regressions exercise disable, enable, test, normalized recipient updates with retained credentials, and denied server retargeting without partial writes; the capability matrix now sends bodyless requests as the production client does.
 
 All tests in internal/api/server, internal/api/client, internal/remote and internal/cli passed with the race detector after these corrections. Vet passed for both changed production packages and GitHub formatting passed. Log .test-temp/s111/verify-review2.log has SHA256 373854e6d28a77e27c98e7b6a489f2335be3e1baa2a935c1491ad0933d624fc9, also retained under review2-corrections in the local S111 evidence archive. The earlier correction head 8fa2a7a completed all 22 hosted checks successfully; it remains distinct from the final correction head, whose exact hosted conclusions are recorded in the PR handoff. No third Codex round is requested.
+
+## Heartbeat timing CI follow-up (#350)
+
+The final-head coverage job on 1fadced failed when two concurrent heartbeat writers hit finished_ms >= started_ms. Disposable script copies with injected reversed samples reproduced the same failure in both PowerShell and Bash, including loss of the intended exit code 3. The correction retains each beat at zero duration and emits both observed timestamps in an unsuppressed warning. It does not change the system clock, weaken the schema constraint, serialize writers or increase retry limits. The original cause of the hosted sample inversion remains unconfirmed.
+
+Native Windows race checks passed three repetitions of reversed-clock success/intentional-failure paths, ordinary single-shot behavior, concurrent writers and twin parity, exercising both PowerShell and Git Bash. Native Ubuntu WSL race checks passed 20 repetitions of the reversed-clock Bash paths and concurrent writers. PowerShell is unavailable in WSL and was explicitly skipped there; its native Windows coverage is separate.
+
+| Retained log | SHA256 |
+| --- | --- |
+| heartbeat-clock-before.log | b051c3ac719b21a0e15c648ce99d6cb21c680fbc36faf12d8390f98a0294f41a |
+| heartbeat-clock-after.log | 9ea4159fde8d06a08f43e4ac2d52d3f2243bdc713ca1b9e715bbdf697b000267 |
+| heartbeat-clock-linux.log | c7ba0559fddca2ee782c7e4a9b7abe88190da4fd79d42bf30a8cadefcd4d7269 |
+
+Logs are under .test-temp/s111 and retained in heartbeat-clock-correction within the local S111 evidence archive. Final exact-head hosted results remain in the PR handoff.

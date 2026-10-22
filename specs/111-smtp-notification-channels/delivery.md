@@ -16,6 +16,7 @@ The full SMTP feature #176 is implemented with shared policies, durable task/tes
 | #347 | SMTP socket timeouts report the timeout independently of context callback ordering; greeting cancellation synchronizes on EHLO |
 | #348 | Bodyless remote enable/disable/test calls match the shared authenticated CLI/desktop client contract |
 | #349 | Normalized same-authority SMTP updates remain available to Manage while real credential retargeting still requires Enroll |
+| #350 | Heartbeat script twins retain reversed-clock records with zero duration, raw sample warnings and unchanged intended exit codes |
 
 These issues remain open pending merge. Their individual functional acceptance criteria are delivered; CI, review and evidence activity are recorded separately and are not issue-closure gates. #146 remains open for its separate distributed-scheduling decision.
 

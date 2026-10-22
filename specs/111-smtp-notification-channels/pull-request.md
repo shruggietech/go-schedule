@@ -11,7 +11,7 @@ SMTP email now uses the existing daemon-owned notification queue, task/group con
 - Add typed portable SMTP definitions bound to provisioned target-local channels by name and frozen revision, without exporting credentials.
 - Extend owned Windows/WSL evaluation and correct the SMTP task-case rendering contract and pre-existing empty-text bounded history defect.
 
-Closes #176. Closes #19. Closes #341. Closes #342. Closes #343. Closes #344. Closes #346. Closes #347. Closes #348. Closes #349. Refs #146.
+Closes #176. Closes #19. Closes #341. Closes #342. Closes #343. Closes #344. Closes #346. Closes #347. Closes #348. Closes #349. Closes #350. Refs #146.
 
 Spec-Kit slice: S111, specs/111-smtp-notification-channels/. Existing issue milestones remain authoritative. #146 stays open for its separate distributed-scheduling decision.
 
@@ -30,6 +30,8 @@ The two final-round route/server corrections (#348/#349) subsequently passed com
 - [x] No safety-critical test surface was weakened or skipped.
 - [x] Dependency and architecture decisions are recorded in CHANGELOG.md.
 - [x] Documentation updated for configuration, access, lifecycle, portability and evaluation.
+
+The final CI follow-up #350 retains heartbeat records when sampled completion precedes start, with zero duration and an explicit raw-timestamp warning in both script twins. Deterministic failure-before probes, three native Windows twin race repetitions and 20 native Linux Bash/concurrent-writer repetitions passed after correction. Existing schema, exit-code and concurrency assertions remain.
 
 ## Delivery boundaries
 
