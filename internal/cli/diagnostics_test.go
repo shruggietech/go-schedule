@@ -16,6 +16,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 )
 
@@ -84,7 +85,7 @@ func TestCertificateTargetDiagnosticsNameInputAndPreserveExitCategory(t *testing
 	} {
 		t.Run(tc.correction, func(t *testing.T) {
 			recorder := &clifixture.Recorder{}
-			secrets := recorder.SecretStore()
+			secrets := clientsecret.NewWithBackend(recorder)
 			if err := secrets.Save("daemon", "credential", secret); err != nil {
 				t.Fatal(err)
 			}

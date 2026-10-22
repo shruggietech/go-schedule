@@ -29,6 +29,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/cli"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/remoteenroll"
@@ -288,7 +289,7 @@ func (s *session) seed(ctx context.Context) error {
 	s.redactor.Register(credential.Token)
 	s.vars["remote_credential"] = credential.ID
 	s.vars["remote_token"] = credential.Token
-	if err := s.recorder.SecretStore().Save(manifest.InstallationID, credential.ID, credential.Token); err != nil {
+	if err := clientsecret.NewWithBackend(s.recorder).Save(manifest.InstallationID, credential.ID, credential.Token); err != nil {
 		return err
 	}
 	profileID, err := clientprofile.NewID()
@@ -327,7 +328,7 @@ func (s *session) seed(ctx context.Context) error {
 }
 
 func (s *session) dependencies(in io.Reader, out, diagnostic io.Writer) cli.Dependencies {
-	return cli.Dependencies{Client: s.api, Profiles: s.profiles, Secrets: s.recorder.SecretStore(), PreferencePath: filepath.Join(s.w.Runtime, "client", "preferences.json"), LegacyPreferencePath: filepath.Join(s.w.Runtime, "client", "legacy.json"), Now: time.Now, ServiceControl: s.recorder.ServiceControl, DaemonPath: func() (string, error) { return s.binaries["daemon"], nil }, GUIPath: func() (string, error) { return s.binaries["runner"], nil }, LaunchGUI: s.recorder.LaunchGUI, In: in, Out: out, Err: diagnostic}
+	return cli.Dependencies{Client: s.api, Profiles: s.profiles, Secrets: clientsecret.NewWithBackend(s.recorder), PreferencePath: filepath.Join(s.w.Runtime, "client", "preferences.json"), LegacyPreferencePath: filepath.Join(s.w.Runtime, "client", "legacy.json"), Now: time.Now, ServiceControl: s.recorder.ServiceControl, DaemonPath: func() (string, error) { return s.binaries["daemon"], nil }, GUIPath: func() (string, error) { return s.binaries["runner"], nil }, LaunchGUI: s.recorder.LaunchGUI, In: in, Out: out, Err: diagnostic}
 }
 
 func (s *session) expand(value string) (string, error) {

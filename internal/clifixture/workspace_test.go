@@ -11,6 +11,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 )
 
@@ -116,7 +117,7 @@ func TestGuardChecksEveryAuthoritativeOwnedField(t *testing.T) {
 
 func TestRecorderSecretsAndFailures(t *testing.T) {
 	r := &Recorder{}
-	store := r.SecretStore()
+	store := clientsecret.NewWithBackend(r)
 	if err := store.Probe(); err != nil {
 		t.Fatal(err)
 	}

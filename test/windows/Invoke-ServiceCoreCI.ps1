@@ -31,6 +31,9 @@ $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 $createdTaskIds = [System.Collections.Generic.List[string]]::new()
 $groupCreated = $false
 $serviceInstalled = $false
+$primaryFailure = $null
+$marker = $null
+$probeResult = [ordered]@{ status = 'running'; primary_error = $null; diagnostics = @{}; cleanup = @() }
 
 function Invoke-ProbeCli {
     [CmdletBinding()]
@@ -41,9 +44,29 @@ function Invoke-ProbeCli {
         [Parameter(Mandatory=$false)]
         [Switch]$ExpectJson
     )
-    $output = & $script:cli @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
-    $text = (($output | Out-String).Trim())
+    $start = [Diagnostics.ProcessStartInfo]::new()
+    $start.FileName = $script:cli
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
+    $process = [Diagnostics.Process]::Start($start)
+    try {
+        $process.StandardInput.Close()
+        $stdout = $process.StandardOutput.ReadToEndAsync()
+        $stderr = $process.StandardError.ReadToEndAsync()
+        if (-not $process.WaitForExit(10000)) {
+            $process.Kill($true)
+            $process.WaitForExit()
+            throw "gosched $($Arguments -join ' ') exceeded its 10-second command deadline"
+        }
+        $exitCode = $process.ExitCode
+        $text = $stdout.GetAwaiter().GetResult().Trim()
+        $diagnostic = $stderr.GetAwaiter().GetResult().Trim()
+        if ($exitCode -ne 0) { $text = "$text $diagnostic".Trim() }
+    } finally { $process.Dispose() }
     if ($exitCode -ne 0) {
         throw "gosched $($Arguments -join ' ') failed with exit $exitCode`: $text"
     }
@@ -71,12 +94,60 @@ function Wait-ProbeRun {
         $runs = Invoke-ProbeCli -ExpectJson -Arguments @(
             '--json', 'runs', '--task', $TaskId, '--limit', '20'
         )
-        $run = @($runs) | Where-Object trigger -eq $Trigger |
+        $run = @($runs) | Where-Object { $_.trigger -eq $Trigger -and ($_.ended_at -or $_.outcome -eq 'skipped') } |
             Select-Object -First 1
-        if ($run -and $run.ended_at) { return $run }
+        if ($run) { return $run }
         Start-Sleep -Milliseconds 1000
     } while ([DateTime]::UtcNow -lt $deadline)
     throw "Timed out waiting for $Trigger run of task $TaskId"
+}
+
+
+function Write-ProbeEvidence {
+    [CmdletBinding()]
+    Param()
+    $directory = [IO.Path]::GetDirectoryName($script:evidence)
+    [void][IO.Directory]::CreateDirectory($directory)
+    [IO.File]::WriteAllText($script:evidence, ($script:probeResult | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+}
+
+function Invoke-ProbeCleanup {
+    [CmdletBinding()]
+    Param([string]$Name, [scriptblock]$Operation)
+    $entry = [ordered]@{ operation = $Name; error = $null }
+    try { & $Operation | Out-Null } catch {
+        $entry.error = $_.Exception.Message
+        $script:probeResult.status = 'failed'
+    }
+    $script:probeResult.cleanup += $entry
+}
+
+function Save-ProbeFailure {
+    [CmdletBinding()]
+    Param()
+    $diagnostics = [ordered]@{ tasks = @(); health = $null; service = $null; errors = @() }
+    foreach ($taskId in $script:createdTaskIds) {
+        $task = [ordered]@{ id = $taskId; runs = @(); active = @() }
+        try { $task.runs = Invoke-ProbeCli -ExpectJson -Arguments @('--json', 'runs', '--task', $taskId, '--limit', '20') }
+        catch { $diagnostics.errors += "runs $taskId : $($_.Exception.Message)" }
+        try { $task.active = Invoke-ProbeCli -ExpectJson -Arguments @('--json', 'runs', 'active') | Where-Object task_id -eq $taskId }
+        catch { $diagnostics.errors += "active $taskId : $($_.Exception.Message)" }
+        $diagnostics.tasks += $task
+    }
+    try { $diagnostics.health = Invoke-ProbeCli -Arguments @('health') }
+    catch { $diagnostics.errors += "health: $($_.Exception.Message)" }
+    try { $diagnostics.service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$script:serviceName'" | Select-Object Name, State, StartName, ExitCode }
+    catch { $diagnostics.errors += "service: $($_.Exception.Message)" }
+    # The disposable service owns this log. Bound the retained tail and never
+    # enumerate the runner environment or unrelated process/credential state.
+    $logPath = [IO.Path]::Combine($env:ProgramData, 'goschedule', 'logs', 'goschedule.log')
+    try {
+        if (Test-Path -LiteralPath $logPath -PathType Leaf) {
+            $diagnostics.log_tail = @([IO.File]::ReadLines($logPath) | Select-Object -Last 100 | ForEach-Object { if ($_.Length -gt 4096) { $_.Substring(0,4096) } else { $_ } })
+        }
+    } catch { $diagnostics.errors += "log: $($_.Exception.Message)" }
+    $script:probeResult.diagnostics = $diagnostics
+    Write-ProbeEvidence
 }
 
 if (-not $IsWindows) { throw 'Service-core CI probe requires Windows.' }
@@ -249,22 +320,39 @@ try {
             -Algorithm SHA256).Hash.ToLowerInvariant()
         marker_lines = $markerLines.Count
     }
-    $result | ConvertTo-Json -Depth 20 |
-        Set-Content -LiteralPath $evidence -Encoding utf8
+    $probeResult = $result
+    $probeResult.primary_error = $null
+    $probeResult.diagnostics = @{}
+    $probeResult.cleanup = @()
+    Write-ProbeEvidence
     Write-Output "Service-core probe proven: $evidence"
+} catch {
+    $primaryFailure = $_
+    $probeResult.status = 'failed'
+    $probeResult.primary_error = $_.Exception.Message
+    try { Save-ProbeFailure } catch { Write-Warning "Failure evidence checkpoint failed: $($_.Exception.Message)" }
 } finally {
     foreach ($taskId in $createdTaskIds) {
-        & $cli task rm $taskId 2>&1 | Out-Null
+        Invoke-ProbeCleanup -Name "remove task $taskId" -Operation { [void](Invoke-ProbeCli -Arguments @('task', 'rm', $taskId)) }
     }
     if ($serviceInstalled) {
-        & $cli service stop 2>&1 | Out-Null
-        & $cli service uninstall 2>&1 | Out-Null
+        Invoke-ProbeCleanup -Name 'stop service' -Operation { [void](Invoke-ProbeCli -Arguments @('service', 'stop')) }
+        Invoke-ProbeCleanup -Name 'uninstall service' -Operation { [void](Invoke-ProbeCli -Arguments @('service', 'uninstall')) }
     }
-    if ($groupCreated -and
-        (Get-LocalGroup -Name $groupName -ErrorAction SilentlyContinue)) {
-        Remove-LocalGroup -Name $groupName
+    if ($groupCreated) {
+        Invoke-ProbeCleanup -Name 'remove group' -Operation {
+            if (Get-LocalGroup -Name $groupName -ErrorAction SilentlyContinue) { Remove-LocalGroup -Name $groupName }
+        }
     }
-    if ($marker -and (Test-Path -LiteralPath $marker -PathType Leaf)) {
-        Remove-Item -LiteralPath $marker -Force
+    if ($marker) {
+        Invoke-ProbeCleanup -Name 'remove marker' -Operation {
+            if (Test-Path -LiteralPath $marker -PathType Leaf) { Remove-Item -LiteralPath $marker -Force }
+        }
+    }
+    try { Write-ProbeEvidence } catch {
+        if (-not $primaryFailure) { $primaryFailure = $_ }
+        else { Write-Warning "Final evidence write failed: $($_.Exception.Message)" }
     }
 }
+if ($primaryFailure) { throw $primaryFailure }
+if (@($probeResult.cleanup | Where-Object error).Count) { throw 'Service-core probe cleanup failed; see retained evidence.' }

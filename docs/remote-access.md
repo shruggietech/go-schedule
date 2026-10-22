@@ -341,7 +341,9 @@ Rotation prints the new bearer value once and invalidates the former value immed
 
 Remote clients use `Authorization: Bearer <credential>` against the documented `/api/v1` operations. Missing, malformed, unknown, and expired values receive `401 unauthorized`; a credential that matches a revoked record receives `401 credential_revoked` so an authenticated profile holder can distinguish repair from a transient outage. Browser-origin requests are rejected, rate limits return `429` with `Retry-After`, and unsupported local-only routes return `404`. See `api/openapi/remote-v1.yaml` for the machine-readable contract.
 
-## Remote notifications (Unreleased S111)
+## Remote notifications
+
+Introduced in the v1.6.0 candidate; publication is pending.
 
 The authenticated remote operation catalog includes all notification channel, task/group policy, effective-policy and delivery-history routes. The selected daemon owns its channels, credentials, policy and delivery evidence. The desktop Notifications page and CLI use that selected target; credentials are never fetched from another daemon.
 

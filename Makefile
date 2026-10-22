@@ -1,11 +1,11 @@
 # go-schedule, developer tasks
-# The GUI binary (gosched-gui) requires a C toolchain + OpenGL (Fyne); the daemon
-# and CLI are cgo-free. Targets below operate on the whole module.
+# The Wails desktop uses its separate module, Node frontend and native WebView.
+# The daemon and CLI are cgo-free. Canonical verification covers both modules.
 
 GO        ?= go
 SH        ?= sh
 LDFLAGS   ?=
-GUI_LDFLAGS_WINDOWS = -H windowsgui
+WAILS_VERSION = v2.17.0
 
 .PHONY: all verify fmt fmt-check vet lint test test-race test-gui cover docs-check automation-check bench build build-daemon build-cli build-gui tidy clean
 
@@ -47,15 +47,14 @@ build-daemon:
 build-cli:
 	$(GO) build -o bin/gosched ./cmd/gosched
 
-# GUI: requires cgo + a C toolchain and OpenGL/X11 dev libraries (Fyne).
-# On Windows add $(GUI_LDFLAGS_WINDOWS) so no console window appears.
+# Wails needs Node and platform WebView development prerequisites.
 build-gui:
-	CGO_ENABLED=1 $(GO) build -o bin/gosched-gui ./cmd/gosched-gui
+	cd desktop && $(GO) run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -tags webkit2_41
 
+# Wails uses the windowless Windows linker mode for its production desktop.
 build-gui-windows:
-	CGO_ENABLED=1 GOOS=windows $(GO) build -ldflags "$(GUI_LDFLAGS_WINDOWS)" -o bin/gosched-gui.exe ./cmd/gosched-gui
+	cd desktop && $(GO) run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -platform windows/amd64
 
-# Headless GUI tests run without a display or OpenGL (Fyne test driver).
 test-gui:
 	$(SH) scripts/verify.sh gui
 

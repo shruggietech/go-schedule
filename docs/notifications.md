@@ -7,7 +7,7 @@ nav_order: 8
 
 go-schedule can send SMTP email or a versioned JSON webhook for selected task outcomes, persistent problems, recoveries, excessive duration, process start failures, and daemon healthy-presence heartbeats. Delivery is durable and asynchronous: a receiver outage cannot change a task result or occupy a scheduler task worker.
 
-Webhooks and SMTP email provide durable unattended monitoring. The running desktop application also offers optional native operating-system popups for new task outcomes and alerts. SMTP support is available in Unreleased S111 source; consult the release notes before expecting it in an installed package.
+Webhooks and SMTP email provide durable unattended monitoring. The running desktop application also offers optional native operating-system popups for new task outcomes and alerts. SMTP is introduced in the v1.6.0 candidate, which is pending publication. Consult the latest published release before expecting it in an installed package.
 
 ## Desktop popups
 
@@ -132,7 +132,9 @@ Disabling a channel prevents new delivery creation. Removing it atomically remov
 
 Filter evidence with `--channel`, `--task`, `--run`, `--state`, and `--limit`. Delivery state is `pending`, `claimed`, `succeeded`, or `failed`. The last HTTP or SMTP status and a bounded authored diagnostic explain terminal failure without echoing an endpoint or credential.
 
-## SMTP email channels (Unreleased S111)
+## SMTP email channels
+
+Introduced in the v1.6.0 candidate; publication is pending.
 
 SMTP channels use the same task/group policies, health heartbeats, durable queue and delivery history as webhooks. Create a channel in Notifications in the desktop application or use the CLI:
 

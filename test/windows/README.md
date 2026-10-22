@@ -108,7 +108,7 @@ This scenario first proves ordinary IPC access, then creates tasks through the i
 
 ## CI service-boundary probe
 
-`Invoke-ServiceCoreCI.ps1` is reserved for a clean, elevated, disposable Windows runner. CI builds the daemon and CLI, creates `goschedadmin`, registers `goschedd` as LocalSystem, and runs the same success and failure controls without building or installing an MSI. Its JSON artifact is automated service-boundary evidence, not ordinary-token IPC proof or release-equivalent installer evidence. The script removes its tasks, service, and group in a `finally` block.
+`Invoke-ServiceCoreCI.ps1` is reserved for a clean, elevated, disposable Windows runner. CI builds the daemon and CLI, creates `goschedadmin`, registers `goschedd` as LocalSystem, and runs the same success and failure controls without building or installing an MSI. Its JSON artifact is automated service-boundary evidence, not ordinary-token IPC proof or release-equivalent installer evidence. The probe selects completed matching runs even when queued observations appear first. A failed probe checkpoints fixture-owned run/active observations, health, service state and a bounded daemon-log tail before cleanup, then records each cleanup outcome without replacing the primary error. CLI children have hidden noninteractive I/O and a ten-second command deadline. The script removes its tasks, service, and group in a `finally` block.
 
 ## Attended release-candidate gate
 

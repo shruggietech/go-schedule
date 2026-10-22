@@ -145,6 +145,8 @@ run_expect_fail missing-threat 'expected exactly one T12 threat-to-test row' "$m
 
 permissive_origin="$TMP/permissive-origin"
 cp -R "$GOOD" "$permissive_origin"
+# The Markdown backticks are literal input to this policy mutation.
+# shellcheck disable=SC2016
 sed 's/Reject `Origin` by default and emit no permissive CORS policy/Allow credentialed browser origins/' "$GOOD/docs/remote-access.md" > "$permissive_origin/docs/remote-access.md"
 run_expect_fail permissive-origin 'cross-origin default-deny threat and verification contract' "$permissive_origin"
 

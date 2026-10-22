@@ -90,7 +90,9 @@ The subject source_sha256 binds sorted tracked and nonignored untracked paths, f
 
 The [version 1 build-receipt schema](https://github.com/shruggietech/go-schedule/blob/main/internal/clievaluate/schemas/v1/build-receipt.schema.json) is the seventh strict contract alongside manifest, report, corpus, reviews, event and evidence-manifest. Six executable inputs remain the execution subject; the receipt binds their provenance and stays with the prepared input directory.
 
-## Owned SMTP evaluation (Unreleased S111)
+## Owned SMTP evaluation
+
+Included in the v1.6.0 candidate; package publication is pending.
 
 The standard capture catalog adds SMTP create/get/update/enable/test/rotate/clear/task-delivery/remote-read/disable/remove operations, both human and JSON output, and intentional encryption/header/credential failures. A disposable loopback SMTP receiver records messages and recipient addresses independently of daemon delivery history. Credential values are registered with the redactor before use and are supplied from private fixture files or standard input.
 

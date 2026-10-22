@@ -352,7 +352,9 @@ The concurrent-writer integration check retains each failed child's actual outpu
 
 ## Automated tests
 
-### Isolated CLI operation (S107, unreleased)
+### Isolated CLI operation
+
+Introduced in the v1.6.0 candidate; publication is pending.
 
 S107 provides reusable isolation and focused command adapters for the future unattended evaluator. The complete Windows/WSL coordinator and fixed report contract remain tracked in #289 and #290. Operator commands are documented in the [CLI reference](cli.md).
 
