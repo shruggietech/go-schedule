@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -159,6 +160,16 @@ func TestSMTPSharedCancellationBoundsGreeting(t *testing.T) {
 		if err != nil {
 			return
 		}
+		defer conn.Close()
+		_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
+		if _, err := io.WriteString(conn, "220 owned greeting fixture\r\n"); err != nil {
+			return
+		}
+		// Wait for EHLO before canceling, so DialContext has returned on every OS.
+		line, err := bufio.NewReader(conn).ReadString('\n')
+		if err != nil || !strings.HasPrefix(line, "EHLO ") {
+			return
+		}
 		accepted <- conn
 		var one [1]byte
 		_, _ = conn.Read(one[:])
@@ -182,7 +193,13 @@ func TestSMTPSharedCancellationBoundsGreeting(t *testing.T) {
 	go func() {
 		resultCh <- NewSender(nil).SendSMTP(ctx, d, func(_ []domain.NotificationRecipient) error { return nil })
 	}()
-	conn := <-accepted
+	defer cancel()
+	var conn net.Conn
+	select {
+	case conn = <-accepted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("SMTP client did not reach the greeting exchange")
+	}
 	defer conn.Close()
 	cancel()
 	select {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -199,5 +200,15 @@ func TestSMTPRejectsExpiredAndWrongHostCertificates(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestSMTPSocketTimeoutDiagnosticWithoutContextCancellation(t *testing.T) {
+	if context.Background().Err() != nil {
+		t.Fatal("background context unexpectedly canceled")
+	}
+	result := smtpFail(domain.SMTPAttemptResult{Recipients: []domain.NotificationRecipient{{Address: "ops@example.test", State: "pending"}}}, []int{0}, "message submission", &net.OpError{Op: "read", Net: "tcp", Err: os.ErrDeadlineExceeded}, true)
+	if result.Recipients[0].State != "temporary_failure" || !strings.Contains(result.Diagnostic, "timed out") {
+		t.Fatalf("socket timeout diagnostic %+v", result)
 	}
 }

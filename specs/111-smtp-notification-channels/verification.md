@@ -35,7 +35,7 @@ Two failures were the new SMTP task case incorrectly expecting JSON from the exi
 
 ## Corrected Windows and WSL evaluation
 
-Final run c29c5da5-15e9-4adb-924d-90b204aed0fa used .test-temp/s111/qa-inputs-02 and .test-temp/s111/qa-run-02. The source subject is baseline e5aa3240676b1bbc0d215bdb6a7b120ce1240d86 with dirty=true and exact content SHA256 b294faa7d031106214aeab7c14aa5b3cab932b6ea5804295026d91a2aa712050. The six executable hashes and exact environments are in its build receipt and canonical report. Later delivery metadata does not change the evaluated implementation.
+Final run c29c5da5-15e9-4adb-924d-90b204aed0fa used .test-temp/s111/qa-inputs-02 and .test-temp/s111/qa-run-02. The source subject is baseline e5aa3240676b1bbc0d215bdb6a7b120ce1240d86 with dirty=true and exact content SHA256 b294faa7d031106214aeab7c14aa5b3cab932b6ea5804295026d91a2aa712050. The six executable hashes and exact environments are in its build receipt and canonical report. This complete evaluation predates the subsequent hosted-review corrections described below; it is evidence for that frozen source, not a claim that its binaries contain later corrections.
 
 | Outcome | Count |
 | --- | --- |
@@ -62,3 +62,11 @@ Paths in the table are under .test-temp/s111/. The complete evidence directory, 
 ## Observation boundaries
 
 The local root race and native build results are Windows evidence. WSL capture executes the Linux packaged CLI/daemon and declared harness/shared-logic scenarios under owned limits. Browser tests exercise the frontend harness. These are separate from future exact-head hosted CI, native macOS checks, production SMTP account delivery and release publication. No live provider credentials, installed-service mutation, public DNS change, merge, tag or release is part of S111.
+
+## Hosted-review correction verification
+
+Codex round 1 on 2fe74f089eadc6b98fed2a172c84365ea646c4f3 identified remote notification UI permission gating (#346). Hosted CI run 39747657783 exposed a greeting fixture synchronization race on Linux and a socket/context deadline diagnostic race on macOS (#347). Corrections add an explicit selected-authority matrix, preserve recipient-only edits for Manage, explain permission denial, recognize typed network timeouts, and synchronize the cancellation fixture after EHLO. SMTP fixture credentials now stay outside generic command substitutions.
+
+The corrected notification tests and secret-substitution regression passed 20 native Ubuntu-24.04 WSL race repetitions. The initial attempt could not fetch dependencies through WSL's existing localhost DNS resolver; using the already verified Windows module cache with GOPROXY=off allowed the native Linux run without changing system DNS. Targeted Windows SMTP cases passed three repetitions; desktop notification Go tests and TypeScript checks passed. The frontend notification/shell subset passed 34 tests, including five authority cases, and the complete frontend suite passed 166 tests. The full correction aggregate and exact-head hosted conclusions are recorded in the PR handoff.
+
+The correction aggregate sh scripts/verify.sh all completed with exit 0 across all eight gates. Its retained log is .test-temp/s111/verify-review1.log, SHA256 d983f742edd598b7e2d364224a323cb5f8f2d0725627595637000863ac7e7a62. The notification browser rerun passed all three tests; log SHA256 fdf4d4fcc3fd57684b5731cd8adcbe746d28d4a1a2f03ce979a10a819d6d6343. Native Linux repetition log SHA256 6ffb9c8a5a8a060a92c244313491103dfad7db055e21c3e66c548563790638ff. These correction logs are also retained in the review1-corrections directory of the local S111 evidence archive.

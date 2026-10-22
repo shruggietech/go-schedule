@@ -472,6 +472,8 @@ func failure(action string, err error) Result {
 	var status *client.StatusError
 	if errors.As(err, &status) {
 		switch status.Code {
+		case server.CodeForbidden:
+			return Result{Action: action, Outcome: "rejected", Message: "This connection does not have permission for that notification action. Ask an administrator to update its permissions."}
 		case server.CodeValidation:
 			return Result{Action: action, Outcome: "rejected", Field: status.Field, Message: "Review the highlighted notification details and try again."}
 		case server.CodeConflict:
@@ -480,5 +482,5 @@ func failure(action string, err error) Result {
 			return Result{Action: action, Outcome: "stale", Message: "That notification resource no longer exists. Refresh Notifications."}
 		}
 	}
-	return Result{Action: action, Outcome: "unavailable", Message: "The local scheduler service is unavailable. Try again."}
+	return Result{Action: action, Outcome: "unavailable", Message: "The selected scheduler service is unavailable. Try again."}
 }

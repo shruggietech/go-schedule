@@ -18,7 +18,8 @@ import (
 func (s *session) startSMTP() error {
 	username, password, rotated := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	s.redactor.Register(username, password, rotated)
-	s.vars["smtp_username"], s.vars["smtp_password"], s.vars["smtp_rotated"] = username, password, rotated
+	// Credentials belong to the owned receiver, never the generic command substitution map.
+	s.smtpRotation = domain.SMTPAuth{Username: username, Password: rotated}
 	receiver, err := testsmtp.Start(testsmtp.Options{Username: username, Password: password})
 	if err != nil {
 		return err
@@ -49,7 +50,7 @@ func (s *session) smtpBefore(ctx context.Context, definition step) error {
 	s.smtpBeforeCount = len(s.smtp.Messages())
 	switch definition.Spec.ID {
 	case "smtp.rotate":
-		s.smtp.SetCredentials(s.vars["smtp_username"], s.vars["smtp_rotated"])
+		s.smtp.SetCredentials(s.smtpRotation.Username, s.smtpRotation.Password)
 	case "smtp.clear":
 		s.smtp.SetCredentials("", "")
 	case "smtp.task-delivery":

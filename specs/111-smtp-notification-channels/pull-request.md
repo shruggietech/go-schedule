@@ -11,15 +11,15 @@ SMTP email now uses the existing daemon-owned notification queue, task/group con
 - Add typed portable SMTP definitions bound to provisioned target-local channels by name and frozen revision, without exporting credentials.
 - Extend owned Windows/WSL evaluation and correct the SMTP task-case rendering contract and pre-existing empty-text bounded history defect.
 
-Closes #176. Closes #19. Closes #341. Closes #342. Closes #343. Closes #344. Refs #146.
+Closes #176. Closes #19. Closes #341. Closes #342. Closes #343. Closes #344. Closes #346. Closes #347. Refs #146.
 
 Spec-Kit slice: S111, specs/111-smtp-notification-channels/. Existing issue milestones remain authoritative. #146 stays open for its separate distributed-scheduling decision.
 
 ## Verification
 
-Foreground `sh scripts/verify.sh all` passed all eight gates: format, vet, lint, race, GUI, coverage, docs and automation. All 161 frontend tests and three notification browser/accessibility tests passed. Core coverage is 80.2%-91.3%.
+Foreground `sh scripts/verify.sh all` passed all eight gates: format, vet, lint, race, GUI, coverage, docs and automation. All 166 frontend tests and three notification browser/accessibility tests passed. Core coverage is 80.2%-91.3%.
 
-Fresh receipt-bound Windows/WSL run c29c5da5-15e9-4adb-924d-90b204aed0fa finalized with 1,763 passing executions, three declared platform exclusions, 1,109 contextual message reviews and zero findings. Source-content SHA256: b294faa7d031106214aeab7c14aa5b3cab932b6ea5804295026d91a2aa712050. All owned runtimes/process trees were cleaned. See [verification](specs/111-smtp-notification-channels/verification.md) for exact evidence and the separately retained first diagnostic capture.
+Fresh receipt-bound Windows/WSL run c29c5da5-15e9-4adb-924d-90b204aed0fa finalized with 1,763 passing executions, three declared platform exclusions, 1,109 contextual message reviews and zero findings. Source-content SHA256: b294faa7d031106214aeab7c14aa5b3cab932b6ea5804295026d91a2aa712050. All owned runtimes/process trees were cleaned. This frozen evaluation predates the hosted-review corrections; those corrections passed focused Windows tests, 20 native Linux race repetitions, and the notification browser/accessibility suite. See [verification](specs/111-smtp-notification-channels/verification.md) for exact evidence and the separately retained first diagnostic capture.
 
 - [x] Canonical local verification passed.
 

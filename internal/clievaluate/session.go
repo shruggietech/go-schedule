@@ -37,6 +37,7 @@ import (
 
 type session struct {
 	smtp                 *testsmtp.Server
+	smtpRotation         domain.SMTPAuth
 	smtpBeforeCount      int
 	priorRuns            map[string]bool
 	w                    *clifixture.Workspace

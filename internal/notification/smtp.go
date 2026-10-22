@@ -221,7 +221,8 @@ func smtpFail(result domain.SMTPAttemptResult, indices []int, phase string, err 
 	if code != 0 {
 		diagnostic += fmt.Sprintf(" Server status: %d.", code)
 	}
-	if errors.Is(err, context.DeadlineExceeded) {
+	var timedOut net.Error
+	if errors.Is(err, context.DeadlineExceeded) || errors.As(err, &timedOut) && timedOut.Timeout() {
 		diagnostic += " The attempt timed out."
 	}
 	if errors.Is(err, context.Canceled) {

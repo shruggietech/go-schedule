@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
@@ -330,5 +331,12 @@ func TestSMTPDesktopCreateEditClearAndSecretFreeWorkspace(t *testing.T) {
 	}
 	if strings.Contains(string(data), "fixture-password") || strings.Contains(string(data), "fixture-user") {
 		t.Fatal("workspace leaked credentials")
+	}
+}
+
+func TestNotificationPermissionDenialIsNotAvailabilityFailure(t *testing.T) {
+	result := failure("save_notification_channel", &client.StatusError{Code: server.CodeForbidden})
+	if result.Outcome != "rejected" || !strings.Contains(result.Message, "permission") || strings.Contains(result.Message, "unavailable") {
+		t.Fatalf("permission diagnostic: %+v", result)
 	}
 }
