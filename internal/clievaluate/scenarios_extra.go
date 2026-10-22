@@ -52,7 +52,7 @@ func additionalSteps() []step {
 	s = add("isolation.unix-socket-bound", "@isolation", "path-boundary", "command_harness", 0, "socket-bound")
 	s.Spec.Platforms = []string{"linux"}
 	s.Spec.ApplicabilityReason = "unix_socket_only"
-	for _, name := range []string{"dst-gap-fold", "month-boundaries", "catchup-startup", "one-off-completion", "overlap-policies", "watcher-recovery", "notification-retry", "notification-transport", "popup-filtering", "bundle-reference-integrity"} {
+	for _, name := range []string{"dst-gap-fold", "month-boundaries", "catchup-startup", "one-off-completion", "overlap-policies", "watcher-recovery", "notification-retry", "notification-transport", "smtp-transport", "popup-filtering", "bundle-reference-integrity"} {
 		add("engine."+name, "@engine", "deterministic-policy", "deterministic_engine", 0, name)
 	}
 	add("task.stdin-file-create", "task add", "create", "packaged_cli", 0, "input-create", "--json", "--ipc-path", "${ipc}", "task", "add", "QA file input", "--command", "${worker}", "--arg=fixture-child", "--stdin-file", "${stdin_file}", "--disabled")

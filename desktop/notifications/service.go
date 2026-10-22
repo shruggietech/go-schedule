@@ -68,7 +68,7 @@ func buildWorkspace(channels []domain.NotificationChannel, tasks []server.TaskRe
 	}
 	w := Workspace{Channels: make([]Channel, 0, len(channels)), Tasks: make([]Scope, 0, len(tasks)), Groups: make([]Scope, 0, len(groups)), Coverage: []ConfiguredScope{}, CoverageComplete: true, Deliveries: make([]Delivery, 0, len(deliveries)), LoadedAt: timestamp(loadedAt)}
 	for _, value := range channels {
-		w.Channels = append(w.Channels, Channel{ID: value.ID, Name: fallback(value.Name, "Unnamed channel"), Kind: string(value.Kind), EndpointSummary: value.EndpointSummary, HasAuthorization: value.HasAuthorization, Enabled: value.Enabled, HealthIntervalMinutes: value.HealthIntervalSeconds / 60, UpdatedAt: timestamp(value.UpdatedAt)})
+		w.Channels = append(w.Channels, Channel{ID: value.ID, Name: fallback(value.Name, "Unnamed channel"), Kind: string(value.Kind), SMTP: value.SMTP, EndpointSummary: value.EndpointSummary, HasAuthorization: value.HasAuthorization, Enabled: value.Enabled, HealthIntervalMinutes: value.HealthIntervalSeconds / 60, UpdatedAt: timestamp(value.UpdatedAt)})
 	}
 	for _, value := range groups {
 		w.Groups = append(w.Groups, Scope{Type: "group", ID: value.ID, Name: fallback(value.Name, "Unnamed group"), Context: groupPath(value.ID)})
@@ -208,7 +208,7 @@ func mapDelivery(value domain.NotificationDelivery) Delivery {
 	case domain.NotificationDeliveryFailed:
 		state = "failed"
 	}
-	return Delivery{ID: value.ID, ChannelID: value.ChannelID, ChannelName: fallback(value.ChannelName, "Removed channel"), DestinationSummary: value.DestinationSummary, Kind: kind, TaskID: value.TaskID, TaskName: value.TaskName, GroupID: value.GroupID, GroupName: value.GroupName, RunID: value.RunID, State: state, Attempts: value.Attempts, NextAttemptAt: timestamp(value.NextAttemptAt), CreatedAt: timestamp(value.CreatedAt), ClaimedAt: optionalTimestamp(value.ClaimedAt), CompletedAt: optionalTimestamp(value.CompletedAt), LastStatus: value.LastStatus, LastError: value.LastError, ConditionKind: string(value.ConditionKind), ConditionSummary: value.ConditionSummary}
+	return Delivery{Transport: string(value.Kind), Recipients: value.Recipients, ID: value.ID, ChannelID: value.ChannelID, ChannelName: fallback(value.ChannelName, "Removed channel"), DestinationSummary: value.DestinationSummary, Kind: kind, TaskID: value.TaskID, TaskName: value.TaskName, GroupID: value.GroupID, GroupName: value.GroupName, RunID: value.RunID, State: state, Attempts: value.Attempts, NextAttemptAt: timestamp(value.NextAttemptAt), CreatedAt: timestamp(value.CreatedAt), ClaimedAt: optionalTimestamp(value.ClaimedAt), CompletedAt: optionalTimestamp(value.CompletedAt), LastStatus: value.LastStatus, LastError: value.LastError, ConditionKind: string(value.ConditionKind), ConditionSummary: value.ConditionSummary}
 }
 
 func (s *Service) SaveChannel(ctx context.Context, draft ChannelDraft) Result {
@@ -219,19 +219,44 @@ func (s *Service) SaveChannel(ctx context.Context, draft ChannelDraft) Result {
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 	entityID := draft.ID
+	kind := domain.NotificationChannelKind(draft.Kind)
+	if kind == "" {
+		kind = domain.NotificationChannelWebhook
+	}
+	authorization := draft.Authorization
+	var smtpSettings *domain.SMTPConfig
+	if kind == domain.NotificationChannelSMTP {
+		if draft.SMTP == nil {
+			return rejected("save_notification_channel", "smtp", "Enter the SMTP server, sender and recipients.")
+		}
+		validated, err := webhook.ValidateSMTP(*draft.SMTP)
+		if err != nil {
+			return rejected("save_notification_channel", "smtp", err.Error())
+		}
+		smtpSettings = &validated
+		if draft.IsNew || entityID == "" || draft.ReplaceAuthorization {
+			value, err := webhook.EncodeSMTPAuth(domain.SMTPAuth{Username: draft.SMTPUsername, Password: draft.SMTPPassword})
+			if err != nil {
+				return rejected("save_notification_channel", "smtp_auth", err.Error())
+			}
+			authorization = value
+		}
+	} else if kind != domain.NotificationChannelWebhook {
+		return rejected("save_notification_channel", "kind", "Choose webhook or SMTP email.")
+	}
 	if draft.IsNew || entityID == "" {
 		endpoint := strings.TrimSpace(draft.Endpoint)
-		if _, err := webhook.ValidateEndpoint(endpoint); err != nil {
+		if _, err := webhook.ValidateEndpoint(endpoint); kind == domain.NotificationChannelWebhook && err != nil {
 			return rejected("save_notification_channel", "endpoint", "Enter a valid HTTPS webhook endpoint.")
 		}
-		created, err := s.backend.CreateNotificationChannel(c, server.NotificationChannelCreateRequest{Name: name, Endpoint: endpoint, Authorization: draft.Authorization, HealthIntervalSeconds: draft.HealthIntervalMinutes * 60})
+		created, err := s.backend.CreateNotificationChannel(c, server.NotificationChannelCreateRequest{Name: name, Kind: kind, SMTP: smtpSettings, Endpoint: endpoint, Authorization: authorization, HealthIntervalSeconds: draft.HealthIntervalMinutes * 60})
 		if err != nil {
 			return failure("save_notification_channel", err)
 		}
 		entityID = created.ID
 	} else {
 		healthSeconds := draft.HealthIntervalMinutes * 60
-		req := server.NotificationChannelUpdateRequest{Name: &name, HealthIntervalSeconds: &healthSeconds}
+		req := server.NotificationChannelUpdateRequest{Name: &name, Kind: &kind, SMTP: smtpSettings, HealthIntervalSeconds: &healthSeconds}
 		if draft.ReplaceEndpoint {
 			endpoint := strings.TrimSpace(draft.Endpoint)
 			if _, err := webhook.ValidateEndpoint(endpoint); err != nil {
@@ -243,7 +268,7 @@ func (s *Service) SaveChannel(ctx context.Context, draft ChannelDraft) Result {
 			return failure("save_notification_channel", err)
 		}
 		if draft.ReplaceAuthorization {
-			if _, err := s.backend.RotateNotificationChannelAuthorization(c, entityID, draft.Authorization); err != nil {
+			if _, err := s.backend.RotateNotificationChannelAuthorization(c, entityID, authorization); err != nil {
 				return failure("save_notification_channel", err)
 			}
 		}

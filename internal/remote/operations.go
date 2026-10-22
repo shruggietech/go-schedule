@@ -63,6 +63,21 @@ var operations = []Operation{
 	{Method: http.MethodGet, RemotePath: "/api/v1/access/current", LocalPath: "/v1/access/current", ID: "actors.current", Retry: RetrySafe},
 	{Method: http.MethodGet, RemotePath: "/api/v1/access/actors", LocalPath: "/v1/access/actors", ID: "actors.list", Retry: RetrySafe},
 	{Method: http.MethodGet, RemotePath: "/api/v1/audit", LocalPath: "/v1/audit", ID: "audit.list", Retry: RetrySafe},
+	{Method: http.MethodGet, RemotePath: "/api/v1/notification-channels", LocalPath: "/v1/notification-channels", ID: "notifications.channels.list", Retry: RetrySafe},
+	{Method: http.MethodPost, RemotePath: "/api/v1/notification-channels", LocalPath: "/v1/notification-channels", ID: "notifications.channels.create", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodGet, RemotePath: "/api/v1/notification-channels/{id}", LocalPath: "/v1/notification-channels/{id}", ID: "notifications.channels.read", Retry: RetrySafe},
+	{Method: http.MethodPatch, RemotePath: "/api/v1/notification-channels/{id}", LocalPath: "/v1/notification-channels/{id}", ID: "notifications.channels.update", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodDelete, RemotePath: "/api/v1/notification-channels/{id}", LocalPath: "/v1/notification-channels/{id}", ID: "notifications.channels.delete", Retry: RetryNever},
+	{Method: http.MethodPost, RemotePath: "/api/v1/notification-channels/{id}/enable", LocalPath: "/v1/notification-channels/{id}/enable", ID: "notifications.channels.enable", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodPost, RemotePath: "/api/v1/notification-channels/{id}/disable", LocalPath: "/v1/notification-channels/{id}/disable", ID: "notifications.channels.disable", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodPost, RemotePath: "/api/v1/notification-channels/{id}/rotate", LocalPath: "/v1/notification-channels/{id}/rotate", ID: "notifications.channels.rotate", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodPost, RemotePath: "/api/v1/notification-channels/{id}/test", LocalPath: "/v1/notification-channels/{id}/test", ID: "notifications.channels.test", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodGet, RemotePath: "/api/v1/notification-deliveries", LocalPath: "/v1/notification-deliveries", ID: "notifications.deliveries.list", Retry: RetrySafe},
+	{Method: http.MethodGet, RemotePath: "/api/v1/tasks/{id}/notifications", LocalPath: "/v1/tasks/{id}/notifications", ID: "tasks.notifications.read", Retry: RetrySafe},
+	{Method: http.MethodPut, RemotePath: "/api/v1/tasks/{id}/notifications", LocalPath: "/v1/tasks/{id}/notifications", ID: "tasks.notifications.update", Retry: RetryNever, BodyLimit: 64 << 10},
+	{Method: http.MethodGet, RemotePath: "/api/v1/tasks/{id}/notifications/effective", LocalPath: "/v1/tasks/{id}/notifications/effective", ID: "tasks.notifications.effective.read", Retry: RetrySafe},
+	{Method: http.MethodGet, RemotePath: "/api/v1/groups/{id}/notifications", LocalPath: "/v1/groups/{id}/notifications", ID: "groups.notifications.read", Retry: RetrySafe},
+	{Method: http.MethodPut, RemotePath: "/api/v1/groups/{id}/notifications", LocalPath: "/v1/groups/{id}/notifications", ID: "groups.notifications.update", Retry: RetryNever, BodyLimit: 64 << 10},
 }
 
 func init() {
@@ -75,7 +90,7 @@ func init() {
 			operations[i].TargetKind = "pairing"
 			operations[i].Audit = authorization.AuditNone
 		}
-		operations[i].SecretExclusions = []string{"authorization", "credential", "digest", "phrase", "verifier", "task-input"}
+		operations[i].SecretExclusions = []string{"authorization", "smtp_auth", "password", "username", "credential", "digest", "phrase", "verifier", "task-input"}
 	}
 }
 

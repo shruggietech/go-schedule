@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/shruggietech/go-schedule/internal/notification"
 )
 
 // SchemaV1 identifies the original groups, tasks, and chains bundle.
@@ -22,6 +24,7 @@ const SchemaV2 = "go-schedule.bundle/v2"
 // identity, credentials, raw trigger keys, notification endpoints, run history,
 // command, working directory, environment, or run-as identity.
 type Document struct {
+	SMTPChannels         []SMTPChannel        `json:"smtp_channels,omitempty"`
 	Schema               string               `json:"schema"`
 	Groups               []Group              `json:"groups,omitempty"`
 	Tasks                []Task               `json:"tasks,omitempty"`
@@ -189,6 +192,13 @@ func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
 			doc.Watchers[index].Stability = duration.String()
 		}
 	}
+	for index := range doc.SMTPChannels {
+		doc.SMTPChannels[index].Name = strings.TrimSpace(doc.SMTPChannels[index].Name)
+		if normalized, err := notification.ValidateSMTP(doc.SMTPChannels[index].Settings); err == nil {
+			doc.SMTPChannels[index].Settings = normalized
+		}
+	}
+	sort.Slice(doc.SMTPChannels, func(i, j int) bool { return doc.SMTPChannels[i].Name < doc.SMTPChannels[j].Name })
 	issues := Validate(doc)
 	sort.Slice(doc.Groups, func(i, j int) bool { return doc.Groups[i].PortableID < doc.Groups[j].PortableID })
 	sort.Slice(doc.Tasks, func(i, j int) bool { return doc.Tasks[i].PortableID < doc.Tasks[j].PortableID })
@@ -220,11 +230,11 @@ func issueKey(issue Issue) string {
 
 // Validate checks the versioned format, durable identities, and cross-object references.
 func Validate(doc Document) []Issue {
-	issues := []Issue{}
+	issues := validateSMTPChannels(doc)
 	if doc.Schema != SchemaV1 && doc.Schema != SchemaV2 {
 		issues = append(issues, Issue{Kind: "schema", Message: fmt.Sprintf("unsupported bundle schema %q", doc.Schema)})
 	}
-	if doc.Schema == SchemaV1 && (len(doc.ExternalTriggers) > 0 || len(doc.TriggerSets) > 0 || len(doc.Watchers) > 0 || len(doc.NotificationPolicies) > 0) {
+	if doc.Schema == SchemaV1 && (len(doc.ExternalTriggers) > 0 || len(doc.TriggerSets) > 0 || len(doc.Watchers) > 0 || len(doc.NotificationPolicies) > 0 || len(doc.SMTPChannels) > 0) {
 		issues = append(issues, Issue{Kind: "schema", Message: "source and policy fields require bundle v2"})
 	}
 	seen := map[string]string{}
@@ -435,6 +445,15 @@ func Preview(id, daemonID string, source, target Document) Plan {
 			plan.Items = append(plan.Items, Item{Kind: issue.Kind, PortableID: issue.Identity, Action: ActionInvalid, Message: issue.Message})
 		}
 		return plan
+	}
+	targetSMTP := mapByID(target.SMTPChannels, func(v SMTPChannel) string { return v.Name })
+	for _, v := range canonical.SMTPChannels {
+		plan.Items = append(plan.Items, comparePortable("smtp_channel", v.Name, v.Name, v, targetSMTP[v.Name]))
+	}
+	for _, v := range target.SMTPChannels {
+		if _, found := findPortable(canonical.SMTPChannels, v.Name, func(c SMTPChannel) string { return c.Name }); !found {
+			plan.Items = append(plan.Items, Item{Kind: "smtp_channel", PortableID: v.Name, Name: v.Name, Action: ActionTargetOnly, Message: "exists only on target"})
+		}
 	}
 	targetGroups := mapByID(target.Groups, func(v Group) string { return v.PortableID })
 	targetGroupNames := nameIndex(target.Groups, func(v Group) string { return v.Name }, func(v Group) string { return v.PortableID })

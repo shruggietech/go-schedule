@@ -19,28 +19,54 @@ func newNotificationCmd() *cobra.Command {
 }
 
 func newNotificationChannelCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "channel", Short: "Manage reusable webhook channels"}
+	cmd := &cobra.Command{Use: "channel", Short: "Manage reusable notification channels"}
 	cmd.AddCommand(notificationChannelAdd(), notificationChannelList(), notificationChannelGet(), notificationChannelUpdate(), notificationChannelToggle(true), notificationChannelToggle(false), notificationChannelRotate(), notificationChannelTest(), notificationChannelRemove())
 	return cmd
 }
 
 func notificationChannelAdd() *cobra.Command {
-	var endpoint, authorization string
+	var endpoint, authorization, kind string
+	var smtp smtpFlags
 	var healthInterval time.Duration
 	var disabled bool
-	cmd := &cobra.Command{Use: "add <name>", Short: "Create a webhook channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		if endpoint == "" {
-			return fmtUsage("--endpoint is required")
+	cmd := &cobra.Command{Use: "add <name>", Short: "Create a notification channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		if kind == "webhook" && endpoint == "" {
+			return fmtUsage("--endpoint is required for webhook channels")
+		}
+		if kind != "webhook" && kind != "smtp" {
+			return fmtUsage("--kind accepts webhook or smtp")
+		}
+		if kind == "webhook" && (smtpSettingsChanged(cmd) || cmd.Flags().Changed("smtp-auth-file")) {
+			return fmtUsage("SMTP flags require --kind smtp")
+		}
+		if kind == "smtp" && (cmd.Flags().Changed("endpoint") || cmd.Flags().Changed("authorization")) {
+			return fmtUsage("SMTP channels use --smtp-* settings and --smtp-auth-file instead of webhook fields")
+		}
+		var settings *domain.SMTPConfig
+		if kind == "smtp" {
+			var err error
+			settings, err = smtp.settings(cmd, nil)
+			if err != nil {
+				return err
+			}
+			if cmd.Flags().Changed("smtp-auth-file") {
+				authorization, err = readSMTPAuth(cmd, smtp.authFile)
+				if err != nil {
+					return err
+				}
+			}
 		}
 		enabled := !disabled
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
-		channel, err := clientFor(cmd).CreateNotificationChannel(ctx, server.NotificationChannelCreateRequest{Name: args[0], Endpoint: endpoint, Authorization: authorization, Enabled: &enabled, HealthIntervalSeconds: int64(healthInterval / time.Second)})
+		channel, err := clientFor(cmd).CreateNotificationChannel(ctx, server.NotificationChannelCreateRequest{Name: args[0], Kind: domain.NotificationChannelKind(kind), SMTP: settings, Endpoint: endpoint, Authorization: authorization, Enabled: &enabled, HealthIntervalSeconds: int64(healthInterval / time.Second)})
 		if err != nil {
 			return err
 		}
 		return printNotificationChannel(cmd, channel)
 	}}
+	cmd.Flags().StringVar(&kind, "kind", "webhook", "notification transport: webhook or smtp")
+	smtp.bind(cmd, true)
 	cmd.Flags().StringVar(&endpoint, "endpoint", "", "HTTPS webhook URL (HTTP allowed for loopback)")
 	cmd.Flags().StringVar(&authorization, "authorization", "", "write-only Authorization header value")
 	cmd.Flags().BoolVar(&disabled, "disabled", false, "create disabled")
@@ -49,7 +75,7 @@ func notificationChannelAdd() *cobra.Command {
 }
 
 func notificationChannelList() *cobra.Command {
-	return &cobra.Command{Use: "list", Short: "List webhook channels", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+	return &cobra.Command{Use: "list", Short: "List notification channels", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		channels, err := clientFor(cmd).ListNotificationChannels(ctx)
@@ -70,7 +96,7 @@ func notificationChannelList() *cobra.Command {
 	}}
 }
 func notificationChannelGet() *cobra.Command {
-	return &cobra.Command{Use: "get <id>", Short: "Show a webhook channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	return &cobra.Command{Use: "get <id>", Short: "Show a notification channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		channel, err := clientFor(cmd).GetNotificationChannel(ctx, args[0])
@@ -83,8 +109,9 @@ func notificationChannelGet() *cobra.Command {
 
 func notificationChannelUpdate() *cobra.Command {
 	var name, endpoint string
+	var smtp smtpFlags
 	var healthInterval time.Duration
-	cmd := &cobra.Command{Use: "update <id>", Short: "Update a webhook channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	cmd := &cobra.Command{Use: "update <id>", Short: "Update a notification channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		req := server.NotificationChannelUpdateRequest{}
 		if cmd.Flags().Changed("name") {
 			req.Name = &name
@@ -96,8 +123,24 @@ func notificationChannelUpdate() *cobra.Command {
 			seconds := int64(healthInterval / time.Second)
 			req.HealthIntervalSeconds = &seconds
 		}
-		if req.Name == nil && req.Endpoint == nil && req.HealthIntervalSeconds == nil {
-			return fmtUsage("at least one of --name, --endpoint, or --health-interval is required")
+		if smtpSettingsChanged(cmd) {
+			ctx, cancel := reqCtx(cmd)
+			defer cancel()
+			current, err := clientFor(cmd).GetNotificationChannel(ctx, args[0])
+			if err != nil {
+				return err
+			}
+			if current.Kind != domain.NotificationChannelSMTP {
+				return fmtUsage("SMTP flags require an SMTP channel")
+			}
+			settings, err := smtp.settings(cmd, current.SMTP)
+			if err != nil {
+				return err
+			}
+			req.SMTP = settings
+		}
+		if req.Name == nil && req.Endpoint == nil && req.HealthIntervalSeconds == nil && req.SMTP == nil {
+			return fmtUsage("provide --name, --endpoint, --health-interval, or an SMTP setting")
 		}
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
@@ -107,6 +150,7 @@ func notificationChannelUpdate() *cobra.Command {
 		}
 		return printNotificationChannel(cmd, channel)
 	}}
+	smtp.bind(cmd, false)
 	cmd.Flags().StringVar(&name, "name", "", "new channel name")
 	cmd.Flags().StringVar(&endpoint, "endpoint", "", "new webhook URL")
 	cmd.Flags().DurationVar(&healthInterval, "health-interval", 0, "healthy-presence heartbeat interval (0 disables)")
@@ -115,10 +159,10 @@ func notificationChannelUpdate() *cobra.Command {
 
 func notificationChannelToggle(enabled bool) *cobra.Command {
 	verb := "disable"
-	short := "Disable a webhook channel"
+	short := "Disable a notification channel"
 	if enabled {
 		verb = "enable"
-		short = "Enable a webhook channel"
+		short = "Enable a notification channel"
 	}
 	return &cobra.Command{Use: verb + " <id>", Short: short, Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
@@ -132,22 +176,33 @@ func notificationChannelToggle(enabled bool) *cobra.Command {
 }
 
 func notificationChannelRotate() *cobra.Command {
-	var authorization string
+	var authorization, authFile string
 	cmd := &cobra.Command{Use: "rotate <id>", Short: "Replace or clear channel authorization", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
+		if cmd.Flags().Changed("smtp-auth-file") {
+			if cmd.Flags().Changed("authorization") {
+				return fmtUsage("--smtp-auth-file cannot be combined with --authorization")
+			}
+			var err error
+			authorization, err = readSMTPAuth(cmd, authFile)
+			if err != nil {
+				return err
+			}
+		}
 		channel, err := clientFor(cmd).RotateNotificationChannelAuthorization(ctx, args[0], authorization)
 		if err != nil {
 			return err
 		}
 		return printNotificationChannel(cmd, channel)
 	}}
-	cmd.Flags().StringVar(&authorization, "authorization", "", "new write-only Authorization value (empty clears)")
+	cmd.Flags().StringVar(&authFile, "smtp-auth-file", "", "write-only SMTP username/password JSON file; - reads standard input; {} clears")
+	cmd.Flags().StringVar(&authorization, "authorization", "", "new write-only authorization value (empty clears)")
 	return cmd
 }
 
 func notificationChannelTest() *cobra.Command {
-	return &cobra.Command{Use: "test <id>", Short: "Queue a test webhook", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	return &cobra.Command{Use: "test <id>", Short: "Queue a test notification", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		delivery, err := clientFor(cmd).TestNotificationChannel(ctx, args[0])
@@ -162,7 +217,7 @@ func notificationChannelTest() *cobra.Command {
 	}}
 }
 func notificationChannelRemove() *cobra.Command {
-	return &cobra.Command{Use: "rm <id>", Short: "Remove a webhook channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	return &cobra.Command{Use: "rm <id>", Short: "Remove a notification channel", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		if err := clientFor(cmd).DeleteNotificationChannel(ctx, args[0]); err != nil {
@@ -178,6 +233,10 @@ func printNotificationChannel(cmd *cobra.Command, channel domain.NotificationCha
 		return printJSONTo(cmd.OutOrStdout(), channel)
 	}
 	fmt.Fprintf(cmd.OutOrStdout(), "%s (%s) %s enabled=%t authorization=%t health_interval=%ds\n", channel.Name, channel.ID, channel.EndpointSummary, channel.Enabled, channel.HasAuthorization, channel.HealthIntervalSeconds)
+	if channel.SMTP != nil {
+		c := channel.SMTP
+		fmt.Fprintf(cmd.OutOrStdout(), "SMTP host=%s port=%d encryption=%s from=%s recipients=%s timeout=%ds html=%t\n", c.Host, c.Port, c.TLSMode, c.From, strings.Join(c.Recipients, ","), c.TimeoutSeconds, c.HTML)
+	}
 	return nil
 }
 
@@ -331,6 +390,11 @@ func newNotificationDeliveriesCmd() *cobra.Command {
 		}
 		for _, delivery := range deliveries {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\tattempts=%d\tstatus=%d\n", delivery.ID, delivery.EventKind, delivery.State, delivery.Attempts, delivery.LastStatus)
+			if delivery.Kind == domain.NotificationChannelSMTP {
+				for _, recipient := range delivery.Recipients {
+					fmt.Fprintf(cmd.OutOrStdout(), "  recipient %s: %s, SMTP status=%d, %s\n", recipient.Address, recipient.State, recipient.Code, recipient.Diagnostic)
+				}
+			}
 		}
 		return nil
 	}}

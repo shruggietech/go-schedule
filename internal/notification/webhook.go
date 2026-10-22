@@ -5,6 +5,7 @@ package notification
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
@@ -48,7 +49,8 @@ func isLoopbackHost(host string) bool {
 
 // Sender performs one webhook attempt. It never follows redirects.
 type Sender struct {
-	client *http.Client
+	client    *http.Client
+	smtpRoots *x509.CertPool
 }
 
 // NewSender constructs a webhook sender using transport or the default transport.

@@ -373,7 +373,7 @@ export function App({
           bridge={notifications}
           settings={settings}
           desktop={bridge}
-          webhooksSupported={!remote}
+          webhooksSupported
           available={snapshot.state === "connected"}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0

@@ -21,6 +21,8 @@ func (s *session) special(ctx context.Context, definition step) (bool, execution
 		return true, s.eventStream(ctx)
 	case "notification-retry":
 		return true, notificationRetry(ctx)
+	case "smtp-transport":
+		return true, smtpTransportPolicy(ctx, s.redactor)
 	case "notification-transport":
 		return true, notificationTransport(ctx)
 	case "watcher-recovery":

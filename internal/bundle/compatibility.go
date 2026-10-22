@@ -17,6 +17,9 @@ func TargetCompatibility(doc Document, target TargetProfile) []Issue {
 	if len(doc.Groups) > 0 {
 		kinds = append(kinds, "group")
 	}
+	if len(doc.SMTPChannels) > 0 {
+		kinds = append(kinds, "smtp_channel")
+	}
 	if len(doc.NotificationPolicies) > 0 {
 		kinds = append(kinds, "notification_policy")
 	}
@@ -52,6 +55,9 @@ func targetCompatibilityKinds(kinds []string, target TargetProfile) []Issue {
 			requiredSet["chains"] = true
 		case "group":
 			requiredSet["groups"] = true
+		case "smtp_channel":
+			requiredSet["notifications"] = true
+			requiredSet["smtp_notifications"] = true
 		case "notification_policy":
 			requiredSet["notifications"] = true
 		case "task":

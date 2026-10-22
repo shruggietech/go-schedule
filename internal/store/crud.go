@@ -671,7 +671,7 @@ func (s *Store) ListRunsPage(taskID string, offset, limit, outputLimit int) ([]d
 	outputExpr := `output,output_truncated`
 	var args []any
 	if outputLimit > 0 {
-		outputExpr = `CAST(substr(CAST(output AS BLOB),1,?) AS TEXT),CASE WHEN output_truncated=1 OR length(CAST(output AS BLOB))>? THEN 1 ELSE 0 END`
+		outputExpr = `COALESCE(CAST(substr(CAST(output AS BLOB),1,?) AS TEXT),''),CASE WHEN output_truncated=1 OR length(CAST(output AS BLOB))>? THEN 1 ELSE 0 END`
 		args = append(args, outputLimit, outputLimit)
 	}
 	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed FROM runs`
@@ -773,7 +773,7 @@ func (s *Store) ListAlertsPage(unackedOnly bool, offset, limit, messageLimit int
 	messageExpr := `message,0`
 	var args []any
 	if messageLimit > 0 {
-		messageExpr = `CAST(substr(CAST(message AS BLOB),1,?) AS TEXT),CASE WHEN length(CAST(message AS BLOB))>? THEN 1 ELSE 0 END`
+		messageExpr = `COALESCE(CAST(substr(CAST(message AS BLOB),1,?) AS TEXT),''),CASE WHEN length(CAST(message AS BLOB))>? THEN 1 ELSE 0 END`
 		args = append(args, messageLimit, messageLimit)
 	}
 	q := `SELECT id,task_id,run_id,severity,kind,` + messageExpr + `,created_at,acknowledged FROM alerts`

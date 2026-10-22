@@ -40,7 +40,7 @@ func (s *Store) CreateNotificationChannel(channel *domain.NotificationChannel) e
 	if err != nil {
 		return fmt.Errorf("store: protect notification authorization: %w", err)
 	}
-	_, err = s.db.Exec(`INSERT INTO notification_channels(id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds) VALUES(?,?,?,?,?,?,?,?,?,?)`, channel.ID, channel.Name, string(channel.Kind), endpoint, channel.EndpointSummary, authorization, boolToInt(channel.Enabled), fmtTime(channel.CreatedAt), fmtTime(channel.UpdatedAt), channel.HealthIntervalSeconds)
+	_, err = s.db.Exec(`INSERT INTO notification_channels(id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds,smtp_config) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, channel.ID, channel.Name, string(channel.Kind), endpoint, channel.EndpointSummary, authorization, boolToInt(channel.Enabled), fmtTime(channel.CreatedAt), fmtTime(channel.UpdatedAt), channel.HealthIntervalSeconds, encodeSMTPConfig(channel.SMTP))
 	if err != nil {
 		return fmt.Errorf("store: create notification channel: %w", err)
 	}
@@ -48,7 +48,7 @@ func (s *Store) CreateNotificationChannel(channel *domain.NotificationChannel) e
 	return nil
 }
 
-const notificationChannelSelect = `SELECT id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds FROM notification_channels`
+const notificationChannelSelect = `SELECT id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds,smtp_config FROM notification_channels`
 
 // GetNotificationChannel returns one channel, including protected values for daemon use.
 func (s *Store) GetNotificationChannel(id string) (domain.NotificationChannel, error) {
@@ -75,9 +75,9 @@ func (s *Store) ListNotificationChannels() ([]domain.NotificationChannel, error)
 
 func scanNotificationChannel(sc scanner) (domain.NotificationChannel, error) {
 	var channel domain.NotificationChannel
-	var kind, created, updated string
+	var kind, created, updated, smtpConfig string
 	var enabled int
-	if err := sc.Scan(&channel.ID, &channel.Name, &kind, &channel.Endpoint, &channel.EndpointSummary, &channel.Authorization, &enabled, &created, &updated, &channel.HealthIntervalSeconds); err != nil {
+	if err := sc.Scan(&channel.ID, &channel.Name, &kind, &channel.Endpoint, &channel.EndpointSummary, &channel.Authorization, &enabled, &created, &updated, &channel.HealthIntervalSeconds, &smtpConfig); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return channel, ErrNotFound
 		}
@@ -94,6 +94,10 @@ func scanNotificationChannel(sc scanner) (domain.NotificationChannel, error) {
 		return channel, fmt.Errorf("store: unprotect notification authorization: %w", err)
 	}
 	channel.HasAuthorization = channel.Authorization != ""
+	channel.SMTP, err = decodeSMTPConfig(smtpConfig)
+	if err != nil {
+		return channel, err
+	}
 	channel.CreatedAt, _ = parseTime(created)
 	channel.UpdatedAt, _ = parseTime(updated)
 	return channel, nil
@@ -108,7 +112,7 @@ func (s *Store) UpdateNotificationChannel(channel domain.NotificationChannel) er
 	if err != nil {
 		return fmt.Errorf("store: protect notification endpoint: %w", err)
 	}
-	res, err := s.db.Exec(`UPDATE notification_channels SET name=?,endpoint=?,endpoint_summary=?,enabled=?,health_interval_seconds=?,updated_at=? WHERE id=?`, channel.Name, endpoint, channel.EndpointSummary, boolToInt(channel.Enabled), channel.HealthIntervalSeconds, fmtTime(s.now().UTC()), channel.ID)
+	res, err := s.db.Exec(`UPDATE notification_channels SET name=?,endpoint=?,endpoint_summary=?,enabled=?,health_interval_seconds=?,updated_at=?,smtp_config=? WHERE id=?`, channel.Name, endpoint, channel.EndpointSummary, boolToInt(channel.Enabled), channel.HealthIntervalSeconds, fmtTime(s.now().UTC()), encodeSMTPConfig(channel.SMTP), channel.ID)
 	return affected(res, err, "update notification channel")
 }
 
@@ -329,7 +333,7 @@ func (s *Store) insertNotificationDelivery(q notificationExecer, d domain.Notifi
 	if err != nil {
 		return fmt.Errorf("store: protect delivery authorization: %w", err)
 	}
-	_, err = q.Exec(`INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, d.ID, nullStr(d.ChannelID), d.ChannelName, d.DestinationSummary, endpoint, authorization, string(d.EventKind), nullStr(d.TaskID), nullStr(d.RunID), d.TaskName, d.GroupID, d.GroupName, []byte(d.Payload), string(d.State), d.Attempts, fmtTime(d.NextAttemptAt), fmtTime(d.CreatedAt), fmtTimePtr(d.ClaimedAt), fmtTimePtr(d.CompletedAt), d.LastStatus, d.LastError, string(d.ConditionKind), d.ConditionSummary)
+	_, err = q.Exec(`INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary,kind,smtp_config,recipients) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, d.ID, nullStr(d.ChannelID), d.ChannelName, d.DestinationSummary, endpoint, authorization, string(d.EventKind), nullStr(d.TaskID), nullStr(d.RunID), d.TaskName, d.GroupID, d.GroupName, []byte(d.Payload), string(d.State), d.Attempts, fmtTime(d.NextAttemptAt), fmtTime(d.CreatedAt), fmtTimePtr(d.ClaimedAt), fmtTimePtr(d.CompletedAt), d.LastStatus, d.LastError, string(d.ConditionKind), d.ConditionSummary, deliveryTransportKind(d.Kind), encodeSMTPConfig(d.SMTP), encodeSMTPRecipients(d.Recipients))
 	if err != nil {
 		return fmt.Errorf("store: create notification delivery: %w", err)
 	}
@@ -346,7 +350,7 @@ func (s *Store) CreateTestNotificationDelivery(channelID string) (domain.Notific
 		return domain.NotificationDelivery{}, ErrNotificationChannelDisabled
 	}
 	now := s.now().UTC()
-	delivery := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventTest, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now}
+	delivery := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, Kind: channel.Kind, SMTP: channel.SMTP, Recipients: initialSMTPRecipients(channel.SMTP), EventKind: domain.NotificationEventTest, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now}
 	event := domain.WebhookEvent{Schema: "go-schedule.webhook.v1", Event: string(domain.NotificationEventTest), Delivery: domain.WebhookDelivery{ID: delivery.ID, CreatedAt: now}, Daemon: domain.WebhookDaemon{Version: buildinfo.Version}, Task: nil}
 	delivery.Payload, err = json.Marshal(event)
 	if err != nil {
@@ -436,7 +440,7 @@ func (s *Store) createRunNotificationDeliveries(tx *sql.Tx, run domain.Run) erro
 		if err != nil {
 			return err
 		}
-		d := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventRunCompleted, TaskID: run.TaskID, RunID: run.ID, TaskName: taskName, GroupID: groupID.String, GroupName: groupName, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now, ConditionKind: condition, ConditionSummary: summary}
+		d := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, Kind: channel.Kind, SMTP: channel.SMTP, Recipients: initialSMTPRecipients(channel.SMTP), EventKind: domain.NotificationEventRunCompleted, TaskID: run.TaskID, RunID: run.ID, TaskName: taskName, GroupID: groupID.String, GroupName: groupName, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now, ConditionKind: condition, ConditionSummary: summary}
 		duration := int64(0)
 		if run.StartedAt != nil && run.EndedAt != nil && !run.EndedAt.Before(*run.StartedAt) {
 			duration = run.EndedAt.Sub(*run.StartedAt).Milliseconds()
@@ -567,7 +571,7 @@ func (s *Store) CreateDueDaemonHealthDeliveries(now time.Time) (int, error) {
 		next := now.Add(time.Duration(channel.HealthIntervalSeconds) * time.Second)
 		lastID := ""
 		if unfinished == 0 {
-			delivery := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, EventKind: domain.NotificationEventDaemonHealth, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now, ConditionKind: domain.NotificationConditionDaemonHealth, ConditionSummary: "Daemon healthy-presence heartbeat."}
+			delivery := domain.NotificationDelivery{ID: newID(), ChannelID: channel.ID, ChannelName: channel.Name, DestinationSummary: channel.EndpointSummary, Endpoint: channel.Endpoint, Authorization: channel.Authorization, Kind: channel.Kind, SMTP: channel.SMTP, Recipients: initialSMTPRecipients(channel.SMTP), EventKind: domain.NotificationEventDaemonHealth, State: domain.NotificationDeliveryPending, NextAttemptAt: now, CreatedAt: now, ConditionKind: domain.NotificationConditionDaemonHealth, ConditionSummary: "Daemon healthy-presence heartbeat."}
 			event := domain.WebhookEvent{Schema: "go-schedule.webhook.v1", Event: string(domain.NotificationEventDaemonHealth), Delivery: domain.WebhookDelivery{ID: delivery.ID, CreatedAt: now}, Daemon: domain.WebhookDaemon{Version: buildinfo.Version, Status: "healthy", NextExpectedAt: &next}, Task: nil, Condition: &domain.WebhookCondition{Kind: domain.NotificationConditionDaemonHealth, Summary: delivery.ConditionSummary}}
 			delivery.Payload, err = json.Marshal(event)
 			if err != nil {
@@ -595,6 +599,9 @@ func (s *Store) RecoverNotificationDeliveries(now time.Time) (int64, error) {
 		return 0, fmt.Errorf("store: begin recover notification deliveries: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := recoverSMTPRecipients(tx); err != nil {
+		return 0, err
+	}
 	res, err := tx.Exec(`UPDATE notification_deliveries SET state=CASE WHEN attempts>=3 THEN ? ELSE ? END,next_attempt_at=?,claimed_at=NULL,completed_at=CASE WHEN attempts>=3 THEN ? ELSE NULL END,endpoint=CASE WHEN attempts>=3 THEN '' ELSE endpoint END,authorization=CASE WHEN attempts>=3 THEN '' ELSE authorization END,last_error=CASE WHEN attempts>=3 THEN 'retry budget exhausted during recovery' ELSE 'recovered after daemon restart' END WHERE state=?`, string(domain.NotificationDeliveryFailed), string(domain.NotificationDeliveryPending), fmtTime(now), fmtTime(now), string(domain.NotificationDeliveryClaimed))
 	if err != nil {
 		return 0, fmt.Errorf("store: recover notification deliveries: %w", err)
@@ -706,21 +713,30 @@ func pruneNotificationDeliveries(tx *sql.Tx) error {
 	return nil
 }
 
-const notificationDeliverySelect = `SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary FROM notification_deliveries`
+const notificationDeliverySelect = `SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary,kind,smtp_config,recipients FROM notification_deliveries`
 
 func scanNotificationDelivery(sc scanner) (domain.NotificationDelivery, error) {
 	var d domain.NotificationDelivery
 	var channelID, taskID, runID sql.NullString
-	var eventKind, state, next, created, conditionKind string
+	var eventKind, state, next, created, conditionKind, transportKind, smtpConfig, recipients string
 	var claimed, completed sql.NullString
 	var payload []byte
-	if err := sc.Scan(&d.ID, &channelID, &d.ChannelName, &d.DestinationSummary, &d.Endpoint, &d.Authorization, &eventKind, &taskID, &runID, &d.TaskName, &d.GroupID, &d.GroupName, &payload, &state, &d.Attempts, &next, &created, &claimed, &completed, &d.LastStatus, &d.LastError, &conditionKind, &d.ConditionSummary); err != nil {
+	if err := sc.Scan(&d.ID, &channelID, &d.ChannelName, &d.DestinationSummary, &d.Endpoint, &d.Authorization, &eventKind, &taskID, &runID, &d.TaskName, &d.GroupID, &d.GroupName, &payload, &state, &d.Attempts, &next, &created, &claimed, &completed, &d.LastStatus, &d.LastError, &conditionKind, &d.ConditionSummary, &transportKind, &smtpConfig, &recipients); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return d, ErrNotFound
 		}
 		return d, fmt.Errorf("store: scan notification delivery: %w", err)
 	}
 	d.ChannelID, d.TaskID, d.RunID, d.EventKind, d.State, d.Payload = channelID.String, taskID.String, runID.String, domain.NotificationEventKind(eventKind), domain.NotificationDeliveryState(state), payload
+	d.Kind = domain.NotificationChannelKind(transportKind)
+	smtpSettings, errConfig := decodeSMTPConfig(smtpConfig)
+	d.SMTP = smtpSettings
+	if errConfig != nil {
+		return d, errConfig
+	}
+	if err := json.Unmarshal([]byte(recipients), &d.Recipients); err != nil {
+		return d, fmt.Errorf("store: decode SMTP recipient evidence")
+	}
 	d.ConditionKind = domain.NotificationConditionKind(conditionKind)
 	var err error
 	d.Endpoint, err = secretstore.Unprotect(d.Endpoint)

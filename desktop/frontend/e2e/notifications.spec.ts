@@ -52,3 +52,22 @@ test('explains every overview state without serious accessibility violations', a
     expect(results.violations.filter((item) => item.impact === 'serious' || item.impact === 'critical')).toEqual([])
   }
 })
+
+test('offers keyboard-accessible SMTP settings without redisplaying credentials', async ({ page }) => {
+  await page.getByRole('button', { name: 'Notifications', exact: true }).click()
+  await page.getByText('Manage destinations').click()
+  await page.getByLabel('Transport', { exact: true }).selectOption('smtp')
+  await page.getByLabel('Channel name', { exact: true }).fill('Mail')
+  await page.getByLabel('SMTP server', { exact: true }).fill('mail.example.test')
+  await page.getByLabel('Sender email', { exact: true }).fill('"ops,night"@example.test')
+  await page.getByLabel('Recipient emails', { exact: true }).fill('ops@example.test')
+  await page.getByLabel('SMTP username (optional)', { exact: true }).fill('owned-user')
+  await page.getByLabel('SMTP password', { exact: true }).fill('owned-secret')
+  await page.getByLabel('Encryption', { exact: true }).focus()
+  await expect(page.getByLabel('Encryption', { exact: true })).toBeFocused()
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()
+  expect(results.violations.filter((item) => item.impact === 'serious' || item.impact === 'critical')).toEqual([])
+  await page.getByRole('button', { name: 'Save channel', exact: true }).click()
+  await expect(page.getByLabel('Transport', { exact: true })).toHaveValue('webhook')
+  await expect(page.locator('input[type=password]')).not.toHaveValue('owned-secret')
+})

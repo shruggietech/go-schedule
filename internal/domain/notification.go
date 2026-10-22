@@ -11,6 +11,8 @@ type NotificationChannelKind string
 const (
 	// NotificationChannelWebhook is the versioned JSON-over-HTTP transport.
 	NotificationChannelWebhook NotificationChannelKind = "webhook"
+	// NotificationChannelSMTP delivers email through an explicitly configured mail service.
+	NotificationChannelSMTP NotificationChannelKind = "smtp"
 )
 
 // NotificationScopeType identifies where a channel assignment is configured.
@@ -57,6 +59,7 @@ const (
 // NotificationChannel is a reusable destination. Endpoint and Authorization
 // are write-only protected values and are intentionally excluded from JSON.
 type NotificationChannel struct {
+	SMTP                  *SMTPConfig             `json:"smtp,omitempty"`
 	ID                    string                  `json:"id"`
 	Name                  string                  `json:"name"`
 	Kind                  NotificationChannelKind `json:"kind"`
@@ -99,6 +102,9 @@ type EffectiveNotificationPolicy struct {
 // NotificationDelivery is durable outbound work and its redacted evidence.
 // Endpoint and Authorization exist only while work can still be attempted.
 type NotificationDelivery struct {
+	Kind               NotificationChannelKind   `json:"kind,omitempty"`
+	SMTP               *SMTPConfig               `json:"smtp,omitempty"`
+	Recipients         []NotificationRecipient   `json:"recipients,omitempty"`
 	ID                 string                    `json:"id"`
 	ChannelID          string                    `json:"channel_id,omitempty"`
 	ChannelName        string                    `json:"channel_name"`
@@ -180,4 +186,36 @@ type WebhookRun struct {
 	EndedAt      *time.Time `json:"ended_at,omitempty"`
 	DurationMS   int64      `json:"duration_ms,omitempty"`
 	ExitCode     *int       `json:"exit_code,omitempty"`
+}
+
+// SMTPConfig is the nonsecret, frozen configuration of a mail destination.
+type SMTPConfig struct {
+	Host           string   `json:"host"`
+	Port           int      `json:"port"`
+	TLSMode        string   `json:"tls_mode"`
+	From           string   `json:"from"`
+	Recipients     []string `json:"recipients"`
+	TimeoutSeconds int      `json:"timeout_seconds"`
+	HTML           bool     `json:"html,omitempty"`
+}
+
+// SMTPAuth is a write-only credential input, never part of a channel response.
+type SMTPAuth struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// NotificationRecipient retains bounded, authored SMTP submission evidence.
+type NotificationRecipient struct {
+	Address    string `json:"address"`
+	State      string `json:"state"`
+	Code       int    `json:"code,omitempty"`
+	Diagnostic string `json:"diagnostic,omitempty"`
+}
+
+// SMTPAttemptResult describes one transport attempt without arbitrary server text.
+type SMTPAttemptResult struct {
+	Recipients []NotificationRecipient
+	Status     int
+	Diagnostic string
 }

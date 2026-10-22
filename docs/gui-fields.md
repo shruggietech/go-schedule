@@ -248,3 +248,20 @@ Create a task named `platform check`, leave it inactive, and use the command for
 | Linux | `uname -a` | A kernel and system information line |
 
 These platform-native commands are read-only, noninteractive, start no listener, make no network request, write no file, and exit promptly. In a fresh new-task editor, press Tab once in the empty Command line field to insert the matching command. Confirm the exact Program and Arguments in Preview, save the task inactive, choose **Run now**, then open **Activity** to inspect the successful record and captured output.
+
+## SMTP channels (Unreleased S111)
+
+Notifications offers a transport selector when creating a channel. Transport is fixed when editing an existing channel. SMTP settings and delivery history belong to the selected local or authenticated remote scheduler.
+
+| Field | Behavior |
+| --- | --- |
+| SMTP host and port | DNS/IP host and numeric submission port |
+| Encryption | Required STARTTLS, implicit TLS or explicit plain relay |
+| Sender and recipients | One sender and a comma-separated list of recipient mailboxes |
+| Attempt timeout | Whole seconds, 1-60, default 10 |
+| HTML alternative | Adds escaped HTML alongside plain text |
+| Username and password | Write-only replacement inputs; stored values are never prefilled |
+| Replace credentials | Explicitly applies replacement username/password on edit |
+| Remove credentials | Explicitly clears stored authentication on edit |
+
+The form labels each control for keyboard and assistive-technology access. Switching back to webhook clears draft SMTP credentials. Delivery details identify SMTP transport, numeric status and recipient outcomes; uncertain submission carries duplicate-risk text. See [Notifications](notifications.md) for validation and retry behavior.

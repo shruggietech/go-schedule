@@ -88,3 +88,40 @@ func TestNotificationAssignmentAPIExplainsTaskPrecedence(t *testing.T) {
 		t.Fatalf("sub-minute duration status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestSMTPChannelAuthoringAndRedaction(t *testing.T) {
+	s := newTestServer(t)
+	config := domain.SMTPConfig{Host: "mail.example.test", Port: 587, TLSMode: "starttls", From: "sender@example.test", Recipients: []string{"ops@example.test"}, TimeoutSeconds: 10}
+	rec := doJSON(t, s, http.MethodPost, "/v1/notification-channels", NotificationChannelCreateRequest{Name: "Mail", Kind: domain.NotificationChannelSMTP, SMTP: &config, SMTPAuth: &domain.SMTPAuth{Username: "secret-user", Password: "secret-password"}})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create %d %s", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "secret-user") || strings.Contains(rec.Body.String(), "secret-password") {
+		t.Fatal("credentials leaked")
+	}
+	var channel domain.NotificationChannel
+	if err := json.Unmarshal(rec.Body.Bytes(), &channel); err != nil {
+		t.Fatal(err)
+	}
+	if channel.SMTP == nil || !channel.HasAuthorization {
+		t.Fatalf("channel %+v", channel)
+	}
+	config.Host = "next.example.test"
+	rec = doJSON(t, s, http.MethodPatch, "/v1/notification-channels/"+channel.ID, NotificationChannelUpdateRequest{SMTP: &config})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update %d %s", rec.Code, rec.Body.String())
+	}
+	endpoint := "https://example.test"
+	rec = doJSON(t, s, http.MethodPatch, "/v1/notification-channels/"+channel.ID, NotificationChannelUpdateRequest{Endpoint: &endpoint})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("wrong kind %d", rec.Code)
+	}
+	rec = doJSON(t, s, http.MethodPost, "/v1/notification-channels/"+channel.ID+"/rotate", NotificationChannelRotateRequest{SMTPAuth: &domain.SMTPAuth{}})
+	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "\"has_authorization\":true") {
+		t.Fatalf("clear %d %s", rec.Code, rec.Body.String())
+	}
+	rec = doJSON(t, s, http.MethodPost, "/v1/notification-channels", NotificationChannelCreateRequest{Name: "Wrong", Endpoint: "https://example.test", SMTP: &config})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("webhook SMTP fields accepted: %d", rec.Code)
+	}
+}

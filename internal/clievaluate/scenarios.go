@@ -276,6 +276,11 @@ func equalObservation(a, b any) bool {
 }
 
 func (s *session) before(ctx context.Context, definition step) error {
+	if strings.HasPrefix(definition.Spec.ID, "smtp.") {
+		if err := s.smtpBefore(ctx, definition); err != nil {
+			return err
+		}
+	}
 	if strings.HasPrefix(definition.Hook, "run-") || definition.Hook == "chain-propagation" {
 		variable := "base_task"
 		switch definition.Hook {
@@ -413,6 +418,9 @@ func (s *session) persistedIntent(definition step, args []string, before, after 
 }
 
 func (s *session) after(ctx context.Context, definition step, result execution, body any) (bool, any, error) {
+	if strings.HasPrefix(definition.Spec.ID, "smtp.") {
+		return s.smtpPost(ctx, definition, result)
+	}
 	if definition.Spec.ID == "task.edit-inputs" && result.Code == 0 {
 		detail, err := s.api.GetTask(ctx, s.vars["task"])
 		task := detail.Task

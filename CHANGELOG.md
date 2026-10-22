@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **SMTP email channels share durable notification policies, task/test/health delivery, recipient-aware retries and CLI/desktop/remote administration (S111, Refs #176, #19).** Verified STARTTLS/implicit TLS, explicit plain relay, write-only credentials, typed portable settings and owned unattended SMTP evaluation are available in unreleased source.
+
 - **A quiet Windows and WSL maintainer coordinator captures full CLI evaluation and canonical after-action reports (Refs #289, #290).** Actual packaged commands and isolated application adapters cover human and JSON output, negative inputs and deterministic scheduling cases. Frozen evidence, seven versioned schemas, complete contextual agent review and separate execution and issue-triage prompts support repeatable unattended evaluation. This is an unreleased maintainer capability.
 
 - **The CLI gains direct task/group authoring parity, full-policy schedule preview, independent notification destination policies, operational views and headless desktop preferences (Refs #283, #284, #285, #286).** Explicit input clears, disabled creation, schedule syntax, calendar/active/exact runs, identified system summaries/search and saved desktop startup choices use the existing shared product contracts. Existing scripting formats remain available.
@@ -15,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **A static Next.js and Fumadocs website provides a branded home, documentation search and a dedicated sourced comparison (Refs #276, #279, #280, #282).** Canonical Markdown stays in `docs/`; legacy HTML paths retain query strings and fragments. Comparison snapshots identify the public release and link capability evidence and roadmap opportunities.
 
 ### Changed
+
+- **2026-10-22 architecture decision (S111): use MIT-licensed go-smtp v0.25.0 for explicit recipient and final DATA transactions, the existing protected credential slot, and a forward v23 migration.** Recipient checkpoints preserve confirmed acceptance across retries/recovery. Portable SMTP definitions bind by unique name to provisioned target-local channels with frozen IDs/revisions, avoiding credential export or copies. Remote notification routes reuse existing capabilities, including Enroll for credential rotation and retargeting stored credentials.
 
 - **2026-10-21 architecture and pinned-workflow decision (S110): bind standing-waiver promotion to one authenticated release ID using a small standard-library helper built from the exact workflow revision before tagged-source checkout.** The waiver workflow, automation policy and operator guidance in docs/INSTALL-windows.md retain staging-attempt, candidate, comparison, checksum and immutable-tag checks. Draft lookup, asset operations, interrupted resumption and published latest-pointer recovery share the frozen release identity; the attended-evidence workflow is unchanged (Refs #262).
 
@@ -28,6 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
 
 ### Fixed
+
+- Preserve empty text in bounded run/alert observations, preventing MCP history reads from failing on silent records (#344). SMTP quoted mailboxes retain their envelope/header identity across authoring surfaces, and task-delivery evaluation respects the existing acknowledgement contract (#342, #343).
 
 - Give canned heartbeat reader queries deterministic cadence data while retaining automatic inference, gaps coverage, insufficient-data errors and explicit interval overrides (#340).
 

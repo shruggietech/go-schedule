@@ -65,12 +65,13 @@ describe('production shell', () => {
     const user = userEvent.setup()
     const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks'], permissions: ['read'] } }
     const remoteBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(remote) }
-    const remoteNotifications: NotificationBridge = { ...notifications, workspace: vi.fn() }
+    const remoteNotifications: NotificationBridge = { ...notifications, workspace: vi.fn().mockResolvedValue(await notifications.workspace()) }
     render(<App bridge={remoteBridge} tasks={tasks} settings={settings} notifications={remoteNotifications} />)
     await user.click(screen.getByRole('button', { name: 'Notifications' }))
     expect(await screen.findByRole('checkbox', { name: 'Enable desktop popups' })).toBeVisible()
-    expect(screen.getByText('Webhook setup is local only')).toBeVisible()
-    expect(remoteNotifications.workspace).not.toHaveBeenCalled()
+    expect(await screen.findByRole('button', { name: 'Add a destination' })).toBeVisible()
+    expect(screen.queryByText('Webhook setup is local only')).not.toBeInTheDocument()
+    expect(remoteNotifications.workspace).toHaveBeenCalled()
   })
 
   it('keeps manage-only task configuration disabled for operate credentials', async () => {

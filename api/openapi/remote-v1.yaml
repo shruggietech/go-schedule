@@ -192,6 +192,181 @@ paths:
         - {name: until, in: query, schema: {type: string, format: date-time}}
         - {name: limit, in: query, schema: {type: integer, minimum: 0, maximum: 1000}}
       responses: {"200": {$ref: "#/components/responses/AuditList"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /notification-channels:
+    get:
+      operationId: notifications.channels.list
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannelList"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    post:
+      operationId: notifications.channels.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NotificationChannelCreate"}
+      responses:
+        "201":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /notification-channels/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: notifications.channels.read
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    patch:
+      operationId: notifications.channels.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NotificationChannelUpdate"}
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    delete:
+      operationId: notifications.channels.delete
+      responses:
+        "204":
+          description: Removed
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /notification-channels/{id}/enable:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post:
+      operationId: notifications.channels.enable
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /notification-channels/{id}/disable:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post:
+      operationId: notifications.channels.disable
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /notification-channels/{id}/rotate:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post:
+      operationId: notifications.channels.rotate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NotificationChannelRotate"}
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationChannel"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /notification-channels/{id}/test:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post:
+      operationId: notifications.channels.test
+      responses:
+        "202":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationDelivery"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /notification-deliveries:
+    get:
+      operationId: notifications.deliveries.list
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationDeliveryList"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /tasks/{id}/notifications:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: tasks.notifications.read
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationAssignments"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    put:
+      operationId: tasks.notifications.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NotificationAssignments"}
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationAssignments"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /tasks/{id}/notifications/effective:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: tasks.notifications.effective.read
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/EffectiveNotificationPolicy"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /groups/{id}/notifications:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: groups.notifications.read
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationAssignments"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    put:
+      operationId: groups.notifications.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/NotificationAssignments"}
+      responses:
+        "200":
+          description: Redacted notification result
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/NotificationAssignments"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, description: A 256-bit opaque base64url credential issued once during enrollment or rotation.}
@@ -224,6 +399,141 @@ components:
     Unauthorized: {description: Generic authentication failure, headers: {WWW-Authenticate: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
     RequestTooLarge: {description: Request body exceeds the operation limit, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorEnvelope"}}}}
   schemas:
+    SMTPConfig:
+      type: object
+      additionalProperties: false
+      required: [host, tls_mode, from, recipients]
+      properties:
+        host: {type: string, maxLength: 253}
+        port: {type: integer, minimum: 0, maximum: 65535}
+        tls_mode: {type: string, enum: [starttls, tls, plain]}
+        from: {type: string, maxLength: 320}
+        recipients: {type: array, minItems: 1, maxItems: 100, items: {type: string, maxLength: 320}}
+        timeout_seconds: {type: integer, minimum: 0, maximum: 60}
+        html: {type: boolean}
+    SMTPAuth:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username: {type: string, maxLength: 1024, writeOnly: true}
+        password: {type: string, maxLength: 4096, writeOnly: true}
+    NotificationChannelCreate:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, maxLength: 256}
+        kind: {type: string, enum: [webhook, smtp], default: webhook}
+        endpoint: {type: string, writeOnly: true}
+        authorization: {type: string, writeOnly: true}
+        smtp: {$ref: "#/components/schemas/SMTPConfig"}
+        smtp_auth: {$ref: "#/components/schemas/SMTPAuth"}
+        enabled: {type: boolean}
+        health_interval_seconds: {type: integer}
+    NotificationChannelUpdate:
+      type: object
+      properties:
+        name: {type: string, maxLength: 256}
+        kind: {type: string, enum: [webhook, smtp], description: Must match the existing immutable kind.}
+        endpoint: {type: string, writeOnly: true}
+        smtp: {$ref: "#/components/schemas/SMTPConfig"}
+        enabled: {type: boolean}
+        health_interval_seconds: {type: integer}
+    NotificationChannelRotate:
+      type: object
+      properties:
+        authorization: {type: string, writeOnly: true}
+        smtp_auth: {$ref: "#/components/schemas/SMTPAuth"}
+    NotificationChannel:
+      type: object
+      required: [id, name, kind, endpoint_summary, has_authorization, enabled, created_at, updated_at]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        kind: {type: string, enum: [webhook, smtp]}
+        endpoint_summary: {type: string}
+        has_authorization: {type: boolean}
+        smtp: {$ref: "#/components/schemas/SMTPConfig"}
+        enabled: {type: boolean}
+        health_interval_seconds: {type: integer}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    NotificationChannelList:
+      type: object
+      required: [notification_channels]
+      properties:
+        notification_channels: {type: array, items: {$ref: "#/components/schemas/NotificationChannel"}}
+    NotificationAssignment:
+      type: object
+      properties:
+        id: {type: string}
+        channel_id: {type: string}
+        scope_type: {type: string}
+        scope_id: {type: string}
+        on_success: {type: boolean}
+        on_failure: {type: boolean}
+        failure_threshold: {type: integer}
+        on_failure_to_start: {type: boolean}
+        duration_threshold_seconds: {type: integer}
+        on_recovery: {type: boolean}
+        reminder_interval_seconds: {type: integer}
+        quiet_period_seconds: {type: integer}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    NotificationAssignments:
+      type: object
+      required: [assignments]
+      properties:
+        assignments: {type: array, items: {$ref: "#/components/schemas/NotificationAssignment"}}
+    EffectiveNotificationPolicy:
+      type: object
+      required: [task_id, source_scope_type, assignments]
+      properties:
+        task_id: {type: string}
+        source_scope_type: {type: string}
+        source_scope_id: {type: string}
+        assignments: {type: array, items: {$ref: "#/components/schemas/NotificationAssignment"}}
+    NotificationRecipient:
+      type: object
+      required: [address, state]
+      properties:
+        address: {type: string}
+        state: {type: string, enum: [pending, submitting, accepted, temporary_failure, permanent_failure, uncertain]}
+        code: {type: integer}
+        diagnostic: {type: string}
+    NotificationDelivery:
+      type: object
+      required: [id, channel_name, destination_summary, event_kind, state, attempts, created_at]
+      properties:
+        id: {type: string}
+        channel_id: {type: string}
+        channel_name: {type: string}
+        destination_summary: {type: string}
+        kind: {type: string, enum: [webhook, smtp]}
+        smtp: {$ref: "#/components/schemas/SMTPConfig"}
+        recipients: {type: array, items: {$ref: "#/components/schemas/NotificationRecipient"}}
+        event_kind: {type: string}
+        task_id: {type: string}
+        run_id: {type: string}
+        task_name: {type: string}
+        group_id: {type: string}
+        group_name: {type: string}
+        event: {type: object, additionalProperties: true}
+        state: {type: string}
+        attempts: {type: integer}
+        next_attempt_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        claimed_at: {type: string, format: date-time}
+        completed_at: {type: string, format: date-time}
+        last_status: {type: integer}
+        last_error: {type: string}
+        condition_kind: {type: string}
+        condition_summary: {type: string}
+    NotificationDeliveryList:
+      type: object
+      required: [notification_deliveries]
+      properties:
+        notification_deliveries: {type: array, items: {$ref: "#/components/schemas/NotificationDelivery"}}
     DaemonSearch:
       type: object
       additionalProperties: false

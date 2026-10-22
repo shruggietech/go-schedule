@@ -175,6 +175,32 @@ func behavioralSteps() []step {
 	negative("notification.malformed-policy", "notification task set", "notification", "task", "set", "${base_task}", "--file", "${bad_json}")
 	add("notification.channel-disable", "notification channel disable", "update", 0, "notification", "channel", "disable", "${channel}")
 	add("notification.channel-remove", "notification channel rm", "delete", 0, "notification", "channel", "rm", "${channel}").JSON = false
+	create("smtp.create", "notification channel add", "smtp_channel", "id", "notification", "channel", "add", "QA SMTP", "--kind=smtp", "--smtp-host", "${smtp_host}", "--smtp-port", "${smtp_port}", "--smtp-tls=plain", "--smtp-from=sender@example.test", `--smtp-to="ops,night"@example.test,two@example.test`, "--smtp-timeout=5s", "--smtp-html", "--smtp-auth-file", "${smtp_auth_file}", "--disabled")
+	read("smtp.get", "notification channel get", "notification", "channel", "get", "${smtp_channel}")
+	edit("smtp.update", "notification channel update", "channels.${smtp_channel}.smtp.timeout_seconds", "3", "notification", "channel", "update", "${smtp_channel}", "--smtp-host", "${smtp_host}", "--smtp-port", "${smtp_port}", "--smtp-tls=plain", "--smtp-from=sender@example.test", `--smtp-to="ops,night"@example.test,two@example.test`, "--smtp-timeout=3s", "--smtp-html=false")
+	add("smtp.enable", "notification channel enable", "update", 0, "notification", "channel", "enable", "${smtp_channel}")
+	s = add("smtp.test", "notification channel test", "execution", 0, "notification", "channel", "test", "${smtp_channel}")
+	s.Hook = "smtp-delivery"
+	add("smtp.rotate", "notification channel rotate", "update", 0, "notification", "channel", "rotate", "${smtp_channel}", "--smtp-auth-file", "${smtp_rotated_file}")
+	s = add("smtp.rotated-test", "notification channel test", "execution", 0, "notification", "channel", "test", "${smtp_channel}")
+	s.Hook = "smtp-delivery"
+	s = add("smtp.clear", "notification channel rotate", "update", 0, "notification", "channel", "rotate", "${smtp_channel}", "--smtp-auth-file=-")
+	s.Input = "{}"
+	s = add("smtp.unauthenticated-test", "notification channel test", "execution", 0, "notification", "channel", "test", "${smtp_channel}")
+	s.Hook = "smtp-delivery"
+	s = add("smtp.task-delivery", "task run-now", "execution", 0, "task", "run-now", "${base_task}")
+	s.Hook = "run-smtp"
+	s.JSON = false
+	s.OutputContains = "triggered run for task"
+	s = add("smtp.remote-read", "notification channel get", "read", 0)
+	s.Spec.Argv = []string{"--json", "--profile", "${remote_profile}", "notification", "channel", "get", "${smtp_channel}"}
+	s.Spec.ExecutionKind = "command_harness"
+	negative("smtp.bad-mode", "notification channel add", "notification", "channel", "add", "invalid SMTP", "--kind=smtp", "--smtp-host", "${smtp_host}", "--smtp-from=sender@example.test", "--smtp-to=one@example.test", "--smtp-tls=opportunistic")
+	negative("smtp.header-injection", "notification channel add", "notification", "channel", "add", "invalid SMTP", "--kind=smtp", "--smtp-host", "${smtp_host}", "--smtp-from=sender@example.test\r\nBcc:bad@example.test", "--smtp-to=one@example.test")
+	negative("smtp.bad-auth", "notification channel rotate", "notification", "channel", "rotate", "${smtp_channel}", "--smtp-auth-file", "${bad_json}")
+	add("smtp.disable", "notification channel disable", "update", 0, "notification", "channel", "disable", "${smtp_channel}")
+	add("smtp.remove", "notification channel rm", "delete", 0, "notification", "channel", "rm", "${smtp_channel}").JSON = false
+
 	read("actor.list", "actor list", "actor", "list")
 	create("actor.create", "actor create", "actor", "id", "actor", "create", "QA actor", "--kind=cli", "--capability=observe", "--expires=${future}")
 	add("actor.update", "actor update", "update", 0, "actor", "update", "${actor}", "--name=QA actor updated", "--capability=operate", "--expires=${future}", "--state=active")
