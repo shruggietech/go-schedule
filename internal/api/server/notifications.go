@@ -184,11 +184,16 @@ func (s *Server) handleUpdateNotificationChannel(w http.ResponseWriter, r *http.
 		writeError(w, http.StatusBadRequest, CodeValidation, "kind", "channel kind cannot be changed; create a separate channel")
 		return
 	}
-	if req.SMTP != nil && channel.HasAuthorization && !smtpSameAuthority(channel.SMTP, req.SMTP) && !s.notificationSecretAuthority(w, r) {
-		return
-	}
 	if req.SMTP != nil {
-		channel.SMTP = req.SMTP
+		replacement := channel
+		replacement.SMTP = req.SMTP
+		if s.notificationConfigError(w, validateNotificationChannel(&replacement)) {
+			return
+		}
+		if channel.HasAuthorization && !smtpSameAuthority(channel.SMTP, replacement.SMTP) && !s.notificationSecretAuthority(w, r) {
+			return
+		}
+		channel = replacement
 	}
 	if channel.Kind == domain.NotificationChannelSMTP && req.Endpoint != nil {
 		writeError(w, http.StatusBadRequest, CodeValidation, "endpoint", "SMTP channels use smtp settings instead of a webhook endpoint")
