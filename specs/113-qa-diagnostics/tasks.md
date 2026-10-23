@@ -36,7 +36,7 @@
 - [x] T014 [US2] Write both-twin candidate rejection/version/fallback regressions and interpreter outcome checks in test/integration/testscripts_probe_test.go and testscripts_binding_test.go.
 - [x] T015 [US2] Implement bounded candidate/version diagnostics, strict numeric versions and explicit-selection behavior in test/scripts/lib/Sqlite.ps1 and sqlite.sh, reusing existing hidden process patterns.
 - [x] T016 [US2] Preserve bounded interpreter identity, original crash/timeout/exit output and usable fixture prerequisite checks in test/integration/testscripts_binding_test.go and testscripts_test.go, retaining all six writers and record assertions.
-- [ ] T017 [US2] Perform bounded independent runtime and sustained owned IPC reproductions, compare relevant existing/current baselines, apply only demonstrated source corrections, and record exact unresolved causes in specs/113-qa-diagnostics/verification.md and the existing #355/#356 records.
+- [x] T017 [US2] Perform bounded independent runtime and sustained owned IPC reproductions, compare relevant existing/current baselines, apply only demonstrated source corrections, and record exact unresolved causes in specs/113-qa-diagnostics/verification.md and the existing #355/#356 records.
 
 ## Phase 5: US3, distinguish delivery details from errors
 
@@ -61,7 +61,7 @@
 - [x] T024 Update canonical docs/cli-qa.md, notifications.md, test-scripts.md and INSTALL-windows.md for diagnostic/reporting semantics and schema24 forward upgrade/old-state rollback; update CHANGELOG.md with dated decisions and reconcile S112/S113 metadata in specs/README.md.
 - [x] T025 Refresh pending .github/release-notes/v1.6.0.md and site/data/reviews/v1.6.0.json binding where content changes; preserve site/data/published.json and published snapshots.
 - [x] T026 Run relevant security, strict-schema, source-identity, migration and original-outcome regressions, then foreground sh scripts/verify.sh all; resolve actual in-scope failures with evidence in specs/113-qa-diagnostics/verification.md.
-- [ ] T027 Run a fresh complete owned Windows/WSL evaluation through scripts/cli-qa.ps1 with exact-bound communication reviews; finalize/validate/render, retain truthful per-issue functional dispositions and cleanup in specs/113-qa-diagnostics/verification.md and delivery.md.
+- [x] T027 Run a fresh complete owned Windows/WSL evaluation through scripts/cli-qa.ps1 with exact-bound communication reviews; finalize/validate/render, retain truthful per-issue functional dispositions and cleanup in specs/113-qa-diagnostics/verification.md and delivery.md.
 
 ## Dependencies and execution order
 
