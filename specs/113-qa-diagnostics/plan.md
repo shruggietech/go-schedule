@@ -73,3 +73,7 @@ No constitution violation is requested. Additive report evidence and a forward-o
 ## PR review follow-up (2026-10-23)
 
 Round 1 on PR #361 identified an interruption window between late-redacted channel replacement and refreshed report/progress metadata. Record exact old/new artifact identities before each changed-file replacement, then reconcile only verified recorded identities during recovery. This preserves recovery at every interruption boundary without accepting arbitrary conflicting metadata, changing case outcomes or rerunning commands. The review thread is https://github.com/shruggietech/go-schedule/pull/361#discussion_r4359185167.
+
+## CI fixture correction (2026-10-23)
+
+Linux race job 120413500366 on PR #361 head 4e4160cb39fb793e9bcfa3b7afb8d06407cb3424 failed the listener fallback fixture: its timestamp-ordered newest/oldest queries selected the opposite probe statuses. Exact row timestamps were absent from the original log, so the clock event is unconfirmed. New child #362 identifies this independent fixture defect. Identify the two real writer results by persistent row ID, preserve exact row-count/status assertions, model reader chronology explicitly and retain original plus modeled rows on failure. Preserve both real twins and every fallback/warning assertion; add no sleep, retry or speculative production query change.

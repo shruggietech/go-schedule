@@ -11,6 +11,7 @@ Implementation subject: commit ffebda5c3230ecfeb6eab5c542aca1a12eeee621, clean s
 | #357 | Shared selected-budget timing, cancellation/reporting reserves, durable cleanup before freezing, current-checkpoint recovery, unchanged-evidence I/O and exact-input recovery guidance | Functional source complete; closes through the implementation PR after owner merge |
 | #358 | Neutral SMTP diagnostics across schema24 persistence, optional API data, CLI and desktop; successful history no longer labels acceptance as an error | Functional source complete; closes through the implementation PR after owner merge |
 | PR #360 | Exact Fumadocs core/UI 16.17.7 and MDX 15.4.8 lockfile proposal incorporated | Leave proposal open until replacement source reaches main |
+| #362 | Listener fixture identities use SQLite row IDs, reader chronology is explicit and original/fixture rows are retained on failure | Functional source complete; closes through PR #361 after owner merge |
 | #354 | Pending v1.6.0 source/upgrade/comparison metadata reconciled | Actual tag/package/public promotion needs separate owner authorization; public latest remains v1.5.1 |
 
 ## Verification
@@ -28,3 +29,7 @@ The owner explicitly authorized automatic push, an official PR, exact-head CI mo
 ## PR review correction (2026-10-23)
 
 PR #361 round 1 identified a late-redaction interruption window. Exact old/new artifact identities are now durable before replacement, and recovery reconciles only a recorded identity whose current bytes verify. Six interruption boundaries and four corruption cases pass under the race detector, and the prior recovery code reproduces the failure. The complete canonical aggregate 09 passes after this correction. The full catalog remains bound to its original ffebda5 executable subject; review correction evidence and hosted checks are tracked independently in verification.md and PR #361.
+
+## CI fixture follow-up (2026-10-23)
+
+The only failing job in the second hosted CI run was the listener fixture tracked separately as #362. Its row-identity and explicit-chronology correction retains every real writer/reader and probe/fallback assertion. Three Windows repetitions passed with both twins, and three native Linux POSIX repetitions passed. Aggregate 10 passed all eight gates after the final failure-context enhancement, including the complete integration race package in 383.185 seconds. This final source follow-up changes tests and lifecycle/evidence Markdown; executable source is unchanged from 4e4160cb39fb793e9bcfa3b7afb8d06407cb3424. The second Codex invocation remains pending; the owner-authorized maximum is two and no third invocation is permitted.

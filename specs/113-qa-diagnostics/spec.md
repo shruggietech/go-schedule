@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implementation commit ffebda5c3230ecfeb6eab5c542aca1a12eeee621 on review branch codex/113-qa-diagnostics delivers #357/#358, the PR #360 patch and bounded #355/#356 diagnostics/investigation. The original intermittent CLR/IPC causes remain unconfirmed and those issues stay open. All canonical gates and the finalized 1,763-execution Windows/WSL evaluation passed. See delivery.md and verification.md for exact source/input identities and individual dispositions. Owner authorization covers push, official PR publication, CI and at most two Codex review rounds. Stop before merging; tags and release publication remain separate.
+**Delivery**: Implemented on codex/113-qa-diagnostics in PR #361, including checkpoint review correction 4e4160cb39fb793e9bcfa3b7afb8d06407cb3424 and CI fixture correction #362. Clean full-catalog subject remains ffebda5c3230ecfeb6eab5c542aca1a12eeee621. #357/#358/#362 close through the PR after owner merge; original #355/#356 causes remain unconfirmed and open. Automatic push and two review rounds are authorized; stop before merge and release publication.
 
 **Input**: Kick off S113 under autopilot with #355, #356, #357, #358 and PR #360. Use the installed Spec-Kit sequence, implement the full bundle, publish the PR, monitor CI and handle review feedback. Parent release coordinator: #354. Baseline: main 11c2a9a46d4610fe8a67903cea246050224bd606.
 
