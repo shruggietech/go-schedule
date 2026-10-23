@@ -2,6 +2,8 @@ package clievaluate
 
 import (
 	"bytes"
+	"context"
+	"strings"
 	"testing"
 )
 
@@ -97,5 +99,71 @@ func TestFrozenProgressUpdatesLateRedactedArtifactIdentities(t *testing.T) {
 		if _, err := store.Read(a); err != nil {
 			t.Fatalf("frozen checkpoint retained stale identity: %v", err)
 		}
+	}
+}
+
+func TestLatestWorkerCheckpointKeepsPostCaseCleanupEvidence(t *testing.T) {
+	store, r, _, _ := reportFixture(t)
+	if err := store.root.MkdirAll("worker", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := persistCase(store, "worker", r.Cases[0], r.Artifacts); err != nil {
+		t.Fatal(err)
+	}
+	finalLog, err := store.Write("worker/final-daemon.log", "text/plain", []byte("owned daemon stopped\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Artifacts = append(r.Artifacts, finalLog)
+	r.Cases[0].LogArtifacts = append(r.Cases[0].LogArtifacts, finalLog.Path)
+	r.Phase = "capturing"
+	r.CompletionState = "running"
+	r.Cleanup = []Cleanup{{EnvironmentID: r.Cases[0].EnvironmentID, Remaining: []string{}, Actions: []Check{{Name: "owned runtime removed", Expected: "true", Actual: "true", Passed: true, Evidence: []string{finalLog.Path}}}}}
+	data, err := Encode(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Replace("worker/report.json", data); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := loadWorkerCheckpoint(store, "worker")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(recovered.Cases[0].LogArtifacts) != 1 || recovered.Cases[0].LogArtifacts[0] != finalLog.Path {
+		t.Fatal("older per-case progress erased the later cleanup log")
+	}
+	if len(recovered.Cleanup[0].Remaining) != 0 || !recovered.Cleanup[0].Actions[0].Passed {
+		t.Fatal("latest cleanup result was lost")
+	}
+}
+
+func TestWorkerFreezeFailureRetainsLatestCleanupCheckpoint(t *testing.T) {
+	store, r, _, _ := reportFixture(t)
+	if err := store.root.MkdirAll("worker", 0700); err != nil {
+		t.Fatal(err)
+	}
+	r.Phase = "capturing"
+	r.CompletionState = "running"
+	r.Cleanup = []Cleanup{{EnvironmentID: r.Cases[0].EnvironmentID, Remaining: []string{}, Actions: []Check{{Name: "owned runtime removed", Expected: "true", Actual: "true", Passed: true, Evidence: []string{r.Artifacts[0].Path}}}}}
+	if err := store.Replace(r.Artifacts[0].Path, []byte("tampered")); err != nil {
+		t.Fatal(err)
+	}
+	_, err := freezeWorkerEvidence(context.Background(), store, "worker", &r)
+	if err == nil || !strings.Contains(err.Error(), "freeze worker channels") {
+		t.Fatalf("stage-specific failure missing: %v", err)
+	}
+	var saved Report
+	if err := store.ReadDocument("worker/report.json", "report", &saved); err != nil {
+		t.Fatal(err)
+	}
+	if saved.Phase != "capturing" || saved.CompletionState != "running" {
+		t.Fatal("failed freeze claimed terminal completion")
+	}
+	if len(saved.Cleanup[0].Remaining) != 0 || !saved.Cleanup[0].Actions[0].Passed {
+		t.Fatal("completed cleanup was not durable before failed freezing")
+	}
+	if saved.Cases[0].Observed.ExitCode == nil || *saved.Cases[0].Observed.ExitCode != 0 {
+		t.Fatal("completed command outcome was lost")
 	}
 }

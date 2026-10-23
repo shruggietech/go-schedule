@@ -83,15 +83,7 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		}
 		return store.AppendJournal(c.Prefix+"/events.jsonl", append(compact, '\n'))
 	}
-	checkpoint := func() error {
-		r.FinishedAt = stamp()
-		r.Summary = DeriveSummary(r)
-		data, err := Encode(r)
-		if err != nil {
-			return err
-		}
-		return store.Replace(c.Prefix+"/report.json", data)
-	}
+	checkpoint := func() error { return persistWorkerCheckpoint(store, c.Prefix, &r) }
 	if err := checkpoint(); err != nil {
 		return err
 	}
@@ -339,20 +331,17 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		r.Cleanup = []Cleanup{completedCleanup}
 	}
 
+	finalCtx, cancelFinal := workerFinalizationContext(ctx, 30*time.Second)
+	defer cancelFinal()
+	store.ctx = finalCtx
+	corpus, err = freezeWorkerEvidence(finalCtx, store, c.Prefix, &r)
+	if err != nil {
+		return err
+	}
 	r.Phase = "pending_review"
 	r.CompletionState = "completed"
 	if ctx.Err() != nil || preflightErr != nil && r.Environments[0].Status == "ready" {
 		r.CompletionState = "interrupted"
-	}
-	finalCtx, cancelFinal := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-	defer cancelFinal()
-	store.ctx = finalCtx
-	corpus, err = freezeChannelsContext(finalCtx, store, &r)
-	if err != nil {
-		return err
-	}
-	if err := freezeProgressContext(finalCtx, store, c.Prefix, r); err != nil {
-		return err
 	}
 	SortCorpus(&corpus)
 	corpusData, err := Encode(corpus)

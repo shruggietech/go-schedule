@@ -74,3 +74,65 @@ func TestFinalizationSharesHardReserveAfterExecutionDeadline(t *testing.T) {
 		t.Fatalf("report reserve is expired or reset: %s %v", deadline, report.Err())
 	}
 }
+
+func TestWorkerFinalizationUsesRemainingExecutionBudget(t *testing.T) {
+	execution, stop := context.WithTimeout(context.Background(), time.Second)
+	defer stop()
+	final, cancel := workerFinalizationContext(execution, 20*time.Millisecond)
+	defer cancel()
+	select {
+	case <-final.Done():
+		t.Fatal("normal finalization was cut short by an unrelated grace cap")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func TestWorkerFinalizationBoundsEarlyCancellationAndJoinsWatcher(t *testing.T) {
+	execution, stop := context.WithTimeout(context.Background(), time.Hour)
+	final, cancel := workerFinalizationContext(execution, 100*time.Millisecond)
+	defer cancel()
+	stop()
+	if final.Err() != nil {
+		t.Fatal("execution cancellation removed the independent reporting reserve")
+	}
+	select {
+	case <-final.Done():
+	case <-time.After(time.Second):
+		t.Fatal("early cancellation retained the original hour-long deadline")
+	}
+}
+
+func TestWorkerFinalizationPreCanceledAndUnboundedContextsHaveFiniteReserve(t *testing.T) {
+	canceled, stop := context.WithCancel(context.Background())
+	stop()
+	for _, execution := range []context.Context{canceled, context.Background()} {
+		final, cancel := workerFinalizationContext(execution, 100*time.Millisecond)
+		if final.Err() != nil {
+			cancel()
+			t.Fatal("reporting reserve was already canceled")
+		}
+		select {
+		case <-final.Done():
+		case <-time.After(time.Second):
+			cancel()
+			t.Fatal("reporting reserve was unbounded")
+		}
+		cancel()
+	}
+}
+
+func TestWorkerFinalizationRetainsOnlyGraceBeyondExecutionDeadline(t *testing.T) {
+	execution, stop := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer stop()
+	final, cancel := workerFinalizationContext(execution, 200*time.Millisecond)
+	defer cancel()
+	<-execution.Done()
+	if final.Err() != nil {
+		t.Fatal("execution deadline erased bounded reporting reserve")
+	}
+	select {
+	case <-final.Done():
+	case <-time.After(time.Second):
+		t.Fatal("reporting outlived its finite grace")
+	}
+}

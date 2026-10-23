@@ -51,3 +51,29 @@ func finalizationContext(execution context.Context, policy TimingPolicy) (contex
 	}
 	return context.WithDeadline(context.WithoutCancel(execution), deadline)
 }
+
+// workerFinalizationContext permits normal freezing within the selected execution
+// deadline and bounds shutdown after earlier cancellation.
+func workerFinalizationContext(execution context.Context, grace time.Duration) (context.Context, context.CancelFunc) {
+	deadline, bounded := execution.Deadline()
+	if execution.Err() != nil || !bounded {
+		return context.WithTimeout(context.WithoutCancel(execution), grace)
+	}
+	final, cancel := context.WithDeadline(context.WithoutCancel(execution), deadline.Add(grace))
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		select {
+		case <-execution.Done():
+			timer := time.NewTimer(grace)
+			defer timer.Stop()
+			select {
+			case <-timer.C:
+				cancel()
+			case <-final.Done():
+			}
+		case <-final.Done():
+		}
+	}()
+	return final, func() { cancel(); <-stopped }
+}

@@ -70,7 +70,9 @@ func loadWorkerCheckpointContext(ctx context.Context, store *ArtifactStore, pref
 				known[a.Path] = a
 			}
 		}
-		report.Cases[i] = record.Case
+		if report.Cases[i].Observed.ExitCode == nil || record.Case.FinishedAt > report.Cases[i].FinishedAt {
+			report.Cases[i] = record.Case
+		}
 		if record.Case.FinishedAt > report.FinishedAt {
 			report.FinishedAt = record.Case.FinishedAt
 		}
@@ -100,6 +102,7 @@ func freezeProgressContext(ctx context.Context, store *ArtifactStore, prefix str
 		if err != nil {
 			return err
 		}
+		original := data
 		var checkpoint caseCheckpoint
 		if err := Decode(bytes.NewReader(data), &checkpoint); err != nil {
 			return err
@@ -116,9 +119,23 @@ func freezeProgressContext(ctx context.Context, store *ArtifactStore, prefix str
 		if err != nil {
 			return err
 		}
+		data = store.Redactor.Sanitize(data)
+		if bytes.Equal(original, data) {
+			continue
+		}
 		if err := store.Replace(path, data); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func persistWorkerCheckpoint(store *ArtifactStore, prefix string, report *Report) error {
+	report.FinishedAt = stamp()
+	report.Summary = DeriveSummary(*report)
+	data, err := Encode(*report)
+	if err != nil {
+		return err
+	}
+	return store.Replace(prefix+"/report.json", data)
 }
