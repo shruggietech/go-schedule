@@ -379,3 +379,7 @@ go test ./test/integration/ -run TestScripts -v
 ```
 
 Covers single-shot recording, boundary drift, the exit-code contract, the bounded loop, concurrent writers, exact literal-text binding, distinct numeric-looking session IDs, bounded retry and failure diagnostics, twin parity, snapshots, and every canned query. It **skips with a stated reason** when `sqlite3`, `pwsh`, or `bash` is missing, a skip is not a pass, and the reason is printed so the two cannot be confused.
+
+### Concurrent-writer investigation
+
+For the maintainer integration fixture only, set `GOSCHEDULE_PROBE_DIAGNOSTICS=1` when running `go test -race ./test/integration -run TestScriptsBindingsKeepConcurrentSessionIdentities -v`. The fixture emits child-owned interpreter, library, prerequisite and write phases; on failure, the test log retains all six native outcomes and exact owned rows. Default writer output is unchanged. This mode does not retry, serialize or alter the exact-record assertions. Original unknown-cause Windows observations remain tracked in [#355](https://github.com/shruggietech/go-schedule/issues/355).

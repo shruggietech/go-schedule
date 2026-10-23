@@ -22,11 +22,11 @@ func bindingHarness(t *testing.T, tw twin, sql string) string {
 	if tw.name == "powershell" {
 		name = "binding.ps1"
 		library := strings.ReplaceAll(scriptPath(t, "lib/Sqlite.ps1"), "'", "''")
-		text = "param([string]$Database)\n$ErrorActionPreference='Stop'\n. '" + library + "'\nInitialize-TestSqlite\n$value=[string][Environment]::GetEnvironmentVariable('SCRIPT_BIND_VALUE')\nInvoke-Sqlite -Database $Database -Sql '" + strings.ReplaceAll(sql, "'", "''") + "' -Parameters @{ value=$value; empty=''; absent=$null }\n"
+		text = "param([string]$Database)\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=interpreter-entry')}\n$ErrorActionPreference='Stop'\n. '" + library + "'\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=library-loaded')}\nInitialize-TestSqlite\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=prerequisite-resolved sqlite=' + $script:ResolvedSqliteExe)}\n$value=[string][Environment]::GetEnvironmentVariable('SCRIPT_BIND_VALUE')\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=write-started')}\nInvoke-Sqlite -Database $Database -Sql '" + strings.ReplaceAll(sql, "'", "''") + "' -Parameters @{ value=$value; empty=''; absent=$null }\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=write-complete')}\n"
 	} else {
 		name = "binding.sh"
 		library := strings.ReplaceAll(bashCompatiblePath(scriptPath(t, "lib/sqlite.sh")), "'", "'\"'\"'")
-		text = "#!/usr/bin/env bash\nset -euo pipefail\n. '" + library + "'\ninit_test_sqlite '' 0\nsqlite_exec \"$1\" list '" + strings.ReplaceAll(sql, "'", "'\"'\"'") + "' \"value=$SCRIPT_BIND_VALUE\" 'empty=' 'absent=__NULL__'\n"
+		text = "#!/usr/bin/env bash\nset -euo pipefail\nif [ \"${GOSCHEDULE_PROBE_DIAGNOSTICS:-0}\" = 1 ]; then printf 'phase=interpreter-entry\\n' >&2; fi\n. '" + library + "'\nif [ \"${GOSCHEDULE_PROBE_DIAGNOSTICS:-0}\" = 1 ]; then printf 'phase=library-loaded\\n' >&2; fi\ninit_test_sqlite '' 0\nif [ \"${GOSCHEDULE_PROBE_DIAGNOSTICS:-0}\" = 1 ]; then printf 'phase=prerequisite-resolved sqlite=%s\\n' \"$SQLITE_EXE\" >&2; fi\nif [ \"${GOSCHEDULE_PROBE_DIAGNOSTICS:-0}\" = 1 ]; then printf 'phase=write-started\\n' >&2; fi\nsqlite_exec \"$1\" list '" + strings.ReplaceAll(sql, "'", "'\"'\"'") + "' \"value=$SCRIPT_BIND_VALUE\" 'empty=' 'absent=__NULL__'\nif [ \"${GOSCHEDULE_PROBE_DIAGNOSTICS:-0}\" = 1 ]; then printf 'phase=write-complete\\n' >&2; fi\n"
 	}
 	path := filepath.Join(dir, name)
 	if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
@@ -111,6 +111,17 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 					harness := bindingHarness(t, tw, "CREATE TABLE IF NOT EXISTS sessions(session_id TEXT NOT NULL, sequence INTEGER NOT NULL, UNIQUE(session_id,sequence)); INSERT INTO sessions VALUES(:value,1);")
 					const writers = 6
 					results := make([]bindingResult, writers)
+					t.Cleanup(func() {
+						if !t.Failed() || os.Getenv("GOSCHEDULE_PROBE_DIAGNOSTICS") != "1" {
+							return
+						}
+						for i, result := range results {
+							output := result.output
+							t.Logf("writer=%d native_exit=%d hex=0x%08x elapsed=%s interpreter=%s result=%v output=%q", i, result.code, uint32(result.code), result.duration, tw.command(harness, database)[0], result.err, output)
+						}
+						rows, err := scriptCommand(sqlite, database, "SELECT session_id,sequence FROM sessions ORDER BY session_id,sequence;").CombinedOutput()
+						t.Logf("owned failure rows sqlite=%s query_error=%v rows=%q", sqlite, err, rows)
+					})
 					var wg sync.WaitGroup
 					for i := 0; i < writers; i++ {
 						wg.Add(1)
@@ -132,6 +143,45 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 					}
 					if n := queryInt(t, sqlite, database, "SELECT COUNT(*) FROM sessions;"); n != writers {
 						t.Errorf("persisted records = %d, want %d", n, writers)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestScriptsBindingDiagnosticsAreOptIn(t *testing.T) {
+	sqlite := requireSqlite(t)
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			harness := bindingHarness(t, tw, "CREATE TABLE literal_values(value TEXT); INSERT INTO literal_values VALUES(:value);")
+			for _, enabled := range []string{"0", "1"} {
+				t.Run(enabled, func(t *testing.T) {
+					t.Setenv("GOSCHEDULE_PROBE_DIAGNOSTICS", enabled)
+					database := filepath.Join(t.TempDir(), "diagnostic.db")
+					result := executeBinding(tw, harness, database, "literal identity")
+					if result.code != 0 {
+						t.Fatalf("diagnostic=%s changed writer result: %+v", enabled, result)
+					}
+					if enabled == "0" && strings.Contains(result.output, "phase=") {
+						t.Fatalf("default output gained writer diagnostics: %s", result.output)
+					}
+					if enabled == "1" {
+						last := -1
+						for _, phase := range []string{"interpreter-entry", "library-loaded", "prerequisite-resolved", "write-started", "write-complete"} {
+							at := strings.Index(result.output, "phase="+phase)
+							if at <= last {
+								t.Fatalf("missing or reordered %s: %s", phase, result.output)
+							}
+							last = at
+						}
+					}
+					if got := queryScalar(t, sqlite, database, "SELECT value FROM literal_values;"); got != "literal identity" {
+						t.Fatalf("diagnostics changed persisted identity: %q", got)
+					}
+					if got := queryInt(t, sqlite, database, "SELECT COUNT(*) FROM literal_values;"); got != 1 {
+						t.Fatalf("diagnostics changed record count: %d", got)
 					}
 				})
 			}

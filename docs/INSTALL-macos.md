@@ -134,7 +134,9 @@ Created on first run, and left alone when you remove the binaries.
 
 ## Upgrading
 
-For the desktop bundle, replace the `.app` with the new one. For the archive, stop the service, replace the binaries, start it again:
+Before replacing the `.app` or archive binaries, stop the daemon that owns the effective configuration and data directory. Closing the desktop window does not stop a GUI-started daemon. Stop the registered service with the command below, or stop the exact manually or GUI-started daemon process if no service owns it. Back up the complete stopped data directory (default `/Library/Application Support/goschedule`), including the database, any SQLite sidecar files, configuration and protected credential material, and retain the matching older bundle or binaries. A custom `--config` can select a different data directory.
+
+For the desktop bundle, replace the `.app` only after stopping and backing up, then reopen it or start its registered service. For the daemon-and-CLI archive:
 
 ```sh
 sudo gosched service stop
@@ -143,7 +145,7 @@ sudo gosched service start
 gosched health
 ```
 
-The database migrates forward automatically and non-destructively on first start.
+The v1.6.0 candidate advances notification storage to schema v24. Migrations preserve existing state and run forward on first start. To roll back, stop the newer daemon and restore the complete pre-upgrade state with its matching older bundle or binaries. Never point older binaries at the migrated database. SMTP credentials remain local to their target and are not exported in portable bundles.
 
 The service definition retains a custom `--config` argument, and the default configuration remains beside the preserved database. An upgrade does not enable remote access or replace certificate and credential state.
 

@@ -573,3 +573,21 @@ func TestFailedRepeatDownloadInvalidatesFinalVerification(t *testing.T) {
 		t.Fatal("failed revalidation changed publication")
 	}
 }
+
+// The staged body comes directly from these source-owned notes. Validate that
+// exact content through read-only production selection, not a synthetic phrase.
+func TestPreparedV160NotesPermitStandingWaiverSelection(t *testing.T) {
+	notes, err := os.ReadFile("../../.github/release-notes/v1.6.0.md")
+	must(t, err)
+	f := newFixture(t, true)
+	f.release.Tag = "v1.6.0"
+	f.release.Body = string(notes)
+	f.pages[1][0] = f.release
+	must(t, f.client.resolve(context.Background(), "owner/repo", "v1.6.0", f.state))
+	selected, err := loadSelection(f.state)
+	must(t, err)
+	if selected.Tag != "v1.6.0" || selected.ReleaseID != 42 || !selected.WasDraft || selected.Metadata != metadata(f.release) {
+		t.Fatalf("prepared notes lost exact selection identity: %+v", selected)
+	}
+	f.assertReadOnly()
+}
