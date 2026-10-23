@@ -526,7 +526,8 @@ components:
         claimed_at: {type: string, format: date-time}
         completed_at: {type: string, format: date-time}
         last_status: {type: integer}
-        last_error: {type: string}
+        diagnostic: {type: string, description: "Authored transport result detail, including successful SMTP server acceptance. This does not confirm inbox delivery."}
+        last_error: {type: string, description: "Current failure detail. Empty for succeeded SMTP deliveries."}
         condition_kind: {type: string}
         condition_summary: {type: string}
     NotificationDeliveryList:

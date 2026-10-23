@@ -12,6 +12,7 @@ package integration
 // coverage gaps are how a cross-platform defect reaches a release.
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -108,6 +109,33 @@ func requireSqlite(t *testing.T) string {
 	p, err := exec.LookPath("sqlite3")
 	if err != nil {
 		t.Skip("SKIP: sqlite3 is not on PATH; these tests drive scripts that require it")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, p, "--version")
+	configureScriptProcess(cmd)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("sqlite prerequisite %s failed (%v): %s", p, err, out)
+	}
+	fields := strings.Fields(string(out))
+	if len(fields) == 0 {
+		t.Fatal("sqlite prerequisite returned no version")
+	}
+	parts := strings.Split(fields[0], ".")
+	if len(parts) != 3 {
+		t.Fatalf("sqlite prerequisite returned malformed version %q", fields[0])
+	}
+	values := []int{}
+	for _, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil || n < 0 {
+			t.Fatalf("malformed sqlite version %q", fields[0])
+		}
+		values = append(values, n)
+	}
+	if values[0] < 3 || values[0] == 3 && values[1] < 33 {
+		t.Fatalf("sqlite %s is below the required 3.33.0", fields[0])
 	}
 	return p
 }
@@ -644,32 +672,46 @@ func TestScriptsListenersProbeStatus(t *testing.T) {
 		t.Run(tw.name, func(t *testing.T) {
 			requireTwin(t, tw)
 			dir := t.TempDir()
-			// First snapshot with ports, then one that deliberately skips them,
-			// so the newest snapshot is the unusable one.
-			if _, code := runScript(t, tw, dir, info[tw.name]); code != 0 {
-				t.Fatalf("first snapshot failed with exit %d", code)
-			}
-			if _, code := runScript(t, tw, dir, info[tw.name], tw.flag("skip-ports")); code != 0 {
-				t.Fatalf("second snapshot failed with exit %d", code)
-			}
+			// Identify invocations by their persistent row identities. Host wall
+			// clocks can move backwards or have coarser precision than a run.
 			db := filepath.Join(dir, "system.db")
-
-			// Probe status must be recorded, and the skipped one must say so.
+			if out, code := runScript(t, tw, dir, info[tw.name]); code != 0 {
+				t.Fatalf("first snapshot failed with exit %d\n%s", code, out)
+			}
+			firstID := queryInt(t, sqlite, db, "SELECT MAX(id) FROM snapshot;")
+			snapshotRows := "SELECT id,unixtime_ms,ports_probe FROM snapshot ORDER BY id;"
+			capturedRows := queryScalar(t, sqlite, db, snapshotRows)
+			t.Cleanup(func() {
+				if t.Failed() {
+					t.Logf("captured snapshot identities, timestamps and probe statuses:\n%s\nreader fixture rows:\n%s",
+						capturedRows, queryScalar(t, sqlite, db, snapshotRows))
+				}
+			})
+			if out, code := runScript(t, tw, dir, info[tw.name], tw.flag("skip-ports")); code != 0 {
+				t.Fatalf("second snapshot failed with exit %d\n%s", code, out)
+			}
+			secondID := queryInt(t, sqlite, db, "SELECT MAX(id) FROM snapshot;")
+			capturedRows = queryScalar(t, sqlite, db, snapshotRows)
+			if secondID <= firstID || queryInt(t, sqlite, db, "SELECT COUNT(*) FROM snapshot;") != 2 {
+				t.Fatal("each invocation must persist one distinct snapshot")
+			}
 			if got := queryScalar(t, sqlite, db,
-				"SELECT ports_probe FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;"); got != "skipped" {
-				t.Errorf("newest snapshot ports_probe = %q, want %q", got, "skipped")
+				"SELECT ports_probe FROM snapshot WHERE id="+strconv.Itoa(secondID)+";"); got != "skipped" {
+				t.Errorf("second snapshot ports_probe = %q, want %q", got, "skipped")
 			}
 
-			// The fallback-to-an-older-snapshot behavior can only be exercised
-			// where the port probe can actually succeed at least once. On a host
-			// with no port tool there is nothing usable to fall back TO, which is
-			// the separate case TestScriptsListenersNoUsableSnapshot covers.
-			// Asserting here would be asserting about the environment, not the code.
+			// A usable first capture is required for the fallback scenario. The
+			// separate no-usable-snapshot case covers hosts without a port tool.
 			if got := queryScalar(t, sqlite, db,
-				"SELECT ports_probe FROM snapshot ORDER BY unixtime_ms ASC LIMIT 1;"); got != "ok" {
+				"SELECT ports_probe FROM snapshot WHERE id="+strconv.Itoa(firstID)+";"); got != "ok" {
 				t.Skipf("SKIP: this host cannot probe listening ports (ports_probe=%q), "+
 					"so there is no usable snapshot to fall back to", got)
 			}
+			// Model the reader's intended chronology explicitly, independently
+			// of the host clock used during the two real writer invocations.
+			queryScalar(t, sqlite, db, "UPDATE snapshot SET unixtime_ms=CASE id WHEN "+
+				strconv.Itoa(firstID)+" THEN 1000 WHEN "+strconv.Itoa(secondID)+" THEN 2000 END;")
+
 			if n := queryInt(t, sqlite, db,
 				"SELECT COUNT(*) FROM snapshot WHERE ports_probe IS NULL;"); n != 0 {
 				t.Error("every snapshot written at schema 3 must record a port probe status")

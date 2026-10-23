@@ -340,3 +340,11 @@ func TestNotificationPermissionDenialIsNotAvailabilityFailure(t *testing.T) {
 		t.Fatalf("permission diagnostic: %+v", result)
 	}
 }
+
+func TestDeliveryMapsNeutralSMTPDetailSeparatelyFromFailure(t *testing.T) {
+	value := domain.NotificationDelivery{Kind: domain.NotificationChannelSMTP, State: domain.NotificationDeliverySucceeded, Diagnostic: "The SMTP server accepted the message."}
+	got := mapDelivery(value)
+	if got.Diagnostic != value.Diagnostic || got.LastError != "" || got.State != "successful" {
+		t.Fatalf("delivery detail mislabeled: %+v", got)
+	}
+}

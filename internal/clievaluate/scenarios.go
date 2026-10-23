@@ -26,7 +26,10 @@ type execution struct {
 	Cleanup                      error
 }
 
-func (s *session) execute(ctx context.Context, definition step) execution {
+func (s *session) execute(ctx context.Context, definition step) (observed execution) {
+	diagnostics := &executionDiagnostics{}
+	defer func() { observed = diagnostics.finish(observed) }()
+	ctx = diagnostics.phase(ctx, "guard")
 	if definition.Human {
 		definition.Spec.ID = strings.TrimSuffix(definition.Spec.ID, ".human")
 	}
@@ -39,9 +42,11 @@ func (s *session) execute(ctx context.Context, definition step) execution {
 	if err := s.w.Guard(ctx, s.api); err != nil {
 		return execution{Blocked: "ownership_mismatch", Detail: err.Error()}
 	}
-	if handled, result := s.special(ctx, definition); handled {
+	if handled, result := s.special(diagnostics.phase(ctx, "special"), definition); handled {
+		diagnostics.CommandRan = result.Blocked == ""
 		return result
 	}
+	ctx = diagnostics.phase(ctx, "setup")
 	if definition.Spec.ID == "alerts.ack" {
 		if err := s.before(ctx, definition); err != nil {
 			return execution{Blocked: "fixture_setup", Detail: err.Error()}
@@ -64,11 +69,15 @@ func (s *session) execute(ctx context.Context, definition step) execution {
 	metadata := slices.Contains([]string{"help", "alias", "completion", "documentation", "version"}, definition.Spec.ScenarioClass)
 	var before map[string]any
 	if !metadata {
+		ctx = diagnostics.phase(ctx, "before")
 		before, err = s.snapshot(ctx)
+		diagnostics.BeforeComplete = err == nil
 		if err != nil {
-			return execution{Blocked: "observation_unavailable", Detail: err.Error()}
+			return execution{Blocked: "observation_unavailable", Detail: err.Error(), State: mustObservation(map[string]any{"before": before, "before_complete": false})}
 		}
 	}
+	ctx = diagnostics.phase(ctx, "command")
+	diagnostics.CommandRan = true
 	result := execution{Args: args, Input: []byte(input)}
 	if definition.Spec.ExecutionKind == "command_harness" {
 		var output, diagnostic bytes.Buffer
@@ -120,6 +129,7 @@ func (s *session) execute(ctx context.Context, definition step) execution {
 			outputOK = false
 		}
 	}
+	ctx = diagnostics.phase(ctx, "output_inspection")
 	if definition.Human && result.Code == 0 {
 		observed, err := s.humanResponse(ctx, definition, result.Out, before)
 		if err != nil {
@@ -141,15 +151,18 @@ func (s *session) execute(ctx context.Context, definition step) execution {
 		}
 		s.vars[save.Name] = text
 	}
+	ctx = diagnostics.phase(ctx, "postcondition")
 	postOK, postData, postErr := s.after(ctx, definition, result, body)
 	if postErr != nil {
 		postOK = false
-		postData = map[string]any{"error": postErr.Error()}
+		postData = map[string]any{"partial": postData, "error": postErr.Error()}
 	}
 	if definition.Hook == "mcp-http" {
 		result.Logs = mustObservation(postData)
 	}
+	ctx = diagnostics.phase(ctx, "after")
 	after, observationErr := s.snapshot(ctx)
+	diagnostics.AfterComplete = observationErr == nil
 	stateOK := observationErr == nil
 	if stateOK {
 		for _, assertion := range definition.Assert {
@@ -176,7 +189,11 @@ func (s *session) execute(ctx context.Context, definition step) execution {
 			stateOK = stateOK && s.persistedIntent(definition, args, before, after)
 		}
 	}
-	result.State = mustObservation(map[string]any{"before": observationIdentity(before), "after": observationIdentity(after), "changes": observationChanges(before, after), "postcondition": postData, "observation_error": errorText(observationErr), "execution_diagnostic": result.Detail, "process_cleanup": result.Cleanup == nil})
+	stateEvidence := map[string]any{"before": observationIdentity(before), "after": observationIdentity(after), "before_complete": diagnostics.BeforeComplete, "after_complete": diagnostics.AfterComplete, "changes": observationChanges(before, after), "postcondition": postData, "observation_error": errorText(observationErr), "execution_diagnostic": result.Detail, "process_cleanup": result.Cleanup == nil}
+	if observationErr != nil {
+		stateEvidence["partial_after"] = after
+	}
+	result.State = mustObservation(stateEvidence)
 	result.Checks = []bool{outputOK, stateOK, postOK}
 	if len(definition.Spec.Checks) == 2 {
 		result.Checks = result.Checks[:2]

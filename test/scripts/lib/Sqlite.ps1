@@ -112,13 +112,55 @@ Param(
             [Parameter(Mandatory=$false)]
             [version]$Minimum = '3.33.0'
         )
+        $probe = [Diagnostics.ProcessStartInfo]::new()
+        $probe.FileName = $Candidate
+        $probe.ArgumentList.Add('--version')
+        $probe.UseShellExecute = $false
+        $probe.CreateNoWindow = $true
+        $probe.RedirectStandardInput = $true
+        $probe.RedirectStandardOutput = $true
+        $probe.RedirectStandardError = $true
+        $probe.Environment['GIT_TERMINAL_PROMPT'] = '0'
+        $probe.Environment['GCM_INTERACTIVE'] = 'Never'
+        $process = $null
         try {
-            $raw = & $Candidate --version 2>$null
+            $process = [Diagnostics.Process]::Start($probe)
+            $process.StandardInput.Close()
+            # Fixed buffers prevent a broken candidate from filling memory.
+            $outputBuffer = [char[]]::new(4097)
+            $errorBuffer = [char[]]::new(4097)
+            $outputRead = $process.StandardOutput.ReadBlockAsync($outputBuffer, 0, $outputBuffer.Length)
+            $errorRead = $process.StandardError.ReadBlockAsync($errorBuffer, 0, $errorBuffer.Length)
+            $timedOut = -not $process.WaitForExit(10000)
+            if ($timedOut) { $process.Kill($true); $process.WaitForExit() }
+            $outputCount = $outputRead.GetAwaiter().GetResult()
+            $errorCount = $errorRead.GetAwaiter().GetResult()
+            $raw = [string]::new($outputBuffer, 0, [Math]::Min($outputCount, 4096))
+            $detail = [string]::new($errorBuffer, 0, [Math]::Min($errorCount, 4096))
+            $detail = [regex]::Replace($detail, '[\x00-\x1f\x7f]', ' ').Trim()
+            if ($timedOut) {
+                Write-Log ("sqlite3 candidate '{0}' timed out after 10000 ms. stderr: {1}" -f $Candidate, $detail) -Level Warn
+                return $null
+            }
+            if ($process.ExitCode -ne 0) {
+                Write-Log ("sqlite3 candidate '{0}' exited {1} (0x{1:X8}). stderr: {2}" -f $Candidate, $process.ExitCode, $detail) -Level Warn
+                return $null
+            }
+            if ($outputCount -gt 4096 -or $errorCount -gt 4096) {
+                Write-Log ("sqlite3 candidate '{0}' exceeded the 4096-character probe output limit." -f $Candidate) -Level Warn
+                return $null
+            }
         } catch {
+            Write-Log ("sqlite3 candidate '{0}' could not be launched or read: {1}" -f $Candidate, $_.Exception.Message) -Level Warn
+            return $null
+        } finally {
+            if ($process) { if (-not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }; $process.Dispose() }
+        }
+        $token = $raw.Trim().Split(' ')[0]
+        if ($token -notmatch '^\d+\.\d+\.\d+$') {
+            Write-Log ("sqlite3 candidate '{0}' returned an empty or malformed version." -f $Candidate) -Level Warn
             return $null
         }
-        if ($LASTEXITCODE -ne 0 -or -not $raw) { return $null }
-        $token = ([string]$raw).Trim().Split(' ')[0]
         try { $found = [version]$token } catch { return $null }
         if ($found -lt $Minimum) {
             Write-Log ("Ignoring sqlite3 at '{0}': version {1} is below the required {2}." -f $Candidate, $found, $Minimum) -Level Debug

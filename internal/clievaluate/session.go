@@ -407,21 +407,21 @@ func (s *session) snapshot(ctx context.Context) (map[string]any, error) {
 	for _, call := range calls {
 		value, err := call.load()
 		if err != nil {
-			return nil, err
+			return result, fmt.Errorf("snapshot %s: %w", call.name, err)
 		}
 		data, err := json.Marshal(value)
 		if err != nil {
-			return nil, err
+			return result, err
 		}
 		var items []map[string]any
 		if err := json.Unmarshal(data, &items); err != nil {
-			return nil, err
+			return result, err
 		}
 		indexed := map[string]any{}
 		for _, item := range items {
 			id, ok := item["id"].(string)
 			if !ok {
-				return nil, fmt.Errorf("%s observation has no ID", call.name)
+				return result, fmt.Errorf("%s observation has no ID", call.name)
 			}
 			indexed[id] = item
 		}
@@ -429,15 +429,15 @@ func (s *session) snapshot(ctx context.Context) (map[string]any, error) {
 	}
 	profiles, err := s.profiles.Load()
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	data, err := json.Marshal(profiles)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	var profileValue any
 	if err := json.Unmarshal(data, &profileValue); err != nil {
-		return nil, err
+		return result, err
 	}
 	result["profiles"] = profileValue
 	intents := []clifixture.Intent{}
@@ -449,7 +449,7 @@ func (s *session) snapshot(ctx context.Context) (map[string]any, error) {
 	result["host_intents"] = intents
 	prefData, prefErr := os.ReadFile(filepath.Join(s.w.Runtime, "client", "preferences.json"))
 	if prefErr != nil && !errors.Is(prefErr, os.ErrNotExist) {
-		return nil, prefErr
+		return result, prefErr
 	}
 	result["preferences"] = string(prefData)
 	return result, nil

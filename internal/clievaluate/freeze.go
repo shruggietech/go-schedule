@@ -2,22 +2,47 @@ package clievaluate
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
 // freezeChannels reapplies the complete fixture registry before corpus identity freezes.
 func freezeChannels(store *ArtifactStore, r *Report) (Corpus, error) {
+	return freezeChannelsContext(context.Background(), store, r)
+}
+
+func freezeChannelsContext(ctx context.Context, store *ArtifactStore, r *Report) (Corpus, error) {
+	return freezeChannelsCheckpoint(ctx, store, r, nil)
+}
+
+func freezeChannelsCheckpoint(ctx context.Context, store *ArtifactStore, r *Report, checkpoint func(artifactFreeze) error) (Corpus, error) {
+	frozen := make(map[string][]byte, len(r.Artifacts))
 	for i := range r.Artifacts {
+		if err := ctx.Err(); err != nil {
+			return Corpus{}, err
+		}
 		a := &r.Artifacts[i]
 		data, err := store.Read(*a)
 		if err != nil {
 			return Corpus{}, err
 		}
-		data = store.Redactor.Sanitize(data)
-		if err := store.Replace(a.Path, data); err != nil {
-			return Corpus{}, err
+		sanitized := store.Redactor.Sanitize(data)
+		if !bytes.Equal(data, sanitized) {
+			updated := *a
+			updated.Bytes, updated.SHA256 = int64(len(sanitized)), Digest(sanitized)
+			if checkpoint != nil {
+				if err := checkpoint(artifactFreeze{Before: *a, After: updated}); err != nil {
+					return Corpus{}, err
+				}
+			}
+			if err := store.Replace(a.Path, sanitized); err != nil {
+				return Corpus{}, err
+			}
 		}
+		data = sanitized
+		frozen[a.Path] = data
 		a.Bytes = int64(len(data))
 		a.SHA256 = Digest(data)
 	}
@@ -30,11 +55,10 @@ func freezeChannels(store *ArtifactStore, r *Report) (Corpus, error) {
 		return Corpus{}, err
 	}
 	corpus := Corpus{SchemaVersion: Version, Kind: "go-schedule.cli-qa-corpus", RunID: r.RunID}
-	byPath := map[string]Artifact{}
-	for _, a := range r.Artifacts {
-		byPath[a.Path] = a
-	}
 	for _, c := range r.Cases {
+		if err := ctx.Err(); err != nil {
+			return corpus, err
+		}
 		if c.Observed.ExitCode == nil {
 			continue
 		}
@@ -54,13 +78,9 @@ func freezeChannels(store *ArtifactStore, r *Report) (Corpus, error) {
 			if channel.path == nil {
 				return corpus, errors.New("executed case lacks a frozen channel")
 			}
-			a, ok := byPath[*channel.path]
+			data, ok := frozen[*channel.path]
 			if !ok {
 				return corpus, errors.New("frozen channel is absent from the evidence index")
-			}
-			data, err := store.Read(a)
-			if err != nil {
-				return corpus, err
 			}
 			hasMessage = AddMessage(&corpus, c, channel.name, string(data)) != "" || hasMessage
 		}
@@ -108,4 +128,30 @@ func validateFrozen(store *ArtifactStore, r Report) error {
 		return nil
 	}
 	return errors.New("frozen capture identity is missing")
+}
+
+// freezeWorkerEvidence checkpoints completed cleanup before bounded, fallible freezing.
+func freezeWorkerEvidence(ctx context.Context, store *ArtifactStore, prefix string, r *Report) (Corpus, error) {
+	previous := store.ctx
+	store.ctx = ctx
+	defer func() { store.ctx = previous }()
+	if err := persistWorkerCheckpoint(store, prefix, r); err != nil {
+		return Corpus{}, fmt.Errorf("checkpoint worker cleanup: %w", err)
+	}
+	var updates []artifactFreeze
+	corpus, err := freezeChannelsCheckpoint(ctx, store, r, func(update artifactFreeze) error {
+		updates = append(updates, update)
+		data, err := Encode(updates)
+		if err != nil {
+			return err
+		}
+		return store.Replace(prefix+"/freeze-artifacts.json", data)
+	})
+	if err != nil {
+		return Corpus{}, fmt.Errorf("freeze worker channels: %w", err)
+	}
+	if err := freezeProgressContext(ctx, store, prefix, *r); err != nil {
+		return Corpus{}, fmt.Errorf("freeze worker case checkpoints: %w", err)
+	}
+	return corpus, nil
 }

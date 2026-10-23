@@ -125,6 +125,7 @@ type NotificationDelivery struct {
 	ClaimedAt          *time.Time                `json:"claimed_at,omitempty"`
 	CompletedAt        *time.Time                `json:"completed_at,omitempty"`
 	LastStatus         int                       `json:"last_status,omitempty"`
+	Diagnostic         string                    `json:"diagnostic,omitempty"`
 	LastError          string                    `json:"last_error,omitempty"`
 	ConditionKind      NotificationConditionKind `json:"condition_kind,omitempty"`
 	ConditionSummary   string                    `json:"condition_summary,omitempty"`

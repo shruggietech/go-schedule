@@ -448,7 +448,9 @@ func withQuery(path string, q url.Values) string {
 
 // do performs a request with an optional JSON body and decodes an optional JSON
 // response, surfacing the API error envelope.
-func (c *Client) do(ctx context.Context, method, path string, body, out any) error {
+func (c *Client) do(ctx context.Context, method, path string, body, out any) (resultErr error) {
+	observe := observeRequest(ctx, method, path)
+	defer func() { observe(resultErr) }()
 	target := c.target()
 	remoteMutation := target.remote && method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions
 	req, err := target.newRequest(ctx, method, path, body)

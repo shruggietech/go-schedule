@@ -3,10 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/shruggietech/go-schedule/internal/clievaluate"
 )
 
 func TestPublicCommandsRejectUnexpectedOperandsBeforeOpeningState(t *testing.T) {
@@ -62,5 +67,45 @@ func TestPublicHelpAndInventoryNeedNoExternalState(t *testing.T) {
 	}
 	if !bytes.Contains(out.Bytes(), []byte(`"go-schedule.cli-qa-manifest"`)) {
 		t.Fatal("missing initialized manifest")
+	}
+}
+
+func TestTimingPolicyUsesTheSameValidatedSelectedBudget(t *testing.T) {
+	budget := clievaluate.DefaultBudget()
+	budget.TotalTimeoutMS = 7200000
+	file := filepath.Join(t.TempDir(), "budget.json")
+	data, err := json.Marshal(budget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var out, diagnostic bytes.Buffer
+	if err := run(context.Background(), []string{"timing-policy", "--budget", file}, &out, &diagnostic); err != nil {
+		t.Fatal(err)
+	}
+	var policy clievaluate.TimingPolicy
+	if err := json.Unmarshal(out.Bytes(), &policy); err != nil {
+		t.Fatal(err)
+	}
+	if policy.TotalTimeoutMS != 7200000 || policy.OuterTimeoutMS <= 7200000 {
+		t.Fatalf("wrong selected policy: %+v", policy)
+	}
+	out.Reset()
+	if err := run(context.Background(), []string{"timing-policy", "unexpected"}, &out, &diagnostic); err == nil || out.Len() != 0 {
+		t.Fatal("unexpected policy operand accepted")
+	}
+	budget.TotalTimeoutMS = 7200001
+	data, err = json.Marshal(budget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	out.Reset()
+	if err := run(context.Background(), []string{"timing-policy", "--budget", file}, &out, &diagnostic); err == nil || out.Len() != 0 {
+		t.Fatal("invalid policy accepted")
 	}
 }

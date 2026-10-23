@@ -210,3 +210,14 @@ describe('remote notification permissions', () => {
     expect(saveChannel).toHaveBeenCalledWith(expect.objectContaining({ replaceAuthorization: false, smtp: expect.objectContaining({ host: 'mail.example.test', port: 587, tls_mode: 'starttls', recipients: ['new@example.test'] }) }))
   })
 })
+
+it('shows accepted SMTP evidence as delivery detail and leaves failure detail empty', async () => {
+ const user=userEvent.setup()
+ const mail={...workspace.deliveries[3],transport:'smtp',diagnostic:'The SMTP server accepted the message.',lastError:undefined}
+ render(<NotificationsPage bridge={bridge({workspace:async()=>({action:'load_notifications',outcome:'accepted',message:'Done.',workspace:{...workspace,deliveries:[mail]}})})} available refreshToken={1} />)
+ await screen.findByText('1 active destination')
+ await user.click(screen.getByText('Inspect delivery diagnostics'))
+ await user.click(screen.getByRole('button',{name:/9\/7\/2026/}))
+ expect(screen.getByText('Delivery detail').nextElementSibling).toHaveTextContent(mail.diagnostic)
+ expect(screen.getByText('Failure detail').nextElementSibling).toHaveTextContent('None')
+})

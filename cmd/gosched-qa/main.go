@@ -31,7 +31,7 @@ func main() {
 
 func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("choose build, inventory, capture, resume, finalize, validate or render; use COMMAND --help for its inputs")
+		return errors.New("choose build, inventory, timing-policy, capture, resume, finalize, validate or render; use COMMAND --help for its inputs")
 	}
 	command := args[0]
 	flags := flag.NewFlagSet("gosched-qa "+command, flag.ContinueOnError)
@@ -111,6 +111,30 @@ func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 		_, err = out.Write(data)
 		return err
 	}
+	if command == "timing-policy" {
+		input := flags.String("budget", "", "optional complete budget JSON")
+		resumeRoot := flags.String("resume-out", "", "original run directory whose budget is used when --budget is omitted")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 0 {
+			return errors.New("timing-policy accepts no positional input")
+		}
+		budget, err := clievaluate.SelectedBudget(*input, *resumeRoot)
+		if err != nil {
+			return err
+		}
+		policy, err := clievaluate.TimingForBudget(budget)
+		if err != nil {
+			return err
+		}
+		data, err := clievaluate.Encode(policy)
+		if err != nil {
+			return err
+		}
+		_, err = out.Write(data)
+		return err
+	}
 	if command == "worker" {
 		path := flags.String("config", "", "owned coordinator configuration")
 		if err := flags.Parse(args[1:]); err != nil {
@@ -163,13 +187,15 @@ func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 		if *root == "" || *binaries == "" || *distro == "" || *user == "" {
 			return errors.New("--out, --bin-dir, --wsl-distro and --wsl-user are required")
 		}
-		budget := clievaluate.DefaultBudget()
-		if *budgetPath != "" {
-			budget = clievaluate.Budget{}
-			if err := clievaluate.ReadInput(*budgetPath, &budget); err != nil {
-				return err
-			}
+		resumeRoot := ""
+		if command == "resume" {
+			resumeRoot = *root
 		}
+		budget, err := clievaluate.SelectedBudget(*budgetPath, resumeRoot)
+		if err != nil {
+			return err
+		}
+
 		if flags.NArg() != 0 {
 			return errors.New("unexpected positional input to " + command)
 		}

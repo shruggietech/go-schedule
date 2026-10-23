@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -79,7 +80,19 @@ func Render(r Report) ([]byte, error) {
 				links = append(links, artifactLink(*p))
 			}
 		}
-		fmt.Fprintf(&out, "| %s / %s | %s / %s | %s | %s / %s | %s; %s |\n", markdown(c.EnvironmentID), markdown(c.ID), markdown(c.CommandPath), markdown(c.ScenarioClass), markdown(c.ExecutionKind), markdown(c.ExecutionStatus), markdown(c.Status), markdown(c.ReasonCode), strings.Join(links, ", "))
+		for _, check := range c.Observed.Checks {
+			for _, p := range check.Evidence {
+				link := artifactLink(p)
+				if !slices.Contains(links, link) {
+					links = append(links, link)
+				}
+			}
+		}
+		commandExit := "not run"
+		if c.Observed.ExitCode != nil {
+			commandExit = fmt.Sprintf("exit %d", *c.Observed.ExitCode)
+		}
+		fmt.Fprintf(&out, "| %s / %s | %s / %s | %s | %s / %s | %s; %s |\n", markdown(c.EnvironmentID), markdown(c.ID), markdown(c.CommandPath), markdown(c.ScenarioClass), markdown(c.ExecutionKind), markdown(c.ExecutionStatus), markdown(c.Status), markdown(c.ReasonCode)+"; "+commandExit, strings.Join(links, ", "))
 	}
 	out.WriteString("\n</details>\n\n## 5. Help, error and log review\n\n")
 	if r.Phase != "finalized" {

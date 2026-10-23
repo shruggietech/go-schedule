@@ -39,6 +39,11 @@ func TestCaptureProcessHelper(t *testing.T) {
 		_, _ = io.Copy(io.Discard, os.Stdin)
 		fmt.Fprintln(os.Stdout, "graceful EOF cleanup")
 		os.Exit(0)
+	case "qa-delayed-cleanup":
+		_, _ = io.Copy(io.Discard, os.Stdin)
+		time.Sleep(150 * time.Millisecond)
+		fmt.Fprintln(os.Stdout, "owned delayed cleanup completed")
+		os.Exit(0)
 	case "qa-deadline":
 		time.Sleep(time.Minute)
 		os.Exit(0)
@@ -74,6 +79,28 @@ func TestContainedCaptureBoundsRealChildOutputAndJoinsCancellation(t *testing.T)
 				if mode == "qa-input-liveness" && (observed.Code != 0 || !strings.Contains(string(observed.Out), "graceful EOF cleanup")) {
 					t.Fatal("owned worker was killed before its bounded EOF cleanup")
 				}
+			}
+		})
+	}
+}
+
+func TestWorkerSpecificGraceAllowsCleanupAndStillForcesItsBound(t *testing.T) {
+	for _, grace := range []time.Duration{50 * time.Millisecond, 2500 * time.Millisecond} {
+		t.Run(grace.String(), func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			command := clifixture.Command{Executable: os.Args[0], Arguments: []string{"-test.run=^TestCaptureProcessHelper$", "--", "qa-delayed-cleanup"}, Directory: t.TempDir()}
+			result := captureWithGrace(ctx, command, nil, 1024, true, grace, nil)
+			if result.Cleanup != nil || result.Failure == nil {
+				t.Fatalf("cleanup=%v failure=%v", result.Cleanup, result.Failure)
+			}
+			completed := strings.Contains(string(result.Out), "owned delayed cleanup completed")
+			if grace > time.Second {
+				if result.Code != 0 || !completed {
+					t.Fatalf("worker cleanup was cut short: %+v", result)
+				}
+			} else if result.Code == 0 {
+				t.Fatal("short grace did not stop delayed worker")
 			}
 		})
 	}

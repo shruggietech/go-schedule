@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 // bindingHarness exercises the real adapters, including the sqlite CLI's own
@@ -34,17 +36,19 @@ func bindingHarness(t *testing.T, tw twin, sql string) string {
 }
 
 type bindingResult struct {
-	output string
-	code   int
-	err    error
+	output   string
+	code     int
+	err      error
+	duration time.Duration
 }
 
 func executeBinding(tw twin, harness, database, value string) bindingResult {
 	args := tw.command(harness, database)
 	cmd := scriptCommand(args[0], args[1:]...)
 	cmd.Env = append(os.Environ(), "SCRIPT_BIND_VALUE="+value)
+	started := time.Now()
 	out, err := cmd.CombinedOutput()
-	result := bindingResult{output: string(out), err: err}
+	result := bindingResult{output: string(out), err: err, duration: time.Since(started)}
 	if err != nil {
 		result.code = -1
 		if e, ok := err.(interface{ ExitCode() int }); ok {
@@ -85,6 +89,17 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 	for _, tw := range allTwins() {
 		t.Run(tw.name, func(t *testing.T) {
 			requireTwin(t, tw)
+			var runtimeArgs []string
+			if tw.name == "powershell" {
+				runtimeArgs = []string{"pwsh", "-NoProfile", "-NonInteractive", "-Command", "[Console]::WriteLine($PSVersionTable.PSVersion.ToString() + ' | ' + [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription + ' | ' + [System.Runtime.InteropServices.RuntimeInformation]::OSDescription + ' | ' + [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString())"}
+			} else {
+				runtimeArgs = []string{"bash", "-c", "printf '%s\\n' \"$BASH_VERSION\"; uname -a"}
+			}
+			identity, err := scriptCommand(runtimeArgs[0], runtimeArgs[1:]...).CombinedOutput()
+			if err != nil {
+				t.Fatalf("interpreter identity: %v %s", err, identity)
+			}
+			t.Logf("interpreter identity: %s", strings.TrimSpace(string(identity)))
 			for _, initialized := range []bool{false, true} {
 				t.Run(fmt.Sprintf("initialized=%t", initialized), func(t *testing.T) {
 					database := filepath.Join(t.TempDir(), "sessions.db")
@@ -109,7 +124,7 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 					wg.Wait()
 					for i, result := range results {
 						if result.code != 0 {
-							t.Errorf("writer %d exited %d (%v):\n%s", i, result.code, result.err, result.output)
+							t.Errorf("writer %d exited %d (0x%08x, %v), elapsed=%s, phase=script invocation, host=%s/%s %s, interpreter=%s:\n%s", i, result.code, uint32(result.code), result.err, result.duration, runtime.GOOS, runtime.GOARCH, runtime.Version(), tw.command(harness, database)[0], result.output)
 						}
 					}
 					if n := queryInt(t, sqlite, database, "SELECT COUNT(DISTINCT session_id) FROM sessions;"); n != writers {

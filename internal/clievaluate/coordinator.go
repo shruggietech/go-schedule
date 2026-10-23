@@ -24,13 +24,13 @@ import (
 
 // CaptureOptions names existing executables and explicitly selected environments.
 type CaptureOptions struct {
-	Root         string
-	Source       string
-	BinDirectory string
-	WSLDistro    string
-	WSLUser      string
-	Resume       bool
-	Budget       Budget
+	Root         string `json:"root"`
+	Source       string `json:"source"`
+	BinDirectory string `json:"bin_directory"`
+	WSLDistro    string `json:"wsl_distro"`
+	WSLUser      string `json:"wsl_user"`
+	Resume       bool   `json:"resume"`
+	Budget       Budget `json:"budget"`
 }
 
 type captureIdentity struct {
@@ -56,7 +56,11 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 	if err := ValidateBudget(options.Budget); err != nil {
 		return result, err
 	}
-	ctx, cancelRun := context.WithTimeout(ctx, time.Duration(options.Budget.TotalTimeoutMS)*time.Millisecond)
+	policy, err := TimingForBudget(options.Budget)
+	if err != nil {
+		return result, err
+	}
+	ctx, cancelRun := context.WithTimeout(ctx, time.Duration(policy.TotalTimeoutMS)*time.Millisecond)
 	defer cancelRun()
 	root, err := filepath.Abs(options.Root)
 	if err != nil {
@@ -82,6 +86,23 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 	defer func() {
 		if store != nil {
 			resultErr = errors.Join(resultErr, store.Close())
+		}
+	}()
+	// A failed freeze must leave a terminal recovery record beside the durable checkpoints.
+	defer func() {
+		if resultErr == nil || store == nil {
+			return
+		}
+		store.ctx = nil
+		data, encodeErr := Encode(struct {
+			State      string         `json:"state"`
+			FinishedAt string         `json:"finished_at"`
+			Detail     string         `json:"detail"`
+			Inputs     CaptureOptions `json:"original_inputs"`
+			Recovery   string         `json:"recovery"`
+		}{"recovery_required", stamp(), resultErr.Error(), options, "Retain the original inputs and ownership records. Resume with the same binaries, source, budget, WSL distribution and user; resume checks prior worker identity and evidence before starting a new attempt."})
+		if encodeErr == nil {
+			resultErr = errors.Join(resultErr, store.Replace("recovery.json", data))
 		}
 	}()
 	manifest, _, err := BuildManifest()
@@ -173,10 +194,16 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 	}
 	// Each worker writes its complete initial ledger before touching its owned daemon.
 	for _, env := range envs {
-		if subjectErr != nil {
-			worker := blockedWorker(identity.RunID, subject, env, manifest, now, "subject_unavailable")
+		if subjectErr != nil || ctx.Err() != nil {
+			reason := "subject_unavailable"
+			detail := subjectErr
+			if ctx.Err() != nil {
+				reason = "run_deadline"
+				detail = ctx.Err()
+			}
+			worker := blockedWorker(identity.RunID, subject, env, manifest, now, reason)
 			worker.Cleanup[0] = mergeCleanup(priorCleanup[env.ID], worker.Cleanup[0])
-			worker.Environments[0].Tools = []NamedValue{{Name: "subject_error", Value: subjectErr.Error()}}
+			worker.Environments[0].Tools = []NamedValue{{Name: "subject_error", Value: detail.Error()}}
 			result.Environments = append(result.Environments, worker.Environments...)
 			result.Cases = append(result.Cases, worker.Cases...)
 			result.Cleanup = append(result.Cleanup, worker.Cleanup...)
@@ -217,7 +244,9 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 			if err != nil {
 				return result, err
 			}
-			args, e := WSLWorkerArguments(identity.RunID, config.Root, workerExe, []string{"worker", "--config", configArg}, options.Budget)
+			executionDeadline, _ := ctx.Deadline()
+			remaining := max(time.Duration(0), time.Until(executionDeadline))
+			args, e := wslWorkerArguments(identity.RunID, config.Root, workerExe, []string{"worker", "--config", configArg}, options.Budget, remaining)
 			if e != nil {
 				return result, e
 			}
@@ -231,8 +260,8 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 		if err := store.Replace(configName, data); err != nil {
 			return result, err
 		}
-		workerCtx, cancel := context.WithTimeout(ctx, time.Duration(options.Budget.TotalTimeoutMS)*time.Millisecond+45*time.Second)
-		capture := captureWithStart(workerCtx, command, nil, options.Budget.ChannelBytes, true, func(pid int) error {
+		workerCtx, cancel := context.WithCancel(ctx)
+		capture := captureWithGrace(workerCtx, command, nil, options.Budget.ChannelBytes, true, time.Duration(policy.WorkerShutdownMS)*time.Millisecond, func(pid int) error {
 			created, err := processIdentity(pid)
 			if err != nil {
 				return err
@@ -244,21 +273,24 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 			return store.Replace(prefix+"/lease.json", data)
 		})
 		cancel()
+		reportCtx, cancelReport := finalizationContext(ctx, policy)
+		defer cancelReport()
 		// Reopen after the worker's writes so aggregate accounting includes all bytes.
 		if err := store.Close(); err != nil {
 			return result, err
 		}
-		store, err = OpenArtifacts(root, options.Budget.ArtifactBytes, NewRedactor())
+		store, err = openArtifactsContext(reportCtx, root, options.Budget.ArtifactBytes, NewRedactor())
 		if err != nil {
 			return result, err
 		}
 		var worker Report
 		var messages Corpus
-		worker, loadErr := loadWorkerCheckpoint(store, prefix)
+		store.ctx = reportCtx
+		worker, loadErr := loadWorkerCheckpointContext(reportCtx, store, prefix)
 		if loadErr == nil {
 			loadErr = store.ReadDocument(prefix+"/corpus.json", "corpus", &messages)
 			if errors.Is(loadErr, os.ErrNotExist) {
-				messages, loadErr = freezeChannels(store, &worker)
+				messages, loadErr = freezeChannelsContext(reportCtx, store, &worker)
 				worker.Phase = "pending_review"
 				worker.CompletionState = "interrupted"
 				worker.FinishedAt = stamp()
@@ -270,15 +302,30 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 				}
 			}
 		}
+		store.ctx = nil
+		cancelReport()
 		if loadErr != nil {
-			worker = blockedWorker(identity.RunID, subject, env, manifest, now, "worker_unavailable")
-			detail := string(capture.Err)
-			if capture.Failure != nil {
-				detail += "\n" + capture.Failure.Error()
+			return result, fmt.Errorf("recover latest worker checkpoint %s (worker exit %d, cleanup %v): %w", env.ID, capture.Code, capture.Cleanup, errors.Join(loadErr, capture.Failure, errors.New(string(store.Redactor.Sanitize(capture.Err)))))
+		}
+		if capture.Code != 0 || capture.Failure != nil || capture.Cleanup != nil {
+			diagnostic, err := Encode(struct {
+				Exit    int    `json:"exit"`
+				Stdout  string `json:"stdout"`
+				Stderr  string `json:"stderr"`
+				Failure string `json:"failure"`
+				Cleanup string `json:"cleanup_error"`
+			}{capture.Code, string(capture.Out), string(capture.Err), errorText(capture.Failure), errorText(capture.Cleanup)})
+			if err != nil {
+				return result, err
 			}
-			worker.Environments[0].Tools = []NamedValue{{Name: "worker_error", Value: detail}}
-			messages = Corpus{SchemaVersion: Version, Kind: "go-schedule.cli-qa-corpus", RunID: identity.RunID}
-		} else if worker.CompletionState != "completed" || capture.Code != 0 || capture.Cleanup != nil {
+			artifact, err := store.Write(prefix+"/coordinator-capture.json", "application/json", diagnostic)
+			if err != nil {
+				return result, err
+			}
+			worker.Artifacts = append(worker.Artifacts, artifact)
+			worker.Environments[0].Tools = append(worker.Environments[0].Tools, NamedValue{Name: "worker_capture", Value: artifact.Path})
+		}
+		if worker.CompletionState != "completed" || capture.Code != 0 || capture.Cleanup != nil {
 			worker.CompletionState = "interrupted"
 			for i := range worker.Cases {
 				if worker.Cases[i].ReasonCode == "not_started" {
@@ -313,6 +360,9 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 	}
 	result.FinishedAt = stamp()
 	result.Summary = DeriveSummary(result)
+	finalCtx, cancelFinal := finalizationContext(ctx, policy)
+	defer cancelFinal()
+	store.ctx = finalCtx
 	if err := persistCapture(store, &result, manifest, corpus, events); err != nil {
 		return result, err
 	}

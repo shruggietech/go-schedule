@@ -130,7 +130,7 @@ gosched notification channel rm <channel-id>
 
 Disabling a channel prevents new delivery creation. Removing it atomically removes assignments and unfinished work and erases its stored credentials. Completed delivery evidence remains with safe channel and destination snapshots. The daemon retains the newest 1,000 succeeded or failed delivery records; pending and claimed work is never pruned by that limit.
 
-Filter evidence with `--channel`, `--task`, `--run`, `--state`, and `--limit`. Delivery state is `pending`, `claimed`, `succeeded`, or `failed`. The last HTTP or SMTP status and a bounded authored diagnostic explain terminal failure without echoing an endpoint or credential.
+Filter evidence with `--channel`, `--task`, `--run`, `--state`, and `--limit`. Delivery state is `pending`, `claimed`, `succeeded`, or `failed`. The last HTTP or SMTP status and bounded authored detail describe the transport outcome without echoing a credential or arbitrary server response. SMTP `diagnostic` carries neutral delivery detail for successful server acceptance as well as incomplete attempts. `last_error` is empty for succeeded SMTP deliveries and retains genuine failure detail for retrying or failed deliveries. CLI human output and desktop delivery details distinguish these fields. Migration v24 preserves historical SMTP text in `diagnostic`, clearing only succeeded SMTP errors; webhook history keeps its existing semantics.
 
 ## SMTP email channels
 

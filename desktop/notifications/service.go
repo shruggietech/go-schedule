@@ -208,7 +208,7 @@ func mapDelivery(value domain.NotificationDelivery) Delivery {
 	case domain.NotificationDeliveryFailed:
 		state = "failed"
 	}
-	return Delivery{Transport: string(value.Kind), Recipients: value.Recipients, ID: value.ID, ChannelID: value.ChannelID, ChannelName: fallback(value.ChannelName, "Removed channel"), DestinationSummary: value.DestinationSummary, Kind: kind, TaskID: value.TaskID, TaskName: value.TaskName, GroupID: value.GroupID, GroupName: value.GroupName, RunID: value.RunID, State: state, Attempts: value.Attempts, NextAttemptAt: timestamp(value.NextAttemptAt), CreatedAt: timestamp(value.CreatedAt), ClaimedAt: optionalTimestamp(value.ClaimedAt), CompletedAt: optionalTimestamp(value.CompletedAt), LastStatus: value.LastStatus, LastError: value.LastError, ConditionKind: string(value.ConditionKind), ConditionSummary: value.ConditionSummary}
+	return Delivery{Transport: string(value.Kind), Recipients: value.Recipients, ID: value.ID, ChannelID: value.ChannelID, ChannelName: fallback(value.ChannelName, "Removed channel"), DestinationSummary: value.DestinationSummary, Kind: kind, TaskID: value.TaskID, TaskName: value.TaskName, GroupID: value.GroupID, GroupName: value.GroupName, RunID: value.RunID, State: state, Attempts: value.Attempts, NextAttemptAt: timestamp(value.NextAttemptAt), CreatedAt: timestamp(value.CreatedAt), ClaimedAt: optionalTimestamp(value.ClaimedAt), CompletedAt: optionalTimestamp(value.CompletedAt), LastStatus: value.LastStatus, LastError: value.LastError, Diagnostic: value.Diagnostic, ConditionKind: string(value.ConditionKind), ConditionSummary: value.ConditionSummary}
 }
 
 func (s *Service) SaveChannel(ctx context.Context, draft ChannelDraft) Result {

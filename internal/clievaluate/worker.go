@@ -83,15 +83,7 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		}
 		return store.AppendJournal(c.Prefix+"/events.jsonl", append(compact, '\n'))
 	}
-	checkpoint := func() error {
-		r.FinishedAt = stamp()
-		r.Summary = DeriveSummary(r)
-		data, err := Encode(r)
-		if err != nil {
-			return err
-		}
-		return store.Replace(c.Prefix+"/report.json", data)
-	}
+	checkpoint := func() error { return persistWorkerCheckpoint(store, c.Prefix, &r) }
 	if err := checkpoint(); err != nil {
 		return err
 	}
@@ -232,6 +224,14 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		result.Observed.DurationMS = time.Since(started).Milliseconds()
 		if observed.Blocked != "" {
 			result.ReasonCode = observed.Blocked
+			artifact, err := store.Write(c.Prefix+"/cases/"+result.ID+"/state.txt", "application/json", observed.State)
+			if err != nil {
+				return err
+			}
+			r.Artifacts = append(r.Artifacts, artifact)
+			for _, check := range definition.Spec.Checks {
+				result.Observed.Checks = append(result.Observed.Checks, Check{Name: check.Name, Expected: check.Expected, Actual: "unavailable", Passed: false, Evidence: []string{artifact.Path}})
+			}
 			if err := event("case_blocked", &result.ID, observed.Detail); err != nil {
 				return err
 			}
@@ -331,17 +331,17 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		r.Cleanup = []Cleanup{completedCleanup}
 	}
 
+	finalCtx, cancelFinal := workerFinalizationContext(ctx, 30*time.Second)
+	defer cancelFinal()
+	store.ctx = finalCtx
+	corpus, err = freezeWorkerEvidence(finalCtx, store, c.Prefix, &r)
+	if err != nil {
+		return err
+	}
 	r.Phase = "pending_review"
 	r.CompletionState = "completed"
 	if ctx.Err() != nil || preflightErr != nil && r.Environments[0].Status == "ready" {
 		r.CompletionState = "interrupted"
-	}
-	corpus, err = freezeChannels(store, &r)
-	if err != nil {
-		return err
-	}
-	if err := freezeProgress(store, c.Prefix, r); err != nil {
-		return err
 	}
 	SortCorpus(&corpus)
 	corpusData, err := Encode(corpus)
