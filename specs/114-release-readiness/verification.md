@@ -59,3 +59,9 @@ The recorded eleven input hashes were unchanged throughout the accepted aggregat
 ## Initial hosted review and metadata correction
 
 Codex round one completed on 15e2578554a5ebc1b4b9b0ea7eec2f2113620575 with no findings and no review threads. Hosted CI run 39985108430 found a lifecycle error introduced after the accepted local aggregate: the specification and inventory were marked Implemented while two delivery tasks were still open, and the delivery paragraph lacked the required implementation reference. Lint itself reported zero issues. The correction keeps status In Progress while CI/reviews remain pending, records PR #365 and the actual source commit, and checks off only the now-completed publication task. The lifecycle gate and its assertions remain unchanged.
+
+## Accepted hosted checkpoint
+
+All 22 applicable PR checks are terminal COMPLETED/SUCCESS on d11646111be52851c5b32a468050b508c63954c4. CI run [39985842927](https://github.com/shruggietech/go-schedule/actions/runs/39985842927) and CodeQL run [39985842835](https://github.com/shruggietech/go-schedule/actions/runs/39985842835) provide that source-bound receipt; Windows race completed successfully after 10 minutes 8 seconds. The initial automatic Codex review completed with no findings on 15e2578554a5ebc1b4b9b0ea7eec2f2113620575 ([review summary](https://github.com/shruggietech/go-schedule/pull/365#issuecomment-6369390824)); there are zero review threads. Application/test source is unchanged between these two commits.
+
+The final lifecycle/evidence checkpoint updates only spec.md, tasks.md, verification.md and specs/README.md. Its own CI and the optional second/final Codex review are monitored separately on the actual final head, with terminal receipts retained in PR #365. This paragraph does not claim those future results. The PR remains open, unmerged and without auto-merge. Its closing references are only #363 and #364; #354, #355 and #356 remain open.

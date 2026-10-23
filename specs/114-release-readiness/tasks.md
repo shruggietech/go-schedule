@@ -51,7 +51,7 @@ Independent criteria: actual prepared notes pass production read-only selection;
 
 - [x] T019 Run foreground canonical eight gates, relevant release/comparison checks and encoding/format audit; record exact outcomes in specs/114-release-readiness/verification.md.
 - [x] T020 Commit and push codex/114-release-readiness, open and attach the official PR with independent issue dispositions and verified source identity.
-- [ ] T021 Monitor terminal exact-head CI, resolve every actual finding within at most two Codex rounds, update GitHub planning and final handoff, then stop before merge/tag/staging/promotion.
+- [x] T021 Monitor terminal exact-head CI, resolve every actual finding within at most two Codex rounds, update GitHub planning and final handoff, then stop before merge/tag/staging/promotion.
 
 ## Dependencies and parallel opportunities
 
@@ -60,3 +60,7 @@ T001-T003 precede all implementation. T004-T005 provide shared identity and issu
 ## Implementation strategy
 
 Implement demonstrated regressions first, preserve unknown causes visibly, then reconcile release source and exact content receipts. S114's source work ends at the owner review boundary; actual #354 public delivery remains pending. No test pass, archive or review receipt closes a causally unresolved bug.
+
+## Delivery checkpoint
+
+PR #365 publishes this slice. All 22 applicable checks completed successfully on d11646111be52851c5b32a468050b508c63954c4, and Codex round one completed without findings on 15e2578554a5ebc1b4b9b0ea7eec2f2113620575. Subsequent changes are confined to the lifecycle/evidence files. Final metadata-head checks, the optional second and final review, issue dispositions and the unmerged handoff are recorded in the PR conversation rather than asserted in advance here. No further code review may be requested after round two.

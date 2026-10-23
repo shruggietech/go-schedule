@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-23
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: Source commit 15e2578554a5ebc1b4b9b0ea7eec2f2113620575 is published in PR #365. Canonical local application verification passed; hosted CI/review handling remains in progress, maximum two Codex rounds. Original #355/#356 causes remain unconfirmed and open; #354 awaits later authorized publication. Stop before merge, tag or public promotion.
+**Delivery**: Implemented in PR #365, source commit 15e2578554a5ebc1b4b9b0ea7eec2f2113620575 and lifecycle correction d11646111be52851c5b32a468050b508c63954c4. All 22 checks passed on d116461; Codex round one completed with no findings on the unchanged application/test source. Final metadata-head CI and the optional second review receipt are tracked in the PR conversation. Original #355/#356 causes remain unconfirmed and open; #354 awaits later authorized publication. Stop before merge, tag or public promotion.
 
 **Input**: Owner kickoff S114 with #354, #355 and #356, following the recommendation recorded in #354.
 
