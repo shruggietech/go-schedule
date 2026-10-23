@@ -66,6 +66,10 @@ func captureManaged(ctx context.Context, command clifixture.Command, input []byt
 }
 
 func captureWithStart(ctx context.Context, command clifixture.Command, input []byte, limit int64, keepAlive bool, onStart func(int) error) commandCapture {
+	return captureWithGrace(ctx, command, input, limit, keepAlive, 7*time.Second, onStart)
+}
+
+func captureWithGrace(ctx context.Context, command clifixture.Command, input []byte, limit int64, keepAlive bool, shutdownGrace time.Duration, onStart func(int) error) commandCapture {
 	if err := ctx.Err(); err != nil {
 		return commandCapture{Code: -1, Failure: err}
 	}
@@ -103,7 +107,7 @@ func captureWithStart(ctx context.Context, command clifixture.Command, input []b
 			// EOF cancels the owned worker and gives it a bounded chance to persist
 			// its ledger and remove runtime state before exact-tree termination.
 			close(inputDone)
-			grace := time.NewTimer(7 * time.Second)
+			grace := time.NewTimer(shutdownGrace)
 			select {
 			case err := <-waited:
 				waitErr = errors.Join(ctx.Err(), err)

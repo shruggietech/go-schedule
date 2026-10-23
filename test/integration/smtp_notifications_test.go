@@ -121,6 +121,9 @@ func TestSMTPDispatcherHealthTestAndFailureIsolation(t *testing.T) {
 			if d.ChannelID == failing.ID {
 				expected = domain.NotificationDeliveryFailed
 			}
+			if d.Diagnostic == "" || (d.State == domain.NotificationDeliverySucceeded && d.LastError != "") || (d.State != domain.NotificationDeliverySucceeded && d.LastError != d.Diagnostic) {
+				t.Fatalf("transport detail mislabeled: %+v", d)
+			}
 			if d.State != expected || len(d.Recipients) != 1 {
 				t.Fatalf("SMTP result %+v", d)
 			}

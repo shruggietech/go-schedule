@@ -3,9 +3,11 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
@@ -59,5 +61,43 @@ func TestSMTPCLIQuotedRecipients(t *testing.T) {
 	}
 	if channel.SMTP == nil || channel.SMTP.From != raw || len(channel.SMTP.Recipients) != 3 || channel.SMTP.Recipients[0] != raw || channel.SMTP.Recipients[2] != `"ops team"@example.test` {
 		t.Fatalf("quoted configuration %+v", channel.SMTP)
+	}
+}
+
+func TestSMTPCLIDeliveryDetailAndErrorSemantics(t *testing.T) {
+	for _, failed := range []bool{false, true} {
+		delivery := domain.NotificationDelivery{ID: "owned", Kind: domain.NotificationChannelSMTP, State: domain.NotificationDeliverySucceeded, Diagnostic: "The SMTP server accepted the message."}
+		if failed {
+			delivery.State = domain.NotificationDeliveryFailed
+			delivery.Diagnostic = "The SMTP server rejected a recipient."
+			delivery.LastError = delivery.Diagnostic
+		}
+		c := client.NewInProcess(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if err := json.NewEncoder(w).Encode(map[string]any{"notification_deliveries": []domain.NotificationDelivery{delivery}}); err != nil {
+				t.Error(err)
+			}
+		}))
+		out, err := runFixtureCommand(c, "", "notification", "deliveries")
+		if err != nil {
+			t.Fatal(err)
+		}
+		label := "Delivery detail: "
+		if failed {
+			label = "Failure detail: "
+		}
+		if !strings.Contains(out, label+delivery.Diagnostic) || strings.Count(out, delivery.Diagnostic) != 1 {
+			t.Fatalf("human detail %q", out)
+		}
+		out, err = runFixtureCommand(c, "", "notification", "deliveries", "--json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var values []domain.NotificationDelivery
+		if err := json.Unmarshal([]byte(out), &values); err != nil {
+			t.Fatal(err)
+		}
+		if len(values) != 1 || values[0].Diagnostic != delivery.Diagnostic || values[0].LastError != delivery.LastError {
+			t.Fatalf("JSON detail %s", out)
+		}
 	}
 }

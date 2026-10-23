@@ -959,30 +959,35 @@ type NotificationChannelUpdateKind string
 
 // NotificationDelivery defines model for NotificationDelivery.
 type NotificationDelivery struct {
-	Attempts           int                       `json:"attempts"`
-	ChannelId          *string                   `json:"channel_id,omitempty"`
-	ChannelName        string                    `json:"channel_name"`
-	ClaimedAt          *time.Time                `json:"claimed_at,omitempty"`
-	CompletedAt        *time.Time                `json:"completed_at,omitempty"`
-	ConditionKind      *string                   `json:"condition_kind,omitempty"`
-	ConditionSummary   *string                   `json:"condition_summary,omitempty"`
-	CreatedAt          time.Time                 `json:"created_at"`
-	DestinationSummary string                    `json:"destination_summary"`
-	Event              *map[string]interface{}   `json:"event,omitempty"`
-	EventKind          string                    `json:"event_kind"`
-	GroupId            *string                   `json:"group_id,omitempty"`
-	GroupName          *string                   `json:"group_name,omitempty"`
-	Id                 string                    `json:"id"`
-	Kind               *NotificationDeliveryKind `json:"kind,omitempty"`
-	LastError          *string                   `json:"last_error,omitempty"`
-	LastStatus         *int                      `json:"last_status,omitempty"`
-	NextAttemptAt      *time.Time                `json:"next_attempt_at,omitempty"`
-	Recipients         *[]NotificationRecipient  `json:"recipients,omitempty"`
-	RunId              *string                   `json:"run_id,omitempty"`
-	Smtp               *SMTPConfig               `json:"smtp,omitempty"`
-	State              string                    `json:"state"`
-	TaskId             *string                   `json:"task_id,omitempty"`
-	TaskName           *string                   `json:"task_name,omitempty"`
+	Attempts           int        `json:"attempts"`
+	ChannelId          *string    `json:"channel_id,omitempty"`
+	ChannelName        string     `json:"channel_name"`
+	ClaimedAt          *time.Time `json:"claimed_at,omitempty"`
+	CompletedAt        *time.Time `json:"completed_at,omitempty"`
+	ConditionKind      *string    `json:"condition_kind,omitempty"`
+	ConditionSummary   *string    `json:"condition_summary,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+	DestinationSummary string     `json:"destination_summary"`
+
+	// Diagnostic Authored transport result detail, including successful SMTP server acceptance. This does not confirm inbox delivery.
+	Diagnostic *string                   `json:"diagnostic,omitempty"`
+	Event      *map[string]interface{}   `json:"event,omitempty"`
+	EventKind  string                    `json:"event_kind"`
+	GroupId    *string                   `json:"group_id,omitempty"`
+	GroupName  *string                   `json:"group_name,omitempty"`
+	Id         string                    `json:"id"`
+	Kind       *NotificationDeliveryKind `json:"kind,omitempty"`
+
+	// LastError Current failure detail. Empty for succeeded SMTP deliveries.
+	LastError     *string                  `json:"last_error,omitempty"`
+	LastStatus    *int                     `json:"last_status,omitempty"`
+	NextAttemptAt *time.Time               `json:"next_attempt_at,omitempty"`
+	Recipients    *[]NotificationRecipient `json:"recipients,omitempty"`
+	RunId         *string                  `json:"run_id,omitempty"`
+	Smtp          *SMTPConfig              `json:"smtp,omitempty"`
+	State         string                   `json:"state"`
+	TaskId        *string                  `json:"task_id,omitempty"`
+	TaskName      *string                  `json:"task_name,omitempty"`
 }
 
 // NotificationDeliveryKind defines model for NotificationDelivery.Kind.

@@ -687,6 +687,10 @@ ALTER TABLE notification_deliveries ADD COLUMN smtp_config TEXT NOT NULL DEFAULT
 ALTER TABLE notification_deliveries ADD COLUMN recipients TEXT NOT NULL DEFAULT '[]';
 `,
 	},
+	{version: 24, stmts: `
+ALTER TABLE notification_deliveries ADD COLUMN diagnostic TEXT NOT NULL DEFAULT '';
+UPDATE notification_deliveries SET diagnostic=last_error,last_error=CASE WHEN state='succeeded' THEN '' ELSE last_error END WHERE kind='smtp';
+`},
 }
 
 // migrate applies any migrations newer than the recorded schema version.

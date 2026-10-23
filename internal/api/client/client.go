@@ -241,7 +241,9 @@ func (c *Client) VerifyAccess(ctx context.Context) (domain.Capability, error) {
 }
 
 // get performs a GET and decodes a JSON body, surfacing the API error envelope.
-func (c *Client) get(ctx context.Context, path string, out any) error {
+func (c *Client) get(ctx context.Context, path string, out any) (resultErr error) {
+	observe := observeRequest(ctx, http.MethodGet, path)
+	defer func() { observe(resultErr) }()
 	target := c.target()
 	req, err := target.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {

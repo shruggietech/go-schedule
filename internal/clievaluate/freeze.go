@@ -2,13 +2,21 @@ package clievaluate
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"reflect"
 )
 
 // freezeChannels reapplies the complete fixture registry before corpus identity freezes.
 func freezeChannels(store *ArtifactStore, r *Report) (Corpus, error) {
+	return freezeChannelsContext(context.Background(), store, r)
+}
+
+func freezeChannelsContext(ctx context.Context, store *ArtifactStore, r *Report) (Corpus, error) {
 	for i := range r.Artifacts {
+		if err := ctx.Err(); err != nil {
+			return Corpus{}, err
+		}
 		a := &r.Artifacts[i]
 		data, err := store.Read(*a)
 		if err != nil {
@@ -35,6 +43,9 @@ func freezeChannels(store *ArtifactStore, r *Report) (Corpus, error) {
 		byPath[a.Path] = a
 	}
 	for _, c := range r.Cases {
+		if err := ctx.Err(); err != nil {
+			return corpus, err
+		}
 		if c.Observed.ExitCode == nil {
 			continue
 		}

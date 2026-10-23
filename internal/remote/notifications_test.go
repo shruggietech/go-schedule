@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	apis "github.com/shruggietech/go-schedule/internal/api/server"
@@ -142,6 +143,24 @@ func TestRemoteNotificationTypedClientBodylessActionsAndNormalizedAuthority(t *t
 	delivery, err := remote.TestNotificationChannel(ctx, channel.ID)
 	if err != nil || delivery.ChannelID != channel.ID {
 		t.Fatalf("test result=%+v error=%v", delivery, err)
+	}
+	claimed, err := st.ClaimNotificationDeliveries(1, time.Now().Add(time.Minute))
+	if err != nil || len(claimed) != 1 {
+		t.Fatalf("claim %v", err)
+	}
+	claimed[0].Recipients[0].State = "accepted"
+	if err := st.FinishSMTPAttempt(claimed[0], domain.SMTPAttemptResult{Recipients: claimed[0].Recipients, Status: 250, Diagnostic: "The SMTP server accepted the message."}, time.Now(), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	for _, typed := range []*client.Client{remote, client.NewInProcess(apis.New(st, nil, nil, nil, "", nil).Handler())} {
+		deliveries, err := typed.ListNotificationDeliveries(ctx, domain.NotificationDeliveryFilter{ChannelID: channel.ID})
+		if err != nil || len(deliveries) != 1 {
+			t.Fatalf("typed history %v", err)
+		}
+		got := deliveries[0]
+		if got.Diagnostic != "The SMTP server accepted the message." || got.LastError != "" {
+			t.Fatalf("typed detail mislabeled: %+v", got)
+		}
 	}
 	config.Host = " mail.example.test "
 	config.Port = 0

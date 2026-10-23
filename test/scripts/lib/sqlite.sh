@@ -73,24 +73,88 @@ package_manager_hint() {
 
 version_ge() {
     # version_ge FOUND MINIMUM -- true when FOUND >= MINIMUM
-    [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]
+    awk -v found="$1" -v minimum="$2" 'BEGIN {
+        split(found,a,"."); split(minimum,b,".")
+        for(i=1;i<=3;i++) { if(a[i]+0<b[i]+0) exit 1; if(a[i]+0>b[i]+0) exit 0 }
+        exit 0
+    }'
 }
 
-test_sqlite_candidate() {
-    # Echoes the version when usable and new enough; otherwise nothing.
-    # A candidate that exists but is broken or too old must be treated as
-    # not-found so the search continues -- a stale sqlite3 early in the order
-    # must never shadow a good one later in it.
-    local candidate="$1" raw token
-    raw="$("$candidate" --version 2>/dev/null)" || return 0
-    [ -n "$raw" ] || return 0
-    token="$(printf '%s' "$raw" | awk '{print $1}')"
+test_sqlite_candidate() (
+    # A private, bounded probe preserves stderr and the original native exit.
+    local candidate="$1" raw token rc probe_dir probe_pid watcher_pid
+    if ! command -v "$candidate" >/dev/null 2>&1; then
+        log WARN "sqlite3 candidate '$candidate' could not be launched: executable not found."
+        return 0
+    fi
+    umask 077
+    probe_dir="$(mktemp -d)" || return 0
+    local timeout_exe=""
+    if [ -x /usr/bin/timeout ]; then timeout_exe=/usr/bin/timeout
+    elif command -v gtimeout >/dev/null 2>&1; then timeout_exe="$(command -v gtimeout)"; fi
+    if [ -n "$timeout_exe" ]; then
+        # Coreutils owns the whole probe group. Both channels stop at 4097
+        # bytes, which lets us detect truncation without unbounded temp files.
+        local started=$SECONDS
+        if "$timeout_exe" --kill-after=1 10 "$BASH" -c '
+            "$1" --version </dev/null 2> >(head -c 4097 >"$2") | head -c 4097 >"$3"
+            result=${PIPESTATUS[0]}
+            wait
+            exit "$result"
+        ' _ "$candidate" "$probe_dir/err" "$probe_dir/out" 2>"$probe_dir/launcher"; then rc=0; else rc=$?; fi
+        if [ "$rc" -eq 124 ] || { [ "$rc" -eq 137 ] && [ "$((SECONDS-started))" -ge 10 ]; }; then : >"$probe_dir/timeout"; fi
+    else
+    (ulimit -f 8 2>/dev/null || true; exec "$candidate" --version </dev/null) >"$probe_dir/out" 2>"$probe_dir/err" &
+    probe_pid=$!
+    # The parent receives the sleep PID before waiting for the candidate, so it
+    # can stop both watchdog processes immediately after a fast probe.
+    local sleeper
+    read -r sleeper < <(
+        sleep 10 </dev/null >/dev/null 2>&1 &
+        local timer=$!
+        printf '%s\n' "$timer"
+        if wait "$timer" 2>/dev/null && [ ! -f "$probe_dir/done" ]; then
+            printf 'timeout' >"$probe_dir/timeout"
+            kill -KILL "$probe_pid" 2>/dev/null || true
+        fi
+    )
+    watcher_pid=$!
+    if wait "$probe_pid" 2>/dev/null; then rc=0; else rc=$?; fi
+    : >"$probe_dir/done"
+    kill -KILL "$sleeper" 2>/dev/null || true
+    wait "$watcher_pid" 2>/dev/null || true
+    fi
+    raw="$(head -c 4096 "$probe_dir/out")"
+    local detail
+    detail="$(head -c 4096 "$probe_dir/err" | tr '\000-\037\177' ' ')"
+    if [ -f "$probe_dir/timeout" ]; then
+        log WARN "sqlite3 candidate '$candidate' timed out after 10000 ms. stderr: $detail"
+        rm -rf "$probe_dir"
+        return 0
+    fi
+    local output_bytes error_bytes
+    output_bytes="$(wc -c <"$probe_dir/out")"
+    error_bytes="$(wc -c <"$probe_dir/err")"
+    rm -rf "$probe_dir"
+    if [ "$output_bytes" -gt 4096 ] || [ "$error_bytes" -gt 4096 ]; then
+        log WARN "sqlite3 candidate '$candidate' exceeded the 4096-byte probe output limit (exit $rc)."
+        return 0
+    fi
+    if [ "$rc" -ne 0 ]; then
+        log WARN "sqlite3 candidate '$candidate' exited $rc. stderr: $detail"
+        return 0
+    fi
+    token="$(printf '%s' "$raw" | awk 'NR==1 {print $1}')"
+    if [[ ! "$token" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        log WARN "sqlite3 candidate '$candidate' returned an empty or malformed version."
+        return 0
+    fi
     if version_ge "$token" "$SQLITE_MIN_VERSION"; then
         printf '%s\n' "$token"
     else
         log DEBUG "Ignoring sqlite3 at '$candidate': version $token is below the required $SQLITE_MIN_VERSION."
     fi
-}
+)
 
 resolve_sqlite() {
     # Strict precedence: explicit path, then repo-local .bin/, then PATH.

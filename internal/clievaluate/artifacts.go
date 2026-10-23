@@ -2,6 +2,7 @@ package clievaluate
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -35,6 +36,7 @@ func Digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeT
 
 // ArtifactStore confines redacted evidence to one private run directory.
 type ArtifactStore struct {
+	ctx      context.Context
 	root     *os.Root
 	limit    int64
 	used     int64
@@ -43,6 +45,10 @@ type ArtifactStore struct {
 
 // OpenArtifacts opens an existing owned artifact root, without changing its parent.
 func OpenArtifacts(directory string, limit int64, redactor *Redactor) (*ArtifactStore, error) {
+	return openArtifactsContext(context.Background(), directory, limit, redactor)
+}
+
+func openArtifactsContext(ctx context.Context, directory string, limit int64, redactor *Redactor) (*ArtifactStore, error) {
 	if limit <= 0 {
 		return nil, errors.New("artifact byte budget must be positive")
 	}
@@ -53,6 +59,9 @@ func OpenArtifacts(directory string, limit int64, redactor *Redactor) (*Artifact
 	used := int64(0)
 	entries := 0
 	walkErr := fs.WalkDir(root.FS(), ".", func(_ string, d fs.DirEntry, err error) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err != nil {
 			return err
 		}
@@ -87,17 +96,29 @@ func OpenArtifacts(directory string, limit int64, redactor *Redactor) (*Artifact
 
 // Replace atomically checkpoints sanitized derived data, retaining the prior file on error.
 func (s *ArtifactStore) Replace(name string, data []byte) error {
+	if err := s.contextError(); err != nil {
+		return err
+	}
 	if err := ValidateArtifactPath(name); err != nil {
 		return err
 	}
 	data = s.Redactor.Sanitize(data)
 	old := int64(0)
-	info, err := s.root.Stat(name)
+	info, err := s.root.Lstat(name)
 	if err == nil {
 		if !info.Mode().IsRegular() {
 			return errors.New("checkpoint must replace a regular file")
 		}
 		old = info.Size()
+		if old == int64(len(data)) {
+			prior, readErr := s.readRegular(name, int64(len(data)))
+			if readErr != nil {
+				return readErr
+			}
+			if bytes.Equal(prior, data) {
+				return nil
+			}
+		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -124,6 +145,9 @@ func (s *ArtifactStore) Replace(name string, data []byte) error {
 
 // AppendJournal persists a complete sanitized event without rewriting its prefix.
 func (s *ArtifactStore) AppendJournal(name string, data []byte) error {
+	if err := s.contextError(); err != nil {
+		return err
+	}
 	if err := ValidateArtifactPath(name); err != nil {
 		return err
 	}
@@ -162,6 +186,9 @@ func (s *ArtifactStore) ReadDocument(name, kind string, target any) error {
 }
 
 func (s *ArtifactStore) readRegular(name string, limit int64) ([]byte, error) {
+	if err := s.contextError(); err != nil {
+		return nil, err
+	}
 	if err := ValidateArtifactPath(name); err != nil {
 		return nil, err
 	}
@@ -208,6 +235,9 @@ func (s *ArtifactStore) Close() error { return s.root.Close() }
 
 // Write persists only sanitized bytes with exclusive creation and private permissions.
 func (s *ArtifactStore) Write(name, media string, data []byte) (Artifact, error) {
+	if err := s.contextError(); err != nil {
+		return Artifact{}, err
+	}
 	if err := ValidateArtifactPath(name); err != nil {
 		return Artifact{}, err
 	}
@@ -252,4 +282,11 @@ func (s *ArtifactStore) Read(a Artifact) ([]byte, error) {
 		return nil, fmt.Errorf("artifact hash/size mismatch: %s", a.Path)
 	}
 	return data, nil
+}
+
+func (s *ArtifactStore) contextError() error {
+	if s.ctx != nil {
+		return s.ctx.Err()
+	}
+	return nil
 }

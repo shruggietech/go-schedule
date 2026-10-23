@@ -348,7 +348,7 @@ Both SQLite adapters bind non-null values as literal UTF-8 text through a CLI-qu
 
 **Contention errors under `allow_concurrent`**, the scripts use WAL with a 5-second busy timeout and at most three SQLite attempts. A diagnostic containing `locked` or `busy` takes the bounded retry path. Exhaustion reports that the record was not written and retains the final SQLite diagnostic. Other failures, such as a read-only database or a constraint violation, exit 1 immediately with the underlying error instead of being retried as contention.
 
-The concurrent-writer integration check retains each failed child's actual output alongside its exit status and persisted-row count. Preserve that complete failure when investigating missing records. A later passing run does not establish the cause of an earlier failure whose diagnostic was not captured.
+The concurrent-writer integration check retains each failed child's actual output alongside its exit status and persisted-row count. Preserve that complete failure when investigating missing records. The fixture also records interpreter/runtime identity, elapsed time, invocation phase and decimal/hexadecimal native exit on failure. A later passing run does not establish the cause of an earlier failure whose diagnostic was not captured. SQLite candidate probes retain bounded stderr and distinguish a launch failure, nonzero native exit, ten-second probe timeout, malformed version and an old version. Both twins require a numeric three-part version. An unusable implicit candidate allows the documented search to continue; an explicit selection is never silently replaced.
 
 ## Automated tests
 
@@ -356,7 +356,7 @@ The concurrent-writer integration check retains each failed child's actual outpu
 
 Introduced in the v1.6.0 candidate; publication is pending.
 
-S107 provides reusable isolation and focused command adapters for the future unattended evaluator. The complete Windows/WSL coordinator and fixed report contract remain tracked in #289 and #290. Operator commands are documented in the [CLI reference](cli.md).
+The reusable isolation and focused command adapters support the complete Windows/WSL unattended evaluator and fixed report contract described in the [maintainer CLI QA guide](cli-qa.md). Operator commands are documented in the [CLI reference](cli.md).
 
 The root `internal/clifixture` package creates a UUID workspace with separate disposable runtime and retained evidence directories. Its guard checks installation identity, exact daemon PID, selected IPC and effective configuration/database/log/lock paths before a mutating packaged-CLI operation. It rejects changed ownership and symlink/junction escapes. Caller-selected watcher/task/export paths must also pass containment checks. Cleanup targets only the owned runtime path and exact process capability; evidence survives.
 
@@ -370,7 +370,7 @@ Evidence kinds are `packaged_cli`, `command_harness` and `deterministic_engine`.
 go test ./internal/cli ./internal/userprefs ./internal/clientobserve ./internal/clifixture ./test/integration -run 'TestInvocation|TestExplicitIPC|TestRecording|TestGuard|TestOwnedProcessTree|TestPackagedCLIUsesOnlyOwnedDaemon' -count=1
 ```
 
-Run it through the repository's verified hidden launcher on Windows. The normal aggregate remains `sh scripts/verify.sh all`; the packaged fixture is included in its root test coverage. Full scenario coverage, interrupted-run reporting and the agent capture/review/finalize prompt are subsequent delivery work.
+Run it through the repository's verified hidden launcher on Windows. The normal aggregate remains `sh scripts/verify.sh all`; the packaged fixture is included in its root test coverage. The full scenario catalog, interrupted-run reporting and agent capture/review/finalize routine use the coordinator described in the maintainer CLI QA guide.
 
 ### Existing maintainer script contracts
 

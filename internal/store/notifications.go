@@ -333,7 +333,7 @@ func (s *Store) insertNotificationDelivery(q notificationExecer, d domain.Notifi
 	if err != nil {
 		return fmt.Errorf("store: protect delivery authorization: %w", err)
 	}
-	_, err = q.Exec(`INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary,kind,smtp_config,recipients) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, d.ID, nullStr(d.ChannelID), d.ChannelName, d.DestinationSummary, endpoint, authorization, string(d.EventKind), nullStr(d.TaskID), nullStr(d.RunID), d.TaskName, d.GroupID, d.GroupName, []byte(d.Payload), string(d.State), d.Attempts, fmtTime(d.NextAttemptAt), fmtTime(d.CreatedAt), fmtTimePtr(d.ClaimedAt), fmtTimePtr(d.CompletedAt), d.LastStatus, d.LastError, string(d.ConditionKind), d.ConditionSummary, deliveryTransportKind(d.Kind), encodeSMTPConfig(d.SMTP), encodeSMTPRecipients(d.Recipients))
+	_, err = q.Exec(`INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary,kind,smtp_config,recipients,diagnostic) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, d.ID, nullStr(d.ChannelID), d.ChannelName, d.DestinationSummary, endpoint, authorization, string(d.EventKind), nullStr(d.TaskID), nullStr(d.RunID), d.TaskName, d.GroupID, d.GroupName, []byte(d.Payload), string(d.State), d.Attempts, fmtTime(d.NextAttemptAt), fmtTime(d.CreatedAt), fmtTimePtr(d.ClaimedAt), fmtTimePtr(d.CompletedAt), d.LastStatus, d.LastError, string(d.ConditionKind), d.ConditionSummary, deliveryTransportKind(d.Kind), encodeSMTPConfig(d.SMTP), encodeSMTPRecipients(d.Recipients), boundedDiagnostic(d.Diagnostic))
 	if err != nil {
 		return fmt.Errorf("store: create notification delivery: %w", err)
 	}
@@ -713,7 +713,7 @@ func pruneNotificationDeliveries(tx *sql.Tx) error {
 	return nil
 }
 
-const notificationDeliverySelect = `SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary,kind,smtp_config,recipients FROM notification_deliveries`
+const notificationDeliverySelect = `SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error,condition_kind,condition_summary,kind,smtp_config,recipients,diagnostic FROM notification_deliveries`
 
 func scanNotificationDelivery(sc scanner) (domain.NotificationDelivery, error) {
 	var d domain.NotificationDelivery
@@ -721,7 +721,7 @@ func scanNotificationDelivery(sc scanner) (domain.NotificationDelivery, error) {
 	var eventKind, state, next, created, conditionKind, transportKind, smtpConfig, recipients string
 	var claimed, completed sql.NullString
 	var payload []byte
-	if err := sc.Scan(&d.ID, &channelID, &d.ChannelName, &d.DestinationSummary, &d.Endpoint, &d.Authorization, &eventKind, &taskID, &runID, &d.TaskName, &d.GroupID, &d.GroupName, &payload, &state, &d.Attempts, &next, &created, &claimed, &completed, &d.LastStatus, &d.LastError, &conditionKind, &d.ConditionSummary, &transportKind, &smtpConfig, &recipients); err != nil {
+	if err := sc.Scan(&d.ID, &channelID, &d.ChannelName, &d.DestinationSummary, &d.Endpoint, &d.Authorization, &eventKind, &taskID, &runID, &d.TaskName, &d.GroupID, &d.GroupName, &payload, &state, &d.Attempts, &next, &created, &claimed, &completed, &d.LastStatus, &d.LastError, &conditionKind, &d.ConditionSummary, &transportKind, &smtpConfig, &recipients, &d.Diagnostic); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return d, ErrNotFound
 		}

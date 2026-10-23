@@ -12,6 +12,7 @@ package integration
 // coverage gaps are how a cross-platform defect reaches a release.
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -108,6 +109,33 @@ func requireSqlite(t *testing.T) string {
 	p, err := exec.LookPath("sqlite3")
 	if err != nil {
 		t.Skip("SKIP: sqlite3 is not on PATH; these tests drive scripts that require it")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, p, "--version")
+	configureScriptProcess(cmd)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("sqlite prerequisite %s failed (%v): %s", p, err, out)
+	}
+	fields := strings.Fields(string(out))
+	if len(fields) == 0 {
+		t.Fatal("sqlite prerequisite returned no version")
+	}
+	parts := strings.Split(fields[0], ".")
+	if len(parts) != 3 {
+		t.Fatalf("sqlite prerequisite returned malformed version %q", fields[0])
+	}
+	values := []int{}
+	for _, part := range parts {
+		n, err := strconv.Atoi(part)
+		if err != nil || n < 0 {
+			t.Fatalf("malformed sqlite version %q", fields[0])
+		}
+		values = append(values, n)
+	}
+	if values[0] < 3 || values[0] == 3 && values[1] < 33 {
+		t.Fatalf("sqlite %s is below the required 3.33.0", fields[0])
 	}
 	return p
 }

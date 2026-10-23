@@ -49,16 +49,17 @@ function Invoke-QaHidden {
     $qaProcess.StandardInput.Close()
     $qaOutput = $qaProcess.StandardOutput.ReadToEndAsync()
     $qaDiagnostic = $qaProcess.StandardError.ReadToEndAsync()
-    if (-not $qaProcess.WaitForExit($TimeoutMilliseconds)) {
+    $qaTimedOut = -not $qaProcess.WaitForExit($TimeoutMilliseconds)
+    if ($qaTimedOut) {
         $qaProcess.Kill($true)
         $qaProcess.WaitForExit()
-        throw 'The owned QA command exceeded its deadline; its process tree was stopped.'
     }
     $qaCapturedOutput = $qaOutput.GetAwaiter().GetResult()
     if (-not $CaptureOutput) { [Console]::Out.Write($qaCapturedOutput) }
     [Console]::Error.Write($qaDiagnostic.GetAwaiter().GetResult())
     $qaExit = $qaProcess.ExitCode
     $qaProcess.Dispose()
+    if ($qaTimedOut) { throw "The owned QA command exceeded its execution, cleanup and reporting allowance ($TimeoutMilliseconds ms). Its process tree was stopped. Retain OutputDirectory and the original BinaryDirectory, budget, WSL distribution and user; run resume with those same inputs. The last durable case checkpoints and worker ownership records are retained for recovery." }
     if ($Evaluation -and $qaExit -in @(0, 2, 3)) { return $qaExit }
     if ($qaExit -ne 0) { throw "The owned QA command returned exit $qaExit; read the diagnostic above." }
     if ($CaptureOutput) { return $qaCapturedOutput }
@@ -115,7 +116,15 @@ if ($Action -eq 'finalize') {
     if (-not $Reviews) { throw 'Supply the completed agent Reviews JSON against this frozen corpus.' }
     $qaArguments += @('--reviews', [IO.Path]::GetFullPath($Reviews))
 }
-$qaEvaluationExit = Invoke-QaHidden -Executable $qaExecutable -Arguments $qaArguments -Evaluation
+$qaTimeout = 1900000
+if ($Action -in @('capture', 'resume')) {
+    $qaPolicyArguments = @('timing-policy')
+    if ($Budget) { $qaPolicyArguments += @('--budget', [IO.Path]::GetFullPath($Budget)) }
+    if ($Action -eq 'resume') { $qaPolicyArguments += @('--resume-out', $OutputDirectory) }
+    $qaPolicy = (Invoke-QaHidden -Executable $qaExecutable -Arguments $qaPolicyArguments -TimeoutMilliseconds 10000 -CaptureOutput) | ConvertFrom-Json
+    $qaTimeout = [int]$qaPolicy.outer_timeout_ms
+}
+$qaEvaluationExit = Invoke-QaHidden -Executable $qaExecutable -Arguments $qaArguments -TimeoutMilliseconds $qaTimeout -Evaluation
 Write-Output "Evaluation inputs: $BinaryDirectory"
 Write-Output "Evaluation artifacts: $OutputDirectory"
 exit $qaEvaluationExit

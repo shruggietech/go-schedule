@@ -80,12 +80,17 @@ func (s *Store) FinishSMTPAttempt(d domain.NotificationDelivery, result domain.S
 	if state == domain.NotificationDeliveryPending {
 		retain = true
 	}
+	diagnostic := boundedDiagnostic(result.Diagnostic)
+	lastError := diagnostic
+	if succeeded {
+		lastError = ""
+	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return fmt.Errorf("store: begin SMTP result: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	res, err := tx.Exec("UPDATE notification_deliveries SET state=?,recipients=?,next_attempt_at=?,claimed_at=NULL,completed_at=?,last_status=?,last_error=?,authorization=CASE WHEN ? THEN authorization ELSE '' END,endpoint=CASE WHEN ? THEN endpoint ELSE '' END WHERE id=? AND kind='smtp' AND state='claimed' AND attempts=?", string(state), encodeSMTPRecipients(result.Recipients), fmtTime(next), completed, result.Status, boundedDiagnostic(result.Diagnostic), retain, retain, d.ID, d.Attempts)
+	res, err := tx.Exec("UPDATE notification_deliveries SET state=?,recipients=?,next_attempt_at=?,claimed_at=NULL,completed_at=?,last_status=?,last_error=?,diagnostic=?,authorization=CASE WHEN ? THEN authorization ELSE '' END,endpoint=CASE WHEN ? THEN endpoint ELSE '' END WHERE id=? AND kind='smtp' AND state='claimed' AND attempts=?", string(state), encodeSMTPRecipients(result.Recipients), fmtTime(next), completed, result.Status, lastError, diagnostic, retain, retain, d.ID, d.Attempts)
 	if err := affected(res, err, "record SMTP result"); err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package clievaluate
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -22,6 +23,10 @@ func persistCase(store *ArtifactStore, prefix string, result CaseResult, artifac
 }
 
 func loadWorkerCheckpoint(store *ArtifactStore, prefix string) (Report, error) {
+	return loadWorkerCheckpointContext(context.Background(), store, prefix)
+}
+
+func loadWorkerCheckpointContext(ctx context.Context, store *ArtifactStore, prefix string) (Report, error) {
 	var report Report
 	if err := store.ReadDocument(prefix+"/report.json", "report", &report); err != nil {
 		return report, err
@@ -34,6 +39,9 @@ func loadWorkerCheckpoint(store *ArtifactStore, prefix string) (Report, error) {
 		known[a.Path] = a
 	}
 	for i := range report.Cases {
+		if err := ctx.Err(); err != nil {
+			return report, err
+		}
 		path := prefix + "/progress/" + report.Cases[i].ID + ".json"
 		data, err := store.readRegular(path, documentLimit)
 		if errors.Is(err, os.ErrNotExist) {
@@ -72,12 +80,39 @@ func loadWorkerCheckpoint(store *ArtifactStore, prefix string) (Report, error) {
 }
 
 func freezeProgress(store *ArtifactStore, prefix string, report Report) error {
+	return freezeProgressContext(context.Background(), store, prefix, report)
+}
+
+func freezeProgressContext(ctx context.Context, store *ArtifactStore, prefix string, report Report) error {
+	byPath := map[string]Artifact{}
+	for _, a := range report.Artifacts {
+		byPath[a.Path] = a
+	}
 	for _, result := range report.Cases {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		path := prefix + "/progress/" + result.ID + ".json"
 		data, err := store.readRegular(path, documentLimit)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
+		if err != nil {
+			return err
+		}
+		var checkpoint caseCheckpoint
+		if err := Decode(bytes.NewReader(data), &checkpoint); err != nil {
+			return err
+		}
+		checkpoint.Case = result
+		for i, a := range checkpoint.Artifacts {
+			current, ok := byPath[a.Path]
+			if !ok {
+				return fmt.Errorf("checkpoint artifact missing from frozen report: %s", a.Path)
+			}
+			checkpoint.Artifacts[i] = current
+		}
+		data, err = Encode(checkpoint)
 		if err != nil {
 			return err
 		}

@@ -101,6 +101,7 @@ type Delivery struct {
 	ClaimedAt          string                         `json:"claimedAt,omitempty"`
 	CompletedAt        string                         `json:"completedAt,omitempty"`
 	LastStatus         int                            `json:"lastStatus,omitempty"`
+	Diagnostic         string                         `json:"diagnostic,omitempty"`
 	LastError          string                         `json:"lastError,omitempty"`
 	ConditionKind      string                         `json:"conditionKind,omitempty"`
 	ConditionSummary   string                         `json:"conditionSummary,omitempty"`

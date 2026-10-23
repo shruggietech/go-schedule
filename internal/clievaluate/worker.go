@@ -232,6 +232,14 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		result.Observed.DurationMS = time.Since(started).Milliseconds()
 		if observed.Blocked != "" {
 			result.ReasonCode = observed.Blocked
+			artifact, err := store.Write(c.Prefix+"/cases/"+result.ID+"/state.txt", "application/json", observed.State)
+			if err != nil {
+				return err
+			}
+			r.Artifacts = append(r.Artifacts, artifact)
+			for _, check := range definition.Spec.Checks {
+				result.Observed.Checks = append(result.Observed.Checks, Check{Name: check.Name, Expected: check.Expected, Actual: "unavailable", Passed: false, Evidence: []string{artifact.Path}})
+			}
 			if err := event("case_blocked", &result.ID, observed.Detail); err != nil {
 				return err
 			}
@@ -336,11 +344,14 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 	if ctx.Err() != nil || preflightErr != nil && r.Environments[0].Status == "ready" {
 		r.CompletionState = "interrupted"
 	}
-	corpus, err = freezeChannels(store, &r)
+	finalCtx, cancelFinal := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancelFinal()
+	store.ctx = finalCtx
+	corpus, err = freezeChannelsContext(finalCtx, store, &r)
 	if err != nil {
 		return err
 	}
-	if err := freezeProgress(store, c.Prefix, r); err != nil {
+	if err := freezeProgressContext(finalCtx, store, c.Prefix, r); err != nil {
 		return err
 	}
 	SortCorpus(&corpus)

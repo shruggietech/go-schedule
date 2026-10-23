@@ -69,3 +69,33 @@ func TestJournalAppendPreservesPrefixAndEnforcesBudgetAndRedaction(t *testing.T)
 		t.Fatal("journal escaped artifact root")
 	}
 }
+
+func TestFrozenProgressUpdatesLateRedactedArtifactIdentities(t *testing.T) {
+	store, r, _, _ := reportFixture(t)
+	if err := store.root.MkdirAll("worker", 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := persistCase(store, "worker", r.Cases[0], r.Artifacts); err != nil {
+		t.Fatal(err)
+	}
+	store.Redactor.Register("daemon ok")
+	if _, err := freezeChannels(store, &r); err != nil {
+		t.Fatal(err)
+	}
+	if err := freezeProgress(store, "worker", r); err != nil {
+		t.Fatal(err)
+	}
+	data, err := store.readRegular("worker/progress/"+r.Cases[0].ID+".json", documentLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var saved caseCheckpoint
+	if err := Decode(bytes.NewReader(data), &saved); err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range saved.Artifacts {
+		if _, err := store.Read(a); err != nil {
+			t.Fatalf("frozen checkpoint retained stale identity: %v", err)
+		}
+	}
+}

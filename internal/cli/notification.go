@@ -390,6 +390,12 @@ func newNotificationDeliveriesCmd() *cobra.Command {
 		}
 		for _, delivery := range deliveries {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\tattempts=%d\tstatus=%d\n", delivery.ID, delivery.EventKind, delivery.State, delivery.Attempts, delivery.LastStatus)
+			if delivery.Diagnostic != "" && delivery.Diagnostic != delivery.LastError {
+				fmt.Fprintf(cmd.OutOrStdout(), "  Delivery detail: %s\n", delivery.Diagnostic)
+			}
+			if delivery.LastError != "" {
+				fmt.Fprintf(cmd.OutOrStdout(), "  Failure detail: %s\n", delivery.LastError)
+			}
 			if delivery.Kind == domain.NotificationChannelSMTP {
 				for _, recipient := range delivery.Recipients {
 					fmt.Fprintf(cmd.OutOrStdout(), "  recipient %s: %s, SMTP status=%d, %s\n", recipient.Address, recipient.State, recipient.Code, recipient.Diagnostic)

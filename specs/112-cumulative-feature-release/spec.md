@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Local source preparation complete on codex/112-cumulative-feature-release. Canonical gates and independent QA outcomes are recorded in verification.md. Official PR publication and bounded reviews follow the owner authorization, with final hosted evidence recorded in the PR. Tagging and public release remain separately authorized under #354.
+**Delivery**: Merged through [PR #359](https://github.com/shruggietech/go-schedule/pull/359) at squash commit 11c2a9a46d4610fe8a67903cea246050224bd606. #352 and #353 closed on merge. Merge-head [CI](https://github.com/shruggietech/go-schedule/actions/runs/39902543218), CodeQL and public website deployment passed. The v1.6.0 source candidate remains pending public tagging/promotion under #354; published discovery remains v1.5.1. S113 follows up #355-#358 without claiming the intermittent CLR/IPC causes resolved.
 
 **Input**: Owner-authorized S112 bundles #352, #353 and cumulative release coordinator #354, including dependency proposals #351, #273, #336, #337, #295, #297, #299 and #301. Push and PR publication are authorized, including at most two Codex review rounds; stop before merge or release publication.
 

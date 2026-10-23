@@ -79,7 +79,7 @@ func TestMigrationV23PreservesWebhookState(t *testing.T) {
 		}
 	}
 	var v int
-	if err := st.db.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&v); err != nil || v != 23 {
+	if err := st.db.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&v); err != nil || v != 24 {
 		t.Fatalf("version %d %v", v, err)
 	}
 	var table string
@@ -182,6 +182,16 @@ func TestSMTPAttemptBudgetAndCredentialLifecycle(t *testing.T) {
 					t.Fatalf("records %v", err)
 				}
 				got := records[0]
+				wantError := "Authored result."
+				if eventualSuccess && attempt == 3 {
+					wantError = ""
+				}
+				if got.Diagnostic != result.Diagnostic {
+					t.Fatalf("diagnostic lost: %+v", got)
+				}
+				if got.LastError != wantError {
+					t.Fatalf("error field confused transport success: state=%s error=%q", got.State, got.LastError)
+				}
 				if attempt < 3 {
 					if got.State != domain.NotificationDeliveryPending || got.Authorization != "owned snapshot" || got.CompletedAt != nil {
 						t.Fatalf("retry lifecycle %+v", got)
