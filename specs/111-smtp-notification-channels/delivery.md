@@ -35,3 +35,7 @@ All eight canonical gates pass, along with three browser/accessibility tests and
 The owner explicitly authorized automatic push and official PR publication, CI/security review handling and at most two Codex rounds without another pre-publication halt. Stop before merge. No merge, auto-merge, tag or release is authorized. The review branch is codex/111-smtp-notification-channels.
 
 Initial implementation commit b34c58e66411cb6d4c6fd725c29bfc598bb0d4d6 was pushed and [PR #345](https://github.com/shruggietech/go-schedule/pull/345) was created as a draft while publication metadata was reconciled. Authentication succeeded without owner involvement. Publication identity, exact hosted checks and bounded review evidence belong in the PR and [review.md](review.md).
+
+## Post-merge reconciliation, 2026-10-22
+
+The owner squash-merged PR #345 at 2b827e0a128cff5698b84ff84a83628e31063423 and deleted its remote branch. The merge tree equals final reviewed head d3bc21770b5bdeba32a3b5f93d47892546fb4208. All 11 functional closing references are closed. Merge-head CI exposed separate #352/#353 observations, tracked for S112 under #354. Earlier passing PR evidence remains historical; SMTP package publication is pending the cumulative release. Scratch files were removed after preserving evidence outside the checkout.

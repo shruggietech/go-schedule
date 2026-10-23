@@ -739,4 +739,4 @@ The notification channel verbs also support `--kind smtp`. Supply `--smtp-host`,
 
 Create and rotate accept `--smtp-auth-file PATH` or `--smtp-auth-file -` for bounded UTF-8 JSON from a file or standard input. The object is `{"username":"...","password":"..."}`; `{}` clears authentication during rotation. Values are never returned by get/list/history. Human history includes each recipient's state, numeric SMTP status and authored explanation. JSON keeps the same command response shape with additive SMTP settings and recipient fields.
 
-See [Notifications](notifications.md#smtp-email-channels-unreleased-s111) for all settings, encryption choices, provider setup, retries and portable local-credential binding.
+See [Notifications](notifications.md#smtp-email-channels) for all settings, encryption choices, provider setup, retries and portable local-credential binding.

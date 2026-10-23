@@ -10,11 +10,11 @@ nav_order: 1
 **Applies to:** MSI-based releases from 0.6.0 onward; Wails desktop guidance applies beginning with v1.4.0\
 **See also:** [`gosched` command reference](cli.md) · [Linux](INSTALL-linux.md) · [macOS](INSTALL-macos.md)
 
-> **Release status:** This guide describes the v1.4.0 package boundary. The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) is authoritative for whether that version has completed draft staging, attended qualification, and promotion.
+> **Release status:** The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) identifies the published package, currently v1.5.1. The v1.6.0 candidate is pending publication. Release promotion retains exact-source staging and artifact checks; the standing native-testing waiver leaves attended observations untested.
 
 go-schedule installs as a formal Windows application via an `.msi` package. It puts the program in *Program Files*, runs the scheduler as an auto-starting **Windows service**, adds the install directory to `PATH`, and lets you choose Start Menu and desktop shortcuts. There is no "extract a zip and run an exe from Downloads" step.
 
-The v1.4.0 package installs the Wails desktop at the established `gosched-gui.exe` path. Upgrading a Fyne-era MSI replaces that executable in place, preserves daemon-owned tasks and run history, and migrates a valid System, Light, or Dark appearance preference on first Wails start. Framework-specific font and scroll settings are intentionally retired.
+Wails-based packages from v1.4.0 install the Wails desktop at the established `gosched-gui.exe` path. Upgrading a Fyne-era MSI replaces that executable in place, preserves daemon-owned tasks and run history, and migrates a valid System, Light, or Dark appearance preference on first Wails start. Framework-specific font and scroll settings are intentionally retired.
 
 The Windows service automatically loads `C:\ProgramData\goschedule\config.json` when that file exists. Follow [Remote access](remote-access.md#operator-runbook) to create and validate that file before restarting the service. MSI installation and upgrade never create a remote configuration or open a network listener.
 
@@ -107,6 +107,8 @@ If you would rather not open a new window, the full path works in the shell you 
 ```
 
 ## Upgrading
+
+The v1.6.0 candidate advances notification storage to schema v23 while preserving existing tasks, run history, channel identities, protected webhook credentials and queued work. Before upgrading, stop the service and back up the complete daemon data directory (by default `C:\ProgramData\goschedule`), including SQLite sidecar files and protected credential material, together with the prior package. Use a consistent stopped-service backup. Schema migrations are forward-only. To roll back, stop the newer service and restore the pre-upgrade data with the matching older binaries; do not point older binaries at an upgraded database. SMTP credentials remain target-local and are not exported by portable task bundles.
 
 Download the newer `.msi` and run it. It performs an in-place major upgrade: the old version is removed and the new one installed, your `PATH` entry is replaced rather than duplicated, and your data under `C:\ProgramData\goschedule\` is preserved. Upgrades between installers that expose the shortcut choices retain the installed feature state unless an administrator explicitly changes it. The first upgrade from an older installer uses the new defaults because the older package did not contain matching shortcut-feature identities.
 

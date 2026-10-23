@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/cli"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/remoteenroll"
 )
@@ -132,7 +133,7 @@ func (s *session) partialSystems(ctx context.Context, definition step) execution
 	}
 	var out, diagnostic bytes.Buffer
 	deps := s.dependencies(strings.NewReader(""), &out, &diagnostic)
-	secrets := &interruptedSecrets{SecretStore: s.recorder.SecretStore()}
+	secrets := &interruptedSecrets{SecretStore: clientsecret.NewWithBackend(s.recorder)}
 	deps.Secrets = secrets
 	code := cli.ExecuteWithDependencies(ctx, args, deps)
 	observed := map[string]any{"secret_loads": secrets.loads.Load(), "diagnostic": diagnostic.String(), "partial_local_result": strings.Contains(out.String(), s.w.DaemonID)}

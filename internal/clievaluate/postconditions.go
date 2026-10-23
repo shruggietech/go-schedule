@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/domain"
 	"github.com/shruggietech/go-schedule/internal/userprefs"
 )
@@ -48,7 +49,7 @@ func (s *session) localPost(definition step) (bool, any, error) {
 		good = collection.ActiveDesktopProfileID == ""
 	case "profile.remove":
 		_, findErr := collection.Find(s.vars["profile"])
-		_, secretErr := s.recorder.SecretStore().Load(s.w.DaemonID, s.vars["credential"])
+		_, secretErr := clientsecret.NewWithBackend(s.recorder).Load(s.w.DaemonID, s.vars["credential"])
 		good = findErr != nil && secretErr != nil
 	}
 	return good, collection, nil

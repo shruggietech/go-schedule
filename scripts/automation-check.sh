@@ -24,9 +24,9 @@ approved_for() {
     actions/checkout) printf '%s' 'actions/checkout@v7' ;;
     actions/setup-go) printf '%s' 'actions/setup-go@v7' ;;
     actions/setup-node) printf '%s' 'actions/setup-node@v7' ;;
-    actions/configure-pages) printf '%s' 'actions/configure-pages@v5' ;;
-    actions/upload-pages-artifact) printf '%s' 'actions/upload-pages-artifact@v4' ;;
-    actions/deploy-pages) printf '%s' 'actions/deploy-pages@v4' ;;
+    actions/configure-pages) printf '%s' 'actions/configure-pages@v6' ;;
+    actions/upload-pages-artifact) printf '%s' 'actions/upload-pages-artifact@v5' ;;
+    actions/deploy-pages) printf '%s' 'actions/deploy-pages@v5' ;;
     actions/upload-artifact) printf '%s' 'actions/upload-artifact@v7' ;;
     github/codeql-action/init) printf '%s' 'github/codeql-action/init@v4' ;;
     github/codeql-action/analyze) printf '%s' 'github/codeql-action/analyze@v4' ;;
@@ -115,7 +115,7 @@ else
   require_ci_text 'node-version: 26' 'Node 26 desktop baseline'
   require_node_26_pins "$CI" 'every CI Node runtime pin'
   require_ci_text 'go test -race ./...' 'desktop Go race gate'
-  require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build' \
+  require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build' \
     'exact production Wails build version'
   require_ci_text '  wails-desktop:' 'production Wails desktop job'
   require_ci_text 'working-directory: desktop' 'production Wails desktop boundary'
@@ -463,7 +463,7 @@ else
   require_release_text 'node-version: 26' \
     'Node 26 release desktop baseline'
   require_node_26_pins "$RELEASE" 'every release Node runtime pin'
-  require_release_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build' \
+  require_release_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build' \
     'pinned native Wails release build'
   require_release_text 'desktop/build/bin/gosched-gui.exe' \
     'stable Windows Wails payload'

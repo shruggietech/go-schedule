@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shruggietech/go-schedule/internal/clifixture"
 	"github.com/shruggietech/go-schedule/internal/platform"
 )
 
@@ -260,14 +262,15 @@ func TestPackagedNativeHelperRejectsUnrelatedParentAndDirectStreams(t *testing.T
 		extension = ".exe"
 	}
 	executable := filepath.Join(t.TempDir(), "gosched"+extension)
+	buildCtx, buildCancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	err = buildPackagedCLI(buildCtx, root, executable)
+	buildCancel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Compilation is setup, and must not consume the authentication budget.
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
-	build := exec.CommandContext(ctx, "go", "build", "-o", executable, "./cmd/gosched")
-	build.Dir = root
-	platform.HideConsole(build)
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build isolated CLI: %v %s", err, output)
-	}
 	var stdout, stderr bytes.Buffer
 	direct := exec.CommandContext(ctx, executable, readHelperArgument)
 	platform.HideConsole(direct)
@@ -316,6 +319,42 @@ func TestPackagedNativeHelperRejectsUnrelatedParentAndDirectStreams(t *testing.T
 	}
 	if err := <-finished; err == nil || n != 0 || stdout.Len() != 0 {
 		t.Fatal("unrelated parent or standard streams received a credential response")
+	}
+}
+
+func buildPackagedCLI(ctx context.Context, root, executable string) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("build isolated CLI setup: %w", err)
+	}
+	goPath, err := exec.LookPath("go")
+	if err != nil {
+		return fmt.Errorf("build isolated CLI setup: find Go: %w", err)
+	}
+	stdout, stderr := executable+".build.stdout", executable+".build.stderr"
+	build, err := clifixture.StartProcess(clifixture.Command{Executable: goPath, Arguments: []string{"build", "-o", executable, "./cmd/gosched"}, Directory: root, StdoutPath: stdout, StderrPath: stderr, Environment: os.Environ()})
+	if err != nil {
+		return fmt.Errorf("build isolated CLI setup: start owned build: %w", err)
+	}
+	runErr := build.Wait(ctx)
+	cleanupErr := build.Stop()
+	output, outputErr := os.ReadFile(stdout)
+	diagnostic, diagnosticErr := os.ReadFile(stderr)
+	if err := errors.Join(runErr, cleanupErr, outputErr, diagnosticErr, ctx.Err()); err != nil {
+		return fmt.Errorf("build isolated CLI setup: %w: %s %s", err, output, diagnostic)
+	}
+	return nil
+}
+
+func TestPackagedCLIBuildReportsSetupCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	executable := filepath.Join(t.TempDir(), "unused")
+	err := buildPackagedCLI(ctx, t.TempDir(), executable)
+	if !errors.Is(err, context.Canceled) || !strings.Contains(err.Error(), "CLI setup") {
+		t.Fatalf("setup cancellation was not distinct: %v", err)
+	}
+	if _, err := os.Stat(executable); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("canceled build unexpectedly produced a fixture: %v", err)
 	}
 }
 

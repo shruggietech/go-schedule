@@ -19,6 +19,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 )
 
@@ -57,7 +58,7 @@ func TestActualProfileHandlerUsesRecordingSecretsAndScopedMetadata(t *testing.T)
 	profile := clientprofile.Profile{ID: "owned-profile", Label: "Owned", DaemonID: "owned-daemon", CredentialID: "owned-credential"}
 	profiles := &invocationProfileMemory{collection: clientprofile.Collection{Version: clientprofile.CurrentVersion, Profiles: []clientprofile.Profile{profile}}}
 	recorder := &clifixture.Recorder{}
-	secrets := recorder.SecretStore()
+	secrets := clientsecret.NewWithBackend(recorder)
 	if err := secrets.Save(profile.DaemonID, profile.CredentialID, "fixture-secret-do-not-print"); err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,7 @@
 **Feature Branch**: `codex/104-v150-release`
 **Created**: 2026-09-23
 **Status**: In Progress
-**Delivery**: Reviewed source metadata correction and all eight local verification gates are complete on `codex/104-v150-release`; public v1.5.0 publication remains pending.
+**Delivery**: Release [v1.5.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.5.0) was published 2026-09-23T14:23:48Z and #185 closed at 14:27:41Z. Reconciled from live release/issue records during S112. The historical task ledger remains unreconciled; this update does not claim its staging/asset observations were reconstructed.
 **Input**: S104 kickoff and [release issue #185](https://github.com/shruggietech/go-schedule/issues/185).
 
 ## User Scenarios & Testing

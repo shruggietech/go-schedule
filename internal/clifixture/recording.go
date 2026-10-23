@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-
-	"github.com/shruggietech/go-schedule/internal/clientsecret"
 )
 
 // Intent records an OS-facing operation without retaining secret values.
@@ -54,9 +52,6 @@ func (r *Recorder) ServiceControl(action, executable string, args []string) (str
 func (r *Recorder) LaunchGUI(path string) error {
 	return r.record(Intent{Operation: "gui.launch", Executable: path})
 }
-
-// SecretStore returns an isolated in-memory adapter with normal credential semantics.
-func (r *Recorder) SecretStore() *clientsecret.Store { return clientsecret.NewWithBackend(r) }
 
 // Set stores a fixture credential in this recorder only.
 func (r *Recorder) Set(service, user, password string) error {

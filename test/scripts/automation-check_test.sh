@@ -78,7 +78,7 @@ jobs:
         working-directory: desktop
     steps:
       - run: go test -race ./...
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build
       - run: npm audit --audit-level=high && npm test && npm run build
       - run: echo cache-dependency-path: desktop/go.sum
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
@@ -264,7 +264,7 @@ jobs:
           node-version: 26
       - run: echo go-version-file: desktop/go.mod
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
       - run: go build -o "$stage/gosched-tray.exe" ./cmd/gosched-tray
       - run: go build -o "$stage/gosched-indicator" ./cmd/gosched-indicator
@@ -310,6 +310,8 @@ jobs:
            git ls-remote origin "refs/tags/${RELEASE_TAG}"
            gh api -F draft=false
 EOF
+  # Preserve literal workflow variables in this mutation fixture.
+  # shellcheck disable=SC2016
   sed 's|gh release upload.*|"$RUNNER_TEMP/release-promotion" ensure-checksum --state "$RUNNER_TEMP/selection.json" --file SHA256SUMS.txt|; s|gh api -F draft=false|"$RUNNER_TEMP/release-promotion" publish --state "$RUNNER_TEMP/selection.json"|' \
     "$fixture/.github/workflows/promote-release.yml" > "$fixture/.github/workflows/promote-release-waived.yml"
   cat > "$fixture/.github/release-notes/v0.9.0.md" <<'EOF'
@@ -399,6 +401,8 @@ run_automation_cases() {
 
   substring_changelog_link="$tmp/substring-changelog-link"
   cp -R "$good" "$substring_changelog_link"
+  # Preserve literal workflow variables in this mutation fixture.
+  # shellcheck disable=SC2016
   sed 's/grep -Fxc -- "$CHANGELOG_LINE"/grep -Fc -- "$CHANGELOG_URL"/' \
     "$good/.github/workflows/release.yml" > \
     "$substring_changelog_link/.github/workflows/release.yml"
@@ -469,6 +473,8 @@ run_automation_cases() {
 
   global_option_push="$tmp/global-option-push"
   cp -R "$good" "$global_option_push"
+  # Preserve the variable reference in the generated workflow.
+  # shellcheck disable=SC2016
   printf '      - run: git -C "$GITHUB_WORKSPACE" push origin HEAD:main\n' >> \
     "$global_option_push/.github/workflows/release.yml"
   run_expect_fail global-option-push 'must not invoke git' \
@@ -476,6 +482,8 @@ run_automation_cases() {
 
   continued_push="$tmp/continued-push"
   cp -R "$good" "$continued_push"
+  # A literal backslash produces the continued-command negative fixture.
+  # shellcheck disable=SC1003
   printf '%s\n' '      - run: |' '          git \' \
     '            push origin HEAD:main' >> \
     "$continued_push/.github/workflows/release.yml"
@@ -532,6 +540,8 @@ run_automation_cases() {
 
   sigpipe_preflight="$tmp/sigpipe-preflight"
   cp -R "$good" "$sigpipe_preflight"
+  # The generated workflow must expand BADGE at runtime, not fixture creation.
+  # shellcheck disable=SC2016
   sed '/BADGE_LINE_COUNT=/c\          sed '\''s/^[[:space:]]*//; s/[[:space:]]*$//'\'' README.md | grep -Fqx -- "$BADGE"' \
     "$good/.github/workflows/release.yml" > \
     "$sigpipe_preflight/.github/workflows/release.yml"
@@ -697,6 +707,14 @@ run_automation_cases() {
   sed 's#actions/setup-node@v7#actions/setup-node@v6#' \
     "$good/.github/workflows/ci.yml" > "$old_node/.github/workflows/ci.yml"
   run_expect_fail obsolete-node 'actions/setup-node@v6' sh "$CHECK" "$old_node"
+
+  for action in configure-pages deploy-pages upload-pages-artifact; do
+    case "$action" in configure-pages) former=v5 ;; *) former=v4 ;; esac
+    old_pages="$tmp/old-$action"
+    cp -R "$good" "$old_pages"
+    printf '      - uses: actions/%s@%s\n' "$action" "$former" >> "$old_pages/.github/workflows/ci.yml"
+    run_expect_fail "obsolete-$action" "actions/$action@$former" sh "$CHECK" "$old_pages"
+  done
 
   old_node_runtime="$tmp/old-node-runtime"
   cp -R "$good" "$old_node_runtime"

@@ -21,6 +21,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 	"github.com/shruggietech/go-schedule/internal/config"
 	"github.com/shruggietech/go-schedule/internal/ipc"
@@ -119,7 +120,7 @@ func TestWebhookDestinationAndDaemonTargetAreIndependent(t *testing.T) {
 	})
 	profiles := &invocationProfileMemory{collection: clientprofile.Collection{Version: clientprofile.CurrentVersion, Profiles: []clientprofile.Profile{{ID: "owned", Label: "Owned", Endpoint: remote.URL, DaemonID: "owned-daemon", CredentialID: "owned-credential", CertificatePEM: string(certificate)}}}}
 	recorder := &clifixture.Recorder{}
-	secrets := recorder.SecretStore()
+	secrets := clientsecret.NewWithBackend(recorder)
 	if err := secrets.Save("owned-daemon", "owned-credential", "owned-token-do-not-print"); err != nil {
 		t.Fatal(err)
 	}

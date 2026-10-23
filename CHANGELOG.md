@@ -6,17 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-22
+
+Candidate source preparation; publication is pending owner review and separately authorized tagging/promotion. The latest public package remains v1.5.1 until promotion completes.
+
 ### Added
 
-- **SMTP email channels share durable notification policies, task/test/health delivery, recipient-aware retries and CLI/desktop/remote administration (S111, Refs #176, #19).** Verified STARTTLS/implicit TLS, explicit plain relay, write-only credentials, typed portable settings and owned unattended SMTP evaluation are available in unreleased source.
+- **SMTP email channels share durable notification policies, task/test/health delivery, recipient-aware retries and CLI/desktop/remote administration (S111, Refs #176, #19).** Verified STARTTLS/implicit TLS, explicit plain relay, write-only credentials, typed portable settings and owned unattended SMTP evaluation are included in the v1.6.0 candidate.
 
-- **A quiet Windows and WSL maintainer coordinator captures full CLI evaluation and canonical after-action reports (Refs #289, #290).** Actual packaged commands and isolated application adapters cover human and JSON output, negative inputs and deterministic scheduling cases. Frozen evidence, seven versioned schemas, complete contextual agent review and separate execution and issue-triage prompts support repeatable unattended evaluation. This is an unreleased maintainer capability.
+- **A quiet Windows and WSL maintainer coordinator captures full CLI evaluation and canonical after-action reports (Refs #289, #290).** Actual packaged commands and isolated application adapters cover human and JSON output, negative inputs and deterministic scheduling cases. Frozen evidence, seven versioned schemas, complete contextual agent review and separate execution and issue-triage prompts support repeatable unattended evaluation. This maintainer capability is included in the v1.6.0 candidate.
 
 - **The CLI gains direct task/group authoring parity, full-policy schedule preview, independent notification destination policies, operational views and headless desktop preferences (Refs #283, #284, #285, #286).** Explicit input clears, disabled creation, schedule syntax, calendar/active/exact runs, identified system summaries/search and saved desktop startup choices use the existing shared product contracts. Existing scripting formats remain available.
 - **Explicit local IPC selection and owned CLI fixtures support unattended evaluation without changing the installed system (Refs #288).** Invocation-scoped stores, credentials, I/O and recording host adapters complement real packaged CLI execution against disposable daemons. Windows process trees enter a hidden kill-on-close job before execution; Unix fixtures use owned groups.
 - **A static Next.js and Fumadocs website provides a branded home, documentation search and a dedicated sourced comparison (Refs #276, #279, #280, #282).** Canonical Markdown stays in `docs/`; legacy HTML paths retain query strings and fragments. Comparison snapshots identify the public release and link capability evidence and roadmap opportunities.
 
 ### Changed
+
+- **2026-10-22 pinned-workflow decision (S112): converge the root, desktop and site dependency proposals and align Wails runtime/build CLI at v2.17.0.** Pages configure v6, deploy v5 and upload-pages-artifact v5 retain existing permissions, environment, artifact path and hidden-file exclusions; policy fixtures reject former majors. The Makefile now builds the actual Wails module rather than the retired Fyne command. Release preparation preserves published v1.5.1 discovery until separately authorized v1.6.0 promotion (Refs #354).
 
 - **2026-10-22 architecture decision (S111): use MIT-licensed go-smtp v0.25.0 for explicit recipient and final DATA transactions, the existing protected credential slot, and a forward v23 migration.** Recipient checkpoints preserve confirmed acceptance across retries/recovery. Portable SMTP definitions bind by unique name to provisioned target-local channels with frozen IDs/revisions, avoiding credential export or copies. Remote notification routes reuse existing capabilities, including Enroll for credential rotation and retargeting stored credentials.
 
@@ -29,9 +35,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **2026-10-19 architecture decision (S107): share desktop preference schema/migration/atomic scoped updates with the root CLI and replace global CLI selection/output with invocation dependencies.** OS-owned preference locks coordinate writers and release ownership on process exit; production native credential handling and daemon defaults remain unchanged. Runtime IPC/PID metadata supports fixture identity checks. Round-1 corrections isolate cancellable native credential reads in hidden helpers with private pipes and share bounded Unix process-group drainage. Read-only observation fan-out reuses existing API/authorization and preserves independent target outcomes (Refs #285, #286, #288).
 - **The public website uses go-schedule.io with Cloudflare DNS and GitHub Pages Actions publishing (Refs #278, #279, #280, #282).** README and repository discovery links use the canonical domain, and the temporary legacy Jekyll publisher is retired after replacement delivery.
 - **The README puts installation, first use and project resources first, with linked ShruggieTech attribution (Refs #281, #9).**
-- **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. Public `go-schedule.io` DNS, Pages source and HTTPS cutover remain pending owner review (Refs #278).
+- **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. The coordinated go-schedule.io DNS, Pages source and HTTPS cutover completed with S106 (Refs #278).
 
 ### Fixed
+
+- **Disposable LocalSystem probes select terminal matching runs behind queued observations and retain failure diagnostics before cleanup (#352).** Owned CLI children are hidden and bounded; primary failures, diagnostic collection and cleanup outcomes remain distinct without changing scheduler overlap policy.
+- **Packaged credential-helper regressions separate bounded compilation setup from the full runtime authentication budget (#353).** Setup cancellation identifies the build phase and drains the existing owned process tree; credential adapters are composed at callers so generic fixtures can be reused without a dependency cycle. Real peer, parent and image rejection and zero-request-before-authorization assertions remain intact.
 
 - Preserve empty text in bounded run/alert observations, preventing MCP history reads from failing on silent records (#344). SMTP quoted mailboxes retain their envelope/header identity across authoring surfaces, and task-delivery evaluation respects the existing acknowledgement contract (#342, #343).
 
@@ -45,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Human-output CLI QA recognizes independently created notification channel identities.** The existing persisted-state and stdout identity checks now use the channel snapshot, allowing later human channel/policy cases to continue after successful authoring (Refs #277).
 
 - **CLI invocations and reports now consistently distinguish validation refusals from runtime failures (Refs #311, #312, #313, #314, #315, #316).** Invalid flags/operands and malformed documents return usage failure, refused operations cannot trigger host adapters, alerts JSON stays clean, webhook targeting is independent, unknown/duplicate watcher bindings are rejected before planning, and invalid cron lines retain complete reporting with unsuccessful status.
-- **CLI help, diagnostics, operational lists and response context explain the action and resulting state (Refs #317, #318, #319, #320, #321, #322).** Errors identify objects and fields, rotation reports actual associated identities, watcher views separate saved settings from observed health, list columns are labeled, and IPC compatibility warnings identify the effective access configuration and correction. These source changes are unreleased.
+- **CLI help, diagnostics, operational lists and response context explain the action and resulting state (Refs #317, #318, #319, #320, #321, #322).** Errors identify objects and fields, rotation reports actual associated identities, watcher views separate saved settings from observed health, list columns are labeled, and IPC compatibility warnings identify the effective access configuration and correction. These changes are included in the v1.6.0 candidate.
 
 - **The private native credential helper authenticates its owning CLI before reading stored tokens (Refs #309).** Kernel peer identity and executable-image checks protect a dedicated bounded local channel; direct helper invocation cannot extract tokens through standard streams.
 
