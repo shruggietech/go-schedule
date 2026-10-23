@@ -74,3 +74,5 @@ Independent read-only research covered runtime/prerequisites, QA lifecycle and S
 ## Implementation strategy
 
 Deliver US1's interruption contract first, then US2 diagnostics and empirical investigations, US3's complete persistence-to-UI correction and US4's site patch. Every step keeps tests meaningful. This is the full approved bundle; MVP is only an ordering aid, not permission to omit stories. Unconfirmed #355/#356 causes remain open and explicitly incomplete even if other source outcomes are delivered. The final PR uses closing keywords only for individually fulfilled issues.
+
+- [x] T028 Resolve PR #361 round-1 checkpoint finding with durable exact-identity freeze transitions, verified interruption recovery and corruption rejection regressions (internal/clievaluate/checkpoint.go, freeze.go and checkpoint_test.go).

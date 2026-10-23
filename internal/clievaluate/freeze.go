@@ -14,6 +14,10 @@ func freezeChannels(store *ArtifactStore, r *Report) (Corpus, error) {
 }
 
 func freezeChannelsContext(ctx context.Context, store *ArtifactStore, r *Report) (Corpus, error) {
+	return freezeChannelsCheckpoint(ctx, store, r, nil)
+}
+
+func freezeChannelsCheckpoint(ctx context.Context, store *ArtifactStore, r *Report, checkpoint func(artifactFreeze) error) (Corpus, error) {
 	frozen := make(map[string][]byte, len(r.Artifacts))
 	for i := range r.Artifacts {
 		if err := ctx.Err(); err != nil {
@@ -26,6 +30,13 @@ func freezeChannelsContext(ctx context.Context, store *ArtifactStore, r *Report)
 		}
 		sanitized := store.Redactor.Sanitize(data)
 		if !bytes.Equal(data, sanitized) {
+			updated := *a
+			updated.Bytes, updated.SHA256 = int64(len(sanitized)), Digest(sanitized)
+			if checkpoint != nil {
+				if err := checkpoint(artifactFreeze{Before: *a, After: updated}); err != nil {
+					return Corpus{}, err
+				}
+			}
 			if err := store.Replace(a.Path, sanitized); err != nil {
 				return Corpus{}, err
 			}
@@ -127,7 +138,15 @@ func freezeWorkerEvidence(ctx context.Context, store *ArtifactStore, prefix stri
 	if err := persistWorkerCheckpoint(store, prefix, r); err != nil {
 		return Corpus{}, fmt.Errorf("checkpoint worker cleanup: %w", err)
 	}
-	corpus, err := freezeChannelsContext(ctx, store, r)
+	var updates []artifactFreeze
+	corpus, err := freezeChannelsCheckpoint(ctx, store, r, func(update artifactFreeze) error {
+		updates = append(updates, update)
+		data, err := Encode(updates)
+		if err != nil {
+			return err
+		}
+		return store.Replace(prefix+"/freeze-artifacts.json", data)
+	})
 	if err != nil {
 		return Corpus{}, fmt.Errorf("freeze worker channels: %w", err)
 	}

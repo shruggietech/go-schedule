@@ -24,3 +24,7 @@ The prior S113 interrupted run remains unchanged. Its WSL worker reached all cas
 ## Publication and owner handoff
 
 The owner explicitly authorized automatic push, an official PR, exact-head CI monitoring and at most two Codex review rounds with verified in-scope fixes. The final delivery-only commit updates lifecycle/evidence Markdown; executable qualification remains bound to the subject above. Keep #355/#356 open, retain #354 for public release, attach the created PR to this chat, resolve every review thread and accept terminal applicable checks on the actual PR head. Stop before merging, auto-merge, tagging or release publication.
+
+## PR review correction (2026-10-23)
+
+PR #361 round 1 identified a late-redaction interruption window. Exact old/new artifact identities are now durable before replacement, and recovery reconciles only a recorded identity whose current bytes verify. Six interruption boundaries and four corruption cases pass under the race detector, and the prior recovery code reproduces the failure. The complete canonical aggregate 09 passes after this correction. The full catalog remains bound to its original ffebda5 executable subject; review correction evidence and hosted checks are tracked independently in verification.md and PR #361.

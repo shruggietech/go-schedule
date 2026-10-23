@@ -8,6 +8,12 @@ import (
 	"os"
 )
 
+// artifactFreeze records both exact byte identities before replacing a late-redacted channel.
+type artifactFreeze struct {
+	Before Artifact `json:"before"`
+	After  Artifact `json:"after"`
+}
+
 type caseCheckpoint struct {
 	Case      CaseResult `json:"case"`
 	Artifacts []Artifact `json:"artifacts"`
@@ -34,6 +40,10 @@ func loadWorkerCheckpointContext(ctx context.Context, store *ArtifactStore, pref
 	if report.Phase != "capturing" {
 		return report, nil
 	}
+	updates, err := recoverArtifactFreezes(store, prefix, &report)
+	if err != nil {
+		return report, err
+	}
 	known := map[string]Artifact{}
 	for _, a := range report.Artifacts {
 		known[a.Path] = a
@@ -58,6 +68,9 @@ func loadWorkerCheckpointContext(ctx context.Context, store *ArtifactStore, pref
 			return report, errors.New("case checkpoint identity mismatch")
 		}
 		for _, a := range record.Artifacts {
+			if update, ok := updates[a.Path]; ok && (a == update.Before || a == update.After) {
+				a = known[a.Path]
+			}
 			if _, err := store.Read(a); err != nil {
 				return report, err
 			}
@@ -138,4 +151,47 @@ func persistWorkerCheckpoint(store *ArtifactStore, prefix string, report *Report
 		return err
 	}
 	return store.Replace(prefix+"/report.json", data)
+}
+
+// recoverArtifactFreezes accepts only a recorded pre/post identity whose exact bytes
+// are still present. It covers interruption before replacement, between channel
+// replacements, and while progress records are being refreshed.
+func recoverArtifactFreezes(store *ArtifactStore, prefix string, report *Report) (map[string]artifactFreeze, error) {
+	updates := map[string]artifactFreeze{}
+	data, err := store.readRegular(prefix+"/freeze-artifacts.json", documentLimit)
+	if errors.Is(err, os.ErrNotExist) {
+		return updates, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var recorded []artifactFreeze
+	if err := Decode(bytes.NewReader(data), &recorded); err != nil {
+		return nil, err
+	}
+	indices := make(map[string]int, len(report.Artifacts))
+	for i, artifact := range report.Artifacts {
+		indices[artifact.Path] = i
+	}
+	for _, update := range recorded {
+		i, known := indices[update.Before.Path]
+		metadata := update.After
+		metadata.Bytes, metadata.SHA256 = update.Before.Bytes, update.Before.SHA256
+		if !known || metadata != update.Before || (report.Artifacts[i] != update.Before && report.Artifacts[i] != update.After) {
+			return nil, errors.New("artifact freeze identity differs from worker checkpoint")
+		}
+		if _, duplicate := updates[update.Before.Path]; duplicate {
+			return nil, errors.New("duplicate artifact freeze identity")
+		}
+		current := update.Before
+		if _, err := store.Read(current); err != nil {
+			current = update.After
+			if _, err := store.Read(current); err != nil {
+				return nil, fmt.Errorf("recover frozen artifact: %w", err)
+			}
+		}
+		report.Artifacts[i] = current
+		updates[current.Path] = update
+	}
+	return updates, nil
 }
