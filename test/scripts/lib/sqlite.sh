@@ -82,22 +82,29 @@ version_ge() {
 
 test_sqlite_candidate() (
     # A private, bounded probe preserves stderr and the original native exit.
-    local candidate="$1" raw token rc probe_dir probe_pid watcher_pid
+    local candidate="$1" raw token rc probe_dir probe_pid watcher_pid launcher_detail
     if ! command -v "$candidate" >/dev/null 2>&1; then
         log WARN "sqlite3 candidate '$candidate' could not be launched: executable not found."
         return 0
     fi
     umask 077
     probe_dir="$(mktemp -d)" || return 0
+    # A launcher may fail before creating candidate channels. Keep those empty
+    # rather than replacing the original result with a missing-file error.
+    : >"$probe_dir/out"
+    : >"$probe_dir/err"
+    : >"$probe_dir/launcher"
     local timeout_exe=""
     if [ -x /usr/bin/timeout ]; then timeout_exe=/usr/bin/timeout
     elif command -v gtimeout >/dev/null 2>&1; then timeout_exe="$(command -v gtimeout)"; fi
     if [ -n "$timeout_exe" ]; then
         # Coreutils owns the whole probe group. Both channels stop at 4097
         # bytes, which lets us detect truncation without unbounded temp files.
+        # Byte-sized dd writes preserve emitted stderr even if timeout kills
+        # the capture process before EOF; stdio-buffered head can lose it.
         local started=$SECONDS
         if "$timeout_exe" --kill-after=1 10 "$BASH" -c '
-            "$1" --version </dev/null 2> >(head -c 4097 >"$2") | head -c 4097 >"$3"
+            "$1" --version </dev/null 2> >(dd bs=1 count=4097 of="$2" 2>/dev/null) | dd bs=1 count=4097 of="$3" 2>/dev/null
             result=${PIPESTATUS[0]}
             wait
             exit "$result"
@@ -127,6 +134,10 @@ test_sqlite_candidate() (
     raw="$(head -c 4096 "$probe_dir/out")"
     local detail
     detail="$(head -c 4096 "$probe_dir/err" | tr '\000-\037\177' ' ')"
+    launcher_detail="$(head -c 4096 "$probe_dir/launcher" | tr '\000-\037\177' ' ')"
+    if [ -n "$launcher_detail" ]; then
+        log WARN "sqlite3 candidate '$candidate' probe exited $rc. launcher stderr: $launcher_detail"
+    fi
     if [ -f "$probe_dir/timeout" ]; then
         log WARN "sqlite3 candidate '$candidate' timed out after 10000 ms. stderr: $detail"
         rm -rf "$probe_dir"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,7 +51,23 @@ func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
 	api := server.NewWithRuntimeInfo(st, nil, nil, nil, w.Config.LogPath(), info, nil)
 	var inject atomic.Bool
 	var credentialRequests atomic.Int32
+	var holdCredentials atomic.Bool
+	var creates, deletes atomic.Int32
+	heldStarted := make(chan struct{}, 1)
+	heldCanceled := make(chan struct{}, 1)
 	handler := http.HandlerFunc(func(out http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/v1/groups" && request.Method == http.MethodPost {
+			creates.Add(1)
+		}
+		if strings.HasPrefix(request.URL.Path, "/v1/groups/") && request.Method == http.MethodDelete {
+			deletes.Add(1)
+		}
+		if holdCredentials.Load() && request.URL.Path == "/v1/access/credentials" {
+			heldStarted <- struct{}{}
+			<-request.Context().Done()
+			heldCanceled <- struct{}{}
+			return
+		}
 		if inject.Load() && request.URL.Path == "/v1/access/credentials" && credentialRequests.Add(1) == 2 {
 			out.WriteHeader(http.StatusServiceUnavailable)
 			_, _ = out.Write([]byte(`{"error":{"code":"internal","message":"owned inspection failure"}}`))
@@ -102,6 +119,89 @@ func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
 	}
 	wg.Wait()
 	t.Log("32 complete snapshots, 320 typed requests over the owned native IPC endpoint, no retries")
+	t.Run("held_request_cancellation", func(t *testing.T) {
+		holdCredentials.Store(true)
+		defer holdCredentials.Store(false)
+		deadline, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		defer stop()
+		ctx, cancel := context.WithCancel(deadline)
+		defer cancel()
+		cancelDone := make(chan struct{})
+		go func() {
+			defer close(cancelDone)
+			select {
+			case <-heldStarted:
+				cancel()
+			case <-deadline.Done():
+			}
+		}()
+		d := &executionDiagnostics{}
+		partial, err := s.snapshot(d.phase(ctx, "held_snapshot"))
+		<-cancelDone
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("original cancellation lost: %v", err)
+		}
+		select {
+		case <-heldCanceled:
+		case <-deadline.Done():
+			t.Fatal("server did not receive canceled request context")
+		}
+		if _, ok := fieldAt(partial, "tasks."+task.ID); !ok {
+			t.Fatal("cancellation discarded preceding task collection")
+		}
+		found := false
+		for _, r := range d.requests {
+			if r.Route == "/v1/access/credentials" && r.Outcome == "canceled" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("request cancellation not attributed: %+v", d.requests)
+		}
+		holdCredentials.Store(false)
+		fresh, err := s.snapshot(deadline)
+		if err != nil {
+			t.Fatalf("fresh snapshot after cancellation: %v", err)
+		}
+		if _, ok := fieldAt(fresh, "tasks."+task.ID); !ok {
+			t.Fatal("fresh complete snapshot lost task")
+		}
+	})
+	t.Run("mixed_reads_and_mutations", func(t *testing.T) {
+		var workers sync.WaitGroup
+		for worker := 0; worker < 2; worker++ {
+			workers.Add(1)
+			go func(worker int) {
+				defer workers.Done()
+				for i := 0; i < 8; i++ {
+					ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+					group, err := s.api.CreateGroup(ctx, server.GroupCreateRequest{Name: fmt.Sprintf("owned-mixed-%d-%d", worker, i)})
+					if err == nil {
+						_, err = s.api.ListGroups(ctx)
+					}
+					if err == nil {
+						err = s.api.DeleteGroup(ctx, group.ID)
+					}
+					cancel()
+					if err != nil {
+						t.Errorf("mixed case %d/%d: %v", worker, i, err)
+						return
+					}
+				}
+			}(worker)
+		}
+		workers.Wait()
+		if creates.Load() != 16 || deletes.Load() != 16 {
+			t.Errorf("mutations repeated or missing: create=%d delete=%d", creates.Load(), deletes.Load())
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		groups, err := s.api.ListGroups(ctx)
+		if err != nil || len(groups) != 0 {
+			t.Fatalf("mixed mutation state: groups=%+v error=%v", groups, err)
+		}
+	})
+
 	// A successful recorded host command must not become a failed command when
 	// only its later inspection is unavailable. The fixture never calls the host manager.
 	_, steps, err := BuildManifest()

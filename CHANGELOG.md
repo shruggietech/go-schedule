@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- S114 reconciles the pending v1.6.0 delivery procedure and Windows diagnostic outcomes; public promotion remains separately authorized (Refs #354, #355, #356).
+
 ## [1.6.0] - 2026-10-22
 
 Candidate source preparation; publication is pending owner review and separately authorized tagging/promotion. The latest public package remains v1.5.1 until promotion completes.
@@ -21,6 +23,8 @@ Candidate source preparation; publication is pending owner review and separately
 - **A static Next.js and Fumadocs website provides a branded home, documentation search and a dedicated sourced comparison (Refs #276, #279, #280, #282).** Canonical Markdown stays in `docs/`; legacy HTML paths retain query strings and fragments. Comparison snapshots identify the public release and link capability evidence and roadmap opportunities.
 
 ### Changed
+
+- **2026-10-23 release/process decision (S114): retain the standing-waiver validator and correct its source-owned disclosure, share the existing SQLite probe deadline with redirected reads, and retain bounded launch/failure phase evidence.** Current platform upgrade guidance requires a stopped-daemon full-state backup and matching older binaries for rollback. Original Windows CLR/prerequisite and owned IPC causes remain unconfirmed; known issues stay visible rather than closing on passing repetitions (Refs #354, #355, #356, #363, #364).
 
 - **2026-10-23 architecture and pinned-file decision (S113): keep execution budgets distinct from bounded worker/reporting allowances, retain partial case evidence in existing hash-bound v1 state artifacts, and advance notification storage to schema v24.** Normal worker freezing stays inside the selected execution budget, with the separate shutdown reserve applied after cancellation; completed cleanup is durable before freezing. The Windows upgrade guidance retains a stopped-service full-state backup and matching older binaries for rollback. The exact Fumadocs patch from PR #360 is incorporated into the pending candidate; public v1.5.1 discovery remains unchanged.
 

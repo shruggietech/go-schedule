@@ -123,18 +123,56 @@ Param(
         $probe.Environment['GIT_TERMINAL_PROMPT'] = '0'
         $probe.Environment['GCM_INTERACTIVE'] = 'Never'
         $process = $null
+        $clock = [Diagnostics.Stopwatch]::StartNew()
         try {
             $process = [Diagnostics.Process]::Start($probe)
             $process.StandardInput.Close()
             # Fixed buffers prevent a broken candidate from filling memory.
             $outputBuffer = [char[]]::new(4097)
             $errorBuffer = [char[]]::new(4097)
-            $outputRead = $process.StandardOutput.ReadBlockAsync($outputBuffer, 0, $outputBuffer.Length)
-            $errorRead = $process.StandardError.ReadBlockAsync($errorBuffer, 0, $errorBuffer.Length)
-            $timedOut = -not $process.WaitForExit(10000)
-            if ($timedOut) { $process.Kill($true); $process.WaitForExit() }
-            $outputCount = $outputRead.GetAwaiter().GetResult()
-            $errorCount = $errorRead.GetAwaiter().GetResult()
+            # Incremental reads retain completed chunks if another read is still
+            # pending at the shared deadline (including inherited pipe handles).
+            $channels = @(
+                @{ Reader=$process.StandardOutput; Buffer=$outputBuffer; Filled=0; Done=$false; Pending=$null },
+                @{ Reader=$process.StandardError; Buffer=$errorBuffer; Filled=0; Done=$false; Pending=$null }
+            )
+            foreach ($channel in $channels) {
+                $channel.Pending = $channel.Reader.ReadAsync($channel.Buffer, 0, $channel.Buffer.Length)
+            }
+            $timedOut = $false
+            while (@($channels | Where-Object { -not $_.Done }).Count -gt 0) {
+                foreach ($channel in $channels) {
+                    if (-not $channel.Done -and $channel.Pending.IsCompleted) {
+                        $read = $channel.Pending.GetAwaiter().GetResult()
+                        $channel.Pending = $null
+                        $channel.Filled += $read
+                        if ($read -eq 0 -or $channel.Filled -eq $channel.Buffer.Length) {
+                            $channel.Done = $true
+                        } else {
+                            $channel.Pending = $channel.Reader.ReadAsync($channel.Buffer, $channel.Filled, $channel.Buffer.Length - $channel.Filled)
+                        }
+                    }
+                }
+                $pending = @($channels | Where-Object { -not $_.Done })
+                if ($pending.Count -eq 0) { break }
+                $remaining = [Math]::Max(0, 10000 - [int]$clock.ElapsedMilliseconds)
+                if ($remaining -eq 0 -or [Threading.Tasks.Task]::WaitAny([Threading.Tasks.Task[]]@($pending | ForEach-Object { $_.Pending }), $remaining) -eq -1) {
+                    $timedOut = $true
+                    break
+                }
+            }
+            if (-not $timedOut) {
+                $remaining = [Math]::Max(0, 10000 - [int]$clock.ElapsedMilliseconds)
+                $timedOut = -not $process.WaitForExit($remaining)
+            }
+            if ($timedOut -and -not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
+            foreach ($channel in $channels) {
+                if ($channel.Pending -and $channel.Pending.IsCompletedSuccessfully) {
+                    $channel.Filled += $channel.Pending.GetAwaiter().GetResult()
+                }
+            }
+            $outputCount = $channels[0].Filled
+            $errorCount = $channels[1].Filled
             $raw = [string]::new($outputBuffer, 0, [Math]::Min($outputCount, 4096))
             $detail = [string]::new($errorBuffer, 0, [Math]::Min($errorCount, 4096))
             $detail = [regex]::Replace($detail, '[\x00-\x1f\x7f]', ' ').Trim()
@@ -154,6 +192,7 @@ Param(
             Write-Log ("sqlite3 candidate '{0}' could not be launched or read: {1}" -f $Candidate, $_.Exception.Message) -Level Warn
             return $null
         } finally {
+            $clock.Stop()
             if ($process) { if (-not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }; $process.Dispose() }
         }
         $token = $raw.Trim().Split(' ')[0]
