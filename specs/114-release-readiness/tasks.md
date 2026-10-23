@@ -50,7 +50,7 @@ Independent criteria: actual prepared notes pass production read-only selection;
 ## Phase 6: Verification and publication
 
 - [x] T019 Run foreground canonical eight gates, relevant release/comparison checks and encoding/format audit; record exact outcomes in specs/114-release-readiness/verification.md.
-- [ ] T020 Commit and push codex/114-release-readiness, open and attach the official PR with independent issue dispositions and verified source identity.
+- [x] T020 Commit and push codex/114-release-readiness, open and attach the official PR with independent issue dispositions and verified source identity.
 - [ ] T021 Monitor terminal exact-head CI, resolve every actual finding within at most two Codex rounds, update GitHub planning and final handoff, then stop before merge/tag/staging/promotion.
 
 ## Dependencies and parallel opportunities

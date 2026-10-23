@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-23
 
-**Status**: Implemented
+**Status**: In Progress
 
-**Delivery**: Source implementation and canonical local verification completed. Owner-authorized push, PR and hosted CI/review handling are pending; maximum two Codex rounds. Stop before merge, tag or public promotion. Original #355/#356 causes remain unconfirmed and open; #354 awaits later authorized publication.
+**Delivery**: Source commit 15e2578554a5ebc1b4b9b0ea7eec2f2113620575 is published in PR #365. Canonical local application verification passed; hosted CI/review handling remains in progress, maximum two Codex rounds. Original #355/#356 causes remain unconfirmed and open; #354 awaits later authorized publication. Stop before merge, tag or public promotion.
 
 **Input**: Owner kickoff S114 with #354, #355 and #356, following the recommendation recorded in #354.
 
