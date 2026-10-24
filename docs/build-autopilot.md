@@ -127,3 +127,7 @@ Pinned process artifacts (`.github/workflows/**`, `build/**`, `Makefile`, `.gola
 Autopilot is valid for features traceable to `specs/001-task-scheduler/spec.md` or to an open issue on the GitHub tracker, which is where the roadmap of remaining work lives. It also applies to any other feature or task when the operator explicitly requests an autopilot run (for example "run the MSI signing work under autopilot" or "autopilot this"). Such an explicit request authorizes autopilot for the named work and is itself the renewal.
 
 Absent an explicit request, work not traceable to the master specification or an open issue falls back to normal interactive mode. When the master specification is superseded by a new version, the standing authorization lapses and requires renewal against the new document; per-request autopilot remains available regardless.
+
+## Pre-tag release-source preparation
+
+Before requesting a release tag, run `go run ./scripts/release-source-check -root . -repository shruggietech/go-schedule -tag v1.6.0` for the selected pending version. The command reads local README, changelog and tag-specific notes, checks the published-release badge, health example, unique calendar-dated heading and exact notes link, and performs no network or Git mutations. Release invokes the same command in its tagged checkout before comparison and staging. A successful source check establishes neither a real tag nor package identity; comparison review, exact-main CI and immutable staging/promotion controls remain separate.

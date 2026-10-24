@@ -25,6 +25,13 @@ import (
 
 // This uses an owned OS IPC endpoint and real API/store, not the installed service.
 func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
+	for _, storage := range []string{"memory", "file_wal"} {
+		t.Run(storage, func(t *testing.T) { testOwnedIPCSnapshots(t, storage) })
+	}
+}
+
+func testOwnedIPCSnapshots(t *testing.T, storage string) {
+	t.Helper()
 	w, err := clifixture.NewWorkspace("")
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +41,11 @@ func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	st, err := store.Open(":memory:")
+	database := ":memory:"
+	if storage == "file_wal" {
+		database = filepath.Join(t.TempDir(), "owned.db")
+	}
+	st, err := store.Open(database)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,11 +64,27 @@ func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
 	var credentialRequests atomic.Int32
 	var holdCredentials atomic.Bool
 	var creates, deletes atomic.Int32
+	var snapshotGate atomic.Pointer[ownedSnapshotGate]
 	heldStarted := make(chan struct{}, 1)
 	heldCanceled := make(chan struct{}, 1)
 	handler := http.HandlerFunc(func(out http.ResponseWriter, request *http.Request) {
+		if gate := snapshotGate.Load(); gate != nil && request.URL.Path == "/v1/tasks" {
+			select {
+			case gate.ready <- struct{}{}:
+			case <-request.Context().Done():
+				return
+			}
+			select {
+			case <-gate.release:
+			case <-request.Context().Done():
+				return
+			}
+		}
 		if request.URL.Path == "/v1/groups" && request.Method == http.MethodPost {
 			creates.Add(1)
+			if gate := snapshotGate.Load(); gate != nil {
+				gate.once.Do(func() { close(gate.release) })
+			}
 		}
 		if strings.HasPrefix(request.URL.Path, "/v1/groups/") && request.Method == http.MethodDelete {
 			deletes.Add(1)
@@ -201,6 +228,78 @@ func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
 			t.Fatalf("mixed mutation state: groups=%+v error=%v", groups, err)
 		}
 	})
+	t.Run("concurrent_complete_snapshots_and_mutations", func(t *testing.T) {
+		baseCreates, baseDeletes := creates.Load(), deletes.Load()
+		// Each round begins with both snapshot requests held at server receipt.
+		// The create request releases both reads at server receipt, so reads
+		// and writes proceed together over the shared store. Channels establish overlap without sleeps or retries.
+		var workers sync.WaitGroup
+		requests := []string{"tasks", "groups", "chains", "triggers", "sets", "watchers", "channels", "actors", "credentials", "pairings", "profiles", "host_intents", "preferences"}
+		for round := 0; round < 16; round++ {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			gate := &ownedSnapshotGate{ready: make(chan struct{}, 2), release: make(chan struct{})}
+			snapshotGate.Store(gate)
+			for worker := 0; worker < 2; worker++ {
+				workers.Add(1)
+				go func() {
+					defer workers.Done()
+					d := &executionDiagnostics{}
+					snapshot, err := s.snapshot(d.phase(ctx, "mixed_snapshot"))
+					if err != nil {
+						t.Errorf("mixed complete snapshot: %v (%s)", err, d.finish(execution{}).State)
+						return
+					}
+					for _, key := range requests {
+						if _, ok := snapshot[key]; !ok {
+							t.Errorf("complete snapshot missing %s", key)
+						}
+					}
+					if _, ok := fieldAt(snapshot, "tasks."+task.ID); !ok {
+						t.Error("mixed complete snapshot lost owned task")
+					}
+					if len(d.requests) != 10 {
+						t.Errorf("mixed request observations %d, want 10", len(d.requests))
+					}
+				}()
+			}
+			reached := true
+			for worker := 0; worker < 2; worker++ {
+				select {
+				case <-gate.ready:
+				case <-ctx.Done():
+					t.Error("snapshot requests did not reach overlap barrier")
+					reached = false
+				}
+			}
+			if reached {
+				group, err := s.api.CreateGroup(ctx, server.GroupCreateRequest{Name: fmt.Sprintf("owned-mixed-%d", round)})
+				if err == nil {
+					err = s.api.DeleteGroup(ctx, group.ID)
+				}
+				if err != nil {
+					t.Errorf("mixed mutation round %d: %v", round, err)
+				}
+			}
+			snapshotGate.Store(nil)
+			gate.once.Do(func() { close(gate.release) })
+			workers.Wait()
+			cancel()
+			if !reached {
+				break
+			}
+		}
+		snapshotGate.Store(nil)
+		if creates.Load()-baseCreates != 16 || deletes.Load()-baseDeletes != 16 {
+			t.Errorf("mutations repeated or missing: create=%d delete=%d", creates.Load(), deletes.Load())
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		groups, err := s.api.ListGroups(ctx)
+		if err != nil || len(groups) != 0 {
+			t.Fatalf("mixed mutation state: groups=%+v error=%v", groups, err)
+		}
+		t.Logf("%s: 32 complete snapshots overlap exactly 16 create/delete pairs, all 13 state keys retained", storage)
+	})
 
 	// A successful recorded host command must not become a failed command when
 	// only its later inspection is unavailable. The fixture never calls the host manager.
@@ -241,4 +340,11 @@ func TestOwnedIPCSustainedSnapshotsRetainCompleteRequestEvidence(t *testing.T) {
 		t.Fatalf("failed collection/request missing: %s", result.State)
 	}
 
+}
+
+// ownedSnapshotGate is immutable after publication; the round owns its release.
+type ownedSnapshotGate struct {
+	once    sync.Once
+	ready   chan struct{}
+	release chan struct{}
 }

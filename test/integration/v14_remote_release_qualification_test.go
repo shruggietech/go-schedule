@@ -30,16 +30,12 @@ import (
 )
 
 func TestV14RemoteReleaseJourney(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
 	packageDir := filepath.Join(t.TempDir(), "v1.4 Package Shape ü")
 	if err := os.MkdirAll(packageDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	candidate := buildV14Daemon(t, root, packageDir, "goschedd-candidate")
-	replacement := buildV14Daemon(t, root, packageDir, "goschedd-replacement")
+	candidate := preparePackagedCandidate(t, packageDir, "goschedd-candidate", "goschedd")
+	replacement := preparePackagedCandidate(t, packageDir, "goschedd-replacement", "goschedd")
 
 	stateDir := filepath.Join(t.TempDir(), "retained remote state")
 	if err := os.MkdirAll(stateDir, 0o700); err != nil {
@@ -208,21 +204,6 @@ func TestV14RemoteReleaseDocumentationContract(t *testing.T) {
 			}
 		}
 	}
-}
-
-func buildV14Daemon(t *testing.T, root, directory, name string) string {
-	t.Helper()
-	if runtime.GOOS == "windows" {
-		name += ".exe"
-	}
-	path := filepath.Join(directory, name)
-	command := exec.Command("go", "build", "-o", path, "./cmd/goschedd")
-	command.Dir = root
-	platform.HideConsole(command)
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("build %s: %v\n%s", name, err, output)
-	}
-	return path
 }
 
 func v14IPCEndpoint(t *testing.T) string {

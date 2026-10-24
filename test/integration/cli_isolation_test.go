@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -47,24 +45,12 @@ func TestPackagedCLIUsesOnlyOwnedDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	goBinary, err := exec.LookPath("go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	goBinary, err = filepath.Abs(goBinary)
-	if err != nil {
-		t.Fatal(err)
-	}
 	binDir := filepath.Join(w.Runtime, "bin")
 	if err := os.Mkdir(binDir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	ext := ""
-	if runtime.GOOS == "windows" {
-		ext = ".exe"
-	}
-	cliBinary := filepath.Join(binDir, "gosched"+ext)
-	daemonBinary := filepath.Join(binDir, "goschedd"+ext)
+	cliBinary := preparePackagedCandidate(t, binDir, "gosched", "gosched")
+	daemonBinary := preparePackagedCandidate(t, binDir, "goschedd", "goschedd")
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	sequence := 0
@@ -93,8 +79,6 @@ func TestPackagedCLIUsesOnlyOwnedDaemon(t *testing.T) {
 		}
 		return output
 	}
-	run(goBinary, []string{"build", "-o", cliBinary, "./cmd/gosched"})
-	run(goBinary, []string{"build", "-o", daemonBinary, "./cmd/goschedd"})
 	daemon, err := clifixture.StartProcess(clifixture.Command{Executable: daemonBinary, Arguments: []string{"--config", w.ConfigPath}, Directory: w.Runtime, StdoutPath: filepath.Join(w.Evidence, "daemon-stdout.jsonl"), StderrPath: filepath.Join(w.Evidence, "daemon-stderr.txt")})
 	if err != nil {
 		t.Fatal(err)
