@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-24
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: In progress on review branch codex/115-release-candidate-handoff. Source corrections and native follow-up implemented; canonical acceptance and full candidate evaluation remain pending. Owner-authorized push and official PR, maximum two Codex review rounds; stop before merge, tag, staging or promotion.
+**Delivery**: Implemented on review branch codex/115-release-candidate-handoff through PR #369. Carry-in 18e6fd8 is dde3e7b; initial delivery is fc39261. Final communication corrections passed all eight canonical gates in verify-all-04. The frozen full evaluation remains failed and bound to fc39261; original #355/#356 causes remain open. Final pushed-head CI and the second Codex round are tracked in the PR. No merge, tag, staging or promotion is authorized here.
 
 **Input**: Owner kickoff S115 with #354, #355, #356 and reconciled documentation commit 18e6fd805e941184c1550a51c6de2ba922d73856. Baseline main is 7bce610396bf83210e09376a2343d2e6ad21d180.
 
@@ -71,7 +71,7 @@ A maintainer can distinguish a reusable current observation from stale or incomp
 - **FR-002**: Deliver one coherent pending v1.6.0 source handoff whose release copy, upgrade/rollback guidance and comparison receipts agree, including a read-only pre-tag source validator shared with Release that checks badge, health version, unique calendar-dated heading and exact notes link; distinguish source preparation from absent staged and public artifacts.
 - **FR-003**: Bind fresh candidate observations and any reused release material to their exact source, executable, content and environment identities; refuse stale or incomplete inputs where the existing workflow requires complete current inputs.
 - **FR-004**: Perform a bounded, silent owned Windows/native Linux follow-up of the current application and original #355/#356 paths, retaining exact outcomes, phase attribution, partial observations and cleanup separately without changing existing limits or assertions.
-- **FR-005**: Correct demonstrated in-scope defects with attributable regressions and native GitHub records; retain #355/#356 as open unknown-cause investigations unless their own corrective or supported upstream outcome is established.
+- **FR-005**: Correct demonstrated in-scope defects with attributable regressions and native GitHub records; retain #355/#356 as open unknown-cause investigations unless their own corrective or supported upstream outcome is established. This includes #370 PowerShell completion persistence guidance and #371 whole-session MCP capability wording discovered in the frozen evaluation, preserving generator behavior, owner profiles, authorization, confirmation and retry contracts.
 - **FR-006**: Preserve the exact immutable-source, candidate, release-identity, checksum, asset allowlist and standing-waiver contracts in the later publication path, including failure and interruption guidance.
 - **FR-007**: Keep publication/review/merge workflow outside implementation-task checkboxes, maintain issue-level traceability and keep #354 open for its actual public-release outcome.
 - **FR-008**: Publish one official source PR and consider every actual review finding within at most two Codex rounds; perform zero merges, tags, release staging runs or public promotions under this kickoff.
@@ -110,3 +110,7 @@ A maintainer can distinguish a reusable current observation from stale or incomp
 - Q: Does carrying 18e6fd8 imply it already reached main? A: No. Incorporate it as an identified S115 source change after the blocking design analysis.
 
 Functional scope, identities, lifecycle, failure handling, resource constraints, authorization and completion signals are clear. Experiment selection and executable implementation detail are planning decisions. No owner question is required; all 16 specification-quality items remain passing. No clarify hook is registered.
+
+## Frozen evaluation communication discoveries (2026-10-24)
+
+The complete fc39261 evaluation remains a failed historical result with 1,744 effective passes, 19 failures, zero blocked cases and three platform exclusions. All 1,109 messages received exact-bound seven-part judgments. Three Windows metadata case deadlines remain attributable observations under #356; their cause is unconfirmed. Correct the independently demonstrated #370/#371 communication defects on a later source identity, without rewriting that report or treating focused correction checks as another full catalog.

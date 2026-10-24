@@ -2,7 +2,7 @@
 
 ## Scope and current publication state
 
-Owner-authorized source work covers #354, #355, #356, 18e6fd8 and independently demonstrated #366 and preparation correction #367 and timeout-fixture correction #368. Carry-in reconciliation is commit dde3e7b on the S115 review branch; original 574d071 remains archived. Pending source is v1.6.0, while public selection remains v1.5.1. No v1.6.0 tag, staged package hash, release ID or publication is supplied by this source work.
+Owner-authorized source work covers #354, #355, #356, 18e6fd8 and independently demonstrated #366 and preparation correction #367 and timeout-fixture correction #368, plus message corrections #370/#371. Carry-in reconciliation is commit dde3e7b on the S115 review branch; original 574d071 remains archived. Pending source is v1.6.0, while public selection remains v1.5.1. No v1.6.0 tag, staged package hash, release ID or publication is supplied by this source work.
 
 ## Pre-tag source operation
 
@@ -23,3 +23,9 @@ Present actual staged identities for separately authorized standing-waiver promo
 For schema-v24 upgrade, stop the daemon and retain a complete application-state backup before switching binaries. Rollback restores that complete backup together with matching older binaries; do not point older binaries at upgraded storage. Existing platform installation guidance remains authoritative.
 
 After actual publication, verify release ID/tag/source, latest pointer, complete downloads and checksums, then reconcile the source-owned published selector and website discovery through review. Preserve historical comparison bytes. This S115 kickoff performs none of those merge/tag/staging/promotion operations.
+
+## Frozen evaluation and later correction identities
+
+PR #369 carries the source work. The full owned report is permanently bound to clean fc39261ed8a874aaad11dd83f7afcccaf06fb10d and content SHA256 74da617216a745dc038c21a727161fe5f4b4f3c825b84283d096b85d562f4208. It is a validated failed outcome: execution 1,760 pass/3 fail, effective 1,744 pass/19 fail/0 blocked/3 platform exclusions, 1,109 exact-bound message reviews and three findings. All four runtime cleanups completed. Three metadata deadlines remain under #356; #370/#371 have subsequent source corrections with separate verification. Never relabel that catalog as a pass or as the later PR head.
+
+Merge may close only the independently delivered #366/#367/#368/#370/#371 outcomes. #354 remains open until public release/discovery is delivered; #355/#356 remain open with original causes unconfirmed. Actual exact-head CI/review receipts belong to the PR timeline. No source correction supplies a staged package or publication identity.

@@ -61,6 +61,7 @@ func usageCause(err error) error {
 func configureCommandContracts(root *cobra.Command) {
 	root.InitDefaultHelpCmd()
 	root.InitDefaultCompletionCmd()
+	configurePowerShellCompletionHelp(root)
 	configureLocalHelp(root)
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageCause(err) })
 	var walk func(*cobra.Command)
@@ -115,6 +116,28 @@ func configureLocalHelp(root *cobra.Command) {
 				return fmtUsage("unknown help topic; use gosched help to list commands")
 			}
 			return topic.Help()
+		}
+	}
+}
+
+func configurePowerShellCompletionHelp(root *cobra.Command) {
+	for _, command := range root.Commands() {
+		if command.Name() != "completion" {
+			continue
+		}
+		for _, shell := range command.Commands() {
+			if shell.Name() == "powershell" {
+				shell.Long = fmt.Sprintf(`Generate the autocompletion script for PowerShell.
+
+To load completions in your current PowerShell session:
+
+	%s completion powershell | Out-String | Invoke-Expression
+
+To load completions for every new session, add the following invocation as a line in your PowerShell profile ($PROFILE):
+
+	%s completion powershell | Out-String | Invoke-Expression
+`, root.Name(), root.Name())
+			}
 		}
 	}
 }

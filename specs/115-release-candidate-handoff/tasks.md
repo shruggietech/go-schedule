@@ -2,7 +2,7 @@
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), research, data model and contracts.
 
-**Delivery**: Pending implementation; publication workflow is recorded in the PR, outside implementation checkboxes.
+**Delivery**: Implementation complete through PR #369 on codex/115-release-candidate-handoff, with final canonical verify-all-04 accepted; pushed-head CI and review workflow are recorded in the PR, outside implementation checkboxes.
 
 ## Phase 1: Setup
 
@@ -28,7 +28,7 @@ Goal: attributable simultaneous native workload and exact current candidate obse
 
 - [x] T008 [US2] Extend `internal/clievaluate/ipc_diagnostics_test.go` with owned memory/file-backed concurrent full snapshots and sixteen exact create/delete pairs, bounded joined workers and existing cancellation assertions.
 - [x] T009 [US2] Run original native Windows/Linux diagnostic six-writer and IPC paths once per declared experiment; record source/runtime identities and distinct #355/#356 dispositions in `specs/115-release-candidate-handoff/observations.md`.
-- [ ] T010 [US2] Build six receipt-bound binaries and perform fresh full owned capture, actual message review, finalize/validate/render using `scripts/cli-qa.ps1`; summarize exact source, binary, command, observation and cleanup outcomes in `specs/115-release-candidate-handoff/observations.md`.
+- [x] T010 [US2] Build six receipt-bound binaries and perform fresh full owned capture, actual message review, finalize/validate/render using `scripts/cli-qa.ps1`; summarize exact source, binary, command, observation and cleanup outcomes in `specs/115-release-candidate-handoff/observations.md`.
 - [x] T011 [US2] Correct any demonstrated in-scope defect with regression coverage in its affected source path and native issue references in `specs/115-release-candidate-handoff/observations.md`; preserve unknown historical causes.
 
 ## Phase 5: US3 identity and recovery (P2)
@@ -36,7 +36,7 @@ Goal: attributable simultaneous native workload and exact current candidate obse
 Goal: stale/incomplete inputs remain distinguishable and future publication preserves identities. Independent criterion: existing refusal/recovery regressions and written handoff agree without creating tags or packages.
 
 - [x] T012 [US3] Exercise existing stale-source, binary receipt, interrupted observation and publication identity refusal/recovery regressions in `internal/clievaluate/`, `internal/clifixture/` and release tooling; record applicable outcomes in `specs/115-release-candidate-handoff/observations.md`.
-- [ ] T013 [US3] Reconcile exact frozen candidate versus later metadata identities, absent staged/public artifacts and issue-level functional dispositions in `specs/115-release-candidate-handoff/handoff.md`.
+- [x] T013 [US3] Reconcile exact frozen candidate versus later metadata identities, absent staged/public artifacts and issue-level functional dispositions in `specs/115-release-candidate-handoff/handoff.md`.
 
 ## Verification discovery adjustment
 
@@ -44,10 +44,12 @@ Goal: stale/incomplete inputs remain distinguishable and future publication pres
 
 - [x] T017 [US2] Synchronize the private timeout fixture in `test/integration/cli_qa_wrapper_test.go` on child output readiness while retaining the original 150 ms policy, timeout output and input assertions.
 
+- [x] T018 [US2] Correct #370 PowerShell persistence help and #371 whole-session MCP wording in `internal/cli/command_contract.go` and `internal/mcpobserve/server.go`, with actual CLI/SDK regressions and unchanged generator/authority contracts.
+
 ## Phase 6: Cross-cutting completion
 
 - [x] T014 Run foreground canonical eight gates through `scripts/verify.sh`, formatting and encoding checks; record exact platform split/results in `specs/115-release-candidate-handoff/observations.md`.
-- [ ] T015 Complete functional task and lifecycle metadata in `specs/115-release-candidate-handoff/spec.md`, `tasks.md` and current context files using real source delivery references.
+- [x] T015 Complete functional task and lifecycle metadata in `specs/115-release-candidate-handoff/spec.md`, `tasks.md` and current context files using real source delivery references.
 
 ## Dependencies and implementation strategy
 

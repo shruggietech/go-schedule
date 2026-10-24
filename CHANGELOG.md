@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- S115 corrects PowerShell completion persistence help to show the invocation to add to $PROFILE, while preserving generated scripts and other shell guidance (Refs #370).
+
+- S115 describes MCP observations and explicitly authorized tools accurately in whole-session identity/instructions, preserving resource-specific Observe content and existing authority controls (Refs #371).
+
 - S115 synchronizes the QA-wrapper timeout fixture on emitted child output before applying its unchanged 150 ms injected deadline; production wrapper and real evaluation timing remain unchanged (Refs #368).
 
 - S115 reuses each packaged integration target within one test process, copies exact candidate bytes to every independent package shape and bounds hidden owned build preparation without changing runtime assertions or QA/global deadlines (Refs #367).
