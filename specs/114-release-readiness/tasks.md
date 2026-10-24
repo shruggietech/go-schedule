@@ -47,16 +47,20 @@ Independent criteria: actual prepared notes pass production read-only selection;
 - [x] T017 [US3] Add exact later publication handoff in specs/114-release-readiness/delivery.md and update active links in docs/INSTALL-windows.md and test/windows/README.md.
 - [x] T018 [US3] Update CHANGELOG.md, pending comparison review digests and specs/README.md while preserving site/data/published.json and historical v1.5.1 bytes.
 
-## Phase 6: Verification and publication
+## Phase 6: Verification
 
 - [x] T019 Run foreground canonical eight gates, relevant release/comparison checks and encoding/format audit; record exact outcomes in specs/114-release-readiness/verification.md.
-- [x] T020 Commit and push codex/114-release-readiness, open and attach the official PR with independent issue dispositions and verified source identity.
-- [ ] T021 Monitor terminal exact-head CI, resolve every actual finding within at most two Codex rounds, update GitHub planning and final handoff, then stop before merge/tag/staging/promotion.
 
 ## Dependencies and parallel opportunities
 
-T001-T003 precede all implementation. T004-T005 provide shared identity and issue tracking. US1 T006-T010 and US2 T011-T013 have independent files and can run independently after setup; US3 T014-T017 also has independent files. T018 follows actual source/notes changes so digests are final. T019-T021 follow all applicable implementation and issue dispositions. Within a story the failing regression precedes its correction.
+T001-T003 precede all implementation. T004-T005 provide shared identity and issue tracking. US1 T006-T010 and US2 T011-T013 have independent files and can run independently after setup; US3 T014-T017 also has independent files. T018 follows actual source/notes changes so digests are final. T019 follows all applicable implementation and issue dispositions. Publication workflow is recorded separately below, outside implementation checkboxes. Within a story the failing regression precedes its correction.
 
 ## Implementation strategy
 
 Implement demonstrated regressions first, preserve unknown causes visibly, then reconcile release source and exact content receipts. S114's source work ends at the owner review boundary; actual #354 public delivery remains pending. No test pass, archive or review receipt closes a causally unresolved bug.
+
+## Publication history
+
+Publication, review, merge and branch cleanup are workflow evidence, not implementation tasks (docs/build-autopilot.md). The original T020/T021 entries were incorrectly added as implementation checkboxes and are retained here as historical references. T020 records the authorized branch push, official PR #365 and attachment. T021 records all 22 terminal successful checks on d11646111be52851c5b32a468050b508c63954c4, the single automatic Codex round with no findings on 15e2578554a5ebc1b4b9b0ea7eec2f2113620575, zero review threads, and the owner squash merge at 7bce610396bf83210e09376a2343d2e6ad21d180. No second review was requested.
+
+The unmerged documentation checkpoint 574d071 is preserved through refs/archive/s114-unmerged-docs and reconciled into this record. Final main CI, CodeQL and website deployment are successful on the actual merge SHA; no v1.6.0 tag or public release is created by this housekeeping. #354 remains the release coordinator and #355/#356 remain unresolved investigations.
