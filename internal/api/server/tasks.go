@@ -468,6 +468,7 @@ func taskObservationResponse(observation store.TaskObservation, now time.Time, t
 	if observation.Schedule != nil {
 		response.NextRuns, _ = schedule.UpcomingRunsWithPolicy(*observation.Schedule, task.Timezone, task.SchedulePolicy(), now, 5)
 		response.ScheduleSummary, response.ScheduleSummaryTruncated = boundObservationText(schedule.Describe(*observation.Schedule, task.MissingDatePolicy), textLimit)
+		response.ScheduleSummaryTruncated = response.ScheduleSummaryTruncated || observation.SummaryTruncated
 		if !schedule.IsStartup(*observation.Schedule) {
 			response.PolicySummary, response.PolicySummaryTruncated = boundObservationText(schedule.DescribePolicy(task.SchedulePolicy()), textLimit)
 		}

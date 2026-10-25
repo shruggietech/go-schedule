@@ -47,6 +47,10 @@ Candidate source preparation; publication is pending owner review and separately
 
 ### Fixed
 
+- S117 restores bounded human schedule descriptions in authenticated task observations and MCP task/schedule resources, preserving UTF-8 limits and truncation indicators without loading execution inputs (Refs #375).
+
+- S117 retains valid array, scalar and null QA observations alongside diagnostics, preserves exact JSON numbers and keeps malformed raw state available for diagnosis (Refs #376).
+
 - **Desktop search identity checks have time to complete their asynchronous interaction without changing production daemon selection.** The complete frontend test/hook allowance is60 seconds and shared DOM lookup10 seconds, while exact-profile selection, mismatch feedback, retained Search context and popup navigation assertions remain active (#372).
 
 - S115 corrects PowerShell completion persistence help to show the invocation to add to $PROFILE, while preserving generated scripts and other shell guidance (Refs #370).

@@ -21,7 +21,7 @@ func openMem(t *testing.T) *Store {
 
 func TestListTaskObservationsPagesAllowlistedFields(t *testing.T) {
 	st := openMem(t)
-	schedule := domain.Schedule{Kind: domain.ScheduleEvent, TriggerID: domain.StartupEventID, HumanSummary: "secret cached summary", Expression: "secret expression"}
+	schedule := domain.Schedule{Kind: domain.ScheduleEvent, TriggerID: domain.StartupEventID, HumanSummary: "At scheduler startup", Expression: "secret expression"}
 	if err := st.CreateSchedule(&schedule); err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestListTaskObservationsPagesAllowlistedFields(t *testing.T) {
 	if observed.Task.Command != "configured" || observed.Task.Args != nil || observed.Task.Env != nil || observed.Task.Stdin != "" || observed.Task.WorkingDir != "" || observed.Task.RunAs != "" {
 		t.Fatalf("execution inputs entered observation projection: %+v", observed.Task)
 	}
-	if observed.Schedule == nil || observed.Schedule.Expression != "" || observed.Schedule.HumanSummary != "" {
+	if observed.Schedule == nil || observed.Schedule.Expression != "" || observed.Schedule.HumanSummary != "At s" || !observed.SummaryTruncated {
 		t.Fatalf("schedule projection = %+v", observed.Schedule)
 	}
 }

@@ -178,6 +178,9 @@ func TestListTaskObservationsArePagedBoundedAndAllowlisted(t *testing.T) {
 	if observed.ID != created.Task.ID || observed.Name != "nigh" || !observed.NameTruncated || !observed.HasSchedule || len(observed.NextRuns) == 0 {
 		t.Fatalf("observation=%+v", observed)
 	}
+	if observed.ScheduleSummary != "Ever" || !observed.ScheduleSummaryTruncated {
+		t.Fatalf("schedule summary=%q truncated=%v", observed.ScheduleSummary, observed.ScheduleSummaryTruncated)
+	}
 	if strings.Contains(rec.Body.String(), secret) || strings.Contains(rec.Body.String(), `"command"`) || strings.Contains(rec.Body.String(), `"env"`) || strings.Contains(rec.Body.String(), `"stdin"`) {
 		t.Fatalf("observation leaked execution fields: %s", rec.Body.String())
 	}
