@@ -18,6 +18,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/teambition/rrule-go v1.8.2
 	github.com/zalando/go-keyring v0.2.8
+	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/time v0.16.0
@@ -47,7 +48,6 @@ require (
 	github.com/speakeasy-api/openapi v1.24.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect

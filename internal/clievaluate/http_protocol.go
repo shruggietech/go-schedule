@@ -51,7 +51,7 @@ func (s *session) httpPost(ctx context.Context, definition step, body any) (bool
 	s.vars["mcp_token"] = token
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: authorizedTransport{transport, token}, Timeout: 3 * time.Second}
+	client := &http.Client{Transport: authorizedTransport{transport, token}, Timeout: 15 * time.Second}
 	sdk := mcp.NewClient(&mcp.Implementation{Name: "QA localhost", Version: Version}, nil)
 	connection, err := sdk.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: status.Endpoint, HTTPClient: client}, nil)
 	var listed any

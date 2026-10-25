@@ -103,7 +103,7 @@ func newClient(origin, token string, h *http.Client) (*client, error) {
 	}
 	copied := *h
 	if copied.Timeout <= 0 {
-		copied.Timeout = 5 * time.Minute
+		copied.Timeout = 15 * time.Minute
 	}
 	copied.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 10 {

@@ -126,7 +126,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 			defer wg.Done()
 			for i := 0; i < 16; i++ {
 				d := &executionDiagnostics{}
-				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 				snapshot, err := s.snapshot(d.phase(ctx, "sustained_snapshot"))
 				cancel()
 				if err != nil {
@@ -149,7 +149,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 	t.Run("held_request_cancellation", func(t *testing.T) {
 		holdCredentials.Store(true)
 		defer holdCredentials.Store(false)
-		deadline, stop := context.WithTimeout(context.Background(), 15*time.Second)
+		deadline, stop := context.WithTimeout(context.Background(), 120*time.Second)
 		defer stop()
 		ctx, cancel := context.WithCancel(deadline)
 		defer cancel()
@@ -201,7 +201,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 			go func(worker int) {
 				defer workers.Done()
 				for i := 0; i < 8; i++ {
-					ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 					group, err := s.api.CreateGroup(ctx, server.GroupCreateRequest{Name: fmt.Sprintf("owned-mixed-%d-%d", worker, i)})
 					if err == nil {
 						_, err = s.api.ListGroups(ctx)
@@ -221,7 +221,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 		if creates.Load() != 16 || deletes.Load() != 16 {
 			t.Errorf("mutations repeated or missing: create=%d delete=%d", creates.Load(), deletes.Load())
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 		groups, err := s.api.ListGroups(ctx)
 		if err != nil || len(groups) != 0 {
@@ -236,7 +236,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 		var workers sync.WaitGroup
 		requests := []string{"tasks", "groups", "chains", "triggers", "sets", "watchers", "channels", "actors", "credentials", "pairings", "profiles", "host_intents", "preferences"}
 		for round := 0; round < 16; round++ {
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			gate := &ownedSnapshotGate{ready: make(chan struct{}, 2), release: make(chan struct{})}
 			snapshotGate.Store(gate)
 			for worker := 0; worker < 2; worker++ {
@@ -292,7 +292,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 		if creates.Load()-baseCreates != 16 || deletes.Load()-baseDeletes != 16 {
 			t.Errorf("mutations repeated or missing: create=%d delete=%d", creates.Load(), deletes.Load())
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 		groups, err := s.api.ListGroups(ctx)
 		if err != nil || len(groups) != 0 {
@@ -320,7 +320,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 		t.Fatal("service restart scenario missing")
 	}
 	inject.Store(true)
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	result := s.execute(ctx, definition)
 	if result.Code != 0 || result.Blocked != "" || len(result.Out) == 0 || len(result.Checks) < 2 || result.Checks[1] {

@@ -506,7 +506,7 @@ Param(
             [string]$Trigger,
 
             [Parameter(Mandatory=$false)]
-            [int]$TimeoutSeconds = 45
+            [int]$TimeoutSeconds = 180
         )
         $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
         do {

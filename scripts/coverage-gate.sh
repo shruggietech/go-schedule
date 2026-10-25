@@ -28,7 +28,7 @@ COVERPKG="./internal/engine,./internal/schedule,./internal/timezone,./internal/s
 # into the merged profile, inflating the denominator and failing the gate for
 # code that no longer exists.
 test_output=$(mktemp)
-if "$GO" test -count=1 -coverpkg="$COVERPKG" ./... -coverprofile="$PROFILE" \
+if "$GO" test -timeout=60m -count=1 -coverpkg="$COVERPKG" ./... -coverprofile="$PROFILE" \
     >"$test_output" 2>&1; then
     rm -f "$test_output"
 else

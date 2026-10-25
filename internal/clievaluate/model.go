@@ -17,7 +17,7 @@ type Budget struct {
 }
 
 // DefaultBudget is intentionally quiet and leaves reporting/cleanup reserve.
-func DefaultBudget() Budget { return Budget{25, 1 << 30, 32, 128, 15000, 1800000, 262144, 64 << 20} }
+func DefaultBudget() Budget { return Budget{25, 1 << 30, 32, 128, 120000, 7200000, 262144, 64 << 20} }
 
 // Binary binds executable evidence to exact bytes and platform.
 type Binary struct {

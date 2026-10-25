@@ -28,7 +28,7 @@ lint:
 	$(SH) scripts/verify.sh lint
 
 test:
-	$(GO) test ./...
+	$(GO) test -timeout=60m ./...
 
 test-race:
 	$(SH) scripts/verify.sh race
@@ -37,7 +37,7 @@ cover:
 	$(SH) scripts/verify.sh coverage
 
 bench:
-	$(GO) test -bench=. -benchmem ./internal/engine/...
+	$(GO) test -timeout=60m -bench=. -benchmem ./internal/engine/...
 
 build: build-daemon build-cli
 

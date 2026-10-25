@@ -364,7 +364,7 @@ func (s *session) arguments(args []string) ([]string, error) {
 func (s *session) close() error {
 	var result error
 	if s.webhook != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		result = errors.Join(result, s.webhook.Shutdown(ctx))
 		cancel()
 		if s.webhookDone != nil {

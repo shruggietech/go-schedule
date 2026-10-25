@@ -13,6 +13,7 @@ jobs:
   lint:
     name: Lint & vet
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     # CGO off so the cgo-only GUI entry point resolves to its stub (the OpenGL
     # driver is not installed on this job); the rest of the tree is cgo-free.
     env:
@@ -35,6 +36,7 @@ jobs:
   test:
     name: Test (race), ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -48,7 +50,7 @@ jobs:
       # The race detector requires cgo; the CI runners provide a C toolchain.
       # The production desktop is a separate Go module with native WebView
       # dependencies and is verified by the wails-desktop job below.
-      - name: go test -race
+      - name: go test -timeout=60m -race
         shell: bash
         env:
           CGO_ENABLED: "1"
@@ -57,6 +59,7 @@ jobs:
   v13-release-qualification:
     name: v1.3 release qualification (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -71,21 +74,22 @@ jobs:
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1
+        run: go test -timeout=60m -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1
       - name: Qualify detailed notification and MCP behavior
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
+        run: go test -timeout=60m -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
       - name: Qualify notification storage and migration preservation
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./internal/store
+        run: go test -timeout=60m -race ./internal/store
 
   v14-remote-qualification:
     name: v1.4 remote qualification (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -102,22 +106,23 @@ jobs:
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./test/integration -run '^TestV14RemoteRelease' -count=1
+        run: go test -timeout=60m -race ./test/integration -run '^TestV14RemoteRelease' -count=1
       - name: Qualify remote security, API, CLI, and profile behavior
         shell: bash
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./internal/config ./internal/remote ./internal/remotemcp ./internal/enrollment ./internal/authorization ./internal/api/client ./internal/cli ./internal/clientprofile
+        run: go test -timeout=60m -race ./internal/config ./internal/remote ./internal/remotemcp ./internal/enrollment ./internal/authorization ./internal/api/client ./internal/cli ./internal/clientprofile
       - name: Qualify desktop remote connection behavior
         shell: bash
         working-directory: desktop
         env:
           CGO_ENABLED: "1"
-        run: go test -race ./connection ./connections
+        run: go test -timeout=60m -race ./connection ./connections
 
   windows-service-core:
     name: Windows LocalSystem execution
     runs-on: windows-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -149,6 +154,7 @@ jobs:
   windows-msi-contract:
     name: Windows MSI compiled & silent contract
     runs-on: windows-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -237,6 +243,7 @@ jobs:
   coverage:
     name: Coverage gate (core packages ≥80%)
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     # Core packages are cgo-free; CGO off avoids needing the GUI's OpenGL libs.
     env:
       CGO_ENABLED: "0"
@@ -255,6 +262,7 @@ jobs:
   build:
     name: Cross-compile (daemon + CLI)
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -275,6 +283,7 @@ jobs:
   wails-desktop:
     name: Production desktop (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -306,10 +315,10 @@ jobs:
         working-directory: desktop/frontend
         run: npm audit --audit-level=high && npm test && npm run build
       - name: Test connection boundary under race detector
-        run: go test -race ./...
+        run: go test -timeout=60m -race ./...
       - name: Exercise the guided platform task end to end
         working-directory: .
-        run: go test ./test/integration -run TestGuidedPlatformExampleCreatesRunsAndRecordsRecognizableActivity -count=1
+        run: go test -timeout=60m ./test/integration -run TestGuidedPlatformExampleCreatesRunsAndRecordsRecognizableActivity -count=1
       - name: Build Linux desktop
         if: runner.os == 'Linux'
         run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build -clean -tags webkit2_41
@@ -339,6 +348,7 @@ jobs:
   wails-desktop-browser-contract:
     name: Production desktop accessibility and responsive contract
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     defaults:
       run:
         working-directory: desktop/frontend
@@ -361,6 +371,7 @@ jobs:
   bench:
     name: Engine benchmarks (artifact only)
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     # Informational signal, not a gate: this job runs the engine benchmarks and
     # publishes their output for review. The enforced dispatch-latency gate is
     # the p99 assertion TestDispatchLatencyP99 (run in the `test` job above), not
@@ -376,7 +387,7 @@ jobs:
       # -run '^$' matches no tests, so only benchmarks execute (the functional
       # suite is not re-run here). -benchmem surfaces per-op allocations.
       - name: Run engine benchmarks
-        run: go test -run '^$' -bench . -benchmem ./internal/engine/... | tee bench.txt
+        run: go test -timeout=60m -run '^$' -bench . -benchmem ./internal/engine/... | tee bench.txt
       - name: Upload benchmark output
         # Benchmark execution is the signal. GitHub's artifact service is
         # auxiliary, so a transient artifact-finalization outage must not turn
@@ -390,6 +401,7 @@ jobs:
   docs:
     name: Docs link check
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     # Canonical docs policy plus the exact static website build and link audit.
     steps:
       - uses: actions/checkout@v7

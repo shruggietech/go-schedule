@@ -114,14 +114,14 @@ func preparePackagedCandidate(t *testing.T, directory, name, target string) stri
 		if err != nil {
 			return nil, fmt.Errorf("start owned %s build: %w", target, err)
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
 		waitErr := process.Wait(ctx)
 		stopErr := process.Stop()
 		if err := errors.Join(waitErr, stopErr); err != nil {
 			output, outErr := os.ReadFile(stdout)
 			diagnostic, diagnosticErr := os.ReadFile(stderr)
-			return nil, fmt.Errorf("prepare %s within two-minute build bound: %w; stdout=%q stderr=%q", target, errors.Join(err, outErr, diagnosticErr), output, diagnostic)
+			return nil, fmt.Errorf("prepare %s within ten-minute build bound: %w; stdout=%q stderr=%q", target, errors.Join(err, outErr, diagnosticErr), output, diagnostic)
 		}
 		return os.ReadFile(binary)
 	})

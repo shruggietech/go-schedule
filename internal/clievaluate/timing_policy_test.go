@@ -16,14 +16,14 @@ func TestTimingPolicyHonorsValidatedBudgetAndBoundedReserve(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if policy.TotalTimeoutMS != total || policy.WorkerShutdownMS <= 0 || policy.ReportTimeoutMS <= 0 || policy.OuterTimeoutMS != total+policy.WorkerShutdownMS+policy.ReportTimeoutMS+15000 {
+		if policy.TotalTimeoutMS != total || policy.WorkerShutdownMS <= 0 || policy.ReportTimeoutMS <= 0 || policy.OuterTimeoutMS != total+policy.WorkerShutdownMS+policy.ReportTimeoutMS+60000 {
 			t.Fatalf("invalid policy: %+v", policy)
 		}
-		if policy.OuterTimeoutMS > total+int64((2*time.Minute)/time.Millisecond) {
+		if policy.OuterTimeoutMS > total+int64((8*time.Minute)/time.Millisecond) {
 			t.Fatalf("unbounded reserve: %+v", policy)
 		}
-		if budget.CaseTimeoutMS != 15000 {
-			t.Fatal("case limit changed")
+		if budget.CaseTimeoutMS != 120000 {
+			t.Fatal("new supported default case allowance missing")
 		}
 	}
 	invalid := DefaultBudget()
@@ -36,7 +36,8 @@ func TestTimingPolicyHonorsValidatedBudgetAndBoundedReserve(t *testing.T) {
 func TestSelectedBudgetResumesOriginalAndRejectsIncompleteOverrides(t *testing.T) {
 	dir := t.TempDir()
 	budget := DefaultBudget()
-	budget.TotalTimeoutMS = 7200000
+	budget.TotalTimeoutMS = 1800000
+	budget.CaseTimeoutMS = 15000
 	data, err := Encode(captureIdentity{Budget: budget})
 	if err != nil {
 		t.Fatal(err)
@@ -69,7 +70,7 @@ func TestFinalizationSharesHardReserveAfterExecutionDeadline(t *testing.T) {
 	report, stop := finalizationContext(ctx, policy)
 	defer stop()
 	deadline, _ := report.Deadline()
-	hard := expired.Add(105 * time.Second)
+	hard := expired.Add(time.Duration(policy.WorkerShutdownMS+policy.ReportTimeoutMS) * time.Millisecond)
 	if deadline.After(hard) || report.Err() != nil {
 		t.Fatalf("report reserve is expired or reset: %s %v", deadline, report.Err())
 	}

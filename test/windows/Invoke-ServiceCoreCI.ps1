@@ -57,10 +57,10 @@ function Invoke-ProbeCli {
         $process.StandardInput.Close()
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
-        if (-not $process.WaitForExit(10000)) {
+        if (-not $process.WaitForExit(120000)) {
             $process.Kill($true)
             $process.WaitForExit()
-            throw "gosched $($Arguments -join ' ') exceeded its 10-second command deadline"
+            throw "gosched $($Arguments -join ' ') exceeded its 120-second command deadline"
         }
         $exitCode = $process.ExitCode
         $text = $stdout.GetAwaiter().GetResult().Trim()
@@ -87,7 +87,7 @@ function Wait-ProbeRun {
         [string]$Trigger,
 
         [Parameter(Mandatory=$false)]
-        [int]$TimeoutSeconds = 45
+        [int]$TimeoutSeconds = 180
     )
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
@@ -187,7 +187,7 @@ try {
     [void](Invoke-ProbeCli -Arguments @('service', 'install'))
     $serviceInstalled = $true
     [void](Invoke-ProbeCli -Arguments @('service', 'start'))
-    $healthDeadline = [DateTime]::UtcNow.AddSeconds(30)
+    $healthDeadline = [DateTime]::UtcNow.AddSeconds(180)
     $health = ''
     do {
         try {

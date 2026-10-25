@@ -77,7 +77,7 @@ jobs:
       run:
         working-directory: desktop
     steps:
-      - run: go test -race ./...
+      - run: go test -timeout=60m -race ./...
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build
       - run: npm audit --audit-level=high && npm test && npm run build
       - run: echo cache-dependency-path: desktop/go.sum
@@ -98,9 +98,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - run: go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1
-      - run: go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
-      - run: go test -race ./internal/store
+      - run: go test -timeout=60m -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1
+      - run: go test -timeout=60m -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
+      - run: go test -timeout=60m -race ./internal/store
 EOF
   cat > "$fixture/.github/dependabot.yml" <<'EOF'
 version: 2

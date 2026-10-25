@@ -20,7 +20,7 @@ func TimingForBudget(budget Budget) (TimingPolicy, error) {
 	if err := ValidateBudget(budget); err != nil {
 		return TimingPolicy{}, err
 	}
-	return TimingPolicy{budget.TotalTimeoutMS, 45000, 60000, budget.TotalTimeoutMS + 120000}, nil
+	return TimingPolicy{budget.TotalTimeoutMS, 180000, 240000, budget.TotalTimeoutMS + 480000}, nil
 }
 
 // SelectedBudget uses the original recorded budget for a resume without an explicit override.

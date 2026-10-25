@@ -50,7 +50,7 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 	if api == "" {
 		api = "https://api.github.com"
 	}
-	client, err := newClient(api, token, &http.Client{Timeout: 5 * time.Minute})
+	client, err := newClient(api, token, &http.Client{Timeout: 15 * time.Minute})
 	if err == nil && client.base.Scheme != "https" {
 		err = fmt.Errorf("GITHUB_API_URL must use HTTPS")
 	}
@@ -58,7 +58,7 @@ func run(args []string, getenv func(string) string, stdout, stderr io.Writer) in
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
 	defer cancel()
 	if command == "resolve" {
 		err = client.resolve(ctx, *repository, *tag, *statePath)

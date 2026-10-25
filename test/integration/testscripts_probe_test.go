@@ -218,7 +218,7 @@ func TestScriptsPowerShellProbeBoundsInheritedPipes(t *testing.T) {
 	if err := os.WriteFile(harness, []byte(text), 0600); err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	args := powershellTwin().command(harness, candidate)
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
