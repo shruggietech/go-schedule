@@ -349,18 +349,19 @@ func (s *Store) ListTasks(groupID, state string) ([]domain.Task, error) {
 // TaskObservation is the bounded subset needed to render observe-only task
 // and schedule summaries. Execution inputs are deliberately absent.
 type TaskObservation struct {
-	Task          domain.Task
-	Schedule      *domain.Schedule
-	NameTruncated bool
-	HasCompletion bool
-	HasTrigger    bool
-	HasWatcher    bool
+	Task             domain.Task
+	Schedule         *domain.Schedule
+	NameTruncated    bool
+	SummaryTruncated bool
+	HasCompletion    bool
+	HasTrigger       bool
+	HasWatcher       bool
 }
 
 // ListTaskObservations returns a stable, page-sized task projection without
 // loading command arguments, environment values, stdin, or other execution
 // inputs into daemon memory.
-func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, offset, limit, nameLimit int) ([]TaskObservation, error) {
+func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, offset, limit, textLimit int) ([]TaskObservation, error) {
 	q := `SELECT t.id,CAST(substr(CAST(t.name AS BLOB),1,?) AS TEXT),
 	 CASE WHEN length(CAST(t.name AS BLOB))>? THEN 1 ELSE 0 END,
 	 COALESCE(t.group_id,''),t.enabled,t.timezone,COALESCE(t.schedule_id,''),
@@ -369,9 +370,11 @@ func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, 
 	 EXISTS(SELECT 1 FROM completion_chains c WHERE c.target_task_id=t.id),
 	 EXISTS(SELECT 1 FROM external_triggers e WHERE e.target_task_id=t.id AND e.enabled=1),
 	 EXISTS(SELECT 1 FROM filesystem_watchers w WHERE w.target_task_id=t.id AND w.enabled=1),
-	 s.id,s.kind,s.rrule,s.anchor,s.elapsed_epoch,s.run_at,s.trigger_id,s.calendar_adjustment
+	 s.id,s.kind,s.rrule,s.anchor,s.elapsed_epoch,s.run_at,s.trigger_id,s.calendar_adjustment,
+	 CAST(substr(CAST(s.human_summary AS BLOB),1,?) AS TEXT),
+	 CASE WHEN length(CAST(s.human_summary AS BLOB))>? THEN 1 ELSE 0 END
 	 FROM tasks t LEFT JOIN schedules s ON s.id=t.schedule_id WHERE 1=1`
-	args := []any{nameLimit, nameLimit}
+	args := []any{textLimit, textLimit, textLimit, textLimit}
 	if groupID != "" {
 		q += ` AND t.group_id=?`
 		args = append(args, groupID)
@@ -393,13 +396,13 @@ func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, 
 	observations := make([]TaskObservation, 0, limit)
 	for rows.Next() {
 		var observation TaskObservation
-		var enabled, nameTruncated, commandReady, hasCompletion, hasTrigger, hasWatcher int
+		var enabled, nameTruncated, summaryTruncated, commandReady, hasCompletion, hasTrigger, hasWatcher int
 		var overlap, catchup, missingDate, timeBasis, dstGap, dstOverlap, stateValue, updated string
-		var scheduleID, scheduleKind, rrule, anchor, elapsedEpoch, runAt, triggerID, adjustment sql.NullString
+		var scheduleID, scheduleKind, rrule, anchor, elapsedEpoch, runAt, triggerID, adjustment, summary sql.NullString
 		if err := rows.Scan(&observation.Task.ID, &observation.Task.Name, &nameTruncated,
 			&observation.Task.GroupID, &enabled, &observation.Task.Timezone, &observation.Task.ScheduleID,
 			&overlap, &catchup, &missingDate, &timeBasis, &dstGap, &dstOverlap, &stateValue, &updated, &commandReady,
-			&hasCompletion, &hasTrigger, &hasWatcher, &scheduleID, &scheduleKind, &rrule, &anchor, &elapsedEpoch, &runAt, &triggerID, &adjustment); err != nil {
+			&hasCompletion, &hasTrigger, &hasWatcher, &scheduleID, &scheduleKind, &rrule, &anchor, &elapsedEpoch, &runAt, &triggerID, &adjustment, &summary, &summaryTruncated); err != nil {
 			return nil, fmt.Errorf("store: scan task observation: %w", err)
 		}
 		observation.Task.Enabled = enabled != 0
@@ -416,11 +419,12 @@ func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, 
 		observation.Task.State = domain.TaskState(stateValue)
 		observation.Task.UpdatedAt, _ = parseTime(updated)
 		observation.NameTruncated = nameTruncated != 0
+		observation.SummaryTruncated = summaryTruncated != 0
 		observation.HasCompletion = hasCompletion != 0
 		observation.HasTrigger = hasTrigger != 0
 		observation.HasWatcher = hasWatcher != 0
 		if scheduleID.Valid {
-			sch := domain.Schedule{ID: scheduleID.String, Kind: domain.ScheduleKind(scheduleKind.String), RRULE: rrule.String, TriggerID: triggerID.String, CalendarAdjustment: domain.CalendarAdjustment(adjustment.String)}
+			sch := domain.Schedule{ID: scheduleID.String, Kind: domain.ScheduleKind(scheduleKind.String), RRULE: rrule.String, TriggerID: triggerID.String, CalendarAdjustment: domain.CalendarAdjustment(adjustment.String), HumanSummary: summary.String}
 			var parseErr error
 			if sch.Anchor, parseErr = parseTimePtr(anchor); parseErr != nil {
 				return nil, fmt.Errorf("store: task observation schedule anchor: %w", parseErr)

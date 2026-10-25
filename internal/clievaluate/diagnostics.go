@@ -55,8 +55,17 @@ func (d *executionDiagnostics) finish(result execution) execution {
 	}
 	state := map[string]any{}
 	if len(result.State) > 0 {
-		if err := json.Unmarshal(result.State, &state); err != nil {
+		var object map[string]json.RawMessage
+		switch {
+		case !json.Valid(result.State):
+			state["observation_raw"] = string(result.State)
 			state["state_decode_error"] = "The original case observation could not be decoded."
+		case json.Unmarshal(result.State, &object) == nil && object != nil:
+			for name, value := range object {
+				state[name] = value
+			}
+		default:
+			state["observation"] = json.RawMessage(result.State)
 		}
 	}
 	state["diagnostics"] = map[string]any{"phases": d.phases, "requests": d.requests, "requests_omitted": d.dropped, "before_complete": d.BeforeComplete, "after_complete": d.AfterComplete, "command_ran": d.CommandRan, "blocked_reason": result.Blocked, "execution_diagnostic": result.Detail, "process_cleanup_error": errorText(result.Cleanup)}

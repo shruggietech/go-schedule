@@ -62,3 +62,45 @@ func TestCaseDiagnosticPhasesRetainRawCommandResultAndCapRequests(t *testing.T) 
 		t.Fatalf("requests=%d omitted=%d observation_error=%q cleanup_error=%q", len(state.Diagnostics.Requests), state.Diagnostics.Omitted, state.ObservationError, state.Diagnostics.CleanupError)
 	}
 }
+
+func TestCaseDiagnosticsPreserveNonObjectObservations(t *testing.T) {
+	for _, raw := range []string{`[{"permission":"observe","count":9007199254740993},{"permission":"manage"}]`, `null`, `"observed"`, `7`, `true`} {
+		t.Run(raw, func(t *testing.T) {
+			d := &executionDiagnostics{}
+			result := d.finish(execution{State: []byte(raw), Code: 7, Out: []byte("original output")})
+			var state map[string]json.RawMessage
+			if err := json.Unmarshal(result.State, &state); err != nil {
+				t.Fatal(err)
+			}
+			var got, want any
+			decoder := json.NewDecoder(strings.NewReader(string(state["observation"])))
+			decoder.UseNumber()
+			if err := decoder.Decode(&got); err != nil {
+				t.Fatalf("observation discarded: %s (%v)", result.State, err)
+			}
+			decoder = json.NewDecoder(strings.NewReader(raw))
+			decoder.UseNumber()
+			if err := decoder.Decode(&want); err != nil {
+				t.Fatal(err)
+			}
+			gotJSON, _ := json.Marshal(got)
+			wantJSON, _ := json.Marshal(want)
+			if string(gotJSON) != string(wantJSON) || state["diagnostics"] == nil || state["state_decode_error"] != nil || result.Code != 7 || string(result.Out) != "original output" {
+				t.Fatalf("original=%s result=%s", raw, result.State)
+			}
+		})
+	}
+}
+
+func TestCaseDiagnosticsRetainMalformedObservationForDiagnosis(t *testing.T) {
+	raw := `{"partial":`
+	result := (&executionDiagnostics{}).finish(execution{State: []byte(raw)})
+	var state map[string]json.RawMessage
+	if err := json.Unmarshal(result.State, &state); err != nil {
+		t.Fatal(err)
+	}
+	var retained string
+	if err := json.Unmarshal(state["observation_raw"], &retained); err != nil || retained != raw || state["state_decode_error"] == nil || state["diagnostics"] == nil {
+		t.Fatalf("malformed observation lost: %s (%v)", result.State, err)
+	}
+}
