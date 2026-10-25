@@ -39,12 +39,9 @@
 - [x] T013 [US3] Reconcile actual pending guidance in `.github/release-notes/v1.6.0.md`, `CHANGELOG.md` and `docs/INSTALL-windows.md` only if findings warrant changes, refreshing `site/data/reviews/v1.6.0.json` bindings when affected bytes change. (FR-009)
 - [x] T014 [US3] Write exact candidate/final-source handoff and remaining owner actions in `specs/117-candidate-qa-handoff/{verification,delivery}.md`; validate source/comparison guards without tag or release operations. (FR-009, FR-010)
 
-## Phase 6: Canonical validation and authorized publication
+## Phase 6: Canonical validation
 
 - [x] T015 Run UTF-8/mojibake and GitHub formatting checks plus all eight foreground gates through `scripts/verify.sh all`; record exact outcomes in `specs/117-candidate-qa-handoff/verification.md`. (FR-011)
-- [ ] T016 Commit validated source on the review branch, push and open one official PR using the repository template; attach it and record exact head/issue links in `.test-temp/s117/publication-ledger.json`. (FR-010, FR-012)
-- [ ] T017 Monitor exact-head CI and all individual reviews, resolve warranted findings and allow at most two Codex rounds; record terminal evidence in `.test-temp/s117/publication-ledger.json` and PR handoff. (FR-012)
-- [ ] T018 Reconcile lifecycle and issue-level outcomes in `specs/README.md` and `specs/117-candidate-qa-handoff/delivery.md`, complete final unmerged handoff and stop before merge/tag/staging/promotion. (FR-007, FR-010, FR-012)
 
 ## Dependencies and execution order
 
@@ -58,6 +55,14 @@ Within US1, reading independent retained case artifacts can be batched after cap
 
 Deliver US1 as the first meaningful increment, preserve it before US2 corrections, and then deliver US3 as one coherent source PR. A valid failed or blocked report is evidence to act on, not permission to weaken checks. No full rerun merely to seek a better outcome. #354 remains open for actual publication, and #355/#356 remain open unless their own corrective outcome is established.
 
-## External delivery tasks
+## Historical workflow and reconciliation dispositions
 
-T016-T018 remain unchecked in this pre-publication source snapshot because push, hosted checks and external reviews have not occurred yet. Their actual execution receipts and terminal state are maintained in the official PR and ignored publication ledger, with no preclaimed successful CI or review. The lifecycle remains In Progress while the source PR is unmerged.
+Publication is external delivery evidence rather than implementation work, as required by docs/build-autopilot.md. The original task IDs remain traceable below without keeping completed publication steps as unchecked implementation tasks.
+
+| Historical ID | Actual disposition |
+| --- | --- |
+| T016 | Completed through [PR #377](https://github.com/shruggietech/go-schedule/pull/377), reviewed head 7327a7c401b6140d0b6c02d2769ea3082d74a123; source PR published and later owner-merged |
+| T017 | Exact-head checks passed and exactly two Codex rounds completed without findings; actual receipts are in [delivery.md](delivery.md) |
+| T018 | S117's unmerged handoff and issue dispositions were delivered in PR #377, but source lifecycle bookkeeping was missed. S118 reconciles the spec, inventory and source delivery record after the owner merge; this is not attributed to the earlier S117 implementation session |
+
+S117 implementation maturity is Implemented. Merge and public-release status are separate facts. #354 remains open for release/discovery and #355/#356 retain independently unconfirmed original causes.

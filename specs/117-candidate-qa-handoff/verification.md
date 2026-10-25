@@ -51,4 +51,10 @@ Application, GUI, coverage and documentation gates ran on native Windows through
 
 Read-only release-source and comparison guards passed for pending v1.6.0. The comparison check received the actual current baseline SHA and validates content bindings; it does not resolve or establish a tag. The exact changelog/notes hashes are 26fa24a30c70cc5f401213457382c9f57e10bff8a7e0e85e9b925ad7712aa269 and 4062f9e664f32298f9f4de8dbeacf4c0b317e0e003c83b185290e18a1c8874b1. Formatting and UTF-8/no-BOM/mojibake audits passed and are repeated after metadata finalization. Only factual verification/task metadata is finalized after the canonical run; no executable input changes.
 
-Hosted exact-head checks and external reviews follow publication. Their final SHA and receipts belong in the PR handoff, not the frozen candidate identity.
+Hosted exact-head checks and external reviews were subsequent delivery events, separate from the frozen candidate identity. Actual receipts follow chronologically below.
+
+## Subsequent source delivery and owner merge (reconciled by S118)
+
+The final reviewed PR #377 head was 7327a7c401b6140d0b6c02d2769ea3082d74a123. Its 22 checks passed, and two Codex rounds completed without findings. The owner merged at 2026-10-25T17:48:41Z as 9ad13821c825d01efcc038b6b1634b187a854758; both commits have the same tree. Exact merged-main CI 40218254702, CodeQL 40218254649 and Website 40218254658 all completed successfully at attempt 1, covering 23 checks. Pages deployment 7316855350 and HTTPS route checks passed for the merge. See [delivery.md](delivery.md) for linked runs and actual review classification.
+
+These subsequent receipts preserve every original failed capture, candidate source/binary hash and later corrective acceptance above. S118 reconciles lifecycle metadata rather than rerunning or reassigning that evidence. Tag, staging and public v1.6.0 package identities remain absent from this source delivery.
