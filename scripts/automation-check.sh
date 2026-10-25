@@ -433,27 +433,18 @@ else
   require_release_text \
     "body_path: .github/release-notes/\${{ github.ref_name }}.md" \
     'dynamic tag-specific release-note body path'
-  require_release_text 'grep -Fxc -- "$BADGE"' \
-    'SIGPIPE-safe README badge count'
-  require_release_text 'CHANGELOG_HEADING="## [${PLAIN}] - "' \
-    'tag-specific changelog section preflight'
-  require_release_text 'RELEASE_NOTES=".github/release-notes/${VERSION}.md"' \
-    'tag-specific release-note file preflight'
-  require_release_text 'test -f "$RELEASE_NOTES"' \
-    'release-note existence guard'
-  require_release_text 'CHANGELOG_HEADING_LINE=$(grep -F -- "$CHANGELOG_HEADING" CHANGELOG.md)' \
-    'exact changelog heading extraction'
-  require_release_text 'CHANGELOG_ANCHOR=$(printf' \
-    'tagged changelog anchor derivation'
-  require_release_text 'CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"' \
-    'tagged release-note changelog link preflight'
-  require_release_text 'CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."' \
-    'exact release-note changelog Markdown target'
-  require_release_text 'grep -Fxc -- "$CHANGELOG_LINE"' \
-    'whole-line release-note changelog guard'
-  require_release_text \
-    'https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF' \
-    'published-release badge source'
+  # Execute one shared source preflight after Go setup and before comparison.
+  # Reject conditional/soft-failure entry points instead of matching validator internals.
+  if ! awk -v expected='        run: go run ./scripts/release-source-check -root . -repository "$GITHUB_REPOSITORY" -tag "$GITHUB_REF_NAME"' '
+    /^  [a-zA-Z0-9_-]+:/ { active = ($0 ~ /^  readme-version:/) }
+    active && /uses: actions\/setup-go@/ { setup=NR }
+    active && /scripts\/release-source-check/ { count++; if ($0 == expected) command=NR }
+    active && /scripts\/comparison-check/ { comparison=NR }
+    active && /continue-on-error:|^[[:space:]]+if:/ { bypass=1 }
+    END { exit !(count == 1 && setup && command > setup && comparison > command && !bypass) }
+  ' "$RELEASE"; then
+    report "$RELEASE: release source preflight must run once after Go setup and before comparison without bypass, using exact root/repository/tag arguments"
+  fi
   require_release_text 'libwebkit2gtk-4.1-dev' \
     'Linux Wails WebKit development headers'
   require_release_text 'go-version-file: desktop/go.mod' \

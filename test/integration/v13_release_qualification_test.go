@@ -21,24 +21,11 @@ import (
 )
 
 func TestV13PackageDefaultsRemainOptIn(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
 	candidateDir := filepath.Join(t.TempDir(), "v1.3 Package Shape ü")
-	if err := os.MkdirAll(candidateDir, 0o755); err != nil {
+	if err := os.MkdirAll(candidateDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	binary := filepath.Join(candidateDir, "goschedd")
-	if runtime.GOOS == "windows" {
-		binary += ".exe"
-	}
-	build := exec.Command("go", "build", "-o", binary, "./cmd/goschedd")
-	build.Dir = root
-	platform.HideConsole(build)
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build package-shaped daemon: %v\n%s", err, output)
-	}
+	binary := preparePackagedCandidate(t, candidateDir, "goschedd", "goschedd")
 
 	stateDir := filepath.Join(t.TempDir(), "retained state")
 	cfg := config.Default()

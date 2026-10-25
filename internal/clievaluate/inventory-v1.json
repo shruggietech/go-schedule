@@ -3481,7 +3481,7 @@
     "path": "completion powershell",
     "use": "powershell",
     "short": "Generate the autocompletion script for powershell",
-    "long": "Generate the autocompletion script for powershell.\n\nTo load completions in your current shell session:\n\n\tgosched completion powershell | Out-String | Invoke-Expression\n\nTo load completions for every new session, add the output of the above command\nto your powershell profile.\n",
+    "long": "Generate the autocompletion script for PowerShell.\n\nTo load completions in your current PowerShell session:\n\n\tgosched completion powershell | Out-String | Invoke-Expression\n\nTo load completions for every new session, add the following invocation as a line in your PowerShell profile ($PROFILE):\n\n\tgosched completion powershell | Out-String | Invoke-Expression\n",
     "aliases": [],
     "hidden": false,
     "runnable": true,

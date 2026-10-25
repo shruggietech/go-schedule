@@ -65,56 +65,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - name: Verify the README release metadata
-        run: |
-          set -euo pipefail
-          VERSION="${GITHUB_REF_NAME}"
-          PLAIN="${VERSION#v}"
-          BADGE='<a href="https://github.com/shruggietech/go-schedule/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF"></a>'
-          HEALTH="daemon ok (version ${PLAIN})"
-          RELEASE_BADGE_COUNT=$(grep -Fc -- '<img alt="Release"' README.md || true)
-          if [ "$RELEASE_BADGE_COUNT" -ne 1 ]; then
-            echo "::error file=README.md::Expected exactly one release badge line; found ${RELEASE_BADGE_COUNT}."
-            exit 1
-          fi
-          HEALTH_LINE_COUNT=$(grep -Fc -- 'daemon ok (version ' README.md || true)
-          if [ "$HEALTH_LINE_COUNT" -ne 1 ]; then
-            echo "::error file=README.md::Expected exactly one health version line; found ${HEALTH_LINE_COUNT}."
-            exit 1
-          fi
-          BADGE_LINE_COUNT=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' README.md | grep -Fxc -- "$BADGE" || true)
-          if [ "$BADGE_LINE_COUNT" -ne 1 ]; then
-            echo "::error file=README.md::Release badge must follow the latest published GitHub release."
-            exit 1
-          fi
-          grep -Fqx -- "$HEALTH" README.md || {
-            echo "::error file=README.md::Health example does not match ${VERSION}. Update it in the release-preparation pull request."
-            exit 1
-          }
-          CHANGELOG_HEADING="## [${PLAIN}] - "
-          CHANGELOG_HEADING_COUNT=$(grep -Fc -- "$CHANGELOG_HEADING" CHANGELOG.md || true)
-          if [ "$CHANGELOG_HEADING_COUNT" -ne 1 ]; then
-            echo "::error file=CHANGELOG.md::Expected exactly one dated ${VERSION} section; found ${CHANGELOG_HEADING_COUNT}."
-            exit 1
-          fi
-          CHANGELOG_HEADING_LINE=$(grep -F -- "$CHANGELOG_HEADING" CHANGELOG.md)
-          CHANGELOG_ANCHOR=$(printf '%s\n' "$CHANGELOG_HEADING_LINE" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9 -]//g; s/[ ]/-/g; s/^-+|-+$//g')
-          RELEASE_NOTES=".github/release-notes/${VERSION}.md"
-          if ! test -f "$RELEASE_NOTES"; then
-            echo "::error file=${RELEASE_NOTES}::Tag-specific release notes are missing."
-            exit 1
-          fi
-          CHANGELOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/${VERSION}/CHANGELOG.md#${CHANGELOG_ANCHOR}"
-          CHANGELOG_LINE="Read the [full changelog](${CHANGELOG_URL}) for every change."
-          CHANGELOG_LINK_COUNT=$(grep -Fxc -- "$CHANGELOG_LINE" "$RELEASE_NOTES" || true)
-          if [ "$CHANGELOG_LINK_COUNT" -ne 1 ]; then
-            echo "::error file=${RELEASE_NOTES}::Expected exactly one changelog link for ${VERSION}; found ${CHANGELOG_LINK_COUNT}."
-            exit 1
-          fi
-
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - name: Verify release source metadata
+        run: go run ./scripts/release-source-check -root . -repository "$GITHUB_REPOSITORY" -tag "$GITHUB_REF_NAME"
       - name: Require reviewed comparison for exact tagged source
         run: go run ./scripts/comparison-check -tag "$GITHUB_REF_NAME" -commit "$GITHUB_SHA"
 

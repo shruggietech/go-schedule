@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-23
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: Source commit 15e2578554a5ebc1b4b9b0ea7eec2f2113620575 is published in PR #365. Canonical local application verification passed; hosted CI/review handling remains in progress, maximum two Codex rounds. Original #355/#356 causes remain unconfirmed and open; #354 awaits later authorized publication. Stop before merge, tag or public promotion.
+**Delivery**: Implemented in PR #365, squash-merged at 7bce610396bf83210e09376a2343d2e6ad21d180 on 2026-10-23. All 22 PR checks passed on d11646111be52851c5b32a468050b508c63954c4, and all 23 merge-head checks passed. One automatic Codex round completed without findings on 15e2578554a5ebc1b4b9b0ea7eec2f2113620575; no second round was requested before the owner merged. Documentation-only 574d071 was outside the squash and is superseded by this post-merge reconciliation. #363/#364 are closed; original #355/#356 causes remain unconfirmed and open. #354 awaits separately authorized release tagging and publication.
 
 **Input**: Owner kickoff S114 with #354, #355 and #356, following the recommendation recorded in #354.
 

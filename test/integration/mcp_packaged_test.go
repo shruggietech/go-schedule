@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -15,24 +14,11 @@ import (
 )
 
 func TestPackagedMCPCommandDiscovery(t *testing.T) {
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
 	packageDir := filepath.Join(t.TempDir(), "Package Shape ü")
-	binary := filepath.Join(packageDir, "gosched")
-	if runtime.GOOS == "windows" {
-		binary += ".exe"
-	}
-	if err := os.MkdirAll(packageDir, 0o755); err != nil {
+	if err := os.MkdirAll(packageDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	build := exec.Command("go", "build", "-o", binary, "./cmd/gosched")
-	build.Dir = root
-	platform.HideConsole(build)
-	if output, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build packaged command: %v\n%s", err, output)
-	}
+	binary := preparePackagedCandidate(t, packageDir, "gosched", "gosched")
 	command := exec.Command(binary, "mcp", "serve")
 	platform.HideConsole(command)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

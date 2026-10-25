@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- S115 corrects PowerShell completion persistence help to show the invocation to add to $PROFILE, while preserving generated scripts and other shell guidance (Refs #370).
+
+- S115 describes MCP observations and explicitly authorized tools accurately in whole-session identity/instructions, preserving resource-specific Observe content and existing authority controls (Refs #371).
+
+- S115 synchronizes the QA-wrapper timeout fixture on emitted child output before applying its unchanged 150 ms injected deadline; production wrapper and real evaluation timing remain unchanged (Refs #368).
+
+- S115 reuses each packaged integration target within one test process, copies exact candidate bytes to every independent package shape and bounds hidden owned build preparation without changing runtime assertions or QA/global deadlines (Refs #367).
+
+- S115 makes production release-source validation available before tag creation, rejects malformed/calendar-invalid release dates and adds concurrent complete-snapshot coverage over owned file-backed WAL storage (Refs #354, #355, #356, #366).
+
+- 2026-10-24 pinned-workflow decision (S115): Release and pre-tag preparation execute the same read-only standard-library source validator after Go setup and before comparison. Keep exact-main CI, draft-only staging and immutable publication contracts unchanged; no tag or package is created by source validation.
+
 - S114 reconciles the pending v1.6.0 delivery procedure and Windows diagnostic outcomes; public promotion remains separately authorized (Refs #354, #355, #356).
 
 ## [1.6.0] - 2026-10-22
