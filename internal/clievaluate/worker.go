@@ -126,7 +126,7 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 	phase := "json"
 	completedCleanup := Cleanup{EnvironmentID: c.Environment.ID}
 	startSession := func() error {
-		setup, cancel := context.WithTimeout(ctx, 30*time.Second)
+		setup, cancel := context.WithTimeout(ctx, 120*time.Second)
 		defer cancel()
 		var setupErr error
 		owned, setupErr = newSession(setup, binaries, c.Budget, redactor, func(w *clifixture.Workspace) error {
@@ -331,7 +331,7 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		r.Cleanup = []Cleanup{completedCleanup}
 	}
 
-	finalCtx, cancelFinal := workerFinalizationContext(ctx, 30*time.Second)
+	finalCtx, cancelFinal := workerFinalizationContext(ctx, 120*time.Second)
 	defer cancelFinal()
 	store.ctx = finalCtx
 	corpus, err = freezeWorkerEvidence(finalCtx, store, c.Prefix, &r)

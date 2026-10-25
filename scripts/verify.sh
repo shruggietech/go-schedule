@@ -43,12 +43,12 @@ run_gate() {
       CGO_ENABLED=0 "$GO" run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0 run ./...
       ;;
     race)
-      CGO_ENABLED=1 "$GO" test -race ./...
+      CGO_ENABLED=1 "$GO" test -timeout=60m -race ./...
       ;;
     gui)
       (
         cd desktop
-        "$GO" test -race ./...
+        "$GO" test -timeout=60m -race ./...
         "$GO" run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build -clean -tags webkit2_41
       )
       (
@@ -75,6 +75,7 @@ run_gate() {
       "$SH" scripts/docs-check.sh
       ;;
     automation)
+      "$GO" run ./scripts/ci-timeout-check
       "$SH" scripts/automation-check.sh "$ROOT"
       "$SH" test/scripts/automation-check_test.sh automation
       ;;

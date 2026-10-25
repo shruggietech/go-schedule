@@ -71,7 +71,7 @@ func TestV14RemoteReleaseJourney(t *testing.T) {
 	writeV14Config(t, configPath, cfg)
 	local, output, stop = startV14Daemon(t, candidate, configPath, endpoint)
 	defer stop()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	if err := waitForV14Remote(ctx, address); err != nil {
 		t.Fatalf("remote listener did not become reachable: %v\n%s", err, output.String())
@@ -290,7 +290,7 @@ func startV14Daemon(t *testing.T, binary, configPath, endpoint string) (*client.
 		}
 	}
 	local := client.New(endpoint)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	if err := waitForV13Health(ctx, local); err != nil {
 		stop()

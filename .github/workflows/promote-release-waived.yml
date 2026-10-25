@@ -20,6 +20,7 @@ jobs:
   validate-and-promote:
     name: Validate exact staged assets and promote with native checks untested
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RELEASE_TAG: ${{ inputs.tag }}

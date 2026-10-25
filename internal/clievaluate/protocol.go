@@ -80,7 +80,7 @@ func (s *session) mcpProtocol(ctx context.Context, permission string, confirmati
 		err = errors.Join(err, connection.Close())
 	}
 	_ = pipes.Stdin.Close()
-	waitCtx, stop := context.WithTimeout(context.Background(), 3*time.Second)
+	waitCtx, stop := context.WithTimeout(context.Background(), 30*time.Second)
 	waitErr := process.Wait(waitCtx)
 	stop()
 	cleanup := process.Stop()

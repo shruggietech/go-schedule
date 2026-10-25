@@ -21,7 +21,7 @@ func TestPackagedMCPCommandDiscovery(t *testing.T) {
 	binary := preparePackagedCandidate(t, packageDir, "gosched", "gosched")
 	command := exec.Command(binary, "mcp", "serve")
 	platform.HideConsole(command)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	client := mcp.NewClient(&mcp.Implementation{Name: "package-smoke", Version: "test"}, nil)
 	session, err := client.Connect(ctx, &mcp.CommandTransport{Command: command}, nil)

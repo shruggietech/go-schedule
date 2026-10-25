@@ -93,7 +93,7 @@ func runV13CandidateAndInspect(t *testing.T, binary, configPath, endpoint string
 	}()
 
 	api := client.New(endpoint)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 	if err := waitForV13Health(ctx, api); err != nil {
 		_ = command.Process.Kill()

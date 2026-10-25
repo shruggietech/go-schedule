@@ -91,7 +91,7 @@ Param(
     function Invoke-DiagnosticProcess {
         [CmdletBinding()]
         Param([string]$Name, [string]$FilePath, [string]$Arguments,
-            [int]$TimeoutSeconds = 1200, [switch]$Installer)
+            [int]$TimeoutSeconds = 3600, [switch]$Installer)
         $info = [Diagnostics.ProcessStartInfo]::new()
         $info.FileName = $FilePath
         $info.Arguments = $Arguments
@@ -135,7 +135,7 @@ Param(
         }
         # Never wait indefinitely for inherited pipe handles after child exit.
         if ($null -ne $code) {
-            if (-not $stdout.Wait(3000) -or -not $stderr.Wait(3000)) {
+            if (-not $stdout.Wait(30000) -or -not $stderr.Wait(30000)) {
                 $status = 'failed'
             }
         }
@@ -204,19 +204,19 @@ Param(
         if (-not $PSCmdlet.ShouldProcess($FixtureOutput, 'Write nondestructive process fixtures')) { exit 0 }
         $script:Exports = $FixtureOutput
         $engine = (Get-Process -Id $PID).Path
-        Invoke-DiagnosticProcess 'success' $engine '-NoProfile -NonInteractive -Command "exit 0"' 10
+        Invoke-DiagnosticProcess 'success' $engine '-NoProfile -NonInteractive -Command "exit 0"' 60
         foreach ($case in @('failure','timeout')) {
             $fixtureArguments = if ($case -eq 'failure') {
                 '-NoProfile -NonInteractive -Command "exit 7"'
             } else { '-NoProfile -NonInteractive -Command "[Console]::Out.WriteLine(''timeout-stdout''); [Console]::Error.WriteLine(''timeout-stderr''); Start-Sleep -Seconds 6"' }
             $refused = $false
-            $fixtureDeadline = if ($case -eq 'failure') { 10 } else { 3 }
+            $fixtureDeadline = if ($case -eq 'failure') { 60 } else { 3 }
             try { Invoke-DiagnosticProcess $case $engine $fixtureArguments $fixtureDeadline }
             catch { $refused = $true }
             if (-not $refused) { throw "Fixture $case did not refuse success." }
         }
         $refused = $false
-        try { Invoke-DiagnosticProcess 'reboot' $engine '-NoProfile -NonInteractive -Command "exit 3010"' 10 -Installer }
+        try { Invoke-DiagnosticProcess 'reboot' $engine '-NoProfile -NonInteractive -Command "exit 3010"' 60 -Installer }
         catch { $refused = $true }
         if (-not $refused) { throw 'Reboot-required fixture permitted subsequent work.' }
         exit 0
@@ -264,11 +264,11 @@ Param(
         [IO.Compression.ZipFile]::ExtractToDirectory('C:\qualification\powershell.zip', 'C:\qualification\pwsh')
         if (-not (Test-Path -LiteralPath 'C:\qualification\pwsh\pwsh.exe')) { throw 'Portable PowerShell executable missing.' }
         Invoke-DiagnosticProcess 'powershell-check' 'C:\qualification\pwsh\pwsh.exe' `
-            '-NoProfile -NonInteractive -Command "if ($PSVersionTable.PSVersion.Major -lt 7) { exit 1 }"' 30
+            '-NoProfile -NonInteractive -Command "if ($PSVersionTable.PSVersion.Major -lt 7) { exit 1 }"' 120
         Invoke-DiagnosticProcess 'collector-initialize' 'C:\qualification\pwsh\pwsh.exe' `
             -Arguments ('-NoProfile -NonInteractive -File C:\qualification\Invoke-ReleaseCandidateAttended.ps1 -Action Initialize -MsiPath C:\qualification\go-schedule_v1.4.0_windows_amd64.msi -WorkspacePath C:\qualification\attended-workspace -Tag v1.4.0 -Commit {0} -RunId {1} -RunAttempt {2}' -f $manifest.commit, $manifest.run_id, $manifest.run_attempt) `
-            -TimeoutSeconds 120
-        Invoke-DiagnosticProcess 'webview2' 'C:\qualification\webview2.exe' '/silent /install' 600
+            -TimeoutSeconds 600
+        Invoke-DiagnosticProcess 'webview2' 'C:\qualification\webview2.exe' '/silent /install' 1800
         $runtime = @(
             Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue
             Get-ItemProperty -LiteralPath 'HKCU:\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue

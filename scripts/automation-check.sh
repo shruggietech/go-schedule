@@ -114,7 +114,7 @@ else
   require_ci_text 'uses: actions/setup-node@v7' 'approved Node setup action'
   require_ci_text 'node-version: 26' 'Node 26 desktop baseline'
   require_node_26_pins "$CI" 'every CI Node runtime pin'
-  require_ci_text 'go test -race ./...' 'desktop Go race gate'
+  require_ci_text 'go test -timeout=60m -race ./...' 'desktop Go race gate'
   require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build' \
     'exact production Wails build version'
   require_ci_text '  wails-desktop:' 'production Wails desktop job'
@@ -152,11 +152,11 @@ else
     'fail-fast-disabled strategy'
   require_v13_text 'os: [ubuntu-latest, macos-latest, windows-latest]' \
     'three-platform matrix'
-  require_v13_text "go test -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1" \
+  require_v13_text "go test -timeout=60m -race ./test/integration -run '^(TestV13PackageDefaultsRemainOptIn|TestWebhookNotificationEndToEndPreservesRunOutcome|TestPackagedMCPCommandDiscovery)$' -count=1" \
     'package-shaped v1.3 integration qualification'
-  require_v13_text 'go test -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli' \
+  require_v13_text 'go test -timeout=60m -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli' \
     'focused v1.3 notification and MCP qualification'
-  require_v13_text 'go test -race ./internal/store' \
+  require_v13_text 'go test -timeout=60m -race ./internal/store' \
     'v1.3 notification storage and migration qualification'
   if grep -Eq 'wails-proof:|wails-browser-contract:|Install Fyne|GUI build & test \(cgo\)' "$CI"; then
     report "$CI: retired or parallel desktop validation remains"

@@ -6,20 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-- S115 corrects PowerShell completion persistence help to show the invocation to add to $PROFILE, while preserving generated scripts and other shell guidance (Refs #370).
-
-- S115 describes MCP observations and explicitly authorized tools accurately in whole-session identity/instructions, preserving resource-specific Observe content and existing authority controls (Refs #371).
-
-- S115 synchronizes the QA-wrapper timeout fixture on emitted child output before applying its unchanged 150 ms injected deadline; production wrapper and real evaluation timing remain unchanged (Refs #368).
-
-- S115 reuses each packaged integration target within one test process, copies exact candidate bytes to every independent package shape and bounds hidden owned build preparation without changing runtime assertions or QA/global deadlines (Refs #367).
-
-- S115 makes production release-source validation available before tag creation, rejects malformed/calendar-invalid release dates and adds concurrent complete-snapshot coverage over owned file-backed WAL storage (Refs #354, #355, #356, #366).
-
-- 2026-10-24 pinned-workflow decision (S115): Release and pre-tag preparation execute the same read-only standard-library source validator after Go setup and before comparison. Keep exact-main CI, draft-only staging and immutable publication contracts unchanged; no tag or package is created by source validation.
-
-- S114 reconciles the pending v1.6.0 delivery procedure and Windows diagnostic outcomes; public promotion remains separately authorized (Refs #354, #355, #356).
-
 ## [1.6.0] - 2026-10-22
 
 Candidate source preparation; publication is pending owner review and separately authorized tagging/promotion. The latest public package remains v1.5.1 until promotion completes.
@@ -35,6 +21,10 @@ Candidate source preparation; publication is pending owner review and separately
 - **A static Next.js and Fumadocs website provides a branded home, documentation search and a dedicated sourced comparison (Refs #276, #279, #280, #282).** Canonical Markdown stays in `docs/`; legacy HTML paths retain query strings and fragments. Comparison snapshots identify the public release and link capability evidence and roadmap opportunities.
 
 ### Changed
+
+- **2026-10-25 owner-directed verification and pinned-workflow decision (S116): increase CI completion allowances across all six workflows and nested runners.** Go package verification uses60 minutes; frontend tests/hooks60 seconds and shared DOM lookups10 seconds; browser tests120 seconds; static export, preparation, service/installer/qualification, Pages and release helpers receive longer declared completion allowances. All 22 job definitions explicitly retain GitHub's existing360-minute hosted ceiling. The new native QA default is120 seconds/case and2 hours total with aligned shutdown/reporting/drain reserves; explicit/resumed budgets and all resource, ownership, identity, coverage and security assertions remain authoritative. This explicitly supersedes older no-increase verification guidance (Refs #372, #373, #354, #355, #356).
+
+- 2026-10-24 pinned-workflow decision (S115): Release and pre-tag preparation execute the same read-only standard-library source validator after Go setup and before comparison. Keep exact-main CI, draft-only staging and immutable publication contracts unchanged; no tag or package is created by source validation.
 
 - **2026-10-23 release/process decision (S114): retain the standing-waiver validator and correct its source-owned disclosure, share the existing SQLite probe deadline with redirected reads, and retain bounded launch/failure phase evidence.** Current platform upgrade guidance requires a stopped-daemon full-state backup and matching older binaries for rollback. Original Windows CLR/prerequisite and owned IPC causes remain unconfirmed; known issues stay visible rather than closing on passing repetitions (Refs #354, #355, #356, #363, #364).
 
@@ -56,6 +46,18 @@ Candidate source preparation; publication is pending owner review and separately
 - **2026-10-19 build-protocol decision (S106): replace the Jekyll documentation pipeline with an exact-lockfile static website build and add a required comparison review guard before release staging or promotion.** CI, Pages and dependency maintenance cover `site/`. The guard binds each release tag to reviewed comparison data, changelog and release-note digests. The coordinated go-schedule.io DNS, Pages source and HTTPS cutover completed with S106 (Refs #278).
 
 ### Fixed
+
+- **Desktop search identity checks have time to complete their asynchronous interaction without changing production daemon selection.** The complete frontend test/hook allowance is60 seconds and shared DOM lookup10 seconds, while exact-profile selection, mismatch feedback, retained Search context and popup navigation assertions remain active (#372).
+
+- S115 corrects PowerShell completion persistence help to show the invocation to add to $PROFILE, while preserving generated scripts and other shell guidance (Refs #370).
+
+- S115 describes MCP observations and explicitly authorized tools accurately in whole-session identity/instructions, preserving resource-specific Observe content and existing authority controls (Refs #371).
+
+- S115 synchronizes the QA-wrapper timeout fixture on emitted child output before applying its unchanged 150 ms injected deadline; production wrapper and real evaluation timing remain unchanged (Refs #368).
+
+- S115 reuses each packaged integration target within one test process, copies exact candidate bytes to every independent package shape and bounds hidden owned build preparation without changing runtime assertions or QA/global deadlines (Refs #367).
+
+- S115 makes production release-source validation available before tag creation, rejects malformed/calendar-invalid release dates and adds concurrent complete-snapshot coverage over owned file-backed WAL storage (Refs #354, #355, #356, #366).
 
 - **SMTP server acceptance is neutral delivery detail, with an empty error field after complete acceptance (#358).** Forward migration preserves old SMTP result text and leaves failure/retry and webhook history intact; typed API, CLI and desktop representations share the result.
 - **Unattended capture uses the selected validated budget, retains timeout output and recovers latest durable checkpoints without rewriting unchanged sanitized evidence (#357).** Phase/request timings, partial snapshots and blocked-case evidence distinguish original command outcomes from inspection and cleanup failures (Refs #356). Script prerequisite probes preserve bounded native failure details and reject malformed versions without reducing writer concurrency or changing SQLite retries (Refs #355). The original intermittent CLR crash and earlier IPC timeout causes remain unconfirmed.

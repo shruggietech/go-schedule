@@ -38,8 +38,8 @@ func TestWSLUsesSharedShutdownAllowance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(args, "--property=RuntimeMaxSec=1845s") {
-		t.Fatalf("unit hard limit disagrees with the 45-second worker allowance: %v", args)
+	if !slices.Contains(args, "--property=RuntimeMaxSec=7380s") {
+		t.Fatalf("unit hard limit disagrees with the 180-second worker allowance: %v", args)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestWSLHardDeadlineUsesRemainingCoordinatorTimeWithoutReset(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		expected := remaining + 45*time.Second
+		expected := remaining + 180*time.Second
 		seconds := (expected + time.Second - 1) / time.Second
 		want := fmt.Sprintf("--property=RuntimeMaxSec=%ds", seconds)
 		if !slices.Contains(args, want) || !slices.Contains(args, "--property=CPUQuota=25%") || !slices.Contains(args, "--property=TasksMax=128") {

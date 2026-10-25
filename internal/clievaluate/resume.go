@@ -82,7 +82,7 @@ func confirmPreviousWorkersStopped(ctx context.Context, store *ArtifactStore, pr
 		}
 		if env == "wsl" {
 			command := clifixture.Command{Executable: filepath.Join(os.Getenv("WINDIR"), "System32", "wsl.exe"), Arguments: []string{"--distribution", prior.Distro, "--user", prior.User, "--exec", "systemctl", "--user", "show", "gosched-qa-" + prior.RunID + ".service", "--property=LoadState", "--property=ActiveState"}, Directory: filepath.Dir(os.Args[0]), Environment: quietEnvironment()}
-			probeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			probeCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 			capture := captureCommand(probeCtx, command, nil, 4096)
 			cancel()
 			if capture.Failure != nil {

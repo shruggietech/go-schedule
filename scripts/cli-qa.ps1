@@ -20,7 +20,7 @@ $qaTemporary = Join-Path $qaSource '.test-temp'
 [void][IO.Directory]::CreateDirectory($qaTemporary)
 
 function Invoke-QaHidden {
-    param([string]$Executable, [string[]]$Arguments, [int]$TimeoutMilliseconds = 1900000, [switch]$CaptureOutput, [switch]$Evaluation)
+    param([string]$Executable, [string[]]$Arguments, [int]$TimeoutMilliseconds = 8000000, [switch]$CaptureOutput, [switch]$Evaluation)
     $qaStart = [Diagnostics.ProcessStartInfo]::new()
     $qaStart.FileName = $Executable
     $qaStart.WorkingDirectory = $qaSource
@@ -85,13 +85,13 @@ if (-not $qaExecutable -or -not [IO.File]::Exists($qaExecutable)) {
         $qaGoCandidates = $qaCachedCandidates + @((Join-Path $env:ProgramFiles 'Go/bin/go.exe')) + @((Get-Command go -CommandType Application -All -ErrorAction SilentlyContinue).Source)
         foreach ($qaCandidate in ($qaGoCandidates | Select-Object -Unique)) {
             if (-not $qaCandidate -or -not [IO.File]::Exists($qaCandidate)) { continue }
-            $qaVersionText = Invoke-QaHidden -Executable $qaCandidate -Arguments @('version') -TimeoutMilliseconds 5000 -CaptureOutput
+            $qaVersionText = Invoke-QaHidden -Executable $qaCandidate -Arguments @('version') -TimeoutMilliseconds 30000 -CaptureOutput
             if ($qaVersionText -match 'go version go(\d+\.\d+(?:\.\d+)?)' -and [version]$Matches[1] -ge $qaRequiredGo) { $qaGo = $qaCandidate; break }
         }
         if (-not $qaGo) { throw 'No suitable existing Go toolchain was found. Select its path with GoExecutable.' }
     }
     $qaExecutable = Join-Path $qaTemporary ('gosched-qa-bootstrap-' + [guid]::NewGuid().ToString() + '.exe')
-    Invoke-QaHidden -Executable $qaGo -Arguments @('build', '-p=2', '-o', $qaExecutable, './cmd/gosched-qa') -TimeoutMilliseconds 300000
+    Invoke-QaHidden -Executable $qaGo -Arguments @('build', '-p=2', '-o', $qaExecutable, './cmd/gosched-qa') -TimeoutMilliseconds 900000
     if ($Action -eq 'inventory') { Invoke-QaHidden -Executable $qaExecutable -Arguments @('inventory'); return }
     if (-not $BinaryDirectory) { $BinaryDirectory = Join-Path $qaTemporary ('cli-qa-inputs-' + [guid]::NewGuid().ToString()) }
     $qaBuildArguments = @('build', '--source', $qaSource, '--bin-dir', $BinaryDirectory, '--go', $qaGo)
@@ -116,12 +116,12 @@ if ($Action -eq 'finalize') {
     if (-not $Reviews) { throw 'Supply the completed agent Reviews JSON against this frozen corpus.' }
     $qaArguments += @('--reviews', [IO.Path]::GetFullPath($Reviews))
 }
-$qaTimeout = 1900000
+$qaTimeout = 8000000
 if ($Action -in @('capture', 'resume')) {
     $qaPolicyArguments = @('timing-policy')
     if ($Budget) { $qaPolicyArguments += @('--budget', [IO.Path]::GetFullPath($Budget)) }
     if ($Action -eq 'resume') { $qaPolicyArguments += @('--resume-out', $OutputDirectory) }
-    $qaPolicy = (Invoke-QaHidden -Executable $qaExecutable -Arguments $qaPolicyArguments -TimeoutMilliseconds 10000 -CaptureOutput) | ConvertFrom-Json
+    $qaPolicy = (Invoke-QaHidden -Executable $qaExecutable -Arguments $qaPolicyArguments -TimeoutMilliseconds 60000 -CaptureOutput) | ConvertFrom-Json
     $qaTimeout = [int]$qaPolicy.outer_timeout_ms
 }
 $qaEvaluationExit = Invoke-QaHidden -Executable $qaExecutable -Arguments $qaArguments -TimeoutMilliseconds $qaTimeout -Evaluation

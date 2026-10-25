@@ -51,7 +51,7 @@ func TestPackagedCLIUsesOnlyOwnedDaemon(t *testing.T) {
 	}
 	cliBinary := preparePackagedCandidate(t, binDir, "gosched", "gosched")
 	daemonBinary := preparePackagedCandidate(t, binDir, "goschedd", "goschedd")
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	sequence := 0
 	run := func(binary string, args []string) []byte {

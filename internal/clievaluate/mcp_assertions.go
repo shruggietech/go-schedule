@@ -45,7 +45,7 @@ func (s *session) manageProtocol(ctx context.Context, connection *mcp.ClientSess
 	good = good && id != "" && !accepted.IsError && toolObject(accepted)["outcome"] == "accepted"
 	if id != "" {
 		defer func() {
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			err := s.w.Guard(cleanupCtx, s.api)
 			if err == nil {

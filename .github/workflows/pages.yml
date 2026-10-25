@@ -21,6 +21,7 @@ jobs:
   build:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
         with:
@@ -53,6 +54,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     permissions:
       pages: write
       id-token: write
@@ -62,3 +64,5 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v5
         id: deployment
+        with:
+          timeout: 3600000

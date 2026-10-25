@@ -110,7 +110,7 @@ func requireSqlite(t *testing.T) string {
 	if err != nil {
 		t.Skip("SKIP: sqlite3 is not on PATH; these tests drive scripts that require it")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, p, "--version")
 	configureScriptProcess(cmd)

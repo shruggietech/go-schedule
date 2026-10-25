@@ -43,8 +43,10 @@ describe('production shell', () => {
     await user.click(screen.getByRole('button', { name: /^Search$/ }))
     await user.type(screen.getByLabelText('Search all systems'), 'archive')
     await user.click(screen.getAllByRole('button', { name: /^Search$/ }).at(-1)!)
-    await user.click(await screen.findByRole('button', { name: 'Open' }, { timeout: 5000 }))
+    await user.click(await screen.findByRole('button', { name: 'Open' }))
     expect(await screen.findByText('The scheduler identity changed. No activity record was opened.')).toBeVisible()
+    expect(selecting.selectConnection).toHaveBeenCalledWith('profile-7')
+    expect(screen.queryByRole('heading', { level: 1, name: 'Activity' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Search' })).toBeVisible()
   })
 
