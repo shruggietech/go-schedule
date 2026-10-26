@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-25
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: Candidate evaluation and demonstrated source corrections implemented; canonical eight gates pass. Publication and external review follow. Owner authorizes push, one official PR and at most two Codex review rounds; stop before merge, tag, staging or promotion.
+**Delivery**: [PR #377](https://github.com/shruggietech/go-schedule/pull/377), reviewed head 7327a7c401b6140d0b6c02d2769ea3082d74a123, merged at 9ad13821c825d01efcc038b6b1634b187a854758 on 2026-10-25. All 23 exact merged-main checks and Pages deployment passed; see [delivery.md](delivery.md) and [verification.md](verification.md). Lifecycle bookkeeping reconciled by S118; release publication remains pending #354.
 
 **Input**: Kick off S117 under autopilot with #354-#356, use Spec-Kit, run candidate QA, implement demonstrated fixes and publish the source PR. Accepted main baseline is 11485a8a6ce97fe8e6966e1cc3cdb6a55b9d5651, with all 23 merged-main checks successful. Pending version remains v1.6.0; public release remains v1.5.1.
 

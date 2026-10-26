@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Reconcile S117 implementation and actual PR #377 delivery records; provide the current S118 release handoff with separate #354 publication and unresolved #355/#356 outcomes.
+
+- 2026-10-25 release/process and pinned-file decision (S118): update the current procedure reference in docs/INSTALL-windows.md and test/windows/README.md to the reconciled S118 handoff. Preserve the existing standing native-testing waiver, exact-source staging/promotion contracts, complete-state backup and matching-binary rollback guidance. Selected pending v1.6.0 content bindings and public v1.5.1 selection are unchanged.
+
 ## [1.6.0] - 2026-10-22
 
 Candidate source preparation; publication is pending owner review and separately authorized tagging/promotion. The latest public package remains v1.5.1 until promotion completes.
