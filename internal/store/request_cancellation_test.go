@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/api/client"
 	"github.com/shruggietech/go-schedule/internal/api/server"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/internal/incident"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
@@ -48,9 +50,27 @@ func TestOwnedIPCRequestCancellationReleasesPoolWait(t *testing.T) {
 					t.Fatal(err)
 				}
 				api := server.New(st, nil, nil, nil, "", nil)
+				tracker := &incident.Tracker{}
+				parent, err := filepath.EvalSymlinks(t.TempDir())
+				if err != nil {
+					t.Fatal(err)
+				}
+				channel, err := incident.NewChannel(parent)
+				if err != nil {
+					t.Fatal(err)
+				}
+				diagnosticCtx, stopDiagnostics := context.WithCancel(context.Background())
+				diagnosticDone := make(chan error, 1)
+				go func() { diagnosticDone <- incident.Serve(diagnosticCtx, channel.Dir, tracker, st.PoolStats) }()
+				defer func() {
+					stopDiagnostics()
+					if err := <-diagnosticDone; err != nil {
+						t.Error(err)
+					}
+				}()
 				finished := make(chan struct{}, 1)
 				svc := &http.Server{ReadHeaderTimeout: time.Second, Handler: http.HandlerFunc(func(out http.ResponseWriter, r *http.Request) {
-					api.Handler().ServeHTTP(out, r)
+					api.HandlerWithDiagnostics(tracker).ServeHTTP(out, r)
 					finished <- struct{}{}
 				})}
 				serveDone := make(chan error, 1)
@@ -83,6 +103,15 @@ func TestOwnedIPCRequestCancellationReleasesPoolWait(t *testing.T) {
 					}
 				}
 				t.Logf("queued real IPC request: %+v", st.PoolStatsForTest())
+				captureCtx, stopCapture := context.WithTimeout(context.Background(), 2*time.Second)
+				snapshot, captureErr := channel.Collect(captureCtx, os.Getpid(), "before")
+				stopCapture()
+				if captureErr != nil {
+					t.Fatal(captureErr)
+				}
+				if snapshot.Pool.InUse != 1 || snapshot.Pool.WaitCount <= baseline || len(snapshot.Active) != 1 || snapshot.Active[0].Stage != "resolve_actor" {
+					t.Fatalf("lost live queued request evidence: %+v", snapshot)
+				}
 				cancel()
 				select {
 				case err := <-result:

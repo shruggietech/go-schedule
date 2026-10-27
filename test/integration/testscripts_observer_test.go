@@ -11,9 +11,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/internal/incident"
 )
 
 const scriptStreamLimit = 1 << 20
@@ -34,23 +37,27 @@ func captureScriptStream(reader io.Reader) scriptStream {
 	return scriptStream{string(data), err}
 }
 
-func observeScript(args []string, harness string, environment []string) bindingResult {
+func observeScript(args []string, harness string, environment []string) (result bindingResult) {
 	started := time.Now()
-	result := bindingResult{code: -1}
+	result = bindingResult{code: -1}
+	if len(args) == 0 {
+		result.err = errors.New("script interpreter command is missing")
+		return unavailableScriptLaunch(result, "")
+	}
 	executable, err := exec.LookPath(args[0])
 	if err != nil {
 		result.err = err
-		return result
+		return unavailableScriptLaunch(result, args[0])
 	}
 	executable, err = filepath.Abs(executable)
 	if err != nil {
 		result.err = err
-		return result
+		return unavailableScriptLaunch(result, args[0])
 	}
 	directory, err := os.Getwd()
 	if err != nil {
 		result.err = err
-		return result
+		return unavailableScriptLaunch(result, executable)
 	}
 	diagnostic := os.Getenv("GOSCHEDULE_PROBE_DIAGNOSTICS") == "1"
 	provenance := map[string]any{}
@@ -60,11 +67,60 @@ func observeScript(args []string, harness string, environment []string) bindingR
 		provenance["harness"] = harness
 		provenance["harness_sha256"] = scriptFileHash(harness)
 	}
+	var incidentCapture *incident.Capture
+	var incidentErr error
+	var incidentPID int
+	var incidentHash string
+	if parent := os.Getenv("GOSCHEDULE_INCIDENT_DIR"); parent != "" {
+		incidentHash = scriptFileHash(executable)
+		incidentCapture, incidentErr = incident.New(parent)
+		if incidentErr == nil && (strings.EqualFold(filepath.Base(executable), "pwsh.exe") || strings.EqualFold(filepath.Base(executable), "pwsh")) {
+			environment, incidentErr = incidentCapture.CoreCLREnvironment(environment)
+		}
+		defer func() {
+			record := incident.Record{Kind: "go-schedule.incident", Version: 1, Category: "script", Phase: "command", Target: incident.Target{PID: incidentPID, Executable: executable, SHA256: incidentHash}, Original: incident.Original{NativeExit: result.code, Canceled: errors.Is(result.err, context.DeadlineExceeded)}, Collection: incident.Collection{Status: "unavailable", DurationMS: time.Since(started).Milliseconds()}}
+			if incidentErr != nil {
+				record.Collection.Detail = "Incident directory could not be created; the original script outcome is unchanged."
+			} else {
+				record.ID = incidentCapture.ID
+				dump := incidentCapture.Inspect("crash."+strconv.Itoa(incidentPID)+".dmp", 32<<20)
+				record.Artifacts = []incident.Artifact{dump, incidentCapture.Inspect("runtime.json", 64<<10), incidentCapture.Inspect("createdump.log", 64<<10)}
+				retentionFailed := false
+				for _, artifact := range record.Artifacts {
+					if artifact.Status == "oversized" {
+						limit := int64(64 << 10)
+						if strings.HasSuffix(artifact.Name, ".dmp") {
+							limit = 32 << 20
+						}
+						if err := incidentCapture.DiscardOversized(artifact.Name, limit); err != nil {
+							retentionFailed = true
+							record.Collection.Detail = "An oversized owned artifact could not be removed; inspect the private incident directory."
+						}
+					}
+				}
+				record.Collection.Status = dump.Status
+				if dump.Status == "absent" {
+					record.Collection.Detail = "No native crash dump was produced. An ordinary exit, early crash or unavailable runtime collector remains distinguishable from a collected dump."
+				}
+				if retentionFailed {
+					record.Collection.Status = "failed"
+					record.Collection.Detail = "An oversized owned artifact could not be removed. Inspect the private incident directory; the original script outcome is unchanged."
+				}
+				if err := incidentCapture.Save(record); err != nil {
+					record.Collection.Status = "failed"
+					record.Collection.Detail = "Incident metadata could not be retained; the original script outcome is unchanged."
+				}
+			}
+			data, _ := json.Marshal(record)
+			result.incident = string(data)
+		}()
+	}
 	process, pipes, err := clifixture.StartPiped(clifixture.Command{Executable: executable, Arguments: args[1:], Environment: environment, Directory: directory})
 	if err != nil {
 		result.err = err
 		return result
 	}
+	incidentPID = process.PID
 	_ = pipes.Stdin.Close()
 	stdout, stderr := make(chan scriptStream, 1), make(chan scriptStream, 1)
 	go func() { stdout <- captureScriptStream(pipes.Stdout) }()
@@ -118,6 +174,16 @@ func observeScript(args []string, harness string, environment []string) bindingR
 			result.provenance = string(data)
 		}
 	}
+	return result
+}
+
+func unavailableScriptLaunch(result bindingResult, executable string) bindingResult {
+	if os.Getenv("GOSCHEDULE_INCIDENT_DIR") == "" {
+		return result
+	}
+	record := incident.Record{Kind: "go-schedule.incident", Version: 1, Category: "script", Phase: "launch", Target: incident.Target{Executable: executable}, Original: incident.Original{NativeExit: result.code}, Collection: incident.Collection{Status: "unavailable", Detail: "The interpreter did not start. Inspect the original launch error before another fixture attempt; no runtime crash evidence is available."}}
+	data, _ := json.Marshal(record)
+	result.incident = string(data)
 	return result
 }
 

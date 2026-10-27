@@ -12,6 +12,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/buildinfo"
 	"github.com/shruggietech/go-schedule/internal/enrollment"
 	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/internal/incident"
 	"github.com/shruggietech/go-schedule/internal/logbus"
 	"github.com/shruggietech/go-schedule/internal/mcpsession"
 	"github.com/shruggietech/go-schedule/internal/store"
@@ -85,6 +86,15 @@ func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker,
 
 // Handler returns the HTTP handler for the API.
 func (s *Server) Handler() http.Handler { return http.HandlerFunc(s.authorizeAndAudit) }
+
+// HandlerWithDiagnostics tracks only authored mux patterns in an owned QA daemon.
+// It exposes no diagnostics route and preserves the ordinary authorization handler.
+func (s *Server) HandlerWithDiagnostics(tracker *incident.Tracker) http.Handler {
+	if tracker == nil {
+		return s.Handler()
+	}
+	return tracker.Handler(s.Handler(), func(r *http.Request) string { _, pattern := s.mux.Handler(r); return pattern })
+}
 
 // SetActorResolver supplies authenticated actor identity for a transport. The
 // local transport uses the built-in operating-system actor by default.

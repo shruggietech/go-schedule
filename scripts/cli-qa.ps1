@@ -9,6 +9,7 @@ param(
     [string]$WSLUser,
     [string]$Reviews,
     [string]$Budget,
+    [switch]$Incidents,
     [string]$GoExecutable
 )
 
@@ -111,6 +112,7 @@ if ($Action -in @('capture', 'resume')) {
     if (-not $WSLDistribution -or -not $WSLUser) { throw 'Select an existing WSL2 distribution and unelevated WSL user.' }
     $qaArguments += @('--source', $qaSource, '--bin-dir', $BinaryDirectory, '--wsl-distro', $WSLDistribution, '--wsl-user', $WSLUser)
     if ($Budget) { $qaArguments += @('--budget', [IO.Path]::GetFullPath($Budget)) }
+    if ($Incidents) { $qaArguments += '--incidents' }
 }
 if ($Action -eq 'finalize') {
     if (-not $Reviews) { throw 'Supply the completed agent Reviews JSON against this frozen corpus.' }

@@ -181,6 +181,7 @@ func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 		binaries := flags.String("bin-dir", "", "existing windows and linux executable directories")
 		distro := flags.String("wsl-distro", "", "existing WSL2 distribution")
 		user := flags.String("wsl-user", "", "existing unelevated Linux user")
+		incidents := flags.Bool("incidents", false, "collect bounded private diagnostics for slow owned fixtures; retain this choice when resuming")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
@@ -199,7 +200,7 @@ func run(ctx context.Context, args []string, out, diagnostic io.Writer) error {
 		if flags.NArg() != 0 {
 			return errors.New("unexpected positional input to " + command)
 		}
-		report, err := clievaluate.Capture(ctx, clievaluate.CaptureOptions{Root: *root, Source: *source, BinDirectory: *binaries, WSLDistro: *distro, WSLUser: *user, Resume: command == "resume", Budget: budget})
+		report, err := clievaluate.Capture(ctx, clievaluate.CaptureOptions{Root: *root, Source: *source, BinDirectory: *binaries, WSLDistro: *distro, WSLUser: *user, Resume: command == "resume", Budget: budget, Incidents: *incidents})
 		if err != nil {
 			return err
 		}

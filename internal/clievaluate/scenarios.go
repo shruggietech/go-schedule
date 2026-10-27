@@ -29,6 +29,8 @@ type execution struct {
 func (s *session) execute(ctx context.Context, definition step) (observed execution) {
 	diagnostics := &executionDiagnostics{}
 	defer func() { observed = diagnostics.finish(observed) }()
+	finishIncident := s.incidentWatchdog(ctx, diagnostics, definition.Spec.ExpectedExit)
+	defer func() { observed = finishIncident(observed) }()
 	ctx = diagnostics.phase(ctx, "guard")
 	if definition.Human {
 		definition.Spec.ID = strings.TrimSuffix(definition.Spec.ID, ".human")

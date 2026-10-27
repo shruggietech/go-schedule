@@ -26,6 +26,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/enrollment"
 	"github.com/shruggietech/go-schedule/internal/events"
 	"github.com/shruggietech/go-schedule/internal/executor"
+	"github.com/shruggietech/go-schedule/internal/incident"
 	"github.com/shruggietech/go-schedule/internal/ipc"
 	"github.com/shruggietech/go-schedule/internal/lock"
 	"github.com/shruggietech/go-schedule/internal/logbus"
@@ -180,8 +181,26 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 		}
 		go func() { remoteErr <- remote.Serve(ctx, cfg.Remote, remoteHandler, log) }()
 	}
+	handler := api.Handler()
+	if directory := os.Getenv("GOSCHEDULE_QA_INCIDENT_DIR"); directory != "" {
+		if err := incident.ValidateWorkspace(directory, cfg.DataDir); err != nil {
+			log.Warn("Owned incident collection unavailable", "error", err)
+		} else {
+			tracker := &incident.Tracker{}
+			diagnosticCtx, stopDiagnostics := context.WithCancel(ctx)
+			diagnosticDone := make(chan error, 1)
+			go func() { diagnosticDone <- incident.Serve(diagnosticCtx, directory, tracker, st.PoolStats) }()
+			defer func() {
+				stopDiagnostics()
+				if err := <-diagnosticDone; err != nil {
+					log.Warn("Owned incident collection stopped", "error", err)
+				}
+			}()
+			handler = api.HandlerWithDiagnostics(tracker)
+		}
+	}
 	srv := &http.Server{
-		Handler:           api.Handler(),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
