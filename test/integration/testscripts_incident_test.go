@@ -47,6 +47,29 @@ func TestScriptIncidentMissingInterpreterIsExplicitlyUnavailable(t *testing.T) {
 	}
 }
 
+func TestScriptIncidentExistingUnlaunchableInterpreterIsUnavailable(t *testing.T) {
+	parent := canonicalScriptIncidentParent(t)
+	t.Setenv("GOSCHEDULE_INCIDENT_DIR", parent)
+	executable := filepath.Join(parent, "invalid-interpreter.exe")
+	if err := os.WriteFile(executable, []byte("not a native executable\x00"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	got := observeScript([]string{executable}, "", os.Environ())
+	if got.code != -1 || got.err == nil {
+		t.Fatalf("original launch failure lost: %+v", got)
+	}
+	var record incident.Record
+	if err := json.Unmarshal([]byte(got.incident), &record); err != nil {
+		t.Fatal(err)
+	}
+	if record.Phase != "launch" || record.Collection.Status != "unavailable" || record.Target.PID != 0 || record.Original.NativeExit != -1 || len(record.Target.SHA256) != 64 {
+		t.Fatalf("failed launch presented as runtime observation: %s (original: %v)", got.incident, got.err)
+	}
+	if !strings.Contains(record.Collection.Detail, "did not start") {
+		t.Fatalf("launch guidance is missing: %s", got.incident)
+	}
+}
+
 func TestPowerShellIncidentControlledNativeCrash(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("native Windows CoreCLR crash collection")

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -127,6 +128,9 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 					}
 					wg.Wait()
 					for i, result := range results {
+						logScriptReplayObservation(t, "concurrent_writer", i, result)
+					}
+					for i, result := range results {
 						if result.code != 0 || result.err != nil {
 							t.Errorf("writer %d exited %d (0x%08x, %v), elapsed=%s, phase=script invocation, host=%s/%s %s, interpreter=%s:\n%s", i, result.code, uint32(result.code), result.err, result.duration, runtime.GOOS, runtime.GOARCH, runtime.Version(), tw.command(harness, database)[0], result.output)
 						}
@@ -141,6 +145,25 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 			}
 		})
 	}
+}
+
+func logScriptReplayObservation(t *testing.T, condition string, writer int, result bindingResult) {
+	t.Helper()
+	if os.Getenv("GOSCHEDULE_PROBE_DIAGNOSTICS") != "1" && os.Getenv("GOSCHEDULE_INCIDENT_DIR") == "" {
+		return
+	}
+	data, err := json.Marshal(map[string]any{
+		"kind": "go-schedule.script-replay-observation", "version": 1,
+		"test": t.Name(), "condition": condition, "writer": writer,
+		"native_exit": result.code, "result_error": errorText(result.err),
+		"collection_error": errorText(result.collectionErr), "cleanup_error": errorText(result.cleanupErr),
+		"elapsed_ms": result.duration.Milliseconds(), "output": result.output,
+		"provenance": result.provenance, "incident": result.incident,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("incident_observation=%s", data)
 }
 
 func TestScriptsBindingDiagnosticsAreOptIn(t *testing.T) {

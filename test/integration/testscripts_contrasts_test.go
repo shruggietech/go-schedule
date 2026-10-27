@@ -50,6 +50,7 @@ func TestScriptsRuntimeAndSelectionContrasts(t *testing.T) {
 							}
 							database := filepath.Join(t.TempDir(), "contrast.db")
 							result := executeBinding(tw, harness, database, "owned literal")
+							logScriptReplayObservation(t, operation+"/"+selection, -1, result)
 							t.Logf("condition=%s/%s/%s outer=%s output=%q", tw.name, operation, selection, result.provenance, result.output)
 							if result.code != 0 || result.err != nil {
 								t.Fatalf("contrast failed: %+v", result)
