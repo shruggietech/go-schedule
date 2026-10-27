@@ -6,7 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No additional changes are selected beyond the prepared v1.7.0 source below.
+
+## [1.7.0] - 2026-10-27
+
+Prepared source for the next reliability release; this date records preparation, not publication. The latest public release remains v1.6.0. #394 tracks delivery, while original #355/#356 causes remain unconfirmed.
+
+### Added
+
+- Opt-in owned Windows incident collection and bounded replay diagnosis expose documented maintainer selections, with exact runtime/request identity, original outcomes and resource-bounded capture/resume.
+
 ### Changed
+
+- **2026-10-27 release and pinned-document decision (S124): select v1.7.0 rather than proposed v1.6.1 under the declared SemVer policy.** Documented additive maintainer CLI incident/replay selections require a minor increment; no breaking API, persisted schema or configuration change is introduced. Existing workflow tag injection, package identity derivation and the development version fallback remain unchanged. Platform upgrade guidance retains complete stopped-state backup and matching-binary rollback; schema v24 was introduced in v1.6.0 and remains current.
+- Refresh all 80 release-comparison cells against official sources. Qualify shipped Resolve Actions Pro 8.1 MCP and clustered-component support, retain unresolved vendor claims and preserve the published v1.6.0 comparison/default. Source preparation does not create a tag, staged asset or promotion authorization.
 
 - S123 adds explicit case-duration and packaged incident-collection selections to the existing opt-in replay, with controller/component provenance, invalid-input diagnostics and unchanged supported defaults. The bounded historical/current comparison passed all 444 planned observations; #355/#356 causes remain unconfirmed. Historical wrapper recovery, the full-tree digest mismatch and merged S122 acceptance are documented separately. No production behavior or release identity changes.
 
@@ -23,6 +36,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Synchronize the desktop search identity-mismatch fixture with completed route focus (#385), preserving exact query submission, daemon identity checks and no-Activity navigation assertions.
 
 - S120 corrects independently demonstrated integration output collection (#381) and request-context loss at SQL acquisition (#382). Owned script capture retains native exits separately from bounded streams/cleanup and adds opt-in executable/harness provenance. Affected API authorization, inspection and group cleanup honor request cancellation; already executed operations retain independently bounded terminal audit persistence. Original #355 CLR/prerequisite and #356 intermittent stall causes remain unconfirmed. S119 PR #380 historical merge and exact-main acceptance are reconciled without changing the public v1.6.0 tag or assets.
+
+### Fixed
+
+- Current-candidate repository validation follows the first declared versioned changelog section instead of the historical v1.6.0 fixture constant (#395). Missing/malformed candidate selection remains an error, and exact version/date/notes validation and fixed historical negative fixtures remain unchanged. This is a test-only release-preparation correction.
+
+### Historical release-record reconciliation
+
+The following entries retain earlier decisions and delivery history; they do not describe new v1.7.0 application functionality.
 
 - **2026-10-27 release and pinned-file decision (S119): reconcile current release discovery and docs/INSTALL-windows.md after authorized v1.6.0 publication.** Release 423908120 preserves approved source 0f8834ba3b88b69c8f55aaa5d72add70e5b6252b and all eight original staged assets; promotion adds verified checksums and selects it as latest. Current-main comparison review refreshes only its changelog digest/date after correcting the publication introduction. Immutable tagged records, release notes, comparison data, complete-state backup and matching-binary rollback guidance remain unchanged. Original #355/#356 causes remain unconfirmed and attended native observations remain untested.
 - Comparison browser assertions read the actual prepared release selection instead of an obsolete literal, covering default and explicit selection without weakening visibility or responsive table checks (Closes #379).

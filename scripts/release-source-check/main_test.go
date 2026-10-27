@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,13 +14,13 @@ const testHeading = "## [1.6.0] - 2026-10-22"
 const testLink = "Read the [full changelog](https://github.com/shruggietech/go-schedule/blob/v1.6.0/CHANGELOG.md#160---2026-10-22) for every change."
 const testBadge = "<a href=\"https://github.com/shruggietech/go-schedule/releases/latest\"><img alt=\"Release\" src=\"https://img.shields.io/github/v/release/shruggietech/go-schedule?color=58A6FF\"></a>"
 
-func fixture(t *testing.T, readme, changelog, notes string) string {
+func fixture(t *testing.T, tag, readme, changelog, notes string) string {
 	t.Helper()
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".github/release-notes"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	for name, data := range map[string]string{"README.md": readme, "CHANGELOG.md": changelog, ".github/release-notes/v1.6.0.md": notes} {
+	for name, data := range map[string]string{"README.md": readme, "CHANGELOG.md": changelog, ".github/release-notes/" + tag + ".md": notes} {
 		if err := os.WriteFile(filepath.Join(root, name), []byte(data), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -56,7 +57,7 @@ func TestSourceMetadata(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			root := fixture(t, c.readme, c.heading+"\n", c.notes+"\n")
+			root := fixture(t, testTag, c.readme, c.heading+"\n", c.notes+"\n")
 			err := checkSource(root, testRepo, testTag)
 			if c.want == "" {
 				if err != nil {
@@ -74,7 +75,7 @@ func TestSourceMetadata(t *testing.T) {
 func TestMissingInputsAndArguments(t *testing.T) {
 	for _, name := range []string{"README.md", "CHANGELOG.md", ".github/release-notes/v1.6.0.md"} {
 		t.Run(name, func(t *testing.T) {
-			root := fixture(t, testBadge+"\ndaemon ok (version 1.6.0)\n", testHeading+"\n", testLink+"\n")
+			root := fixture(t, testTag, testBadge+"\ndaemon ok (version 1.6.0)\n", testHeading+"\n", testLink+"\n")
 			if err := os.Remove(filepath.Join(root, name)); err != nil {
 				t.Fatal(err)
 			}
@@ -90,8 +91,93 @@ func TestMissingInputsAndArguments(t *testing.T) {
 	}
 }
 
+func TestCandidateTag(t *testing.T) {
+	for _, c := range []struct {
+		name, changelog, want string
+	}{
+		{"later minor", "## [Unreleased]\n\n## [1.7.0] - 2026-10-27\n## [1.6.0] - 2026-10-22\n", "v1.7.0"},
+		{"future version", "## [9.8.7] - 2027-01-01\n", "v9.8.7"},
+		{"missing candidate", "## [Unreleased]\n", ""},
+		{"malformed first candidate", "## [broken] - 2026-10-27\n## [1.6.0] - 2026-10-22\n", ""},
+		{"unclosed first candidate", "## [1.7.0\n## [1.6.0] - 2026-10-22\n", ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			root := fixture(t, testTag, "", c.changelog, "")
+			tag, err := candidateTag(root)
+			if c.want == "" {
+				if err == nil || !strings.Contains(err.Error(), "CHANGELOG.md") {
+					t.Fatalf("tag=%q error=%v, want attributable candidate error", tag, err)
+				}
+				return
+			}
+			if err != nil || tag != c.want {
+				t.Fatalf("tag=%q error=%v, want %q", tag, err, c.want)
+			}
+		})
+	}
+}
+
+// candidateTag follows the first declared version while leaving exact metadata
+// checks to checkSource. A malformed new heading must not fall back to history.
+func candidateTag(root string) (string, error) {
+	lines, err := readLines(root, "CHANGELOG.md")
+	if err != nil {
+		return "", err
+	}
+	for _, line := range lines {
+		version, ok := strings.CutPrefix(line, "## [")
+		if !ok {
+			continue
+		}
+		version, _, closed := strings.Cut(version, "]")
+		if closed && version == "Unreleased" {
+			continue
+		}
+		tag := "v" + version
+		if !closed || !tagPattern.MatchString(tag) {
+			return "", fmt.Errorf("CHANGELOG.md: invalid current candidate heading %q", line)
+		}
+		return tag, nil
+	}
+	return "", fmt.Errorf("CHANGELOG.md: no current candidate heading")
+}
+
 func TestCurrentCandidate(t *testing.T) {
-	if err := checkSource("../..", testRepo, testTag); err != nil {
+	tag, err := candidateTag("../..")
+	if err != nil {
 		t.Fatal(err)
+	}
+	t.Logf("current prepared source: %s", tag)
+	if err := checkSource("../..", testRepo, tag); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDeclaredCandidateKeepsVersionChecks(t *testing.T) {
+	for _, tag := range []string{"v1.7.0", "v9.8.7"} {
+		for _, wrongHealth := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/wrong-health=%t", tag, wrongHealth), func(t *testing.T) {
+				version := strings.TrimPrefix(tag, "v")
+				health := version
+				if wrongHealth {
+					health = "1.6.0"
+				}
+				heading := "## [Unreleased]\n\n## [" + version + "] - 2026-10-27\n\n" + testHeading + "\n"
+				link := "Read the [full changelog](https://github.com/" + testRepo + "/blob/" + tag + "/CHANGELOG.md#" + strings.ReplaceAll(version, ".", "") + "---2026-10-27) for every change.\n"
+				root := fixture(t, tag, testBadge+"\ndaemon ok (version "+health+")\n", heading, link)
+				selected, err := candidateTag(root)
+				if err != nil || selected != tag {
+					t.Fatalf("selected=%q error=%v, want %q", selected, err, tag)
+				}
+				err = checkSource(root, testRepo, selected)
+				if wrongHealth {
+					if err == nil || !strings.Contains(err.Error(), "README.md") {
+						t.Fatalf("mismatched current health accepted: %v", err)
+					}
+				} else if err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
 	}
 }

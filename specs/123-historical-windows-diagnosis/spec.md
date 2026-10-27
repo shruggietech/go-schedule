@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implemented on review branch codex/123-historical-windows-diagnosis; all eighteen tasks resolved, bounded 444-observation comparison and complete eight-gate canonical acceptance passed on 2026-10-27. delivery.md and verification.md preserve exact stages, reconstruction limitations and unresolved original #355/#356 causes.
+**Delivery**: Owner-merged PR #393 as a2e4653021b6007135550ed8f84f1421f9072db0 on 2026-10-27. All 23 exact-main checks and Pages deployment succeeded. delivery.md and verification.md retain the separate local/campaign/review identities, reconstruction limits and unresolved #355/#356 causes.
 
 **Input**: Owner-authorized S123 bundles #355/#356, uses Spec-Kit, performs bounded historical comparison, corrects demonstrated defects, publishes a PR and handles at most two Codex rounds. Stop before merge, tagging or promotion.
 

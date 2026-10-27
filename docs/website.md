@@ -17,11 +17,11 @@ The home is `/`, documentation is `/docs/` and the comparison is `/compare/`. Or
 
 `site/data/comparisons/<tag>.json` contains product contexts, capability cells and opportunity links. Each cell records an explicit status, explanation, official source and review date. Unknown means the evidence does not establish the answer. Distinguish edition/add-on limitations, and keep future go-schedule work separate from released capability. Research all seven named products when reviewing; a competitor gap alone does not authorize a new feature.
 
-For a new release, add its snapshot and a review at `site/data/reviews/<tag>.json`. The review contains `tag`, `source_ref` (`refs/tags/<tag>`), `reviewed_at`, `dataset_sha256`, `changelog_sha256`, `notes_sha256` and `decisions`. Decisions map every capability ID to `changed` or `no-change`; every capability in the snapshot has an explicit decision. The three digests cover exact snapshot bytes, the exact tag's changelog section, and `.github/release-notes/<tag>.md` bytes. Use the helper below to produce a template and then fill every decision after review:
+For a new release, add its snapshot and a review at `site/data/reviews/<tag>.json`. The review contains `tag`, `source_ref` (`refs/tags/<tag>`), `reviewed_at`, `dataset_sha256`, `changelog_sha256`, `notes_sha256` and `decisions`. Decisions map every capability ID to `changed` or `no-change`; every capability in the snapshot has an explicit decision. The three digests cover exact snapshot bytes, the exact tag's changelog section, and `.github/release-notes/<tag>.md` bytes. The current prepared version is v1.7.0; public selection remains v1.6.0 until actual publication. Use the helper below to produce a template and then fill every decision after review:
 
 ```sh
-node site/scripts/review-release.mjs v1.6.0
-go run ./scripts/comparison-check -tag v1.6.0 -commit <resolved-tag-commit>
+node site/scripts/review-release.mjs v1.7.0
+go run ./scripts/comparison-check -tag v1.7.0 -commit <resolved-tag-commit>
 ```
 
 The helper deliberately emits `review-required` decisions, which the gate rejects until replaced. Re-run it or update digests only after reviewing changed content. A candidate commit hash cannot be committed inside its own review; workflows resolve the exact tagged commit and record it together with the reviewed content digests. No arbitrary calendar expiry replaces that identity check.

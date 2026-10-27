@@ -130,7 +130,7 @@ Absent an explicit request, work not traceable to the master specification or an
 
 ## Pre-tag release-source preparation
 
-Before requesting a release tag, run `go run ./scripts/release-source-check -root . -repository shruggietech/go-schedule -tag v1.6.0` for the selected pending version. The command reads local README, changelog and tag-specific notes, checks the published-release badge, health example, unique calendar-dated heading and exact notes link, and performs no network or Git mutations. Release invokes the same command in its tagged checkout before comparison and staging. A successful source check establishes neither a real tag nor package identity; comparison review, exact-main CI and immutable staging/promotion controls remain separate.
+Before requesting a release tag, run `go run ./scripts/release-source-check -root . -repository shruggietech/go-schedule -tag v1.7.0` for the selected pending version. The command reads local README, changelog and tag-specific notes, checks the published-release badge, health example, unique calendar-dated heading and exact notes link, and performs no network or Git mutations. Release invokes the same command in its tagged checkout before comparison and staging. A successful source check establishes neither a real tag nor package identity; comparison review, exact-main CI and immutable staging/promotion controls remain separate.
 
 ## Verification completion policy
 
