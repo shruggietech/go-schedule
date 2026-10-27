@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -32,6 +33,11 @@ func TestWindowsIncidentReplay(t *testing.T) {
 	if runtime.GOOS != "windows" && runtime.GOOS != "linux" {
 		t.Skip("catalog execution supports Windows and Linux")
 	}
+	options, err := parseReplayOptions(os.Getenv("GOSCHEDULE_REPLAY_CASE_TIMEOUT"), os.Getenv("GOSCHEDULE_REPLAY_INCIDENTS"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	logIncidentReplay(t, nil, map[string]any{"kind": "go-schedule.incident-replay-controller", "version": 1, "controller": "compiled-current-test", "case_timeout_ms": options.caseTimeout.Milliseconds(), "packaged_incidents_requested": options.incidents, "service_execution": "current-recording-command-harness", "component_server": "compiled-current-test", "packaged_server": "selected-build-receipt"})
 	binaries := replayBinaries(t)
 	_, definitions, err := BuildManifest()
 	if err != nil {
@@ -49,7 +55,9 @@ func TestWindowsIncidentReplay(t *testing.T) {
 			var closeOwned func() error
 			if mode == "packaged_file_wal" {
 				setup, stop := context.WithTimeout(ctx, 120*time.Second)
-				s, err = newSession(setup, binaries, DefaultBudget(), NewRedactor(), true, nil)
+				budget := DefaultBudget()
+				budget.CaseTimeoutMS = options.caseTimeout.Milliseconds()
+				s, err = newSession(setup, binaries, budget, NewRedactor(), options.incidents, nil)
 				stop()
 				if err != nil {
 					t.Fatal(err)
@@ -58,6 +66,7 @@ func TestWindowsIncidentReplay(t *testing.T) {
 			} else {
 				s, closeOwned = replayComponent(t, mode, binaries)
 			}
+			s.budget.CaseTimeoutMS = options.caseTimeout.Milliseconds()
 			t.Cleanup(func() {
 				cleanupErr := closeOwned()
 				_, statErr := os.Stat(s.w.Runtime)
@@ -75,7 +84,7 @@ func TestWindowsIncidentReplay(t *testing.T) {
 					t.Fatalf("original catalog case %s is missing", id)
 				}
 				t.Run(id, func(t *testing.T) {
-					caseCtx, stop := context.WithTimeout(ctx, 120*time.Second)
+					caseCtx, stop := context.WithTimeout(ctx, options.caseTimeout)
 					result := s.execute(caseCtx, definition)
 					stop()
 					passed := result.Blocked == "" && result.Code == definition.Spec.ExpectedExit && result.Cleanup == nil && len(result.Checks) == len(definition.Spec.Checks)
@@ -96,6 +105,30 @@ func TestWindowsIncidentReplay(t *testing.T) {
 			return
 		}
 	}
+}
+
+type replayOptions struct {
+	caseTimeout time.Duration
+	incidents   bool
+}
+
+func parseReplayOptions(timeout, incidents string) (replayOptions, error) {
+	options := replayOptions{caseTimeout: time.Duration(DefaultBudget().CaseTimeoutMS) * time.Millisecond, incidents: true}
+	if timeout != "" {
+		parsed, err := time.ParseDuration(timeout)
+		if err != nil || parsed < time.Millisecond || parsed%time.Millisecond != 0 {
+			return options, fmt.Errorf("GOSCHEDULE_REPLAY_CASE_TIMEOUT must be a duration in whole milliseconds of at least 1ms: %q", timeout)
+		}
+		options.caseTimeout = parsed
+	}
+	switch incidents {
+	case "", "1":
+	case "0":
+		options.incidents = false
+	default:
+		return options, fmt.Errorf("GOSCHEDULE_REPLAY_INCIDENTS must be 0 or 1: %q", incidents)
+	}
+	return options, nil
 }
 
 func replayBinaries(t *testing.T) map[string]string {
