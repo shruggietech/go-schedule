@@ -36,26 +36,18 @@ func bindingHarness(t *testing.T, tw twin, sql string) string {
 }
 
 type bindingResult struct {
-	output   string
-	code     int
-	err      error
-	duration time.Duration
+	output        string
+	code          int
+	err           error
+	duration      time.Duration
+	collectionErr error
+	cleanupErr    error
+	provenance    string
 }
 
 func executeBinding(tw twin, harness, database, value string) bindingResult {
 	args := tw.command(harness, database)
-	cmd := scriptCommand(args[0], args[1:]...)
-	cmd.Env = append(os.Environ(), "SCRIPT_BIND_VALUE="+value)
-	started := time.Now()
-	out, err := cmd.CombinedOutput()
-	result := bindingResult{output: string(out), err: err, duration: time.Since(started)}
-	if err != nil {
-		result.code = -1
-		if e, ok := err.(interface{ ExitCode() int }); ok {
-			result.code = e.ExitCode()
-		}
-	}
-	return result
+	return observeScript(args, harness, append(os.Environ(), "SCRIPT_BIND_VALUE="+value))
 }
 
 func TestScriptsBindingsPreserveLiteralText(t *testing.T) {
@@ -70,7 +62,7 @@ func TestScriptsBindingsPreserveLiteralText(t *testing.T) {
 				t.Run(strconv.Itoa(i), func(t *testing.T) {
 					database := filepath.Join(t.TempDir(), "literal.db")
 					result := executeBinding(tw, harness, database, value)
-					if result.code != 0 {
+					if result.code != 0 || result.err != nil {
 						t.Fatalf("literal write exited %d (%v):\n%s", result.code, result.err, result.output)
 					}
 					got := queryScalar(t, sqlite, database, "SELECT hex(value)||'|'||typeof(value)||'|'||typeof(empty_value)||'|'||length(empty_value)||'|'||typeof(absent_value) FROM literal_values;")
@@ -117,7 +109,7 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 						}
 						for i, result := range results {
 							output := result.output
-							t.Logf("writer=%d native_exit=%d hex=0x%08x elapsed=%s interpreter=%s result=%v output=%q", i, result.code, uint32(result.code), result.duration, tw.command(harness, database)[0], result.err, output)
+							t.Logf("writer=%d native_exit=%d hex=0x%08x elapsed=%s interpreter=%s result=%v output=%q", i, result.code, uint32(result.code), result.duration, tw.command(harness, database)[0], result.err, output+"\n"+result.provenance)
 						}
 						rows, err := scriptCommand(sqlite, database, "SELECT session_id,sequence FROM sessions ORDER BY session_id,sequence;").CombinedOutput()
 						t.Logf("owned failure rows sqlite=%s query_error=%v rows=%q", sqlite, err, rows)
@@ -134,7 +126,7 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 					}
 					wg.Wait()
 					for i, result := range results {
-						if result.code != 0 {
+						if result.code != 0 || result.err != nil {
 							t.Errorf("writer %d exited %d (0x%08x, %v), elapsed=%s, phase=script invocation, host=%s/%s %s, interpreter=%s:\n%s", i, result.code, uint32(result.code), result.err, result.duration, runtime.GOOS, runtime.GOARCH, runtime.Version(), tw.command(harness, database)[0], result.output)
 						}
 					}
@@ -161,13 +153,17 @@ func TestScriptsBindingDiagnosticsAreOptIn(t *testing.T) {
 					t.Setenv("GOSCHEDULE_PROBE_DIAGNOSTICS", enabled)
 					database := filepath.Join(t.TempDir(), "diagnostic.db")
 					result := executeBinding(tw, harness, database, "literal identity")
-					if result.code != 0 {
+					if result.code != 0 || result.err != nil {
 						t.Fatalf("diagnostic=%s changed writer result: %+v", enabled, result)
 					}
 					if enabled == "0" && strings.Contains(result.output, "phase=") {
 						t.Fatalf("default output gained writer diagnostics: %s", result.output)
 					}
 					if enabled == "1" {
+						if !strings.Contains(result.provenance, "executable_sha256") || !strings.Contains(result.provenance, "harness_sha256") {
+							t.Fatalf("missing outer provenance: %+v", result)
+						}
+						t.Log(result.provenance)
 						last := -1
 						for _, phase := range []string{"interpreter-entry", "library-loaded", "prerequisite-resolved", "write-started", "write-complete"} {
 							at := strings.Index(result.output, "phase="+phase)

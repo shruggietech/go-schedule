@@ -54,8 +54,8 @@ func (s *Server) handleCancelPairing(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, item)
 }
 
-func (s *Server) handleListCredentials(w http.ResponseWriter, _ *http.Request) {
-	items, err := s.enrollment.Credentials()
+func (s *Server) handleListCredentials(w http.ResponseWriter, r *http.Request) {
+	items, err := s.store.ListCredentialsContext(r.Context())
 	if err != nil {
 		s.internal(w, err)
 		return

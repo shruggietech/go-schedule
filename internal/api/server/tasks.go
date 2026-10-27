@@ -205,7 +205,7 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 		s.handleListTaskObservations(w, r)
 		return
 	}
-	tasks, err := s.store.ListTasks(r.URL.Query().Get("group"), r.URL.Query().Get("state"))
+	tasks, err := s.store.ListTasksContext(r.Context(), r.URL.Query().Get("group"), r.URL.Query().Get("state"))
 	if err != nil {
 		s.internal(w, err)
 		return
@@ -219,7 +219,7 @@ func (s *Server) handleListTasks(w http.ResponseWriter, r *http.Request) {
 	for _, task := range tasks {
 		var sch *domain.Schedule
 		if task.ScheduleID != "" {
-			stored, err := s.store.GetSchedule(task.ScheduleID)
+			stored, err := s.store.GetScheduleContext(r.Context(), task.ScheduleID)
 			if err != nil {
 				s.internal(w, err)
 				return
@@ -254,7 +254,7 @@ func (s *Server) handleListTaskObservations(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, CodeValidation, "text_limit", "must be between 0 and 2048")
 		return
 	}
-	observations, err := s.store.ListTaskObservations(r.URL.Query().Get("group"), r.URL.Query().Get("state"), r.URL.Query().Get("scheduled") == "true", offset, limit, textLimit)
+	observations, err := s.store.ListTaskObservationsContext(r.Context(), r.URL.Query().Get("group"), r.URL.Query().Get("state"), r.URL.Query().Get("scheduled") == "true", offset, limit, textLimit)
 	if err != nil {
 		s.internal(w, err)
 		return
@@ -275,7 +275,7 @@ func (s *Server) handleGetTask(w http.ResponseWriter, r *http.Request) {
 	}
 	var sch *domain.Schedule
 	if task.ScheduleID != "" {
-		stored, err := s.store.GetSchedule(task.ScheduleID)
+		stored, err := s.store.GetScheduleContext(r.Context(), task.ScheduleID)
 		if err != nil {
 			s.internal(w, err)
 			return

@@ -113,3 +113,7 @@ Maintainers retain the original #355 runtime/prerequisite and #356 IPC diagnoses
 - Approved tag source is existing accepted main; S119 planning/discovery records have a separate source identity and cannot be silently substituted into that approved tag.
 - Source PR publication is authorized. Tag/staging approval was separately received; the owner separately approved the exact staged candidate on 2026-10-27 and guarded promotion completed.
 - #354 remains incomplete until its actual public release/discovery outcome is delivered. #355/#356 remain open absent their individual corrective outcomes.
+
+## Historical delivery reconciliation by S120
+
+PR #380 was owner-merged on 2026-10-27 as dac2e97895353435ad30515402b9f99d5e5d4ebc; its remote branch was deleted. Exact-main CI, CodeQL, Website and Pages succeeded with 23 successful applicable checks. See [delivery.md](delivery.md#owner-merge-and-post-merge-acceptance-2026-10-27) for identities and public HTTPS observations. Earlier pre-merge statements describe the original handoff, not current PR state. Immutable v1.6.0 source, assets and original failure evidence remain unchanged.

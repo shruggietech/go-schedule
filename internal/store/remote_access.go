@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"crypto/subtle"
 	"database/sql"
 	"errors"
@@ -185,7 +186,12 @@ func (s *Store) ExchangePairing(id string, candidateVerifier []byte, actor domai
 }
 
 func (s *Store) ListCredentials() ([]domain.ClientCredential, error) {
-	rows, err := s.db.Query(`SELECT id,actor_id,fingerprint,state,created_at,updated_at,last_used_at,expires_at,revoked_at FROM client_credentials ORDER BY created_at,id`)
+	return s.ListCredentialsContext(context.Background())
+}
+
+// ListCredentialsContext honors cancellation while acquiring and using the store connection.
+func (s *Store) ListCredentialsContext(ctx context.Context) ([]domain.ClientCredential, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id,actor_id,fingerprint,state,created_at,updated_at,last_used_at,expires_at,revoked_at FROM client_credentials ORDER BY created_at,id`)
 	if err != nil {
 		return nil, err
 	}

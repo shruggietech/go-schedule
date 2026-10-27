@@ -84,7 +84,7 @@ func (s *Server) handleResetManifest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) writeManifest(w http.ResponseWriter, r *http.Request) {
-	identity, err := s.store.DaemonIdentity()
+	identity, err := s.store.DaemonIdentityContext(r.Context())
 	if err != nil {
 		s.internal(w, err)
 		return
