@@ -1,9 +1,9 @@
 {
   "tag": "v1.6.0",
   "source_ref": "refs/tags/v1.6.0",
-  "reviewed_at": "2026-10-25",
+  "reviewed_at": "2026-10-27",
   "dataset_sha256": "ab2bb5bf2de20133735fa4cda541e6d48e557e4632edbd8d95dd8ca14af0cb5b",
-  "changelog_sha256": "26fa24a30c70cc5f401213457382c9f57e10bff8a7e0e85e9b925ad7712aa269",
+  "changelog_sha256": "f784d30ea8b3e12f03a07154e817d0ed8c588d49a22f481979da0fa4a2e332e1",
   "notes_sha256": "4062f9e664f32298f9f4de8dbeacf4c0b317e0e003c83b185290e18a1c8874b1",
   "decisions": {
     "scheduling": "changed",

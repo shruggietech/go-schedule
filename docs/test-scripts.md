@@ -354,7 +354,7 @@ The concurrent-writer integration check retains each failed child's actual outpu
 
 ### Isolated CLI operation
 
-Introduced in the v1.6.0 candidate; publication is pending.
+Introduced in v1.6.0.
 
 The reusable isolation and focused command adapters support the complete Windows/WSL unattended evaluator and fixed report contract described in the [maintainer CLI QA guide](cli-qa.md). Operator commands are documented in the [CLI reference](cli.md).
 

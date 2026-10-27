@@ -343,7 +343,7 @@ Remote clients use `Authorization: Bearer <credential>` against the documented `
 
 ## Remote notifications
 
-Introduced in the v1.6.0 candidate; publication is pending.
+Introduced in v1.6.0.
 
 The authenticated remote operation catalog includes all notification channel, task/group policy, effective-policy and delivery-history routes. The selected daemon owns its channels, credentials, policy and delivery evidence. The desktop Notifications page and CLI use that selected target; credentials are never fetched from another daemon.
 
