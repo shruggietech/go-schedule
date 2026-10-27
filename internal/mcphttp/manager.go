@@ -42,7 +42,7 @@ type observeReader interface {
 
 // Manager owns one runtime-only listener and its credential digest.
 type Manager struct {
-	opMu          sync.Mutex
+	operation     chan struct{}
 	mu            sync.RWMutex
 	reader        observeReader
 	version       string
@@ -66,7 +66,7 @@ func New(reader observeReader, version string, log *slog.Logger) *Manager {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
-	return &Manager{reader: reader, version: version, log: log, status: disabledStatus(), now: time.Now}
+	return &Manager{operation: make(chan struct{}, 1), reader: reader, version: version, log: log, status: disabledStatus(), now: time.Now}
 }
 
 // NewWithSessions enables explicit Operate and Manage sessions in addition to the
@@ -95,8 +95,10 @@ func (m *Manager) Status() server.MCPHTTPStatusResponse {
 
 // Enable validates, binds, issues a credential, and atomically publishes the listener.
 func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error) {
-	m.opMu.Lock()
-	defer m.opMu.Unlock()
+	if err := m.beginOperation(ctx); err != nil {
+		return server.MCPHTTPCredentialResponse{}, err
+	}
+	defer m.endOperation()
 	if req.Port < 1 || req.Port > 65535 {
 		return server.MCPHTTPCredentialResponse{}, validationError("port", "port must be between 1 and 65535")
 	}
@@ -145,8 +147,7 @@ func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (
 	if permission.Allows(domain.CapabilityOperate) {
 		session, sessionErr := m.sessionCreate(ctx, clientName, permission)
 		if sessionErr != nil {
-			_ = listener.Close()
-			return server.MCPHTTPCredentialResponse{}, fmt.Errorf("create MCP mutation session: %w", sessionErr)
+			return server.MCPHTTPCredentialResponse{}, errors.Join(fmt.Errorf("create MCP mutation session: %w", sessionErr), listener.Close())
 		}
 		sessionID, actorID = session.ID, session.ActorID
 		operate = m.operateFor(session.Credential)
@@ -168,6 +169,12 @@ func (m *Manager) Enable(ctx context.Context, req server.MCPHTTPEnableRequest) (
 	}
 	httpServer := &http.Server{Handler: streamableHandler(m), ReadHeaderTimeout: 5 * time.Second}
 	m.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		m.mu.Unlock()
+		closeErr := listener.Close()
+		m.revokeRuntimeSession(sessionID)
+		return server.MCPHTTPCredentialResponse{}, errors.Join(err, closeErr)
+	}
 	m.status = status
 	m.digest = digest
 	m.http = httpServer
@@ -197,15 +204,20 @@ func (m *Manager) serve(httpServer *http.Server, listener net.Listener) {
 }
 
 // Rotate atomically replaces the active digest without restarting the listener.
-func (m *Manager) Rotate(_ context.Context) (server.MCPHTTPCredentialResponse, error) {
-	m.opMu.Lock()
-	defer m.opMu.Unlock()
+func (m *Manager) Rotate(ctx context.Context) (server.MCPHTTPCredentialResponse, error) {
+	if err := m.beginOperation(ctx); err != nil {
+		return server.MCPHTTPCredentialResponse{}, err
+	}
+	defer m.endOperation()
 	credential, digest, fingerprint, err := newCredential()
 	if err != nil {
 		return server.MCPHTTPCredentialResponse{}, fmt.Errorf("generate localhost MCP credential: %w", err)
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return server.MCPHTTPCredentialResponse{}, err
+	}
 	if !m.status.Enabled {
 		return server.MCPHTTPCredentialResponse{}, conflictError("localhost MCP is disabled")
 	}
@@ -220,9 +232,15 @@ func (m *Manager) Rotate(_ context.Context) (server.MCPHTTPCredentialResponse, e
 
 // Disable revokes access first and then performs bounded graceful shutdown.
 func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, error) {
-	m.opMu.Lock()
-	defer m.opMu.Unlock()
+	if err := m.beginOperation(ctx); err != nil {
+		return server.MCPHTTPStatusResponse{}, err
+	}
+	defer m.endOperation()
 	m.mu.Lock()
+	if err := ctx.Err(); err != nil {
+		m.mu.Unlock()
+		return server.MCPHTTPStatusResponse{}, err
+	}
 	if !m.status.Enabled {
 		m.mu.Unlock()
 		return disabledStatus(), nil
@@ -232,9 +250,12 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 	sessionID := m.clearLocked()
 	m.mu.Unlock()
 	if listener != nil {
-		_ = listener.Close()
+		if err := listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+			m.log.Warn("localhost MCP listener close failed", "error", err)
+		}
 	}
-	shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
+	// Revocation has committed. Finish its cleanup even if the caller leaves.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	if err := httpServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, net.ErrClosed) {
 		closeErr := httpServer.Close()
@@ -249,6 +270,26 @@ func (m *Manager) Disable(ctx context.Context) (server.MCPHTTPStatusResponse, er
 	m.log.Info("localhost MCP disabled")
 	return disabledStatus(), nil
 }
+
+// beginOperation serializes lifecycle changes without keeping canceled callers
+// behind a slow operation. The holder releases exactly once through endOperation.
+func (m *Manager) beginOperation(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case m.operation <- struct{}{}:
+		if err := ctx.Err(); err != nil {
+			m.endOperation()
+			return err
+		}
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (m *Manager) endOperation() { <-m.operation }
 
 // Shutdown revokes and stops the listener during daemon termination.
 func (m *Manager) Shutdown(ctx context.Context) error {

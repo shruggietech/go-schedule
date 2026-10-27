@@ -61,3 +61,7 @@ The automatic Code Review and owner-authorized second Codex request both complet
 ## Corrected-source acceptance
 
 The post-macOS-correction foreground aggregate passed all eight gates in 1162.916 seconds (2026-10-27T16:04:35.649Z through 2026-10-27T16:23:58.565Z), native exit 0, 2403 frozen inputs, no drift and all 26 original artifacts unchanged. Native Windows package/race checks, all 167 frontend tests, production/native desktop build, all six core coverage thresholds, 23 canonical documentation pages, website static export and automation fixtures passed. The affected nonroot Linux race suite and POSIX alias regression passed separately. Final factual records follow the frozen aggregate; only documentation changes follow this verification.
+
+## Merged-main verification
+
+Owner merge 6f1de579bed866eb2bb328a25a0ad165caaa278a independently passed all 23 checks, including completed/success CI 40546444215, CodeQL 40546444065 and Public website 40546444134. Exact-source Pages deployment 7364985902 succeeded, and live landing/docs/comparison/incident pages and the legacy alias returned HTTP 200 over validated HTTPS. This is merged-main acceptance, separate from prior PR-head and frozen catalog receipts. See delivery.md and the public post-merge receipt for exact links.

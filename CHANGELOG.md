@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **2026-10-27 architecture decision (S122): make MCP lifecycle admission cancelable while preserving committed cleanup (#389).** Canceled enable/rotate/disable requests leave listener and credential state unchanged; abandoned listener/session preparation is released. Once disable commits revocation, bounded shutdown and session cleanup continue independently of caller cancellation. Existing permissions, confirmation and atomic rotation remain unchanged.
+
+- Correct incident classification for an existing interpreter that cannot start (#388), retaining launch/error identity without inventing a runtime observation. Add opt-in condition-to-incident logs, bounded original-scenario replay and a fixed maintainer investigation recipe. Reconcile owner-merged S121 acceptance. Original #355/#356 causes remain unconfirmed.
+
 - **2026-10-27 architecture and script decision (S121): add opt-in owned Windows incident capture for #355/#356.** CoreCLR Mini collection retains native exits and same-process pre-payload identity. A private file channel captures bounded daemon request stages, SQL-pool metadata and goroutine evidence while an inspection is still live. The standard scripts/cli-qa.ps1 wrapper forwards -Incidents, and capture/resume bind that selection without changing execution budgets or the strict report envelope. Original historical causes remain unconfirmed; no installed runtime/service or public release identity changes.
 
 - Canonicalize incident test temporary parents on systems with a platform temporary-root alias (#387), retaining production rejection of caller-created links and existing ownership/cancellation assertions.

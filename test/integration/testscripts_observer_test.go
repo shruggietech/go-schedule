@@ -79,32 +79,39 @@ func observeScript(args []string, harness string, environment []string) (result 
 		}
 		defer func() {
 			record := incident.Record{Kind: "go-schedule.incident", Version: 1, Category: "script", Phase: "command", Target: incident.Target{PID: incidentPID, Executable: executable, SHA256: incidentHash}, Original: incident.Original{NativeExit: result.code, Canceled: errors.Is(result.err, context.DeadlineExceeded)}, Collection: incident.Collection{Status: "unavailable", DurationMS: time.Since(started).Milliseconds()}}
+			if incidentPID == 0 {
+				record.Phase = "launch"
+			}
 			if incidentErr != nil {
 				record.Collection.Detail = "Incident directory could not be created; the original script outcome is unchanged."
 			} else {
 				record.ID = incidentCapture.ID
-				dump := incidentCapture.Inspect("crash."+strconv.Itoa(incidentPID)+".dmp", 32<<20)
-				record.Artifacts = []incident.Artifact{dump, incidentCapture.Inspect("runtime.json", 64<<10), incidentCapture.Inspect("createdump.log", 64<<10)}
-				retentionFailed := false
-				for _, artifact := range record.Artifacts {
-					if artifact.Status == "oversized" {
-						limit := int64(64 << 10)
-						if strings.HasSuffix(artifact.Name, ".dmp") {
-							limit = 32 << 20
-						}
-						if err := incidentCapture.DiscardOversized(artifact.Name, limit); err != nil {
-							retentionFailed = true
-							record.Collection.Detail = "An oversized owned artifact could not be removed; inspect the private incident directory."
+				if incidentPID == 0 {
+					record.Collection.Detail = "The interpreter did not start. Inspect the original launch error before another fixture attempt; no runtime crash evidence is available."
+				} else {
+					dump := incidentCapture.Inspect("crash."+strconv.Itoa(incidentPID)+".dmp", 32<<20)
+					record.Artifacts = []incident.Artifact{dump, incidentCapture.Inspect("runtime.json", 64<<10), incidentCapture.Inspect("createdump.log", 64<<10)}
+					retentionFailed := false
+					for _, artifact := range record.Artifacts {
+						if artifact.Status == "oversized" {
+							limit := int64(64 << 10)
+							if strings.HasSuffix(artifact.Name, ".dmp") {
+								limit = 32 << 20
+							}
+							if err := incidentCapture.DiscardOversized(artifact.Name, limit); err != nil {
+								retentionFailed = true
+								record.Collection.Detail = "An oversized owned artifact could not be removed; inspect the private incident directory."
+							}
 						}
 					}
-				}
-				record.Collection.Status = dump.Status
-				if dump.Status == "absent" {
-					record.Collection.Detail = "No native crash dump was produced. An ordinary exit, early crash or unavailable runtime collector remains distinguishable from a collected dump."
-				}
-				if retentionFailed {
-					record.Collection.Status = "failed"
-					record.Collection.Detail = "An oversized owned artifact could not be removed. Inspect the private incident directory; the original script outcome is unchanged."
+					record.Collection.Status = dump.Status
+					if dump.Status == "absent" {
+						record.Collection.Detail = "No native crash dump was produced. An ordinary exit, early crash or unavailable runtime collector remains distinguishable from a collected dump."
+					}
+					if retentionFailed {
+						record.Collection.Status = "failed"
+						record.Collection.Detail = "An oversized owned artifact could not be removed. Inspect the private incident directory; the original script outcome is unchanged."
+					}
 				}
 				if err := incidentCapture.Save(record); err != nil {
 					record.Collection.Status = "failed"

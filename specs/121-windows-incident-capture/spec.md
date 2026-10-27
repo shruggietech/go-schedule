@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: review branch codex/121-windows-incident-capture; local canonical eight-gate verification completed 2026-10-27 with 2403 stable inputs and 26 unchanged original artifacts; finalized source-bound Windows/WSL CLI report and independent #385/#387 corrections recorded in verification.md.
+**Delivery**: owner-merged [PR #386](https://github.com/shruggietech/go-schedule/pull/386), 6f1de579bed866eb2bb328a25a0ad165caaa278a; all 23 merged-main CI/CodeQL/Pages checks passed, exact deployment and source-bound QA evidence in delivery.md and verification.md.
 
 **Input**: Owner-authorized S121 bundles #355 and #356, including the post-S120 incident-capture recommendations. Implementation, source push, official PR, CI monitoring and at most two Codex rounds are authorized. Stop before merge, tag or promotion.
 
