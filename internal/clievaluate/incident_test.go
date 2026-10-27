@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 func TestIncidentWatchdogFailurePreservesOriginalCase(t *testing.T) {
-	channel, err := incident.NewChannel(t.TempDir())
+	channel, err := incident.NewChannel(canonicalIncidentTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +56,7 @@ func TestIncidentSetupUnavailablePreservesCaseOutcome(t *testing.T) {
 }
 
 func TestFastCaseFailureRetainsExplicitIncidentAvailability(t *testing.T) {
-	channel, err := incident.NewChannel(t.TempDir())
+	channel, err := incident.NewChannel(canonicalIncidentTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +74,7 @@ func TestFastCaseFailureRetainsExplicitIncidentAvailability(t *testing.T) {
 }
 
 func TestExpectedFastRefusalDoesNotTriggerIncidentCollection(t *testing.T) {
-	channel, err := incident.NewChannel(t.TempDir())
+	channel, err := incident.NewChannel(canonicalIncidentTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,4 +113,13 @@ func TestIncidentPreservesNonObjectAndMalformedState(t *testing.T) {
 			t.Fatalf("original missing: %s", got.State)
 		}
 	}
+}
+
+func canonicalIncidentTempDir(t *testing.T) string {
+	t.Helper()
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parent
 }

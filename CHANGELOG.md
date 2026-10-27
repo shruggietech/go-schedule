@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **2026-10-27 architecture and script decision (S121): add opt-in owned Windows incident capture for #355/#356.** CoreCLR Mini collection retains native exits and same-process pre-payload identity. A private file channel captures bounded daemon request stages, SQL-pool metadata and goroutine evidence while an inspection is still live. The standard scripts/cli-qa.ps1 wrapper forwards -Incidents, and capture/resume bind that selection without changing execution budgets or the strict report envelope. Original historical causes remain unconfirmed; no installed runtime/service or public release identity changes.
 
+- Canonicalize incident test temporary parents on systems with a platform temporary-root alias (#387), retaining production rejection of caller-created links and existing ownership/cancellation assertions.
+
 - Synchronize the desktop search identity-mismatch fixture with completed route focus (#385), preserving exact query submission, daemon identity checks and no-Activity navigation assertions.
 
 - S120 corrects independently demonstrated integration output collection (#381) and request-context loss at SQL acquisition (#382). Owned script capture retains native exits separately from bounded streams/cleanup and adds opt-in executable/harness provenance. Affected API authorization, inspection and group cleanup honor request cancellation; already executed operations retain independently bounded terminal audit persistence. Original #355 CLR/prerequisite and #356 intermittent stall causes remain unconfirmed. S119 PR #380 historical merge and exact-main acceptance are reconciled without changing the public v1.6.0 tag or assets.

@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 )
 
 func TestIncidentArtifactsAreExclusiveBoundedAndAttributable(t *testing.T) {
-	parent := t.TempDir()
+	parent := canonicalTempDir(t)
 	capture, err := New(parent)
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +64,7 @@ func TestIncidentArtifactsAreExclusiveBoundedAndAttributable(t *testing.T) {
 }
 
 func TestIncidentRejectsLinkedParentAndArtifact(t *testing.T) {
-	parent, outside := t.TempDir(), t.TempDir()
+	parent, outside := canonicalTempDir(t), canonicalTempDir(t)
 	link := filepath.Join(parent, "linked")
 	if err := os.Symlink(outside, link); err != nil {
 		t.Skipf("native link capability unavailable: %v", err)
@@ -87,7 +88,7 @@ func TestIncidentRejectsLinkedParentAndArtifact(t *testing.T) {
 }
 
 func TestConcurrentIncidentsHaveDistinctOwnedDirectories(t *testing.T) {
-	parent := t.TempDir()
+	parent := canonicalTempDir(t)
 	var wg sync.WaitGroup
 	ids := make(chan string, 6)
 	for range 6 {
@@ -115,11 +116,11 @@ func TestConcurrentIncidentsHaveDistinctOwnedDirectories(t *testing.T) {
 }
 
 func TestIncidentRejectsChangedDirectoryIdentity(t *testing.T) {
-	capture, err := New(t.TempDir())
+	capture, err := New(canonicalTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
-	other := filepath.Join(t.TempDir(), filepath.Base(capture.Dir))
+	other := filepath.Join(canonicalTempDir(t), filepath.Base(capture.Dir))
 	if err := os.Mkdir(other, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -133,4 +134,45 @@ func TestIncidentRejectsChangedDirectoryIdentity(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(other, "unexpected.txt")); !os.IsNotExist(err) {
 		t.Fatal("wrote outside the original capture identity")
 	}
+}
+
+func canonicalTempDir(t *testing.T) string {
+	t.Helper()
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parent
+}
+
+func TestIncidentTempFixtureResolvesPlatformAlias(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX temporary-root alias")
+	}
+	root := canonicalTempDir(t)
+	actual, alias := filepath.Join(root, "actual"), filepath.Join(root, "system-temp")
+	if err := os.Mkdir(actual, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(actual, alias); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TMPDIR", alias)
+	t.Run("owned_fixture", func(t *testing.T) {
+		parent := canonicalTempDir(t)
+		capture, err := New(parent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := capture.Write("owned.txt", []byte("owned")); err != nil {
+			t.Fatal(err)
+		}
+		callerLink := filepath.Join(parent, "caller-link")
+		if err := os.Symlink(actual, callerLink); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(callerLink); err == nil {
+			t.Fatal("accepted caller-created link")
+		}
+	})
 }

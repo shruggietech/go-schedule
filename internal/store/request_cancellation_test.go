@@ -51,7 +51,11 @@ func TestOwnedIPCRequestCancellationReleasesPoolWait(t *testing.T) {
 				}
 				api := server.New(st, nil, nil, nil, "", nil)
 				tracker := &incident.Tracker{}
-				channel, err := incident.NewChannel(t.TempDir())
+				parent, err := filepath.EvalSymlinks(t.TempDir())
+				if err != nil {
+					t.Fatal(err)
+				}
+				channel, err := incident.NewChannel(parent)
 				if err != nil {
 					t.Fatal(err)
 				}

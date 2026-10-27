@@ -23,3 +23,5 @@ This file records the completed read-only report after the analyze command.
 ## Final implementation audit (2026-10-27)
 
 All 11 functional requirements remain traced to the completed tasks and discriminating regressions. Full Windows/WSL evaluation is finalized and validated; canonical eight-gate verification passed with 2401 stable inputs and 26 original artifacts unchanged. The independent #385 GUI fixture correction preserves exact target/query and navigation assertions. Original #355/#356 causal uncertainty remains explicit. No unresolved CRITICAL analysis finding or implementation task remains; source push, official PR and at most two Codex rounds follow owner authorization, with merge/tag/promotion excluded.
+
+Hosted CI amendment #387 canonicalizes test-owned temporary parents in five test files. Production collector path rejection and all original ownership/cancellation assertions remain unchanged. The POSIX alias regression discriminates the failure; functional scope and all requirement/task mappings remain intact.

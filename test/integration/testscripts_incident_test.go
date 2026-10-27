@@ -12,7 +12,7 @@ import (
 )
 
 func TestScriptIncidentRetainsOrdinaryNativeFailure(t *testing.T) {
-	parent := t.TempDir()
+	parent := canonicalScriptIncidentParent(t)
 	t.Setenv("GOSCHEDULE_INCIDENT_DIR", parent)
 	args := []string{os.Args[0], "-test.run=^TestScriptObservationHelper$", "--", "overflow", "37", "unused", "unused"}
 	got := observeScript(args, os.Args[0], os.Environ())
@@ -32,7 +32,7 @@ func TestScriptIncidentRetainsOrdinaryNativeFailure(t *testing.T) {
 }
 
 func TestScriptIncidentUnavailableDoesNotReplaceNativeFailure(t *testing.T) {
-	t.Setenv("GOSCHEDULE_INCIDENT_DIR", filepath.Join(t.TempDir(), "not-created"))
+	t.Setenv("GOSCHEDULE_INCIDENT_DIR", filepath.Join(canonicalScriptIncidentParent(t), "not-created"))
 	got := observeScript([]string{os.Args[0], "-test.run=^TestScriptObservationHelper$", "--", "overflow", "37", "unused", "unused"}, os.Args[0], os.Environ())
 	if got.code != 37 || !strings.Contains(got.incident, "unavailable") {
 		t.Fatalf("original or independent collection lost: %+v", got)
@@ -40,8 +40,8 @@ func TestScriptIncidentUnavailableDoesNotReplaceNativeFailure(t *testing.T) {
 }
 
 func TestScriptIncidentMissingInterpreterIsExplicitlyUnavailable(t *testing.T) {
-	t.Setenv("GOSCHEDULE_INCIDENT_DIR", t.TempDir())
-	got := observeScript([]string{filepath.Join(t.TempDir(), "absent-interpreter")}, "", os.Environ())
+	t.Setenv("GOSCHEDULE_INCIDENT_DIR", canonicalScriptIncidentParent(t))
+	got := observeScript([]string{filepath.Join(canonicalScriptIncidentParent(t), "absent-interpreter")}, "", os.Environ())
 	if got.code != -1 || got.err == nil || !strings.Contains(got.incident, "unavailable") {
 		t.Fatalf("launch failure lost incident disposition: %+v", got)
 	}
@@ -60,10 +60,10 @@ func TestPowerShellIncidentControlledNativeCrash(t *testing.T) {
 	requireTwin(t, tw)
 	parent := os.Getenv("GOSCHEDULE_INCIDENT_DIR")
 	if parent == "" {
-		parent = t.TempDir()
+		parent = canonicalScriptIncidentParent(t)
 	}
 	t.Setenv("GOSCHEDULE_INCIDENT_DIR", parent)
-	harness := filepath.Join(t.TempDir(), "owned-crash.ps1")
+	harness := filepath.Join(canonicalScriptIncidentParent(t), "owned-crash.ps1")
 	if err := os.WriteFile(harness, []byte(powerShellIncidentPrelude()+"\n[Environment]::FailFast('owned S121 crash fixture')\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -107,4 +107,13 @@ func TestPowerShellIncidentControlledNativeCrash(t *testing.T) {
 		}
 	}
 	t.Logf("controlled native exit=0x%08x incident=%s", uint32(got.code), got.incident)
+}
+
+func canonicalScriptIncidentParent(t *testing.T) string {
+	t.Helper()
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parent
 }

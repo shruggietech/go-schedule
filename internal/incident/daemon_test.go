@@ -14,7 +14,7 @@ import (
 )
 
 func TestDaemonEvidenceDoesNotNeedTheBusySQLConnection(t *testing.T) {
-	channel, err := NewChannel(t.TempDir())
+	channel, err := NewChannel(canonicalTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestDaemonEvidenceDoesNotNeedTheBusySQLConnection(t *testing.T) {
 }
 
 func TestLiveHandlerStallIsDistinctFromSQLPoolWait(t *testing.T) {
-	channel, err := NewChannel(t.TempDir())
+	channel, err := NewChannel(canonicalTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestLiveHandlerStallIsDistinctFromSQLPoolWait(t *testing.T) {
 func TestDaemonRejectsWrongTargetAndOversizedRequest(t *testing.T) {
 	for _, kind := range []string{"wrong_pid", "oversized"} {
 		t.Run(kind, func(t *testing.T) {
-			channel, err := NewChannel(t.TempDir())
+			channel, err := NewChannel(canonicalTempDir(t))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -118,7 +118,7 @@ func TestDaemonRejectsWrongTargetAndOversizedRequest(t *testing.T) {
 }
 
 func TestDaemonDiagnosticsRequireTheOwnedWorkspace(t *testing.T) {
-	root := filepath.Join(t.TempDir(), "gosched-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	root := filepath.Join(canonicalTempDir(t), "gosched-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
 	evidence := filepath.Join(root, "evidence")
 	state := filepath.Join(root, "runtime", "state")
 	for _, dir := range []string{evidence, state} {
@@ -145,7 +145,7 @@ func TestDaemonDiagnosticsRequireTheOwnedWorkspace(t *testing.T) {
 	if err := ValidateWorkspace(channel.Dir, state); err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateWorkspace(channel.Dir, filepath.Join(t.TempDir(), "installed-state")); err == nil {
+	if err := ValidateWorkspace(channel.Dir, filepath.Join(canonicalTempDir(t), "installed-state")); err == nil {
 		t.Fatal("accepted a different state directory")
 	}
 	if err := os.WriteFile(filepath.Join(evidence, "ownership.json"), []byte(`{"run_id":"changed"}`), 0600); err != nil {
@@ -157,7 +157,7 @@ func TestDaemonDiagnosticsRequireTheOwnedWorkspace(t *testing.T) {
 }
 
 func TestDaemonCollectionIsBoundedAbsentAndCanceled(t *testing.T) {
-	channel, err := NewChannel(t.TempDir())
+	channel, err := NewChannel(canonicalTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
