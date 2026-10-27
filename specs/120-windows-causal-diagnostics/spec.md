@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implemented, all eight local gates passed; authorized PR publication and external review follow. The owner authorizes source push, one official PR and at most two Codex rounds. Stop before merge, tagging or promotion.
+**Delivery**: [PR #383](https://github.com/shruggietech/go-schedule/pull/383), review branch codex/120-windows-causal-diagnostics; reviewed implementation cb48f4813d87fde27c245b53e807604e609d0562. Owner-authorized source publication; stop before merge, tagging or promotion.
 
 **Input**: Implement the full #355/#356 bundle under autopilot using targeted causal investigation, existing isolated fixtures and truthful individual dispositions.
 

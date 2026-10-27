@@ -12,4 +12,10 @@ All eight foreground gates passed on 2026-10-27 from 2026-10-27T07:19:04.259Z to
 
 ## Hosted delivery boundary
 
-Source push and one official PR are owner-authorized, followed by exact-head CI and at most two Codex rounds. No S120 review round has been requested yet. Stop before merge, tagging or promotion.
+PR #383 is open under the owner's source-publication authorization. Both permitted Codex rounds completed without findings on implementation cb48f4813d87fde27c245b53e807604e609d0562. The metadata-only correction consumes no further review request. Exact-head hosted checks follow; stop before merge, tagging or promotion.
+
+## Post-publication lifecycle correction (#384)
+
+Initial implementation cb48f4813d87fde27c245b53e807604e609d0562 received two completed Codex rounds without findings. Hosted CI 40467905081 correctly rejected its finalized Delivery field, because the pre-finalization aggregate exercised In Progress metadata and finalization omitted an objective PR/branch reference. The unchanged checker requires that reference for Implemented. The correction binds the actual PR #383 and review branch; application and test source are unchanged. The original failed hosted log is retained separately.
+
+The repeated full foreground aggregate passed all eight gates in 534.88 seconds, from 2026-10-27T07:40:52.725Z to 2026-10-27T07:49:47.605Z, native exit 0. All 2380 frozen inputs and 26 original artifacts remained unchanged; manifest SHA-256 05798dbd918663108693b2e9f2e1e81991848330b145f0b38080720b4c5c51a2. This run exercised the corrected Implemented lifecycle metadata. After recording this factual receipt, final formatting and the unchanged automation/lifecycle gate run again before the correction commit. Both completed Codex rounds reviewed implementation cb48f4813d87fde27c245b53e807604e609d0562; the correction changes delivery metadata only and requests no additional review.
