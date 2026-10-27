@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implemented on review branch codex/122-windows-incident-replay; investigation.md and verification.md record bounded outcomes and complete acceptance; original #355/#356 causes remain open.
+**Delivery**: Implemented on review branch codex/122-windows-incident-replay in PR #391, including hosted CI artifact correction #392; verification.md preserves exact application QA and separate corrected-script acceptance; original #355/#356 causes remain open.
 
 **Input**: Owner-authorized S122 bundles #355 and #356, uses Spec-Kit, performs bounded investigation, implements demonstrated fixes, publishes one source PR, monitors CI and handles at most two Codex rounds. Stop before merge, tagging or promotion.
 

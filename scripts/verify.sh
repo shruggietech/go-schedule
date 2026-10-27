@@ -61,7 +61,10 @@ run_gate() {
       # Keep the profile relative to the repository so a Windows Go toolchain
       # invoked from WSL Bash receives a path it can open. A WSL /tmp path is not
       # meaningful to a native Windows process.
-      coverage_profile=$(mktemp ./goschedule-cover.XXXXXX)
+      # The profile changes while parallel package tests run. Keep it in the
+      # ignored artifact namespace so source-bound tests never hash that output.
+      mkdir -p ./.test-temp
+      coverage_profile=$(mktemp ./.test-temp/goschedule-cover.XXXXXX)
       if CGO_ENABLED=0 COVERAGE_PROFILE="$coverage_profile" \
         "$SH" scripts/coverage-gate.sh; then
         rm -f "$coverage_profile"
@@ -77,6 +80,7 @@ run_gate() {
     automation)
       "$GO" run ./scripts/ci-timeout-check
       "$SH" scripts/automation-check.sh "$ROOT"
+      "$SH" test/scripts/coverage-profile_test.sh
       "$SH" test/scripts/automation-check_test.sh automation
       ;;
     *)

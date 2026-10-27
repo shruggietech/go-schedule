@@ -53,3 +53,11 @@
 T001/T002 precede all implementation. T003/T004 capture first failures before T011/T012. T005/T006 precede T007, then T008/T009 run sequentially under the common deadline. T010 analyzes/follows up before corrections. T013 follows all actual fixes; T014 follows application changes. T015/T016 precede frozen aggregate T017 and factual finalization T018. Each newly demonstrated defect has its own GitHub record. Original #355/#356 remain open if causal outcomes are incomplete.
 
 The two read-only research agents required by the installed plan command completed. No additional implementation delegation is needed. US1 and US2 design could be read in parallel, but owned campaigns and overlapping edits execute sequentially. MVP is attributable runtime replay; the authorized slice delivers all three stories and the complete IPC/store cross-product. Publication/review are the owner-authorized workflow after implementation, not unchecked code tasks. Push/open one official PR, handle at most two Codex rounds and stop before merging/tagging/promotion.
+
+## Phase 7: Independently demonstrated hosted CI correction
+
+- [x] T019 Preserve the first hosted coverage failure, file #392 after duplicate search, demonstrate the unignored mutable canonical profile with a failing regression, then isolate that profile under ignored artifacts without changing source integrity or coverage semantics (FR-008, FR-009, FR-010).
+- [x] T020 Run the corrected artifact-boundary regression natively on Windows and Linux and the complete foreground canonical aggregate; preserve prior successful and failed receipts separately (FR-008, FR-009).
+- [x] T021 Reconcile factual delivery/CI attribution, validate final formatting/lifecycle records and commit the CI-only correction on the authorized review branch (FR-007, FR-010).
+
+The same-PR follow-up push and exact-head CI monitoring remain the owner-authorized publication workflow after implementation. Both permitted Codex rounds completed on the initial application head; no third request is permitted. The later correction changes only verification scripts and factual records.
