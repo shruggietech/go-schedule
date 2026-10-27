@@ -6,7 +6,7 @@ nav_order: 7.5
 # Local MCP access
 
 **Audience:** people connecting Codex or another local MCP host to go-schedule\
-**Applies to:** local MCP from v1.3.0, remote and controlled operations from v1.5.0; current CLI refinements target the v1.6.0 candidate (pending publication)\
+**Applies to:** local MCP from v1.3.0, remote and controlled operations from v1.5.0; current CLI refinements were introduced in v1.6.0\
 **Authority:** Observe resources by default, with explicit Operate and Manage tools over local stdio or an explicitly enabled authenticated numeric-loopback HTTP endpoint
 
 go-schedule provides optional local Model Context Protocol access for inspecting scheduler state and, after explicit opt-in, operating existing tasks or managing bounded automation definitions. The preferred stdio mode starts only when an MCP host launches `gosched mcp serve`, communicates through standard input and standard output, and opens no network listener. Clients that cannot launch stdio can use a separately enabled authenticated endpoint bound only to numeric IPv4 loopback. The daemon must already be running, and the account controlling either mode must already have access to its Unix socket or Windows named pipe.

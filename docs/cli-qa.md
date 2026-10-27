@@ -96,7 +96,7 @@ The [version 1 build-receipt schema](https://github.com/shruggietech/go-schedule
 
 ## Owned SMTP evaluation
 
-Included in the v1.6.0 candidate; package publication is pending.
+Included in v1.6.0.
 
 The standard capture catalog adds SMTP create/get/update/enable/test/rotate/clear/task-delivery/remote-read/disable/remove operations, both human and JSON output, and intentional encryption/header/credential failures. A disposable loopback SMTP receiver records messages and recipient addresses independently of daemon delivery history. Credential values are registered with the redactor before use and are supplied from private fixture files or standard input.
 

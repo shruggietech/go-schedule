@@ -45,7 +45,7 @@ After installation, check the daemon:
 gosched health
 ```
 
-The health example below targets the v1.6.0 candidate. Use the [latest published release](https://github.com/shruggietech/go-schedule/releases/latest) to identify currently available packages.
+The health example below targets the v1.6.0 release. Use the [latest published release](https://github.com/shruggietech/go-schedule/releases/latest) to identify currently available packages.
 
 ```text
 daemon ok (version 1.6.0)

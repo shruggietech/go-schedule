@@ -8,13 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **2026-10-27 release and pinned-file decision (S119): reconcile current release discovery and docs/INSTALL-windows.md after authorized v1.6.0 publication.** Release 423908120 preserves approved source 0f8834ba3b88b69c8f55aaa5d72add70e5b6252b and all eight original staged assets; promotion adds verified checksums and selects it as latest. Current-main comparison review refreshes only its changelog digest/date after correcting the publication introduction. Immutable tagged records, release notes, comparison data, complete-state backup and matching-binary rollback guidance remain unchanged. Original #355/#356 causes remain unconfirmed and attended native observations remain untested.
+- Comparison browser assertions read the actual prepared release selection instead of an obsolete literal, covering default and explicit selection without weakening visibility or responsive table checks (Closes #379).
+
 - Reconcile S117 implementation and actual PR #377 delivery records; provide the current S118 release handoff with separate #354 publication and unresolved #355/#356 outcomes.
 
 - 2026-10-25 release/process and pinned-file decision (S118): update the current procedure reference in docs/INSTALL-windows.md and test/windows/README.md to the reconciled S118 handoff. Preserve the existing standing native-testing waiver, exact-source staging/promotion contracts, complete-state backup and matching-binary rollback guidance. Selected pending v1.6.0 content bindings and public v1.5.1 selection are unchanged.
 
 ## [1.6.0] - 2026-10-22
 
-Candidate source preparation; publication is pending owner review and separately authorized tagging/promotion. The latest public package remains v1.5.1 until promotion completes.
+Published as v1.6.0 on 2026-10-27 from approved source 0f8834ba3b88b69c8f55aaa5d72add70e5b6252b and selected as the latest public release. The section date records source preparation; dated entries below retain their original decisions. Original #355/#356 causes remain unconfirmed; attended native observations remain untested under the standing waiver.
 
 ### Added
 

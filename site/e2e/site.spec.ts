@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+const selectedComparison = JSON.parse(readFileSync(new URL('../.source/comparison.json', import.meta.url), 'utf8')) as { tag: string };
 
 test('home, keyboard entry, persistent appearance and public resources', async ({ page }) => {
  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -42,7 +45,7 @@ for(const width of [390,768,1440])test('responsive home and comparison at '+widt
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  }
  await page.goto('/compare/'); await expect(page.getByRole('table')).toBeVisible();
- await expect(page.getByText('v1.5.1',{exact:true}).first()).toBeVisible();
+ await expect(page.getByText(selectedComparison.tag,{exact:true}).first()).toBeVisible();
  await expect(page.getByRole('columnheader')).toHaveCount(9);
 });
 
