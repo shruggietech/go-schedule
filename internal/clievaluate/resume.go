@@ -51,7 +51,7 @@ func compareResumeInputs(prior, current captureIdentity) error {
 		return err
 	}
 	if !bytes.Equal(a, b) {
-		return errors.New("resume inputs changed: source, binaries, budget, manifest, distro and user must match")
+		return errors.New("resume inputs changed: source, binaries, budget, manifest, distro, user and incident selection must match")
 	}
 	return nil
 }

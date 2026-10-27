@@ -22,7 +22,7 @@ func bindingHarness(t *testing.T, tw twin, sql string) string {
 	if tw.name == "powershell" {
 		name = "binding.ps1"
 		library := strings.ReplaceAll(scriptPath(t, "lib/Sqlite.ps1"), "'", "''")
-		text = "param([string]$Database)\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=interpreter-entry')}\n$ErrorActionPreference='Stop'\n. '" + library + "'\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=library-loaded')}\nInitialize-TestSqlite\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=prerequisite-resolved sqlite=' + $script:ResolvedSqliteExe)}\n$value=[string][Environment]::GetEnvironmentVariable('SCRIPT_BIND_VALUE')\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=write-started')}\nInvoke-Sqlite -Database $Database -Sql '" + strings.ReplaceAll(sql, "'", "''") + "' -Parameters @{ value=$value; empty=''; absent=$null }\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=write-complete')}\n"
+		text = "param([string]$Database)\n" + powerShellIncidentPrelude() + "\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=interpreter-entry')}\n$ErrorActionPreference='Stop'\n. '" + library + "'\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=library-loaded')}\nInitialize-TestSqlite\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=prerequisite-resolved sqlite=' + $script:ResolvedSqliteExe)}\n$value=[string][Environment]::GetEnvironmentVariable('SCRIPT_BIND_VALUE')\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=write-started')}\nInvoke-Sqlite -Database $Database -Sql '" + strings.ReplaceAll(sql, "'", "''") + "' -Parameters @{ value=$value; empty=''; absent=$null }\nif($env:GOSCHEDULE_PROBE_DIAGNOSTICS -eq '1'){[Console]::Error.WriteLine('phase=write-complete')}\n"
 	} else {
 		name = "binding.sh"
 		library := strings.ReplaceAll(bashCompatiblePath(scriptPath(t, "lib/sqlite.sh")), "'", "'\"'\"'")
@@ -43,6 +43,7 @@ type bindingResult struct {
 	collectionErr error
 	cleanupErr    error
 	provenance    string
+	incident      string
 }
 
 func executeBinding(tw twin, harness, database, value string) bindingResult {
@@ -104,12 +105,12 @@ func TestScriptsBindingsKeepConcurrentSessionIdentities(t *testing.T) {
 					const writers = 6
 					results := make([]bindingResult, writers)
 					t.Cleanup(func() {
-						if !t.Failed() || os.Getenv("GOSCHEDULE_PROBE_DIAGNOSTICS") != "1" {
+						if !t.Failed() || (os.Getenv("GOSCHEDULE_PROBE_DIAGNOSTICS") != "1" && os.Getenv("GOSCHEDULE_INCIDENT_DIR") == "") {
 							return
 						}
 						for i, result := range results {
 							output := result.output
-							t.Logf("writer=%d native_exit=%d hex=0x%08x elapsed=%s interpreter=%s result=%v output=%q", i, result.code, uint32(result.code), result.duration, tw.command(harness, database)[0], result.err, output+"\n"+result.provenance)
+							t.Logf("writer=%d native_exit=%d hex=0x%08x elapsed=%s interpreter=%s result=%v output=%q", i, result.code, uint32(result.code), result.duration, tw.command(harness, database)[0], result.err, output+"\n"+result.provenance+"\n"+result.incident)
 						}
 						rows, err := scriptCommand(sqlite, database, "SELECT session_id,sequence FROM sessions ORDER BY session_id,sequence;").CombinedOutput()
 						t.Logf("owned failure rows sqlite=%s query_error=%v rows=%q", sqlite, err, rows)

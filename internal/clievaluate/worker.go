@@ -25,6 +25,7 @@ type WorkerConfig struct {
 	Subject     Subject     `json:"subject"`
 	Budget      Budget      `json:"budget"`
 	Environment Environment `json:"environment"`
+	Incidents   bool        `json:"incidents"`
 }
 
 func stamp() string { return time.Now().UTC().Format(time.RFC3339Nano) }
@@ -129,7 +130,7 @@ func RunWorker(ctx context.Context, c WorkerConfig) (resultErr error) {
 		setup, cancel := context.WithTimeout(ctx, 120*time.Second)
 		defer cancel()
 		var setupErr error
-		owned, setupErr = newSession(setup, binaries, c.Budget, redactor, func(w *clifixture.Workspace) error {
+		owned, setupErr = newSession(setup, binaries, c.Budget, redactor, c.Incidents, func(w *clifixture.Workspace) error {
 			r.Cleanup = []Cleanup{mergeCleanup(completedCleanup, workspaceCleanup(c.Environment.ID, phase, w))}
 			if err := retainOwnership(store, &r, c.Prefix+"/"+phase, w); err != nil {
 				return err

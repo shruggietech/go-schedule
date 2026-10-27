@@ -82,7 +82,7 @@ func main(){
 		t.Run(action, func(t *testing.T) {
 			log := filepath.Join(dir, action+".jsonl")
 			outDir := filepath.Join(dir, action)
-			args := []string{"-NoProfile", "-NonInteractive", "-File", wrapper, "-Action", action, "-SourceDirectory", sourceRoot, "-BinaryDirectory", bin, "-OutputDirectory", outDir, "-WSLDistribution", "owned distro", "-WSLUser", "owned user"}
+			args := []string{"-NoProfile", "-NonInteractive", "-File", wrapper, "-Action", action, "-SourceDirectory", sourceRoot, "-BinaryDirectory", bin, "-OutputDirectory", outDir, "-WSLDistribution", "owned distro", "-WSLUser", "owned user", "-Incidents"}
 			if action == "capture" {
 				args = append(args, "-Budget", budget)
 			}
@@ -107,6 +107,9 @@ func main(){
 			}
 			if !strings.Contains(lines[0], "timing-policy") {
 				t.Fatalf("policy not read first: %s", data)
+			}
+			if !strings.Contains(lines[1], "--incidents") || strings.Contains(lines[0], "--incidents") {
+				t.Fatalf("incident selection did not reach the capture/resume command independently of budget: %s", data)
 			}
 			if action == "capture" && !strings.Contains(lines[0], "--budget") {
 				t.Fatal("explicit budget omitted from policy")

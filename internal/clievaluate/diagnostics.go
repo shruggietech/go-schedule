@@ -53,22 +53,27 @@ func (d *executionDiagnostics) finish(result execution) execution {
 	if d.current != "" {
 		d.phases = append(d.phases, phaseTiming{d.current, time.Since(d.started).Milliseconds()})
 	}
+	state := observationState(result.State)
+	state["diagnostics"] = map[string]any{"phases": d.phases, "requests": d.requests, "requests_omitted": d.dropped, "before_complete": d.BeforeComplete, "after_complete": d.AfterComplete, "command_ran": d.CommandRan, "blocked_reason": result.Blocked, "execution_diagnostic": result.Detail, "process_cleanup_error": errorText(result.Cleanup)}
+	result.State = mustObservation(state)
+	return result
+}
+
+func observationState(raw []byte) map[string]any {
 	state := map[string]any{}
-	if len(result.State) > 0 {
+	if len(raw) > 0 {
 		var object map[string]json.RawMessage
 		switch {
-		case !json.Valid(result.State):
-			state["observation_raw"] = string(result.State)
+		case !json.Valid(raw):
+			state["observation_raw"] = string(raw)
 			state["state_decode_error"] = "The original case observation could not be decoded."
-		case json.Unmarshal(result.State, &object) == nil && object != nil:
+		case json.Unmarshal(raw, &object) == nil && object != nil:
 			for name, value := range object {
 				state[name] = value
 			}
 		default:
-			state["observation"] = json.RawMessage(result.State)
+			state["observation"] = json.RawMessage(raw)
 		}
 	}
-	state["diagnostics"] = map[string]any{"phases": d.phases, "requests": d.requests, "requests_omitted": d.dropped, "before_complete": d.BeforeComplete, "after_complete": d.AfterComplete, "command_ran": d.CommandRan, "blocked_reason": result.Blocked, "execution_diagnostic": result.Detail, "process_cleanup_error": errorText(result.Cleanup)}
-	result.State = mustObservation(state)
-	return result
+	return state
 }

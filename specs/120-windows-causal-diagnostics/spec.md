@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: [PR #383](https://github.com/shruggietech/go-schedule/pull/383), review branch codex/120-windows-causal-diagnostics; reviewed implementation cb48f4813d87fde27c245b53e807604e609d0562. Owner-authorized source publication; stop before merge, tagging or promotion.
+**Delivery**: Merged [PR #383](https://github.com/shruggietech/go-schedule/pull/383) at commit 6e4834eea519dd0b5626f7919a101c4e9d4b4cf7 on 2026-10-27. Both authorized reviews passed on implementation cb48f4813d87fde27c245b53e807604e609d0562; final PR head ac05d786453dc1cd0e7c95a3fefb4dd9d6d2e976 had 22 successful checks.
 
 **Input**: Implement the full #355/#356 bundle under autopilot using targeted causal investigation, existing isolated fixtures and truthful individual dispositions.
 

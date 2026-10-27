@@ -41,8 +41,11 @@ describe('production shell', () => {
     const selecting: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(identityChanged), selectConnection: vi.fn().mockResolvedValue({ action: 'select_connection', outcome: 'accepted', message: 'Selected.' }) }
     render(<App bridge={selecting} tasks={tasks} settings={settings} search={search} />)
     await user.click(screen.getByRole('button', { name: /^Search$/ }))
+    await waitFor(() => expect(screen.getByRole('main')).toHaveFocus())
     await user.type(screen.getByLabelText('Search all systems'), 'archive')
+    expect(screen.getByLabelText('Search all systems')).toHaveValue('archive')
     await user.click(screen.getAllByRole('button', { name: /^Search$/ }).at(-1)!)
+    expect(search.search).toHaveBeenCalledWith({ query: 'archive', kinds: ['task', 'group', 'failure', 'schedule', 'alert'], limit: 50 })
     await user.click(await screen.findByRole('button', { name: 'Open' }))
     expect(await screen.findByText('The scheduler identity changed. No activity record was opened.')).toBeVisible()
     expect(selecting.selectConnection).toHaveBeenCalledWith('profile-7')

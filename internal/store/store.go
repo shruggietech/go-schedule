@@ -58,6 +58,9 @@ func Open(path string) (*Store, error) {
 // Close closes the underlying database.
 func (s *Store) Close() error { return s.db.Close() }
 
+// PoolStats returns connection-pool metadata without acquiring a SQL connection.
+func (s *Store) PoolStats() sql.DBStats { return s.db.Stats() }
+
 // migration is one ordered schema change.
 type migration struct {
 	version        int

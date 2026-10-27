@@ -14,6 +14,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/internal/authorization"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/incident"
 	"github.com/shruggietech/go-schedule/internal/store"
 )
 
@@ -58,9 +59,12 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
+	incident.Stage(r.Context(), "resolve_actor")
 	actorID, resolveErr := s.resolveActor(r)
+	incident.Stage(r.Context(), "actor")
 	actor, actorErr := s.store.GetActorContext(r.Context(), actorID)
 	authorized := resolveErr == nil && actorErr == nil && authorization.Allows(actor, operation.ID, time.Now())
+	incident.Stage(r.Context(), "identity")
 	identity, identityErr := s.store.DaemonIdentityContext(r.Context())
 	if identityErr != nil {
 		writeError(w, http.StatusServiceUnavailable, CodeAuditUnavailable, "", "authorization evidence is unavailable")
@@ -84,9 +88,11 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, CodeConflict, "daemon_id", "daemon identity does not match the requested target")
 			return
 		}
+		incident.Stage(r.Context(), "handler")
 		s.mux.ServeHTTP(w, r)
 		return
 	}
+	incident.Stage(r.Context(), "audit_intent")
 	if err := s.store.BeginAuditContext(r.Context(), event); err != nil {
 		writeError(w, http.StatusServiceUnavailable, CodeAuditUnavailable, "", "audit intent could not be persisted")
 		return
@@ -95,6 +101,7 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 	if expected := r.Header.Get(ExpectedDaemonHeader); expected != "" && expected != identity.InstallationID {
 		writeError(capture, http.StatusConflict, CodeConflict, "daemon_id", "daemon identity does not match the requested target")
 	} else {
+		incident.Stage(r.Context(), "handler")
 		s.mux.ServeHTTP(capture, r)
 	}
 	if capture.status == 0 {
@@ -104,6 +111,7 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 	if capture.status >= 400 {
 		result = domain.AuditResultFailed
 	}
+	incident.Stage(r.Context(), "audit_completion")
 	completion, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
 	defer cancel()
 	if err := s.store.CompleteAuditContext(completion, event.ID, result, completedAuditTarget(event.TargetID, capture.status, capture.body.Bytes())); err != nil {

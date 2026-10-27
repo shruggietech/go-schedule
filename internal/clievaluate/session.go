@@ -32,6 +32,7 @@ import (
 	"github.com/shruggietech/go-schedule/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/internal/clifixture"
 	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/internal/incident"
 	"github.com/shruggietech/go-schedule/internal/remoteenroll"
 	"github.com/shruggietech/go-schedule/internal/testsmtp"
 )
@@ -50,6 +51,8 @@ type session struct {
 	recorder             *clifixture.Recorder
 	profiles             *clientprofile.Store
 	daemon               *clifixture.Process
+	incidents            *incident.Channel
+	incidentError        error
 	daemonPipes          *clifixture.Pipes
 	daemonOut, daemonErr *memoryCapture
 	daemonDone           chan error
@@ -60,7 +63,7 @@ type session struct {
 	webhookCode          int
 }
 
-func newSession(ctx context.Context, binaries map[string]string, budget Budget, redactor *Redactor, onOwned func(*clifixture.Workspace) error) (s *session, resultErr error) {
+func newSession(ctx context.Context, binaries map[string]string, budget Budget, redactor *Redactor, incidents bool, onOwned func(*clifixture.Workspace) error) (s *session, resultErr error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -130,7 +133,20 @@ func newSession(ctx context.Context, binaries map[string]string, budget Budget, 
 	}
 	s.daemonOut = newMemoryCapture(budget.ChannelBytes, nil)
 	s.daemonErr = newMemoryCapture(budget.ChannelBytes, nil)
-	s.daemon, s.daemonPipes, err = clifixture.StartPiped(clifixture.Command{Executable: binaries["daemon"], Arguments: []string{"--config", w.ConfigPath}, Directory: w.Runtime, Environment: quietEnvironment()})
+	environment := incident.Environment(quietEnvironment(), map[string]string{"GOSCHEDULE_QA_INCIDENT_DIR": ""})
+	if incidents {
+		s.incidents, err = incident.NewChannel(w.Evidence)
+		if err == nil {
+			err = w.Contains(s.incidents.Dir)
+		}
+		if err != nil {
+			s.incidentError = err
+			s.incidents = nil
+		} else {
+			environment = incident.Environment(environment, map[string]string{"GOSCHEDULE_QA_INCIDENT_DIR": s.incidents.Dir})
+		}
+	}
+	s.daemon, s.daemonPipes, err = clifixture.StartPiped(clifixture.Command{Executable: binaries["daemon"], Arguments: []string{"--config", w.ConfigPath}, Directory: w.Runtime, Environment: environment})
 	if err != nil {
 		return s, err
 	}

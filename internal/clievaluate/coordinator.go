@@ -30,6 +30,7 @@ type CaptureOptions struct {
 	WSLDistro    string `json:"wsl_distro"`
 	WSLUser      string `json:"wsl_user"`
 	Resume       bool   `json:"resume"`
+	Incidents    bool   `json:"incidents"`
 	Budget       Budget `json:"budget"`
 }
 
@@ -41,6 +42,7 @@ type captureIdentity struct {
 	User           string  `json:"user"`
 	ManifestSHA256 string  `json:"manifest_sha256"`
 	Attempt        int     `json:"attempt"`
+	Incidents      bool    `json:"incidents"`
 }
 
 // Capture coordinates sequential contained workers and freezes a review corpus.
@@ -114,7 +116,7 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 		return result, err
 	}
 	subject, subjectErr := captureSubject(ctx, options)
-	identity := captureIdentity{RunID: uuid.NewString(), Subject: subject, Budget: options.Budget, Distro: options.WSLDistro, User: options.WSLUser, ManifestSHA256: Digest(manifestBytes), Attempt: 1}
+	identity := captureIdentity{RunID: uuid.NewString(), Subject: subject, Budget: options.Budget, Distro: options.WSLDistro, User: options.WSLUser, ManifestSHA256: Digest(manifestBytes), Attempt: 1, Incidents: options.Incidents}
 	priorCleanup := map[string]Cleanup{}
 	priorOwnership := []Artifact{}
 	if options.Resume {
@@ -226,7 +228,7 @@ func Capture(ctx context.Context, options CaptureOptions) (result Report, result
 				}
 			}
 		}
-		config := WorkerConfig{RunID: identity.RunID, Root: root, Prefix: prefix, Subject: workerSubject, Budget: options.Budget, Environment: env}
+		config := WorkerConfig{RunID: identity.RunID, Root: root, Prefix: prefix, Subject: workerSubject, Budget: options.Budget, Environment: env, Incidents: identity.Incidents}
 		configName := prefix + "/worker.json"
 		workerExe := binaryPath(subject, "runner", env.OS)
 		configArg := filepath.Join(root, filepath.FromSlash(configName))
