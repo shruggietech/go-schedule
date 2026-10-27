@@ -76,7 +76,7 @@ func NewWithRuntimeInfo(st *store.Store, sched Scheduler, broker *events.Broker,
 		if secret := r.Header.Get(MCPSessionHeader); secret != "" {
 			return s.mcpSessions.Resolve(secret)
 		}
-		actor, err := st.LocalActor()
+		actor, err := st.LocalActorContext(r.Context())
 		return actor.ID, err
 	}
 	s.routes()

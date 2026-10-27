@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -45,9 +46,14 @@ func (s *Store) initializeDaemonIdentity() error {
 
 // DaemonIdentity returns the singleton identity for this logical daemon.
 func (s *Store) DaemonIdentity() (domain.DaemonIdentity, error) {
+	return s.DaemonIdentityContext(context.Background())
+}
+
+// DaemonIdentityContext honors cancellation while acquiring and using the store connection.
+func (s *Store) DaemonIdentityContext(ctx context.Context) (domain.DaemonIdentity, error) {
 	var identity domain.DaemonIdentity
 	var created, updated string
-	if err := s.db.QueryRow(`SELECT installation_id,display_name,created_at,updated_at FROM daemon_identity WHERE singleton=1`).Scan(&identity.InstallationID, &identity.DisplayName, &created, &updated); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT installation_id,display_name,created_at,updated_at FROM daemon_identity WHERE singleton=1`).Scan(&identity.InstallationID, &identity.DisplayName, &created, &updated); err != nil {
 		return domain.DaemonIdentity{}, fmt.Errorf("store: read daemon identity: %w", err)
 	}
 	var err error

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -58,9 +59,9 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actorID, resolveErr := s.resolveActor(r)
-	actor, actorErr := s.store.GetActor(actorID)
+	actor, actorErr := s.store.GetActorContext(r.Context(), actorID)
 	authorized := resolveErr == nil && actorErr == nil && authorization.Allows(actor, operation.ID, time.Now())
-	identity, identityErr := s.store.DaemonIdentity()
+	identity, identityErr := s.store.DaemonIdentityContext(r.Context())
 	if identityErr != nil {
 		writeError(w, http.StatusServiceUnavailable, CodeAuditUnavailable, "", "authorization evidence is unavailable")
 		return
@@ -71,7 +72,7 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	event := domain.AuditEvent{ID: uuid.NewString(), ActorID: auditActorID, DaemonID: identity.InstallationID, Operation: operation.ID, TargetKind: operation.TargetKind, TargetID: authorization.TargetID(operation, r.URL.Path), CorrelationID: uuid.NewString(), OccurredAt: time.Now().UTC()}
 	if !authorized {
-		if err := s.store.RecordDeniedAudit(event); err != nil {
+		if err := s.store.RecordDeniedAuditContext(r.Context(), event); err != nil {
 			writeError(w, http.StatusServiceUnavailable, CodeAuditUnavailable, "", "authorization evidence is unavailable")
 			return
 		}
@@ -86,7 +87,7 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 		s.mux.ServeHTTP(w, r)
 		return
 	}
-	if err := s.store.BeginAudit(event); err != nil {
+	if err := s.store.BeginAuditContext(r.Context(), event); err != nil {
 		writeError(w, http.StatusServiceUnavailable, CodeAuditUnavailable, "", "audit intent could not be persisted")
 		return
 	}
@@ -103,7 +104,9 @@ func (s *Server) authorizeAndAudit(w http.ResponseWriter, r *http.Request) {
 	if capture.status >= 400 {
 		result = domain.AuditResultFailed
 	}
-	if err := s.store.CompleteAudit(event.ID, result, completedAuditTarget(event.TargetID, capture.status, capture.body.Bytes())); err != nil {
+	completion, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
+	defer cancel()
+	if err := s.store.CompleteAuditContext(completion, event.ID, result, completedAuditTarget(event.TargetID, capture.status, capture.body.Bytes())); err != nil {
 		writeError(w, http.StatusInternalServerError, CodeAuditUnavailable, "", "audit result could not be persisted")
 		return
 	}
@@ -159,7 +162,7 @@ func (s *Server) handleCurrentActor(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "", "actor identity is unavailable")
 		return
 	}
-	actor, err := s.store.GetActor(actorID)
+	actor, err := s.store.GetActorContext(r.Context(), actorID)
 	if err != nil {
 		s.internal(w, err)
 		return

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -40,7 +41,12 @@ func (s *Store) initializeLocalActor() error {
 }
 
 func (s *Store) LocalActor() (domain.Actor, error) {
-	actor, err := s.scanActor(s.db.QueryRow(`SELECT id,kind,display_name,capability,state,builtin,created_at,updated_at,expires_at FROM actors WHERE builtin=1`))
+	return s.LocalActorContext(context.Background())
+}
+
+// LocalActorContext honors cancellation while acquiring and using the store connection.
+func (s *Store) LocalActorContext(ctx context.Context) (domain.Actor, error) {
+	actor, err := s.scanActor(s.db.QueryRowContext(ctx, `SELECT id,kind,display_name,capability,state,builtin,created_at,updated_at,expires_at FROM actors WHERE builtin=1`))
 	if err != nil {
 		return domain.Actor{}, err
 	}
@@ -51,7 +57,12 @@ func (s *Store) LocalActor() (domain.Actor, error) {
 }
 
 func (s *Store) GetActor(id string) (domain.Actor, error) {
-	actor, err := s.scanActor(s.db.QueryRow(`SELECT id,kind,display_name,capability,state,builtin,created_at,updated_at,expires_at FROM actors WHERE id=?`, id))
+	return s.GetActorContext(context.Background(), id)
+}
+
+// GetActorContext honors cancellation while acquiring and using the store connection.
+func (s *Store) GetActorContext(ctx context.Context, id string) (domain.Actor, error) {
+	actor, err := s.scanActor(s.db.QueryRowContext(ctx, `SELECT id,kind,display_name,capability,state,builtin,created_at,updated_at,expires_at FROM actors WHERE id=?`, id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Actor{}, ErrNotFound
 	}
@@ -234,6 +245,11 @@ func (s *Store) scanActor(row rowScanner) (domain.Actor, error) {
 }
 
 func (s *Store) BeginAudit(event domain.AuditEvent) error {
+	return s.BeginAuditContext(context.Background(), event)
+}
+
+// BeginAuditContext honors cancellation while acquiring and using the store connection.
+func (s *Store) BeginAuditContext(ctx context.Context, event domain.AuditEvent) error {
 	if event.ID == "" {
 		event.ID = uuid.NewString()
 	}
@@ -244,10 +260,15 @@ func (s *Store) BeginAudit(event domain.AuditEvent) error {
 		event.OccurredAt = time.Now().UTC()
 	}
 	event.Result = domain.AuditResultUncertain
-	return s.insertAudit(event)
+	return s.insertAuditContext(ctx, event)
 }
 
 func (s *Store) RecordDeniedAudit(event domain.AuditEvent) error {
+	return s.RecordDeniedAuditContext(context.Background(), event)
+}
+
+// RecordDeniedAuditContext honors cancellation while acquiring and using the store connection.
+func (s *Store) RecordDeniedAuditContext(ctx context.Context, event domain.AuditEvent) error {
 	if event.ID == "" {
 		event.ID = uuid.NewString()
 	}
@@ -259,26 +280,26 @@ func (s *Store) RecordDeniedAudit(event domain.AuditEvent) error {
 	}
 	event.Result = domain.AuditResultDenied
 	event.CompletedAt = &event.OccurredAt
-	return s.insertAudit(event)
+	return s.insertAuditContext(ctx, event)
 }
 
-func (s *Store) insertAudit(event domain.AuditEvent) error {
+func (s *Store) insertAuditContext(ctx context.Context, event domain.AuditEvent) error {
 	if err := validateAuditEvent(event); err != nil {
 		return err
 	}
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("store: begin audit record: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.Exec(`INSERT INTO audit_events(id,actor_id,daemon_id,operation,target_kind,target_id,result,correlation_id,occurred_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?)`, event.ID, nullableString(event.ActorID), event.DaemonID, event.Operation, event.TargetKind, event.TargetID, event.Result, event.CorrelationID, fmtTime(event.OccurredAt), fmtTimePtr(event.CompletedAt)); err != nil {
+	if _, err := tx.ExecContext(ctx, `INSERT INTO audit_events(id,actor_id,daemon_id,operation,target_kind,target_id,result,correlation_id,occurred_at,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?)`, event.ID, nullableString(event.ActorID), event.DaemonID, event.Operation, event.TargetKind, event.TargetID, event.Result, event.CorrelationID, fmtTime(event.OccurredAt), fmtTimePtr(event.CompletedAt)); err != nil {
 		return fmt.Errorf("store: insert audit record: %w", err)
 	}
 	cutoff := fmtTime(event.OccurredAt.Add(-AuditRetentionAge))
-	if _, err := tx.Exec(`DELETE FROM audit_events WHERE occurred_at < ?`, cutoff); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM audit_events WHERE occurred_at < ?`, cutoff); err != nil {
 		return fmt.Errorf("store: prune audit age: %w", err)
 	}
-	if _, err := tx.Exec(`DELETE FROM audit_events WHERE id IN (SELECT id FROM audit_events ORDER BY occurred_at DESC,id DESC LIMIT -1 OFFSET ?)`, AuditRetentionCount); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM audit_events WHERE id IN (SELECT id FROM audit_events ORDER BY occurred_at DESC,id DESC LIMIT -1 OFFSET ?)`, AuditRetentionCount); err != nil {
 		return fmt.Errorf("store: prune audit count: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -288,6 +309,11 @@ func (s *Store) insertAudit(event domain.AuditEvent) error {
 }
 
 func (s *Store) CompleteAudit(id string, result domain.AuditResult, completedTargetID ...string) error {
+	return s.CompleteAuditContext(context.Background(), id, result, completedTargetID...)
+}
+
+// CompleteAuditContext honors cancellation while acquiring and using the store connection.
+func (s *Store) CompleteAuditContext(ctx context.Context, id string, result domain.AuditResult, completedTargetID ...string) error {
 	if result != domain.AuditResultSucceeded && result != domain.AuditResultFailed {
 		return fmt.Errorf("store: complete audit: invalid result")
 	}
@@ -296,7 +322,7 @@ func (s *Store) CompleteAudit(id string, result domain.AuditResult, completedTar
 	if len(completedTargetID) > 0 {
 		targetID = completedTargetID[0]
 	}
-	changed, err := s.db.Exec(`UPDATE audit_events SET result=?,completed_at=?,target_id=CASE WHEN target_id='' AND ?<>'' THEN ? ELSE target_id END WHERE id=? AND result='uncertain'`, result, now, targetID, targetID, id)
+	changed, err := s.db.ExecContext(ctx, `UPDATE audit_events SET result=?,completed_at=?,target_id=CASE WHEN target_id='' AND ?<>'' THEN ? ELSE target_id END WHERE id=? AND result='uncertain'`, result, now, targetID, targetID, id)
 	if err != nil {
 		return fmt.Errorf("store: complete audit: %w", err)
 	}

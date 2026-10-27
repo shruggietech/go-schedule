@@ -57,7 +57,7 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"tree": forest})
 		return
 	}
-	groups, err := s.store.ListGroups()
+	groups, err := s.store.ListGroupsContext(r.Context())
 	if err != nil {
 		s.internal(w, err)
 		return
@@ -104,7 +104,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if err := s.store.DeleteGroup(id); err != nil {
+	if err := s.store.DeleteGroupContext(r.Context(), id); err != nil {
 		s.notFoundOr(w, err)
 		return
 	}

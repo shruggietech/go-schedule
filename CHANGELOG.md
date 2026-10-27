@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- S120 corrects independently demonstrated integration output collection (#381) and request-context loss at SQL acquisition (#382). Owned script capture retains native exits separately from bounded streams/cleanup and adds opt-in executable/harness provenance. Affected API authorization, inspection and group cleanup honor request cancellation; already executed operations retain independently bounded terminal audit persistence. Original #355 CLR/prerequisite and #356 intermittent stall causes remain unconfirmed. S119 PR #380 historical merge and exact-main acceptance are reconciled without changing the public v1.6.0 tag or assets.
+
 - **2026-10-27 release and pinned-file decision (S119): reconcile current release discovery and docs/INSTALL-windows.md after authorized v1.6.0 publication.** Release 423908120 preserves approved source 0f8834ba3b88b69c8f55aaa5d72add70e5b6252b and all eight original staged assets; promotion adds verified checksums and selects it as latest. Current-main comparison review refreshes only its changelog digest/date after correcting the publication introduction. Immutable tagged records, release notes, comparison data, complete-state backup and matching-binary rollback guidance remain unchanged. Original #355/#356 causes remain unconfirmed and attended native observations remain untested.
 - Comparison browser assertions read the actual prepared release selection instead of an obsolete literal, covering default and explicit selection without weakening visibility or responsive table checks (Closes #379).
 

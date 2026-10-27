@@ -383,3 +383,9 @@ Covers single-shot recording, boundary drift, the exit-code contract, the bounde
 ### Concurrent-writer investigation
 
 For the maintainer integration fixture only, set `GOSCHEDULE_PROBE_DIAGNOSTICS=1` when running `go test -race ./test/integration -run TestScriptsBindingsKeepConcurrentSessionIdentities -v`. The fixture emits child-owned interpreter, library, prerequisite and write phases; on failure, the test log retains all six native outcomes and exact owned rows. Default writer output is unchanged. This mode does not retry, serialize or alter the exact-record assertions. Original unknown-cause Windows observations remain tracked in [#355](https://github.com/shruggietech/go-schedule/issues/355).
+
+### Outer process collection
+
+The binding fixture starts its hidden child in the existing owned Job Object or process group, closes stdin, allows 120 seconds for execution and two seconds to drain inherited streams after root completion. Each stream retains at most one MiB. It retains the root native exit, collection failure and owned cleanup failure separately; exit 0 with incomplete collection fails the fixture. A descendant cannot keep the fixture waiting indefinitely after the root exits.
+
+With GOSCHEDULE_PROBE_DIAGNOSTICS=1, outer provenance adds resolved executable and harness SHA-256 values, exact root PID, elapsed time and independent collection/cleanup status. It does not print environment values or harness contents. Existing child phase markers remain authoritative. Use TestScriptsRuntimeAndSelectionContrasts to compare metadata initialization with an actual writer and implicit discovery with explicit selection of the same SQLite executable. Passing contrasts do not explain a historical CLR crash or prerequisite refusal. Preserve the original failed log, then collect evidence from the exact owned PID if the crash recurs; do not replace the runtime or register a system-wide debugger as part of this routine.

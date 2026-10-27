@@ -10,10 +10,10 @@ The approved tag was created/pushed and resolves to that exact commit. [Release 
 
 | Issue | Current S119 outcome | Remaining outcome |
 | --- | --- | --- |
-| #354 | Exact approved release published and latest; discovery reconciliation prepared in this source branch | Source discovery PR merge remains owner-controlled; closes with completed source reconciliation |
+| #354 | Exact approved release published and latest; discovery reconciliation merged in PR #380 | Completed; issue closed after owner merge |
 | #355 | Original runtime/prerequisite evidence and unconfirmed causes remain independent | Demonstrated project correction or supported upstream disposition; remains open |
 | #356 | Original IPC/inspection evidence and unconfirmed stall cause remain independent | Demonstrated causal correction; remains open |
-| #379 | Reproduced obsolete comparison-version browser assertion and corrected it to actual prepared metadata; both selection paths passed | Source PR delivery, closes with the merged correction |
+| #379 | Reproduced obsolete comparison-version browser assertion and corrected it to actual prepared metadata; both selection paths passed | Completed through owner-merged PR #380; issue closed |
 
 No installed-system, account-session or DNS operation is part of this slice. Original failed captures retain their original outcomes. [verification.md](verification.md) records actual source/candidate checks and their limits.
 
@@ -26,3 +26,7 @@ Website deployment [40450554565](https://github.com/shruggietech/go-schedule/act
 ## Source implementation acceptance
 
 All eleven implementation tasks are complete on review branch codex/119-release-execution. All eight foreground gates passed in 703.326s with all 2,360 frozen inputs unchanged, followed by factual lifecycle finalization. Source publication and at most two Codex rounds are owner-authorized; actual PR/check/review receipts will be recorded on the official PR. The branch remains separate from the immutable release tag and owner merge.
+
+## Owner merge and post-merge acceptance (2026-10-27)
+
+The owner merged [PR #380](https://github.com/shruggietech/go-schedule/pull/380) as dac2e97895353435ad30515402b9f99d5e5d4ebc at 05:16:46Z and deleted its remote branch. Its tree matches reviewed head 367463bef53dd5e842fa5282ab305c1b191a69f3. Main CI 40454410482, CodeQL 40454410577 and Website 40454410486 completed successfully for that exact merge, with all 23 applicable checks successful. Pages deployment 7350986293 succeeded for the same source; four public HTTPS routes returned 200 with valid TLS 1.3. #354 and #379 are closed; #355 and #356 remain open. Post-merge housekeeping synchronized main and removed the obsolete review branch and known scratch helpers while preserving original evidence. These completed facts supersede the earlier pre-merge handoff language above.

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -113,7 +114,12 @@ func (s *Store) GetGroup(id string) (domain.Group, error) {
 
 // ListGroups returns all groups.
 func (s *Store) ListGroups() ([]domain.Group, error) {
-	rows, err := s.db.Query(`SELECT id,name,parent_id,enabled,created_at,updated_at FROM groups ORDER BY name`)
+	return s.ListGroupsContext(context.Background())
+}
+
+// ListGroupsContext honors cancellation while acquiring and using the store connection.
+func (s *Store) ListGroupsContext(ctx context.Context) ([]domain.Group, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT id,name,parent_id,enabled,created_at,updated_at FROM groups ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("store: list groups: %w", err)
 	}
@@ -138,15 +144,20 @@ func (s *Store) SetGroupEnabled(id string, enabled bool) error {
 
 // DeleteGroup removes a group, its descendants, and their unfinished notification work.
 func (s *Store) DeleteGroup(id string) error {
-	tx, err := s.db.Begin()
+	return s.DeleteGroupContext(context.Background(), id)
+}
+
+// DeleteGroupContext honors cancellation while acquiring and using the store connection.
+func (s *Store) DeleteGroupContext(ctx context.Context, id string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("store: begin delete group: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.Exec(`WITH RECURSIVE removed(id) AS (SELECT id FROM groups WHERE id=? UNION ALL SELECT groups.id FROM groups JOIN removed ON groups.parent_id=removed.id) DELETE FROM notification_deliveries WHERE group_id IN (SELECT id FROM removed) AND state IN (?,?)`, id, string(domain.NotificationDeliveryPending), string(domain.NotificationDeliveryClaimed)); err != nil {
+	if _, err := tx.ExecContext(ctx, `WITH RECURSIVE removed(id) AS (SELECT id FROM groups WHERE id=? UNION ALL SELECT groups.id FROM groups JOIN removed ON groups.parent_id=removed.id) DELETE FROM notification_deliveries WHERE group_id IN (SELECT id FROM removed) AND state IN (?,?)`, id, string(domain.NotificationDeliveryPending), string(domain.NotificationDeliveryClaimed)); err != nil {
 		return fmt.Errorf("store: delete unfinished group notification deliveries: %w", err)
 	}
-	res, err := tx.Exec(`DELETE FROM groups WHERE id=?`, id)
+	res, err := tx.ExecContext(ctx, `DELETE FROM groups WHERE id=?`, id)
 	if err := affected(res, err, "delete group"); err != nil {
 		return err
 	}
@@ -195,7 +206,12 @@ func (s *Store) CreateSchedule(sch *domain.Schedule) error {
 
 // GetSchedule returns the schedule by id, or ErrNotFound.
 func (s *Store) GetSchedule(id string) (domain.Schedule, error) {
-	row := s.db.QueryRow(`SELECT id,kind,rrule,anchor,elapsed_epoch,run_at,trigger_id,human_summary,expression,calendar_adjustment FROM schedules WHERE id=?`, id)
+	return s.GetScheduleContext(context.Background(), id)
+}
+
+// GetScheduleContext honors cancellation while acquiring and using the store connection.
+func (s *Store) GetScheduleContext(ctx context.Context, id string) (domain.Schedule, error) {
+	row := s.db.QueryRowContext(ctx, `SELECT id,kind,rrule,anchor,elapsed_epoch,run_at,trigger_id,human_summary,expression,calendar_adjustment FROM schedules WHERE id=?`, id)
 	var sch domain.Schedule
 	var rrule, trigger sql.NullString
 	var anchor, elapsedEpoch, runAt sql.NullString
@@ -319,6 +335,11 @@ func (s *Store) GetTask(id string) (domain.Task, error) {
 // ListTasks returns all tasks, optionally filtered by group and/or state
 // (empty string means "any").
 func (s *Store) ListTasks(groupID, state string) ([]domain.Task, error) {
+	return s.ListTasksContext(context.Background(), groupID, state)
+}
+
+// ListTasksContext honors cancellation while acquiring and using the store connection.
+func (s *Store) ListTasksContext(ctx context.Context, groupID, state string) ([]domain.Task, error) {
 	q := taskSelect + ` WHERE 1=1`
 	var args []any
 	if groupID != "" {
@@ -330,7 +351,7 @@ func (s *Store) ListTasks(groupID, state string) ([]domain.Task, error) {
 		args = append(args, state)
 	}
 	q += ` ORDER BY name,id`
-	rows, err := s.db.Query(q, args...)
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list tasks: %w", err)
 	}
@@ -362,6 +383,11 @@ type TaskObservation struct {
 // loading command arguments, environment values, stdin, or other execution
 // inputs into daemon memory.
 func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, offset, limit, textLimit int) ([]TaskObservation, error) {
+	return s.ListTaskObservationsContext(context.Background(), groupID, state, scheduledOnly, offset, limit, textLimit)
+}
+
+// ListTaskObservationsContext honors cancellation while acquiring and using the store connection.
+func (s *Store) ListTaskObservationsContext(ctx context.Context, groupID, state string, scheduledOnly bool, offset, limit, textLimit int) ([]TaskObservation, error) {
 	q := `SELECT t.id,CAST(substr(CAST(t.name AS BLOB),1,?) AS TEXT),
 	 CASE WHEN length(CAST(t.name AS BLOB))>? THEN 1 ELSE 0 END,
 	 COALESCE(t.group_id,''),t.enabled,t.timezone,COALESCE(t.schedule_id,''),
@@ -388,7 +414,7 @@ func (s *Store) ListTaskObservations(groupID, state string, scheduledOnly bool, 
 	}
 	q += ` ORDER BY t.id LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
-	rows, err := s.db.Query(q, args...)
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: list task observations: %w", err)
 	}
