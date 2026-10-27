@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- S123 adds explicit case-duration and packaged incident-collection selections to the existing opt-in replay, with controller/component provenance, invalid-input diagnostics and unchanged supported defaults. The bounded historical/current comparison passed all 444 planned observations; #355/#356 causes remain unconfirmed. Historical wrapper recovery, the full-tree digest mismatch and merged S122 acceptance are documented separately. No production behavior or release identity changes.
+
 - **2026-10-27 architecture decision (S122): make MCP lifecycle admission cancelable while preserving committed cleanup (#389).** Canceled enable/rotate/disable requests leave listener and credential state unchanged; abandoned listener/session preparation is released. Once disable commits revocation, bounded shutdown and session cleanup continue independently of caller cancellation. Existing permissions, confirmation and atomic rotation remain unchanged.
 
 - Correct incident classification for an existing interpreter that cannot start (#388), retaining launch/error identity without inventing a runtime observation. Add opt-in condition-to-incident logs, bounded original-scenario replay and a fixed maintainer investigation recipe. Reconcile owner-merged S121 acceptance. Original #355/#356 causes remain unconfirmed.
