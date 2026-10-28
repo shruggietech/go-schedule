@@ -18,6 +18,8 @@ Prepared source for the next reliability release; this date records preparation,
 
 ### Changed
 
+- **2026-10-28 CI and pinned-guide decision (S125, #397/#394): preserve production browser failures and continue the existing release delivery path.** The browser job retains generated failure context and traces for 14 days without changing the exercise exit status, existing completion allowances or accessibility assertions. Current Windows maintainer guidance points to the S125 continuation, which reconciles the owner-merged S124 source and its separate red main receipt, then retains explicit owner merge, exact tag/draft and concrete-asset promotion boundaries. No tag, draft, public selection or release permission changes.
+
 - **2026-10-27 release and pinned-document decision (S124): select v1.7.0 rather than proposed v1.6.1 under the declared SemVer policy.** Documented additive maintainer CLI incident/replay selections require a minor increment; no breaking API, persisted schema or configuration change is introduced. Existing workflow tag injection, package identity derivation and the development version fallback remain unchanged. Platform upgrade guidance retains complete stopped-state backup and matching-binary rollback; schema v24 was introduced in v1.6.0 and remains current.
 - Refresh all 80 release-comparison cells against official sources. Qualify shipped Resolve Actions Pro 8.1 MCP and clustered-component support, retain unresolved vendor claims and preserve the published v1.6.0 comparison/default. Source preparation does not create a tag, staged asset or promotion authorization.
 
@@ -39,6 +41,7 @@ Prepared source for the next reliability release; this date records preparation,
 
 ### Fixed
 
+- Synchronize the production browser Search fixture with completed route focus before keyboard query entry, retaining the exact query, compact viewport, 200 percent zoom, filter visibility and horizontal-overflow expectations (#397). Accessible application route focus and daemon identity behavior remain unchanged.
 - Current-candidate repository validation follows the first declared versioned changelog section instead of the historical v1.6.0 fixture constant (#395). Missing/malformed candidate selection remains an error, and exact version/date/notes validation and fixed historical negative fixtures remain unchanged. This is a test-only release-preparation correction.
 
 ### Historical release-record reconciliation

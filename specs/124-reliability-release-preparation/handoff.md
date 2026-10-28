@@ -6,9 +6,9 @@ S124 prepares v1.7.0 for [#394](https://github.com/shruggietech/go-schedule/issu
 
 The current public release remains [v1.6.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.6.0), approved source 0f8834ba3b88b69c8f55aaa5d72add70e5b6252b, release ID 423908120. Public website selection and immutable v1.6.0 notes/comparison/review records remain unchanged. New v1.7.0 tag URLs are prepared release references and do not establish that a tag or assets exist.
 
-## Source proposal
+## Source proposal and owner merge
 
-Accepted base: a2e4653021b6007135550ed8f84f1421f9072db0, owner-merged S123 PR #393. S124 branch: codex/124-reliability-release-preparation. The source proposal includes release notes, selected-version metadata, upgrade/rollback guidance, all 80 comparison cells, ten content-bound decisions and reconciled S123 delivery. Current qualification and publication receipts are recorded separately in [verification.md](verification.md).
+Accepted base: a2e4653021b6007135550ed8f84f1421f9072db0, owner-merged S123 PR #393. S124 branch: codex/124-reliability-release-preparation. The source proposal includes release notes, selected-version metadata, upgrade/rollback guidance, all 80 comparison cells, ten content-bound decisions and reconciled S123 delivery. Current qualification and publication receipts are recorded separately in [verification.md](verification.md). The owner merged [PR #396](https://github.com/shruggietech/go-schedule/pull/396) on 2026-10-28T02:17:16Z at b4f1e281e66003e08ee2a7abd35e3e25468fb6bd, tree-identical to reviewed head 5c7dce3cb8427c8f23367b50c5ee40d8d0139346. [delivery.md](delivery.md) records the actual merge and distinct main acceptance.
 
 The new assembled-source QA uses actual development-version binaries (0.0.1-dev), not fabricated v1.7.0 packages. Source hashes, six binary identities, generated run/corpus/report bindings and semantic review describe the evaluated source. Later exact-head CI and Codex receipts describe the published source PR. Neither substitutes for actual future staging identities.
 
@@ -20,11 +20,11 @@ Attended native observations remain untested under the standing native-testing w
 
 ## Subsequent owner boundaries
 
-1. Review and merge the source PR after exact-head checks and no more than two Codex rounds. S124 stops before this step.
-2. Verify the exact accepted main and its terminal successful CI. Obtain explicit authorization for the immutable v1.7.0 tag at that commit and draft staging. Only then may existing release tooling create the tag/draft.
-3. Download and verify all eight actual staged assets: four CLI/daemon archives, two desktop archives, Windows MSI and windows-candidate-manifest.json. Record the real tag/commit, Release workflow run and attempt, asset IDs/sizes/hashes, MSI ProductVersion/ProductCode and manifest binding. No such identities exist in this source-preparation handoff.
-4. Present that concrete inventory for separate owner promotion approval. The existing standing-waiver promotion workflow rechecks exact identities, adds SHA256SUMS.txt and publishes the same assets as latest. Nine public assets and eight checksum entries are expected. Preserve immutable bytes and the explicit untested disclosure.
-5. Reconcile actual publication, public website selection and delivery state on #394 only when those functional outcomes occur. Keep independent #355/#356 causes open.
+The source review/merge boundary for S124 is complete. Its exact-main [CI 40620037771](https://github.com/shruggietech/go-schedule/actions/runs/40620037771) then failed the production browser Search focus assertion, tracked independently as [#397](https://github.com/shruggietech/go-schedule/issues/397). The other 22 check runs succeeded, including CodeQL and Pages. Do not tag this red b4f1e28 source, or treat the green reviewed-head checks as a successful main receipt.
+
+[S125 release continuation](../125-reliability-delivery-decision/handoff.md) now carries the bounded correction, pending v1.7.0 content binding and concrete existing-workflow commands. Its future owner-merged source must receive successful exact-main acceptance before the owner approves an immutable v1.7.0 tag/draft. Actual assets then require their own inventory and separate promotion approval. This handoff selects no future source SHA, draft ID or asset identity.
+
+No tag, draft release or promotion was performed in S124 or its post-merge housekeeping. Public v1.6.0 remains unchanged; #394 stays open for actual delivery and #355/#356 causes remain unresolved. Do not repeat another unchanged historical investigation as a release gate.
 
 ## Upgrade and rollback
 

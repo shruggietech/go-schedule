@@ -367,6 +367,14 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Exercise production accessibility, responsive, and offline contracts
         run: npm run test:e2e
+      - name: Upload desktop browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-browser-failure
+          path: ${{ runner.temp }}/go-schedule-desktop-playwright
+          if-no-files-found: warn
+          retention-days: 14
 
   bench:
     name: Engine benchmarks (artifact only)
