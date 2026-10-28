@@ -1,0 +1,614 @@
+{
+  "schema_version": 1,
+  "tag": "v1.7.0",
+  "reviewed_at": "2026-10-27",
+  "products": [
+    {
+      "id": "goschedule",
+      "name": "go-schedule",
+      "context": "v1.7.0, independent local/remote daemons; Apache 2.0",
+      "url": "https://github.com/shruggietech/go-schedule/tree/v1.7.0"
+    },
+    {
+      "id": "jams",
+      "name": "JAMS",
+      "context": "Current vendor platform/Core overview; edition-dependent capabilities",
+      "url": "https://jamsscheduler.com/"
+    },
+    {
+      "id": "activebatch",
+      "name": "ActiveBatch",
+      "context": "Current platform overview; deployment and edition affect availability",
+      "url": "https://www.advsyscon.com/activebatch/"
+    },
+    {
+      "id": "scriptrunner",
+      "name": "ScriptRunner",
+      "context": "Current platform overview; PowerShell automation context",
+      "url": "https://www.scriptrunner.com/platform"
+    },
+    {
+      "id": "controlm",
+      "name": "Control-M",
+      "context": "Control-M 9.0.22 documentation and Automation API",
+      "url": "https://docs.bmc.com/xwiki/bin/view/Control-M-Orchestration/Control-M/ctm9022/Control-M-9-0-22-Release-Notes/What-s-New/Control-M-Web-Supported-Capabilities/"
+    },
+    {
+      "id": "logicapps",
+      "name": "Azure Logic Apps",
+      "context": "Consumption/Standard overview; cloud and hybrid models differ",
+      "url": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview"
+    },
+    {
+      "id": "resolve",
+      "name": "Resolve Actions",
+      "context": "Current platform brief plus Actions hybrid executor and Actions Pro 8.1 documentation; edition and deployment requirements apply.",
+      "url": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf"
+    },
+    {
+      "id": "opcon",
+      "name": "OpCon",
+      "context": "On-premises v26.0 history plus current CLI and VisualCron/MFT integration documentation; add-on requirements apply",
+      "url": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-History-Management"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "scheduling",
+      "category": "Scheduling",
+      "name": "Recurring time-based scheduling",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Readable recurrence, supported five/six-field cron and explicit timezone/DST policies.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/cron.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Scheduled and event-driven workloads; exact dialect depends on configuration.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Date/time and event-driven triggers.",
+          "source": "https://www.advsyscon.com/activebatch/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "supported",
+          "note": "One-off and recurring script execution.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Time-based scheduling criteria and job prerequisites.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/Introduction_to.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "supported",
+          "note": "Recurrence triggers; workflow/hosting model determines limits.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Scheduled and signal-triggered automation in current platform brief.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "supported",
+          "note": "Schedule and on-demand initiation in the older vendor feature guide (copyright 2020); selected on-premises v26.0 context.",
+          "source": "https://assets.smatechnologies.com/production/assets/files/OpCon-Feature-Guide-One-Pager-EN-1.pdf?dm=1754322317",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "events",
+      "category": "Orchestration",
+      "name": "Event-driven initiation",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "External trigger keys, file/directory watchers and task-completion sources.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/cli.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Event-driven workload initiation.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Event-driven scheduling and automation triggers.",
+          "source": "https://www.advsyscon.com/activebatch/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "partial",
+          "note": "External ITSM systems can initiate Actions through web-service connectors; broader event-source coverage depends on integration.",
+          "source": "https://www.scriptrunner.com/blog-admin-architect/reinventing-enterprise-it-automation-with-scriptrunner-part-2-automation-trigger-types",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Events coordinate job prerequisites.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/Introduction_to.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "supported",
+          "note": "Event triggers and connector actions.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Monitoring, ITSM and other event signals can start workflows.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "partial",
+          "note": "File-arrival dependencies and external events can initiate RPA jobs; MFT cloud triggers and VisualCron require their integrations.",
+          "source": "https://help.smatechnologies.com/opcon/agents/opcon-rpa/rpa-job-config-with-visualcron",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "dependencies",
+      "category": "Orchestration",
+      "name": "Dependent workflows",
+      "cells": {
+        "goschedule": {
+          "status": "partial",
+          "note": "Durable success/failure/any completion chains; no claim of a full visual branching workflow language.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/architecture.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Workload orchestration and dependencies are described by the platform.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Multi-step job orchestration and reusable job steps.",
+          "source": "https://www.advsyscon.com/activebatch/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "supported",
+          "note": "Visual multistep workflows combine reusable Actions, conditions and logic with retained execution state; Microsoft/PowerShell context applies.",
+          "source": "https://www.scriptrunner.com/product/workflows",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Job dependencies and prerequisites.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/Introduction_to.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "supported",
+          "note": "Visual workflows composed from triggers and actions.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Conditional and parallel workflow composition in the platform brief.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "supported",
+          "note": "Job-status dependencies and conditional initiation are documented in the VisualCron RPA integration context.",
+          "source": "https://help.smatechnologies.com/opcon/agents/opcon-rpa/rpa-job-config-with-visualcron",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "interfaces",
+      "category": "Operation",
+      "name": "Operator interfaces and programmatic access",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Wails desktop, operational and authoring CLI, versioned JSON API, plus isolated Windows/WSL maintainer evaluation with opt-in incident capture and bounded replay diagnosis.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/cli-qa.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Web/thick clients and .NET/REST interfaces.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Thick/web/self-service interfaces, Web Services API, .NET/COM, PowerShell and command line.",
+          "source": "https://www.advsyscon.com/activebatch/core-capabilities/activebatch-architecture/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "supported",
+          "note": "Portal and REST/Swagger integration.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Web interface and Jobs-as-Code CLI/API.",
+          "source": "https://controlm.github.io/",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "supported",
+          "note": "Visual designer and code/deployment tooling.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Visual/API authoring and script/SSH/CLI capabilities.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "partial",
+          "note": "Vendor-owned Windows/Linux CLI uses the REST API with a REST API license and version-specific prerequisites.",
+          "source": "https://github.com/smatechnologies/opcon-cli-java/blob/master/documentation/opcon-cli.md",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "remote",
+      "category": "Operation",
+      "name": "Manage work across systems",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Explicitly enrolled independent daemons, All Systems, search and portable configuration.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/remote-access.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Cross-platform execution and agents.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Central scheduling with cross-platform execution agents; platform and deployment context apply.",
+          "source": "https://www.advsyscon.com/activebatch/core-capabilities/activebatch-architecture/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "supported",
+          "note": "Remote script execution through the platform.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Central workflow orchestration spans platforms, applications and infrastructure; self-hosted and SaaS contexts differ.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/Introduction_to.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "supported",
+          "note": "Azure/on-premises integration; hosting model matters.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Automation across systems through integrations and remote execution.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "supported",
+          "note": "The central server schedules work through target-platform agents, which execute jobs and report results; on-premises v26.0 context.",
+          "source": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-History-Management",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "observability",
+      "category": "Operation",
+      "name": "History, logs and notifications",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Execution history/logs, durable webhook and SMTP delivery with recipient-aware retries, plus optional running-desktop popups.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/notifications.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Monitoring and email notifications.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Monitoring, reporting and SLA functions.",
+          "source": "https://www.advsyscon.com/activebatch/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "supported",
+          "note": "Audit and reporting for script operations.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Monitoring and operational job views.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/Job_management.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "supported",
+          "note": "Workflow run monitoring and diagnostic integration.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Operational/audit information in the current platform brief.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "supported",
+          "note": "Versioned v26.0 history management.",
+          "source": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-History-Management",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "access",
+      "category": "Administration",
+      "name": "Permissions and audit",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Actor capabilities, delegated credentials and management audit records.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/access-control.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "partial",
+          "note": "Object ACLs and centralized execution credentials are documented; this evidence does not establish every audit scope.",
+          "source": "https://jamstechdocs.z19.web.core.windows.net/docs/concepts/configuration-and-security",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Controlled object access, audit trails, revision history and changesets; deployment and license context apply.",
+          "source": "https://www.advsyscon.com/activebatch/security-driven-automation/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "supported",
+          "note": "Role-based access and managed credentials.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Roles scope interface/object operations; configurable audit and annotation records cover authentication, jobs, definitions, accounts and configuration.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/System_Settings.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "partial",
+          "note": "Azure RBAC provides Consumption/Standard operator and developer scopes with controlled history access; audit collection depends on configuration.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/set-up-security-permissions",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "REST access, role-based control and audit.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "supported",
+          "note": "Role privileges scope functions, machines and schedules; Audit Management records user, role, machine, job and schedule database updates.",
+          "source": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-Audit-Management",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "mcp",
+      "category": "Integration",
+      "name": "MCP access",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Optional local and authenticated remote MCP with explicit authority.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/mcp.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "Web MCP reads jobs/failures, submits jobs and manages runs with the signed-in user's permissions; AI-assisted job creation remains roadmap work.",
+          "source": "https://jamsscheduler.com/product/mcp-server/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://www.advsyscon.com/activebatch/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "unknown",
+          "note": "Public vendor material conflicts: the April launch labels MCP planned, while a February trigger article describes it as present; release/version availability remains unestablished.",
+          "source": "https://www.scriptrunner.com/news/scriptrunner-unveils-the-first-independent-agentic-workflow-platform-for-microsoft-ecosystems",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "partial",
+          "note": "9.0.22 documents a preview MCP server with API-version prerequisites and request/client limits; BMC recommends non-production use.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/MCP_Server.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "partial",
+          "note": "Standard logic apps expose connector actions as MCP tools through Azure API Center in preview; one connector per server and one action per tool.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/create-mcp-server-api-center",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Actions Pro 8.1 exposes selected runbooks through configured Dynamic MCP endpoints; authentication and deployment settings apply.",
+          "source": "https://docs.resolve.io/pro/Development%20Guides/Dynamic%20MCP%20Server/create-and-configure/",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-History-Management",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "highavailability",
+      "category": "Architecture",
+      "name": "Clustered execution / failover",
+      "cells": {
+        "goschedule": {
+          "status": "unavailable",
+          "note": "Independent-daemon management does not provide clustered execution ownership/failover.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/docs/remote-access.md",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "supported",
+          "note": "A separate failover scheduler takes over after missed heartbeats; jobs running locally on the failed scheduler can still fail.",
+          "source": "https://jamstechdocs.z19.web.core.windows.net/docs/highavailability",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "supported",
+          "note": "Non-Cluster Failover Add-In uses active-standby heartbeat monitoring with dynamic or manual takeover.",
+          "source": "https://www.advsyscon.com/activebatch/core-capabilities/activebatch-architecture/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "supported",
+          "note": "Self-hosted secondary-server failover is documented; automatic versus manual takeover depends on database topology.",
+          "source": "https://documents.bmc.com/supportu/9.0.22/en-US/Documentation/High_Availability.htm",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "partial",
+          "note": "Multi-region active-active/passive designs need routing or activation orchestration; in-flight state does not transfer between locations.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/multi-region-disaster-recovery",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "supported",
+          "note": "Actions Pro 8.1 documents clustered orchestration components, state replication and primary/backup messaging; deployment requirements apply. This does not establish in-flight workload recovery.",
+          "source": "https://docs.resolve.io/pro/Getting%20Started/architecture-overview/",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-History-Management",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    },
+    {
+      "id": "license",
+      "category": "Operating model",
+      "name": "Source and deployment model",
+      "cells": {
+        "goschedule": {
+          "status": "supported",
+          "note": "Apache 2.0 source; locally operated daemons without a hosted account requirement.",
+          "source": "https://github.com/shruggietech/go-schedule/blob/v1.7.0/LICENSE",
+          "reviewed_at": "2026-10-27"
+        },
+        "jams": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://jamsscheduler.com/",
+          "reviewed_at": "2026-10-27"
+        },
+        "activebatch": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://www.advsyscon.com/activebatch/",
+          "reviewed_at": "2026-10-27"
+        },
+        "scriptrunner": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://www.scriptrunner.com/platform",
+          "reviewed_at": "2026-10-27"
+        },
+        "controlm": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://docs.bmc.com/xwiki/bin/view/Control-M-Orchestration/Control-M/ctm9022/Control-M-9-0-22-Release-Notes/What-s-New/Control-M-Web-Supported-Capabilities/",
+          "reviewed_at": "2026-10-27"
+        },
+        "logicapps": {
+          "status": "partial",
+          "note": "Azure service with Consumption, Standard and hybrid deployment distinctions.",
+          "source": "https://learn.microsoft.com/en-us/azure/logic-apps/logic-apps-overview",
+          "reviewed_at": "2026-10-27"
+        },
+        "resolve": {
+          "status": "partial",
+          "note": "Vendor brief describes SaaS, on-premises, hybrid and container deployments; Actions edition and license terms need confirmation.",
+          "source": "https://go.resolve.io/hubfs/Documents/Platform-Overview-Solution-Brief.pdf",
+          "reviewed_at": "2026-10-27"
+        },
+        "opcon": {
+          "status": "unknown",
+          "note": "The cited overview does not establish this capability for the selected edition; consult the vendor before deciding.",
+          "source": "https://help.smatechnologies.com/opcon/core/v26.0/Files/UI/Enterprise-Manager/Using-History-Management",
+          "reviewed_at": "2026-10-27"
+        }
+      }
+    }
+  ],
+  "opportunities": [
+    {
+      "capability": "highavailability",
+      "issue": "https://github.com/shruggietech/go-schedule/issues/20",
+      "note": "Existing conditional decision path for clustered execution; the comparison does not authorize implementation."
+    }
+  ]
+}
