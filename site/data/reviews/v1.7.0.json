@@ -1,10 +1,10 @@
 {
   "tag": "v1.7.0",
   "source_ref": "refs/tags/v1.7.0",
-  "reviewed_at": "2026-10-28",
+  "reviewed_at": "2026-10-29",
   "dataset_sha256": "049e59a44d8411f4208e6f7e4f2e6e1e45f2dcc9215f8481b8d1b9b0df7eca10",
-  "changelog_sha256": "53c5fbd7af0239ed20e2f70c99324b1dcdfd25aa6873a6fce937ebe5a800182f",
-  "notes_sha256": "5635c6be895d914e440827302e2649b1fbdadfa4734c554254be21c00b4cce99",
+  "changelog_sha256": "2e470237d5dadd842f552cfae509379445e27a1c3fcd93da08a38ce9a4d8e0d2",
+  "notes_sha256": "a5237d87418bb39b072467ecf11e2a8a3d2cb8723489475e42e741c2c855f721",
   "decisions": {
     "scheduling": "changed",
     "events": "changed",

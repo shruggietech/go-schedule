@@ -3,7 +3,7 @@
 **Feature Branch**: `codex/125-reliability-delivery-decision`
 **Created**: 2026-10-28
 **Status**: Implemented
-**Delivery**: Source outcomes implemented; controlled browser regression and all 35 browser cases passed, all eight canonical gates passed in 933.338 seconds with zero source/evidence drift; see [delivery.md](delivery.md) and [verification.md](verification.md). Release publication and conditional issue outcomes remain explicitly incomplete.
+**Delivery**: Owner-merged PR #399 at 34f59e7828ad87da7dac587c40f35b6ac2eb3407 with successful exact-main CI, CodeQL and Pages; #397/#398 delivered. #394 actual release and distributed decision outcomes remain incomplete; see delivery.md and verification.md.
 **Input**: Owner-authorized S125 with #397, #394, #186, #189 and #20; #187/#188 only as their gates permit. Push and open one PR, monitor CI and at most two Codex review rounds. Stop before merging, tagging or promotion.
 
 ## User Scenarios & Testing *(mandatory)*
