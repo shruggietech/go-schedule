@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No additional changes are selected beyond the prepared v1.7.0 source below.
+### Changed
+
+- **2026-10-29 publication reconciliation decision (S126, #394): align current public discovery and pinned installation guidance with actual v1.7.0 publication.** Release 428427523 is public/latest at immutable source df54fc7b2d49d3b71125a049c42bfd4225503b1d. Reconcile the site fallback, README, platform upgrade wording, Windows maintainer guide and S126 delivery records with approved staging and promotion. Preserve the published tag, release assets, notes and content-bound comparison review unchanged. Historical preparation statements below describe their recorded pre-publication state; no new scheduler behavior, schema or release mechanism is introduced.
 
 ## [1.7.0] - 2026-10-27
 
