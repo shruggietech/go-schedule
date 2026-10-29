@@ -2,6 +2,8 @@
 
 ## Current source and publication state
 
+**S126 continuation:** S125 is owner-merged in PR #399 at 34f59e7828ad87da7dac587c40f35b6ac2eb3407, with exact-main CI 40648849800, CodeQL 40648849803 and website 40648849797 successful. #397/#398 closed. The [S126 continuation](../126-dependency-release-convergence/handoff.md) selects the next combined candidate after compatible dependency convergence; the historical S124 failure below remains preserved.
+
 This is the continuation of [#394](https://github.com/shruggietech/go-schedule/issues/394), using the existing release workflows. S124 source preparation is owner-merged in [PR #396](https://github.com/shruggietech/go-schedule/pull/396), commit b4f1e281e66003e08ee2a7abd35e3e25468fb6bd. Its exact-main [CI 40620037771](https://github.com/shruggietech/go-schedule/actions/runs/40620037771) failed the browser focus contract tracked by [#397](https://github.com/shruggietech/go-schedule/issues/397). Successful S124 PR checks, CodeQL and website deployment do not make that red main source eligible for tagging.
 
 S125 corrects the browser fixture ordering and retains bounded failure diagnostics, includes that change in pending v1.7.0 notes/changelog, and refreshes their content-bound comparison-review hashes. The 80 capability cells and their 2026-10-27 vendor evidence remain unchanged; this content rebind advertises no new scheduler or clustered-execution capability. Current S125 qualification and exact PR identities belong in [verification.md](verification.md) and [delivery.md](delivery.md), separate from the original S124 application QA.
@@ -10,7 +12,7 @@ Public release remains [v1.6.0](https://github.com/shruggietech/go-schedule/rele
 
 | Identity | Current disposition |
 | --- | --- |
-| Exact S125 merged-main release source | Unresolved until owner merge and successful exact-source main acceptance |
+| Accepted S125 baseline | 34f59e7828ad87da7dac587c40f35b6ac2eb3407, exact-main CI/CodeQL/website successful; S126 final release source remains unresolved until its owner merge and acceptance |
 | Immutable v1.7.0 tag | Not created by this source work; requires exact-source approval |
 | v1.7.0 release ID and staging run/attempt | Unresolved until authorized draft staging actually creates them |
 | Asset IDs, sizes, hashes, MSI ProductVersion/ProductCode and candidate manifest | Unresolved until the real staged bytes are downloaded and inspected |
