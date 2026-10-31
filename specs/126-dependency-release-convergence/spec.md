@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Selected dependency convergence, source-record reconciliation and release continuation implemented; fresh Windows/WSL QA, both module graphs, 45 browser cases and all eight canonical gates passed. See verification.md and delivery.md; actual #394 publication remains beyond owner merge/asset approvals.
+**Delivery**: Source proposal #405 is owner-merged at df54fc7b2d49d3b71125a049c42bfd4225503b1d. Separately approved v1.7.0 staging and promotion published release 428427523 with nine verified assets and live v1.7.0 discovery. This same-slice follow-through reconciles source fallback and current delivery prose; see handoff.md, verification.md and delivery.md.
 
 **Input**: Owner-authorized S126, following #394's recommendation: converge #401-#403, consider #400/#404 only with a suitable published driver, qualify the assembled candidate, and publish one reviewed source PR. Stop for owner review before merging, tagging or promotion.
 
