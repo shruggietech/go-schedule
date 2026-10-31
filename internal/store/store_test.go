@@ -47,9 +47,8 @@ func TestListTaskObservationsPagesAllowlistedFields(t *testing.T) {
 	}
 }
 
-// TestCurrentSchemaRemovesTriggers verifies migration v3 drops the triggers
-// feature tables and the store opens cleanly (the v1/v2 migrations create the
-// tables; v3 drops them, so a freshly opened DB must not have them).
+// TestCurrentSchemaRemovesTriggers verifies direct initialization omits the
+// retired trigger tables and records the exact current schema.
 func TestCurrentSchemaRemovesTriggers(t *testing.T) {
 	st := openMem(t)
 
@@ -59,7 +58,7 @@ func TestCurrentSchemaRemovesTriggers(t *testing.T) {
 			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, tbl,
 		).Scan(&name)
 		if err == nil {
-			t.Errorf("table %q should have been dropped by migration v3", tbl)
+			t.Errorf("current schema must not contain retired table %q", tbl)
 		}
 	}
 
@@ -67,14 +66,13 @@ func TestCurrentSchemaRemovesTriggers(t *testing.T) {
 	if err := st.db.QueryRow(`SELECT COALESCE(MAX(version),0) FROM schema_version`).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version < 3 {
-		t.Fatalf("schema version = %d, want >= 3", version)
+	if version != currentSchemaVersion {
+		t.Fatalf("schema version = %d, want %d", version, currentSchemaVersion)
 	}
 }
 
-// TestCurrentSchemaIdempotentReopen verifies re-opening an already-migrated
-// database is a clean no-op (the DROP ... IF EXISTS guards in v3 do not error,
-// and v3 is not re-applied).
+// TestCurrentSchemaIdempotentReopen verifies reopening valid current state
+// preserves the initialized schema without a conversion path.
 func TestCurrentSchemaIdempotentReopen(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/goschedule.db"
@@ -85,7 +83,7 @@ func TestCurrentSchemaIdempotentReopen(t *testing.T) {
 	_ = st1.Close()
 	st2, err := Open(path)
 	if err != nil {
-		t.Fatalf("reopen of migrated db should be a clean no-op: %v", err)
+		t.Fatalf("reopen of current db should be a clean no-op: %v", err)
 	}
 	_ = st2.Close()
 }
