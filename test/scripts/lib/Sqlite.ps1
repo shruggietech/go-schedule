@@ -391,7 +391,10 @@ Param(
             [string]$Mode = 'list',
 
             [Parameter(Mandatory=$false)]
-            [int]$Attempts = 3
+            [int]$Attempts = 3,
+
+            [Parameter(Mandatory=$false)]
+            [Switch]$ReadOnly
         )
         # PRAGMA statements return rows. Left unredirected they land in the
         # caller's result -- and 'busy_timeout=5000' emitting a bare 5000 was
@@ -402,8 +405,12 @@ Param(
         $lines = @(
             '.bail on'
             ('.output {0}' -f $nullDevice)
-            'PRAGMA journal_mode=WAL;'
             'PRAGMA busy_timeout=5000;'
+        )
+        if (-not $ReadOnly) {
+            $lines += @('PRAGMA foreign_keys=ON;', 'PRAGMA journal_mode=WAL;')
+        }
+        $lines += @(
             '.output stdout'
             ('.mode {0}' -f $Mode)
         )
@@ -421,14 +428,20 @@ Param(
         $lines += $Sql
         $script = ($lines -join "`n")
 
+        $databaseArguments = @($Database)
+        if ($ReadOnly) { $databaseArguments = @('-readonly', $Database) }
         for ($i = 1; $i -le $Attempts; $i++) {
-            $out = $script | & $script:ResolvedSqliteExe $Database 2>&1
+            $out = $script | & $script:ResolvedSqliteExe @databaseArguments 2>&1
             if ($LASTEXITCODE -eq 0) { return $out }
             $text = ($out | Out-String)
             if ($text -match 'locked|busy') {
-                Write-Log ("Database contention on attempt {0}/{1}; retrying." -f $i, $Attempts) -Level Warn
+                Write-Log ("Database contention on attempt {0}/{1}; retrying. sqlite3: {2}" -f $i, $Attempts, $text.Trim()) -Level Warn
                 Start-Sleep -Milliseconds (250 * $i)
                 continue
+            }
+            if ($ReadOnly -and $text -match 'not a database|database disk image is malformed') {
+                Write-Log ("sqlite3 read-only inspection failed: {0}. Use an empty path or explicitly reset the disposable metrics database. No conversion was attempted." -f $text.Trim()) -Level Error
+                exit 1
             }
             Write-Log ("sqlite3 failed: {0}" -f $text.Trim()) -Level Error
             exit 1
@@ -438,12 +451,44 @@ Param(
         exit 1
     }
 
-    function Initialize-HeartbeatSchema {
+    function Get-MetricsShapeSql {
+        [CmdletBinding()]
+        Param()
+        return @'
+WITH expected(name,definition) AS (VALUES ('meta','createtablemeta(keytextprimarykey,valuetext)'),('beat','createtablebeat(idintegerprimarykeyautoincrement,session_idtextnotnull,sequenceintegernotnull,labeltext,hostnametextnotnull,usernametext,pidintegernotnull,started_msintegernotnull,started_isotextnotnull,finished_msintegernotnull,duration_msintegernotnull,expected_msinteger,expected_sourcetextnotnullcheck(expected_sourcein(''env'',''anchor'',''boundary'',''none'')),drift_msinteger,interval_secondsinteger,exit_codeintegernotnull,outcometextnotnullcheck(outcomein(''ok'',''failed'')),sched_envtext,check(finished_ms>=started_ms),check((drift_msisnull)=(expected_msisnull)),check((expected_source=''none'')=(expected_msisnull)),check((outcome=''ok'')=(exit_code=0)),unique(session_id,sequence))'),('beat_started','createindexbeat_startedonbeat(started_ms)'),('snapshot','createtablesnapshot(idintegerprimarykeyautoincrement,unixtime_msintegernotnull,iso_localtextnotnull,iso_utctextnotnull,tz_offset_minutesintegernotnull,hostnametextnotnull,usernametext,process_countinteger,uptime_secondsinteger,os_platformtextnotnull,os_releasetext,script_pidintegernotnull,script_flavortextnotnullcheck(script_flavorin(''powershell'',''posix'')),invocation_sourcetextnotnull,addresses_probetext,ports_probetext)'),('snapshot_time','createindexsnapshot_timeonsnapshot(unixtime_ms)'),('snapshot_address','createtablesnapshot_address(idintegerprimarykeyautoincrement,snapshot_idintegernotnullreferencessnapshot(id)ondeletecascade,familytextnotnullcheck(familyin(''ipv4'',''ipv6'')),addresstextnotnull,interfacetext,scopetext)'),('address_snapshot','createindexaddress_snapshotonsnapshot_address(snapshot_id)'),('snapshot_port','createtablesnapshot_port(idintegerprimarykeyautoincrement,snapshot_idintegernotnullreferencessnapshot(id)ondeletecascade,protocoltextnotnullcheck(protocolin(''tcp'',''udp'')),familytext,addresstext,portintegernotnullcheck(portbetween1and65535),process_nametext)'),('port_snapshot','createindexport_snapshotonsnapshot_port(snapshot_id,protocol,port)')) SELECT CASE WHEN (SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%')=9 AND NOT EXISTS(SELECT 1 FROM expected e LEFT JOIN sqlite_schema s ON s.name=e.name WHERE s.sql IS NULL OR lower(replace(replace(replace(replace(s.sql,' ',''),char(10),''),char(13),''),char(9),''))<>e.definition) THEN 1 ELSE 0 END;
+'@
+    }
+
+    function Assert-MetricsSchema {
+        [CmdletBinding()]
+        Param(
+            [Parameter(Mandatory=$true)][string]$Database,
+            [Parameter(Mandatory=$false)][bool]$AllowEmpty = $true
+        )
+        # Inspect through a read-only connection before WAL or persistent writes.
+        if (-not [IO.File]::Exists($Database) -or ([IO.FileInfo]::new($Database)).Length -eq 0) {
+            if ($AllowEmpty) { return }
+        } else {
+            $objects = Invoke-Sqlite -Database $Database -ReadOnly -Sql "SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%';"
+            if ([string]$objects -eq '0' -and $AllowEmpty) { return }
+            $shape = Invoke-Sqlite -Database $Database -ReadOnly -Sql (Get-MetricsShapeSql)
+            if ([string]$shape -eq '1') {
+                $version = Invoke-Sqlite -Database $Database -ReadOnly -Sql "SELECT value FROM meta WHERE key='schema_version';"
+                if ([string]$version -eq '4') { return }
+            }
+        }
+        Write-Log 'Unsupported metrics database; use an empty path or explicitly reset the disposable metrics database. No conversion was attempted.' -Level Error
+        exit 1
+    }
+
+    function Initialize-MetricsSchema {
         [CmdletBinding()]
         Param([Parameter(Mandatory=$true)][string]$Database)
+        Assert-MetricsSchema -Database $Database
+        # Serialize fresh creators and retain every already committed record.
         $sql = @'
+BEGIN IMMEDIATE;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','2');
 CREATE TABLE IF NOT EXISTS beat (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id TEXT NOT NULL,
@@ -470,17 +515,6 @@ CREATE TABLE IF NOT EXISTS beat (
   UNIQUE (session_id, sequence)
 );
 CREATE INDEX IF NOT EXISTS beat_started ON beat(started_ms);
-'@
-        Invoke-Sqlite -Database $Database -Sql $sql | Out-Null
-    }
-
-    function Initialize-SystemSchema {
-        [CmdletBinding()]
-        Param([Parameter(Mandatory=$true)][string]$Database)
-        $sql = @'
-PRAGMA foreign_keys=ON;
-CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','1');
 CREATE TABLE IF NOT EXISTS snapshot (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   unixtime_ms INTEGER NOT NULL,
@@ -519,29 +553,22 @@ CREATE TABLE IF NOT EXISTS snapshot_port (
   process_name TEXT
 );
 CREATE INDEX IF NOT EXISTS port_snapshot ON snapshot_port(snapshot_id, protocol, port);
+INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','4');
+COMMIT;
 '@
         Invoke-Sqlite -Database $Database -Sql $sql | Out-Null
+    }
 
-        # Forward-only, non-destructive migration for databases created before
-        # schema 3. CREATE TABLE IF NOT EXISTS does nothing to an existing
-        # table, so the probe-status columns have to be added explicitly.
-        # ALTER TABLE ADD COLUMN cannot carry a CHECK constraint in SQLite, so
-        # these two columns are plain TEXT in both fresh and migrated databases
-        # -- a fresh database with a stricter schema than a migrated one would
-        # be a difference nobody would think to look for. The writer enforces
-        # the vocabulary instead.
-        foreach ($col in @('addresses_probe', 'ports_probe')) {
-            $out = Invoke-Sqlite -Database $Database -Mode 'list' `
-                -Sql ("SELECT COUNT(*) FROM pragma_table_info('snapshot') WHERE name='{0}';" -f $col)
-            $has = ($out | Where-Object { $_ -match '^\d+$' } | Select-Object -First 1)
-            if ($has -eq '0') {
-                Write-Log ("migrating system.db: adding {0}" -f $col) -Level Debug
-                Invoke-Sqlite -Database $Database -Mode 'list' `
-                    -Sql ("ALTER TABLE snapshot ADD COLUMN {0} TEXT;" -f $col) | Out-Null
-            }
-        }
-        Invoke-Sqlite -Database $Database -Mode 'list' `
-            -Sql "INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version','3');" | Out-Null
+    function Initialize-HeartbeatSchema {
+        [CmdletBinding()]
+        Param([Parameter(Mandatory=$true)][string]$Database)
+        Initialize-MetricsSchema -Database $Database
+    }
+
+    function Initialize-SystemSchema {
+        [CmdletBinding()]
+        Param([Parameter(Mandatory=$true)][string]$Database)
+        Initialize-MetricsSchema -Database $Database
     }
 
     function Initialize-TestSqlite {

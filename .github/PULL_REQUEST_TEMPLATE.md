@@ -26,6 +26,6 @@ sh scripts/verify.sh all
 
 ## Checklist
 
-- [ ] No safety-critical test surface was weakened or skipped: clock injection, timezone and DST resolution, store migrations, restart and catch-up recovery, goroutine termination, IPC access control.
+- [ ] No safety-critical test surface was weakened or skipped: clock injection, timezone and DST resolution, current-store initialization, durable reopen, unsupported-state refusal, restart and catch-up recovery, goroutine termination, IPC access control.
 - [ ] No pinned artifact changed, or: it did, and `CHANGELOG.md` carries a dated decision entry explaining why.
 - [ ] Documentation updated where behavior changed.

@@ -14,15 +14,15 @@ import (
 func fixture(t *testing.T) (manifest, string) {
 	t.Helper()
 	root := canonicalTempDir(t)
-	m := manifest{Schema: 1, Repository: "shruggietech/go-schedule", Tag: "v1.4.0", Commit: strings.Repeat("a", 40), RunID: 123, RunAttempt: 1}
-	for _, name := range []string{"candidate", "baseline", "powershell", "webview2"} {
+	m := manifest{Schema: 1, Repository: "shruggietech/go-schedule", Tag: "v1.7.0", Commit: strings.Repeat("a", 40), RunID: 123, RunAttempt: 1}
+	for _, name := range []string{"candidate", "powershell", "webview2"} {
 		data := []byte(name)
 		path := filepath.Join(root, name)
 		if err := os.WriteFile(path, data, 0600); err != nil {
 			t.Fatal(err)
 		}
 		h := sha256.Sum256(data)
-		sources := map[string]string{"candidate": "https://github.com/shruggietech/go-schedule/actions/runs/123", "baseline": "https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi", "powershell": "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.zip", "webview2": "https://developer.microsoft.com/en-us/microsoft-edge/webview2/"}
+		sources := map[string]string{"candidate": "https://github.com/shruggietech/go-schedule/actions/runs/123", "powershell": "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.zip", "webview2": "https://developer.microsoft.com/en-us/microsoft-edge/webview2/"}
 		m.Inputs = append(m.Inputs, input{Role: name, Path: path, Bytes: int64(len(data)), SHA256: hex.EncodeToString(h[:]), Source: sources[name]})
 	}
 	for _, role := range []string{"bootstrap", "collector"} {
@@ -122,7 +122,7 @@ func TestPreparationExportsNoAttestation(t *testing.T) {
 	if err := prepare(m, out, root); err != nil {
 		t.Fatal(err)
 	}
-	for _, scenario := range []string{"fresh", "upgrade"} {
+	for _, scenario := range []string{"fresh"} {
 		if _, err := os.Stat(filepath.Join(out, scenario+".wsb")); err != nil {
 			t.Fatal(err)
 		}
@@ -139,7 +139,7 @@ func TestPreparationExportsNoAttestation(t *testing.T) {
 	if err := json.Unmarshal(b, &got); err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Inputs) != 6 || strings.Contains(string(b), "attested_at") {
+	if len(got.Inputs) != 5 || strings.Contains(string(b), "attested_at") {
 		t.Fatal("bad packaged manifest")
 	}
 }

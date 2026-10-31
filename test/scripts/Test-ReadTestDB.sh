@@ -101,6 +101,7 @@ case "$LIMIT" in ''|*[!0-9]*) die_usage "--limit must be a positive integer." ;;
 init_test_sqlite "$EXPLICIT_SQLITE" "$DO_INSTALL"
 DB_PATH="$(resolve_test_database "$DATABASE")"
 [ -f "$DB_PATH" ] || die_usage "No database at $DB_PATH. Run a recording script first."
+assert_metrics_schema "$DB_PATH" 0
 log INFO "database: $DB_PATH"
 
 IS_HEARTBEAT=0
@@ -160,12 +161,6 @@ report_excluded() {
 if [ "$QUERY" = "drift" ]; then
     report_excluded "SELECT COUNT(*) FROM beat WHERE drift_ms IS NULL;" \
         "no expected moment was available (record with --anchor-iso to measure latency); try --query jitter"
-    # Legacy rows written before v0.5.1 used epoch-boundary snapping, which is
-    # only correct for a schedule that happens to sit on that grid. This
-    # scheduler anchors interval schedules to task creation time, so those
-    # figures are dominated by a constant phase offset and are not latency.
-    report_excluded "SELECT COUNT(*) FROM beat WHERE expected_source='boundary';" \
-        "LEGACY epoch-boundary rows from before v0.5.1 -- these are phase offset, NOT latency; re-record with --anchor-iso"
 fi
 if [ "$QUERY" = "jitter" ]; then
     log WARN "jitter measures variation around the schedule's OWN observed phase."
@@ -258,11 +253,9 @@ case "$QUERY" in
         # from a host where no port tool was available, the query returned
         # nothing -- indistinguishable from "listening on no ports". That is the
         # conflation of "could not determine" with "determined zero" that the
-        # rest of this schema avoids. Legacy snapshots (schema < 3) have no
-        # probe column; they are usable but flagged, since their provenance is
-        # unknown rather than known-good.
-        ROW="$(sqlite_exec "$DB_PATH" list "SELECT id, iso_local, COALESCE(ports_probe,'unknown')
- FROM snapshot WHERE ports_probe = 'ok' OR ports_probe IS NULL
+        # rest of this schema avoids. Only completed probes are usable.
+        ROW="$(sqlite_exec "$DB_PATH" list "SELECT id, iso_local, ports_probe
+ FROM snapshot WHERE ports_probe = 'ok'
  ORDER BY unixtime_ms DESC LIMIT 1;" | grep -E '^[0-9]+\|' | head -n1 || true)"
         if [ -z "$ROW" ]; then
             log ERROR "No snapshot has usable port data."
@@ -277,7 +270,7 @@ case "$QUERY" in
         SISO="${SREST%%|*}"
         SPROBE="${SREST##*|}"
 
-        NROW="$(sqlite_exec "$DB_PATH" list "SELECT id, iso_local, COALESCE(ports_probe,'unknown')
+        NROW="$(sqlite_exec "$DB_PATH" list "SELECT id, iso_local, ports_probe
  FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;" | grep -E '^[0-9]+\|' | head -n1 || true)"
         NID="${NROW%%|*}"
         NREST="${NROW#*|}"
@@ -285,14 +278,11 @@ case "$QUERY" in
         if [ "$NID" != "$SID" ]; then
             log WARN "the NEWEST snapshot is $NID (${NREST%%|*}) with ports_probe=${NREST##*|} -- not shown, because its port probe did not run"
         fi
-        if [ "$SPROBE" = "unknown" ]; then
-            log WARN "this snapshot predates probe-status recording (schema < 3); an empty result may mean the probe never ran"
-        fi
 
         # The comparison baseline must itself have usable port data, otherwise
         # every port reads as NEW against a snapshot that simply never looked.
         SQL="WITH prev AS (SELECT id FROM snapshot
- WHERE (ports_probe = 'ok' OR ports_probe IS NULL) AND id <> $SID
+ WHERE (ports_probe = 'ok') AND id <> $SID
    AND unixtime_ms <= (SELECT unixtime_ms FROM snapshot WHERE id = $SID)
  ORDER BY unixtime_ms DESC LIMIT 1)
  SELECT p.protocol, p.port, p.address, p.process_name,

@@ -3,10 +3,10 @@
     Exercise and record the security-sensitive lifecycle of a go-schedule MSI.
 
 .DESCRIPTION
-    Runs one of four disposable-host scenarios: a clean candidate lifecycle,
-    an upgrade from the published v0.9.0 MSI, a non-elevated access probe, or a
+    Runs one of three disposable-host scenarios: a clean candidate lifecycle,
+    a non-elevated access probe, or a
     non-elevated installed-core probe that also exercises real service-hosted
-    task execution. Fresh and upgrade scenarios install, inspect, and uninstall
+    task execution. Fresh lifecycle scenarios install, inspect, and uninstall
     software and therefore require an elevated PowerShell 7 session on a
     disposable Windows 11 host.
 
@@ -18,11 +18,11 @@
     Exit codes: 0 proven, 1 an assertion failed, 2 a prerequisite prevented the
     scenario from starting. A declined confirmation or -WhatIf stops at the
     first skipped phase with exit code 0 and no final evidence or cleanup.
-    Fresh and upgrade runs intentionally preserve the goschedadmin group and
+    Fresh lifecycle runs intentionally preserve the goschedadmin group and
     membership after uninstall.
 
 .PARAMETER Scenario
-    Scenario to run: fresh, upgrade, access-probe, or installed-core-probe.
+    Scenario to run: fresh, access-probe, or installed-core-probe.
     Alias: s
 
 .PARAMETER MsiPath
@@ -43,14 +43,6 @@
     a published artifact.
     Alias: o
 
-.PARAMETER PriorMsiPath
-    Published v0.9.0 MSI path. Required only for the upgrade scenario.
-    Alias: p
-
-.PARAMETER PriorArtifactOrigin
-    Absolute v0.9.0 GitHub release-asset URL. Required for upgrade.
-    Alias: r
-
 .PARAMETER Quiet
     Suppress informational progress while retaining warnings and errors.
     Alias: q
@@ -67,10 +59,6 @@
     Run install, repair, reinstall, and uninstall on a clean disposable host.
 
 .EXAMPLE
-    .\Invoke-InstallerLifecycle.ps1 -Scenario upgrade -MsiPath C:\verify\candidate.msi -PriorMsiPath C:\verify\v0.9.0.msi -EvidencePath C:\verify\upgrade.md -ArtifactClass candidate -ArtifactOrigin 'local build from commit abc' -PriorArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/v0.9.0/go-schedule_v0.9.0_windows_amd64.msi' -Confirm:$false
-    Preprovision the durable group, install v0.9.0, and upgrade the candidate.
-
-.EXAMPLE
     .\Invoke-InstallerLifecycle.ps1 -Scenario access-probe -MsiPath C:\verify\candidate.msi -EvidencePath C:\verify\access.md -ArtifactClass candidate -ArtifactOrigin 'local build from commit abc'
     After sign-out/sign-in, prove a non-elevated token reaches the daemon.
 
@@ -82,7 +70,7 @@
 Param(
     [Parameter(Mandatory=$true,ParameterSetName='Default')]
     [Alias("s")]
-    [ValidateSet('fresh','upgrade','access-probe','installed-core-probe')]
+    [ValidateSet('fresh','access-probe','installed-core-probe')]
     [string]$Scenario,
 
     [Parameter(Mandatory=$true,ParameterSetName='Default')]
@@ -102,14 +90,6 @@ Param(
     [Alias("o")]
     [ValidateNotNullOrEmpty()]
     [string]$ArtifactOrigin,
-
-    [Parameter(Mandatory=$false,ParameterSetName='Default')]
-    [Alias("p")]
-    [string]$PriorMsiPath = '',
-
-    [Parameter(Mandatory=$false,ParameterSetName='Default')]
-    [Alias("r")]
-    [string]$PriorArtifactOrigin = '',
 
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias("q")]
@@ -719,11 +699,6 @@ Param(
             "- Intended identity: ``$script:CurrentIdentity``"
             "- Lifecycle status: **$Status**"
         )
-        if ($script:ResolvedPriorMsi) {
-            $lines += "- Prior artifact: ``$script:ResolvedPriorMsi``"
-            $lines += "- Prior artifact origin: $PriorArtifactOrigin"
-            $lines += "- Prior SHA-256: ``$script:PriorHash``"
-        }
         if ($Scenario -in @('access-probe', 'installed-core-probe')) {
             $lines += @(
                 ''
@@ -845,18 +820,12 @@ Param(
     $script:Operations = [System.Collections.Generic.List[object]]::new()
     $script:States = [System.Collections.Generic.List[object]]::new()
     $script:ResolvedMsi = ''
-    $script:ResolvedPriorMsi = ''
     $script:ResolvedEvidence = ''
     $script:LogDirectory = ''
     $script:CandidateHash = ''
-    $script:PriorHash = ''
     $script:CleanupPackage = ''
     $script:CandidateVersion = ''
     $script:CandidateProductCode = ''
-    $script:ExpectedPriorUrl = `
-        'https://github.com/shruggietech/go-schedule/releases/download/v0.9.0/go-schedule_v0.9.0_windows_amd64.msi'
-    $script:ExpectedPriorHash = `
-        '0365f8ea592321100ffb2875d4c66649d2ab53407faddba5a1168a4ae1e1fb1c'
     $script:AccessTokenContainsGroup = $false
     $script:AccessTokenSids = @()
     $script:AccessPipeDescriptor = '<not observed>'
@@ -1051,30 +1020,6 @@ Param(
         -ErrorAction SilentlyContinue) {
         $preconditions.Add('goschedadmin already exists; reset the disposable host.')
     }
-    if ($Scenario -eq 'upgrade') {
-        if (-not $PriorMsiPath -or -not $PriorArtifactOrigin) {
-            $preconditions.Add(
-                'Upgrade requires PriorMsiPath and PriorArtifactOrigin.'
-            )
-        } else {
-            $script:ResolvedPriorMsi = `
-                (Resolve-Path -LiteralPath $PriorMsiPath).Path
-            $script:PriorHash = (Get-FileHash `
-                -LiteralPath $script:ResolvedPriorMsi `
-                -Algorithm SHA256).Hash.ToLowerInvariant()
-            if (-not (Test-ReleaseOrigin -Origin $PriorArtifactOrigin `
-                -ExactUrl $script:ExpectedPriorUrl)) {
-                $preconditions.Add(
-                    'Prior origin is not the pinned v0.9.0 release asset URL.'
-                )
-            }
-            if ($script:PriorHash -ne $script:ExpectedPriorHash) {
-                $preconditions.Add(
-                    'Prior MSI SHA-256 does not match published v0.9.0.'
-                )
-            }
-        }
-    }
     if ($preconditions.Count) {
         Write-Evidence -Status 'unavailable' -Problems $preconditions
         Write-Host ("FAIL: lifecycle prerequisites unavailable.`n - " +
@@ -1086,119 +1031,63 @@ Param(
     $actionSkipped = $false
     $problems = [System.Collections.Generic.List[string]]::new()
     try {
-        if ($Scenario -eq 'upgrade') {
-            if (-not $PSCmdlet.ShouldProcess(
-                $script:AdminGroupName,
-                'Preprovision v0.9.0 local group and membership'
-            )) {
-                $actionSkipped = $true
-                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
-                    -Level Warn -Source 'lifecycle'
-                return
-            }
-            New-LocalGroup -Name $script:AdminGroupName | Out-Null
-            Add-LocalGroupMember -Group $script:AdminGroupName `
-                -Member $script:CurrentIdentity
-            if (-not $PSCmdlet.ShouldProcess(
-                $script:ResolvedPriorMsi,
-                'Install published v0.9.0 baseline'
-            )) {
-                $actionSkipped = $true
-                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
-                    -Level Warn -Source 'lifecycle'
-                return
-            }
-            $script:CleanupPackage = $script:ResolvedPriorMsi
-            Invoke-MsiOperation -Label 'prior-install' `
-                -PackagePath $script:ResolvedPriorMsi `
-                -OperationArguments @('/i') -RequireGroupOrder $false |
-                Out-Null
-            $installed = $true
-            $priorState = Get-SecurityState -Label 'v0.9.0 installed'
-            $script:States.Add($priorState)
-            Assert-InstalledState -State $priorState
-            $baselineSid = $priorState.GroupSid
-            $baselineMembers = $priorState.Members -join '|'
-            if (-not $PSCmdlet.ShouldProcess(
-                $script:ResolvedMsi,
-                'Upgrade v0.9.0 to candidate'
-            )) {
-                $actionSkipped = $true
-                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
-                    -Level Warn -Source 'lifecycle'
-                return
-            }
-            $script:CleanupPackage = $script:ResolvedMsi
-            Invoke-MsiOperation -Label 'candidate-upgrade' `
-                -PackagePath $script:ResolvedMsi `
-                -OperationArguments @('/i') -RequireGroupOrder $true |
-                Out-Null
-            $candidateState = Get-SecurityState -Label 'candidate upgraded'
-            $script:States.Add($candidateState)
-            Assert-InstalledState -State $candidateState
-            if ($candidateState.GroupSid -ne $baselineSid -or `
-                ($candidateState.Members -join '|') -ne $baselineMembers) {
-                throw 'Upgrade changed the administrative group SID or members.'
-            }
-        } else {
-            if (-not $PSCmdlet.ShouldProcess(
-                $script:ResolvedMsi,
-                'Install candidate MSI'
-            )) {
-                $actionSkipped = $true
-                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
-                    -Level Warn -Source 'lifecycle'
-                return
-            }
-            $script:CleanupPackage = $script:ResolvedMsi
-            Invoke-MsiOperation -Label 'candidate-install' `
-                -PackagePath $script:ResolvedMsi `
-                -OperationArguments @('/i') -RequireGroupOrder $true |
-                Out-Null
-            $installed = $true
-            $installState = Get-SecurityState -Label 'candidate installed'
-            $script:States.Add($installState)
-            Assert-InstalledState -State $installState
-            $baselineSid = $installState.GroupSid
-            $baselineMembers = $installState.Members -join '|'
-            if (-not $PSCmdlet.ShouldProcess(
-                $script:ResolvedMsi,
-                'Repair candidate MSI'
-            )) {
-                $actionSkipped = $true
-                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
-                    -Level Warn -Source 'lifecycle'
-                return
-            }
-            Invoke-MsiOperation -Label 'candidate-repair' `
-                -PackagePath $script:ResolvedMsi `
-                -OperationArguments @('/fa') -RequireGroupOrder $false |
-                Out-Null
-            $repairState = Get-SecurityState -Label 'candidate repaired'
-            $script:States.Add($repairState)
-            Assert-InstalledState -State $repairState
-            if (-not $PSCmdlet.ShouldProcess(
-                $script:ResolvedMsi,
-                'Reinstall candidate MSI'
-            )) {
-                $actionSkipped = $true
-                Write-Log 'Lifecycle action skipped; stopping without evidence.' `
-                    -Level Warn -Source 'lifecycle'
-                return
-            }
-            Invoke-MsiOperation -Label 'candidate-reinstall' `
-                -PackagePath $script:ResolvedMsi `
-                -OperationArguments @(
-                    '/i','REINSTALL=ALL','REINSTALLMODE=vomus'
-                ) -RequireGroupOrder $false | Out-Null
-            $reinstallState = Get-SecurityState -Label 'candidate reinstalled'
-            $script:States.Add($reinstallState)
-            Assert-InstalledState -State $reinstallState
-            foreach ($state in @($repairState, $reinstallState)) {
-                if ($state.GroupSid -ne $baselineSid -or `
-                    ($state.Members -join '|') -ne $baselineMembers) {
-                    throw "$($state.Label) changed the group SID or members."
-                }
+        if (-not $PSCmdlet.ShouldProcess(
+            $script:ResolvedMsi,
+            'Install candidate MSI'
+        )) {
+            $actionSkipped = $true
+            Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                -Level Warn -Source 'lifecycle'
+            return
+        }
+        $script:CleanupPackage = $script:ResolvedMsi
+        Invoke-MsiOperation -Label 'candidate-install' `
+            -PackagePath $script:ResolvedMsi `
+            -OperationArguments @('/i') -RequireGroupOrder $true |
+            Out-Null
+        $installed = $true
+        $installState = Get-SecurityState -Label 'candidate installed'
+        $script:States.Add($installState)
+        Assert-InstalledState -State $installState
+        $baselineSid = $installState.GroupSid
+        $baselineMembers = $installState.Members -join '|'
+        if (-not $PSCmdlet.ShouldProcess(
+            $script:ResolvedMsi,
+            'Repair candidate MSI'
+        )) {
+            $actionSkipped = $true
+            Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                -Level Warn -Source 'lifecycle'
+            return
+        }
+        Invoke-MsiOperation -Label 'candidate-repair' `
+            -PackagePath $script:ResolvedMsi `
+            -OperationArguments @('/fa') -RequireGroupOrder $false |
+            Out-Null
+        $repairState = Get-SecurityState -Label 'candidate repaired'
+        $script:States.Add($repairState)
+        Assert-InstalledState -State $repairState
+        if (-not $PSCmdlet.ShouldProcess(
+            $script:ResolvedMsi,
+            'Reinstall candidate MSI'
+        )) {
+            $actionSkipped = $true
+            Write-Log 'Lifecycle action skipped; stopping without evidence.' `
+                -Level Warn -Source 'lifecycle'
+            return
+        }
+        Invoke-MsiOperation -Label 'candidate-reinstall' `
+            -PackagePath $script:ResolvedMsi `
+            -OperationArguments @(
+                '/i','REINSTALL=ALL','REINSTALLMODE=vomus'
+            ) -RequireGroupOrder $false | Out-Null
+        $reinstallState = Get-SecurityState -Label 'candidate reinstalled'
+        $script:States.Add($reinstallState)
+        Assert-InstalledState -State $reinstallState
+        foreach ($state in @($repairState, $reinstallState)) {
+            if ($state.GroupSid -ne $baselineSid -or `
+                ($state.Members -join '|') -ne $baselineMembers) {
+                throw "$($state.Label) changed the group SID or members."
             }
         }
 

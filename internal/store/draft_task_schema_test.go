@@ -1,24 +1,12 @@
 package store
 
 import (
-	"database/sql"
 	"testing"
 )
 
-func TestMigrationV11PreservesConfiguredTasksAndAllowsNoSchedule(t *testing.T) {
-	path := t.TempDir() + "/v10.db"
-	createV9DiagnosticFixture(t, path, false)
-	db, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(migrations[9].stmts); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(`INSERT INTO schema_version(version) VALUES(10)`); err != nil {
-		t.Fatal(err)
-	}
-	_ = db.Close()
+func TestCurrentSchemaPreservesConfiguredTasksAndAllowsNoSchedule(t *testing.T) {
+	path := t.TempDir() + "/current.db"
+	createCurrentDiagnosticFixture(t, path)
 
 	st, err := Open(path)
 	if err != nil {

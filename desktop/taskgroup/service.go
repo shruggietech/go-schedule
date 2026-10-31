@@ -19,9 +19,12 @@ import (
 
 const callTimeout = 3 * time.Second
 
-type Service struct{ backend Backend }
+type Service struct {
+	backend Backend
+	now     func() time.Time
+}
 
-func NewService(backend Backend) *Service { return &Service{backend: backend} }
+func NewService(backend Backend) *Service { return &Service{backend: backend, now: time.Now} }
 
 func (s *Service) Workspace(ctx context.Context) OperationResult {
 	c, cancel := context.WithTimeout(ctx, callTimeout)
@@ -62,7 +65,7 @@ func (s *Service) PreviewTask(ctx context.Context, draft TaskDraft) OperationRes
 	result.Task = &detail
 	if draft.Mode == "one_off" {
 		runAt, err := parseOneOff(draft.At, draft.Timezone, draft.DSTGapPolicy, draft.DSTOverlapPolicy)
-		if err != nil || !runAt.After(time.Now()) {
+		if err != nil || !runAt.After(s.now()) {
 			return rejected("preview", "at", "Enter a valid future date and time.")
 		}
 		result.Message = "One-time schedule is valid."

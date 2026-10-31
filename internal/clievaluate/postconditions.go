@@ -15,14 +15,14 @@ import (
 
 func (s *session) localPost(definition step) (bool, any, error) {
 	if strings.HasPrefix(definition.Spec.CommandPath, "preferences ") {
-		prefs, err := userprefs.NewStore(userprefs.Options{Path: filepath.Join(s.w.Runtime, "client", "preferences.json"), LegacyPath: filepath.Join(s.w.Runtime, "client", "legacy.json")}).Load()
+		prefs, err := userprefs.NewStore(userprefs.Options{Path: filepath.Join(s.w.Runtime, "client", "preferences.json")}).Load()
 		if err != nil {
 			return false, prefs, err
 		}
 		good := true
 		switch definition.Spec.ID {
 		case "preferences.show":
-			good = prefs.Appearance == userprefs.AppearanceDark && prefs.Transition.Status == "migrated"
+			good = prefs.Appearance == userprefs.AppearanceSystem && equalObservation(prefs.Popups, userprefs.DefaultPopups())
 		case "preferences.set":
 			good = prefs.Appearance == userprefs.AppearanceDark && prefs.Popups.Enabled && slices.Equal(prefs.Popups.Conditions, []string{"failure"}) && slices.Equal(prefs.Popups.Severities, []string{"error"}) && slices.Equal(prefs.Popups.DaemonIDs, []string{"fixture"})
 		case "preferences.reset", "preferences.invalid-store-repair":

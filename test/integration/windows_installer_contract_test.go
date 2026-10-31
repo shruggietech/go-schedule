@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -590,8 +591,8 @@ func TestWindowsTrayCompanionInstallerContract(t *testing.T) {
 func TestWindowsInstallerCIScriptAcceptsCleanGUIProcessSnapshot(t *testing.T) {
 	script := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerContractCI.ps1"))
 	script = strings.ReplaceAll(script, "\r\n", "\n")
-	contract := "[AllowEmptyCollection()]\n    [int[]]$GuiProcessIdsBefore"
-	if !strings.Contains(script, contract) {
+	contract := regexp.MustCompile(`(?s)\[AllowEmptyCollection\(\)\]\s*\[int\[\]\]\$GuiProcessIdsBefore`)
+	if !contract.MatchString(script) {
 		t.Fatalf("installer CI harness must accept an empty pre-operation GUI process snapshot")
 	}
 }
@@ -836,9 +837,17 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	}
 
 	lifecycle := string(readRepositoryFile(t, "test", "windows", "Invoke-InstallerLifecycle.ps1"))
+	for _, retired := range []string{"PriorMsiPath", "candidate-upgrade", "ExpectedPriorHash"} {
+		if strings.Contains(lifecycle, retired) {
+			t.Errorf("lifecycle still requires historical upgrade input %q", retired)
+		}
+	}
+	if strings.Contains(contractCI, "BaselineMsiPath") {
+		t.Error("CI installer contract still requires a historical baseline")
+	}
 	for _, fragment := range []string{
 		"[ValidateSet('candidate', 'published')]",
-		"[ValidateSet('fresh','upgrade','access-probe','installed-core-probe')]",
+		"[ValidateSet('fresh','access-probe','installed-core-probe')]",
 		"[string]$ArtifactClass",
 		"[string]$ArtifactOrigin",
 		`"- Evidence class: **$ArtifactClass artifact**"`,
@@ -846,13 +855,11 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 		"-WindowStyle Hidden",
 		"candidate-repair",
 		"candidate-reinstall",
-		"candidate-upgrade",
 		"GroupSid",
 		"IntendedMemberPresent",
 		"GroupBeforeService",
 		"MembershipBeforeService",
 		"Windows 11 client required",
-		"ExpectedPriorHash",
 		"Installed candidate CLI is missing",
 		"CandidateProductCode",
 		"Installed product identity does not match the candidate MSI",
@@ -892,8 +899,8 @@ func TestWindowsInstallerEvidenceToolingContract(t *testing.T) {
 	if strings.Contains(lifecycle, "$arguments = @($OperationArguments) + @(") {
 		t.Error("lifecycle verifier appends the MSI after reinstall properties")
 	}
-	if got := strings.Count(lifecycle, "if (-not $PSCmdlet.ShouldProcess("); got < 7 {
-		t.Errorf("lifecycle verifier gates only %d destructive actions; want at least 7", got)
+	if got := strings.Count(lifecycle, "if (-not $PSCmdlet.ShouldProcess("); got < 4 {
+		t.Errorf("lifecycle verifier gates only %d destructive actions; want at least 4 (install, repair, reinstall, uninstall)", got)
 	}
 	finallyPosition := strings.LastIndex(lifecycle, "} finally {")
 	writePosition := strings.LastIndex(lifecycle, "Write-Evidence -Status $status")

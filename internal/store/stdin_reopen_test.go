@@ -7,29 +7,9 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-func openAtV7(t *testing.T, path string) {
-	t.Helper()
-	openAtV6(t, path)
-	db, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
-	for _, m := range migrations {
-		if m.version == 7 {
-			if _, err := db.Exec(m.stmts); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := db.Exec(`INSERT INTO schema_version(version) VALUES (7)`); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-}
-
-func TestMigrationV8DefaultsAndStdinRoundTrip(t *testing.T) {
-	path := t.TempDir() + "/v7.db"
-	openAtV7(t, path)
+func TestCurrentSchemaDefaultsAndStdinRoundTrip(t *testing.T) {
+	path := t.TempDir() + "/current.db"
+	createCurrentStore(t, path)
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)

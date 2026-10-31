@@ -11,7 +11,7 @@ func preferenceStore(deps Dependencies) (*userprefs.Store, error) {
 	if !filepath.IsAbs(deps.Paths.Preferences) {
 		return nil, fmt.Errorf("desktop preference path is unavailable")
 	}
-	return userprefs.NewStore(userprefs.Options{Path: deps.Paths.Preferences, LegacyPath: deps.Paths.LegacyPreferences, Rename: deps.Rename}), nil
+	return userprefs.NewStore(userprefs.Options{Path: deps.Paths.Preferences, Rename: deps.Rename}), nil
 }
 
 func loadPreferences(deps Dependencies) (DesktopPreferences, error) {

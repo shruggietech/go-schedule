@@ -167,9 +167,6 @@ func newSession(ctx context.Context, binaries map[string]string, budget Budget, 
 			return s, err
 		}
 	}
-	if err := s.writeOwned(filepath.Join(w.Runtime, "client", "legacy.json"), []byte(`{"appearance.mode":"dark","appearance.font":"retired-fixture"}`)); err != nil {
-		return s, err
-	}
 	s.vars["daemon_id"] = w.DaemonID
 	currentUser, err := user.Current()
 	if err != nil {
@@ -344,7 +341,7 @@ func (s *session) seed(ctx context.Context) error {
 }
 
 func (s *session) dependencies(in io.Reader, out, diagnostic io.Writer) cli.Dependencies {
-	return cli.Dependencies{Client: s.api, Profiles: s.profiles, Secrets: clientsecret.NewWithBackend(s.recorder), PreferencePath: filepath.Join(s.w.Runtime, "client", "preferences.json"), LegacyPreferencePath: filepath.Join(s.w.Runtime, "client", "legacy.json"), Now: time.Now, ServiceControl: s.recorder.ServiceControl, DaemonPath: func() (string, error) { return s.binaries["daemon"], nil }, GUIPath: func() (string, error) { return s.binaries["runner"], nil }, LaunchGUI: s.recorder.LaunchGUI, In: in, Out: out, Err: diagnostic}
+	return cli.Dependencies{Client: s.api, Profiles: s.profiles, Secrets: clientsecret.NewWithBackend(s.recorder), PreferencePath: filepath.Join(s.w.Runtime, "client", "preferences.json"), Now: time.Now, ServiceControl: s.recorder.ServiceControl, DaemonPath: func() (string, error) { return s.binaries["daemon"], nil }, GUIPath: func() (string, error) { return s.binaries["runner"], nil }, LaunchGUI: s.recorder.LaunchGUI, In: in, Out: out, Err: diagnostic}
 }
 
 func (s *session) expand(value string) (string, error) {

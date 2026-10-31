@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "task-run-evidence-v1",
+  "runs": [
+    {
+      "observation_id": "task.manual-success",
+      "task_id": "fixture-task",
+      "run_id": "fixture-task.manual-success",
+      "invocation_mode": "manual",
+      "public_interface": "gosched CLI",
+      "task_definition": "fixture definition task.manual-success",
+      "output": "fixture output task.manual-success",
+      "marker": "fixture marker task.manual-success",
+      "history": "fixture history task.manual-success",
+      "production_runner": true,
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "diagnostic_category": ""
+    },
+    {
+      "observation_id": "task.scheduled-success",
+      "task_id": "fixture-task",
+      "run_id": "fixture-task.scheduled-success",
+      "invocation_mode": "scheduled",
+      "public_interface": "gosched CLI",
+      "task_definition": "fixture definition task.scheduled-success",
+      "output": "fixture output task.scheduled-success",
+      "marker": "fixture marker task.scheduled-success",
+      "history": "fixture history task.scheduled-success",
+      "production_runner": true,
+      "expected_exit_code": 0,
+      "actual_exit_code": 0,
+      "diagnostic_category": ""
+    },
+    {
+      "observation_id": "task.nonzero-exit",
+      "task_id": "fixture-task",
+      "run_id": "fixture-task.nonzero-exit",
+      "invocation_mode": "manual-fault",
+      "public_interface": "gosched CLI",
+      "task_definition": "fixture definition task.nonzero-exit",
+      "output": "fixture output task.nonzero-exit",
+      "marker": "fixture marker task.nonzero-exit",
+      "history": "fixture history task.nonzero-exit",
+      "production_runner": true,
+      "expected_exit_code": 7,
+      "actual_exit_code": 7,
+      "diagnostic_category": "nonzero-exit"
+    },
+    {
+      "observation_id": "task.start-failure",
+      "task_id": "fixture-task",
+      "run_id": "fixture-task.start-failure",
+      "invocation_mode": "manual-fault",
+      "public_interface": "gosched CLI",
+      "task_definition": "fixture definition task.start-failure",
+      "output": "fixture output task.start-failure",
+      "marker": "fixture marker task.start-failure",
+      "history": "fixture history task.start-failure",
+      "production_runner": true,
+      "expected_exit_code": -1,
+      "actual_exit_code": 0,
+      "diagnostic_category": "process-start-failure"
+    }
+  ]
+}

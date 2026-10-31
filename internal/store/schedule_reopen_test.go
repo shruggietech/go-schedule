@@ -5,49 +5,12 @@ import (
 	"testing"
 )
 
-// Migration v4 adds schedules.expression. It is a forward-only, non-destructive
-// migration on a safety-critical surface (see CLAUDE.md non-negotiables), so it
-// is pinned by an explicit upgrade test rather than only by the store's normal
-// round-trip coverage: an already-installed database must survive the upgrade
-// with every stored schedule, and therefore every task's timing, untouched.
-
-// v3Schedule is a schedule row as it exists in a pre-v4 database, read back
-// through raw SQL so the assertion does not depend on the current Go struct.
-type v3Schedule struct {
+type scheduleSnapshot struct {
 	id, kind, humanSummary string
 	rrule, anchor, runAt   sql.NullString
 }
 
-// openAtV3 creates a database carrying only migrations v1..v3, the shape a
-// v0.3.0 installation has on disk, without going through Open (which would
-// apply every migration including the one under test).
-func openAtV3(t *testing.T, path string) {
-	t.Helper()
-	db, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
-	if _, err := db.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`); err != nil {
-		t.Fatal(err)
-	}
-	for _, m := range migrations {
-		if m.version > 3 {
-			continue
-		}
-		if _, err := db.Exec(m.stmts); err != nil {
-			t.Fatalf("seed migration %d: %v", m.version, err)
-		}
-		if _, err := db.Exec(`INSERT INTO schema_version(version) VALUES (?)`, m.version); err != nil {
-			t.Fatal(err)
-		}
-	}
-}
-
-func readSchedulesRaw(t *testing.T, path string) map[string]v3Schedule {
+func readSchedulesRaw(t *testing.T, path string) map[string]scheduleSnapshot {
 	t.Helper()
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -59,9 +22,9 @@ func readSchedulesRaw(t *testing.T, path string) map[string]v3Schedule {
 		t.Fatal(err)
 	}
 	defer func() { _ = rows.Close() }()
-	out := map[string]v3Schedule{}
+	out := map[string]scheduleSnapshot{}
 	for rows.Next() {
-		var s v3Schedule
+		var s scheduleSnapshot
 		if err := rows.Scan(&s.id, &s.kind, &s.rrule, &s.anchor, &s.runAt, &s.humanSummary); err != nil {
 			t.Fatal(err)
 		}
@@ -73,13 +36,9 @@ func readSchedulesRaw(t *testing.T, path string) map[string]v3Schedule {
 	return out
 }
 
-// TestMigration_V4PreservesExistingSchedules is the FR-002 / FR-024 gate: a
-// pre-v4 database upgrades with the new column present and defaulted, and every
-// pre-existing schedule row otherwise byte-identical. If this test fails,
-// installed users' task timings have moved and the change must not ship.
-func TestMigration_V4PreservesExistingSchedules(t *testing.T) {
-	path := t.TempDir() + "/v3.db"
-	openAtV3(t, path)
+func TestCurrentSchemaPreservesExistingSchedules(t *testing.T) {
+	path := t.TempDir() + "/current.db"
+	createCurrentStore(t, path)
 
 	// Seed one row of each kind, covering the columns that carry timing.
 	seed := func() {
@@ -111,7 +70,6 @@ func TestMigration_V4PreservesExistingSchedules(t *testing.T) {
 		t.Fatalf("seeded %d schedules, want 3", len(before))
 	}
 
-	// Upgrade through the real path.
 	st, err := Open(path)
 	if err != nil {
 		t.Fatalf("upgrade from v3 failed: %v", err)
@@ -130,7 +88,7 @@ func TestMigration_V4PreservesExistingSchedules(t *testing.T) {
 			t.Fatalf("expression column missing after v4 for %s: %v", id, err)
 		}
 		if expr != "" {
-			t.Errorf("%s: expression = %q after migration, want empty default", id, expr)
+			t.Errorf("%s: expression = %q after bootstrap, want empty default", id, expr)
 		}
 	}
 
@@ -139,7 +97,7 @@ func TestMigration_V4PreservesExistingSchedules(t *testing.T) {
 		t.Fatal(err)
 	}
 	if version < 4 {
-		t.Fatalf("schema version = %d after upgrade, want >= 4", version)
+		t.Fatalf("schema version = %d after reopen, want >= 4", version)
 	}
 	_ = st.Close()
 	closed = true
@@ -152,21 +110,18 @@ func TestMigration_V4PreservesExistingSchedules(t *testing.T) {
 	for id, b := range before {
 		a, ok := after[id]
 		if !ok {
-			t.Errorf("schedule %s disappeared across the migration", id)
+			t.Errorf("schedule %s disappeared across reopen", id)
 			continue
 		}
 		if a != b {
-			t.Errorf("schedule %s mutated across the migration:\n before: %+v\n after:  %+v", id, b, a)
+			t.Errorf("schedule %s mutated across reopen:\n before: %+v\n after:  %+v", id, b, a)
 		}
 	}
 }
 
-// TestMigration_V4IdempotentReopen verifies re-opening an already-upgraded
-// database does not re-apply v4 (ALTER TABLE ADD COLUMN is not idempotent on
-// its own, the version gate is what makes it safe).
-func TestMigration_V4IdempotentReopen(t *testing.T) {
+func TestCurrentSchemaSchedulesIdempotentReopen(t *testing.T) {
 	path := t.TempDir() + "/reopen.db"
-	openAtV3(t, path)
+	createCurrentStore(t, path)
 
 	st1, err := Open(path)
 	if err != nil {
@@ -181,11 +136,11 @@ func TestMigration_V4IdempotentReopen(t *testing.T) {
 	defer func() { _ = st2.Close() }()
 
 	var rows int
-	if err := st2.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=4`).Scan(&rows); err != nil {
+	if err := st2.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=24`).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 1 {
-		t.Fatalf("migration v4 recorded %d times, want exactly 1", rows)
+		t.Fatalf("bootstrap v4 recorded %d times, want exactly 1", rows)
 	}
 }
 

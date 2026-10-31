@@ -145,7 +145,7 @@ sudo gosched service start
 gosched health
 ```
 
-The published v1.7.0 reliability update retains schema v24, introduced in v1.6.0, and adds no migration. The v1.6.0 migration advances notification storage to schema v24. Migrations preserve existing state and run forward on first start. To roll back, stop the newer daemon and restore the complete pre-upgrade state with its matching older bundle or binaries. Never point older binaries at the migrated database. SMTP credentials remain local to their target and are not exported in portable bundles.
+Published v1.7.0 packages retain their published behavior. The unreleased S128 source initializes schema 24 directly and reopens valid current stores without changing their data or identity. It provides no historical schema conversion or old-version rollback guarantee. Unsupported, partial, or foreign stores are refused without deletion. See [Current state and explicit reset](install.md#current-state-and-explicit-reset) for the deliberate development reset procedure. SMTP credentials remain target-local and are not exported by portable task bundles.
 
 The service definition retains a custom `--config` argument, and the default configuration remains beside the preserved database. An upgrade does not enable remote access or replace certificate and credential state.
 

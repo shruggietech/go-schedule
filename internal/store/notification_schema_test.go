@@ -8,19 +8,15 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestMigrationV15PreservesExistingStateAndAddsNotifications(t *testing.T) {
+func TestCurrentSchemaPreservesExistingStateAndAddsNotifications(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "v14.db")
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	for _, migration := range migrations[:14] {
-		if _, err := db.Exec(migration.stmts); err != nil {
-			t.Fatalf("apply v%d: %v", migration.version, err)
-		}
-	}
-	if _, err := db.Exec(`CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version(version) VALUES(14)`); err != nil {
+
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24)`); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Close(); err != nil {

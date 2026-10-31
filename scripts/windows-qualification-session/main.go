@@ -36,7 +36,7 @@ type manifest struct {
 	Inputs     []input `json:"inputs"`
 }
 
-var filenames = map[string]string{"candidate": "go-schedule_v1.4.0_windows_amd64.msi", "baseline": "go-schedule_v1.1.1_windows_amd64.msi", "powershell": "powershell.zip", "webview2": "webview2.exe", "bootstrap": "Start-QualificationGuest.ps1", "collector": "Invoke-ReleaseCandidateAttended.ps1"}
+var filenames = map[string]string{"candidate": "candidate.msi", "powershell": "powershell.zip", "webview2": "webview2.exe", "bootstrap": "Start-QualificationGuest.ps1", "collector": "Invoke-ReleaseCandidateAttended.ps1"}
 
 func main() {
 	path := flag.String("manifest", "", "absolute input manifest JSON")
@@ -118,7 +118,7 @@ func fileIdentity(path string) (int64, string, error) {
 }
 
 func prepare(m manifest, out, helpers string) error {
-	if m.Schema != 1 || m.Repository != "shruggietech/go-schedule" || m.Tag != "v1.4.0" || !regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(m.Commit) || m.RunID <= 0 || m.RunAttempt <= 0 {
+	if m.Schema != 1 || m.Repository != "shruggietech/go-schedule" || !regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`).MatchString(m.Tag) || !regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(m.Commit) || m.RunID <= 0 || m.RunAttempt <= 0 {
 		return errors.New("invalid candidate provenance")
 	}
 	if !filepath.IsAbs(out) || filepath.Dir(filepath.Clean(out)) == filepath.Clean(out) {
@@ -130,8 +130,8 @@ func prepare(m manifest, out, helpers string) error {
 	if err := rejectLinks(filepath.Dir(out)); err != nil {
 		return errors.New("output parent must exist and must not be linked")
 	}
-	if len(m.Inputs) != 4 {
-		return errors.New("exactly four package inputs required")
+	if len(m.Inputs) != 3 {
+		return errors.New("exactly three package inputs required")
 	}
 	seen := map[string]bool{}
 	var identities []os.FileInfo
@@ -151,10 +151,6 @@ func prepare(m manifest, out, helpers string) error {
 		case "candidate":
 			if u.Host != "github.com" || u.Path != fmt.Sprintf("/shruggietech/go-schedule/actions/runs/%d", m.RunID) {
 				return errors.New("candidate source must identify its staging run")
-			}
-		case "baseline":
-			if u.Host != "github.com" || u.Path != "/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi" {
-				return errors.New("baseline must identify the public v1.1.1 MSI")
 			}
 		case "powershell":
 			if u.Host != "github.com" || !regexp.MustCompile(`^/PowerShell/PowerShell/releases/download/v[^/]+/[^/]+win-x64\.zip$`).MatchString(u.Path) {
@@ -227,7 +223,7 @@ func prepare(m manifest, out, helpers string) error {
 	if err := os.WriteFile(filepath.Join(inputs, "manifest.json"), append(data, '\n'), 0600); err != nil {
 		return err
 	}
-	for _, scenario := range []string{"fresh", "upgrade"} {
+	for _, scenario := range []string{"fresh"} {
 		exports := filepath.Join(out, scenario+"-exports")
 		if err := os.Mkdir(exports, 0700); err != nil {
 			return err
@@ -236,7 +232,7 @@ func prepare(m manifest, out, helpers string) error {
 			return err
 		}
 	}
-	return os.WriteFile(filepath.Join(out, "README.txt"), []byte("Preparation only, NOT release qualification. Launch each .wsb in a separate fresh session. Diagnostics export automatically. Complete test/windows/README.md native release matrix and issues #229-#233. Normal-user and high/mixed-DPI checks require suitable separate Windows 11 environments. No tags or releases were changed.\n"), 0600)
+	return os.WriteFile(filepath.Join(out, "README.txt"), []byte("Preparation only, NOT release qualification. Launch fresh.wsb in a disposable current-install session. Diagnostics export automatically. Complete test/windows/README.md native release matrix and issues #229-#233. Normal-user and high/mixed-DPI checks require suitable separate Windows 11 environments. No tags or releases were changed.\n"), 0600)
 }
 
 func escaped(s string) string {

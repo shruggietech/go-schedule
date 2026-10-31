@@ -26,13 +26,13 @@ func TestIssueDispositionMappingsAreExactAndCopied(t *testing.T) {
 			t.Fatalf("mapping[%d].Issue = %d, want %d", i, mappings[i].Issue, issue)
 		}
 	}
-	if got := len(mappings[0].ObservationIDs); got != 36 {
-		t.Fatalf("#96 observation count = %d, want 36", got)
+	if got := len(mappings[0].ObservationIDs); got != 34 {
+		t.Fatalf("#96 observation count = %d, want 34", got)
 	}
-	if got := len(mappings[1].ObservationIDs); got != 16 {
-		t.Fatalf("#98 observation count = %d, want 16", got)
+	if got := len(mappings[1].ObservationIDs); got != 15 {
+		t.Fatalf("#98 observation count = %d, want 15", got)
 	}
-	want98 := append([]string{}, RequiredScenarioIDs()[20:36]...)
+	want98 := append([]string{}, RequiredScenarioIDs()[19:34]...)
 	if !reflect.DeepEqual(mappings[1].ObservationIDs, want98) {
 		t.Fatalf("#98 observations = %v, want %v", mappings[1].ObservationIDs, want98)
 	}
@@ -157,7 +157,7 @@ func TestRenderDispositionPacketIsCompleteDeterministicAndSafe(t *testing.T) {
 	if index.SchemaVersion != 1 || len(index.Issues) != 10 {
 		t.Fatalf("packet index schema=%d issues=%d", index.SchemaVersion, len(index.Issues))
 	}
-	if index.Issues[0].Issue != 96 || len(index.Issues[0].Observations) != 36 {
+	if index.Issues[0].Issue != 96 || len(index.Issues[0].Observations) != 34 {
 		t.Fatalf("coordinator index = %+v", index.Issues[0])
 	}
 }

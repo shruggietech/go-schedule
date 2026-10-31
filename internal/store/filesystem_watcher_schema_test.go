@@ -7,18 +7,14 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-func TestMigrationV14AddsFilesystemWatchersAndPreservesV13Data(t *testing.T) {
-	path := t.TempDir() + "/v13.db"
+func TestCurrentSchemaAddsFilesystemWatchersAndPreservesData(t *testing.T) {
+	path := t.TempDir() + "/current.db"
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, migration := range migrations[:13] {
-		if _, err := db.Exec(migration.stmts); err != nil {
-			t.Fatalf("apply v%d: %v", migration.version, err)
-		}
-	}
-	if _, err := db.Exec(`CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version(version) VALUES(13)`); err != nil {
+
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24)`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO schedules(id,kind,human_summary,expression) VALUES('schedule','once','',''); INSERT INTO tasks(id,name,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at) VALUES('task','target','echo','[]','','{}','',1,'UTC','schedule','queue_one','one','active','2026-09-05T00:00:00Z','2026-09-05T00:00:00Z'); INSERT INTO runs(id,task_id,scheduled_for,outcome,output,trigger) VALUES('run','task','2026-09-05T00:00:00Z','success','','manual')`); err != nil {

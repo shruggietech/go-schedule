@@ -130,21 +130,47 @@ func TestOneOffPreviewUsesTaskTimezoneAndRejectsInvalidTimes(t *testing.T) {
 		t.Fatal(err)
 	}
 	service := NewService(&fakeBackend{})
-	future := time.Now().In(location).Add(24 * time.Hour).Truncate(time.Minute)
+	now := time.Date(2026, time.October, 31, 12, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+	future := time.Date(2026, time.November, 2, 12, 0, 0, 0, location)
 	draft := TaskDraft{TaskDetail: TaskDetail{CommandLine: "echo", Mode: "one_off", Timezone: "America/New_York", At: future.Format("2006-01-02T15:04")}}
 	result := service.PreviewTask(context.Background(), draft)
 	if result.Outcome != "accepted" || result.Task == nil || len(result.Task.NextRuns) != 1 || result.Task.NextRuns[0] != future.Format(time.RFC3339) || result.Task.ScheduleSummary == "" || result.Task.PolicySummary == "" {
 		t.Fatalf("preview=%+v", result)
 	}
 	past := draft
-	past.At = time.Now().In(location).Add(-time.Hour).Format("2006-01-02T15:04")
+	past.At = now.In(location).Add(-time.Hour).Format("2006-01-02T15:04")
 	if rejected := service.PreviewTask(context.Background(), past); rejected.Outcome != "rejected" || rejected.Field != "at" {
 		t.Fatalf("past preview=%+v", rejected)
 	}
+	equal := draft
+	equal.At = now.In(location).Format("2006-01-02T15:04")
+	if rejected := service.PreviewTask(context.Background(), equal); rejected.Outcome != "rejected" || rejected.Field != "at" {
+		t.Fatalf("current-time preview=%+v", rejected)
+	}
+
 	invalid := draft
 	invalid.At = "not-a-time"
 	if rejected := service.PreviewTask(context.Background(), invalid); rejected.Outcome != "rejected" || rejected.Field != "at" {
 		t.Fatalf("invalid preview=%+v", rejected)
+	}
+}
+
+func TestOneOffPreviewResolvesRepeatedHourWithFixedClock(t *testing.T) {
+	service := NewService(&fakeBackend{})
+	service.now = func() time.Time { return time.Date(2026, time.October, 31, 12, 0, 0, 0, time.UTC) }
+	for _, tc := range []struct{ name, policy, want string }{
+		{"default first occurrence", "", "2026-11-01T01:30:00-04:00"},
+		{"explicit first occurrence", string(domain.DSTOverlapFirst), "2026-11-01T01:30:00-04:00"},
+		{"explicit last occurrence", string(domain.DSTOverlapLast), "2026-11-01T01:30:00-05:00"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			draft := TaskDraft{TaskDetail: TaskDetail{CommandLine: "echo", Mode: "one_off", Timezone: "America/New_York", At: "2026-11-01T01:30", DSTOverlapPolicy: tc.policy}}
+			result := service.PreviewTask(context.Background(), draft)
+			if result.Outcome != "accepted" || result.Task == nil || len(result.Task.NextRuns) != 1 || result.Task.NextRuns[0] != tc.want {
+				t.Fatalf("policy %q: preview=%+v task=%+v, want %s", tc.policy, result, result.Task, tc.want)
+			}
+		})
 	}
 }
 

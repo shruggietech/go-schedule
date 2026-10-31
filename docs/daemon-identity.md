@@ -13,7 +13,7 @@ Every initialized daemon has one opaque installation identifier and one editable
 |---|---|---|---|
 | Clean install without retained data | New | Generic default | New store |
 | Ordinary restart | Preserved | Preserved | Preserved |
-| Software upgrade | Preserved | Preserved | Preserved |
+| Current-format reopen or binary replacement | Preserved | Preserved | Preserved |
 | Database backup restore | Restored | Restored | Restored |
 | Database copy or clone | Copied until deliberate reset | Copied | Copied |
 | Rename | Preserved | Updated | Preserved |

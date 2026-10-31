@@ -103,6 +103,8 @@ test_sqlite_candidate() (
         # Byte-sized dd writes preserve emitted stderr even if timeout kills
         # the capture process before EOF; stdio-buffered head can lose it.
         local started=$SECONDS
+        # Positional variables belong to the child Bash, not this parent.
+        # shellcheck disable=SC2016
         if "$timeout_exe" --kill-after=1 10 "$BASH" -c '
             "$1" --version </dev/null 2> >(dd bs=1 count=4097 of="$2" 2>/dev/null) | dd bs=1 count=4097 of="$3" 2>/dev/null
             result=${PIPESTATUS[0]}
@@ -117,6 +119,8 @@ test_sqlite_candidate() (
     # can stop both watchdog processes immediately after a fast probe.
     local sleeper
     read -r sleeper < <(
+        # Close inherited stdin even though the watchdog itself never reads it.
+        # shellcheck disable=SC2217
         sleep 10 </dev/null >/dev/null 2>&1 &
         local timer=$!
         printf '%s\n' "$timer"
@@ -323,25 +327,37 @@ resolve_test_database() {
 #_______________________________________________________________________________
 # Query execution -- bound parameters, WAL, bounded retry
 
-sqlite_exec() {
-    # sqlite_exec DATABASE MODE SQL [name=value ...]
+sqlite_exec() { sqlite_run "$@"; }
+sqlite_readonly() { sqlite_run --readonly "$@"; }
+
+sqlite_run() {
+    # sqlite_run [--readonly] DATABASE MODE SQL [name=value ...]
     #
     # Bound parameters via '.param set'. The values written include the
     # hostname, the username, and network interface names -- all capable of
     # containing a quote, and all influenceable by whoever administers the
     # machine. String-interpolated SQL here would be both an injection vector
     # and an ordinary bug for any user named O'Brien.
+    local read_only=0
+    if [ "$1" = --readonly ]; then read_only=1; shift; fi
     local db="$1" mode="$2" sql="$3"; shift 3
+    local -a database_args=("$db")
+    if [ "$read_only" = 1 ]; then database_args=(-readonly "$db"); fi
     local script attempt out rc pair key value encoded
 
     # PRAGMA statements return rows; left unredirected they land in the
     # caller's result and get mistaken for data. Silence them at the source.
     local null_device=/dev/null
     case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) null_device=nul ;; esac
+    local pragmas="PRAGMA busy_timeout=5000;"
+    if [ "$read_only" = 0 ]; then
+        pragmas="$pragmas
+PRAGMA foreign_keys=ON;
+PRAGMA journal_mode=WAL;"
+    fi
     script=".bail on
 .output $null_device
-PRAGMA journal_mode=WAL;
-PRAGMA busy_timeout=5000;
+$pragmas
 .output stdout
 .mode $mode
 "
@@ -365,7 +381,7 @@ PRAGMA busy_timeout=5000;
 
     for attempt in 1 2 3; do
         set +e
-        out="$(printf '%s\n' "$script" | "$SQLITE_EXE" "$db" 2>&1)"
+        out="$(printf '%s\n' "$script" | "$SQLITE_EXE" "${database_args[@]}" 2>&1)"
         rc=$?
         set -e
         if [ $rc -eq 0 ]; then
@@ -374,10 +390,17 @@ PRAGMA busy_timeout=5000;
         fi
         case "$out" in
             *locked*|*busy*)
-                log WARN "Database contention on attempt $attempt/3; retrying."
+                log WARN "Database contention on attempt $attempt/3; retrying. sqlite3: $out"
                 sleep "0.$((25 * attempt))"
                 ;;
             *)
+                if [ "$read_only" = 1 ]; then
+                    case "$out" in
+                        *'not a database'*|*'database disk image is malformed'*)
+                            die_runtime "sqlite3 read-only inspection failed: $out. Use an empty path or explicitly reset the disposable metrics database. No conversion was attempted."
+                            ;;
+                    esac
+                fi
                 die_runtime "sqlite3 failed: $out"
                 ;;
         esac
@@ -389,9 +412,38 @@ PRAGMA busy_timeout=5000;
 #_______________________________________________________________________________
 # Schemas -- kept byte-identical in intent to lib/Sqlite.ps1
 
-init_heartbeat_schema() {
-    sqlite_exec "$1" list "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','2');
+# Both payloads share one complete format. Unsupported files are never converted.
+metrics_shape_sql() {
+    cat <<'SQL'
+WITH expected(name,definition) AS (VALUES ('meta','createtablemeta(keytextprimarykey,valuetext)'),('beat','createtablebeat(idintegerprimarykeyautoincrement,session_idtextnotnull,sequenceintegernotnull,labeltext,hostnametextnotnull,usernametext,pidintegernotnull,started_msintegernotnull,started_isotextnotnull,finished_msintegernotnull,duration_msintegernotnull,expected_msinteger,expected_sourcetextnotnullcheck(expected_sourcein(''env'',''anchor'',''boundary'',''none'')),drift_msinteger,interval_secondsinteger,exit_codeintegernotnull,outcometextnotnullcheck(outcomein(''ok'',''failed'')),sched_envtext,check(finished_ms>=started_ms),check((drift_msisnull)=(expected_msisnull)),check((expected_source=''none'')=(expected_msisnull)),check((outcome=''ok'')=(exit_code=0)),unique(session_id,sequence))'),('beat_started','createindexbeat_startedonbeat(started_ms)'),('snapshot','createtablesnapshot(idintegerprimarykeyautoincrement,unixtime_msintegernotnull,iso_localtextnotnull,iso_utctextnotnull,tz_offset_minutesintegernotnull,hostnametextnotnull,usernametext,process_countinteger,uptime_secondsinteger,os_platformtextnotnull,os_releasetext,script_pidintegernotnull,script_flavortextnotnullcheck(script_flavorin(''powershell'',''posix'')),invocation_sourcetextnotnull,addresses_probetext,ports_probetext)'),('snapshot_time','createindexsnapshot_timeonsnapshot(unixtime_ms)'),('snapshot_address','createtablesnapshot_address(idintegerprimarykeyautoincrement,snapshot_idintegernotnullreferencessnapshot(id)ondeletecascade,familytextnotnullcheck(familyin(''ipv4'',''ipv6'')),addresstextnotnull,interfacetext,scopetext)'),('address_snapshot','createindexaddress_snapshotonsnapshot_address(snapshot_id)'),('snapshot_port','createtablesnapshot_port(idintegerprimarykeyautoincrement,snapshot_idintegernotnullreferencessnapshot(id)ondeletecascade,protocoltextnotnullcheck(protocolin(''tcp'',''udp'')),familytext,addresstext,portintegernotnullcheck(portbetween1and65535),process_nametext)'),('port_snapshot','createindexport_snapshotonsnapshot_port(snapshot_id,protocol,port)')) SELECT CASE WHEN (SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%')=9 AND NOT EXISTS(SELECT 1 FROM expected e LEFT JOIN sqlite_schema s ON s.name=e.name WHERE s.sql IS NULL OR lower(replace(replace(replace(replace(s.sql,' ',''),char(10),''),char(13),''),char(9),''))<>e.definition) THEN 1 ELSE 0 END;
+SQL
+}
+
+assert_metrics_schema() {
+    # The read-only connection must precede WAL or any persistent writes.
+    local db="$1" allow_empty="${2:-1}" objects shape version
+    if [ ! -s "$db" ]; then
+        [ "$allow_empty" = 1 ] && return 0
+        die_runtime "Unsupported metrics database; use an empty path or explicitly reset the disposable metrics database."
+    fi
+    objects="$(sqlite_readonly "$db" list "SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%';")" || return 1
+    if [ "$objects" = 0 ] && [ "$allow_empty" = 1 ]; then return 0; fi
+    shape="$(sqlite_readonly "$db" list "$(metrics_shape_sql)")" || return 1
+    if [ "$shape" != 1 ]; then
+        die_runtime "Unsupported metrics database; use an empty path or explicitly reset the disposable metrics database. No conversion was attempted."
+    fi
+    version="$(sqlite_readonly "$db" list "SELECT value FROM meta WHERE key='schema_version';")" || return 1
+    if [ "$version" != 4 ]; then
+        die_runtime "Unsupported metrics database; use an empty path or explicitly reset the disposable metrics database. No conversion was attempted."
+    fi
+}
+
+init_metrics_schema() {
+    assert_metrics_schema "$1"
+    # IMMEDIATE serializes fresh creators; IF NOT EXISTS makes the second creator
+    # reuse the complete committed format without changing existing records.
+    sqlite_exec "$1" list "BEGIN IMMEDIATE;
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS beat (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   session_id TEXT NOT NULL,
@@ -417,13 +469,7 @@ CREATE TABLE IF NOT EXISTS beat (
   CHECK ((outcome = 'ok') = (exit_code = 0)),
   UNIQUE (session_id, sequence)
 );
-CREATE INDEX IF NOT EXISTS beat_started ON beat(started_ms);" >/dev/null
-}
-
-init_system_schema() {
-    sqlite_exec "$1" list "PRAGMA foreign_keys=ON;
-CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
-INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','1');
+CREATE INDEX IF NOT EXISTS beat_started ON beat(started_ms);
 CREATE TABLE IF NOT EXISTS snapshot (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   unixtime_ms INTEGER NOT NULL,
@@ -461,25 +507,13 @@ CREATE TABLE IF NOT EXISTS snapshot_port (
   port INTEGER NOT NULL CHECK (port BETWEEN 1 AND 65535),
   process_name TEXT
 );
-CREATE INDEX IF NOT EXISTS port_snapshot ON snapshot_port(snapshot_id, protocol, port);" >/dev/null
-
-    # Forward-only, non-destructive migration for databases created before
-    # schema 3. CREATE TABLE IF NOT EXISTS does nothing to an existing table, so
-    # the probe-status columns have to be added explicitly. ALTER TABLE ADD
-    # COLUMN cannot carry a CHECK in SQLite, so these stay plain TEXT in both
-    # fresh and migrated databases -- a fresh database with a stricter schema
-    # than a migrated one is a difference nobody would think to look for. The
-    # writer enforces the vocabulary instead.
-    local col has
-    for col in addresses_probe ports_probe; do
-        has="$(sqlite_exec "$1" list "SELECT COUNT(*) FROM pragma_table_info('snapshot') WHERE name='$col';" | tail -n1)"
-        if [ "$has" = "0" ]; then
-            log DEBUG "migrating system.db: adding $col"
-            sqlite_exec "$1" list "ALTER TABLE snapshot ADD COLUMN $col TEXT;" >/dev/null
-        fi
-    done
-    sqlite_exec "$1" list "INSERT OR REPLACE INTO meta(key,value) VALUES('schema_version','3');" >/dev/null
+CREATE INDEX IF NOT EXISTS port_snapshot ON snapshot_port(snapshot_id, protocol, port);
+INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','4');
+COMMIT;" >/dev/null
 }
+
+init_heartbeat_schema() { init_metrics_schema "$1"; }
+init_system_schema() { init_metrics_schema "$1"; }
 
 #_______________________________________________________________________________
 # Initialization entry point

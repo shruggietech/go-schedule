@@ -45,7 +45,7 @@ Two local-environment traps, neither of which indicates a problem with the repo:
 
 ## Non-negotiables
 
-- Safety-critical test surfaces are never weakened or skipped: clock injection (no direct `time.Now()` in engine code), timezone and DST resolution, forward-only non-destructive store migrations, restart and catch-up recovery, goroutine termination under the race detector, and local IPC access control.
+- Safety-critical test surfaces are never weakened or skipped: clock injection (no direct `time.Now()` in engine code), timezone and DST resolution, atomic current-store initialization, durable reopen, unsupported-state refusal, restart and catch-up recovery, goroutine termination under the race detector, and local IPC access control.
 - CI parity before any commit, run in the foreground and watched to completion.
 - Pinned artifacts (`.github/workflows/**`, `build/**`, `Makefile`, `.golangci.yml`, the `go`/`toolchain` lines of `go.mod`, `.gitattributes`, `.gitignore`, `LICENSE`, `docs/INSTALL-windows.md`) change only with a dated decision recorded in `CHANGELOG.md`.
 - Cutting a `vX.Y.Z` tag always requires explicit authorization.
@@ -55,5 +55,9 @@ Two local-environment traps, neither of which indicates a problem with the repo:
 Internal scheduling in UTC; per-task IANA timezone with DST (next-valid / first-occurrence); recurrence via RFC 5545 RRULE (rrule-go) behind a human-readable layer; injected `Clock` interface; `log/slog` structured logs; `go test -race`; dispatch latency p99 < 100ms. The GUI is built windowless (`-H windowsgui`) and tasks spawn with no console window.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure, shell commands, and other important information, read the current plan at specs/127-cluster-decision-deferral/plan.md
+For additional context about technologies to be used, project structure, shell commands, and other important information, read the current plan at specs/128-prelaunch-baseline/plan.md
 <!-- SPECKIT END -->
+
+## Prelaunch state policy
+
+Prelaunch state policy: the owner confirms that the project has no users. Historical database, preference, configuration, and helper-state migrations and old-version upgrade qualification are not required. Initialize the current format directly, preserve valid current-state reopen and persistence, and refuse obsolete or malformed state with explicit reset guidance. Never convert or delete persisted state automatically. Current correctness, atomicity, access security, repair, and removal requirements remain enforced. See [S128](specs/128-prelaunch-baseline/spec.md) and constitution version 4.0.0.

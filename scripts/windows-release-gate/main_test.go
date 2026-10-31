@@ -25,14 +25,14 @@ func TestRunRejectsUnknownCommandAsUsage(t *testing.T) {
 func TestRunVerifiesCandidateWithoutEvidence(t *testing.T) {
 	t.Parallel()
 
-	root := filepath.Join("..", "..", "test", "fixtures", "windows-release-gate", "passing")
+	root := filepath.Join("..", "..", "internal", "releasegate", "testdata", "current")
 	var stdout, stderr bytes.Buffer
 	code := run([]string{
 		"verify-candidate",
 		"--candidate-manifest", filepath.Join(root, "windows-candidate-manifest.json"),
-		"--artifact", filepath.Join(root, "go-schedule_v1.0.0_windows_amd64.msi"),
+		"--artifact", filepath.Join(root, "go-schedule_v1.7.0_windows_amd64.msi"),
 		"--repository", "shruggietech/go-schedule",
-		"--tag", "v1.0.0",
+		"--tag", "v1.7.0",
 		"--commit", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 	}, &stdout, &stderr)
 	if code != 0 {
@@ -64,7 +64,7 @@ func TestRunRendersFormalDispositionPacket(t *testing.T) {
 		"--candidate-manifest", manifest,
 		"--artifact", artifact,
 		"--repository", "shruggietech/go-schedule",
-		"--tag", "v1.0.0",
+		"--tag", "v1.7.0",
 		"--commit", strings.Repeat("a", 40),
 		"--output-dir", output,
 	}, &stdout, &stderr)
@@ -111,10 +111,10 @@ func TestRunRenderDispositionsRejectsNonFormalEvidenceAndIdentityDrift(t *testin
 		commit     string
 		want       string
 	}{
-		{"fixture class", "automated-fixture", "shruggietech/go-schedule", "v1.0.0", strings.Repeat("a", 40), "evidence_class"},
-		{"repository", "attended-windows", "other/repo", "v1.0.0", strings.Repeat("a", 40), "repository"},
-		{"tag", "attended-windows", "shruggietech/go-schedule", "v1.0.1", strings.Repeat("a", 40), "tag"},
-		{"commit", "attended-windows", "shruggietech/go-schedule", "v1.0.0", strings.Repeat("b", 40), "commit"},
+		{"fixture class", "automated-fixture", "shruggietech/go-schedule", "v1.7.0", strings.Repeat("a", 40), "evidence_class"},
+		{"repository", "attended-windows", "other/repo", "v1.7.0", strings.Repeat("a", 40), "repository"},
+		{"tag", "attended-windows", "shruggietech/go-schedule", "v1.7.1", strings.Repeat("a", 40), "tag"},
+		{"commit", "attended-windows", "shruggietech/go-schedule", "v1.7.0", strings.Repeat("b", 40), "commit"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -151,7 +151,7 @@ func TestRunRenderDispositionsRefusesExistingDestination(t *testing.T) {
 	code := run([]string{
 		"render-dispositions", "--bundle", bundle,
 		"--candidate-manifest", manifest, "--artifact", artifact,
-		"--repository", "shruggietech/go-schedule", "--tag", "v1.0.0",
+		"--repository", "shruggietech/go-schedule", "--tag", "v1.7.0",
 		"--commit", strings.Repeat("a", 40), "--output-dir", output,
 	}, &stdout, &stderr)
 	if code != 2 || !strings.Contains(stderr.String(), "already exists") {
@@ -164,7 +164,7 @@ func TestRunRenderDispositionsRefusesExistingDestination(t *testing.T) {
 
 func formalFixtureBundle(t *testing.T, evidenceClass string) (string, string, string) {
 	t.Helper()
-	root := filepath.Join("..", "..", "test", "fixtures", "windows-release-gate", "passing")
+	root := filepath.Join("..", "..", "internal", "releasegate", "testdata", "current")
 	evidenceFile, err := os.Open(filepath.Join(root, "evidence.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -201,7 +201,7 @@ func formalFixtureBundle(t *testing.T, evidenceClass string) (string, string, st
 	if err := file.Close(); err != nil {
 		t.Fatal(err)
 	}
-	return bundle, filepath.Join(root, "windows-candidate-manifest.json"), filepath.Join(root, "go-schedule_v1.0.0_windows_amd64.msi")
+	return bundle, filepath.Join(root, "windows-candidate-manifest.json"), filepath.Join(root, "go-schedule_v1.7.0_windows_amd64.msi")
 }
 
 func writeZipEntry(t *testing.T, writer *zip.Writer, name string, data []byte) {

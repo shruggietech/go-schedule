@@ -136,7 +136,6 @@ Param(
     [ValidateSet(
         'window.clean-standard',
         'window.clean-high-or-mixed',
-        'window.retained-profile',
         'window.state-transitions',
         'window.subsequent-launch'
     )]
@@ -757,19 +756,6 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics.owned_data_cleanup_invoked = $false
             }
             'setup.maintenance' {
-                $metrics.transitions_verified = $false
-                $metrics.repair_verified = $false
-                $metrics.completion_actions_absent = $false
-                $metrics.owned_data_cleanup_invoked = $false
-            }
-            'setup.upgrade' {
-                $metrics.choices_preserved = $false
-                $metrics.completion_actions_absent = $false
-                $metrics.owned_data_cleanup_invoked = $false
-                $metrics.baseline_version = ''
-                $metrics.baseline_filename = ''
-                $metrics.baseline_download_url = ''
-                $metrics.baseline_sha256 = ''
                 $metrics.tasks_preserved = $false
                 $metrics.run_history_preserved = $false
                 $metrics.appearance_intent_preserved = $false
@@ -779,6 +765,10 @@ namespace GoSchedule.ReleaseEvidence {
                 $metrics.notifications_enabled = $true
                 $metrics.localhost_mcp_enabled = $true
                 $metrics.remote_https_enabled = $true
+                $metrics.transitions_verified = $false
+                $metrics.repair_verified = $false
+                $metrics.completion_actions_absent = $false
+                $metrics.owned_data_cleanup_invoked = $false
             }
             'setup.invalid-input' {
                 $metrics.input_rejected = $false
@@ -1036,7 +1026,6 @@ namespace GoSchedule.ReleaseEvidence {
             'access.path-removed',
             'window.clean-standard',
             'window.clean-high-or-mixed',
-            'window.retained-profile',
             'window.state-transitions',
             'window.subsequent-launch',
             'error.daemon-unavailable',
@@ -1056,7 +1045,6 @@ namespace GoSchedule.ReleaseEvidence {
             'setup.finish-launch-integrity',
             'setup.cancel',
             'setup.maintenance',
-            'setup.upgrade',
             'setup.invalid-input',
             'setup.rollback',
             'remove.preserve',
@@ -1084,7 +1072,7 @@ namespace GoSchedule.ReleaseEvidence {
             }
         )
         $evidence = [ordered]@{
-            schema_version = 1
+            schema_version = 2
             evidence_class = 'attended-windows'
             candidate = [ordered]@{
                 repository = $Repository

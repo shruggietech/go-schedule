@@ -5,18 +5,14 @@ import (
 	"testing"
 )
 
-func TestMigrationV12AddsExternalTriggersAndRunProvenance(t *testing.T) {
-	path := t.TempDir() + "/v11.db"
+func TestCurrentSchemaAddsExternalTriggersAndRunProvenance(t *testing.T) {
+	path := t.TempDir() + "/current.db"
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, migration := range migrations[:11] {
-		if _, err := db.Exec(migration.stmts); err != nil {
-			t.Fatalf("apply v%d: %v", migration.version, err)
-		}
-	}
-	if _, err := db.Exec(`CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version(version) VALUES(11)`); err != nil {
+
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24)`); err != nil {
 		t.Fatal(err)
 	}
 	_ = db.Close()

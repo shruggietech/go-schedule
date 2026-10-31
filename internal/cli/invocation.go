@@ -41,20 +41,20 @@ type SecretStore interface {
 // Dependencies scopes one CLI invocation. Empty fields select production adapters.
 // Only explicit callers supply recording adapters; environment variables cannot downgrade secrets.
 type Dependencies struct {
-	Client                               *client.Client
-	Profiles                             ProfileStore
-	Secrets                              SecretStore
-	PreferencePath, LegacyPreferencePath string
-	Now                                  func() time.Time
-	ServiceControl                       serviceControlFunc
-	DaemonPath, GUIPath                  func() (string, error)
-	LaunchGUI                            func(string) error
-	MCPHTTPStatus                        func(*cobra.Command) (server.MCPHTTPStatusResponse, error)
-	MCPHTTPEnable                        func(*cobra.Command, server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error)
-	MCPHTTPRotate                        func(*cobra.Command) (server.MCPHTTPCredentialResponse, error)
-	MCPHTTPDisable                       func(*cobra.Command) (server.MCPHTTPStatusResponse, error)
-	In                                   io.Reader
-	Out, Err                             io.Writer
+	Client              *client.Client
+	Profiles            ProfileStore
+	Secrets             SecretStore
+	PreferencePath      string
+	Now                 func() time.Time
+	ServiceControl      serviceControlFunc
+	DaemonPath, GUIPath func() (string, error)
+	LaunchGUI           func(string) error
+	MCPHTTPStatus       func(*cobra.Command) (server.MCPHTTPStatusResponse, error)
+	MCPHTTPEnable       func(*cobra.Command, server.MCPHTTPEnableRequest) (server.MCPHTTPCredentialResponse, error)
+	MCPHTTPRotate       func(*cobra.Command) (server.MCPHTTPCredentialResponse, error)
+	MCPHTTPDisable      func(*cobra.Command) (server.MCPHTTPStatusResponse, error)
+	In                  io.Reader
+	Out, Err            io.Writer
 }
 
 type invocation struct {

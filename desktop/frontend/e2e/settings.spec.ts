@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
       copied: [] as string[],
       opened: [] as string[],
       workspace: {
-        preferences: { version: 1, appearance: 'dark', transition: { status: 'migrated', retired: ['appearance.font', 'appearance.scroll_sensitivity'] } },
+        preferences: { version: 1, appearance: 'dark', popups: { enabled: false, conditions: ['failure', 'success', 'alert'], severities: ['info', 'warning', 'error'], daemonIds: [] } },
         preferencePath: 'C:\\Users\\Ada\\AppData\\Roaming\\go-schedule\\desktop\\preferences.json',
         storage: [
           { id: 'machine-data', label: 'Machine data', path: 'C:\\ProgramData\\goschedule', owner: 'go-schedule', scope: 'machine', existence: 'present', normalRemoval: 'Preserved by normal software removal', explicitWipe: 'Removed by an explicit data wipe', copyable: true },
@@ -41,7 +41,8 @@ for (const zoom of [0.8, 1, 1.5, 2]) {
     await page.evaluate((value) => { document.documentElement.style.zoom = String(value) }, zoom)
     await page.getByRole('button', { name: 'Settings', exact: true }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Appearance migrated' })).toBeVisible()
+    await expect(page.getByText('Upgrade', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('main').getByRole('combobox', { name: 'Appearance' })).toHaveValue('dark')
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag22aa']).analyze()
     expect(results.violations.filter((item) => item.impact === 'serious' || item.impact === 'critical')).toEqual([])

@@ -19,9 +19,6 @@ const (
 	AppearanceDark   = userprefs.AppearanceDark
 )
 
-// PreferenceTransition records the one-time legacy preference disposition.
-type PreferenceTransition = userprefs.Transition
-
 // DesktopPreferences is the versioned desktop-local preference document.
 type DesktopPreferences = userprefs.Preferences
 

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestMigrationV21IndexesBoundedFailureSummaryQueries(t *testing.T) {
+func TestCurrentSchemaIndexesBoundedFailureSummaryQueries(t *testing.T) {
 	st := openMem(t)
 	var version int
 	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil {

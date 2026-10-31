@@ -13,7 +13,7 @@
     Windows PowerShell 5.1 is supported because it ships in a clean Sandbox.
 
 .PARAMETER Scenario
-    Fresh or upgrade installation session. Alias: s
+    Fresh current installation session. Alias: s
 
 .PARAMETER Fixture
     Run nondestructive process fixtures only, without installing or staging.
@@ -37,7 +37,7 @@
 Param(
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias('s')]
-    [ValidateSet('fresh','upgrade')]
+    [ValidateSet('fresh')]
     [string]$Scenario = 'fresh',
     [Parameter(Mandatory=$false,ParameterSetName='Default')]
     [Alias('f')]
@@ -236,15 +236,15 @@ Param(
     try {
         $manifest = Get-Content -LiteralPath "$PSScriptRoot\manifest.json" -Raw | ConvertFrom-Json
         $names = @{
-            candidate = 'go-schedule_v1.4.0_windows_amd64.msi'; baseline = 'go-schedule_v1.1.1_windows_amd64.msi'
+            candidate = 'candidate.msi'
             powershell = 'powershell.zip'; webview2 = 'webview2.exe'
             bootstrap = 'Start-QualificationGuest.ps1'
             collector = 'Invoke-ReleaseCandidateAttended.ps1'
         }
         if ($manifest.schema_version -ne 1 -or $manifest.repository -ne 'shruggietech/go-schedule' -or
-            $manifest.tag -ne 'v1.4.0' -or $manifest.commit -cnotmatch '^[a-f0-9]{40}$' -or
+            $manifest.tag -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+$' -or $manifest.commit -cnotmatch '^[a-f0-9]{40}$' -or
             $manifest.run_id -le 0 -or $manifest.run_attempt -le 0 -or
-            @($manifest.inputs).Count -ne 6) { throw 'Invalid packaged provenance.' }
+            @($manifest.inputs).Count -ne 5) { throw 'Invalid packaged provenance.' }
         [IO.Directory]::CreateDirectory('C:\qualification') | Out-Null
         $seen = @{}
         foreach ($inputFile in $manifest.inputs) {
@@ -266,7 +266,7 @@ Param(
         Invoke-DiagnosticProcess 'powershell-check' 'C:\qualification\pwsh\pwsh.exe' `
             '-NoProfile -NonInteractive -Command "if ($PSVersionTable.PSVersion.Major -lt 7) { exit 1 }"' 120
         Invoke-DiagnosticProcess 'collector-initialize' 'C:\qualification\pwsh\pwsh.exe' `
-            -Arguments ('-NoProfile -NonInteractive -File C:\qualification\Invoke-ReleaseCandidateAttended.ps1 -Action Initialize -MsiPath C:\qualification\go-schedule_v1.4.0_windows_amd64.msi -WorkspacePath C:\qualification\attended-workspace -Tag v1.4.0 -Commit {0} -RunId {1} -RunAttempt {2}' -f $manifest.commit, $manifest.run_id, $manifest.run_attempt) `
+            -Arguments ('-NoProfile -NonInteractive -File C:\qualification\Invoke-ReleaseCandidateAttended.ps1 -Action Initialize -MsiPath C:\qualification\candidate.msi -WorkspacePath C:\qualification\attended-workspace -Tag {0} -Commit {1} -RunId {2} -RunAttempt {3}' -f $manifest.tag, $manifest.commit, $manifest.run_id, $manifest.run_attempt) `
             -TimeoutSeconds 600
         Invoke-DiagnosticProcess 'webview2' 'C:\qualification\webview2.exe' '/silent /install' 1800
         $runtime = @(
@@ -275,13 +275,8 @@ Param(
         ) | Where-Object { $_.pv -and $_.pv -ne '0.0.0.0' }
         if (@($runtime).Count -eq 0) { throw 'WebView2 runtime remains unavailable.' }
         Add-Type -AssemblyName System.Windows.Forms
-        if ($Scenario -eq 'upgrade') {
-            Show-Instructions 'Install the public v1.1.1 baseline. Do not close this Sandbox. Logs export automatically.'
-            Invoke-AttendedMsi 'baseline' 'C:\qualification\go-schedule_v1.1.1_windows_amd64.msi'
-            Show-Instructions 'Before clicking OK, create representative tasks, history, and appearance settings in v1.1.1, then close the application. This requires real observation, not an automatic pass.'
-        }
         Show-Instructions 'Install the corrected candidate. Inputs are guest-local and offline prerequisites are prepared. Installer timing/logs export automatically. Do not launch another installer if this times out.'
-        Invoke-AttendedMsi 'candidate' 'C:\qualification\go-schedule_v1.4.0_windows_amd64.msi'
+        Invoke-AttendedMsi 'candidate' 'C:\qualification\candidate.msi'
         Show-Instructions 'Mechanical installation finished, NOT release qualification. Before clicking OK, review the native matrix and #229-#233 regressions using C:\qualification\Invoke-ReleaseCandidateAttended.ps1 and C:\qualification\attended-workspace. OK exports the workspace without marking observations passed. Normal-user and high/mixed-DPI checks need separate environments. Finalize through the repository collector on the host with its Go context after merging genuine evidence.'
         Copy-Item -LiteralPath 'C:\qualification\attended-workspace' -Destination $script:Exports -Recurse
         exit 0

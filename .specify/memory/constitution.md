@@ -1,43 +1,12 @@
 <!--
 SYNC IMPACT REPORT
-==================
-Version change: 3.0.0 → 3.1.0 (2026-09-21, separating engineering verification
-  from GitHub issue completion).
-Bump rationale: The amendment adds a planning-governance rule without removing
-  or weakening testing, CI, review, or release requirements. GitHub feature,
-  task, epic, and release issues now close on delivered functional outcomes;
-  defects found during release use are tracked as their own bug issues.
-
-Modified principles:
-  - None
-Added principles:
-  - I. Code Quality
-  - II. Testing Standards (NON-NEGOTIABLE)
-  - III. User Experience Consistency
-  - IV. Performance Requirements
-  - V. Autonomous Build-Phase Execution (added 2026-07-22, v1.1.0)
-Added sections:
-  - Engineering Constraints
-  - Development Workflow & Quality Gates
-  - Governance
-Modified sections (2026-09-21, v3.1.0):
-  - Development Workflow & Quality Gates (outcome-based issue completion)
-  - Governance (release defects become separate active-release issues)
-
-Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (Constitution Check gates are dynamic;
-     no edit required)
-  ✅ .specify/templates/spec-template.md (no mandatory-section changes required)
-  ✅ .specify/templates/tasks-template.md (principle-driven task categories covered)
-  ✅ AGENTS.md (issue acceptance and closure guidance synchronized)
-  ✅ CONTRIBUTING.md (issue closure and defect follow-up guidance synchronized)
-  ✅ docs/remote-access.md (downstream issue closure guidance synchronized)
-  ✅ test/windows/README.md (release observations no longer gate issue closure)
-  ✅ .github/ISSUE_TEMPLATE/bug_report.yml (captures release or revision, reproduction, and impact)
-  ✅ .github/PULL_REQUEST_TEMPLATE.md (verification remains a PR requirement)
-  ✅ .github/workflows/ci.yml (verification remains enforced on pull requests)
-
-Deferred TODOs: None
+Version change: 3.1.0 to 4.0.0 (2026-10-31).
+Rationale: owner-approved S128 removes the mandatory historical migration and upgrade-qualification constraint for this prelaunch project with no users. Current initialization, persistence, refusal, security and verification obligations remain.
+Modified section: Engineering Constraints.
+Synchronized guidance: CLAUDE.md, CONTRIBUTING.md, docs/build-autopilot.md, pull-request template, current installation/preferences/qualification guides.
+Templates: existing dynamic Constitution Check and outcome-based acceptance remain applicable without structural changes.
+Authorization and scope: specs/128-prelaunch-baseline/spec.md and GitHub issue #408.
+Deferred TODOs: None.
 -->
 
 # go-schedule Constitution
@@ -108,7 +77,7 @@ Build-phase work runs under the Build-Phase Autopilot Protocol (`docs/build-auto
 
 - Language and tooling: Go (latest stable minor release), managed with Go modules. Avoid third-party dependencies where the standard library suffices; every new dependency MUST be justified in review and pass a license check.
 - Supported platforms: the project MUST build and pass tests on Linux and Windows.
-- Backward compatibility: persisted job state and configuration schemas MUST migrate forward; breaking changes to either require a MAJOR version bump and a documented migration path.
+- Prelaunch state policy: the owner confirms that the project has no users. Historical database, preference, configuration, and helper-state migrations and old-version upgrade qualification are not required. Initialize the current format directly, preserve valid current-state reopen and persistence, and refuse obsolete or malformed state with explicit reset guidance. Never convert or delete persisted state automatically. Current correctness, atomicity, access security, repair, and removal requirements remain enforced.
 - Security: secrets MUST NOT be logged; inputs from configuration and APIs MUST be validated at the boundary.
 
 ## Development Workflow & Quality Gates
@@ -141,4 +110,6 @@ This constitution supersedes ad-hoc practices and conventions. When a technical 
 - 2026-08-26, v3.0.0: **reinstated pull requests as the mandatory integration path.** Recent maintainer work established that a review branch and PR are useful venues for third-party AI review. Autopilot now halts before review-branch publication and PR creation. That publication authorization continues through verified, in-scope review-fix pushes to the same open PR, avoiding contradictory extra halts during review. The amendment deliberately adds no branch protection, approval requirement, fixed check list, or mandatory conversation rule; those controls are disproportionate for the current one-developer project with no users. The maintainer considers feedback and retains final merge judgment. Mirrored in `README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/build-autopilot.md`, and the PR template.
 - 2026-09-21, v3.1.0: **separated engineering verification from GitHub issue completion.** Tests, CI, review, and release checks remain mandatory under principles I through V and the pull-request workflow, but they are not acceptance criteria or closure gates for feature, task, epic, or release issues. Functional outcomes close when delivered. Defects found during verification or in an active release are tracked as separate bug issues with release and reproduction context. Mirrored in `AGENTS.md`, `CONTRIBUTING.md`, `docs/remote-access.md`, and `test/windows/README.md`.
 
-**Version**: 3.1.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-09-21
+- 2026-10-31, v4.0.0: **removed mandatory historical migrations and old-version upgrade qualification for the owner-directed prelaunch baseline.** The owner confirms no users and explicitly directs that migrations of any kind are irrelevant. S128 initializes current application and helper schemas directly, removes preference conversion, and uses a current-only qualification contract. Valid current state remains durable; obsolete or malformed state requires an explicit developer-controlled reset instead of automatic conversion or deletion. Existing correctness, security, race, coverage, review, repair and uninstall requirements remain. This governance MAJOR does not select a product release version. Proposal and authorization are recorded in S128 and #408.
+
+**Version**: 4.0.0 | **Ratified**: 2026-06-19 | **Last Amended**: 2026-10-31

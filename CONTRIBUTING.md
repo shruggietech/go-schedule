@@ -86,7 +86,7 @@ These test surfaces are not relaxed, skipped, or made conditional, whatever the 
 
 - clock injection, no direct `time.Now()` in engine code;
 - timezone and DST resolution, including next-valid and first-occurrence behavior across transitions;
-- forward-only, non-destructive store migrations;
+- atomic current-store initialization, durable reopen, and unsupported-state refusal;
 - restart and catch-up recovery;
 - goroutine termination under the race detector;
 - local IPC access control.
@@ -142,3 +142,7 @@ Markdown follows the house style: a single `#` heading, one physical source line
 2. Add the matching comparison snapshot and complete its explicit capability decisions and content digests using the [website release-review procedure](docs/website.md#comparison-evidence-and-release-review). The staging, normal promotion and standing-waiver promotion paths all require it.
 3. Run the canonical checks and obtain maintainer authorization before creating a version tag or publishing a release. Follow the existing [Windows release procedure](test/windows/README.md) for artifact identity and the applicable qualification or standing-waiver path.
 4. After publication, the Pages workflow selects the latest public tag and its matching comparison snapshot. Update the local preview default in `site/data/published.json` to that published tag; keep candidate capability separate from the public baseline.
+
+## Prelaunch state policy
+
+Prelaunch state policy: the owner confirms that the project has no users. Historical database, preference, configuration, and helper-state migrations and old-version upgrade qualification are not required. Initialize the current format directly, preserve valid current-state reopen and persistence, and refuse obsolete or malformed state with explicit reset guidance. Never convert or delete persisted state automatically. Current correctness, atomicity, access security, repair, and removal requirements remain enforced. See [S128](specs/128-prelaunch-baseline/spec.md) and constitution version 4.0.0.

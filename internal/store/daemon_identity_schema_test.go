@@ -8,18 +8,14 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestMigrationV16PreservesExistingStateAndAddsIdentity(t *testing.T) {
+func TestCurrentSchemaPreservesExistingStateAndAddsIdentity(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "v15.db")
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, migration := range migrations[:15] {
-		if _, err := db.Exec(migration.stmts); err != nil {
-			t.Fatalf("apply v%d: %v", migration.version, err)
-		}
-	}
-	if _, err := db.Exec(`CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version(version) VALUES(15); INSERT INTO groups(id,name,enabled,created_at,updated_at) VALUES('group-1','Preserved',1,'2026-09-09T00:00:00Z','2026-09-09T00:00:00Z'); INSERT INTO schedules(id,kind,human_summary,expression) VALUES('schedule-1','event','At startup','@reboot'); INSERT INTO tasks(id,name,command,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at) VALUES('task-1','Preserved task','echo',1,'UTC','schedule-1','queue_one','one','active','2026-09-09T00:00:00Z','2026-09-09T00:00:00Z')`); err != nil {
+
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24); INSERT INTO groups(id,name,enabled,created_at,updated_at) VALUES('group-1','Preserved',1,'2026-09-09T00:00:00Z','2026-09-09T00:00:00Z'); INSERT INTO schedules(id,kind,human_summary,expression) VALUES('schedule-1','event','At startup','@reboot'); INSERT INTO tasks(id,name,command,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at) VALUES('task-1','Preserved task','echo',1,'UTC','schedule-1','queue_one','one','active','2026-09-09T00:00:00Z','2026-09-09T00:00:00Z')`); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Close(); err != nil {

@@ -9,27 +9,17 @@ import (
 	"github.com/shruggietech/go-schedule/internal/secretstore"
 )
 
-func TestMigrationV24PreservesSMTPHistoryAndWebhookErrors(t *testing.T) {
+func TestCurrentSchemaPreservesSMTPHistoryAndWebhookErrors(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "v23.db")
 	db, err := sql.Open("sqlite", filename)
 	if err != nil {
 		t.Fatal(err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec("CREATE TABLE schema_version(version INTEGER NOT NULL)"); err != nil {
+	if _, err := db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(24);"); err != nil {
 		t.Fatal(err)
 	}
-	for _, m := range migrations {
-		if m.version > 23 {
-			break
-		}
-		if _, err := db.Exec(m.stmts); err != nil {
-			t.Fatalf("seed %d: %v", m.version, err)
-		}
-		if _, err := db.Exec("INSERT INTO schema_version VALUES(?)", m.version); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	endpoint, err := secretstore.Protect("owned endpoint")
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +30,7 @@ func TestMigrationV24PreservesSMTPHistoryAndWebhookErrors(t *testing.T) {
 	}
 	now := "2026-10-23T01:02:03Z"
 	for _, tc := range []struct{ id, kind, state string }{{"accepted", "smtp", "succeeded"}, {"rejected", "smtp", "failed"}, {"retry", "smtp", "pending"}, {"webhook", "webhook", "succeeded"}} {
-		_, err := db.Exec(`INSERT INTO notification_deliveries(id,channel_name,destination_summary,endpoint,authorization,event_kind,payload,state,attempts,next_attempt_at,created_at,completed_at,last_status,last_error,kind,recipients) VALUES(?,?,?,?,?,'test','{}',?,2,?,?,?,250,'Original authored result.',?,'[{"address":"ops@example.test","state":"accepted"}]')`, tc.id, "mail", "mail summary", endpoint, auth, tc.state, now, now, now, tc.kind)
+		_, err := db.Exec(`INSERT INTO notification_deliveries(id,channel_name,destination_summary,endpoint,authorization,event_kind,payload,state,attempts,next_attempt_at,created_at,completed_at,last_status,last_error,kind,recipients,diagnostic) VALUES(?,?,?,?,?,'test','{}',?,2,?,?,?,250,?,?,'[{"address":"ops@example.test","state":"accepted"}]',?)`, tc.id, "mail", "mail summary", endpoint, auth, tc.state, now, now, now, map[bool]string{true: "", false: "Original authored result."}[tc.id == "accepted"], tc.kind, map[bool]string{true: "", false: "Original authored result."}[tc.kind == "webhook"])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -77,7 +67,7 @@ func TestMigrationV24PreservesSMTPHistoryAndWebhookErrors(t *testing.T) {
 		}
 		var n int
 		if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version WHERE version=24").Scan(&n); err != nil || n != 1 {
-			t.Fatalf("migration repeated: %d %v", n, err)
+			t.Fatalf("bootstrap repeated: %d %v", n, err)
 		}
 		rows, err := st.db.Query("PRAGMA foreign_key_check")
 		if err != nil {

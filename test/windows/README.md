@@ -8,7 +8,7 @@ On 2026-09-23, the maintainer clarified that the testing waiver is universal, no
 
 The waiver changes release acceptance, not factual results. Record attended scenarios as **not tested, release authorized by maintainer**, preserving any known failed or timed-out results separately. Historical candidate observations cannot be reassigned to new bytes. Do not manufacture passing fragments or claim full native qualification.
 
-The existing collector and promotion validator still require the full evidence contract for fully qualified publication. A waiver is not a valid passing archive, so the attended-evidence promotion workflow must not be invoked under the standing waiver. Use the reviewed `Promote Release (standing native-testing waiver)` workflow only after successful automated CI and exact-source staging; it rechecks candidate identity, the complete asset set, checksums, and the untested disclosure before publication. Source-owned release metadata changes must merge before staging the final reviewed boundary. The procedures below remain optional reference material, not release prerequisites.
+The current collector and promotion validator require the revision-2 evidence contract for fully qualified publication. Revision 1 remains historical evidence and has no converter. A waiver is not a valid passing archive, so the attended-evidence promotion workflow must not be invoked under the standing waiver. Use the reviewed `Promote Release (standing native-testing waiver)` workflow only after successful automated CI and exact-source staging; it rechecks candidate identity, the complete asset set, checksums, and the untested disclosure before publication. Source-owned release metadata changes must merge before staging the final reviewed boundary. The procedures below remain optional reference material, not release prerequisites.
 
 The published v1.7.0 source, staging, approved assets and promotion are recorded in [S126 release delivery](../../specs/126-dependency-release-convergence/handoff.md). It preserves the S124 owner merge and independent main browser failure #397, distinguishes earlier application QA from actual released packages, and retains unresolved #355/#356 outcomes. The [S124 handoff](../../specs/124-reliability-release-preparation/handoff.md) and [S118 handoff](../../specs/118-release-records/handoff.md) retain their historical preparation records.
 
@@ -35,18 +35,17 @@ The inspector reads Summary Information PID 3 plus canonical product identity, i
 
 ## Hosted silent installer contract
 
-`Invoke-InstallerContractCI.ps1` is destructive and refuses to run outside an elevated GitHub-hosted disposable Windows runner. The `windows-msi-contract` CI job builds two test-version MSIs from the same reviewed source, inspects the candidate database, and invokes the script with hidden `msiexec` processes:
+`Invoke-InstallerContractCI.ps1` is destructive and refuses to run outside an elevated GitHub-hosted disposable Windows runner. The `windows-msi-contract` CI job builds one current candidate MSI from the reviewed source, inspects its database, and invokes the script with hidden `msiexec` processes:
 
 ```powershell
 pwsh -NoProfile -File test/windows/Invoke-InstallerContractCI.ps1 `
-  -BaselineMsiPath C:\verify\s039-baseline.msi `
   -MsiPath C:\verify\s039-candidate.msi `
   -EvidencePath C:\verify\silent-lifecycle.json `
   -ArtifactOrigin 'CI build from commit <full-commit-id>' `
   -Confirm:$false
 ```
 
-The probe covers default, both, neither, and desktop-only shortcut states; maintenance transitions; same-authoring major-upgrade feature migration; invalid `GOSCHEDULE_REMOVE_DATA` rejection; repair and upgrade non-wipe controls; preserve and explicit-wipe removal; out-of-scope sentinels; retained `goschedadmin`; a locked-file partial cleanup; cleanup-result evidence; and the absence of GUI or documentation completion actions from every silent MSI log. After fresh install, repair, and upgrade, it also proves one visible product entry with `NoRemove=1`, no `NoModify`, no direct `UninstallString`, and a current MSI-owned `ModifyPath`. This is the supported Settings entry into the full maintenance wizard; direct silent `/x` remains available to administrators.
+The probe covers default, both, neither, and desktop-only shortcut states; maintenance transitions; invalid `GOSCHEDULE_REMOVE_DATA` rejection; repair non-wipe controls; preserve and explicit-wipe removal; out-of-scope sentinels; retained `goschedadmin`; a locked-file partial cleanup; cleanup-result evidence; and the absence of GUI or documentation completion actions from every silent MSI log. After fresh install and repair, it also proves one visible product entry with `NoRemove=1`, no `NoModify`, no direct `UninstallString`, and a current MSI-owned `ModifyPath`. This is the supported Settings entry into the full maintenance wizard; direct silent `/x` remains available to administrators.
 
 `GOSCHEDULE_REMOVE_DATA=0` (or an absent property) preserves application data. Only exact `GOSCHEDULE_REMOVE_DATA=1` requests a committed wipe. The helper's retained failure ledger is `%ProgramData%\ShruggieTech\go-schedule-uninstall\b6f3c2e1-7a4d-4c9e-9b2a-1f6d8e5a0c34\cleanup-result.json`; the matching HKLM summary records state, remaining count, and report path. Complete cleanup removes stale result evidence. MSI success proves software removal, so the lifecycle probe separately verifies the cleanup result.
 
@@ -66,21 +65,9 @@ pwsh .\Invoke-InstallerLifecycle.ps1 `
 
 The script installs, repairs, reinstalls, and uninstalls. It records exit codes, verbose-log paths/hashes, diagnostics, group SID/members, service state, product state, install directory, and PATH. Uninstall must preserve group membership.
 
-## Run the v1.1.1 upgrade lifecycle
+## Prelaunch current-state boundary
 
-Revert to a separate clean snapshot. Install the public v1.1.1 MSI and create representative tasks, history, and appearance state before applying the exact v1.4.0 candidate:
-
-```powershell
-pwsh .\Invoke-InstallerLifecycle.ps1 `
-  -Scenario upgrade -MsiPath C:\verify\candidate.msi `
-  -PriorMsiPath C:\verify\go-schedule_v1.1.1_windows_amd64.msi `
-  -EvidencePath C:\verify\upgrade.md -ArtifactClass candidate `
-  -ArtifactOrigin 'local build from commit <full-commit-id>' `
-  -PriorArtifactOrigin 'https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi' `
-  -Confirm:$false
-```
-
-Do not reuse the fresh host without reverting it. Preserved group state makes that baseline intentionally unclean.
+The unreleased S128 source removes historical baseline-MSI inputs and upgrade walkthroughs. Fresh initialization, current-state persistence, repair, maintenance, uninstall and explicit preserve/wipe behavior remain. Ordinary MSI replacement guards remain in authoring, but no historical application-state conversion is promised. Published packages and retained historical evidence are unchanged.
 
 ## Prove ordinary non-elevated access
 
@@ -114,9 +101,9 @@ This scenario first proves ordinary IPC access, then creates tasks through the i
 
 ## Attended release-candidate gate
 
-### Prepared disposable sessions (S086)
+### Current disposable sessions
 
-`scripts/windows-qualification-session` prepares fresh and upgrade Windows Sandbox launch packages without installing software on the development host. Supply an absolute JSON manifest and an absolute new output directory whose parent already exists. Inputs must be local regular files with explicit source identity, byte length, and lowercase SHA-256. Candidate source identifies the exact hosted staging run; baseline source identifies the public v1.1.1 MSI; PowerShell and WebView2 use upstream portable/offline distributions. The tool rejects occupied destinations, links, overlap, missing inputs, and changed bytes. Do not point it at the stale v1.4.0 draft and claim the UI fixes qualified.
+`scripts/windows-qualification-session` prepares a fresh Windows Sandbox launch package without installing software on the development host. Supply an absolute JSON manifest and an absolute new output directory whose parent already exists. Inputs must be local regular files with explicit source identity, byte length, and lowercase SHA-256. Candidate source identifies the exact hosted staging run; PowerShell and WebView2 use upstream portable/offline distributions. The tool rejects occupied destinations, links, overlap, missing inputs, and changed bytes. Do not point it at the stale v1.4.0 draft and claim the UI fixes qualified.
 
 ```json
 {
@@ -128,20 +115,19 @@ This scenario first proves ordinary IPC access, then creates tasks through the i
   "run_attempt": 1,
   "inputs": [
     { "role": "candidate", "path": "C:\\candidate\\go-schedule_v1.4.0_windows_amd64.msi", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://github.com/shruggietech/go-schedule/actions/runs/123456789" },
-    { "role": "baseline", "path": "C:\\baseline\\go-schedule_v1.1.1_windows_amd64.msi", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://github.com/shruggietech/go-schedule/releases/download/v1.1.1/go-schedule_v1.1.1_windows_amd64.msi" },
     { "role": "powershell", "path": "C:\\tools\\powershell.zip", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.zip" },
     { "role": "webview2", "path": "C:\\tools\\webview2.exe", "bytes": 1, "sha256": "REPLACE_WITH_EXACT_SHA256", "source": "https://developer.microsoft.com/en-us/microsoft-edge/webview2/" }
   ]
 }
 ```
 
-The sample is intentionally invalid until actual sizes, hashes, commit, and upstream runtime version/source are recorded. A recorded URL is provenance supplied by the maintainer, not a signature or online authenticity check. Authenticate downloaded upstream packages before preparation. Generate with `go run ./scripts/windows-qualification-session --manifest C:\candidate\session.json --output C:\qualification\new-session`. The new package contains `fresh.wsb`, `upgrade.wsb`, read-only inputs, and independent initially empty export folders. Launching a `.wsb` is an intentional attended installation activity, not part of nondestructive preparation. Networking is disabled; this configuration does not qualify browser or remote-network scenarios.
+The sample is intentionally invalid until actual sizes, hashes, commit, and upstream runtime version/source are recorded. A recorded URL is provenance supplied by the maintainer, not a signature or online authenticity check. Authenticate downloaded upstream packages before preparation. Generate with `go run ./scripts/windows-qualification-session --manifest C:\candidate\session.json --output C:\qualification\new-session`. The new package contains `fresh.wsb`, read-only inputs, and an initially empty export folder. Launching a `.wsb` is an intentional attended installation activity, not part of nondestructive preparation. Networking is disabled; this configuration does not qualify browser or remote-network scenarios.
 
 The guest-only bootstrap copies verified bytes to guest-local disk, prepares offline WebView2, verifies PowerShell 7, initializes the bundled collector's unavailable templates, and opens attended MSI UI with `/L*vx!` logs. It exports ten-second progress and phase records directly to the dedicated host folder. A failure or diagnostic deadline stops further operations without killing the Windows Installer service. MSI code 3010 is recorded as completed-reboot-required, not installation failure, but stops subsequent work until the required reboot can occur in an appropriate environment. Preserve exports and reset or replace the guest before retrying with a new package. No log or phase record is an attended pass.
 
 The collector is available at `C:\qualification\Invoke-ReleaseCandidateAttended.ps1`, its PowerShell runtime at `C:\qualification\pwsh\pwsh.exe`, and its initialized workspace at `C:\qualification\attended-workspace`. After the operator completes or explicitly leaves unavailable the walkthrough and clicks OK on the final instruction dialog, the workspace is copied create-only to the dedicated host exports. Do not close Sandbox before that export. Finalization uses the original repository collector with its Go context on the host and the exact packaged MSI; do not run the copied collector's repository-relative finalization from its guest location. Merge only genuine compatible observations from the separately required environments, preserving identities and attachment hashes. The final gate remains authoritative.
 
-Upgrade uses a separate reset session, installs public v1.1.1, and pauses for genuine representative tasks, run history, and appearance preparation before candidate installation. Baseline and candidate installation are serialized. Do not reuse fresh-install residue as upgrade evidence. Sandbox-account/virtual-machine guards prevent accidental development-host installation; they are not a security boundary against deliberately modified packages or impersonation.
+The current session has no historical baseline role or upgrade scenario. Sandbox-account/virtual-machine guards prevent accidental development-host installation; they are not a security boundary against deliberately modified packages or impersonation.
 
 The remaining native walkthrough includes #229 (System/Light/Dark icon visibility), #230 (compact controls, hover/focus/pressed/disabled states, semantic actions, card spacing, persistent navigation/Exit), #231 (task modal sizing, examples, selectors, deletion spacing), #232 (Notifications first, collapsed advanced configuration and help), and #233 (temporary feedback, dismissible errors, aligned Agent Access/Connections, compact monospaced paths, no Copy flicker). These regressions supplement, not replace, the complete required matrix below. Normal-user token, multi-profile, Explorer/browser, and high/mixed-DPI observations require suitable separate clean Windows 11 environments. Do not ask the operator to attest an unavailable environment or manufacture passing fragments.
 
@@ -160,9 +146,9 @@ pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
   -Tag v1.4.0 -Commit $commit -RunId 123456789 -RunAttempt 1
 ```
 
-Initialization reads ProductVersion and ProductCode from the compiled MSI and records repository, tag, commit, staging run and attempt, filename, byte size, and SHA-256. It creates all 47 required observations as explicit `unavailable` placeholders plus fail-closed setup, removal, and desktop templates under `fragments`. Those templates enumerate required process/session, option, target, inventory, fingerprint, unaffected-control, security-state, reinstall, and current Wails workspace fields. The collector refuses an existing workspace so an interrupted run cannot silently erase evidence.
+Initialization reads ProductVersion and ProductCode from the compiled MSI and records repository, tag, commit, staging run and attempt, filename, byte size, and SHA-256. It creates all 45 current required observations as explicit `unavailable` placeholders plus fail-closed setup, removal, and desktop templates under `fragments`. Those templates enumerate required process/session, option, target, inventory, fingerprint, unaffected-control, security-state, reinstall, and current Wails workspace fields. The collector refuses an existing workspace so an interrupted run cannot silently erase evidence.
 
-Each operator-reviewed fragment contains one environment and one observation. Use genuine registered local profiles and identify accounts by role plus SID, not by personal name. Record the token integrity RID (8192 for medium, 12288 for high, or 16384 for system). `RecordObservation` replaces one unused placeholder and refuses later overwrite. Every status is explicit: `pass`, `fail`, `unavailable`, `skipped`, `timed-out`, or `partial`. Only `pass` can satisfy promotion.
+Each operator-reviewed fragment contains one environment and one observation. Use genuine registered local profiles and identify accounts by role plus SID, not by personal name. Record the token integrity RID (8192 for medium, 12288 for high, or 16384 for system). `RecordObservation` replaces one unused placeholder and refuses later overwrite. Environment profile state is `clean`, `current`, or `not-applicable`. Every status is explicit: `pass`, `fail`, `unavailable`, `skipped`, `timed-out`, or `partial`. Only `pass` can satisfy promotion.
 
 ### Native window capture
 
@@ -178,7 +164,7 @@ pwsh -NoProfile -File .\Invoke-ReleaseCandidateAttended.ps1 `
   -ScreenshotPath C:\verify\v1.4.0-attended\attachments\windows\screen.png
 ```
 
-Capture requires a screenshot and records the executable path and hash, process session, user SID and token-integrity RID, single visible top-level HWND, outer and client rectangles, monitor and work-area rectangles, effective DPI, measured restored/maximized/minimized/fullscreen state, and generic desktop content metrics. It rejects a supplied environment whose account SID or integrity RID does not match the live process token. Review the generated fragment before changing its status to `pass`. In particular, record monitor identity and confirm visible margins, title bar, resize borders, and taskbar. The same exact MSI needs separate clean standard-DPI, clean high-DPI or mixed-DPI, retained v1.1.1 profile, state-transition, and subsequent-launch observations. Use `retained-v1.1.1` as the profile state for the retained observation.
+Capture requires a screenshot and records the executable path and hash, process session, user SID and token-integrity RID, single visible top-level HWND, outer and client rectangles, monitor and work-area rectangles, effective DPI, measured restored/maximized/minimized/fullscreen state, and generic desktop content metrics. It rejects a supplied environment whose account SID or integrity RID does not match the live process token. Review the generated fragment before changing its status to `pass`. In particular, record monitor identity and confirm visible margins, title bar, resize borders, and taskbar. The same exact MSI needs clean standard-DPI, clean high-DPI or mixed-DPI, state-transition, and subsequent-launch observations. Historical retained-profile observations are retired.
 
 ### Required attended matrix
 
@@ -186,7 +172,7 @@ Capture requires a screenshot and records the executable path and hash, process 
 - Exercise daemon unavailable, access denied, timeout, stream disconnect, repeated refresh or reconnect, manual Retry, and recovery. Retain at least 120 seconds of timestamped samples for each repetition-sensitive condition.
 - Record one in-frame incident, zero modal overlays, and zero additional top-level error windows. HWND enumeration cannot prove WebView content state, so screenshots and attended visible-surface counts are both required.
 - Use distinct production run identities for manual success, scheduled success, exit-code 7, and process-start failure, while binding every result to the same candidate identity. Retain one `attachments/tasks/task-runs.json` document with schema version `1`, kind `task-run-evidence-v1`, and exactly one record per task observation. Each record preserves the task definition, captured output, completion marker, history result, production-run flag, expected/actual result, and diagnostic category. Reference that attachment from all four task observations; the gate independently hashes the retained values and compares them with the observation metrics.
-- Exercise shortcut defaults and all selections, four independent completion combinations, medium-integrity Finish launch, cancel, maintenance, upgrade, invalid-input rejection, transactional rollback, preserve, wipe, locked partial cleanup, at least two genuine profiles, and reinstall after both removal modes. The upgrade observation must record the public v1.1.1 MSI version, filename, download URL, and SHA-256 (`f7ac8f56f28330b016eb6e505e424b19e9bfbe435591cfbc54a723c91ac8e567`), then independently prove tasks, run history, appearance intent, daemon identity, service operation, and local access survive while notifications, localhost MCP, and remote HTTPS remain disabled.
+- Exercise shortcut defaults and all selections, four independent completion combinations, medium-integrity Finish launch, cancel, maintenance, invalid-input rejection, transactional rollback, preserve, wipe, locked partial cleanup, at least two genuine profiles, and reinstall after both removal modes. No historical MSI or old-version state is an input.
 
 ### Current Wails desktop release-qualification matrix
 
@@ -221,7 +207,7 @@ Finalize hashes every referenced attachment and invokes the shared Go gate. It p
 
 ### Historical v1.0.0 issue disposition packet
 
-The following retained procedure documents how the public v1.0.0 evidence was reconciled against its historical issues after independent verification. It is not part of the v1.4.0 release path:
+The following retained procedure documents how public v1.0.0 evidence was reconciled against its historical issues. These commands belong to their historical source revision; current S128 tooling accepts revision-2 evidence only and does not convert the archived revision-1 packet. This is not a current release procedure:
 
 ```powershell
 go run ./scripts/windows-release-gate render-dispositions `
@@ -243,7 +229,7 @@ The checked-in `test/fixtures/windows-release-gate/passing` data is plain text a
 - Source contracts prove tracked authoring.
 - MSI inspection proves compiled table and Summary Information contents.
 - The Shell `System.Subject` assertion proves the native value consumed by Explorer tooltip and Properties presentation.
-- Fresh and upgrade runs prove native execution on their named host.
+- Current fresh lifecycle runs prove native execution on their named host.
 - The access probe proves ordinary direct-member client access, including a standard token that does not yet contain the local alias SID.
 - The installed-core probe proves manual and scheduled production execution in the LocalSystem service context plus diagnostic failure controls.
 - The CI service-core probe continuously proves the binary-level LocalSystem boundary; it does not replace the candidate-MSI walkthrough.

@@ -43,13 +43,20 @@ type dispositionIssueFile struct {
 type dispositionWriteFile func(string, []byte, fs.FileMode) error
 type dispositionRename func(string, string) error
 
-// IssueDispositionMappings returns a deep copy of the reviewed v1.0.0
-// observation-to-issue contract in deterministic issue order.
+// IssueDispositionMappings returns current observation-to-issue mappings in deterministic issue order.
 func IssueDispositionMappings() []IssueDispositionMapping {
-	required := RequiredScenarioIDs()
+	var core, installer []string
+	for _, id := range RequiredScenarioIDs() {
+		if !strings.HasPrefix(id, "desktop.") {
+			core = append(core, id)
+		}
+		if strings.HasPrefix(id, "setup.") || strings.HasPrefix(id, "remove.") {
+			installer = append(installer, id)
+		}
+	}
 	mappings := []IssueDispositionMapping{
-		{Issue: 96, ObservationIDs: required[:36], ChildIssues: []int{97, 98, 94}, PrerequisiteIssues: []int{89, 90}},
-		{Issue: 98, ObservationIDs: required[20:36]},
+		{Issue: 96, ObservationIDs: core, ChildIssues: []int{97, 98, 94}, PrerequisiteIssues: []int{89, 90}},
+		{Issue: 98, ObservationIDs: installer},
 		{Issue: 101, ObservationIDs: []string{
 			"desktop.appearance-standard", "desktop.appearance-scaled",
 		}},
