@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Converge the published SQLite correction across both application modules for the prepared v2.0.0 candidate (S130, #404); actual publication remains tracked by #412.
+
 ## [2.0.0] - 2026-10-31
 
 Prepared source for the simplified prelaunch baseline; this date records preparation, not publication. Public v1.7.0 remains available until separately approved staging and promotion. #412 tracks actual release delivery. Earlier dated entries retain their decisions at the time recorded.
@@ -25,6 +29,8 @@ Prepared source for the simplified prelaunch baseline; this date records prepara
 - **2026-10-31 release identity and pinned-artifact decision (S129, #412): prepare v2.0.0 for the incompatible prelaunch simplification.** Removed preference transition output and historical-state conversion require a major increment under the declared SemVer policy, even with no users. Align the root Go module, locally built desktop module, active imports, local module requirement, lint/coverage fixture and existing Release linker targets with the /v2 namespace. Preserve command names, HTTP /api/v1, current state formats, development version fallback and the selected dependency graph. Current Windows/installation guidance points to the same S129 continuation; published discovery stays v1.7.0 until actual promotion.
 
 - Refresh the prepared v2.0.0 comparison against official product documentation, retain all bounded capability conclusions and vendor edition/preview/unknown qualifiers, and mark clustered execution explicitly owner-deferred. Bind the new comparison to exact candidate changelog and notes bytes without changing historical snapshots or published selection.
+
+- **2026-10-31 storage dependency decision (S130, #404/#412): adopt published SQLite 1.61.1 with its exact libc 1.79.0 pair and coherent root/desktop module metadata.** The corrected driver is now published after S129 source selection. Preserve /v2 identities, one production connection, current schema/WAL/refusal and audit behavior; add real lock-cancellation and repeated prepared-query evidence without introducing migrations, VFS features or a new dependency framework. The root-only 1.61.0 proposal #400 is superseded only after integration. Existing release workflows and separate tag/draft and concrete-asset promotion approvals remain; public selection stays v1.7.0 during source preparation.
 
 ### Fixed
 
