@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **2026-10-29 publication reconciliation decision (S126, #394): align current public discovery and pinned installation guidance with actual v1.7.0 publication.** Release 428427523 is public/latest at immutable source df54fc7b2d49d3b71125a049c42bfd4225503b1d. Reconcile the site fallback, README, platform upgrade wording, Windows maintainer guide and S126 delivery records with approved staging and promotion. Preserve the published tag, release assets, notes and content-bound comparison review unchanged. Historical preparation statements below describe their recorded pre-publication state; no new scheduler behavior, schema or release mechanism is introduced.
 
+- **2026-10-31 clustered-execution decision (S127, #20/#186-#189/#146): explicitly defer the effort at the owner's direction.** Preserve the unfinished issues and staged decision gates, distinguish the current deferral from S125's historical evidence-specific hold and final no-go, and require a later owner revisit or explicit revision before work resumes. Existing independent-daemon behavior and immutable v1.7.0 release content are unchanged.
+
 ## [1.7.0] - 2026-10-27
 
 Prepared source for the next reliability release; this date records preparation, not publication. The latest public release remains v1.6.0. #394 tracks delivery, while original #355/#356 causes remain unconfirmed.

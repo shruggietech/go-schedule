@@ -7,7 +7,9 @@ nav_order: 8.7
 
 go-schedule manages independent daemons. Remote control, All Systems, cross-daemon search and portable bundles do not currently provide shared execution ownership or automatic host failover. Clustered execution remains an open product proposal under [#20](https://github.com/shruggietech/go-schedule/issues/20).
 
-The S125 assessment on 2026-10-28 found insufficient recorded real-use evidence to activate the architecture and prototype stages. This is a reversible hold on those stages, not a finding that clustered execution has no value or a decision to abandon it. No coordination backend or clustered execution semantics have been selected.
+On 2026-10-31, the owner explicitly deferred clustered execution during S127. The proposal remains open, and no clustered capability, final rejection or permanent product restriction is implied. No coordination backend or clustered execution semantics have been selected. See the [S127 decision and issue dispositions](https://github.com/shruggietech/go-schedule/blob/main/specs/127-cluster-decision-deferral/decision.md).
+
+The earlier S125 assessment on 2026-10-28 found insufficient recorded real-use evidence to activate architecture and prototype work. That historical evidence-specific hold remains valid as an assessment of the available record; S127 adds the owner's explicit direction to defer the effort.
 
 ## Evidence register
 
@@ -27,7 +29,7 @@ The S125 assessment on 2026-10-28 found insufficient recorded real-use evidence 
 | Resume a local schedule after downtime | The task [catch-up policy](cli.md) can run one catch-up invocation or skip the missed window. | Recovery occurs on that daemon. Another machine does not acquire ownership while it is unavailable. |
 | Obtain an established scheduler's failover capability | Review the project's [release-bound comparison](https://go-schedule.io/compare/) and the vendor's supported topology, edition and recovery behavior for the actual workload. | A documented failover scheduler is not proof that in-flight jobs, arbitrary side effects or every topology recover automatically. Product selection needs the same workload and failure-tradeoff inputs. |
 
-The [prepared v1.7.0 comparison source](https://github.com/shruggietech/go-schedule/blob/b4f1e281e66003e08ee2a7abd35e3e25468fb6bd/site/data/comparisons/v1.7.0.json), reviewed 2026-10-27, records the official high-availability references for JAMS, ActiveBatch, Control-M, Azure Logic Apps and Resolve, and leaves unsupported conclusions about ScriptRunner and OpCon unknown. Reuse that bounded review when evaluating alternatives; it is not evidence that those systems fail to meet a particular user's needs. The prepared version is separate from the current public release.
+The [v1.7.0 comparison source](https://github.com/shruggietech/go-schedule/blob/b4f1e281e66003e08ee2a7abd35e3e25468fb6bd/site/data/comparisons/v1.7.0.json), reviewed 2026-10-27, records the official high-availability references for JAMS, ActiveBatch, Control-M, Azure Logic Apps and Resolve, and leaves unsupported conclusions about ScriptRunner and OpCon unknown. Reuse that bounded review when evaluating alternatives; it is not evidence that those systems fail to meet a particular user's needs. That comparison is now published with [v1.7.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.7.0); its earlier review date remains historical evidence, not a new workload finding.
 
 ## Supply a concrete workload
 
@@ -53,4 +55,6 @@ Use this outline for each actual scenario:
 3. [#188](https://github.com/shruggietech/go-schedule/issues/188) evaluates an isolated, unshipped prototype using established coordination and security components against the approved semantics. It compares a simpler alternative and records operational cost.
 4. [#189](https://github.com/shruggietech/go-schedule/issues/189) records the findings-based go/no-go result for #20. It may document why the process stopped before the later stages. A go result creates a separate implementation roadmap; a stop result records alternatives and the disposition of unstarted work.
 
-S125 records a hold because the first gate lacks concrete demand inputs. #186, #189 and #20 remain incomplete; #187 and #188 remain gated and unperformed. Reopen the assessment when an actual scenario supplies enough information to compare the ownership/recovery gap, scale, failure tradeoffs and operating cost. A new owner product decision can also revise the gate explicitly. No permanent product restriction follows from this assessment, and no release depends on inventing demand or repeating the same search.
+S127 records the owner's explicit deferral. #186, #189 and #20 remain open and incomplete; #187 and #188 remain open, deferred, gated and unperformed. Coordinator #146 remains open for its unresolved #20 outcome. No issue closes merely because its deferral is documented.
+
+A later owner revisit or explicit scope revision is required before this effort resumes. An actual workload report can inform that revisit, but does not automatically restart the decision chain. Preserve the sequence above unless the owner explicitly revises it, including maintainer approval of semantics before prototype technology selection. There is no resumption date or scheduled reassessment. The owner may retain the deferral, resume the staged assessment, revise its scope or separately stop the proposal. No such future choice is preselected here.
