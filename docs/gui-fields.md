@@ -5,9 +5,9 @@ nav_order: 4
 
 # GUI task editor, field reference
 
-> **Release status:** cron entry in the Schedule field is currently an unreleased change planned for the first release after 0.8.0. Released 0.8.0 builds accept the human forms documented below.
+Cron entry and SMTP channels are available in published v2.0.0. The selected own Run ID field described below is a source change in S132 and is not yet in that published package.
 
-This page explains every field in the Wails desktop's **New Task** / **Edit Task** dialog: what it accepts, what's required, and what each option means. It's the desktop counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
+This page explains every field in the Wails desktop's **Create task** / **Edit** dialog: what it accepts, what's required, and what each option means. It's the desktop counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
 ## Remote connection recovery
 
@@ -19,7 +19,7 @@ Task fields may be left incomplete and saved for later. A blank name displays as
 
 ## Data view tables
 
-The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed headers above vertically scrolling rows. Columns contract proportionally when the window narrows, so these views do not introduce horizontal scrolling. Long values are shortened visually with an ellipsis. Selecting a Tasks or Schedule row exposes its complete labeled values below the list; selecting an Activity row opens its existing full-detail dialog.
+The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed headers above vertically scrolling rows. Columns contract proportionally when the window narrows, so these views do not introduce horizontal scrolling. Long values are shortened visually with an ellipsis. Selecting a Tasks or Schedule row exposes its complete labeled values below the list; selecting an Activity row exposes its full-detail side pane.
 
 | View | Columns | Missing-value behavior | Semantic labels |
 | --- | --- | --- | --- |
@@ -29,7 +29,9 @@ The desktop's **Tasks**, **Schedule** List, and **Activity** views use fixed hea
 
 Alternating rows use a quiet theme-aware surface. Selection, hover, focus, and semantic meaning retain a text or glyph cue in every appearance mode, so color is never the only indicator. Row identity, rather than the current visual index, controls selection and activation across live refreshes.
 
-The dialog is a two-pane layout. The **left** pane holds the form, grouped into **What to run** (Name and Command line), **When** (Timezone, Mode, the relevant time field), and a collapsible **Advanced Settings** (Overlap, Catch-up, Missing dates, Time basis, Spring gap, Fall overlap) that starts closed - its disclosure arrow points ▶ when collapsed and ▼ when expanded. The **right** pane shows the live **Preview** by default, with a **Help** button that swaps it to a field-by-field guide (and back). A draft can be saved with blank fields, while invalid values such as malformed command syntax or an incomplete one-off time keep **Save** disabled. Clicking **Cancel** after you've typed something asks for confirmation before discarding.
+The **Create task** dialog contains labeled task fields, **Timing**, and collapsible **Advanced settings**. Select **Preview** to request the exact launch and schedule preview; it is an explicit action rather than a live side pane or Help toggle. Select **Save inactive task** to create a task without activating automatic work, or **Save task** when editing. A draft may have blank fields; invalid values are reported against their fields and keep the dialog open for correction. **Cancel** closes the editor.
+
+For a supplied script, input, exact run inspection and same-task failure recovery, follow [Your first useful task](first-task.md). CLI add with a complete command and schedule activates the task immediately; new desktop tasks are saved inactive.
 
 ## At a glance
 
@@ -37,12 +39,11 @@ The dialog is a two-pane layout. The **left** pane holds the form, grouped into 
 |-------|----------|------------------|---------|
 | **Name** | no | any text label; blank displays as `unnamed` | N/A |
 | **Command line** | no | program followed by arguments in the portable direct-command syntax below; blank creates a non-runnable draft | N/A |
-| **Group** | no | `(none)`, or a group shown by its path (`Backups / Nightly`) | `(none)` |
-| **Timezone** | no | searchable list of common zones, or any IANA name / `Local` | `Local` |
-| **Mode** | yes | `Recurring`, `One-off`, or `Manual only` | `Recurring` |
+| **Group** | no | `Not assigned`, or a group shown by its path (`Backups / Nightly`) | `Not assigned` |
+| **Timezone** | no | IANA name or `Local` entered as text | `Local` |
+| **Timing mode** | yes | `Recurring`, `One time`, or `Manual only` | `Recurring` |
 | **Schedule** | no | human phrase or supported five- or six-field cron (see below); blank creates a draft without automatic timing | n/a |
-| **Start at** | no | anchor time for sub-daily intervals, e.g. `09:00` | N/A |
-| **One-off date / time** | when One-off | date + time picked in the task's zone, must be future | N/A |
+| **Run at** | when One time | combined date/time control in the task's zone, must be future | N/A |
 | **Overlap** *(Advanced)* | no | Queue one run · Skip this run · Allow concurrent runs | Queue one run |
 | **Catch-up** *(Advanced)* | no | Run once to catch up · Skip missed runs | Run once to catch up |
 | **Missing dates** *(Advanced)* | no | Skip that period · Use the last valid date · Roll into the next period | Skip that period |
@@ -50,13 +51,11 @@ The dialog is a two-pane layout. The **left** pane holds the form, grouped into 
 | **Spring gap** *(Advanced)* | no | Run at the next valid time · Skip that occurrence | Run at the next valid time |
 | **Fall overlap** *(Advanced)* | no | First occurrence · Both occurrences · Last occurrence | First occurrence |
 
-**Mode decides which time field is shown.** In `Recurring` mode the **Schedule** (and optional **Start at**) field is shown and the one-off inputs are hidden; in `One-off` mode it's the reverse; in `Manual only` mode neither automatic timing field is shown. Switching Mode keeps whatever you already typed in the hidden fields, but Manual only never submits those retained values. When editing an existing task, selecting Manual only removes its automatic schedule.
+**Timing mode decides which time field is shown.** `Recurring` exposes **Schedule** and **Schedule syntax** (Detect automatically, Human phrase or Cron). `One time` exposes the combined **Run at** control. `Manual only` has no automatic timing field and never submits retained hidden timing values. A sub-daily anchor belongs in the schedule phrase, such as `every 15 minutes starting at 09:00`.
 
-**Editing shows the task as it actually is.** Opening an existing task fills in its real Mode and either its retained schedule expression or its one-off date and time, shown in the task's own timezone, so you can see what the task is currently set to before changing anything. Saving without touching those fields leaves the schedule exactly as it was. Switching to Manual only deliberately clears that timing; switching to One-off requires a complete future date and time.
+**Editing shows the task as it actually is.** Opening an existing task fills in its real Timing mode and either its retained schedule expression or Run at date/time, shown in the task's own timezone, so you can see what the task is currently set to before changing anything. Saving without touching those fields leaves the schedule exactly as it was. Switching to Manual only deliberately clears that timing; switching to One time requires a complete future date and time.
 
-Tasks created before this was added have no stored schedule phrase, so their Schedule field opens blank. That is safe, a blank field keeps the existing schedule, and typing a new expression replaces it.
-
-**Live Preview.** The right pane's Preview shows two things at once: a plain-language summary of the schedule with the next few run times, and the exact Program plus numbered Arguments in order. Each value uses a quoted escaped display, so empty values, spaces, tabs, line breaks, quotes, and backslashes are visible instead of being hidden inside an ambiguous reconstructed command string. Changing **Missing dates** immediately refreshes this preview and sends the selected policy to the daemon, so date-sensitive schedules show the same runs that Save will create.
+**Preview.** Select the **Preview** button after changing fields to request current schedule and command interpretation. **Exact launch preview** shows the Program and numbered Arguments; arguments use quoted escaped display so empty values, whitespace, quotes and backslashes are visible. A valid schedule result also shows its readable summary, policy and upcoming runs. Preview does not save or enable the task; Save validates the current fields again.
 
 **Overlap, Catch-up and Missing dates** are shown with friendly labels but stored as the same underlying policy values (`queue_one`/`skip`/`allow_concurrent`, `one`/`none`, and `skip`/`last_valid`/`next_valid`) used by the CLI and API.
 
@@ -88,7 +87,7 @@ The editor uses one portable direct-command grammar with identical value boundar
 - Adjacent quoted and unquoted parts form one value.
 - Inside single quotes every enclosed character is literal. Inside double quotes a backslash can escape a double quote; other backslashes remain literal.
 - Outside quotes, a backslash can escape whitespace or a quotation mark. Before an ordinary character, another backslash, or the end of the field, it remains literal.
-- Invalid UTF-8 text, an unmatched quote, or an unsupported NUL character is an error. The Preview identifies the problem (and the line and column for character-level syntax errors), and Save remains disabled until it is corrected.
+- Invalid UTF-8 text, an unmatched quote, or an unsupported NUL character is an error. Preview or Save identifies the problem (including character-level location when available), and the draft stays open until corrected.
 
 This syntax only separates a program from its arguments. It does **not** expand environment variables or wildcards, create pipelines, perform redirects, interpret comments, or run a shell. Characters such as `$`, `%`, `*`, `|`, `>`, `;`, and `&` stay literal.
 
@@ -98,25 +97,22 @@ The field displays at least six lines at the default dialog size and grows when 
 
 ## Group
 
-Which group the task belongs to, or `(none)` for no group. Groups can be enabled and disabled as a unit, and disabling a group suppresses every task inside it and inside its subgroups.
+Which group the task belongs to, or `Not assigned` for no group. Groups can be enabled and disabled as a unit, and disabling a group suppresses every task inside it and inside its subgroups.
 
 - Groups are listed by their full path (`Backups / Nightly`), so two groups with the same name at different levels are distinguishable.
-- Choose `(none)` to take a task back out of its group. It then appears under **Ungrouped** in the Groups tab.
+- Choose `Not assigned` to take a task back out of its group. It then appears under **Ungrouped** in the Groups tab.
 - Create groups in the **Groups** tab; this field only assigns to existing ones.
 - You can also move a task from the Groups tab: select it under its group and use **Move to group…**. Both paths offer the same choices.
 - The equivalent CLI form is `gosched task add --group <id>` / `gosched task edit --group <id>`, and `gosched task edit --group ""` to un-group. Omitting `--group` leaves membership unchanged.
 
 ## Timezone
 
-An [IANA time-zone name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) or the literal word `Local`. The field is a searchable dropdown seeded with common zones; you can pick one from the list or type any other valid IANA name. Schedules are interpreted in this zone, with correct Daylight Saving Time handling; the backend stores everything in UTC.
+Enter an [IANA time-zone name](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) or `Local` in the **Timezone** text field. Schedules are interpreted in that zone and stored internally in UTC. Examples: `Local`, `UTC`, `America/New_York`, `Europe/London`, `Asia/Tokyo`. Empty uses Local; an unknown name such as `Mars/Phobos` produces a field error on Preview/Save.
 
-- Examples: `Local` (your system clock), `UTC`, `America/New_York`, `Europe/London`, `Asia/Tokyo`
-- An empty field is treated as `Local`. An unknown name (e.g. `Mars/Phobos`) is rejected and blocks Save.
-
-## Mode
+## Timing mode
 
 - **Recurring**, the task fires repeatedly on a schedule. Fill in **Schedule**.
-- **One-off**, the task fires exactly once at a specific time. Fill in **One-off time**.
+- **One time**, the task fires exactly once at a specific time. Fill in **Run at**.
 - **Manual only**, the task has no automatic timing and can run only through **Run now** once it has a valid command.
 
 ## Schedule *(Recurring mode)*
@@ -139,7 +135,7 @@ Use a plain-language phrase (the approachable default) or a supported five- or s
 
 **Time-of-day** accepts: `14:00`, `9:00`, `9:00 AM`, `9am`, or a bare hour like `9` (= 09:00). Hours are 0–23, minutes 0–59.
 
-Supported cron uses the familiar `minute hour day-of-month month day-of-week` shape. For example, `0 9 * * 1-5` runs at 09:00 on weekdays, while `0 9 L * *`, `0 9 15W * *`, and `0 9 LW * *` select the last day, nearest weekday to the 15th, and last weekday. The editor detects the syntax from the current field text, so replacing cron with a human phrase, or the reverse, updates both preview and save behavior. A cron-shaped value that is invalid or cannot be represented faithfully is rejected as cron rather than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelity) for supported fields, macros, and explicit refusals.
+Supported cron uses the familiar `minute hour day-of-month month day-of-week` shape. For example, `0 9 * * 1-5` runs at 09:00 on weekdays, while `0 9 L * *`, `0 9 15W * *`, and `0 9 LW * *` select the last day, nearest weekday to the 15th, and last weekday. **Schedule syntax** defaults to Detect automatically; you can explicitly choose Human phrase or Cron. With automatic detection, replacing cron with a human phrase, or the reverse, updates preview and save interpretation. A cron-shaped value that is invalid or cannot be represented faithfully is rejected as cron rather than retried as a human phrase. See the [cron fidelity contract](cron.md#fidelity) for supported fields, macros, and explicit refusals.
 
 Seconds precision uses the Quartz-style `second minute hour day-of-month month day-of-week` shape. For example, `*/30 * * * * *` runs twice per minute and `0 0 12 ? * MON` runs at noon each Monday. Numeric weekday values differ by dialect, so consult the fidelity contract before converting numeric six-field input.
 
@@ -149,32 +145,19 @@ Startup schedules are non-clock events. Their preview reads **At scheduler start
 
 > ⚠️ **Sub-daily intervals can't take an `at` time.** Seconds/minutes/hours fire on a rolling interval, so `every 15 minutes at 09:00` is **rejected**. The `at <time>` clause is only valid for daily-or-coarser schedules (`every day`, `weekdays`, `every monday`, monthly ordinals).
 
-As you type a valid Schedule, the **Preview** pane fills in with a plain-English summary plus the next few run times, a quick way to confirm your expression parsed the way you meant. The **Help** button (top of the right pane) shows the full list of supported phrasings and a guide to every field.
+Enter a Schedule, then select **Preview** for its interpreted summary and next few times. Request another preview after editing the phrase or policy. See the [cron guide](cron.md) for the supported forms.
 
-### Start at *(sub-daily human intervals only)*
+### Interval anchor in the schedule phrase
 
-By default a fixed interval like `every 15 minutes` is anchored to the moment you create the task, so it might fire at an awkward phase (6:07, 6:22, 6:37 …). To align the cycle, set a **Start at** time, a separate field that appears only when the Schedule is a sub-daily interval. With `every 15 minutes` and a Start at of `09:00`, runs fall on `:00 / :15 / :30 / :45`.
+A fixed interval such as `every 15 minutes` is anchored when created. To align its phase, enter `every 15 minutes starting at 09:00` or `every 30 minutes from 9am` directly in **Schedule**. There is no separate Start at control. The anchor is interpreted in the task timezone and applies only to sub-daily human intervals. Use `every day at 09:00` for daily timing. Cron carries its phase in its fields.
 
-Equivalently, you can type the anchor directly in the Schedule using a `starting at` (or `from`) clause, the GUI and CLI both understand it:
+## Run at (One time mode)
 
-| Phrase | Effect |
-|--------|--------|
-| `every 15 minutes starting at 09:00` | aligns to `:00/:15/:30/:45` |
-| `every 30 minutes from 9am` | aligns to `:00/:30` relative to 09:00 |
-| `every 2 hours starting at 08:00` | fires at 08:00, 10:00, 12:00 … |
+Use the combined **Run at** date/time control, interpreted in **Timezone**. Enter a complete future local date/time, then select **Preview** to inspect its resolved run. Invalid, equal or past instants are reported as field errors on Preview/Save. Stored instants remain UTC.
 
-The anchor is interpreted in the task's **Timezone**. It applies only to sub-daily human intervals; `every day starting at 09:00` is rejected (use `every day at 09:00`). Cron expressions carry their phase in their own fields and do not show a separate Start at row.
+## Advanced settings
 
-## One-off date / time *(One-off mode)*
-
-Pick the **Date** (`2026-08-04`) and **Time** (`09:00`) in two fields, no hand-typed RFC 3339 required. The instant is interpreted in the task's **Timezone**, and a line under the fields echoes the resolved run time so you can confirm it.
-
-- Must be in the **future**, or Save stays disabled.
-- The backend still stores the moment as a UTC instant, exactly as before.
-
-## Advanced Settings
-
-The **Overlap**, **Catch-up**, **Missing dates**, **Time basis**, **Spring gap**, and **Fall overlap** controls live in a collapsible **Advanced Settings** section that starts closed. They are shown with human-readable labels; the stored policy values (used by the CLI and API) are unchanged.
+The **Overlap**, **Catch-up**, **Missing dates**, **Time basis**, **Spring gap**, and **Fall overlap** controls live in a collapsible **Advanced settings** section that starts closed. They are shown with human-readable labels; the stored policy values (used by the CLI and API) are unchanged.
 
 ## Completion chains
 
@@ -247,9 +230,9 @@ Create a task named `platform check`, leave it inactive, and use the command for
 | macOS | `/usr/bin/sw_vers` | Product name, version, and build information |
 | Linux | `uname -a` | A kernel and system information line |
 
-These platform-native commands are read-only, noninteractive, start no listener, make no network request, write no file, and exit promptly. In a fresh new-task editor, press Tab once in the empty Command line field to insert the matching command. Confirm the exact Program and Arguments in Preview, save the task inactive, choose **Run now**, then open **Activity** to inspect the successful record and captured output.
+These platform-native commands are read-only, noninteractive, start no listener, make no network request, write no file, and exit promptly. In a fresh new-task editor, press Tab once in the empty Command line field to insert the matching command. Select **Preview** to inspect the exact Program and Arguments, save with **Save inactive task**, choose **Run now** and **Confirm run**, then inspect the particular record in **Activity**. Select its time button to open the **Run details** side pane and **Combined stdout/stderr**. Builds containing S132 show its own **Run ID**, distinct from **Source run**; v2.0.0 users can obtain the exact ID through `gosched runs --task TASK_ID --details`. Acceptance alone does not establish completion.
 
-## SMTP channels (Unreleased S111)
+## SMTP channels
 
 Notifications offers a transport selector when creating a channel. Transport is fixed when editing an existing channel. SMTP settings and delivery history belong to the selected local or authenticated remote scheduler.
 

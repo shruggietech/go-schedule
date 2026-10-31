@@ -103,24 +103,7 @@ If you installed the desktop bundle and had already been using its auto-started 
 
 ## First task
 
-```sh
-gosched task add nightly-backup \
-  --command /usr/local/bin/backup.sh \
-  --schedule "every day at 02:30" \
-  --tz America/Los_Angeles
-```
-
-The command echoes back how it understood the schedule and the next few run times. Prove it works without waiting for one:
-
-```sh
-gosched task run-now <id>
-```
-
-```sh
-gosched runs --task <id>
-```
-
-The full command set is in the [reference](cli.md).
+Follow [Your first useful task](first-task.md) to create a supplied local file-snapshot script, run it immediately, inspect its exact output and repair an intentional missing-input failure. The POSIX instructions work on Linux and macOS with `/bin/sh`; no pre-existing backup script is required. Use paths accessible to the daemon identity. The complete CLI add creates an active schedule, so the guide disables automatic runs during the exercise.
 
 ## Where things live
 

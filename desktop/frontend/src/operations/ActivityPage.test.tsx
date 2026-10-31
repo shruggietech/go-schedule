@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { ActivityWorkspace, OperationsBridge } from './model'
@@ -19,6 +19,29 @@ describe('ActivityPage', () => {
     expect(await screen.findByText(workspace.logPath)).toBeVisible(); expect(screen.getByText('3 matching records')).toBeVisible()
     await user.selectOptions(screen.getByLabelText('Record type'), 'run'); expect(screen.getByText('1 matching records')).toBeVisible(); expect(screen.queryByText('slow operation')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /9\/7\/2026/ })); expect(screen.getByRole('heading', { name: 'Run details' })).toBeVisible(); expect(screen.getByText('broken')).toBeVisible(); expect(screen.getByText('watcher-1')).toBeVisible(); expect(screen.getByText('Yes')).toBeVisible()
+  })
+
+  it('identifies the selected run separately from its upstream source when selection changes', async () => {
+    const api = bridge()
+    api.activityWorkspace = vi.fn().mockResolvedValue({ ...accepted, activity: { ...workspace, runs: [
+      { ...workspace.runs[0], id: 'own-run-1', sourceRunId: 'upstream-run-1' },
+      { ...workspace.runs[0], id: 'own-run-2', sourceRunId: 'upstream-run-2' },
+    ] } })
+    const user = userEvent.setup()
+    render(<ActivityPage bridge={api} available refreshToken={1} />)
+    await screen.findByText('4 matching records')
+    await user.selectOptions(screen.getByLabelText('Record type'), 'run')
+    const search = screen.getByLabelText('Search')
+    for (const suffix of ['1', '2']) {
+      await user.clear(search)
+      await user.type(search, 'own-run-' + suffix)
+      await user.click(screen.getByRole('button', { name: /9\/7\/2026/ }))
+      const detail = within(screen.getByRole('heading', { name: 'Run details' }).closest('aside')!)
+      expect(detail.getByText('Run ID').nextElementSibling).toHaveTextContent('own-run-' + suffix)
+      expect(detail.getByText('Source run').nextElementSibling).toHaveTextContent('upstream-run-' + suffix)
+      expect(detail.getByText('broken')).toBeVisible()
+    }
+    expect(api.acknowledgeAlert).not.toHaveBeenCalled()
   })
 
   it('acknowledges one alert and clears only the visible view', async () => {

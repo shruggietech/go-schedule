@@ -19,6 +19,7 @@ An index of what is here and who each document is for. If you are installing, st
 | [Windows install guide](INSTALL-windows.md) | The `.msi`, the service, `PATH`, upgrading, uninstalling. |
 | [Linux install guide](INSTALL-linux.md) | Release archive, systemd registration, data paths. |
 | [macOS install guide](INSTALL-macos.md) | Desktop bundle versus headless, launchd, and the boot-persistence caveat that catches people out. |
+| [Your first useful task](first-task.md) | A self-contained local snapshot, exact run/output inspection, missing-input failure and same-task recovery. |
 | [`gosched` command reference](cli.md) | Every command and flag the CLI exposes, with exit codes and elevation requirements. |
 | [Local API](api.md) | Versioned completion-chain endpoints, error shape, correlated history, and live events. |
 | [Webhook notifications](notifications.md) | Safe receiver payloads, reusable channels, task and group policies, retries, duplicate handling, and delivery evidence. |
@@ -39,7 +40,7 @@ These are written for maintainers but are equally useful to anyone who wants the
 
 | Document | What it covers |
 | --- | --- |
-| [Contributing](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) | Trunk-based workflow, the spec-kit requirement, the CI-parity gates, pinned artifacts. |
+| [Contributing](https://github.com/shruggietech/go-schedule/blob/main/CONTRIBUTING.md) | Review-branch/PR workflow, the spec-kit requirement, the CI-parity gates, pinned artifacts. |
 | [Build-phase autopilot](build-autopilot.md) | The protocol under which features are executed end to end with a single human halt. Maintainer-facing. |
 | [Unattended CLI evaluation](cli-qa.md) | Quiet Windows and WSL evaluation, complete message review, canonical reports and separate issue-triage prompts. |
 | [Architecture](architecture.md) | Daemon ownership, durable completion delivery, replay semantics, and graph safety. |
