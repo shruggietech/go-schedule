@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/processgroup"
+	"github.com/shruggietech/go-schedule/v2/internal/processgroup"
 )
 
 func startContained(command Command, input, stdout, stderr *os.File) (*Process, func() error, error) {

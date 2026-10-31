@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/notification"
-	"github.com/shruggietech/go-schedule/internal/store"
-	"github.com/shruggietech/go-schedule/internal/testsmtp"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/notification"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/testsmtp"
 )
 
 func smtpTransportPolicy(ctx context.Context, redactor *Redactor) execution {

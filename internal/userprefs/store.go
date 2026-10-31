@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/lock"
+	"github.com/shruggietech/go-schedule/v2/internal/lock"
 )
 
 // ErrBusy reports a preference writer that did not finish within the bounded wait.

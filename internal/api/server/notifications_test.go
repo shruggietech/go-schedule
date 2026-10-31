@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type notificationWake struct{ count int }

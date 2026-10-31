@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // helper: a command that succeeds and prints, cross-platform.

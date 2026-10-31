@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/notification"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/notification"
 )
 
 type ownedRoundTrip func(*http.Request) (*http.Response, error)

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 func executeAuthoring(t *testing.T, argv []string, input string) (map[string]any, string, int, error) {

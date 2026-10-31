@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/service"
+	"github.com/shruggietech/go-schedule/v2/internal/service"
 )
 
 // Snapshot is one bounded observation of the installed local service.

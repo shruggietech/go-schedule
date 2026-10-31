@@ -69,7 +69,7 @@ func checkSource(root, repository, tag string) error {
 		if strings.TrimSpace(line) == badge {
 			badgeCount++
 		}
-		if line == "daemon ok (version "+plain+")" {
+		if line == "daemon ok (version "+tag+")" {
 			healthCount++
 		}
 	}
@@ -77,7 +77,7 @@ func checkSource(root, repository, tag string) error {
 		return errors.New("README.md: Release badge must use the canonical latest published GitHub release URL")
 	}
 	if countContaining(readme, "daemon ok (version ") != 1 || healthCount != 1 {
-		return fmt.Errorf("README.md: require exactly one health example: daemon ok (version %s)", plain)
+		return fmt.Errorf("README.md: require exactly one health example: daemon ok (version %s)", tag)
 	}
 	changelog, err := readLines(root, "CHANGELOG.md")
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type authorizedTransport struct {

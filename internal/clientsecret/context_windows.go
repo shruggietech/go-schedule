@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 func configureReadCommand(command *exec.Cmd) func() error {

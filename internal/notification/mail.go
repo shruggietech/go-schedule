@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 const maxMailBytes = 256 << 10

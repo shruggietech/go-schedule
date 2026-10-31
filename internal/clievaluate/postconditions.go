@@ -7,10 +7,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/clientsecret"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/userprefs"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/clientsecret"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/userprefs"
 )
 
 func (s *session) localPost(definition step) (bool, any, error) {

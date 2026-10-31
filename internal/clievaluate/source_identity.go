@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 )
 
 // digestSourceFiles binds exact working-tree bytes, including nonignored untracked files.

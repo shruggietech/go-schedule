@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/incident"
+	"github.com/shruggietech/go-schedule/v2/internal/incident"
 )
 
 // incidentWatchdog collects while a slow case is alive, independently of its API.

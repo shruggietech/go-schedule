@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/notification"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/notification"
 )
 
 func smtpSameAuthority(a, b *domain.SMTPConfig) bool {

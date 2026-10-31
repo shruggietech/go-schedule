@@ -19,11 +19,11 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
-	"github.com/shruggietech/go-schedule/internal/ipc"
-	"github.com/shruggietech/go-schedule/internal/service"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/desktopcontrol"
+	"github.com/shruggietech/go-schedule/v2/internal/ipc"
+	"github.com/shruggietech/go-schedule/v2/internal/service"
 )
 
 const (

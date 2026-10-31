@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
 )
 
 type inventoryFlag struct {

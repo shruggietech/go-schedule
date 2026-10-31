@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/ipc"
+	"github.com/shruggietech/go-schedule/v2/internal/ipc"
 )
 
 func TestCompatibilityWarningExplainsEffectiveAccessAndConfiguration(t *testing.T) {

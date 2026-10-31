@@ -10,10 +10,10 @@ import (
 	"regexp"
 	"testing"
 
-	apis "github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/enrollment"
-	"github.com/shruggietech/go-schedule/internal/store"
+	apis "github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/enrollment"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func TestRemoteAllowlistAndBearerLifecycle(t *testing.T) {

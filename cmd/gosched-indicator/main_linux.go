@@ -20,11 +20,11 @@ import (
 	"github.com/godbus/dbus/v5"
 	"github.com/gogpu/systray"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
-	"github.com/shruggietech/go-schedule/internal/ipc"
-	"github.com/shruggietech/go-schedule/internal/service"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/desktopcontrol"
+	"github.com/shruggietech/go-schedule/v2/internal/ipc"
+	"github.com/shruggietech/go-schedule/v2/internal/service"
 )
 
 type indicator struct {

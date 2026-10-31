@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // Resolve returns the *time.Location for an IANA name. "Local" and "" map to the

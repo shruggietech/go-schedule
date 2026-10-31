@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-31
+
+Prepared source for the simplified prelaunch baseline; this date records preparation, not publication. Public v1.7.0 remains available until separately approved staging and promotion. #412 tracks actual release delivery. Earlier dated entries retain their decisions at the time recorded.
+
 ### Changed
 
 - **2026-10-29 publication reconciliation decision (S126, #394): align current public discovery and pinned installation guidance with actual v1.7.0 publication.** Release 428427523 is public/latest at immutable source df54fc7b2d49d3b71125a049c42bfd4225503b1d. Reconcile the site fallback, README, platform upgrade wording, Windows maintainer guide and S126 delivery records with approved staging and promotion. Preserve the published tag, release assets, notes and content-bound comparison review unchanged. Historical preparation statements below describe their recorded pre-publication state; no new scheduler behavior, schema or release mechanism is introduced.
@@ -17,6 +21,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Make desktop one-off preview expectations deterministic under an injected clock after #409 exposed an assertion during New York's repeated hour. Preserve production first/last DST resolution and the current-time default; explicitly cover ordinary, past, equal-time and overlap behavior.
 
 - Correct current metrics read-only preflight contention handling (#410). Share the existing bounded SQLite timeout/retry path, retain underlying lock diagnostics and avoid persistent WAL changes before schema acceptance. Unsupported-state refusal and concurrent row retention remain enforced.
+
+- **2026-10-31 release identity and pinned-artifact decision (S129, #412): prepare v2.0.0 for the incompatible prelaunch simplification.** Removed preference transition output and historical-state conversion require a major increment under the declared SemVer policy, even with no users. Align the root Go module, locally built desktop module, active imports, local module requirement, lint/coverage fixture and existing Release linker targets with the /v2 namespace. Preserve command names, HTTP /api/v1, current state formats, development version fallback and the selected dependency graph. Current Windows/installation guidance points to the same S129 continuation; published discovery stays v1.7.0 until actual promotion.
+
+- Refresh the prepared v2.0.0 comparison against official product documentation, retain all bounded capability conclusions and vendor edition/preview/unknown qualifiers, and mark clustered execution explicitly owner-deferred. Bind the new comparison to exact candidate changelog and notes bytes without changing historical snapshots or published selection.
+
+### Fixed
+
+- Require the full release-injected tag in the current README health example and source validator (#413). Preserve candidate selection, strict badge/date/notes checks and every historical tagged record; runtime version reporting and workflow injection remain unchanged.
 
 ## [1.7.0] - 2026-10-27
 

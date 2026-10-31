@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestSMTPBundleDefinitionsProvisioningDriftAndStaleCredentials(t *testing.T) {

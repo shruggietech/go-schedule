@@ -13,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
-	"github.com/shruggietech/go-schedule/internal/clientsecret"
-	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/internal/clientsecret"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 )
 
 func TestContextualLookupDiagnosticsIdentifyRequestedObject(t *testing.T) {

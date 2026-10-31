@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
 )
 
 func TestBundleUnknownWatcherBindingRejectedBeforeTargetAccess(t *testing.T) {

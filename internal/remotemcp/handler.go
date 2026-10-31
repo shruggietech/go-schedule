@@ -21,13 +21,13 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/enrollment"
-	"github.com/shruggietech/go-schedule/internal/mcpmanage"
-	"github.com/shruggietech/go-schedule/internal/mcpobserve"
-	"github.com/shruggietech/go-schedule/internal/mcpoperate"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/enrollment"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpmanage"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpobserve"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpoperate"
 )
 
 const maxTokenRequestBytes = 16 << 10

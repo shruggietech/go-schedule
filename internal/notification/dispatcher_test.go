@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type dispatcherStore struct {

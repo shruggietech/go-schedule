@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/schedule"
-	"github.com/shruggietech/go-schedule/internal/store"
-	tasklogic "github.com/shruggietech/go-schedule/internal/task"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	tasklogic "github.com/shruggietech/go-schedule/v2/internal/task"
 )
 
 const systemSummaryWindow = 24 * time.Hour

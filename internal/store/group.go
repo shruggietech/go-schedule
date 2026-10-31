@@ -3,8 +3,8 @@ package store
 import (
 	"fmt"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/task"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/task"
 )
 
 // ErrCycle is returned when an operation would create a group cycle.

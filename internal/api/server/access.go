@@ -12,10 +12,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/authorization"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/incident"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/authorization"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/incident"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 type ActorCreateRequest struct {

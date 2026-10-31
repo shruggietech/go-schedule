@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 func TestNativePOSIXArgumentVector(t *testing.T) {

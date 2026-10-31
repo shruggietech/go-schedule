@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
-	"github.com/shruggietech/go-schedule/internal/userprefs"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/internal/userprefs"
 )
 
 func runPreferenceCommand(t *testing.T, deps Dependencies, args ...string) (string, error) {

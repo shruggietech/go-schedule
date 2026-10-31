@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clock"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/notification"
-	"github.com/shruggietech/go-schedule/internal/store"
-	"github.com/shruggietech/go-schedule/internal/watcher"
+	"github.com/shruggietech/go-schedule/v2/internal/clock"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/notification"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/watcher"
 )
 
 type deliverySender struct {

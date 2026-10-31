@@ -7,8 +7,8 @@ import (
 
 	"github.com/teambition/rrule-go"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/timezone"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/timezone"
 )
 
 // This file resolves recurrences whose target date does not exist in every

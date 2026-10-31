@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/testsmtp"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/testsmtp"
 )
 
 func TestSMTPFinalDataRejection(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/teambition/rrule-go"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
 )
 
 // Export renders a task's schedule as a crontab timing expression, or refuses by

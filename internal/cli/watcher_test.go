@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestWatcherCommandRegistersCompleteLifecycle(t *testing.T) {

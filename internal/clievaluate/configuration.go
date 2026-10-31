@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 )
 
 func (s *session) daemonConfiguration(ctx context.Context, definition step) execution {

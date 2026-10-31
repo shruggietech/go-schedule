@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 func TestUpdateTaskTransportsExplicitEnvironmentIntent(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
 )
 
 func newBundleCmd() *cobra.Command {

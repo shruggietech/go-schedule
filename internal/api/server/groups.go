@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 // GroupCreateRequest is the body for POST /v1/groups.

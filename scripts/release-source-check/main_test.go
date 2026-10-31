@@ -29,17 +29,17 @@ func fixture(t *testing.T, tag, readme, changelog, notes string) string {
 }
 
 func TestSourceMetadata(t *testing.T) {
-	goodReadme := testBadge + "\ndaemon ok (version 1.6.0)\n"
+	goodReadme := testBadge + "\ndaemon ok (version v1.6.0)\n"
 	cases := []struct{ name, readme, heading, notes, want string }{
 		{"valid", goodReadme, testHeading, testLink, ""},
-		{"badge whitespace", "  " + testBadge + " \ndaemon ok (version 1.6.0)\n", testHeading, testLink, ""},
+		{"badge whitespace", "  " + testBadge + " \ndaemon ok (version v1.6.0)\n", testHeading, testLink, ""},
 		{"CRLF", strings.ReplaceAll(goodReadme, "\n", "\r\n"), testHeading + "\r", testLink + "\r\n", ""},
-		{"no badge", "daemon ok (version 1.6.0)", testHeading, testLink, "README.md"},
+		{"no badge", "daemon ok (version v1.6.0)", testHeading, testLink, "README.md"},
 		{"duplicate badge", testBadge + "\n" + goodReadme, testHeading, testLink, "README.md"},
 		{"two badges same line", testBadge + goodReadme, testHeading, testLink, "README.md"},
 		{"static badge", strings.ReplaceAll(goodReadme, "github/v/release/", "badge/release/"), testHeading, testLink, "README.md"},
-		{"wrong health", strings.ReplaceAll(goodReadme, "version 1.6.0", "version 1.5.1"), testHeading, testLink, "README.md"},
-		{"duplicate health", goodReadme + "daemon ok (version 1.6.0)\n", testHeading, testLink, "README.md"},
+		{"wrong health", strings.ReplaceAll(goodReadme, "version v1.6.0", "version v1.5.1"), testHeading, testLink, "README.md"},
+		{"duplicate health", goodReadme + "daemon ok (version v1.6.0)\n", testHeading, testLink, "README.md"},
 		{"no heading", goodReadme, "## [1.5.1] - 2026-10-22", testLink, "CHANGELOG.md"},
 		{"duplicate heading", goodReadme, testHeading + "\n" + testHeading, testLink, "CHANGELOG.md"},
 		{"missing date", goodReadme, "## [1.6.0]", testLink, "CHANGELOG.md"},
@@ -75,7 +75,7 @@ func TestSourceMetadata(t *testing.T) {
 func TestMissingInputsAndArguments(t *testing.T) {
 	for _, name := range []string{"README.md", "CHANGELOG.md", ".github/release-notes/v1.6.0.md"} {
 		t.Run(name, func(t *testing.T) {
-			root := fixture(t, testTag, testBadge+"\ndaemon ok (version 1.6.0)\n", testHeading+"\n", testLink+"\n")
+			root := fixture(t, testTag, testBadge+"\ndaemon ok (version v1.6.0)\n", testHeading+"\n", testLink+"\n")
 			if err := os.Remove(filepath.Join(root, name)); err != nil {
 				t.Fatal(err)
 			}
@@ -158,9 +158,9 @@ func TestDeclaredCandidateKeepsVersionChecks(t *testing.T) {
 		for _, wrongHealth := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/wrong-health=%t", tag, wrongHealth), func(t *testing.T) {
 				version := strings.TrimPrefix(tag, "v")
-				health := version
+				health := tag
 				if wrongHealth {
-					health = "1.6.0"
+					health = "v1.6.0"
 				}
 				heading := "## [Unreleased]\n\n## [" + version + "] - 2026-10-27\n\n" + testHeading + "\n"
 				link := "Read the [full changelog](https://github.com/" + testRepo + "/blob/" + tag + "/CHANGELOG.md#" + strings.ReplaceAll(version, ".", "") + "---2026-10-27) for every change.\n"
@@ -179,5 +179,26 @@ func TestDeclaredCandidateKeepsVersionChecks(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// Release workflows inject the complete tag, and daemon health returns that
+// value unchanged. The source example must match those actual output bytes.
+func TestHealthExampleMatchesReleaseInjectedVersion(t *testing.T) {
+	const tag = "v2.0.0"
+	heading := "## [2.0.0] - 2026-10-31\n"
+	link := "Read the [full changelog](https://github.com/" + testRepo + "/blob/v2.0.0/CHANGELOG.md#200---2026-10-31) for every change.\n"
+	for _, version := range []string{tag, "2.0.0"} {
+		t.Run(version, func(t *testing.T) {
+			root := fixture(t, tag, testBadge+"\ndaemon ok (version "+version+")\n", heading, link)
+			err := checkSource(root, testRepo, tag)
+			if version == tag {
+				if err != nil {
+					t.Fatalf("release-injected health rejected: %v", err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), "README.md") {
+				t.Fatalf("unprefixed health accepted: %v", err)
+			}
+		})
 	}
 }

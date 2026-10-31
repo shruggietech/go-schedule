@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func rotationFixture(t *testing.T) (*Store, domain.Actor, domain.ClientCredential, []byte) {

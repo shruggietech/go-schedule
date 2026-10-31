@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)

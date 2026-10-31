@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/lock"
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/lock"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 func TestPreferenceProcessExitReleasesOwnership(t *testing.T) {

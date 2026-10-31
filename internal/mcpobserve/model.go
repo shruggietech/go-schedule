@@ -5,7 +5,7 @@ package mcpobserve
 import (
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 const (

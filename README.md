@@ -45,10 +45,10 @@ After installation, check the daemon:
 gosched health
 ```
 
-The health example below matches published [v1.7.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.7.0). Use the [latest published release](https://github.com/shruggietech/go-schedule/releases/latest) to identify currently available packages.
+Current public packages remain [v1.7.0](https://github.com/shruggietech/go-schedule/releases/tag/v1.7.0); use the [latest published release](https://github.com/shruggietech/go-schedule/releases/latest) to identify available downloads. The output below illustrates prepared v2.0.0 source, which is not yet tagged or published. An installed daemon reports its own package version.
 
 ```text
-daemon ok (version 1.7.0)
+daemon ok (version v2.0.0)
 ```
 
 Create a harmless weekday task. On Windows:

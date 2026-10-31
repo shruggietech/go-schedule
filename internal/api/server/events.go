@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
 )
 
 // handleEvents streams run-state changes and new alerts to the client as

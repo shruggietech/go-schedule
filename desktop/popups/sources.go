@@ -1,9 +1,9 @@
 package popups
 
 import (
-	"github.com/shruggietech/go-schedule/desktop/connection"
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/desktop/connection"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
 )
 
 type profileStore interface {

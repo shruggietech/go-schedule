@@ -127,7 +127,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME}"
-          LDFLAGS="-s -w -X github.com/shruggietech/go-schedule/internal/buildinfo.Version=${VERSION}"
+          LDFLAGS="-s -w -X github.com/shruggietech/go-schedule/v2/internal/buildinfo.Version=${VERSION}"
           mkdir -p dist
 
           # The daemon (goschedd) and CLI (gosched) are cgo-free and cross-compile
@@ -232,7 +232,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          BASE="-s -w -X github.com/shruggietech/go-schedule/internal/buildinfo.Version=${VERSION}"
+          BASE="-s -w -X github.com/shruggietech/go-schedule/v2/internal/buildinfo.Version=${VERSION}"
           stage="go-schedule-desktop_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p "$stage"
           if [ "${{ matrix.goos }}" = "linux" ]; then

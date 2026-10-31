@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
 )
 
 func TestTriggerSetCreateRevealAndOrdinaryRedaction(t *testing.T) {

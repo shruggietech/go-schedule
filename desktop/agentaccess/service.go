@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 const operationTimeout = 2 * time.Second

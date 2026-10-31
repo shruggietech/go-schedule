@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/secretstore"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/secretstore"
 )
 
 func TestCurrentNotificationSchemaPreservesWebhookState(t *testing.T) {

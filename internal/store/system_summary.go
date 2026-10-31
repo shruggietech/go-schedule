@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // SystemSummaryFacts returns bounded counts and representative records for an observation window.

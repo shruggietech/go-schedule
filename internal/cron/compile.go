@@ -7,9 +7,9 @@ import (
 
 	"github.com/teambition/rrule-go"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/schedule"
-	"github.com/shruggietech/go-schedule/internal/timezone"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/timezone"
 )
 
 // Compile parses one supported cron expression into the same durable schedule

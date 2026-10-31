@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
 )
 
 var inputAnchor = time.Date(2026, 2, 25, 12, 0, 0, 0, time.UTC)

@@ -14,12 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
-	"github.com/shruggietech/go-schedule/internal/clifixture"
-	"github.com/shruggietech/go-schedule/internal/ipc"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/ipc"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func TestOwnedMetadataUsesSelectedCompletionAllowance(t *testing.T) {

@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func newTestServer(t *testing.T) *Server {

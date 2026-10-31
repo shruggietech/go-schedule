@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/shruggietech/go-schedule/internal/buildinfo"
-	"github.com/shruggietech/go-schedule/internal/enrollment"
-	"github.com/shruggietech/go-schedule/internal/events"
-	"github.com/shruggietech/go-schedule/internal/incident"
-	"github.com/shruggietech/go-schedule/internal/logbus"
-	"github.com/shruggietech/go-schedule/internal/mcpsession"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/v2/internal/enrollment"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/incident"
+	"github.com/shruggietech/go-schedule/v2/internal/logbus"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpsession"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 // Scheduler is the subset of the engine the API needs. It may be nil in tests

@@ -4,8 +4,8 @@ package systems
 import (
 	"time"
 
-	"github.com/shruggietech/go-schedule/desktop/connection"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/desktop/connection"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // Registration identifies one local or saved desktop target without secret material.

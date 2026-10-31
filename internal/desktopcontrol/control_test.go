@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/service"
+	"github.com/shruggietech/go-schedule/v2/internal/service"
 )
 
 func TestObserveRequiresSCMAndFreshHealth(t *testing.T) {

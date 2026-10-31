@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // These tests pin the missing-date policy to real calendar dates rather than

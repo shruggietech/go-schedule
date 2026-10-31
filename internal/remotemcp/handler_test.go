@@ -14,13 +14,13 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	apis "github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/enrollment"
-	"github.com/shruggietech/go-schedule/internal/remote"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	apis "github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/enrollment"
+	"github.com/shruggietech/go-schedule/v2/internal/remote"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 const testResource = "https://scheduler.example/mcp"

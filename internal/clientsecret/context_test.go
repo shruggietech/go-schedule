@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 type readBackend struct {

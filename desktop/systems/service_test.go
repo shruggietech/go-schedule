@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/desktop/connection"
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/desktop/connection"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type profileStoreFake struct{ collection clientprofile.Collection }

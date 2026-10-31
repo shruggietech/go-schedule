@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/commandline"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	tasklogic "github.com/shruggietech/go-schedule/internal/task"
-	projecttimezone "github.com/shruggietech/go-schedule/internal/timezone"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/commandline"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/v2/internal/task"
+	projecttimezone "github.com/shruggietech/go-schedule/v2/internal/timezone"
 )
 
 const callTimeout = 3 * time.Second

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 )
 
 func workspaceCleanup(environment, phase string, w *clifixture.Workspace) Cleanup {

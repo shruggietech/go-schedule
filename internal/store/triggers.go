@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // ErrInvalidTrigger reports a trigger with a missing name or target.

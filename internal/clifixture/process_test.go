@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 func TestOwnedProcessTree(t *testing.T) {

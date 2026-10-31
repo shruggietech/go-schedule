@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/shruggietech/go-schedule/internal/authorization"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/authorization"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type RetryClass string

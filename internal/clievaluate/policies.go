@@ -10,14 +10,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
-	"github.com/shruggietech/go-schedule/internal/catchup"
-	"github.com/shruggietech/go-schedule/internal/clock"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/engine"
-	"github.com/shruggietech/go-schedule/internal/schedule"
-	"github.com/shruggietech/go-schedule/internal/store"
-	"github.com/shruggietech/go-schedule/internal/userprefs"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/catchup"
+	"github.com/shruggietech/go-schedule/v2/internal/clock"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/engine"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/userprefs"
 )
 
 func policyResult(observed any, passed bool, err error) execution {

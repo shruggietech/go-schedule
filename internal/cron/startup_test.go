@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
 )
 
 func TestRebootExplainCompileAndConvert(t *testing.T) {

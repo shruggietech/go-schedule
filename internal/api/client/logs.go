@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 // ListLogs returns recent log records and daemon log metadata. Records are

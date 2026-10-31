@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
 )
 
 type fakeSecrets struct {

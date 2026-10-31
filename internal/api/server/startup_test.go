@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestStartupPreviewCreateAndUpdate(t *testing.T) {

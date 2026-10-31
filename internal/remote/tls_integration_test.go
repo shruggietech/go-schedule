@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
 )
 
 func TestServeUsesTLS13AndShutsDownGracefully(t *testing.T) {

@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	tasklogic "github.com/shruggietech/go-schedule/internal/task"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/v2/internal/task"
 )
 
 // missingDateUsage is shared by add and edit so the two cannot drift. The values

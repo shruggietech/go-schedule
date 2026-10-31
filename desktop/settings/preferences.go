@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/shruggietech/go-schedule/internal/userprefs"
+	"github.com/shruggietech/go-schedule/v2/internal/userprefs"
 )
 
 func preferenceStore(deps Dependencies) (*userprefs.Store, error) {

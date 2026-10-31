@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 )
 
 // BuildBinaries prepares six immutable evaluation inputs using a bounded hidden Go tree.

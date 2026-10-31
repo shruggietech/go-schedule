@@ -3,7 +3,7 @@
 // over this transport, so neither a TCP port nor network exposure is required.
 package ipc
 
-import "github.com/shruggietech/go-schedule/internal/config"
+import "github.com/shruggietech/go-schedule/v2/internal/config"
 
 // AccessMode identifies the local authorization policy applied to an IPC
 // listener.

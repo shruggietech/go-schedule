@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-schedule/internal/clientobserve"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/clientobserve"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func newSearchCmd() *cobra.Command {

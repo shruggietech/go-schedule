@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/executor"
-	"github.com/shruggietech/go-schedule/internal/schedule"
-	"github.com/shruggietech/go-schedule/internal/scheduleinput"
-	"github.com/shruggietech/go-schedule/internal/store"
-	"github.com/shruggietech/go-schedule/internal/timezone"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/executor"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/scheduleinput"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/timezone"
 )
 
 // TaskUpdateRequest carries optional task fields. Empty/nil fields are left

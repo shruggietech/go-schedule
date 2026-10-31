@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // SystemSummary returns one bounded, read-only operational observation from the selected daemon.

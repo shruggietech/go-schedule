@@ -4,7 +4,7 @@ package settings
 import (
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/userprefs"
+	"github.com/shruggietech/go-schedule/v2/internal/userprefs"
 )
 
 // CurrentPreferenceVersion is the only preference document schema accepted by this build.
