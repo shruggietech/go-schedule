@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/buildinfo"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // RequestTimeout bounds one outbound webhook attempt.

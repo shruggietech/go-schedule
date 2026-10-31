@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
 )
 
 // The publish* helpers broadcast entity-change events to connected GUI clients so

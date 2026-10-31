@@ -14,7 +14,7 @@ import (
 	"github.com/emersion/go-sasl"
 	smtp "github.com/emersion/go-smtp"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // NewSenderWithSMTPRoots injects explicit trust roots for owned SMTP environments.

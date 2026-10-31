@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
 )
 
 func TestServiceInstallBindsValidatedAbsoluteConfiguration(t *testing.T) {

@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/platform"
-	"github.com/shruggietech/go-schedule/internal/userprefs"
-	"github.com/shruggietech/go-schedule/internal/winuninstall"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/userprefs"
+	"github.com/shruggietech/go-schedule/v2/internal/winuninstall"
 )
 
 // Backend supplies authoritative daemon-owned runtime paths.

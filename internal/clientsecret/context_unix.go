@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/processgroup"
+	"github.com/shruggietech/go-schedule/v2/internal/processgroup"
 )
 
 func configureReadCommand(command *exec.Cmd) func() error {

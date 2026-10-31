@@ -2,9 +2,9 @@
 package search
 
 import (
-	"github.com/shruggietech/go-schedule/desktop/connection"
-	"github.com/shruggietech/go-schedule/desktop/systems"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/desktop/connection"
+	"github.com/shruggietech/go-schedule/v2/desktop/systems"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // Request is one explicit cross-daemon query.

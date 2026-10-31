@@ -13,12 +13,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/catchup"
-	"github.com/shruggietech/go-schedule/internal/clock"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/schedule"
-	"github.com/shruggietech/go-schedule/internal/store"
-	watchruntime "github.com/shruggietech/go-schedule/internal/watcher"
+	"github.com/shruggietech/go-schedule/v2/internal/catchup"
+	"github.com/shruggietech/go-schedule/v2/internal/clock"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/schedule"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	watchruntime "github.com/shruggietech/go-schedule/v2/internal/watcher"
 )
 
 // Runner executes a task and returns its Run record. The executor implements it;

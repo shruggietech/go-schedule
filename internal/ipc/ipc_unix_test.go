@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
 )
 
 func currentGroup(t *testing.T) (string, int) {

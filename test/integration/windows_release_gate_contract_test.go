@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/releasegate"
+	"github.com/shruggietech/go-schedule/v2/internal/releasegate"
 )
 
 func TestReleaseWorkflowStagesEveryUploadAsDraft(t *testing.T) {

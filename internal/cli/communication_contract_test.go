@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
 )
 
 func TestAlertsJSONHasOnlyOneDocumentAndDiagnosticNotice(t *testing.T) {

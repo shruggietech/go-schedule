@@ -8,7 +8,7 @@ package logbus
 import (
 	"sync"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // Ring is a bounded, concurrency-safe buffer of the most recent log records,

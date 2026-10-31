@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/incident"
+	"github.com/shruggietech/go-schedule/v2/internal/incident"
 )
 
 func TestScriptIncidentRetainsOrdinaryNativeFailure(t *testing.T) {

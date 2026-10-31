@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/buildinfo"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/secretstore"
+	"github.com/shruggietech/go-schedule/v2/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/secretstore"
 )
 
 const notificationHistoryLimit = 1000

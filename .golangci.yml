@@ -34,7 +34,7 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/shruggietech/go-schedule
+        - github.com/shruggietech/go-schedule/v2
   exclusions:
     generated: lax
     paths:

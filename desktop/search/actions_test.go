@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/desktop/connection"
-	"github.com/shruggietech/go-schedule/desktop/systems"
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/desktop/connection"
+	"github.com/shruggietech/go-schedule/v2/desktop/systems"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestExecuteRevalidatesIdentityAndObjectBeforeMutation(t *testing.T) {

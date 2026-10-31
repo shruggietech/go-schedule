@@ -3,8 +3,8 @@ package bundle
 import (
 	"strings"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/notification"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/notification"
 )
 
 // SMTPChannel carries nonsecret mail settings bound to one target-local channel by name.

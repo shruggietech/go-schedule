@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 // taskInputFlags carries execution-input intent separately from omitted values.

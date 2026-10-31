@@ -25,16 +25,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/cli"
-	"github.com/shruggietech/go-schedule/internal/clientprofile"
-	"github.com/shruggietech/go-schedule/internal/clientsecret"
-	"github.com/shruggietech/go-schedule/internal/clifixture"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/incident"
-	"github.com/shruggietech/go-schedule/internal/remoteenroll"
-	"github.com/shruggietech/go-schedule/internal/testsmtp"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/cli"
+	"github.com/shruggietech/go-schedule/v2/internal/clientprofile"
+	"github.com/shruggietech/go-schedule/v2/internal/clientsecret"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/incident"
+	"github.com/shruggietech/go-schedule/v2/internal/remoteenroll"
+	"github.com/shruggietech/go-schedule/v2/internal/testsmtp"
 )
 
 type session struct {

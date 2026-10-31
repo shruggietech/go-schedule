@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 // Config is the complete, documented configuration for the daemon. All fields

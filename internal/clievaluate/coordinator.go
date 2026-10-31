@@ -18,8 +18,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
-	"github.com/shruggietech/go-schedule/internal/lock"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/lock"
 )
 
 // CaptureOptions names existing executables and explicitly selected environments.

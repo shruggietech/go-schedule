@@ -1,7 +1,7 @@
 // Package notifications exposes secret-free desktop notification models.
 package notifications
 
-import "github.com/shruggietech/go-schedule/internal/domain"
+import "github.com/shruggietech/go-schedule/v2/internal/domain"
 
 type Channel struct {
 	SMTP                  *domain.SMTPConfig `json:"smtp,omitempty"`

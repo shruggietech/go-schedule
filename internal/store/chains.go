@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // ErrChainCycle reports a completion relationship that would make the graph cyclic.

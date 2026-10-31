@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/ipc"
-	"github.com/shruggietech/go-schedule/internal/logbus"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/ipc"
+	"github.com/shruggietech/go-schedule/v2/internal/logbus"
 )
 
 func TestLoadDaemonConfigRejectsDisappearedExplicitFile(t *testing.T) {

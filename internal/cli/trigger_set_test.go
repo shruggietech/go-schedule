@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 func TestPrintTriggerSetSecretIsOrderedOneCommandPerLine(t *testing.T) {

@@ -1,9 +1,9 @@
-module github.com/shruggietech/go-schedule/desktop
+module github.com/shruggietech/go-schedule/v2/desktop
 
 go 1.26.0
 
 require (
-	github.com/shruggietech/go-schedule v0.0.0
+	github.com/shruggietech/go-schedule/v2 v2.0.0
 	github.com/wailsapp/wails/v2 v2.17.0
 )
 
@@ -53,4 +53,4 @@ require (
 	modernc.org/sqlite v1.60.1 // indirect
 )
 
-replace github.com/shruggietech/go-schedule => ..
+replace github.com/shruggietech/go-schedule/v2 => ..

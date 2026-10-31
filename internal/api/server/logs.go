@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // LogsResponse is returned by GET /v1/logs.

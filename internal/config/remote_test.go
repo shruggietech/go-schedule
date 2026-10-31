@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 func TestRemoteDefaultsDisabledAndRequiresSafeExplicitConfiguration(t *testing.T) {

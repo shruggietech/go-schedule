@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/scheduleinput"
-	"github.com/shruggietech/go-schedule/internal/store"
-	"github.com/shruggietech/go-schedule/internal/timezone"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/scheduleinput"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/timezone"
 )
 
 const (

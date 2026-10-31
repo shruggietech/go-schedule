@@ -5,7 +5,7 @@ package main
 import (
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
+	"github.com/shruggietech/go-schedule/v2/internal/desktopcontrol"
 )
 
 func TestStateLabel(t *testing.T) {

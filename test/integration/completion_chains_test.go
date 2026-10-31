@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clock"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/engine"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/clock"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/engine"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func integrationChainTask(t *testing.T, st *store.Store, name string, anchor time.Time) domain.Task {

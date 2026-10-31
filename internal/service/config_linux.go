@@ -11,7 +11,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
-	"github.com/shruggietech/go-schedule/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
 )
 
 // systemdExec is the public org.freedesktop.systemd1.Service.ExecStart tuple.

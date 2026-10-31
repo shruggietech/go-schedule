@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	tasklogic "github.com/shruggietech/go-schedule/internal/task"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	tasklogic "github.com/shruggietech/go-schedule/v2/internal/task"
 )
 
 // ErrNotFound is returned when a requested entity does not exist.

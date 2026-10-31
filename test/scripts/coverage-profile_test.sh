@@ -28,7 +28,7 @@ if [ "$PROFILE_TEST_MODE" = failure ]; then
     exit 7
 fi
 for package in engine schedule timezone store catchup logbus; do
-    printf 'github.com/shruggietech/go-schedule/internal/%s/fixture.go:1.1,1.2 1 1\n' "$package" >> "$COVERAGE_PROFILE"
+    printf 'github.com/shruggietech/go-schedule/v2/internal/%s/fixture.go:1.1,1.2 1 1\n' "$package" >> "$COVERAGE_PROFILE"
 done
 EOF
 chmod +x "$fixture/go"

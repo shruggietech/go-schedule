@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/events"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 type FilesystemWatcherCreateRequest struct {

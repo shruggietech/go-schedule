@@ -1,7 +1,7 @@
 // Package bundles exposes the desktop workflow for portable automation bundles.
 package bundles
 
-import "github.com/shruggietech/go-schedule/internal/bundle"
+import "github.com/shruggietech/go-schedule/v2/internal/bundle"
 
 type Result struct {
 	Action      string         `json:"action"`

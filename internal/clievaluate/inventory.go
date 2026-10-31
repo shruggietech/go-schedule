@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/shruggietech/go-schedule/internal/cli"
+	"github.com/shruggietech/go-schedule/v2/internal/cli"
 )
 
 //go:embed inventory-v1.json

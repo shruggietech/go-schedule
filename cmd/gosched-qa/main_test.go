@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/clievaluate"
+	"github.com/shruggietech/go-schedule/v2/internal/clievaluate"
 )
 
 func TestPublicCommandsRejectUnexpectedOperandsBeforeOpeningState(t *testing.T) {

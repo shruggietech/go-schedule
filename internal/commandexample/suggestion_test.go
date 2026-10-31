@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/commandline"
+	"github.com/shruggietech/go-schedule/v2/internal/commandline"
 )
 
 func TestSuggestionExactPlatformMappings(t *testing.T) {

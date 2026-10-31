@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
-	"github.com/shruggietech/go-schedule/internal/incident"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/incident"
 )
 
 const scriptStreamLimit = 1 << 20

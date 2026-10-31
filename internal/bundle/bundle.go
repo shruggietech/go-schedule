@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/notification"
+	"github.com/shruggietech/go-schedule/v2/internal/notification"
 )
 
 // SchemaV1 identifies the original groups, tasks, and chains bundle.

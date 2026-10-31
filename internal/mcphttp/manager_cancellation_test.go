@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/mcpoperate"
-	"github.com/shruggietech/go-schedule/internal/mcpsession"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpoperate"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpsession"
 )
 
 func TestCanceledEnableDiscardsUncommittedPreparation(t *testing.T) {

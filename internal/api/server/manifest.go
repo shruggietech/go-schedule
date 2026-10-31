@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"sort"
 
-	"github.com/shruggietech/go-schedule/internal/buildinfo"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/buildinfo"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 // ManifestPlatform is the minimum platform information needed for compatibility.

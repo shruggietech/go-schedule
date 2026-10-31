@@ -10,9 +10,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/authorization"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/authorization"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func TestOperationCatalogCoversEveryRegisteredManagementRoute(t *testing.T) {

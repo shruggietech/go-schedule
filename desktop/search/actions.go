@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/shruggietech/go-schedule/internal/api/client"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 // Execute revalidates every source and object immediately before dispatch.

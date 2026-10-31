@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
+	"github.com/shruggietech/go-schedule/v2/internal/desktopcontrol"
 )
 
 func TestTrayUsesInstalledServiceIPCPath(t *testing.T) {

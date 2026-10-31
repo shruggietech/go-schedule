@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/shruggietech/go-schedule/desktop/popups"
+	"github.com/shruggietech/go-schedule/v2/desktop/popups"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 

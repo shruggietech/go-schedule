@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/events"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 // ChainCreateRequest is the body for POST /v1/chains.

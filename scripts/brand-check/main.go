@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shruggietech/go-schedule/internal/brandrelease"
+	"github.com/shruggietech/go-schedule/v2/internal/brandrelease"
 )
 
 func main() {

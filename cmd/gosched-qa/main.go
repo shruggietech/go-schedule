@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clievaluate"
-	"github.com/shruggietech/go-schedule/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/clievaluate"
+	"github.com/shruggietech/go-schedule/v2/internal/platform"
 )
 
 func main() {

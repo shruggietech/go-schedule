@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/mcpsession"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/mcpsession"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 const MCPSessionHeader = "X-Go-Schedule-MCP-Session"

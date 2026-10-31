@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 // MCPHTTPStatus returns non-secret runtime listener state.

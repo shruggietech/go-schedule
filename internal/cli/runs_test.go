@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestRunSourceColumnsPreserveCompletionCorrelationAndCompatibility(t *testing.T) {

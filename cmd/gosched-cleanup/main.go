@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/shruggietech/go-schedule/internal/winuninstall"
+	"github.com/shruggietech/go-schedule/v2/internal/winuninstall"
 )
 
 const (

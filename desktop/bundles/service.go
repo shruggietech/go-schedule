@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/bundle"
+	"github.com/shruggietech/go-schedule/v2/internal/bundle"
 )
 
 const callTimeout = 5 * time.Second

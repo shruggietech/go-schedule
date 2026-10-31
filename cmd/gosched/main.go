@@ -5,8 +5,8 @@ package main
 import (
 	"os"
 
-	"github.com/shruggietech/go-schedule/internal/cli"
-	"github.com/shruggietech/go-schedule/internal/clientsecret"
+	"github.com/shruggietech/go-schedule/v2/internal/cli"
+	"github.com/shruggietech/go-schedule/v2/internal/clientsecret"
 )
 
 func main() {

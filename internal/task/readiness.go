@@ -3,7 +3,7 @@ package task
 import (
 	"strings"
 
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 type AutomaticSource string

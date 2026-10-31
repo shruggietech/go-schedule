@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/domain"
-	"github.com/shruggietech/go-schedule/internal/events"
-	"github.com/shruggietech/go-schedule/internal/store"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/events"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func newBrokerServer(t *testing.T) (*Server, *events.Broker) {

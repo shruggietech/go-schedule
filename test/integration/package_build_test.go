@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/internal/clifixture"
+	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 )
 
 func TestPackagedCandidatePreparationIsOncePerTarget(t *testing.T) {

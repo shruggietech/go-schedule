@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
-	"github.com/shruggietech/go-schedule/internal/commandline"
-	"github.com/shruggietech/go-schedule/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/commandline"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestRemovingFinalEnvironmentRowPreservesClearOnWire(t *testing.T) {

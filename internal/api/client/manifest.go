@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/shruggietech/go-schedule/internal/api/server"
+	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 )
 
 // Manifest returns daemon-owned identity and compatibility facts.

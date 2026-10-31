@@ -6,9 +6,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/shruggietech/go-schedule/internal/config"
-	"github.com/shruggietech/go-schedule/internal/desktopcontrol"
-	"github.com/shruggietech/go-schedule/internal/service"
+	"github.com/shruggietech/go-schedule/v2/internal/config"
+	"github.com/shruggietech/go-schedule/v2/internal/desktopcontrol"
+	"github.com/shruggietech/go-schedule/v2/internal/service"
 )
 
 func TestLocalServiceConfigPathMatchesInstalledDaemonOnWindows(t *testing.T) {
