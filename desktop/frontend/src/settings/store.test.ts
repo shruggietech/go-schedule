@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { useSettings } from './store'
 import type { SettingsBridge, SettingsWorkspace } from './model'
 
-const workspace: SettingsWorkspace = { preferences: { version: 1, appearance: 'system', transition: { status: 'not_found', retired: [] } }, preferencePath: '/prefs.json', storage: [], product: { name: 'go-schedule', version: 'dev', publisher: 'ShruggieTech', links: [] }, daemonAvailable: false, loadedAt: '2026-09-07T00:00:00Z' }
+const workspace: SettingsWorkspace = { preferences: { version: 1, appearance: 'system', popups: { enabled: false, conditions: ['failure', 'success', 'alert'], severities: ['info', 'warning', 'error'], daemonIds: [] } }, preferencePath: '/prefs.json', storage: [], product: { name: 'go-schedule', version: 'dev', publisher: 'ShruggieTech', links: [] }, daemonAvailable: false, loadedAt: '2026-09-07T00:00:00Z' }
 
 function bridge(): SettingsBridge { return { workspace: vi.fn().mockResolvedValue({ action: 'load_settings', outcome: 'accepted', message: 'Loaded.', workspace }), saveAppearance: vi.fn().mockResolvedValue({ action: 'save_appearance', outcome: 'unavailable', message: 'Could not save.' }), restore: vi.fn(), copyStoragePath: vi.fn(), openProductLink: vi.fn() } }
 

@@ -1,0 +1,1398 @@
+{
+  "schema_version": 2,
+  "evidence_class": "automated-fixture",
+  "candidate": {
+    "repository": "shruggietech/go-schedule",
+    "tag": "v1.7.0",
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workflow": "Release",
+    "run_id": 1234,
+    "run_attempt": 1,
+    "filename": "go-schedule_v1.7.0_windows_amd64.msi",
+    "bytes": 31,
+    "sha256": "aeafb8bcf3fa7374896624660d10899a57c60268bc07f590221cc4006e8aa27c",
+    "product_version": "1.7.0",
+    "product_code": "{11111111-2222-3333-4444-555555555555}"
+  },
+  "operator": {
+    "role": "release maintainer",
+    "attested_at": "2026-09-02T16:00:00Z",
+    "statement": "I attest that these observations were made against the identified candidate in the identified environments."
+  },
+  "started_at": "2026-09-02T12:00:00Z",
+  "completed_at": "2026-09-02T16:00:00Z",
+  "environments": [
+    {
+      "id": "standard",
+      "snapshot": "fixture-clean-snapshot",
+      "clean_snapshot": true,
+      "windows_edition": "Windows 11 Pro",
+      "windows_build": "fixture-build",
+      "account_role": "intended-user",
+      "account_sid": "S-1-5-21-1000",
+      "integrity": "medium",
+      "integrity_rid": 8192,
+      "service_identity": "LocalSystem",
+      "display_class": "standard-dpi",
+      "effective_dpi": 96,
+      "profile_state": "clean"
+    },
+    {
+      "id": "high",
+      "snapshot": "fixture-clean-snapshot",
+      "clean_snapshot": true,
+      "windows_edition": "Windows 11 Pro",
+      "windows_build": "fixture-build",
+      "account_role": "intended-user",
+      "account_sid": "S-1-5-21-1000",
+      "integrity": "medium",
+      "integrity_rid": 8192,
+      "service_identity": "LocalSystem",
+      "display_class": "high-dpi",
+      "effective_dpi": 144,
+      "profile_state": "clean"
+    },
+    {
+      "id": "unrelated",
+      "snapshot": "fixture-clean-snapshot",
+      "clean_snapshot": true,
+      "windows_edition": "Windows 11 Pro",
+      "windows_build": "fixture-build",
+      "account_role": "unrelated-user",
+      "account_sid": "S-1-5-21-1000",
+      "integrity": "medium",
+      "integrity_rid": 8192,
+      "service_identity": "LocalSystem",
+      "display_class": "not-applicable",
+      "effective_dpi": 0,
+      "profile_state": "not-applicable"
+    },
+    {
+      "id": "admin",
+      "snapshot": "fixture-clean-snapshot",
+      "clean_snapshot": true,
+      "windows_edition": "Windows 11 Pro",
+      "windows_build": "fixture-build",
+      "account_role": "administrator",
+      "account_sid": "S-1-5-21-1000",
+      "integrity": "high",
+      "integrity_rid": 12288,
+      "service_identity": "LocalSystem",
+      "display_class": "not-applicable",
+      "effective_dpi": 0,
+      "profile_state": "not-applicable"
+    }
+  ],
+  "observations": [
+    {
+      "id": "access.intended-user",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:00:00Z",
+      "completed_at": "2026-09-02T12:01:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "gui_task_list_ok": true,
+        "health_ok": true,
+        "routine_elevation_required": false
+      },
+      "attachment_paths": null
+    },
+    {
+      "id": "access.unrelated-user-denied",
+      "environment_id": "unrelated",
+      "status": "pass",
+      "started_at": "2026-09-02T12:01:00Z",
+      "completed_at": "2026-09-02T12:02:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "error_kind": "access-denied",
+        "pipe_opened": false
+      },
+      "attachment_paths": null
+    },
+    {
+      "id": "access.fresh-path-resolution",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:02:00Z",
+      "completed_at": "2026-09-02T12:03:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "fresh_process": true,
+        "matches_installed_cli": true,
+        "resolved_path": "C:\\Program Files\\go-schedule\\gosched.exe"
+      },
+      "attachment_paths": null
+    },
+    {
+      "id": "access.path-removed",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:03:00Z",
+      "completed_at": "2026-09-02T12:04:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "fresh_process": true,
+        "registry_cardinality": 0,
+        "resolves": false
+      },
+      "attachment_paths": null
+    },
+    {
+      "id": "window.clean-standard",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:04:00Z",
+      "completed_at": "2026-09-02T12:05:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "client_rect": {
+          "bottom": 1030,
+          "left": 110,
+          "right": 1550,
+          "top": 130
+        },
+        "content_height": 900,
+        "content_width": 1440,
+        "display_scale": 1,
+        "effective_dpi": 96,
+        "executable_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "fullscreen": false,
+        "hwnd": "0x00000001",
+        "launch_sequence": 1,
+        "logical_work_area_height": 1400,
+        "logical_work_area_width": 2560,
+        "margins_visible": true,
+        "maximized": false,
+        "minimized": false,
+        "monitor_id": "fixture-monitor",
+        "monitor_rect": {
+          "bottom": 1440,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        },
+        "outer_rect": {
+          "bottom": 1040,
+          "left": 100,
+          "right": 1560,
+          "top": 100
+        },
+        "pid": 100,
+        "process_integrity_rid": 8192,
+        "process_session_id": 1,
+        "process_user_sid": "S-1-5-21-1000",
+        "resize_borders_reachable": true,
+        "restored": true,
+        "taskbar_reachable": true,
+        "title_bar_reachable": true,
+        "work_area_rect": {
+          "bottom": 1400,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        }
+      },
+      "attachment_paths": [
+        "attachments/native-window-clean-standard.json",
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "window.clean-high-or-mixed",
+      "environment_id": "high",
+      "status": "pass",
+      "started_at": "2026-09-02T12:05:00Z",
+      "completed_at": "2026-09-02T12:06:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "client_rect": {
+          "bottom": 1330,
+          "left": 110,
+          "right": 2270,
+          "top": 130
+        },
+        "content_height": 800,
+        "content_width": 1440,
+        "display_scale": 1.5,
+        "effective_dpi": 144,
+        "executable_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "fullscreen": false,
+        "hwnd": "0x00000001",
+        "logical_work_area_height": 933.3333333333334,
+        "logical_work_area_width": 1706.6666666666667,
+        "margins_visible": true,
+        "maximized": false,
+        "minimized": false,
+        "monitor_id": "fixture-monitor",
+        "monitor_rect": {
+          "bottom": 1440,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        },
+        "outer_rect": {
+          "bottom": 1340,
+          "left": 100,
+          "right": 2280,
+          "top": 100
+        },
+        "pid": 100,
+        "process_integrity_rid": 8192,
+        "process_session_id": 1,
+        "process_user_sid": "S-1-5-21-1000",
+        "resize_borders_reachable": true,
+        "restored": true,
+        "taskbar_reachable": true,
+        "title_bar_reachable": true,
+        "work_area_rect": {
+          "bottom": 1400,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        }
+      },
+      "attachment_paths": [
+        "attachments/native-window-clean-high-or-mixed.json",
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "window.state-transitions",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:06:00Z",
+      "completed_at": "2026-09-02T12:07:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "client_rect": {
+          "bottom": 1030,
+          "left": 110,
+          "right": 1550,
+          "top": 130
+        },
+        "close_worked": true,
+        "content_height": 900,
+        "content_width": 1440,
+        "display_scale": 1,
+        "effective_dpi": 96,
+        "executable_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "fullscreen": false,
+        "hwnd": "0x00000001",
+        "logical_work_area_height": 1400,
+        "logical_work_area_width": 2560,
+        "margins_visible": true,
+        "maximize_worked": true,
+        "maximized": false,
+        "minimize_worked": true,
+        "minimized": false,
+        "monitor_id": "fixture-monitor",
+        "monitor_rect": {
+          "bottom": 1440,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        },
+        "outer_rect": {
+          "bottom": 1040,
+          "left": 100,
+          "right": 1560,
+          "top": 100
+        },
+        "pid": 100,
+        "process_integrity_rid": 8192,
+        "process_session_id": 1,
+        "process_user_sid": "S-1-5-21-1000",
+        "resize_borders_reachable": true,
+        "resize_worked": true,
+        "restore_worked": true,
+        "restored": true,
+        "taskbar_reachable": true,
+        "title_bar_reachable": true,
+        "work_area_rect": {
+          "bottom": 1400,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        }
+      },
+      "attachment_paths": [
+        "attachments/native-window-state-transitions.json",
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "window.subsequent-launch",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:07:00Z",
+      "completed_at": "2026-09-02T12:08:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "client_rect": {
+          "bottom": 1030,
+          "left": 110,
+          "right": 1550,
+          "top": 130
+        },
+        "content_height": 900,
+        "content_width": 1440,
+        "display_scale": 1,
+        "effective_dpi": 96,
+        "executable_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "fresh_process": true,
+        "fullscreen": false,
+        "hwnd": "0x00000001",
+        "launch_sequence": 2,
+        "logical_work_area_height": 1400,
+        "logical_work_area_width": 2560,
+        "margins_visible": true,
+        "maximized": false,
+        "minimized": false,
+        "monitor_id": "fixture-monitor",
+        "monitor_rect": {
+          "bottom": 1440,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        },
+        "outer_rect": {
+          "bottom": 1040,
+          "left": 100,
+          "right": 1560,
+          "top": 100
+        },
+        "pid": 101,
+        "prior_process_closed": true,
+        "prior_process_id": 100,
+        "process_integrity_rid": 8192,
+        "process_session_id": 1,
+        "process_user_sid": "S-1-5-21-1000",
+        "resize_borders_reachable": true,
+        "restored": true,
+        "taskbar_reachable": true,
+        "title_bar_reachable": true,
+        "work_area_rect": {
+          "bottom": 1400,
+          "left": 0,
+          "right": 2560,
+          "top": 0
+        }
+      },
+      "attachment_paths": [
+        "attachments/native-window-subsequent-launch.json",
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.daemon-unavailable",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:08:00Z",
+      "completed_at": "2026-09-02T12:10:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "daemon-unavailable",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-daemon-unavailable"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.access-denied",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:09:00Z",
+      "completed_at": "2026-09-02T12:11:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "access-denied",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-access-denied"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.timeout",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:10:00Z",
+      "completed_at": "2026-09-02T12:12:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "timeout",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-timeout"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.stream-disconnect",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:11:00Z",
+      "completed_at": "2026-09-02T12:13:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "stream-disconnect",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-stream-disconnect"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.repeated-refresh",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:12:00Z",
+      "completed_at": "2026-09-02T12:14:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "repeated-refresh",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-repeated-refresh"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.manual-retry",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:13:00Z",
+      "completed_at": "2026-09-02T12:15:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "manual-retry",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "retry_invoked": true,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-manual-retry"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "error.recovery",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:14:00Z",
+      "completed_at": "2026-09-02T12:15:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "category": "recovery",
+        "duration_seconds": 120,
+        "exit_reachable": true,
+        "guidance_recommends_elevation": false,
+        "incident_cleared": true,
+        "interface_restored": true,
+        "max_additional_top_level_count": 0,
+        "max_in_frame_count": 1,
+        "max_modal_count": 0,
+        "recovery_method": "daemon-restored",
+        "reinstall_required": false,
+        "retry_reachable": true,
+        "sample_count": 120,
+        "trigger": "fixture-recovery"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "task.manual-success",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:15:00Z",
+      "completed_at": "2026-09-02T12:16:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "actual_exit_code": 0,
+        "expected_exit_code": 0,
+        "history_recorded": true,
+        "history_sha256": "7a702b5d5eed2bf72f0cc20e5cffdd58800a5a5b3242351afd4b82ab81f14834",
+        "invocation_mode": "manual",
+        "marker_sha256": "a89f764b5450f046b9a004e0e1ef041f7b7fe8cb902d30456d7990c1bf9b3ce9",
+        "output_sha256": "bd1ed06015e2d112aec4664f2ff09c797d0c6914d99b9352dc66fc9cc9369b67",
+        "production_runner": true,
+        "public_interface": "gosched CLI",
+        "run_id": "fixture-task.manual-success",
+        "task_definition_sha256": "e01c15b8831764af6a861823407eb2761e97ff60c82ec979d9dd8997b22b09fc",
+        "task_id": "fixture-task"
+      },
+      "attachment_paths": [
+        "attachments/task-runs.json"
+      ]
+    },
+    {
+      "id": "task.scheduled-success",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:16:00Z",
+      "completed_at": "2026-09-02T12:17:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "actual_exit_code": 0,
+        "expected_exit_code": 0,
+        "history_recorded": true,
+        "history_sha256": "18c0964df8f5a6d2c04becff9032cba3338af8f763ca98047391591ec4c3b249",
+        "invocation_mode": "scheduled",
+        "marker_sha256": "b7b3105e99a9f84cd3a2c7390a81b8c55a8d70cce33d88ac6e87204538574808",
+        "output_sha256": "33ed268e1c982e6ba1a88b73b56a7f0def904d533697bdf9daf5b92d37c64d59",
+        "production_runner": true,
+        "public_interface": "gosched CLI",
+        "run_id": "fixture-task.scheduled-success",
+        "task_definition_sha256": "472c82fe934a69b111b484e35ea9dd4ee8788918e6370571e10c25e7e214ba00",
+        "task_id": "fixture-task"
+      },
+      "attachment_paths": [
+        "attachments/task-runs.json"
+      ]
+    },
+    {
+      "id": "task.nonzero-exit",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:17:00Z",
+      "completed_at": "2026-09-02T12:18:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "actual_exit_code": 7,
+        "diagnostic_category": "nonzero-exit",
+        "expected_exit_code": 7,
+        "history_recorded": true,
+        "history_sha256": "07f66bbdf35a344e721f20b8a7f20c20edb0fcbe8e77e78c219c36333e1d91fc",
+        "invocation_mode": "manual-fault",
+        "marker_sha256": "ee9637361540cdb443618f0c87a132361e79c35eb6a6dc33ff64b28d0ab0b789",
+        "output_sha256": "6bfb7eb23bce154079c3f37b4bc167f5e4fbc8f0af09ad7f8eac6d17615b2039",
+        "production_runner": true,
+        "public_interface": "gosched CLI",
+        "run_id": "fixture-task.nonzero-exit",
+        "task_definition_sha256": "d579774f515cfd49d02efd27dc452d06e734c6304a3d115e820a7b731ded9bfe",
+        "task_id": "fixture-task",
+        "trigger": "fixture-nonzero"
+      },
+      "attachment_paths": [
+        "attachments/task-runs.json"
+      ]
+    },
+    {
+      "id": "task.start-failure",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:18:00Z",
+      "completed_at": "2026-09-02T12:19:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "diagnostic_category": "process-start-failure",
+        "expected_exit_code": -1,
+        "history_recorded": true,
+        "history_sha256": "79659e9e09ecfc618a35a1538c0b4904a76be3843fc854c49c17e39d90dff2cd",
+        "invocation_mode": "manual-fault",
+        "marker_sha256": "e3de77e1354a05499556cab7ff461fe45a64f1773bf75e0a6c4e6d01d040af28",
+        "output_sha256": "7074d5d3e8ede7f861c554a3d417d61ac78cd3afb770252d8ea3ca164dc88974",
+        "production_runner": true,
+        "public_interface": "gosched CLI",
+        "run_id": "fixture-task.start-failure",
+        "task_definition_sha256": "16674ebef69d71d169c33bc7503228afb3be14266f3ee5f23dc186c0de8946f0",
+        "task_id": "fixture-task",
+        "trigger": "fixture-missing-executable"
+      },
+      "attachment_paths": [
+        "attachments/task-runs.json"
+      ]
+    },
+    {
+      "id": "setup.shortcut-defaults",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:19:00Z",
+      "completed_at": "2026-09-02T12:20:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "defaults_visible": true,
+        "desktop_default": false,
+        "effects_verified": true,
+        "install_session_id": "fixture-setup.shortcut-defaults",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "start_menu_default": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.shortcut-matrix",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:20:00Z",
+      "completed_at": "2026-09-02T12:21:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "combinations_verified": 4,
+        "install_session_id": "fixture-setup.shortcut-matrix",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "targets_verified": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.completion-matrix",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:21:00Z",
+      "completed_at": "2026-09-02T12:22:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "combinations_verified": 4,
+        "default_handler_verified": true,
+        "documentation_default": false,
+        "independent_choices": true,
+        "install_session_id": "fixture-setup.completion-matrix",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "launch_default": true,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.finish-launch-integrity",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:22:00Z",
+      "completed_at": "2026-09-02T12:23:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "install_session_id": "fixture-setup.finish-launch-integrity",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "launch_count": 1,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "process_integrity": "medium",
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.cancel",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:23:00Z",
+      "completed_at": "2026-09-02T12:24:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "install_session_id": "fixture-setup.cancel",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "state_unchanged": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.maintenance",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:24:00Z",
+      "completed_at": "2026-09-02T12:25:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+        "appearance_intent_preserved": true,
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "completion_actions_absent": true,
+        "daemon_identity_preserved": true,
+        "install_session_id": "fixture-setup.maintenance",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "local_access_operational": true,
+        "localhost_mcp_enabled": false,
+        "notifications_enabled": false,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "remote_https_enabled": false,
+        "repair_verified": true,
+        "run_history_preserved": true,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "service_operational": true,
+        "tasks_preserved": true,
+        "transitions_verified": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.invalid-input",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:25:00Z",
+      "completed_at": "2026-09-02T12:26:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "input_rejected": true,
+        "install_session_id": "fixture-setup.invalid-input",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "state_unchanged": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "setup.rollback",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:26:00Z",
+      "completed_at": "2026-09-02T12:27:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "before_fingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+        "install_session_id": "fixture-setup.rollback",
+        "installer_process_id": 4242,
+        "installer_process_integrity": "high",
+        "installer_process_owner_role": "administrator",
+        "installer_session_id": 1,
+        "observed_targets_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "owned_data_cleanup_invoked": false,
+        "rollback_completed": true,
+        "selected_options_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "state_unchanged": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.preserve",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:27:00Z",
+      "completed_at": "2026-09-02T12:28:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_unchanged": true,
+        "mode": "preserve",
+        "owned_bytes_preserved": true,
+        "owned_data_cleanup_invoked": false,
+        "owned_inventory_reviewed": true,
+        "owned_roots_count": 2,
+        "preserve_default_visible": true,
+        "reinstall_result": "preserved-state-restored",
+        "security_state_disposition": "preserved",
+        "software_removed": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.wipe",
+      "environment_id": "admin",
+      "status": "pass",
+      "started_at": "2026-09-02T12:28:00Z",
+      "completed_at": "2026-09-02T12:29:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_unchanged": true,
+        "mode": "wipe",
+        "owned_data_cleanup_invoked": true,
+        "owned_inventory_reviewed": true,
+        "owned_roots_count": 2,
+        "owned_roots_removed": true,
+        "reinstall_result": "clean-state",
+        "security_state_disposition": "preserved",
+        "security_state_preserved": true,
+        "software_removed": true,
+        "wipe_confirmed": true,
+        "wipe_explicitly_selected": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.cancel",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:29:00Z",
+      "completed_at": "2026-09-02T12:30:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "data_unchanged": true,
+        "owned_data_cleanup_invoked": false,
+        "owned_roots_count": 2,
+        "reinstall_result": "not-run",
+        "security_state_disposition": "preserved",
+        "software_unchanged": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.multiple-profiles",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:30:00Z",
+      "completed_at": "2026-09-02T12:31:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "all_profiles_accounted": true,
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "owned_roots_count": 2,
+        "profile_count": 2,
+        "reinstall_result": "verified",
+        "security_state_disposition": "preserved"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.locked-partial",
+      "environment_id": "admin",
+      "status": "pass",
+      "started_at": "2026-09-02T12:31:00Z",
+      "completed_at": "2026-09-02T12:32:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "cleanup_result": "partial",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "owned_roots_count": 2,
+        "reinstall_result": "verified",
+        "residual_count": 1,
+        "security_state_disposition": "preserved",
+        "truthfully_reported": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.reinstall-after-preserve",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:32:00Z",
+      "completed_at": "2026-09-02T12:33:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "owned_roots_count": 2,
+        "prior_config_available": true,
+        "prior_logs_available": true,
+        "prior_preferences_available": true,
+        "prior_tasks_available": true,
+        "reinstall_result": "preserved-state-restored",
+        "security_state_disposition": "preserved"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "remove.reinstall-after-wipe",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:33:00Z",
+      "completed_at": "2026-09-02T12:34:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "after_content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "before_content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "controls_after_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "controls_before_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "owned_roots_count": 2,
+        "prior_config_available": false,
+        "prior_logs_available": false,
+        "prior_preferences_available": false,
+        "prior_tasks_available": false,
+        "reinstall_result": "clean-state",
+        "security_state_disposition": "preserved"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.appearance-standard",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:34:00Z",
+      "completed_at": "2026-09-02T12:35:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "body_text_sharp": true,
+        "brand_typography_sharp": true,
+        "effective_dpi": 96,
+        "labels_centered": true,
+        "labels_unclipped": true,
+        "minimize_restore_verified": true,
+        "reopen_verified": true,
+        "resize_verified": true,
+        "system_theme_default": true,
+        "system_theme_restored": true,
+        "theme_persistence_verified": true,
+        "themes": "system,light,dark"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.appearance-scaled",
+      "environment_id": "high",
+      "status": "pass",
+      "started_at": "2026-09-02T12:35:00Z",
+      "completed_at": "2026-09-02T12:36:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "body_text_sharp": true,
+        "brand_typography_sharp": true,
+        "effective_dpi": 144,
+        "labels_centered": true,
+        "labels_unclipped": true,
+        "minimize_restore_verified": true,
+        "reopen_verified": true,
+        "resize_verified": true,
+        "system_theme_default": true,
+        "system_theme_restored": true,
+        "theme_persistence_verified": true,
+        "themes": "system,light,dark"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.interaction-states",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:36:00Z",
+      "completed_at": "2026-09-02T12:37:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "control_families": "navigation,selector,ordinary,primary,danger,dialog,table-row",
+        "focus_visible": true,
+        "glyphs_readable": true,
+        "labels_readable": true,
+        "minimum_non_text_contrast": 3,
+        "minimum_text_contrast": 4.5,
+        "non_color_cues_present": true,
+        "palettes": "dark,light",
+        "selection_identifiable": true,
+        "states": "rest,hover,focus,pressed,selected,disabled"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.interaction-states-scaled",
+      "environment_id": "high",
+      "status": "pass",
+      "started_at": "2026-09-02T12:37:00Z",
+      "completed_at": "2026-09-02T12:38:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "control_families": "navigation,selector,ordinary,primary,danger,dialog,table-row",
+        "focus_visible": true,
+        "glyphs_readable": true,
+        "labels_readable": true,
+        "minimum_non_text_contrast": 3,
+        "minimum_text_contrast": 4.5,
+        "non_color_cues_present": true,
+        "palettes": "dark,light",
+        "selection_identifiable": true,
+        "states": "rest,hover,focus,pressed,selected,disabled"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.navigation-options",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:38:00Z",
+      "completed_at": "2026-09-02T12:39:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "boundary_full_height": true,
+        "boundary_subtle": true,
+        "content_sizes": "1280x800,800x600",
+        "copy_exact": true,
+        "destination_order": "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings",
+        "exit_bottom_right": true,
+        "exit_never_selected": true,
+        "exit_semantic_glyph": true,
+        "horizontal_scrollbar_present": false,
+        "labels_unclipped": true,
+        "palettes": "dark,light",
+        "rail_spacing_balanced": true,
+        "selector_current_omitted": true,
+        "storage_rows_compact": true,
+        "target_context_visible": true,
+        "unavailable_rows_muted": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.navigation-options-scaled",
+      "environment_id": "high",
+      "status": "pass",
+      "started_at": "2026-09-02T12:39:00Z",
+      "completed_at": "2026-09-02T12:40:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "boundary_full_height": true,
+        "boundary_subtle": true,
+        "content_sizes": "1280x800,800x600",
+        "copy_exact": true,
+        "destination_order": "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings",
+        "exit_bottom_right": true,
+        "exit_never_selected": true,
+        "exit_semantic_glyph": true,
+        "horizontal_scrollbar_present": false,
+        "labels_unclipped": true,
+        "palettes": "dark,light",
+        "rail_spacing_balanced": true,
+        "selector_current_omitted": true,
+        "storage_rows_compact": true,
+        "target_context_visible": true,
+        "unavailable_rows_muted": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.scroll-input",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:40:00Z",
+      "completed_at": "2026-09-02T12:41:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "browser_native": true,
+        "focus_preserved": true,
+        "keyboard_scroll_preserved": true,
+        "nested_multiplier_absent": true,
+        "surfaces": "tasks,automation-sources,schedule,activity,notifications,agent-access,connections,settings,task-editor",
+        "touchpad_available": false,
+        "touchpad_fine_deltas_preserved": false,
+        "touchpad_unavailable_reason": "fixture has no physical input hardware",
+        "wheel_detents_responsive": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.tasks-table",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:41:00Z",
+      "completed_at": "2026-09-02T12:42:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "bracket_decoration_absent": true,
+        "content_sizes": "1280x800,800x600",
+        "double_click_edits": true,
+        "full_values_discoverable": true,
+        "headers": "task,group,state,schedule",
+        "headers_frozen": true,
+        "horizontal_scrollbar_present": false,
+        "palettes": "dark,light",
+        "refresh_identity_stable": true,
+        "removed_selection_clears": true,
+        "row_count": 100,
+        "row_states": "odd,even,hover,focus,selected",
+        "state_reason_discoverable": true,
+        "toolbar_actions_work": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.tasks-table-scaled",
+      "environment_id": "high",
+      "status": "pass",
+      "started_at": "2026-09-02T12:42:00Z",
+      "completed_at": "2026-09-02T12:43:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "bracket_decoration_absent": true,
+        "content_sizes": "1280x800,800x600",
+        "double_click_edits": true,
+        "full_values_discoverable": true,
+        "headers": "task,group,state,schedule",
+        "headers_frozen": true,
+        "horizontal_scrollbar_present": false,
+        "palettes": "dark,light",
+        "refresh_identity_stable": true,
+        "removed_selection_clears": true,
+        "row_count": 100,
+        "row_states": "odd,even,hover,focus,selected",
+        "state_reason_discoverable": true,
+        "toolbar_actions_work": true
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.schedule-activity-tables",
+      "environment_id": "standard",
+      "status": "pass",
+      "started_at": "2026-09-02T12:43:00Z",
+      "completed_at": "2026-09-02T12:44:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "activity_headers": "when,record,state,source,summary",
+        "activity_row_count": 100,
+        "content_sizes": "1280x800,800x600",
+        "detail_activation_accurate": true,
+        "filter_clear_acknowledge": true,
+        "full_values_discoverable": true,
+        "headers_frozen": true,
+        "horizontal_scrollbar_present": false,
+        "non_color_cues_present": true,
+        "palettes": "dark,light",
+        "range_calendar_switching": true,
+        "record_types": "run,daemon-log,alert",
+        "refresh_identity_stable": true,
+        "removed_selection_clears": true,
+        "row_states": "odd,even,hover,focus,selected",
+        "schedule_headers": "when,task,record,state",
+        "schedule_row_count": 100,
+        "schedule_states": "upcoming,running,success,failure,skipped,caught-up,queued,unavailable",
+        "semantic_text_glyphs_match": true,
+        "severities": "info,warning,error"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    },
+    {
+      "id": "desktop.schedule-activity-tables-scaled",
+      "environment_id": "high",
+      "status": "pass",
+      "started_at": "2026-09-02T12:44:00Z",
+      "completed_at": "2026-09-02T12:45:00Z",
+      "summary": "automated fixture only; no native claim",
+      "metrics": {
+        "activity_headers": "when,record,state,source,summary",
+        "activity_row_count": 100,
+        "content_sizes": "1280x800,800x600",
+        "detail_activation_accurate": true,
+        "filter_clear_acknowledge": true,
+        "full_values_discoverable": true,
+        "headers_frozen": true,
+        "horizontal_scrollbar_present": false,
+        "non_color_cues_present": true,
+        "palettes": "dark,light",
+        "range_calendar_switching": true,
+        "record_types": "run,daemon-log,alert",
+        "refresh_identity_stable": true,
+        "removed_selection_clears": true,
+        "row_states": "odd,even,hover,focus,selected",
+        "schedule_headers": "when,task,record,state",
+        "schedule_row_count": 100,
+        "schedule_states": "upcoming,running,success,failure,skipped,caught-up,queued,unavailable",
+        "semantic_text_glyphs_match": true,
+        "severities": "info,warning,error"
+      },
+      "attachment_paths": [
+        "attachments/fixture.svg"
+      ]
+    }
+  ],
+  "attachments": [
+    {
+      "path": "attachments/fixture.txt",
+      "bytes": 42,
+      "sha256": "c65f01ecd6994f01dbdf96ac654c3aaeb5f314c0a78d8b7e1e90fc82fc42f12d",
+      "media_type": "text/plain",
+      "purpose": "automated fixture only"
+    },
+    {
+      "path": "attachments/fixture.json",
+      "bytes": 17,
+      "sha256": "218589323cbe80b7ed077e3ee36f1663e7cb5f8f4e4ad02c938ad8a5c2c5a6b9",
+      "media_type": "application/json",
+      "purpose": "automated native-metric fixture only"
+    },
+    {
+      "path": "attachments/fixture.svg",
+      "bytes": 21,
+      "sha256": "67f6adc2fa630178eb76a21ef377ebc7a7b6b5e22ba13494b690635ddcdcd8ed",
+      "media_type": "image/x-portable-pixmap",
+      "purpose": "automated visual fixture only"
+    },
+    {
+      "path": "attachments/native-window-clean-standard.json",
+      "bytes": 1191,
+      "sha256": "ecab59298238572a5e1dd7cd610d5b7a028b0fed4195099b1974f667553234a8",
+      "media_type": "application/json",
+      "purpose": "native window measurement"
+    },
+    {
+      "path": "attachments/native-window-clean-high-or-mixed.json",
+      "bytes": 1199,
+      "sha256": "8ad0e31644b1807da91e27d39aac483c788baf354bea35b43159a9629d82803f",
+      "media_type": "application/json",
+      "purpose": "native window measurement"
+    },
+    {
+      "path": "attachments/native-window-state-transitions.json",
+      "bytes": 1194,
+      "sha256": "a3eaa7f6b21a46ef5492ffa76130ceb3bfa929231d40a2c6b725dc3f75df5e05",
+      "media_type": "application/json",
+      "purpose": "native window measurement"
+    },
+    {
+      "path": "attachments/native-window-subsequent-launch.json",
+      "bytes": 1194,
+      "sha256": "e4bdb0581905035ad459c23426724195a451f4d9031a24fc3c48c8cfdccb5385",
+      "media_type": "application/json",
+      "purpose": "native window measurement"
+    },
+    {
+      "path": "attachments/task-runs.json",
+      "bytes": 2413,
+      "sha256": "0e6ee4fddd9ffc520b2a992958d9ec73bc86bcc6a2d03031e25a38fe9d7b4d73",
+      "media_type": "application/json",
+      "purpose": "task run evidence"
+    }
+  ]
+}

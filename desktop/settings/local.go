@@ -26,13 +26,12 @@ type Native interface {
 
 // Paths contains resolved platform paths used to build a settings workspace.
 type Paths struct {
-	Preferences       string
-	LegacyPreferences string
-	ApplicationData   string
-	MachineData       string
-	Executable        string
-	Maintenance       string
-	GOOS              string
+	Preferences     string
+	ApplicationData string
+	MachineData     string
+	Executable      string
+	Maintenance     string
+	GOOS            string
 }
 
 // Dependencies supplies deterministic filesystem, platform, and time seams.
@@ -57,7 +56,7 @@ func DefaultDependencies() Dependencies {
 		maintenance = winuninstall.CleanupResultPath(filepath.Dir(machineData))
 	}
 	return Dependencies{
-		Paths: Paths{Preferences: preferencePaths.Preferences, LegacyPreferences: preferencePaths.LegacyPreferences, ApplicationData: applicationData, MachineData: machineData, Executable: executable, Maintenance: maintenance, GOOS: runtime.GOOS},
+		Paths: Paths{Preferences: preferencePaths.Preferences, ApplicationData: applicationData, MachineData: machineData, Executable: executable, Maintenance: maintenance, GOOS: runtime.GOOS},
 		Stat:  os.Stat, Now: time.Now, Rename: os.Rename,
 	}
 }

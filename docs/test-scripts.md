@@ -172,7 +172,7 @@ This exists because an empty port list is otherwise ambiguous, and the two readi
 
 ## What gets recorded
 
-Full schema: [`data-model.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/006-maintainer-test-scripts/data-model.md).
+The unreleased S128 helpers initialize the complete shared metrics format 4 directly: metadata, heartbeat, snapshot, address and port tables. Both writers may use the same current-format database. Historical formats 2/3, foreign and partial layouts are refused before conversion or metadata overwrite. Select a new empty path or explicitly reset disposable development state after stopping its writers. The historical [original data model](https://github.com/shruggietech/go-schedule/blob/main/specs/006-maintainer-test-scripts/data-model.md) records its earlier design.
 
 `heartbeat.db` holds one `beat` row per completed run, carrying start and finish moments (both, so overlap is decidable rather than guessed), session and sequence, expected moment with its source and the resulting drift, exit code and outcome.
 
@@ -301,7 +301,7 @@ pwsh -File test/scripts/Test-ReadTestDB.ps1 -Query jitter -IntervalSeconds 60
 
 **It cannot detect uniform lateness.** A scheduler consistently five seconds late has a perfectly stable phase and therefore zero jitter. Jitter bounds the *variability* of dispatch; only an anchor gives you the absolute figure. The reader states this on every `jitter` run rather than leaving you to remember it.
 
-Legacy `boundary` rows recorded before 0.5.1 are still readable, but the `drift` query flags them explicitly as phase offset rather than latency.
+Current drift queries use the current heartbeat source and timing fields. Historical schema and nullable probe fallbacks are retired; no helper converts older recordings.
 
 ## Exit codes
 

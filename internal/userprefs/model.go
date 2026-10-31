@@ -21,17 +21,10 @@ const (
 	AppearanceDark Appearance = "dark"
 )
 
-// Transition records the one-time retired Fyne preference disposition.
-type Transition struct {
-	Status  string   `json:"status"`
-	Retired []string `json:"retired"`
-}
-
 // Preferences is the shared versioned desktop-local preference document.
 type Preferences struct {
 	Version    int              `json:"version"`
 	Appearance Appearance       `json:"appearance"`
-	Transition Transition       `json:"transition"`
 	Popups     PopupPreferences `json:"popups"`
 }
 
@@ -48,9 +41,9 @@ func DefaultPopups() PopupPreferences {
 	return PopupPreferences{Conditions: []string{"failure", "success", "alert"}, Severities: []string{"info", "warning", "error"}, DaemonIDs: []string{}}
 }
 
-// Defaults constructs current preferences with the supplied migration disposition.
-func Defaults(status string) Preferences {
-	return Preferences{Version: CurrentVersion, Appearance: AppearanceSystem, Transition: Transition{Status: status, Retired: []string{"appearance.font", "appearance.scroll_sensitivity"}}, Popups: DefaultPopups()}
+// Defaults constructs complete current preferences.
+func Defaults() Preferences {
+	return Preferences{Version: CurrentVersion, Appearance: AppearanceSystem, Popups: DefaultPopups()}
 }
 
 // ValidAppearance reports whether value is one of the supported color modes.
@@ -118,7 +111,7 @@ func (p Patch) apply(prefs Preferences) Preferences {
 	return prefs
 }
 
-// ValidatePatch rejects malformed input before a missing store can migrate or initialize.
+// ValidatePatch rejects malformed input before a missing store can initialize.
 func ValidatePatch(p Patch) error {
 	if p.Appearance == nil && p.PopupEnabled == nil && p.PopupConditions == nil && p.PopupSeverities == nil && p.PopupDaemonIDs == nil {
 		return fmt.Errorf("provide at least one preference to change")
@@ -126,5 +119,5 @@ func ValidatePatch(p Patch) error {
 	if p.Appearance != nil && !ValidAppearance(*p.Appearance) {
 		return fmt.Errorf("appearance must be system, light, or dark")
 	}
-	return ValidatePopups(p.apply(Defaults("not_found")).Popups)
+	return ValidatePopups(p.apply(Defaults()).Popups)
 }

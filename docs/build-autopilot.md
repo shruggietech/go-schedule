@@ -115,7 +115,7 @@ These hold regardless of the decision policy:
 - Never weaken or skip the safety-critical test surfaces of this project:
   - Clock discipline: engine code takes time through the injected `Clock` interface, never `time.Now()` directly, and scheduling tests stay deterministic rather than leaning on real `time.Sleep`.
   - Timezone and DST correctness: per-task IANA timezone handling, explicit recurrence basis, and every supported spring-gap and fall-overlap policy.
-  - Store migrations: forward-only, non-destructive, and covered by a test that runs the migration against a database from the prior schema version.
+  - Current storage: direct atomic initialization, durable reopen, and non-mutating refusal of unsupported state with explicit reset guidance. Historical migrations and old-version upgrade qualification are outside the owner-approved prelaunch baseline.
   - Restart and catch-up recovery: persisted state survives a daemon restart and downtime catch-up runs a task once before resuming.
   - Concurrency: the race detector passes and every goroutine has a defined termination path (constitution principle I).
   - Local IPC access control: the Unix socket and Windows named pipe stay restricted to authorized callers.
@@ -135,3 +135,7 @@ Before requesting a release tag, run `go run ./scripts/release-source-check -roo
 ## Verification completion policy
 
 The owner-directed S116 [timeout policy](ci-timeouts.md) increases incidental completion allowances across all CI systems and their local runners. All jobs explicitly declare the hosted six-hour maximum; Go verification uses a60-minute package watchdog, frontend tests/hooks60 seconds, browser tests120 seconds, and native QA defaults120 seconds/case with a2-hour execution budget. Nested preparation, deployment and reporting allowances are documented separately. Deliberate expiry cases, supplied/resumed budgets and all identity/security/resource assertions retain their own contracts. This policy supersedes earlier advice against increasing verification completion timeouts; an old failed receipt remains failed.
+
+## Prelaunch state policy
+
+Prelaunch state policy: the owner confirms that the project has no users. Historical database, preference, configuration, and helper-state migrations and old-version upgrade qualification are not required. Initialize the current format directly, preserve valid current-state reopen and persistence, and refuse obsolete or malformed state with explicit reset guidance. Never convert or delete persisted state automatically. Current correctness, atomicity, access security, repair, and removal requirements remain enforced. See [S128](https://github.com/shruggietech/go-schedule/blob/main/specs/128-prelaunch-baseline/spec.md) and constitution version 4.0.0.

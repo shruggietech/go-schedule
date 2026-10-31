@@ -255,7 +255,6 @@ func TestAppFacadeExposesDesktopSettings(t *testing.T) {
 	native := &appNative{}
 	deps := settings.DefaultDependencies()
 	deps.Paths.Preferences = t.TempDir() + "/preferences.json"
-	deps.Paths.LegacyPreferences = t.TempDir() + "/legacy.json"
 	deps.Paths.ApplicationData = t.TempDir()
 	service := settings.NewServiceWithDependencies(facadeSettingsBackend{}, native, deps)
 	app := newApp(appBackend{}, nil, native, appServices{settings: service})

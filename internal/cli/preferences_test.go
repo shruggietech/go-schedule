@@ -35,6 +35,9 @@ func TestPreferencesHeadlessScopedUpdatesAndExplicitReset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if strings.Contains(out, `"transition"`) {
+		t.Fatalf("obsolete transition metadata: %s", out)
+	}
 	var result preferenceOutput
 	if err := json.Unmarshal([]byte(out), &result); err != nil {
 		t.Fatal(err)
@@ -60,6 +63,9 @@ func TestPreferencesHeadlessScopedUpdatesAndExplicitReset(t *testing.T) {
 		t.Fatalf("reset touched unrelated appearance: %+v", prefs)
 	}
 	out, err = runPreferenceCommand(t, deps, "preferences", "show")
+	if strings.Contains(out, "Legacy preference") || strings.Contains(out, "Retired legacy") {
+		t.Fatalf("obsolete labels: %s", out)
+	}
 	if err != nil || !strings.Contains(out, path) || !strings.Contains(out, "dark") {
 		t.Fatalf("human output=%q err=%v", out, err)
 	}

@@ -18,16 +18,15 @@ var ErrBusy = errors.New("desktop preference store is busy; retry after the othe
 
 // Options identifies preference files and an optional atomic-replacement seam.
 type Options struct {
-	Path       string
-	LegacyPath string
-	Rename     func(string, string) error
+	Path   string
+	Rename func(string, string) error
 }
 
 // Store coordinates scoped updates across desktop and CLI processes.
 type Store struct {
-	path, legacyPath string
-	rename           func(string, string) error
-	mu               sync.Mutex
+	path   string
+	rename func(string, string) error
+	mu     sync.Mutex
 }
 
 // NewStore uses production paths only when no explicit current path was supplied.
@@ -35,20 +34,17 @@ func NewStore(options Options) *Store {
 	if options.Path == "" {
 		paths := DefaultPaths()
 		options.Path = paths.Preferences
-		if options.LegacyPath == "" {
-			options.LegacyPath = paths.LegacyPreferences
-		}
 	}
 	if options.Rename == nil {
 		options.Rename = os.Rename
 	}
-	return &Store{path: options.Path, legacyPath: options.LegacyPath, rename: options.Rename}
+	return &Store{path: options.Path, rename: options.Rename}
 }
 
 // Path returns the current preference document's resolved location.
 func (s *Store) Path() string { return s.path }
 
-// Load reads the current document, initializing or migrating only when absent.
+// Load reads the current document, initializing only when absent.
 func (s *Store) Load() (Preferences, error) {
 	if !filepath.IsAbs(s.path) {
 		return Preferences{}, fmt.Errorf("desktop preference path is unavailable or not absolute")
@@ -92,7 +88,7 @@ func (s *Store) Reset(scope string) (Preferences, error) {
 	var prefs Preferences
 	err := s.locked(func() error {
 		if scope == "all" {
-			prefs = Defaults("not_required")
+			prefs = Defaults()
 		} else {
 			var err error
 			prefs, err = s.load()
@@ -146,31 +142,14 @@ func (s *Store) load() (Preferences, error) {
 	if !errors.Is(err, fs.ErrNotExist) {
 		return Preferences{}, fmt.Errorf("read desktop preferences: %w", err)
 	}
-	prefs := Defaults("not_found")
-	legacy, legacyErr := os.ReadFile(s.legacyPath)
-	switch {
-	case legacyErr == nil:
-		var values map[string]any
-		if json.Unmarshal(legacy, &values) != nil {
-			prefs.Transition.Status = "invalid"
-		} else if mode, ok := values["appearance.mode"].(string); ok && ValidAppearance(Appearance(mode)) {
-			prefs.Appearance = Appearance(mode)
-			prefs.Transition.Status = "migrated"
-		} else {
-			prefs.Transition.Status = "invalid"
-		}
-	case errors.Is(legacyErr, fs.ErrNotExist) || s.legacyPath == "":
-		prefs.Transition.Status = "not_found"
-	default:
-		prefs.Transition.Status = "unreadable"
-	}
+	prefs := Defaults()
 	if err := s.write(prefs); err != nil {
 		return Preferences{}, err
 	}
 	return prefs, nil
 }
 
-// Decode validates an existing schema-v1 document and fills legacy popup defaults.
+// Decode validates a complete existing schema-v1 document.
 func Decode(data []byte) (Preferences, error) {
 	var prefs Preferences
 	if err := json.Unmarshal(data, &prefs); err != nil {
@@ -181,10 +160,6 @@ func Decode(data []byte) (Preferences, error) {
 	}
 	if !ValidAppearance(prefs.Appearance) {
 		return Preferences{}, fmt.Errorf("desktop preferences contain an unsupported appearance")
-	}
-	prefs.Transition.Retired = append([]string(nil), prefs.Transition.Retired...)
-	if prefs.Popups.Conditions == nil && prefs.Popups.Severities == nil && prefs.Popups.DaemonIDs == nil {
-		prefs.Popups = DefaultPopups()
 	}
 	if err := ValidatePopups(prefs.Popups); err != nil {
 		return Preferences{}, err

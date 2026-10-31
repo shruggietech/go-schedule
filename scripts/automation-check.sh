@@ -157,7 +157,7 @@ else
   require_v13_text 'go test -timeout=60m -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli' \
     'focused v1.3 notification and MCP qualification'
   require_v13_text 'go test -timeout=60m -race ./internal/store' \
-    'v1.3 notification storage and migration qualification'
+    'v1.3 current notification storage qualification'
   if grep -Eq 'wails-proof:|wails-browser-contract:|Install Fyne|GUI build & test \(cgo\)' "$CI"; then
     report "$CI: retired or parallel desktop validation remains"
   fi

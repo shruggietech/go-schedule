@@ -5,18 +5,14 @@ import (
 	"testing"
 )
 
-func TestMigrationV13AddsTriggerSetsAndPreservesStandaloneTriggers(t *testing.T) {
-	path := t.TempDir() + "/v12.db"
+func TestCurrentSchemaAddsTriggerSetsAndPreservesStandaloneTriggers(t *testing.T) {
+	path := t.TempDir() + "/current.db"
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, migration := range migrations[:12] {
-		if _, err := db.Exec(migration.stmts); err != nil {
-			t.Fatalf("apply v%d: %v", migration.version, err)
-		}
-	}
-	if _, err := db.Exec(`CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version(version) VALUES(12)`); err != nil {
+
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24)`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO schedules(id,kind,human_summary,expression) VALUES('schedule','once','',''); INSERT INTO tasks(id,name,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at) VALUES('task','target','echo','[]','','{}','',1,'UTC','schedule','queue_one','one','active','2026-09-05T00:00:00Z','2026-09-05T00:00:00Z'); INSERT INTO external_triggers(id,name,key,target_task_id,enabled,created_at,updated_at) VALUES('trigger','standalone','gst_secret','task',1,'2026-09-05T00:00:00Z','2026-09-05T00:00:00Z')`); err != nil {

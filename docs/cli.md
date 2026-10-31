@@ -121,7 +121,7 @@ gosched daemon manifest --json
 
 Change only its operator-facing label with `gosched daemon rename "Workshop scheduler"`. Names are trimmed, contain 1 through 80 Unicode characters, and cannot contain control characters.
 
-After copying a daemon database for independent concurrent use, replace the clone's copied identity with `gosched daemon reset-identity --confirm <current-installation-id>`. The exact current identifier is required. Reset preserves the display name and every scheduler record. See [Daemon identity](daemon-identity.md) for clean-install, upgrade, restore, clone, and reset semantics.
+After copying a daemon database for independent concurrent use, replace the clone's copied identity with `gosched daemon reset-identity --confirm <current-installation-id>`. The exact current identifier is required. Reset preserves the display name and every scheduler record. See [Daemon identity](daemon-identity.md) for fresh initialization, current-state reopen, restore, clone, and reset semantics.
 
 ## `bundle`
 
@@ -721,7 +721,7 @@ gosched preferences reset --scope all
 
 Appearance accepts `system`, `light` or `dark`. Popup conditions accept `failure`, `success` and `alert`; severities accept `info`, `warning` and `error`. Empty source-daemon filters include all registered schedulers. Omitted fields remain unchanged; invalid input leaves the document unchanged. Condition/severity lists remain nonempty even while delivery is disabled.
 
-The CLI and desktop share the version-1 schema, legacy migration, defaults, validation and atomic persistence. Concurrent writers coordinate scoped edits so an appearance change does not overwrite popup choices. Output identifies the user and file path; JSON contains `user`, `path` and `preferences`. Commands do not need a daemon, open the desktop, emit a popup or change daemon webhook policies. `reset --scope all` also repairs an unreadable preference document.
+The CLI and desktop share the current version-1 schema, defaults, validation and atomic persistence. The unreleased S128 source does not discover or import Fyne state and emits no transition fields. An absent document uses current defaults; an invalid document is refused without replacement. Concurrent writers coordinate scoped edits so an appearance change does not overwrite popup choices. Output identifies the user and file path; JSON contains `user`, `path` and `preferences`. Commands do not need a daemon, open the desktop, emit a popup or change daemon webhook policies. `reset --scope all` also repairs an unreadable preference document.
 
 The saved desktop startup connection is separate:
 

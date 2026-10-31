@@ -8,29 +8,9 @@ import (
 	"github.com/shruggietech/go-schedule/internal/domain"
 )
 
-func openAtV6(t *testing.T, path string) {
-	t.Helper()
-	openAtV5(t, path)
-	db, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = db.Close() }()
-	for _, m := range migrations {
-		if m.version == 6 {
-			if _, err := db.Exec(m.stmts); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := db.Exec(`INSERT INTO schema_version(version) VALUES (6)`); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-}
-
-func TestMigrationV7DefaultsAndPolicyRoundTrip(t *testing.T) {
-	path := t.TempDir() + "/v6.db"
-	openAtV6(t, path)
+func TestCurrentSchemaDefaultsAndPolicyRoundTrip(t *testing.T) {
+	path := t.TempDir() + "/current.db"
+	createCurrentStore(t, path)
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +58,7 @@ func TestMigrationV7DefaultsAndPolicyRoundTrip(t *testing.T) {
 	}
 }
 
-func TestMigrationV7PersistsElapsedEpoch(t *testing.T) {
+func TestCurrentSchemaPersistsElapsedEpoch(t *testing.T) {
 	st, err := Open(t.TempDir() + "/epoch.db")
 	if err != nil {
 		t.Fatal(err)

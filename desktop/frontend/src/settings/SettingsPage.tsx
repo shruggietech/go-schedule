@@ -10,33 +10,6 @@ import {
 import type { Appearance } from "../connection/model";
 import type { SettingsWorkspace } from "./model";
 
-const transitionCopy: Record<string, { title: string; detail: string }> = {
-  migrated: {
-    title: "Appearance migrated",
-    detail:
-      "Your previous light, dark, or system choice was carried into the new desktop.",
-  },
-  not_found: {
-    title: "System appearance selected",
-    detail:
-      "No earlier desktop appearance was found, so go-schedule follows your operating system.",
-  },
-  invalid: {
-    title: "Earlier preference could not be used",
-    detail:
-      "The previous appearance value was invalid. go-schedule uses system appearance and remains usable.",
-  },
-  unreadable: {
-    title: "Earlier preference could not be read",
-    detail:
-      "The previous preference file was unavailable. go-schedule uses system appearance and remains usable.",
-  },
-  not_required: {
-    title: "Desktop defaults restored",
-    detail:
-      "The current desktop preference file is authoritative and follows your operating system.",
-  },
-};
 type CopyResult = "copied" | "failed";
 
 export function SettingsPage({
@@ -80,9 +53,6 @@ export function SettingsPage({
         />
       </>
     );
-  const transition =
-    transitionCopy[workspace.preferences.transition.status] ??
-    transitionCopy.not_found;
   return (
     <>
       <PageHeader />
@@ -114,13 +84,6 @@ export function SettingsPage({
             label="Preference file path"
             value={workspace.preferencePath}
           />
-        </CardSection>
-        <CardSection eyebrow="Upgrade" title={transition.title}>
-          <p>{transition.detail}</p>
-          <p>
-            Legacy font selection and scroll sensitivity were retired because
-            browser typography and native scrolling now provide those behaviors.
-          </p>
         </CardSection>
       </div>
       {!workspace.daemonAvailable && (

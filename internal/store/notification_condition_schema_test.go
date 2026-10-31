@@ -2,7 +2,7 @@ package store
 
 import "testing"
 
-func TestMigrationV20AddsNotificationConditionState(t *testing.T) {
+func TestCurrentSchemaAddsNotificationConditionState(t *testing.T) {
 	st, err := Open(":memory:")
 	if err != nil {
 		t.Fatal(err)

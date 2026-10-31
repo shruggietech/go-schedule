@@ -362,7 +362,7 @@ func TestDuplicateSourceRunInsertionCannotDuplicateDelivery(t *testing.T) {
 	}
 }
 
-func TestMigrationV9CreatesCompletionSchemaWithoutLegacyTriggers(t *testing.T) {
+func TestCurrentSchemaCreatesCompletionSchemaWithoutLegacyTriggers(t *testing.T) {
 	st := openMem(t)
 	for _, table := range []string{"completion_chains", "completion_deliveries"} {
 		var count int

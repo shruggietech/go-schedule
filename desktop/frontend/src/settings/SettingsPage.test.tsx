@@ -8,10 +8,7 @@ const workspace: SettingsWorkspace = {
   preferences: {
     version: 1,
     appearance: "dark",
-    transition: {
-      status: "migrated",
-      retired: ["appearance.font", "appearance.scroll_sensitivity"],
-    },
+    popups: { enabled: false, conditions: ["failure", "success", "alert"], severities: ["info", "warning", "error"], daemonIds: [] },
   },
   preferencePath: "/home/ada/.config/go-schedule/desktop/preferences.json",
   storage: [
@@ -73,14 +70,11 @@ function renderPage(
 }
 
 describe("SettingsPage", () => {
-  it("explains migration, retired controls, storage truth, and offline state", () => {
+  it("shows current appearance, storage truth, and offline state without upgrade UI", () => {
     renderPage();
-    expect(
-      screen.getByRole("heading", { name: "Appearance migrated" }),
-    ).toBeVisible();
-    expect(
-      screen.getByText(/font selection and scroll sensitivity were retired/i),
-    ).toBeVisible();
+    expect(screen.queryByText("Upgrade")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Appearance migrated" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Appearance" })).toHaveValue("dark");
     expect(screen.getByText("/var/lib/goschedule/tasks.db")).toBeVisible();
     expect(
       screen.getByText(

@@ -6,8 +6,12 @@ package store
 
 import (
 	"database/sql"
+	_ "embed"
+	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // registers the "sqlite" database/sql driver
@@ -19,7 +23,7 @@ type Store struct {
 	now func() time.Time
 }
 
-// Open opens (creating if needed) the database at path, applies migrations, and
+// Open opens (creating if needed) the current-format database at path and
 // enables foreign keys. Use ":memory:" for an in-memory database in tests.
 func Open(path string) (*Store, error) {
 	db, err := sql.Open("sqlite", path)
@@ -29,20 +33,24 @@ func Open(path string) (*Store, error) {
 	// modernc.org/sqlite is safe for concurrent use, but a single writer avoids
 	// SQLITE_BUSY under our daemon's serialized write path.
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(`PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;`); err != nil {
+	if _, err := db.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("store: pragmas: %w", err)
 	}
 	s := &Store{db: db, now: time.Now}
+	if err := s.initializeCurrentSchema(currentSchema); err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("store: journal mode: %w", err)
+	}
 	if path != ":memory:" {
 		if err := os.Chmod(path, 0o600); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("store: protect database permissions: %w", err)
 		}
-	}
-	if err := s.migrate(); err != nil {
-		_ = db.Close()
-		return nil, err
 	}
 	if err := s.initializeDaemonIdentity(); err != nil {
 		_ = db.Close()
@@ -61,700 +69,93 @@ func (s *Store) Close() error { return s.db.Close() }
 // PoolStats returns connection-pool metadata without acquiring a SQL connection.
 func (s *Store) PoolStats() sql.DBStats { return s.db.Stats() }
 
-// migration is one ordered schema change.
-type migration struct {
-	version        int
-	stmts          string
-	foreignKeysOff bool
-}
+const currentSchemaVersion = 24
 
-var migrations = []migration{
-	{
-		version: 1,
-		stmts: `
-CREATE TABLE IF NOT EXISTS groups (
-	id          TEXT PRIMARY KEY,
-	name        TEXT NOT NULL,
-	parent_id   TEXT REFERENCES groups(id) ON DELETE CASCADE,
-	enabled     INTEGER NOT NULL DEFAULT 1,
-	created_at  TEXT NOT NULL,
-	updated_at  TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_groups_parent ON groups(parent_id);
+//go:embed current_schema.sql
+var currentSchema string
 
-CREATE TABLE IF NOT EXISTS schedules (
-	id            TEXT PRIMARY KEY,
-	kind          TEXT NOT NULL,
-	rrule         TEXT,
-	anchor        TEXT,
-	run_at        TEXT,
-	trigger_id    TEXT,
-	human_summary TEXT NOT NULL DEFAULT ''
-);
+var schemaObjectName = regexp.MustCompile(`(?i)^CREATE (?:UNIQUE )?(?:TABLE|INDEX)\s+("[^"]+"|[^\s(]+)`)
 
-CREATE TABLE IF NOT EXISTS tasks (
-	id              TEXT PRIMARY KEY,
-	name            TEXT NOT NULL,
-	group_id        TEXT REFERENCES groups(id) ON DELETE SET NULL,
-	command         TEXT NOT NULL,
-	args_json       TEXT NOT NULL DEFAULT '[]',
-	working_dir     TEXT NOT NULL DEFAULT '',
-	env_json        TEXT NOT NULL DEFAULT '{}',
-	run_as          TEXT NOT NULL DEFAULT '',
-	enabled         INTEGER NOT NULL DEFAULT 1,
-	timezone        TEXT NOT NULL DEFAULT 'Local',
-	schedule_id     TEXT NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
-	overlap_policy  TEXT NOT NULL DEFAULT 'queue_one',
-	catchup_policy  TEXT NOT NULL DEFAULT 'one',
-	state           TEXT NOT NULL DEFAULT 'active',
-	created_at      TEXT NOT NULL,
-	updated_at      TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_tasks_group ON tasks(group_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_state ON tasks(state);
-
-CREATE TABLE IF NOT EXISTS runs (
-	id            TEXT PRIMARY KEY,
-	task_id       TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	scheduled_for TEXT NOT NULL,
-	started_at    TEXT,
-	ended_at      TEXT,
-	outcome       TEXT NOT NULL,
-	exit_code     INTEGER,
-	output        TEXT NOT NULL DEFAULT '',
-	trigger       TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_runs_task ON runs(task_id);
-CREATE INDEX IF NOT EXISTS idx_runs_scheduled ON runs(scheduled_for);
-
-CREATE TABLE IF NOT EXISTS alerts (
-	id           TEXT PRIMARY KEY,
-	task_id      TEXT,
-	severity     TEXT NOT NULL,
-	kind         TEXT NOT NULL,
-	message      TEXT NOT NULL,
-	created_at   TEXT NOT NULL,
-	acknowledged INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_alerts_ack ON alerts(acknowledged);
-`,
-	},
-	{
-		version: 2,
-		stmts: `
-CREATE TABLE IF NOT EXISTS triggers (
-	id              TEXT PRIMARY KEY,
-	source_task_id  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	target_task_id  TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	on_outcome      TEXT NOT NULL DEFAULT 'success',
-	dedup_key       TEXT NOT NULL DEFAULT '',
-	dedup_window_ns INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_triggers_source ON triggers(source_task_id);
-
-CREATE TABLE IF NOT EXISTS dedup_ledger (
-	trigger_id    TEXT NOT NULL REFERENCES triggers(id) ON DELETE CASCADE,
-	dedup_key     TEXT NOT NULL,
-	first_seen_at TEXT NOT NULL,
-	executed      INTEGER NOT NULL DEFAULT 0,
-	PRIMARY KEY (trigger_id, dedup_key)
-);
-CREATE INDEX IF NOT EXISTS idx_dedup_executed ON dedup_ledger(executed);
-`,
-	},
-	{
-		// v3: remove the Triggers feature entirely. DROP ... IF EXISTS is a no-op
-		// on databases that never held triggers. dedup_ledger is dropped first
-		// because it has a foreign key into triggers.
-		version: 3,
-		stmts: `
-DROP TABLE IF EXISTS dedup_ledger;
-DROP TABLE IF EXISTS triggers;
-`,
-	},
-	{
-		// v4: retain the human-readable phrase a recurring schedule was parsed
-		// from, so a client can put the user's own words back into the field
-		// they typed them into. Additive with a total default: no existing
-		// column, row, or value is read or rewritten, so no stored timing moves.
-		// Pre-v4 rows keep the empty default and omit source identity at read
-		// time; their cached human summary remains available for display.
-		version: 4,
-		stmts: `
-ALTER TABLE schedules ADD COLUMN expression TEXT NOT NULL DEFAULT '';
-`,
-	},
-	{
-		// v5: record what a task does in a period that has no matching date (a
-		// non-leap February for a rule on the 29th, a 30-day month for a rule on
-		// the 31st). Additive with a total default: no existing column, row, or
-		// value is read or rewritten, so no stored timing moves. 'skip' is the
-		// behavior every pre-v5 task already had, so the upgrade cannot change
-		// any task's run times.
-		//
-		// On the task rather than the schedule deliberately: replacing a task's
-		// schedule writes a new schedules row, so a policy stored there would be
-		// silently reset by an unrelated phrase edit.
-		version: 5,
-		stmts: `
-ALTER TABLE tasks ADD COLUMN missing_date_policy TEXT NOT NULL DEFAULT 'skip';
-`,
-	},
-	{
-		// v6: persist the optional calendar operation that participates in
-		// recurrence execution. The empty default means RRULE-only behavior, so
-		// every pre-v6 schedule retains its exact timing semantics.
-		version: 6,
-		stmts: `
-ALTER TABLE schedules ADD COLUMN calendar_adjustment TEXT NOT NULL DEFAULT '';
-`,
-	},
-	{
-		// v7: make recurrence anchoring and both DST transition decisions
-		// explicit on the task. The defaults are the exact policies used before
-		// these columns existed, so opening an older database moves no run time.
-		// The nullable elapsed epoch records an absolute fixed-duration phase once
-		// a schedule opts into elapsed mode; legacy wall-clock rows remain NULL.
-		version: 7,
-		stmts: `
-ALTER TABLE tasks ADD COLUMN time_basis TEXT NOT NULL DEFAULT 'wall_clock';
-ALTER TABLE tasks ADD COLUMN dst_gap_policy TEXT NOT NULL DEFAULT 'next_valid';
-ALTER TABLE tasks ADD COLUMN dst_overlap_policy TEXT NOT NULL DEFAULT 'first';
-ALTER TABLE schedules ADD COLUMN elapsed_epoch TEXT;
-`,
-	},
-	{
-		// v8: preserve optional standard input for imported cron commands. The
-		// empty default is the exact behavior of every existing task.
-		version: 8,
-		stmts: `
-ALTER TABLE tasks ADD COLUMN stdin TEXT NOT NULL DEFAULT '';
-`,
-	},
-	{
-		// v9: add task-completion chains as a new, durable model. These tables
-		// deliberately do not revive the removed v2 trigger/dedup schema. Nullable
-		// run correlation leaves every existing history row unchanged.
-		version: 9,
-		stmts: `
-ALTER TABLE runs ADD COLUMN source_task_id TEXT;
-ALTER TABLE runs ADD COLUMN source_run_id TEXT;
-
-CREATE TABLE completion_chains (
-	id             TEXT PRIMARY KEY,
-	source_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	on_outcome     TEXT NOT NULL,
-	created_at     TEXT NOT NULL,
-	updated_at     TEXT NOT NULL,
-	UNIQUE(source_task_id, target_task_id, on_outcome)
-);
-CREATE INDEX idx_completion_chains_source ON completion_chains(source_task_id, on_outcome);
-CREATE INDEX idx_completion_chains_target ON completion_chains(target_task_id);
-
-CREATE TABLE completion_deliveries (
-	id             TEXT PRIMARY KEY,
-	chain_id       TEXT NOT NULL,
-	source_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	target_task_id TEXT NOT NULL,
-	source_run_id  TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-	state          TEXT NOT NULL,
-	attempts       INTEGER NOT NULL DEFAULT 0,
-	created_at     TEXT NOT NULL,
-	claimed_at     TEXT,
-	completed_at   TEXT,
-	target_run_id  TEXT REFERENCES runs(id) ON DELETE SET NULL,
-	resolution     TEXT NOT NULL DEFAULT '',
-	UNIQUE(chain_id, source_run_id)
-);
-CREATE INDEX idx_completion_deliveries_state ON completion_deliveries(state, created_at);
-`,
-	},
-	{
-		// v10: correlate newly created run-failure alerts to their exact run and
-		// disclose whether bounded output capture discarded bytes. Both changes
-		// are additive. Existing runs were never able to report truncation and
-		// existing alerts remain intentionally uncorrelated.
-		version: 10,
-		stmts: `
-ALTER TABLE runs ADD COLUMN output_truncated INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE alerts ADD COLUMN run_id TEXT;
-`,
-	},
-	{
-		// v11: a task may be saved before an automatic schedule is known. Rebuild
-		// the table because SQLite cannot remove a NOT NULL constraint in place.
-		// Foreign keys are disabled only around this migration so dependent rows
-		// keep referencing the replacement table by its canonical name.
-		version:        11,
-		foreignKeysOff: true,
-		stmts: `
-CREATE TABLE tasks_v11 (
-	id                  TEXT PRIMARY KEY,
-	name                TEXT NOT NULL,
-	group_id            TEXT REFERENCES groups(id) ON DELETE SET NULL,
-	command             TEXT NOT NULL,
-	args_json           TEXT NOT NULL DEFAULT '[]',
-	working_dir         TEXT NOT NULL DEFAULT '',
-	env_json            TEXT NOT NULL DEFAULT '{}',
-	run_as              TEXT NOT NULL DEFAULT '',
-	enabled             INTEGER NOT NULL DEFAULT 1,
-	timezone            TEXT NOT NULL DEFAULT 'Local',
-	schedule_id         TEXT REFERENCES schedules(id) ON DELETE CASCADE,
-	overlap_policy      TEXT NOT NULL DEFAULT 'queue_one',
-	catchup_policy      TEXT NOT NULL DEFAULT 'one',
-	state               TEXT NOT NULL DEFAULT 'active',
-	created_at          TEXT NOT NULL,
-	updated_at          TEXT NOT NULL,
-	missing_date_policy TEXT NOT NULL DEFAULT 'skip',
-	time_basis          TEXT NOT NULL DEFAULT 'wall_clock',
-	dst_gap_policy      TEXT NOT NULL DEFAULT 'next_valid',
-	dst_overlap_policy  TEXT NOT NULL DEFAULT 'first',
-	stdin               TEXT NOT NULL DEFAULT ''
-);
-INSERT INTO tasks_v11(id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,stdin)
-SELECT id,name,group_id,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at,missing_date_policy,time_basis,dst_gap_policy,dst_overlap_policy,stdin FROM tasks;
-DROP TABLE tasks;
-ALTER TABLE tasks_v11 RENAME TO tasks;
-CREATE INDEX idx_tasks_group ON tasks(group_id);
-CREATE INDEX idx_tasks_state ON tasks(state);
-`,
-	},
-	{
-		// v12: add local external triggers and stable run provenance. The key is
-		// protected by the same user-scoped storage boundary as the local API token.
-		version: 12,
-		stmts: `
-CREATE TABLE external_triggers (
-	id             TEXT PRIMARY KEY,
-	name           TEXT NOT NULL,
-	key            TEXT NOT NULL UNIQUE,
-	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	enabled        INTEGER NOT NULL DEFAULT 1,
-	created_at     TEXT NOT NULL,
-	updated_at     TEXT NOT NULL
-);
-CREATE INDEX idx_external_triggers_target ON external_triggers(target_task_id);
-ALTER TABLE runs ADD COLUMN source_trigger_id TEXT;
-`,
-	},
-	{
-		// v13: organize existing external triggers into optional Trigger Sets.
-		// Nullable membership preserves every standalone v12 trigger unchanged.
-		version: 13,
-		stmts: `
-CREATE TABLE external_trigger_sets (
-	id             TEXT PRIMARY KEY,
-	name           TEXT NOT NULL,
-	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	created_at     TEXT NOT NULL,
-	updated_at     TEXT NOT NULL
-);
-CREATE INDEX idx_external_trigger_sets_target ON external_trigger_sets(target_task_id);
-ALTER TABLE external_triggers ADD COLUMN set_id TEXT REFERENCES external_trigger_sets(id) ON DELETE CASCADE;
-ALTER TABLE external_triggers ADD COLUMN set_position INTEGER;
-CREATE UNIQUE INDEX idx_external_triggers_set_position ON external_triggers(set_id,set_position) WHERE set_id IS NOT NULL;
-`,
-	},
-	{
-		// v14: persist filesystem watcher intent and retain watcher identity on
-		// runs without tying append-only history to watcher lifecycle.
-		version: 14,
-		stmts: `
-CREATE TABLE filesystem_watchers (
-	id             TEXT PRIMARY KEY,
-	name           TEXT NOT NULL,
-	kind           TEXT NOT NULL CHECK(kind IN ('file','directory')),
-	path           TEXT NOT NULL,
-	pattern        TEXT NOT NULL DEFAULT '',
-	recursive      INTEGER NOT NULL DEFAULT 0,
-	debounce_ns    INTEGER NOT NULL,
-	stability_ns   INTEGER NOT NULL,
-	target_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	enabled        INTEGER NOT NULL DEFAULT 1,
-	created_at     TEXT NOT NULL,
-	updated_at     TEXT NOT NULL
-);
-CREATE INDEX idx_filesystem_watchers_target ON filesystem_watchers(target_task_id);
-CREATE INDEX idx_filesystem_watchers_enabled ON filesystem_watchers(enabled);
-ALTER TABLE runs ADD COLUMN source_watcher_id TEXT;
-`,
-	},
-	{
-		// v15: add reusable notification channels, scoped assignments, and
-		// durable webhook deliveries. Existing databases gain no assignments,
-		// so migration cannot introduce outbound behavior.
-		version: 15,
-		stmts: `
-CREATE TABLE notification_channels (
-	id                 TEXT PRIMARY KEY,
-	name               TEXT NOT NULL,
-	kind               TEXT NOT NULL CHECK(kind IN ('webhook')),
-	endpoint           TEXT NOT NULL,
-	endpoint_summary   TEXT NOT NULL,
-	authorization      TEXT NOT NULL DEFAULT '',
-	enabled            INTEGER NOT NULL DEFAULT 1,
-	created_at         TEXT NOT NULL,
-	updated_at         TEXT NOT NULL
-);
-CREATE INDEX idx_notification_channels_enabled ON notification_channels(enabled);
-
-CREATE TABLE notification_assignments (
-	id          TEXT PRIMARY KEY,
-	channel_id  TEXT NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
-	task_id     TEXT REFERENCES tasks(id) ON DELETE CASCADE,
-	group_id    TEXT REFERENCES groups(id) ON DELETE CASCADE,
-	on_success  INTEGER NOT NULL DEFAULT 0,
-	on_failure  INTEGER NOT NULL DEFAULT 0,
-	created_at  TEXT NOT NULL,
-	updated_at  TEXT NOT NULL,
-	CHECK ((task_id IS NOT NULL) != (group_id IS NOT NULL)),
-	CHECK (on_success = 1 OR on_failure = 1)
-);
-CREATE UNIQUE INDEX idx_notification_assignments_task_channel ON notification_assignments(task_id,channel_id) WHERE task_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_notification_assignments_group_channel ON notification_assignments(group_id,channel_id) WHERE group_id IS NOT NULL;
-CREATE INDEX idx_notification_assignments_task ON notification_assignments(task_id);
-CREATE INDEX idx_notification_assignments_group ON notification_assignments(group_id);
-
-CREATE TABLE notification_deliveries (
-	id                   TEXT PRIMARY KEY,
-	channel_id           TEXT REFERENCES notification_channels(id) ON DELETE SET NULL,
-	channel_name         TEXT NOT NULL,
-	destination_summary  TEXT NOT NULL,
-	endpoint             TEXT NOT NULL DEFAULT '',
-	authorization        TEXT NOT NULL DEFAULT '',
-	event_kind           TEXT NOT NULL CHECK(event_kind IN ('run.completed','test')),
-	task_id               TEXT,
-	run_id                TEXT,
-	task_name             TEXT NOT NULL DEFAULT '',
-	group_id              TEXT NOT NULL DEFAULT '',
-	group_name            TEXT NOT NULL DEFAULT '',
-	payload               BLOB NOT NULL,
-	state                 TEXT NOT NULL CHECK(state IN ('pending','claimed','succeeded','failed')),
-	attempts              INTEGER NOT NULL DEFAULT 0,
-	next_attempt_at       TEXT NOT NULL,
-	created_at            TEXT NOT NULL,
-	claimed_at            TEXT,
-	completed_at          TEXT,
-	last_status           INTEGER NOT NULL DEFAULT 0,
-	last_error            TEXT NOT NULL DEFAULT ''
-);
-CREATE INDEX idx_notification_deliveries_pending ON notification_deliveries(state,next_attempt_at,created_at);
-CREATE INDEX idx_notification_deliveries_channel ON notification_deliveries(channel_id,created_at);
-CREATE INDEX idx_notification_deliveries_task ON notification_deliveries(task_id,created_at);
-CREATE INDEX idx_notification_deliveries_run ON notification_deliveries(run_id);
-`,
-	},
-	{
-		// v16: persist one privacy-safe identity for the logical daemon. The row
-		// is initialized after migration so random generation failures abort open.
-		version: 16,
-		stmts: `
-CREATE TABLE daemon_identity (
-	singleton       INTEGER PRIMARY KEY CHECK(singleton = 1),
-	installation_id TEXT NOT NULL UNIQUE,
-	display_name    TEXT NOT NULL,
-	created_at      TEXT NOT NULL,
-	updated_at      TEXT NOT NULL
-);
-`,
-	},
-	{
-		// v17: establish credential-independent actors and bounded management
-		// audit storage. Initialization creates the protected local actor after
-		// migration so random generation failures abort open.
-		version: 17,
-		stmts: `
-CREATE TABLE actors (
-	id           TEXT PRIMARY KEY,
-	kind         TEXT NOT NULL CHECK(kind IN ('local_os','desktop','cli','json','mcp')),
-	display_name TEXT NOT NULL,
-	capability   TEXT NOT NULL CHECK(capability IN ('observe','operate','manage','enroll')),
-	state        TEXT NOT NULL CHECK(state IN ('active','expired','revoked')),
-	builtin      INTEGER NOT NULL DEFAULT 0 CHECK(builtin IN (0,1)),
-	created_at   TEXT NOT NULL,
-	updated_at   TEXT NOT NULL,
-	expires_at   TEXT
-);
-CREATE UNIQUE INDEX idx_actors_builtin ON actors(builtin) WHERE builtin=1;
-CREATE INDEX idx_actors_state ON actors(state,created_at,id);
-
-CREATE TABLE audit_events (
-	id             TEXT PRIMARY KEY,
-	actor_id       TEXT,
-	daemon_id      TEXT NOT NULL,
-	operation      TEXT NOT NULL,
-	target_kind    TEXT NOT NULL,
-	target_id      TEXT NOT NULL DEFAULT '',
-	result         TEXT NOT NULL CHECK(result IN ('uncertain','succeeded','failed','denied')),
-	correlation_id TEXT NOT NULL,
-	occurred_at    TEXT NOT NULL,
-	completed_at   TEXT
-);
-CREATE INDEX idx_audit_events_order ON audit_events(occurred_at,id);
-CREATE INDEX idx_audit_events_actor ON audit_events(actor_id,occurred_at,id);
-CREATE INDEX idx_audit_events_operation ON audit_events(operation,occurred_at,id);
-CREATE INDEX idx_audit_events_result ON audit_events(result,occurred_at,id);
-`,
-	},
-	{
-		// v18: add one-time pairing verifiers and digest-only durable client
-		// credentials. Existing installations gain no remote listener, session,
-		// credential, or actor as a side effect of migration.
-		version: 18,
-		stmts: `
-CREATE TABLE pairing_sessions (
-	id                 TEXT PRIMARY KEY,
-	display_name       TEXT NOT NULL,
-	kind               TEXT NOT NULL CHECK(kind IN ('desktop','cli','json','mcp')),
-	capability         TEXT NOT NULL CHECK(capability IN ('observe','operate','manage','enroll')),
-	salt               BLOB NOT NULL,
-	verifier           BLOB NOT NULL,
-	attempts_remaining INTEGER NOT NULL CHECK(attempts_remaining >= 0),
-	state              TEXT NOT NULL CHECK(state IN ('active','consumed','cancelled','expired','exhausted')),
-	created_at         TEXT NOT NULL,
-	expires_at         TEXT NOT NULL,
-	completed_at       TEXT
-);
-CREATE INDEX idx_pairing_sessions_state ON pairing_sessions(state,expires_at,id);
-
-CREATE TABLE client_credentials (
-	id          TEXT PRIMARY KEY,
-	actor_id    TEXT NOT NULL UNIQUE REFERENCES actors(id) ON DELETE CASCADE,
-	digest      BLOB NOT NULL UNIQUE,
-	fingerprint TEXT NOT NULL,
-	state       TEXT NOT NULL CHECK(state IN ('active','revoked')),
-	created_at  TEXT NOT NULL,
-	updated_at  TEXT NOT NULL,
-	last_used_at TEXT,
-	expires_at  TEXT,
-	revoked_at  TEXT
-);
-CREATE INDEX idx_client_credentials_state ON client_credentials(state,actor_id);
-`,
-	},
-	{
-		// v19: retain the administrator-approved persistent grant deadline
-		// separately from the short-lived enrollment deadline.
-		version: 19,
-		stmts: `
-ALTER TABLE pairing_sessions ADD COLUMN grant_expires_at TEXT;
-`,
-	},
-	{
-		// v20: add durable advanced notification conditions, structured process
-		// start failure, and opt-in daemon-health heartbeats. Existing assignments
-		// retain threshold-one failure behavior and migration creates no work.
-		version: 20,
-		stmts: `
-ALTER TABLE runs ADD COLUMN start_failed INTEGER NOT NULL DEFAULT 0 CHECK(start_failed IN (0,1));
-ALTER TABLE notification_channels ADD COLUMN health_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(health_interval_seconds = 0 OR health_interval_seconds BETWEEN 60 AND 86400);
-ALTER TABLE notification_assignments ADD COLUMN failure_threshold INTEGER NOT NULL DEFAULT 1 CHECK(failure_threshold BETWEEN 1 AND 100);
-ALTER TABLE notification_assignments ADD COLUMN on_failure_to_start INTEGER NOT NULL DEFAULT 0 CHECK(on_failure_to_start IN (0,1));
-ALTER TABLE notification_assignments ADD COLUMN duration_threshold_seconds INTEGER NOT NULL DEFAULT 0 CHECK(duration_threshold_seconds BETWEEN 0 AND 2592000);
-ALTER TABLE notification_assignments ADD COLUMN on_recovery INTEGER NOT NULL DEFAULT 0 CHECK(on_recovery IN (0,1));
-ALTER TABLE notification_assignments ADD COLUMN reminder_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(reminder_interval_seconds BETWEEN 0 AND 2592000);
-ALTER TABLE notification_assignments ADD COLUMN quiet_period_seconds INTEGER NOT NULL DEFAULT 0 CHECK(quiet_period_seconds BETWEEN 0 AND 2592000);
-
-ALTER TABLE notification_assignments RENAME TO notification_assignments_v19;
-CREATE TABLE notification_assignments (
-	id                         TEXT PRIMARY KEY,
-	channel_id                 TEXT NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
-	task_id                    TEXT REFERENCES tasks(id) ON DELETE CASCADE,
-	group_id                   TEXT REFERENCES groups(id) ON DELETE CASCADE,
-	on_success                 INTEGER NOT NULL DEFAULT 0 CHECK(on_success IN (0,1)),
-	on_failure                 INTEGER NOT NULL DEFAULT 0 CHECK(on_failure IN (0,1)),
-	created_at                 TEXT NOT NULL,
-	updated_at                 TEXT NOT NULL,
-	failure_threshold          INTEGER NOT NULL DEFAULT 1 CHECK(failure_threshold BETWEEN 1 AND 100),
-	on_failure_to_start        INTEGER NOT NULL DEFAULT 0 CHECK(on_failure_to_start IN (0,1)),
-	duration_threshold_seconds INTEGER NOT NULL DEFAULT 0 CHECK(duration_threshold_seconds BETWEEN 0 AND 2592000),
-	on_recovery                INTEGER NOT NULL DEFAULT 0 CHECK(on_recovery IN (0,1)),
-	reminder_interval_seconds  INTEGER NOT NULL DEFAULT 0 CHECK(reminder_interval_seconds BETWEEN 0 AND 2592000),
-	quiet_period_seconds       INTEGER NOT NULL DEFAULT 0 CHECK(quiet_period_seconds BETWEEN 0 AND 2592000),
-	CHECK ((task_id IS NOT NULL) != (group_id IS NOT NULL)),
-	CHECK (on_success = 1 OR on_failure = 1 OR on_failure_to_start = 1 OR duration_threshold_seconds > 0)
-);
-INSERT INTO notification_assignments(id,channel_id,task_id,group_id,on_success,on_failure,created_at,updated_at,failure_threshold,on_failure_to_start,duration_threshold_seconds,on_recovery,reminder_interval_seconds,quiet_period_seconds)
-SELECT id,channel_id,task_id,group_id,on_success,on_failure,created_at,updated_at,failure_threshold,on_failure_to_start,duration_threshold_seconds,on_recovery,reminder_interval_seconds,quiet_period_seconds FROM notification_assignments_v19;
-DROP TABLE notification_assignments_v19;
-CREATE UNIQUE INDEX idx_notification_assignments_task_channel ON notification_assignments(task_id,channel_id) WHERE task_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_notification_assignments_group_channel ON notification_assignments(group_id,channel_id) WHERE group_id IS NOT NULL;
-CREATE INDEX idx_notification_assignments_task ON notification_assignments(task_id);
-CREATE INDEX idx_notification_assignments_group ON notification_assignments(group_id);
-
-ALTER TABLE notification_deliveries RENAME TO notification_deliveries_v19;
-CREATE TABLE notification_deliveries (
-	id                   TEXT PRIMARY KEY,
-	channel_id           TEXT REFERENCES notification_channels(id) ON DELETE SET NULL,
-	channel_name         TEXT NOT NULL,
-	destination_summary  TEXT NOT NULL,
-	endpoint             TEXT NOT NULL DEFAULT '',
-	authorization        TEXT NOT NULL DEFAULT '',
-	event_kind           TEXT NOT NULL CHECK(event_kind IN ('run.completed','test','daemon.health')),
-	task_id              TEXT,
-	run_id               TEXT,
-	task_name            TEXT NOT NULL DEFAULT '',
-	group_id             TEXT NOT NULL DEFAULT '',
-	group_name           TEXT NOT NULL DEFAULT '',
-	payload              BLOB NOT NULL,
-	state                TEXT NOT NULL CHECK(state IN ('pending','claimed','succeeded','failed')),
-	attempts             INTEGER NOT NULL DEFAULT 0,
-	next_attempt_at      TEXT NOT NULL,
-	created_at           TEXT NOT NULL,
-	claimed_at           TEXT,
-	completed_at         TEXT,
-	last_status          INTEGER NOT NULL DEFAULT 0,
-	last_error           TEXT NOT NULL DEFAULT '',
-	condition_kind       TEXT NOT NULL DEFAULT '' CHECK(condition_kind IN ('','success','failure','failure_to_start','duration_exceeded','recovery','daemon_health','consecutive_failure')),
-	condition_summary    TEXT NOT NULL DEFAULT ''
-);
-INSERT INTO notification_deliveries(id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error)
-SELECT id,channel_id,channel_name,destination_summary,endpoint,authorization,event_kind,task_id,run_id,task_name,group_id,group_name,payload,state,attempts,next_attempt_at,created_at,claimed_at,completed_at,last_status,last_error FROM notification_deliveries_v19;
-DROP TABLE notification_deliveries_v19;
-CREATE INDEX idx_notification_deliveries_pending ON notification_deliveries(state,next_attempt_at,created_at);
-CREATE INDEX idx_notification_deliveries_channel ON notification_deliveries(channel_id,created_at);
-CREATE INDEX idx_notification_deliveries_task ON notification_deliveries(task_id,created_at);
-CREATE INDEX idx_notification_deliveries_run ON notification_deliveries(run_id);
-
-CREATE TABLE notification_condition_states (
-	task_id              TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	channel_id           TEXT NOT NULL REFERENCES notification_channels(id) ON DELETE CASCADE,
-	policy_fingerprint   TEXT NOT NULL,
-	consecutive_failures INTEGER NOT NULL DEFAULT 0,
-	active_condition     TEXT NOT NULL DEFAULT '' CHECK(active_condition IN ('','failure','failure_to_start','consecutive_failure','duration_exceeded')),
-	active_since         TEXT,
-	last_notified_at     TEXT,
-	last_evaluated_run_id TEXT NOT NULL DEFAULT '',
-	updated_at           TEXT NOT NULL,
-	PRIMARY KEY(task_id,channel_id)
-);
-
-CREATE TABLE notification_daemon_health_states (
-	channel_id       TEXT PRIMARY KEY REFERENCES notification_channels(id) ON DELETE CASCADE,
-	next_due_at      TEXT NOT NULL,
-	last_delivery_id TEXT NOT NULL DEFAULT '',
-	updated_at       TEXT NOT NULL
-);
-`,
-	},
-	{
-		// v21: keep bounded operational summaries indexable across unbounded run
-		// history by matching the outcome and effective timestamp query shape.
-		version: 21,
-		stmts: `
-CREATE INDEX idx_runs_outcome_effective_time ON runs(outcome, COALESCE(ended_at, scheduled_for));
-`,
-	},
-	{
-		// v22: retain an opaque portable identity separately from every
-		// daemon-local primary key. Identities are created lazily by the bundle
-		// workflow, so migration itself never changes automation behavior.
-		version: 22,
-		stmts: `
-CREATE TABLE portable_identities (
-	object_kind TEXT NOT NULL,
-	object_id   TEXT NOT NULL,
-	portable_id TEXT NOT NULL UNIQUE,
-	created_at  TEXT NOT NULL,
-	PRIMARY KEY (object_kind, object_id)
-);
-CREATE INDEX idx_portable_identities_portable ON portable_identities(portable_id);
-`,
-	},
-	{
-		// v23: add SMTP without rewriting webhook identities or dependent rows.
-		version:        23,
-		foreignKeysOff: true,
-		stmts: `
-CREATE TABLE notification_channels_v23 (
- id TEXT PRIMARY KEY,
- name TEXT NOT NULL,
- kind TEXT NOT NULL CHECK(kind IN ('webhook','smtp')),
- endpoint TEXT NOT NULL,
- endpoint_summary TEXT NOT NULL,
- authorization TEXT NOT NULL DEFAULT '',
- enabled INTEGER NOT NULL DEFAULT 1,
- created_at TEXT NOT NULL,
- updated_at TEXT NOT NULL,
- health_interval_seconds INTEGER NOT NULL DEFAULT 0 CHECK(health_interval_seconds = 0 OR health_interval_seconds BETWEEN 60 AND 86400),
- smtp_config TEXT NOT NULL DEFAULT ''
-);
-INSERT INTO notification_channels_v23(id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds)
-SELECT id,name,kind,endpoint,endpoint_summary,authorization,enabled,created_at,updated_at,health_interval_seconds FROM notification_channels;
-DROP TABLE notification_channels;
-ALTER TABLE notification_channels_v23 RENAME TO notification_channels;
-CREATE INDEX idx_notification_channels_enabled ON notification_channels(enabled);
-ALTER TABLE notification_deliveries ADD COLUMN kind TEXT NOT NULL DEFAULT 'webhook' CHECK(kind IN ('webhook','smtp'));
-ALTER TABLE notification_deliveries ADD COLUMN smtp_config TEXT NOT NULL DEFAULT '';
-ALTER TABLE notification_deliveries ADD COLUMN recipients TEXT NOT NULL DEFAULT '[]';
-`,
-	},
-	{version: 24, stmts: `
-ALTER TABLE notification_deliveries ADD COLUMN diagnostic TEXT NOT NULL DEFAULT '';
-UPDATE notification_deliveries SET diagnostic=last_error,last_error=CASE WHEN state='succeeded' THEN '' ELSE last_error END WHERE kind='smtp';
-`},
-}
-
-// migrate applies any migrations newer than the recorded schema version.
-func (s *Store) migrate() error {
-	if _, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`); err != nil {
-		return fmt.Errorf("store: schema_version table: %w", err)
-	}
-	var current int
-	row := s.db.QueryRow(`SELECT COALESCE(MAX(version), 0) FROM schema_version`)
-	if err := row.Scan(&current); err != nil {
-		return fmt.Errorf("store: read schema version: %w", err)
-	}
-	for _, m := range migrations {
-		if m.version <= current {
+func schemaDefinitions(schema string) map[string]string {
+	definitions := make(map[string]string)
+	for _, statement := range strings.Split(schema, ";") {
+		normalized := strings.Join(strings.Fields(statement), " ")
+		if normalized == "" {
 			continue
 		}
-		if m.foreignKeysOff {
-			if _, err := s.db.Exec(`PRAGMA foreign_keys = OFF`); err != nil {
-				return fmt.Errorf("store: disable foreign keys for migration %d: %w", m.version, err)
-			}
-		}
-		tx, err := s.db.Begin()
-		if err != nil {
-			if m.foreignKeysOff {
-				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
-			}
-			return fmt.Errorf("store: begin migration %d: %w", m.version, err)
-		}
-		if _, err := tx.Exec(m.stmts); err != nil {
-			_ = tx.Rollback()
-			if m.foreignKeysOff {
-				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
-			}
-			return fmt.Errorf("store: apply migration %d: %w", m.version, err)
-		}
-		if _, err := tx.Exec(`INSERT INTO schema_version(version) VALUES (?)`, m.version); err != nil {
-			_ = tx.Rollback()
-			if m.foreignKeysOff {
-				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
-			}
-			return fmt.Errorf("store: record migration %d: %w", m.version, err)
-		}
-		if err := tx.Commit(); err != nil {
-			if m.foreignKeysOff {
-				_, _ = s.db.Exec(`PRAGMA foreign_keys = ON`)
-			}
-			return fmt.Errorf("store: commit migration %d: %w", m.version, err)
-		}
-		if m.foreignKeysOff {
-			if _, err := s.db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
-				return fmt.Errorf("store: restore foreign keys after migration %d: %w", m.version, err)
-			}
-			var table, rowID, parent string
-			var fkID int
-			if err := s.db.QueryRow(`PRAGMA foreign_key_check`).Scan(&table, &rowID, &parent, &fkID); err != sql.ErrNoRows {
-				if err != nil {
-					return fmt.Errorf("store: check foreign keys after migration %d: %w", m.version, err)
-				}
-				return fmt.Errorf("store: foreign key violation after migration %d: table %s row %s parent %s", m.version, table, rowID, parent)
-			}
+		match := schemaObjectName.FindStringSubmatch(normalized)
+		if len(match) == 2 {
+			definitions[strings.Trim(match[1], "\"")] = normalized
 		}
 	}
+	return definitions
+}
+
+// initializeCurrentSchema creates only an empty database. Existing state must
+// already have the complete current shape; the marker alone is insufficient.
+func (s *Store) initializeCurrentSchema(schema string) (result error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("store: begin initialization: %w", err)
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			result = errors.Join(result, fmt.Errorf("store: rollback initialization: %w", err))
+		}
+	}()
+	var objects int
+	if err := tx.QueryRow("SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'").Scan(&objects); err != nil {
+		return unsupportedStore(err)
+	}
+	if objects == 0 {
+		if _, err := tx.Exec(schema); err != nil {
+			return fmt.Errorf("store: initialize current schema: %w", err)
+		}
+		if _, err := tx.Exec("INSERT INTO schema_version(version) VALUES(?)", currentSchemaVersion); err != nil {
+			return fmt.Errorf("store: record current schema: %w", err)
+		}
+	} else {
+		var version int
+		if err := tx.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&version); err != nil {
+			return unsupportedStore(err)
+		}
+		if version != currentSchemaVersion {
+			return unsupportedStore(fmt.Errorf("schema marker %d, expected %d", version, currentSchemaVersion))
+		}
+		expected := schemaDefinitions(currentSchema)
+		rows, err := tx.Query("SELECT name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'")
+		if err != nil {
+			return unsupportedStore(err)
+		}
+		for rows.Next() {
+			var name string
+			var definition sql.NullString
+			if err := rows.Scan(&name, &definition); err != nil {
+				rows.Close()
+				return unsupportedStore(err)
+			}
+			want, ok := expected[name]
+			if !ok || !definition.Valid || strings.Join(strings.Fields(definition.String), " ") != want {
+				rows.Close()
+				return unsupportedStore(fmt.Errorf("unexpected schema object %s", name))
+			}
+			delete(expected, name)
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return unsupportedStore(err)
+		}
+		rows.Close()
+		if len(expected) != 0 {
+			return unsupportedStore(fmt.Errorf("incomplete current schema"))
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("store: commit initialization: %w", err)
+	}
 	return nil
+}
+
+func unsupportedStore(cause error) error {
+	return fmt.Errorf("store: unsupported database (%v); use an empty database path or explicitly reset the disposable development database; no conversion was attempted", cause)
 }

@@ -80,7 +80,7 @@ jobs:
         env:
           CGO_ENABLED: "1"
         run: go test -timeout=60m -race ./internal/notification ./internal/mcpobserve ./internal/mcphttp ./internal/api/server ./internal/api/client ./internal/cli
-      - name: Qualify notification storage and migration preservation
+      - name: Qualify current notification storage and webhook state
         shell: bash
         env:
           CGO_ENABLED: "1"
@@ -208,12 +208,8 @@ jobs:
           $stage = Join-Path $root 'stage'
           $tools = Join-Path $env:RUNNER_TEMP 's039-wix'
           $wix = Join-Path $tools 'wix.exe'
-          $baseline = Join-Path $root 'go-schedule_s039-baseline.msi'
           $candidate = Join-Path $root 'go-schedule_s039-candidate.msi'
           & ./build/windows/verify_wxs.ps1 -StageDir $stage
-          & $wix build build/windows/goschedule.wxs -arch x64 `
-            -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
-            -d Version=1.0.0 -d "StageDir=$stage" -o $baseline
           & $wix build build/windows/goschedule.wxs -arch x64 `
             -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
             -d Version=1.0.1 -d "StageDir=$stage" -o $candidate
@@ -227,7 +223,6 @@ jobs:
         run: |
           $root = Join-Path $env:RUNNER_TEMP 's039-msi-contract'
           & ./test/windows/Invoke-InstallerContractCI.ps1 `
-            -BaselineMsiPath (Join-Path $root 'go-schedule_s039-baseline.msi') `
             -MsiPath (Join-Path $root 'go-schedule_s039-candidate.msi') `
             -EvidencePath (Join-Path $root 'silent-lifecycle.json') `
             -ArtifactOrigin "CI build from commit $env:GITHUB_SHA" `

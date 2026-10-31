@@ -13,6 +13,7 @@ package integration
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -766,54 +767,96 @@ func TestScriptsListenersNoUsableSnapshot(t *testing.T) {
 	}
 }
 
-// TestScriptsSystemSchemaMigration: a database created at schema 2 must gain the
-// probe columns without losing its rows. Forward-only and non-destructive is a
-// constitutional requirement, not a nicety.
-func TestScriptsSystemSchemaMigration(t *testing.T) {
+// TestScriptsMetricsFormat records both payloads in one complete current store.
+func TestScriptsMetricsFormat(t *testing.T) {
 	sqlite := requireSqlite(t)
-	tw := powershellTwin()
-	if runtime.GOOS != "windows" {
-		tw = posixTwin()
-	}
-	requireTwin(t, tw)
-	name := "Test-GetSystemInfo.ps1"
-	if tw.name == "posix" {
-		name = "Test-GetSystemInfo.sh"
-	}
-	dir := t.TempDir()
-	db := filepath.Join(dir, "system.db")
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			db := filepath.Join(dir, "shared.db")
+			ext := ".sh"
+			if tw.name == "powershell" {
+				ext = ".ps1"
+			}
+			for i := 0; i < 2; i++ {
+				for _, name := range []string{"Test-Heartbeat", "Test-GetSystemInfo"} {
+					args := []string{tw.flag("database"), db}
+					if name == "Test-GetSystemInfo" {
+						args = append(args, tw.flag("skip-ports"))
+					}
+					if out, code := runScript(t, tw, dir, scriptPath(t, name+ext), args...); code != 0 {
+						t.Fatalf("%s exit%d: %s", name, code, out)
+					}
+				}
+			}
+			if got := queryScalar(t, sqlite, db, "SELECT value FROM meta WHERE key='schema_version'"); got != "4" {
+				t.Fatalf("format=%s want4", got)
+			}
+			for _, table := range []string{"beat", "snapshot"} {
+				if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM "+table); n != 2 {
+					t.Fatalf("%s rows=%d", table, n)
+				}
+			}
+			if got := queryScalar(t, sqlite, db, "PRAGMA foreign_key_check"); got != "" {
+				t.Fatal(got)
+			}
+			for _, invalid := range []string{
+				"PRAGMA foreign_keys=ON; INSERT INTO snapshot_port(snapshot_id,protocol,port) VALUES(999,'tcp',80)",
+				"INSERT INTO snapshot_port(snapshot_id,protocol,port) VALUES(1,'tcp',0)",
+				"UPDATE beat SET outcome='failed' WHERE id=1",
+				"UPDATE beat SET finished_ms=started_ms-1 WHERE id=1",
+				"UPDATE beat SET expected_ms=1,drift_ms=NULL WHERE id=1",
+			} {
+				if output, err := scriptCommand(sqlite, db, invalid).CombinedOutput(); err == nil {
+					t.Fatalf("constraint accepted %q: %s", invalid, output)
+				}
+			}
 
-	// Build a schema-2 database by hand: the old table shape, one row.
-	legacy := `CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
-INSERT INTO meta VALUES('schema_version','2');
-CREATE TABLE snapshot (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, unixtime_ms INTEGER NOT NULL,
-  iso_local TEXT NOT NULL, iso_utc TEXT NOT NULL, tz_offset_minutes INTEGER NOT NULL,
-  hostname TEXT NOT NULL, username TEXT, process_count INTEGER, uptime_seconds INTEGER,
-  os_platform TEXT NOT NULL, os_release TEXT, script_pid INTEGER NOT NULL,
-  script_flavor TEXT NOT NULL, invocation_source TEXT NOT NULL);
-INSERT INTO snapshot (unixtime_ms,iso_local,iso_utc,tz_offset_minutes,hostname,
-  os_platform,script_pid,script_flavor,invocation_source)
-VALUES (1,'x','y',0,'legacyhost','linux',1,'posix','legacy');`
-	if err := scriptCommand(sqlite, db, legacy).Run(); err != nil { //nolint:gosec // test-local
-		t.Fatalf("building legacy database: %v", err)
+		})
 	}
+}
 
-	if _, code := runScript(t, tw, dir, scriptPath(t, name), tw.flag("skip-ports")); code != 0 {
-		t.Fatalf("recording against a legacy database failed with exit %d", code)
-	}
-
-	if got := queryScalar(t, sqlite, db, "SELECT value FROM meta WHERE key='schema_version';"); got != "3" {
-		t.Errorf("schema_version = %q, want %q", got, "3")
-	}
-	// Non-destructive: the pre-existing row survives, with NULL probe columns
-	// that mark its provenance as genuinely unknown.
-	if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM snapshot WHERE invocation_source='legacy';"); n != 1 {
-		t.Error("migration destroyed the pre-existing row")
-	}
-	if n := queryInt(t, sqlite, db,
-		"SELECT COUNT(*) FROM snapshot WHERE invocation_source='legacy' AND ports_probe IS NULL;"); n != 1 {
-		t.Error("a legacy row should keep a NULL probe status, not be back-filled with a guess")
+func TestScriptsMetricsRefusesUnsupportedState(t *testing.T) {
+	sqlite := requireSqlite(t)
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			for _, seed := range []string{"CREATE TABLE unrelated(value TEXT); INSERT INTO unrelated VALUES('keep');", "CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT); INSERT INTO meta VALUES('schema_version','3');", "CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT); INSERT INTO meta VALUES('schema_version','5');", "CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT); INSERT INTO meta VALUES('schema_version','4');"} {
+				t.Run(seed, func(t *testing.T) {
+					dir := t.TempDir()
+					db := filepath.Join(dir, "unsupported.db")
+					if err := scriptCommand(sqlite, db, seed).Run(); err != nil {
+						t.Fatal(err)
+					}
+					before, err := os.ReadFile(db)
+					if err != nil {
+						t.Fatal(err)
+					}
+					ext := ".sh"
+					if tw.name == "powershell" {
+						ext = ".ps1"
+					}
+					for _, name := range []string{"Test-Heartbeat", "Test-GetSystemInfo", "Test-ReadTestDB"} {
+						args := []string{tw.flag("database"), db}
+						if name == "Test-GetSystemInfo" {
+							args = append(args, tw.flag("skip-ports"))
+						}
+						out, code := runScript(t, tw, dir, scriptPath(t, name+ext), args...)
+						if code == 0 || !strings.Contains(out, "reset") {
+							t.Fatalf("%s want explicit refusal, exit%d: %s", name, code, out)
+						}
+						after, err := os.ReadFile(db)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if string(before) != string(after) {
+							t.Fatal("refused metrics state changed")
+						}
+					}
+				})
+			}
+		})
 	}
 }
 
@@ -892,6 +935,141 @@ func TestScriptsReaderQueries(t *testing.T) {
 			// --list works without touching a database at all.
 			if _, code := runScript(t, tw, dir, script[tw.name], tw.flag("list")); code != 0 {
 				t.Errorf("--list exited %d, want 0", code)
+			}
+		})
+	}
+}
+
+// Both twins must roll back all DDL when a late initialization statement fails.
+func TestScriptsMetricsBootstrapIsAtomic(t *testing.T) {
+	sqlite := requireSqlite(t)
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			db := filepath.Join(dir, "atomic.db")
+			ext := ".sh"
+			if tw.name == "powershell" {
+				ext = ".ps1"
+			}
+			library, err := os.ReadFile(scriptPath(t, "lib/Sqlite.ps1"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tw.name == "posix" {
+				library, err = os.ReadFile(scriptPath(t, "lib/sqlite.sh"))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			altered := strings.Replace(string(library), "CREATE TABLE IF NOT EXISTS snapshot (", "INVALID SCHEMA (", 1)
+			if altered == string(library) {
+				t.Fatal("late schema statement not found")
+			}
+			lib := filepath.Join(dir, "broken"+ext)
+			if err := os.WriteFile(lib, []byte(altered), 0600); err != nil {
+				t.Fatal(err)
+			}
+			wrapper := filepath.Join(dir, "initialize"+ext)
+			quote := func(v string) string { return "'" + strings.ReplaceAll(v, "'", "''") + "'" }
+			body := ". " + quote(lib) + "\n$script:ResolvedSqliteExe=" + quote(sqlite) + "\nInitialize-HeartbeatSchema -Database " + quote(db) + "\n"
+			if tw.name == "posix" {
+				quote = func(v string) string { return "'" + strings.ReplaceAll(bashCompatiblePath(v), "'", "'\"'\"'") + "'" }
+				body = "#!/usr/bin/env bash\nsource " + quote(lib) + "\nSQLITE_EXE=" + quote(sqlite) + "\ninit_heartbeat_schema " + quote(db) + "\n"
+			}
+			if err := os.WriteFile(wrapper, []byte(body), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if out, code := runScript(t, tw, dir, wrapper); code == 0 {
+				t.Fatalf("injected failure succeeded: %s", out)
+			}
+			if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'"); n != 0 {
+				t.Fatalf("partial objects survived: %d", n)
+			}
+		})
+	}
+}
+
+// A current store under an exclusive lock is contention, not an unsupported format.
+func TestScriptsMetricsReadOnlyPreflightRetriesLocks(t *testing.T) {
+	sqlite := requireSqlite(t)
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			db := filepath.Join(dir, "heartbeat.db")
+			ext := ".sh"
+			if tw.name == "powershell" {
+				ext = ".ps1"
+			}
+			writer := scriptPath(t, "Test-Heartbeat"+ext)
+			if out, code := runScript(t, tw, dir, writer); code != 0 {
+				t.Fatalf("seed exit%d: %s", code, out)
+			}
+			locker, err := sql.Open("sqlite", db)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer locker.Close()
+			locker.SetMaxOpenConns(1)
+			if _, err := locker.Exec("PRAGMA journal_mode=DELETE; BEGIN EXCLUSIVE"); err != nil {
+				t.Fatal(err)
+			}
+			released := make(chan error, 1)
+			// Exceed two five-second probes, but remain within the existing three-attempt budget.
+			timer := time.AfterFunc(13*time.Second, func() { _, err := locker.Exec("ROLLBACK"); released <- err })
+			defer func() {
+				if timer.Stop() {
+					_, _ = locker.Exec("ROLLBACK")
+				}
+			}()
+			out, code := runScript(t, tw, dir, writer)
+			if code != 0 {
+				t.Errorf("current locked store rejected, exit%d: %s", code, out)
+			}
+			if !strings.Contains(strings.ToLower(out), "contention") || !strings.Contains(strings.ToLower(out), "locked") {
+				t.Errorf("original lock diagnostic missing: %s", out)
+			}
+			if err := <-released; err != nil {
+				t.Fatal(err)
+			}
+			if n := queryInt(t, sqlite, db, "SELECT COUNT(*) FROM beat"); n != 2 {
+				t.Fatalf("beat rows=%d, want2", n)
+			}
+			if version := queryScalar(t, sqlite, db, "SELECT value FROM meta WHERE key='schema_version'"); version != "4" {
+				t.Fatalf("marker changed: %s", version)
+			}
+		})
+	}
+}
+
+func TestScriptsMetricsRefusesNonDatabaseFile(t *testing.T) {
+	requireSqlite(t)
+	for _, tw := range allTwins() {
+		t.Run(tw.name, func(t *testing.T) {
+			requireTwin(t, tw)
+			dir := t.TempDir()
+			db := filepath.Join(dir, "not-sqlite.db")
+			original := []byte("This file belongs to another tool.\n")
+			if err := os.WriteFile(db, original, 0600); err != nil {
+				t.Fatal(err)
+			}
+			ext := ".sh"
+			if tw.name == "powershell" {
+				ext = ".ps1"
+			}
+			for _, name := range []string{"Test-Heartbeat", "Test-ReadTestDB"} {
+				out, code := runScript(t, tw, dir, scriptPath(t, name+ext), tw.flag("database"), db)
+				if code == 0 || !strings.Contains(out, "reset") || !strings.Contains(out, "not a database") {
+					t.Errorf("missing refusal/original diagnostic, exit%d: %s", code, out)
+				}
+				after, err := os.ReadFile(db)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(after) != string(original) {
+					t.Fatal("foreign file changed")
+				}
 			}
 		})
 	}

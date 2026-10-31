@@ -2,7 +2,7 @@ package store
 
 import "testing"
 
-func TestMigrationV17AddsOneLocalActorAndAuditStorage(t *testing.T) {
+func TestCurrentSchemaAddsOneLocalActorAndAuditStorage(t *testing.T) {
 	st, err := Open(":memory:")
 	if err != nil {
 		t.Fatal(err)

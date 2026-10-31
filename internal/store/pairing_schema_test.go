@@ -2,7 +2,7 @@ package store
 
 import "testing"
 
-func TestMigrationV19AddsPairingGrantExpiration(t *testing.T) {
+func TestCurrentSchemaAddsPairingGrantExpiration(t *testing.T) {
 	st, err := Open(":memory:")
 	if err != nil {
 		t.Fatal(err)

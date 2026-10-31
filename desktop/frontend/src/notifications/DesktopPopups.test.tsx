@@ -6,7 +6,7 @@ import type { DesktopBridge } from '../connection/model'
 import type { PopupPreferences, SettingsBridge, SettingsWorkspace } from '../settings/model'
 
 const initial: PopupPreferences = { enabled: false, conditions: ['failure', 'alert'], severities: ['warning', 'error'], daemonIds: [] }
-const workspace: SettingsWorkspace = { preferences: { version: 1, appearance: 'system', transition: { status: 'not_found', retired: [] }, popups: initial }, preferencePath: '', storage: [], product: { name: '', version: '', publisher: '', links: [] }, daemonAvailable: false, loadedAt: '' }
+const workspace: SettingsWorkspace = { preferences: { version: 1, appearance: 'system', popups: initial }, preferencePath: '', storage: [], product: { name: '', version: '', publisher: '', links: [] }, daemonAvailable: false, loadedAt: '' }
 const desktop = { allSystems: async () => ({ generation: 1, startedAt: '', completedAt: '', complete: true, observations: [{ registration: { key: 'local', kind: 'local' as const, label: 'This computer', daemonId: 'daemon-local' }, state: 'connected' as const, stale: false }, { registration: { key: 'profile-a', kind: 'remote' as const, label: 'Office', daemonId: 'daemon-office' }, state: 'connected' as const, stale: false }] }) } as DesktopBridge
 
 function settings(savePopups: SettingsBridge['savePopups'] = vi.fn(async () => ({ action: 'save_popups', outcome: 'accepted' as const, message: 'Desktop popup preferences saved.', workspace }))): SettingsBridge {

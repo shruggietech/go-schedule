@@ -17,7 +17,7 @@ func TestValidateAcceptsCompleteEvidence(t *testing.T) {
 	root, artifact, evidence := passingEvidence(t)
 	if failures := Validate(evidence, root, artifact, ExpectedIdentity{
 		Repository: "shruggietech/go-schedule",
-		Tag:        "v1.4.0",
+		Tag:        "v1.7.0",
 		Commit:     strings.Repeat("a", 40),
 	}); len(failures) != 0 {
 		t.Fatalf("Validate() failures = %v", failures)
@@ -41,8 +41,8 @@ func TestRequiredScenarioIDsIncludeDesktopQualification(t *testing.T) {
 		"desktop.schedule-activity-tables-scaled",
 	}
 	ids := RequiredScenarioIDs()
-	if len(ids) != 47 {
-		t.Fatalf("RequiredScenarioIDs() count = %d, want 47", len(ids))
+	if len(ids) != 45 {
+		t.Fatalf("RequiredScenarioIDs() count = %d, want 45", len(ids))
 	}
 	for _, id := range want {
 		found := false
@@ -61,7 +61,7 @@ func TestRequiredScenarioIDsIncludeDesktopQualification(t *testing.T) {
 func TestValidateRejectsDesktopQualificationMutations(t *testing.T) {
 	t.Parallel()
 
-	if len(RequiredScenarioIDs()) != 47 {
+	if len(RequiredScenarioIDs()) != 45 {
 		t.Skip("desktop qualification scenarios are not implemented yet")
 	}
 	tests := []struct {
@@ -223,7 +223,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 		mutate func(*Evidence)
 		want   string
 	}{
-		{"schema", func(e *Evidence) { e.SchemaVersion = 2 }, "schema_version"},
+		{"schema", func(e *Evidence) { e.SchemaVersion = 1 }, "schema_version"},
 		{"evidence class", func(e *Evidence) { e.EvidenceClass = "automated-fixture" }, "evidence_class"},
 		{"repository", func(e *Evidence) { e.Candidate.Repository = "fork/repo" }, "repository"},
 		{"commit", func(e *Evidence) { e.Candidate.Commit = strings.Repeat("b", 40) }, "commit"},
@@ -283,21 +283,21 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 		{"finish integrity", func(e *Evidence) {
 			findObservation(e, "setup.finish-launch-integrity").Metrics["process_integrity"] = "high"
 		}, "process_integrity"},
-		{"missing setup fingerprint", func(e *Evidence) { delete(findObservation(e, "setup.upgrade").Metrics, "before_fingerprint") }, "before_fingerprint"},
+		{"missing setup fingerprint", func(e *Evidence) { delete(findObservation(e, "setup.maintenance").Metrics, "before_fingerprint") }, "before_fingerprint"},
 		{"generic retained profile", func(e *Evidence) { e.Environments[2].ProfileState = "retained-release" }, "profile_state"},
-		{"wrong upgrade baseline", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["baseline_version"] = "1.0.0" }, "baseline_version"},
-		{"wrong upgrade MSI digest", func(e *Evidence) {
-			findObservation(e, "setup.upgrade").Metrics["baseline_sha256"] = strings.Repeat("0", 64)
-		}, "baseline_sha256"},
-		{"upgrade notifications enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["notifications_enabled"] = true }, "notifications_enabled"},
-		{"upgrade localhost MCP enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["localhost_mcp_enabled"] = true }, "localhost_mcp_enabled"},
-		{"upgrade remote HTTPS enabled", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["remote_https_enabled"] = true }, "remote_https_enabled"},
-		{"upgrade tasks lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["tasks_preserved"] = false }, "tasks_preserved"},
-		{"upgrade run history lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["run_history_preserved"] = false }, "run_history_preserved"},
-		{"upgrade appearance lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["appearance_intent_preserved"] = false }, "appearance_intent_preserved"},
-		{"upgrade daemon identity lost", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["daemon_identity_preserved"] = false }, "daemon_identity_preserved"},
-		{"upgrade service unavailable", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["service_operational"] = false }, "service_operational"},
-		{"upgrade local access unavailable", func(e *Evidence) { findObservation(e, "setup.upgrade").Metrics["local_access_operational"] = false }, "local_access_operational"},
+		{"maintenance notifications enabled", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["notifications_enabled"] = true }, "notifications_enabled"},
+		{"maintenance localhost MCP enabled", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["localhost_mcp_enabled"] = true }, "localhost_mcp_enabled"},
+		{"maintenance remote HTTPS enabled", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["remote_https_enabled"] = true }, "remote_https_enabled"},
+		{"maintenance tasks lost", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["tasks_preserved"] = false }, "tasks_preserved"},
+		{"maintenance run history lost", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["run_history_preserved"] = false }, "run_history_preserved"},
+		{"maintenance appearance lost", func(e *Evidence) {
+			findObservation(e, "setup.maintenance").Metrics["appearance_intent_preserved"] = false
+		}, "appearance_intent_preserved"},
+		{"maintenance daemon identity lost", func(e *Evidence) {
+			findObservation(e, "setup.maintenance").Metrics["daemon_identity_preserved"] = false
+		}, "daemon_identity_preserved"},
+		{"maintenance service unavailable", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["service_operational"] = false }, "service_operational"},
+		{"maintenance local access unavailable", func(e *Evidence) { findObservation(e, "setup.maintenance").Metrics["local_access_operational"] = false }, "local_access_operational"},
 		{"preserve bytes", func(e *Evidence) { findObservation(e, "remove.preserve").Metrics["owned_bytes_preserved"] = false }, "owned_bytes_preserved"},
 		{"wipe controls", func(e *Evidence) { findObservation(e, "remove.wipe").Metrics["controls_unchanged"] = false }, "controls_unchanged"},
 		{"changed control fingerprint", func(e *Evidence) {
@@ -319,7 +319,7 @@ func TestValidateRejectsCriticalMutations(t *testing.T) {
 			tt.mutate(&evidence)
 			failures := Validate(evidence, root, artifact, ExpectedIdentity{
 				Repository: "shruggietech/go-schedule",
-				Tag:        "v1.4.0",
+				Tag:        "v1.7.0",
 				Commit:     strings.Repeat("a", 40),
 			})
 			if !containsFailure(failures, tt.want) {
@@ -446,7 +446,7 @@ func TestDecodeCandidateRejectsDuplicateKeysAndInvalidUTF8(t *testing.T) {
 	}
 }
 
-func TestCheckedInFixtureIsCompleteButExplicitlyNonNative(t *testing.T) {
+func TestHistoricalFixtureRemainsReadableButCannotQualifyCurrentRelease(t *testing.T) {
 	t.Parallel()
 
 	root := filepath.Join("..", "..", "test", "fixtures", "windows-release-gate", "passing")
@@ -463,8 +463,8 @@ func TestCheckedInFixtureIsCompleteButExplicitlyNonNative(t *testing.T) {
 		Repository: "shruggietech/go-schedule",
 		Tag:        "v1.0.0",
 		Commit:     strings.Repeat("a", 40),
-	}); len(failures) != 0 {
-		t.Fatalf("checked-in fixture failures = %v", failures)
+	}); !containsFailure(failures, "schema_version") {
+		t.Fatalf("historical schema1 fixture unexpectedly qualifies current contract: %v", failures)
 	}
 	if failures := Validate(evidence, root, filepath.Join(root, evidence.Candidate.Filename), ExpectedIdentity{}); !containsFailure(failures, "evidence_class") {
 		t.Fatalf("production validation unexpectedly accepted fixture evidence: %v", failures)
@@ -514,7 +514,7 @@ func TestValidateCandidateIsIndependentOfAttendedEvidence(t *testing.T) {
 	_, artifact, evidence := passingEvidence(t)
 	if failures := ValidateCandidate(evidence.Candidate, artifact, ExpectedIdentity{
 		Repository: "shruggietech/go-schedule",
-		Tag:        "v1.4.0",
+		Tag:        "v1.7.0",
 		Commit:     strings.Repeat("a", 40),
 	}); len(failures) != 0 {
 		t.Fatalf("ValidateCandidate() failures = %v", failures)
@@ -529,7 +529,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 	t.Helper()
 
 	root := t.TempDir()
-	artifact := filepath.Join(root, "go-schedule_v1.4.0_windows_amd64.msi")
+	artifact := filepath.Join(root, "go-schedule_v1.7.0_windows_amd64.msi")
 	artifactBytes := []byte("inert fixture; not a native MSI")
 	if err := os.WriteFile(artifact, artifactBytes, 0o600); err != nil {
 		t.Fatal(err)
@@ -556,11 +556,11 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 	start := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
 	end := start.Add(4 * time.Hour)
 	evidence := Evidence{
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		EvidenceClass: "attended-windows",
 		Candidate: Candidate{
 			Repository:     "shruggietech/go-schedule",
-			Tag:            "v1.4.0",
+			Tag:            "v1.7.0",
 			Commit:         strings.Repeat("a", 40),
 			Workflow:       "Release",
 			RunID:          1234,
@@ -568,7 +568,7 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 			Filename:       filepath.Base(artifact),
 			Bytes:          int64(len(artifactBytes)),
 			SHA256:         digest(artifactBytes),
-			ProductVersion: "1.4.0",
+			ProductVersion: "1.7.0",
 			ProductCode:    "{11111111-2222-3333-4444-555555555555}",
 		},
 		Operator: Operator{
@@ -581,7 +581,6 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 		Environments: []Environment{
 			environment("standard", "intended-user", "medium", "standard-dpi", "clean", 96),
 			environment("high", "intended-user", "medium", "high-dpi", "clean", 144),
-			environment("retained", "intended-user", "medium", "standard-dpi", "retained-v1.1.1", 96),
 			environment("unrelated", "unrelated-user", "medium", "not-applicable", "not-applicable", 0),
 			environment("admin", "administrator", "high", "not-applicable", "not-applicable", 0),
 		},
@@ -599,8 +598,6 @@ func passingEvidence(t *testing.T) (string, string, Evidence) {
 			environmentID = "high"
 		case "desktop.appearance-scaled", "desktop.interaction-states-scaled", "desktop.navigation-options-scaled", "desktop.tasks-table-scaled", "desktop.schedule-activity-tables-scaled":
 			environmentID = "high"
-		case "window.retained-profile":
-			environmentID = "retained"
 		case "access.unrelated-user-denied":
 			environmentID = "unrelated"
 		case "remove.wipe", "remove.locked-partial":
@@ -652,7 +649,7 @@ func addNativeWindowFixtures(t *testing.T, root string, evidence *Evidence) {
 			clientRect = nativeRect{110, 130, 2270, 1330}
 		}
 		record := nativeWindowEvidence{
-			SchemaVersion: 1, Kind: "native-window-v1", ObservationID: o.ID,
+			SchemaVersion: 2, Kind: "native-window-v2", ObservationID: o.ID,
 			CapturedAt: evidence.StartedAt.Add(time.Minute), ProcessID: int(pid),
 			ProcessPath:   `C:\Program Files\go-schedule\gosched-gui.exe`,
 			ProcessSHA256: strings.Repeat("b", 64), ProcessSessionID: int(session),
@@ -663,11 +660,6 @@ func addNativeWindowFixtures(t *testing.T, root string, evidence *Evidence) {
 			ShowCommand: 1, Visible: true, Restored: true,
 			Desktop: &desktopWindowEvidence{SchemaVersion: 1, ProcessID: int(pid), CapturedAt: evidence.StartedAt.Add(time.Minute), ContentWidth: 1440, ContentHeight: contentHeight, DisplayScale: dpi / 96},
 		}
-		record.SchemaVersion = 2
-		record.Kind = "native-window-v2"
-		delete(o.Metrics, "fyne_content_width")
-		delete(o.Metrics, "fyne_content_height")
-		delete(o.Metrics, "fyne_scale")
 		o.Metrics["content_width"] = 1440.0
 		o.Metrics["content_height"] = contentHeight
 		o.Metrics["display_scale"] = dpi / 96
@@ -845,16 +837,7 @@ func passingMetrics(id string) map[string]any {
 	case "setup.cancel":
 		m = map[string]any{"state_unchanged": true, "owned_data_cleanup_invoked": false}
 	case "setup.maintenance":
-		m = map[string]any{"transitions_verified": true, "repair_verified": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false}
-	case "setup.upgrade":
-		m = map[string]any{
-			"choices_preserved": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false,
-			"baseline_version": v111WindowsMSIVersion, "baseline_filename": v111WindowsMSIFilename,
-			"baseline_download_url": v111WindowsMSIURL, "baseline_sha256": v111WindowsMSISHA256,
-			"tasks_preserved": true, "run_history_preserved": true, "appearance_intent_preserved": true,
-			"daemon_identity_preserved": true, "service_operational": true, "local_access_operational": true,
-			"notifications_enabled": false, "localhost_mcp_enabled": false, "remote_https_enabled": false,
-		}
+		m = map[string]any{"transitions_verified": true, "repair_verified": true, "completion_actions_absent": true, "owned_data_cleanup_invoked": false, "tasks_preserved": true, "run_history_preserved": true, "appearance_intent_preserved": true, "daemon_identity_preserved": true, "service_operational": true, "local_access_operational": true, "notifications_enabled": false, "localhost_mcp_enabled": false, "remote_https_enabled": false}
 	case "setup.invalid-input":
 		m = map[string]any{"input_rejected": true, "state_unchanged": true, "owned_data_cleanup_invoked": false}
 	case "setup.rollback":
@@ -880,7 +863,7 @@ func passingMetrics(id string) map[string]any {
 			"process_session_id": 1, "process_user_sid": "S-1-5-21-1000", "process_integrity_rid": 8192,
 			"outer_rect": rect(100, 100, 1400, 940), "client_rect": rect(110, 130, 1390, 930),
 			"monitor_rect": rect(0, 0, 2560, 1440), "work_area_rect": rect(0, 0, 2560, 1400),
-			"fyne_content_width": 1280, "fyne_content_height": 800, "fyne_scale": 1,
+			"content_width": 1440, "content_height": 900, "display_scale": 1,
 			"logical_work_area_width": 2560, "logical_work_area_height": 1400,
 			"effective_dpi": 96, "monitor_id": "fixture-monitor", "restored": true,
 			"maximized": false, "minimized": false, "fullscreen": false,
@@ -893,7 +876,7 @@ func passingMetrics(id string) map[string]any {
 	}
 	if id == "window.clean-high-or-mixed" {
 		m["effective_dpi"] = 144
-		m["fyne_scale"] = 1.5
+		m["display_scale"] = 1.5
 		m["logical_work_area_width"] = 2560.0 / 1.5
 		m["logical_work_area_height"] = 1400.0 / 1.5
 	}

@@ -47,10 +47,10 @@ func TestListTaskObservationsPagesAllowlistedFields(t *testing.T) {
 	}
 }
 
-// TestMigration_V3RemovesTriggers verifies migration v3 drops the triggers
+// TestCurrentSchemaRemovesTriggers verifies migration v3 drops the triggers
 // feature tables and the store opens cleanly (the v1/v2 migrations create the
 // tables; v3 drops them, so a freshly opened DB must not have them).
-func TestMigration_V3RemovesTriggers(t *testing.T) {
+func TestCurrentSchemaRemovesTriggers(t *testing.T) {
 	st := openMem(t)
 
 	for _, tbl := range []string{"triggers", "dedup_ledger"} {
@@ -72,10 +72,10 @@ func TestMigration_V3RemovesTriggers(t *testing.T) {
 	}
 }
 
-// TestMigration_V3IdempotentReopen verifies re-opening an already-migrated
+// TestCurrentSchemaIdempotentReopen verifies re-opening an already-migrated
 // database is a clean no-op (the DROP ... IF EXISTS guards in v3 do not error,
 // and v3 is not re-applied).
-func TestMigration_V3IdempotentReopen(t *testing.T) {
+func TestCurrentSchemaIdempotentReopen(t *testing.T) {
 	dir := t.TempDir()
 	path := dir + "/goschedule.db"
 	st1, err := Open(path)

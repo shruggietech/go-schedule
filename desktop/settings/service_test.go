@@ -58,12 +58,11 @@ func testDependencies(t *testing.T) Dependencies {
 	root := t.TempDir()
 	return Dependencies{
 		Paths: Paths{
-			Preferences:       filepath.Join(root, "current", "preferences.json"),
-			LegacyPreferences: filepath.Join(root, "legacy", "preferences.json"),
-			ApplicationData:   filepath.Join(root, "current"),
-			MachineData:       filepath.Join(root, "machine"),
-			Executable:        filepath.Join(root, "bin", "go-schedule"),
-			GOOS:              "linux",
+			Preferences:     filepath.Join(root, "current", "preferences.json"),
+			ApplicationData: filepath.Join(root, "current"),
+			MachineData:     filepath.Join(root, "machine"),
+			Executable:      filepath.Join(root, "bin", "go-schedule"),
+			GOOS:            "linux",
 		},
 		Stat: os.Stat, Now: func() time.Time { return time.Date(2026, 9, 7, 12, 0, 0, 0, time.UTC) }, Rename: os.Rename,
 	}
@@ -110,7 +109,7 @@ func TestSharedPreferenceStoreAndDesktopConvergeWithoutNativeActions(t *testing.
 	deps := testDependencies(t)
 	native := &fakeNative{}
 	service := NewServiceWithDependencies(nil, native, deps)
-	store := userprefs.NewStore(userprefs.Options{Path: deps.Paths.Preferences, LegacyPath: deps.Paths.LegacyPreferences})
+	store := userprefs.NewStore(userprefs.Options{Path: deps.Paths.Preferences})
 	dark, enabled := userprefs.AppearanceDark, true
 	if _, err := store.Patch(userprefs.Patch{Appearance: &dark, PopupEnabled: &enabled}); err != nil {
 		t.Fatal(err)
@@ -131,52 +130,19 @@ func TestSharedPreferenceStoreAndDesktopConvergeWithoutNativeActions(t *testing.
 	}
 }
 
-func TestPreferenceMigrationMatrixAndEstablishedAuthority(t *testing.T) {
-	tests := []struct {
-		name, legacy, status string
-		appearance           Appearance
-		directory            bool
-	}{
-		{name: "missing", status: "not_found", appearance: AppearanceSystem},
-		{name: "valid light", legacy: `{"appearance.mode":"light","appearance.font":"ubuntu","appearance.scroll_sensitivity":4}`, status: "migrated", appearance: AppearanceLight},
-		{name: "valid dark", legacy: `{"appearance.mode":"dark"}`, status: "migrated", appearance: AppearanceDark},
-		{name: "valid system", legacy: `{"appearance.mode":"system"}`, status: "migrated", appearance: AppearanceSystem},
-		{name: "invalid mode", legacy: `{"appearance.mode":"sepia"}`, status: "invalid", appearance: AppearanceSystem},
-		{name: "malformed", legacy: `{`, status: "invalid", appearance: AppearanceSystem},
-		{name: "unreadable", status: "unreadable", appearance: AppearanceSystem, directory: true},
+func TestFreshDesktopDefaultsAndEstablishedCurrentPreferences(t *testing.T) {
+	deps := testDependencies(t)
+	prefs, err := loadPreferences(deps)
+	if err != nil || prefs.Appearance != AppearanceSystem || !reflect.DeepEqual(prefs.Popups, userprefs.DefaultPopups()) {
+		t.Fatalf("defaults=%+v %v", prefs, err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deps := testDependencies(t)
-			if tt.directory {
-				if err := os.MkdirAll(deps.Paths.LegacyPreferences, 0o700); err != nil {
-					t.Fatal(err)
-				}
-			} else if tt.legacy != "" {
-				writeFixture(t, deps.Paths.LegacyPreferences, tt.legacy)
-			}
-			prefs, err := loadPreferences(deps)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if prefs.Appearance != tt.appearance || prefs.Transition.Status != tt.status {
-				t.Fatalf("preferences=%+v", prefs)
-			}
-			if len(prefs.Transition.Retired) != 2 {
-				t.Fatalf("retired=%v", prefs.Transition.Retired)
-			}
-			if tt.directory {
-				return
-			}
-			writeFixture(t, deps.Paths.LegacyPreferences, `{"appearance.mode":"dark"}`)
-			again, err := loadPreferences(deps)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !reflect.DeepEqual(again, prefs) {
-				t.Fatalf("legacy overwrote current preferences: got %+v want %+v", again, prefs)
-			}
-		})
+	service := NewServiceWithDependencies(nil, nil, deps)
+	if got := service.SaveAppearance(context.Background(), "dark"); got.Outcome != "accepted" {
+		t.Fatalf("save=%+v", got)
+	}
+	again, err := loadPreferences(deps)
+	if err != nil || again.Appearance != AppearanceDark || !reflect.DeepEqual(again.Popups, prefs.Popups) {
+		t.Fatalf("current=%+v %v", again, err)
 	}
 }
 
@@ -208,7 +174,7 @@ func TestSaveRestoreAndFailedReplacement(t *testing.T) {
 	if result := service.SaveAppearance(ctx, "sepia"); result.Outcome != "rejected" {
 		t.Fatalf("invalid=%+v", result)
 	}
-	if result := service.Restore(ctx); result.Outcome != "accepted" || result.Workspace.Preferences.Appearance != AppearanceSystem || result.Workspace.Preferences.Transition.Status != "not_required" {
+	if result := service.Restore(ctx); result.Outcome != "accepted" || result.Workspace.Preferences.Appearance != AppearanceSystem {
 		t.Fatalf("restore=%+v", result)
 	}
 	before, err := os.ReadFile(deps.Paths.Preferences)
@@ -331,5 +297,25 @@ func TestNativeActionFailuresAreSafe(t *testing.T) {
 	}
 	if got := service.OpenProductLink(context.Background(), "documentation"); got.Outcome != "unavailable" || got.Message != "The product link could not be opened." {
 		t.Fatalf("open=%+v", got)
+	}
+}
+
+func TestIncompleteCurrentPreferencesStayUnavailableUntilExplicitRestore(t *testing.T) {
+	deps := testDependencies(t)
+	document := `{"version":1,"appearance":"dark"}`
+	writeFixture(t, deps.Paths.Preferences, document)
+	service := NewServiceWithDependencies(nil, nil, deps)
+	if got := service.Workspace(context.Background()); got.Outcome != "unavailable" {
+		t.Fatalf("incomplete document accepted: %+v", got)
+	}
+	if got := service.SaveAppearance(context.Background(), "light"); got.Outcome != "unavailable" {
+		t.Fatalf("implicit repair: %+v", got)
+	}
+	after, _ := os.ReadFile(deps.Paths.Preferences)
+	if string(after) != document {
+		t.Fatal("failed operations changed current document")
+	}
+	if got := service.Restore(context.Background()); got.Outcome != "accepted" || got.Workspace.Preferences.Appearance != AppearanceSystem || !reflect.DeepEqual(got.Workspace.Preferences.Popups, userprefs.DefaultPopups()) {
+		t.Fatalf("explicit restore=%+v", got)
 	}
 }

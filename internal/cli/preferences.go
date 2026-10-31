@@ -35,7 +35,7 @@ func preferenceArgs(count int) cobra.PositionalArgs {
 
 func preferencesFor(cmd *cobra.Command) *userprefs.Store {
 	deps := stateFor(cmd).deps
-	return userprefs.NewStore(userprefs.Options{Path: deps.PreferencePath, LegacyPath: deps.LegacyPreferencePath})
+	return userprefs.NewStore(userprefs.Options{Path: deps.PreferencePath})
 }
 
 func writePreferencesResult(cmd *cobra.Command, owner string, store *userprefs.Store, prefs userprefs.Preferences) error {
@@ -43,7 +43,7 @@ func writePreferencesResult(cmd *cobra.Command, owner string, store *userprefs.S
 	if jsonOutput(cmd) {
 		return printJSONTo(cmd.OutOrStdout(), result)
 	}
-	_, err := fmt.Fprintf(cmd.OutOrStdout(), "User: %s\nPreference path: %s\nAppearance: %s\nDesktop popups enabled: %t\nPopup conditions: %s\nPopup severities: %s\nPopup source daemon IDs: %s\nLegacy preference transition: %s\nRetired legacy keys: %s\n", owner, store.Path(), prefs.Appearance, prefs.Popups.Enabled, strings.Join(prefs.Popups.Conditions, ", "), strings.Join(prefs.Popups.Severities, ", "), popupSources(prefs.Popups.DaemonIDs), prefs.Transition.Status, strings.Join(prefs.Transition.Retired, ", "))
+	_, err := fmt.Fprintf(cmd.OutOrStdout(), "User: %s\nPreference path: %s\nAppearance: %s\nDesktop popups enabled: %t\nPopup conditions: %s\nPopup severities: %s\nPopup source daemon IDs: %s\n", owner, store.Path(), prefs.Appearance, prefs.Popups.Enabled, strings.Join(prefs.Popups.Conditions, ", "), strings.Join(prefs.Popups.Severities, ", "), popupSources(prefs.Popups.DaemonIDs))
 	return err
 }
 

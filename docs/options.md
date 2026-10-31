@@ -5,9 +5,9 @@ nav_order: 4.5
 
 # Desktop settings and local storage
 
-The Wails desktop navigation rail keeps **Connections** and **Settings** available beside the task and operations workspaces. **Exit** remains a separate orderly application command. Settings combines the useful outcomes from the former Fyne Options and Info windows: appearance, preference transition, storage visibility, version details, and product links.
+The Wails desktop navigation rail keeps **Connections** and **Settings** available beside the task and operations workspaces. **Exit** remains a separate orderly application command. Settings provides appearance, desktop popup controls, storage visibility, version details, and product links.
 
-## Appearance and upgrade behavior
+## Current desktop preferences
 
 The Wails desktop stores one durable appearance choice for the current user:
 
@@ -15,11 +15,9 @@ The Wails desktop stores one durable appearance choice for the current user:
 | --- | --- | --- |
 | Color mode | System, Light, Dark | System |
 
-Changes are saved immediately in the versioned Wails preference file beneath the current user's configuration directory at `go-schedule/desktop/preferences.json`. **Restore desktop defaults** changes only this desktop preference and returns appearance to System. It does not alter scheduler configuration, tasks, history, logs, or external files.
+Changes are saved immediately in the versioned Wails preference file beneath the current user's configuration directory at `go-schedule/desktop/preferences.json`. **Restore desktop defaults** resets the current desktop preference document, returning appearance to System and desktop popups to disabled. It does not alter scheduler configuration, tasks, history, logs, or external files.
 
-On the first Wails start, a valid `appearance.mode` value from the earlier Fyne `tech.shruggie.goschedule` preference file is migrated when no Wails preference file exists. Valid System, Light, and Dark choices are preserved. A missing, malformed, unreadable, or unsupported legacy value selects System without preventing startup. After the Wails preference file exists, it is authoritative and later changes to the legacy file do not overwrite it.
-
-The former Fyne interface-font and scroll-sensitivity preferences are intentionally retired. Wails uses the bundled responsive type system and browser-native scrolling, so those toolkit-specific controls would no longer describe real behavior. They are not copied into the new preference file.
+The unreleased S128 source reads only the current version-1 preference document. An absent file uses System appearance and disabled desktop popups. It does not discover or import Fyne preferences and exposes no transition metadata. Invalid current preferences produce an actionable error without replacing the file; an explicit **Restore desktop defaults** or `gosched preferences reset --scope all` repairs it. Unknown JSON fields are ignored without interpreting retired metadata.
 
 ## Application storage
 

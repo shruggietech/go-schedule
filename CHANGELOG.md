@@ -12,6 +12,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **2026-10-31 clustered-execution decision (S127, #20/#186-#189/#146): explicitly defer the effort at the owner's direction.** Preserve the unfinished issues and staged decision gates, distinguish the current deferral from S125's historical evidence-specific hold and final no-go, and require a later owner revisit or explicit revision before work resumes. Existing independent-daemon behavior and immutable v1.7.0 release content are unchanged.
 
+- **2026-10-31 prelaunch baseline and pinned-guide decision (S128, #408): remove historical migrations because the owner confirms no users.** Initialize the complete application schema 24 directly, preserve valid current stores and identity, and refuse unsupported state with explicit reset guidance. Remove Fyne preference import and transition surfaces, initialize one shared metrics format 4, retire historical MSI/profile qualification and adopt current evidence revision 2. Amend constitution 3.1.0 to 4.0.0 and synchronize active platform/reset guidance, including the pinned Windows installation guide. Current security, atomic persistence, repair/uninstall and verification remain; immutable historical evidence and public v1.7.0 are unchanged. This is unreleased source work and does not select a product version, tag or release.
+
+- Make desktop one-off preview expectations deterministic under an injected clock after #409 exposed an assertion during New York's repeated hour. Preserve production first/last DST resolution and the current-time default; explicitly cover ordinary, past, equal-time and overlap behavior.
+
+- Correct current metrics read-only preflight contention handling (#410). Share the existing bounded SQLite timeout/retry path, retain underlying lock diagnostics and avoid persistent WAL changes before schema acceptance. Unsupported-state refusal and concurrent row retention remain enforced.
+
 ## [1.7.0] - 2026-10-27
 
 Prepared source for the next reliability release; this date records preparation, not publication. The latest public release remains v1.6.0. #394 tracks delivery, while original #355/#356 causes remain unconfirmed.

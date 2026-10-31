@@ -246,6 +246,7 @@ GROUP BY secs ORDER BY n DESC, secs ASC LIMIT 1;
         Write-Log ("No database at {0}. Run a recording script first." -f $dbPath) -Level Error
         exit 2
     }
+    Assert-MetricsSchema -Database $dbPath -AllowEmpty $false
     Write-Log ("database: {0}" -f $dbPath)
 
     $isHeartbeat = ($Query -in @('cadence','drift','jitter','gaps','overlaps','failures','restarts')) -or
@@ -426,13 +427,9 @@ FROM beat GROUP BY session_id, pid ORDER BY MIN(started_ms) DESC LIMIT $Limit;
             # conflation of "could not determine" with "determined zero" that
             # the rest of this schema goes out of its way to avoid.
             #
-            # Legacy snapshots (schema < 3) have no probe column. They are
-            # treated as usable but flagged, because their provenance is
-            # genuinely unknown rather than known-good.
             $usable = Invoke-Sqlite -Database $dbPath -Mode 'list' -Sql @'
-SELECT id, iso_local, COALESCE(ports_probe,'unknown')
-FROM snapshot
-WHERE ports_probe = 'ok' OR ports_probe IS NULL
+SELECT id, iso_local, ports_probe
+FROM snapshot WHERE ports_probe = 'ok'
 ORDER BY unixtime_ms DESC LIMIT 1;
 '@
             $row = ($usable | Where-Object { $_ -match '^\d+\|' } | Select-Object -First 1)
@@ -449,7 +446,7 @@ ORDER BY unixtime_ms DESC LIMIT 1;
             $sprobe = $parts[2]
 
             $newest = Invoke-Sqlite -Database $dbPath -Mode 'list' -Sql @'
-SELECT id, iso_local, COALESCE(ports_probe,'unknown')
+SELECT id, iso_local, ports_probe
 FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;
 '@
             $nrow = ($newest | Where-Object { $_ -match '^\d+\|' } | Select-Object -First 1)
@@ -459,9 +456,6 @@ FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;
                 Write-Log ("the NEWEST snapshot is {0} ({1}) with ports_probe={2} -- not shown, because its port probe did not run" -f `
                     $nparts[0], $nparts[1], $nparts[2]) -Level Warn
             }
-            if ($sprobe -eq 'unknown') {
-                Write-Log "this snapshot predates probe-status recording (schema < 3); an empty result may mean the probe never ran" -Level Warn
-            }
 
             # The comparison baseline must itself have usable port data,
             # otherwise every port reads as NEW against a snapshot that simply
@@ -469,7 +463,7 @@ FROM snapshot ORDER BY unixtime_ms DESC LIMIT 1;
 @"
 WITH prev AS (
   SELECT id FROM snapshot
-  WHERE (ports_probe = 'ok' OR ports_probe IS NULL) AND id <> $sid
+  WHERE (ports_probe = 'ok') AND id <> $sid
     AND unixtime_ms <= (SELECT unixtime_ms FROM snapshot WHERE id = $sid)
   ORDER BY unixtime_ms DESC LIMIT 1)
 SELECT p.protocol, p.port, p.address, p.process_name,
@@ -491,13 +485,6 @@ ORDER BY p.protocol, p.port LIMIT $Limit;
         Get-ExcludedNote -DbPath $dbPath `
             -CountSql "SELECT COUNT(*) FROM beat WHERE drift_ms IS NULL;" `
             -Reason "no expected moment was available (record with -AnchorIso to measure latency); try -Query jitter"
-        # Legacy rows written before v0.5.1 used epoch-boundary snapping, which
-        # is only correct for a schedule that happens to sit on that grid. This
-        # scheduler anchors interval schedules to task creation time, so those
-        # figures are dominated by a constant phase offset and are not latency.
-        Get-ExcludedNote -DbPath $dbPath `
-            -CountSql "SELECT COUNT(*) FROM beat WHERE expected_source='boundary';" `
-            -Reason "LEGACY epoch-boundary rows from before v0.5.1 -- these are phase offset, NOT latency; re-record with -AnchorIso"
     }
     if ($Query -eq 'jitter') {
         Write-Log "jitter measures variation around the schedule's OWN observed phase." -Level Warn

@@ -11,27 +11,17 @@ import (
 	"github.com/shruggietech/go-schedule/internal/secretstore"
 )
 
-func TestMigrationV23PreservesWebhookState(t *testing.T) {
+func TestCurrentNotificationSchemaPreservesWebhookState(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "prior.db")
 	db, err := sql.Open("sqlite", filename)
 	if err != nil {
 		t.Fatal(err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err = db.Exec("CREATE TABLE schema_version(version INTEGER NOT NULL)"); err != nil {
+	if _, err = db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(24);"); err != nil {
 		t.Fatal(err)
 	}
-	for _, m := range migrations {
-		if m.version > 22 {
-			break
-		}
-		if _, err = db.Exec(m.stmts); err != nil {
-			t.Fatalf("seed migration %d: %v", m.version, err)
-		}
-		if _, err = db.Exec("INSERT INTO schema_version(version) VALUES(?)", m.version); err != nil {
-			t.Fatal(err)
-		}
-	}
+
 	endpoint, err := secretstore.Protect("https://example.test/private")
 	if err != nil {
 		t.Fatal(err)
