@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Converge the published SQLite correction across both application modules for the prepared v2.0.0 candidate (S130, #404); actual publication remains tracked by #412.
+- Publish v2.0.0 from accepted S130 source, retain exact staged asset bytes through approved promotion, and align current release fallback and installation/README guidance with the actual public release (S131, #412).
+
+### Decisions
+
+- 2026-10-31 (S131): reconcile the pinned Windows installation guide after separately approved v2.0.0 publication through existing release and standing-waiver workflows; preserve tagged notes/comparison records, current-only state behavior and the attended native-testing disclosure. No release framework or historical upgrade qualification is introduced.
+
 
 ## [2.0.0] - 2026-10-31
 

@@ -1,6 +1,10 @@
 # S129 Same-Slice Release Continuation
 
-## Current boundary
+## Current execution result
+
+The approved v2.0.0 release is public/latest as release 430039348 from 75eae1ae11ad40db38341dc7d63f32876cba6483. [S131 delivery](../131-v2-publication/delivery.md) records actual staging, inspected bytes, separately approved promotion and final current-source reconciliation. The original source-PR boundary below is historical; it does not revoke the recorded approvals.
+
+## Original S129 source-preparation boundary
 
 Prepared candidate: v2.0.0. Starting accepted main: 0c1ab32129a3bd3fcb4694915aaccef4166a502c. [#412](https://github.com/shruggietech/go-schedule/issues/412) and milestone 19 track actual publication. The owner authorizes source autopilot, automatic push/official PR and in-scope corrections with at most two Codex requests including automatic PR-open review. Stop at final owner review/merge. No S129 tag, draft, release dispatch or public promotion is authorized yet. No scheduled checks.
 
@@ -51,3 +55,7 @@ An interrupted upload or update is not completion. Inspect frozen identities and
 Independently verify public/latest release ID/tag/source and every original asset ID/hash, final checksum inventory, immutable tag and actual workflow conclusions. Verify promotion-triggered Pages source/deployment and HTTPS root, installation, comparison tag, representative deep links and downloads. Merging a candidate snapshot does not select it publicly; Pages reads actual latest. Reconcile local fallback site/data/published.json and current README/install wording through normal PR integration within this same S129 continuation after publication, preserving tagged comparison bindings and all retained bytes.
 
 Close #412 and milestone 19 only when actual v2.0.0 public delivery/discovery is complete. Keep unrelated unresolved issues open. Source readiness, successful staging, published bytes and installed/attended behavior have distinct receipts. No further preparation-only design slice or release framework is needed.
+
+## Execution receipt (S131, 2026-10-31)
+
+This continuation has produced public/latest [v2.0.0](https://github.com/shruggietech/go-schedule/releases/tag/v2.0.0), release 430039348, from corrected accepted source 75eae1ae11ad40db38341dc7d63f32876cba6483 after the separate owner approvals specified above. Release 41218081205 and promotion 41218776827 succeeded on attempt 1, preserving the eight accepted original assets and adding matching SHA256SUMS.txt. [S131 delivery](../131-v2-publication/delivery.md) retains actual package/public evidence and final current-source reconciliation. The earlier pending statements are the recorded pre-publication procedure, not current release state. #412 closes after final source integration, while attended native behavior stays untested under the standing waiver.
