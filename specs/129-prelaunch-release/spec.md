@@ -2,8 +2,8 @@
 
 **Feature Branch**: `codex/129-prelaunch-release`
 **Created**: 2026-10-31
-**Status**: In Progress
-**Delivery**: Verified v2.0.0 source on review branch codex/129-prelaunch-release; source PR publication/review and later actual public delivery remain separate. See verification.md, delivery.md and handoff.md.
+**Status**: Implemented
+**Delivery**: S129 source preparation is integrated through PR #414; corrected S130 source 75eae1ae11ad40db38341dc7d63f32876cba6483 produced public/latest v2.0.0 release 430039348 under S131 approvals and immutable-byte verification. Current-source reconciliation and evidence are in ../131-v2-publication/delivery.md and verification.md; final owner integration remains workflow evidence.
 **Native scope**: [#412](https://github.com/shruggietech/go-schedule/issues/412), milestone 19 (Prelaunch baseline publication).
 
 **Input**: The owner authorizes Spec-Kit/autopilot, automatic source push and one official PR, in-scope CI/review corrections and at most two Codex requests. Stop at final owner review/merge. This continues the recommended release of the simplified prelaunch baseline after S128.

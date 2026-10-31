@@ -1,0 +1,5 @@
+# S131 Publication Contract
+
+Continue [S129 handoff](../../129-prelaunch-release/handoff.md). Exact release tag is v2.0.0, source 75eae1ae11ad40db38341dc7d63f32876cba6483 subject to owner approval. Expected original assets are four go-schedule_v2.0.0_{darwin,linux}_{amd64,arm64}.tar.gz archives, desktop darwin_arm64 and linux_amd64 archives, go-schedule_v2.0.0_windows_amd64.msi and windows-candidate-manifest.json. Final publication adds SHA256SUMS.txt only, for nine public files/eight checksum entries. Use the existing explicit workflow allowlist rather than expanding the shorthand into an unchecked shell glob.
+
+Owner approval names exact accepted source before tag push; promotion approval names actual release/source/run/attempt and inspected inventory. Candidate downloads and inspection remain private. Any identity mismatch prevents promotion; accepted bytes and tag remain immutable. Source/public/native evidence classes are separately named. Final PR remains unmerged for the owner with a maximum of two Codex requests including automatic PR-open review.

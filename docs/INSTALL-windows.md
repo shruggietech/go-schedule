@@ -10,11 +10,11 @@ nav_order: 1
 **Applies to:** MSI-based releases from 0.6.0 onward; Wails desktop guidance applies beginning with v1.4.0\
 **See also:** [`gosched` command reference](cli.md) · [Linux](INSTALL-linux.md) · [macOS](INSTALL-macos.md)
 
-> **Release status:** The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) identifies the published package, currently v1.7.0. Release promotion retains exact-source staging and artifact checks; the standing native-testing waiver leaves attended observations untested.
+> **Release status:** The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) identifies the published package, currently v2.0.0. Release promotion retains exact-source staging and artifact checks; the standing native-testing waiver leaves attended observations untested.
 
 go-schedule installs as a formal Windows application via an `.msi` package. It puts the program in *Program Files*, runs the scheduler as an auto-starting **Windows service**, adds the install directory to `PATH`, and lets you choose Start Menu and desktop shortcuts. There is no "extract a zip and run an exe from Downloads" step.
 
-The current Wails desktop uses the established `gosched-gui.exe` path. The prepared v2.0.0 source (S129) reads only current desktop preferences and does not import Fyne state.
+The current Wails desktop uses the established `gosched-gui.exe` path. Published v2.0.0 reads only current desktop preferences and does not import Fyne state.
 
 The Windows service automatically loads `C:\ProgramData\goschedule\config.json` when that file exists. Follow [Remote access](remote-access.md#operator-runbook) to create and validate that file before restarting the service. MSI installation and upgrade never create a remote configuration or open a network listener.
 
@@ -108,7 +108,7 @@ If you would rather not open a new window, the full path works in the shell you 
 
 ## Upgrading
 
-Published v1.7.0 packages retain their published behavior. The prepared v2.0.0 source (S129) initializes schema 24 directly and reopens valid current stores without changing their data or identity. It provides no historical schema conversion or old-version rollback guarantee. Unsupported, partial, or foreign stores are refused without deletion. See [Current state and explicit reset](install.md#current-state-and-explicit-reset) for the deliberate development reset procedure. SMTP credentials remain target-local and are not exported by portable task bundles.
+Published v2.0.0 initializes schema 24 directly and reopens valid current stores without changing their data or identity. It provides no historical schema conversion or old-version rollback guarantee. Unsupported, partial, or foreign stores are refused without deletion. See [Current state and explicit reset](install.md#current-state-and-explicit-reset) for the deliberate development reset procedure. SMTP credentials remain target-local and are not exported by portable task bundles.
 
 Download the newer `.msi` and run it. It performs an in-place major upgrade: the old version is removed and the new one installed, your `PATH` entry is replaced rather than duplicated, and your data under `C:\ProgramData\goschedule\` is preserved. Windows Installer retains its ordinary major-upgrade and replacement guards. The v2.0.0 baseline removes historical upgrade qualification; package replacement does not promise conversion of obsolete application state.
 

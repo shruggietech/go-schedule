@@ -152,7 +152,7 @@ It serves the same IPC endpoint, so `gosched` works against it normally. Nothing
 
 Before replacing binaries, stop the daemon that owns the effective configuration and data directory. For a registered service, use the stop command below; for a manually started daemon, stop that exact process. Back up the complete stopped data directory (default `/var/lib/goschedule`), including the database, any SQLite sidecar files, configuration and protected credential material, and retain the matching older binaries. A custom `--config` can select a different data directory. Replace binaries only after the backup, then start the daemon again.
 
-Published v1.7.0 packages retain their published behavior. The unreleased S128 source initializes schema 24 directly and reopens valid current stores without changing their data or identity. It provides no historical schema conversion or old-version rollback guarantee. Unsupported, partial, or foreign stores are refused without deletion. See [Current state and explicit reset](install.md#current-state-and-explicit-reset) for the deliberate development reset procedure. SMTP credentials remain target-local and are not exported by portable task bundles.
+Published v2.0.0 initializes schema 24 directly and reopens valid current stores without changing their data or identity. It provides no historical schema conversion or old-version rollback guarantee. Unsupported, partial, or foreign stores are refused without deletion. See [Current state and explicit reset](install.md#current-state-and-explicit-reset) for the deliberate development reset procedure. SMTP credentials remain target-local and are not exported by portable task bundles.
 
 ```sh
 sudo gosched service stop

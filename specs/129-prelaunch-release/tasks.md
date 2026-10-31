@@ -57,11 +57,11 @@ Publication bookkeeping is evidence rather than open implementation work, follow
 
 ## Phase 7: Same-slice later owner-controlled delivery
 
-- [ ] T018 [US2] After owner integration, sync clean main, verify squash tree and fresh exact-main CI/CodeQL/website, and bind source/comparison checks to that actual SHA in specs/129-prelaunch-release/delivery.md.
-- [ ] T019 [US2] Obtain exact v2.0.0 tag/draft approval for accepted main, inspect absence/conflicts, then create/push the immutable tag to existing Release workflow; record actual run/attempt in delivery.md.
-- [ ] T020 [US2] Inspect all eight actual staged assets, GitHub digests, archive versions, MSI/manifest identities and all seven job conclusions, retaining the frozen inventory in .test-temp/s129.
-- [ ] T021 [US2] Obtain separate concrete-asset promotion approval, then dispatch existing standing-waiver promotion for the same candidate; record actual nine-file result without rebuilding accepted bytes in delivery.md.
-- [ ] T022 [US3] Verify public/latest, original asset IDs/bytes, checksums, Pages/HTTPS/discovery, reconcile current wording/default through normal PR flow and close #412 only on actual release delivery; preserve deferred outcomes.
+- [X] T018 [US2] After owner integration, sync clean main, verify squash tree and fresh exact-main CI/CodeQL/website, and bind source/comparison checks to that actual SHA in specs/129-prelaunch-release/delivery.md.
+- [X] T019 [US2] Obtain exact v2.0.0 tag/draft approval for accepted main, inspect absence/conflicts, then create/push the immutable tag to existing Release workflow; record actual run/attempt in delivery.md.
+- [X] T020 [US2] Inspect all eight actual staged assets, GitHub digests, archive versions, MSI/manifest identities and all seven job conclusions, retaining the actual frozen inventory in .test-temp/s131 as the S131 execution continuation.
+- [X] T021 [US2] Obtain separate concrete-asset promotion approval, then dispatch existing standing-waiver promotion for the same candidate; record actual nine-file result without rebuilding accepted bytes in delivery.md.
+- [X] T022 [US3] Verify public/latest, original asset IDs/bytes, checksums, Pages/HTTPS/discovery, implement current wording/default reconciliation in S131, retaining #412 closure on final owner source integration as separate workflow evidence; preserve deferred outcomes.
 
 ## Dependencies and execution order
 
