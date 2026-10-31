@@ -84,11 +84,8 @@ gosched health
 gosched service status
 ```
 
-```powershell
-gosched task add backup `
-  --command "C:\Windows\System32\cmd.exe" --arg "/c" --arg "echo backup" `
-  --schedule "every weekday at 09:00"
-```
+Follow [Your first useful task](first-task.md) for a complete local snapshot example with its own input and batch script, task creation, exact run/output inspection and same-task failure recovery. Its workspace and command paths are visible to the daemon identity. The guide also covers the desktop actions.
+
 
 ```powershell
 gosched task list

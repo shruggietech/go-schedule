@@ -15,6 +15,8 @@ S109's CLI contract corrections are also unreleased: parser/operand validation, 
 
 `gosched` is a thin client. With no target flags it talks to `goschedd` over protected local IPC, so existing scripts remain local and unchanged. A deliberate `--profile` or complete explicit remote selection uses the same command surface through the authenticated HTTPS allowlist.
 
+For a complete local file-snapshot task, exact run/output inspection and same-task failure recovery, start with [Your first useful task](first-task.md).
+
 ## Contents
 
 Maintainers can evaluate the complete command inventory with the [unattended CLI coordinator](cli-qa.md), including human and JSON output, deliberate bad inputs, scoped host adapters and canonical after-action reports.
@@ -733,7 +735,7 @@ gosched profile default reset
 
 The next desktop startup reads that choice; resetting selects this computer. These commands use existing registrations without reading native credentials or contacting a daemon. Per-invocation `--profile` and the ordinary CLI local default retain their existing meanings.
 
-## SMTP channel administration (Unreleased S111)
+## SMTP channel administration
 
 The notification channel verbs also support `--kind smtp`. Supply `--smtp-host`, `--smtp-from`, `--smtp-to` and optional `--smtp-port`, `--smtp-tls starttls|tls|plain`, `--smtp-timeout 10s` and `--smtp-html`. Update merges explicitly supplied settings with the selected channel's current settings. Transport kind cannot be changed. SMTP settings flags do not select a daemon; use the existing profile or global `--daemon-endpoint` selector for that purpose.
 

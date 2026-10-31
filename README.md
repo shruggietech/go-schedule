@@ -51,26 +51,9 @@ Current public packages are [v2.0.0](https://github.com/shruggietech/go-schedule
 daemon ok (version v2.0.0)
 ```
 
-Create a harmless weekday task. On Windows:
+Follow [Your first useful task](docs/first-task.md) for a complete Windows/Linux/macOS file-snapshot example: supplied script and input, immediate execution, exact run/output inspection, an explained failure and same-task recovery. Run-now acknowledgement is separate from completed work.
 
-```powershell
-gosched task add hello --command cmd.exe --arg /c --arg "echo hello" --schedule "weekdays at 09:00"
-```
-
-On Linux or macOS:
-
-```sh
-gosched task add hello --command /bin/echo --arg hello --schedule "weekdays at 09:00"
-```
-
-The response includes the task ID, interpreted schedule and upcoming runs. Substitute that ID below to run it immediately and inspect its history:
-
-```sh
-gosched task run-now <task-id>
-gosched runs --task <task-id>
-```
-
-Open the desktop with `gosched gui` if installed. Continue with the [CLI reference](docs/cli.md), [desktop fields](docs/gui-fields.md) and [cron guide](docs/cron.md) for complete options and workflow examples.
+Open the desktop with `gosched gui` if installed. The guide covers the same task in the desktop and links to the full [CLI reference](docs/cli.md) and [desktop fields](docs/gui-fields.md).
 
 ## Documentation and support
 

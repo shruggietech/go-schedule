@@ -95,3 +95,24 @@ test('old home sections and original document headings retain destinations',asyn
  await expect(page.locator('h1')).toHaveCount(1);
  await expect(page.locator('h1')).toHaveAttribute('id','installing-go-schedule-on-windows');
 });
+
+
+test('first-task entry points explain exact run inspection and same-task recovery', async ({ page }, testInfo) => {
+ await page.goto('/docs/');
+ await page.getByRole('link', { name: 'Your first useful task', exact: true }).click();
+ await expect(page).toHaveURL(/\/docs\/first-task\//);
+ await expect(page.getByRole('heading', { level: 1, name: 'Your first useful task' })).toBeVisible();
+ await expect(page.getByRole('heading', { level: 2, name: /Run and inspect the result/ })).toBeVisible();
+ await expect(page.getByRole('heading', { level: 2, name: /Explain a failure and recover/ })).toBeVisible();
+ await expect(page.locator('pre').filter({ hasText: 'gosched runs --task' }).first()).toBeVisible();
+ await expect(page.getByText(/Published v2.0.0 does not yet show the own-ID field/)).toBeVisible();
+ await page.screenshot({ path: testInfo.outputPath('first-task.png'), fullPage: true });
+ for (const platform of ['windows', 'linux', 'macos']) {
+  await page.goto('/docs/install/' + platform + '/');
+  await page.getByRole('link', { name: 'Your first useful task', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Your first useful task' })).toBeVisible();
+ }
+ await page.setViewportSize({ width: 390, height: 844 });
+ expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+ await page.screenshot({ path: testInfo.outputPath('first-task-mobile.png'), fullPage: true });
+});

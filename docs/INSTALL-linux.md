@@ -109,24 +109,7 @@ Expect `daemon ok (version …)`. If you get a connection error instead, the dae
 
 ## First task
 
-```sh
-gosched task add nightly-backup \
-  --command /usr/local/bin/backup.sh \
-  --schedule "every day at 02:30" \
-  --tz Europe/London
-```
-
-The command echoes back how it understood the schedule along with the next few run times, so a misreading shows up now rather than at 02:30 tomorrow. Prove it end to end without waiting:
-
-```sh
-gosched task run-now <id>
-```
-
-```sh
-gosched runs --task <id>
-```
-
-The full command set is in the [reference](cli.md).
+Follow [Your first useful task](first-task.md) to create a supplied local file-snapshot script, run it immediately, inspect its exact output and repair an intentional missing-input failure. The POSIX instructions work on Linux and macOS with `/bin/sh`; no pre-existing backup script is required. Use paths accessible to the daemon identity. The complete CLI add creates an active schedule, so the guide disables automatic runs during the exercise.
 
 ## Where things live
 
