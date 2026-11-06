@@ -427,5 +427,14 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
           npx playwright install --with-deps chromium
       - name: Exercise production website
+        id: website_browser
         working-directory: site
         run: npm run test:browser
+      - name: Upload website browser failure diagnostics
+        if: ${{ failure() && steps.website_browser.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: website-browser-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: site/test-results/
+          if-no-files-found: ignore
+          retention-days: 7

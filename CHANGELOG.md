@@ -34,6 +34,16 @@ Prepared maintenance source; this date records preparation, not public availabil
 
 - 2026-11-06 (S133, #419/#424): select v2.0.1 for presentation/documentation and dependency corrections without public contract or current-state format changes. Update pinned local/CI/release build commands together and retain all eight canonical gates. Preserve public v2.0.0 selection and historical release bytes; source review/merge, immutable tag/draft and concrete-asset promotion remain distinct owner decisions.
 
+### Maintenance convergence
+
+- 2026-11-06 (S134, #419/#429/#430): keep v2.0.1 as the maintenance target and consolidate the newly arrived dependency proposals into one source candidate. Select published Next 16.4.5 as the same-package patch superseding #428's 16.4.4 pin; no affected request-time surface or application exploitability is demonstrated for the static export. Align the pinned website/Pages workflows with produced diagnostic retention and the selected deployment action's actual 600000 ms ceiling under S116's existing exception, preserving outer jobs and all other allowances. Actual public delivery remains separately approved after owner source integration.
+
+- Finish each platform-guide first-task navigation at its expected route and heading before advancing, and retain produced failure context/traces plus review captures under per-test output paths without replacing earlier S106 captures (#429).
+
+- Correct the existing timeout checker to accept the supported Pages ceiling and reject the old clamped hour, document the effective policy and preserve source/artifact-bound failed/recovered receipts (#430).
+
+- Integrate pflag 1.1.0, desktop plugin-react 6.2.1/Vitest 5.1.0, Fumadocs core/UI 16.17.10, Mermaid 12.3.0, Next 16.4.5 and Tailwind/PostCSS 4.3.4 from PRs #426-#428 with coherent metadata. Record elkjs's EPL-2.0 OR GPL-3.0-or-later metadata accurately, retaining its offered EPL-2.0 option and the project's root license.
+
 ## [2.0.0] - 2026-10-31
 
 Prepared source for the simplified prelaunch baseline; this date records preparation, not publication. Public v1.7.0 remains available until separately approved staging and promotion. #412 tracks actual release delivery. Earlier dated entries retain their decisions at the time recorded.
