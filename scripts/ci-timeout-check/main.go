@@ -23,6 +23,9 @@ type workflow struct {
 	}
 }
 
+// deploy-pages v5 clamps larger inputs to its ten-minute ceiling.
+const pagesDeploymentAllowanceMS = "600000"
+
 var goTests = regexp.MustCompile(`(?:^|[[:space:];|&])(?:go|"\$GO"|\$\(GO\)) test\b[^\n]*`)
 
 func workflowProblems(name string, data []byte) (int, []string) {
@@ -40,8 +43,8 @@ func workflowProblems(name string, data []byte) (int, []string) {
 		}
 		for _, step := range job.Steps {
 			problems = append(problems, goTestProblems(name+" job "+key, step.Run)...)
-			if strings.HasPrefix(step.Uses, "actions/deploy-pages@") && step.With["timeout"] != "3600000" {
-				problems = append(problems, name+": Pages deployment allowance must be 3600000 ms")
+			if strings.HasPrefix(step.Uses, "actions/deploy-pages@") && step.With["timeout"] != pagesDeploymentAllowanceMS {
+				problems = append(problems, fmt.Sprintf("%s: Pages deployment allowance must be %s ms (selected action ceiling)", name, pagesDeploymentAllowanceMS))
 			}
 		}
 	}

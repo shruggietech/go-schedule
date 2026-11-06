@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const validWorkflow = "jobs:\n  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 360\n    steps:\n      - run: go test -timeout=60m -race ./...\n      - uses: actions/deploy-pages@v5\n        with:\n          timeout: '3600000'\n"
+const validWorkflow = "jobs:\n  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 360\n    steps:\n      - run: go test -timeout=60m -race ./...\n      - uses: actions/deploy-pages@v5\n        with:\n          timeout: '600000'\n"
 
 func TestWorkflowCompletionPolicyRejectsReducedAndMissingAllowances(t *testing.T) {
 	cases := []struct{ name, source, want string }{
@@ -17,7 +17,9 @@ func TestWorkflowCompletionPolicyRejectsReducedAndMissingAllowances(t *testing.T
 		{"short job cap", strings.ReplaceAll(validWorkflow, "timeout-minutes: 360", "timeout-minutes: 5"), "timeout-minutes: 360"},
 		{"default package cap", strings.ReplaceAll(validWorkflow, " -timeout=60m", ""), "-timeout=60m"},
 		{"short package cap", strings.ReplaceAll(validWorkflow, "-timeout=60m", "-timeout=10m"), "-timeout=60m"},
-		{"short Pages cap", strings.ReplaceAll(validWorkflow, "3600000", "600000"), "3600000"},
+		{"unsupported clamped Pages hour", strings.ReplaceAll(validWorkflow, "600000", "3600000"), "600000"},
+		{"short Pages cap", strings.ReplaceAll(validWorkflow, "600000", "300000"), "600000"},
+		{"missing Pages cap", strings.ReplaceAll(validWorkflow, "          timeout: '600000'\n", ""), "600000"},
 		{"invalid YAML", "jobs: [", "invalid workflow"},
 	}
 	for _, tc := range cases {

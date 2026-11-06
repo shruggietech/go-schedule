@@ -3,8 +3,8 @@
   "source_ref": "refs/tags/v2.0.1",
   "reviewed_at": "2026-11-06",
   "dataset_sha256": "80b7fa0fad10099fbbf1c4ceb2a1c7ae4805931cd39592275f0d75cd038b6c8b",
-  "changelog_sha256": "ec8376e466f7c182f7061fdb3f6941a97f96b4d8a991f7a4fbac4aba8d9720a6",
-  "notes_sha256": "f5c634df7c2f7518fc89b2168730fcbfd9c69d44fdc1a4cfb45d7688178062b0",
+  "changelog_sha256": "1e97640e07cd24845d15f03fb36a278973f19ad725bb28fe1fa8f16cebe8d994",
+  "notes_sha256": "bf73360d30ac9a5be272097ddca1b90f00d3e26c8400e00335dbbd0381e476c5",
   "decisions": {
     "scheduling": "no-change",
     "events": "no-change",

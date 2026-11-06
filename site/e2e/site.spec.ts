@@ -59,20 +59,20 @@ test('diagrams render and appearance works when preference storage is unavailabl
  await expect(toggle).not.toHaveAttribute('aria-label',before!);
 });
 
-test('capture the production review surfaces',async({page})=>{
+test('capture the production review surfaces',async({page},testInfo)=>{
  await page.setViewportSize({width:1440,height:1000});
  for(const mode of ['dark','light'] as const){
   await page.emulateMedia({colorScheme:mode}); await page.goto('/');
   await expect(page.locator('html')).toHaveClass(mode);
-  await page.screenshot({path:'../.test-temp/s106-home-'+mode+'.png',fullPage:true});
-  if(mode==='dark') await page.screenshot({path:'../.test-temp/s106-home-hero.png'});
+  await page.screenshot({path:testInfo.outputPath('home-'+mode+'.png'),fullPage:true});
+  if(mode==='dark') await page.screenshot({path:testInfo.outputPath('home-hero.png')});
  }
  await page.goto('/docs/website/'); await expect(page.locator('.diagram svg')).toBeVisible();
- await page.screenshot({path:'../.test-temp/s106-documentation.png',fullPage:true});
+ await page.screenshot({path:testInfo.outputPath('documentation.png'),fullPage:true});
  await page.goto('/compare/'); await page.locator('.comparison-filters').scrollIntoViewIfNeeded();
- await page.screenshot({path:'../.test-temp/s106-comparison.png'});
+ await page.screenshot({path:testInfo.outputPath('comparison.png')});
  await page.setViewportSize({width:390,height:900}); await page.goto('/');
- await page.screenshot({path:'../.test-temp/s106-mobile.png',fullPage:true});
+ await page.screenshot({path:testInfo.outputPath('mobile.png'),fullPage:true});
 });
 
 test('comparison filters retain go-schedule and narrow the question',async({page})=>{
@@ -110,9 +110,10 @@ test('first-task entry points explain exact run inspection and same-task recover
  for (const platform of ['windows', 'linux', 'macos']) {
   await page.goto('/docs/install/' + platform + '/');
   await page.getByRole('link', { name: 'Your first useful task', exact: true }).click();
+  await expect(page).toHaveURL(/\/docs\/first-task\//);
   await expect(page.getByRole('heading', { level: 1, name: 'Your first useful task' })).toBeVisible();
  }
  await page.setViewportSize({ width: 390, height: 844 });
- expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+ await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
  await page.screenshot({ path: testInfo.outputPath('first-task-mobile.png'), fullPage: true });
 });
