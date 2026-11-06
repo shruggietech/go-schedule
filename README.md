@@ -45,10 +45,10 @@ After installation, check the daemon:
 gosched health
 ```
 
-Current public packages are [v2.0.0](https://github.com/shruggietech/go-schedule/releases/tag/v2.0.0); use the [latest published release](https://github.com/shruggietech/go-schedule/releases/latest) to identify available downloads. The output below illustrates v2.0.0. An installed daemon reports its own package version.
+Current public packages are [v2.0.0](https://github.com/shruggietech/go-schedule/releases/tag/v2.0.0); use the [latest published release](https://github.com/shruggietech/go-schedule/releases/latest) to identify available downloads. The output below illustrates the prepared v2.0.1 source candidate, not a published download. An installed daemon reports its own package version.
 
 ```text
-daemon ok (version v2.0.0)
+daemon ok (version v2.0.1)
 ```
 
 Follow [Your first useful task](docs/first-task.md) for a complete Windows/Linux/macOS file-snapshot example: supplied script and input, immediate execution, exact run/output inspection, an explained failure and same-task recovery. Run-now acknowledgement is separate from completed work.

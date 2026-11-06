@@ -8,6 +8,21 @@ import (
 	"testing"
 )
 
+func productionWailsBuildFragment(t *testing.T) string {
+	t.Helper()
+	for _, line := range strings.Split(string(readRepositoryFile(t, "desktop", "go.mod")), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 3 && fields[0] == "require" {
+			fields = fields[1:]
+		}
+		if len(fields) >= 2 && fields[0] == "github.com/wailsapp/wails/v2" {
+			return "github.com/wailsapp/wails/v2/cmd/wails@" + fields[1] + " build"
+		}
+	}
+	t.Fatal("desktop module is missing its production Wails runtime dependency")
+	return ""
+}
+
 func TestProductionDesktopUsesStableWailsIdentity(t *testing.T) {
 	var config struct {
 		Name           string `json:"name"`
@@ -34,7 +49,7 @@ func TestReleaseWorkflowBuildsProductionWailsPayload(t *testing.T) {
 		"cache-dependency-path: desktop/frontend/package-lock.json",
 		"working-directory: desktop/frontend",
 		"npm ci",
-		"github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build",
+		productionWailsBuildFragment(t),
 		"desktop/build/bin/gosched-gui",
 		"desktop/build/bin/go-schedule.app",
 		`app="$stage/gosched-gui.app"`,

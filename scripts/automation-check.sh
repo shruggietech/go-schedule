@@ -72,6 +72,38 @@ fi
 
 CI="$ROOT/.github/workflows/ci.yml"
 
+# The runtime module is the version authority for every explicit build CLI pin.
+WAILS_VERSION=''
+if [ -f "$ROOT/desktop/go.mod" ]; then
+  WAILS_VERSION=$(awk '$1 == "github.com/wailsapp/wails/v2" { print $2 } $1 == "require" && $2 == "github.com/wailsapp/wails/v2" { print $3 }' "$ROOT/desktop/go.mod")
+fi
+if ! printf '%s\n' "$WAILS_VERSION" | grep -Eq '^v2\.[0-9]+\.[0-9]+$'; then
+  report "$ROOT/desktop/go.mod: missing or ambiguous Wails runtime version"
+else
+  for wails_file in "$CI" "$ROOT/.github/workflows/release.yml" "$ROOT/scripts/verify.sh"; do
+    if [ ! -f "$wails_file" ]; then
+      report "$wails_file: missing Wails build entry point"
+      continue
+    fi
+    wails_pins=$(grep -Eo 'github.com/wailsapp/wails/v2/cmd/wails@[^[:space:]]+' "$wails_file" || true)
+    if [ -z "$wails_pins" ]; then
+      report "$wails_file: missing explicit Wails CLI pin"
+    fi
+    for wails_pin in $wails_pins; do
+      if [ "$wails_pin" != "github.com/wailsapp/wails/v2/cmd/wails@$WAILS_VERSION" ]; then
+        report "$wails_file: Wails CLI pin $wails_pin does not match runtime $WAILS_VERSION"
+      fi
+    done
+  done
+  wails_make_version=''
+  if [ -f "$ROOT/Makefile" ]; then
+    wails_make_version=$(awk '$1 == "WAILS_VERSION" && $2 == "=" { print $3 }' "$ROOT/Makefile")
+  fi
+  if [ "$wails_make_version" != "$WAILS_VERSION" ]; then
+    report "$ROOT/Makefile: Wails build version does not match runtime $WAILS_VERSION"
+  fi
+fi
+
 require_ci_text() {
   text=$1
   description=$2
@@ -115,7 +147,7 @@ else
   require_ci_text 'node-version: 26' 'Node 26 desktop baseline'
   require_node_26_pins "$CI" 'every CI Node runtime pin'
   require_ci_text 'go test -timeout=60m -race ./...' 'desktop Go race gate'
-  require_ci_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build' \
+  require_ci_text "github.com/wailsapp/wails/v2/cmd/wails@$WAILS_VERSION build" \
     'exact production Wails build version'
   require_ci_text '  wails-desktop:' 'production Wails desktop job'
   require_ci_text 'working-directory: desktop' 'production Wails desktop boundary'
@@ -454,7 +486,7 @@ else
   require_release_text 'node-version: 26' \
     'Node 26 release desktop baseline'
   require_node_26_pins "$RELEASE" 'every release Node runtime pin'
-  require_release_text 'github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build' \
+  require_release_text "github.com/wailsapp/wails/v2/cmd/wails@$WAILS_VERSION build" \
     'pinned native Wails release build'
   require_release_text 'desktop/build/bin/gosched-gui.exe' \
     'stable Windows Wails payload'

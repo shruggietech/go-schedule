@@ -44,6 +44,7 @@ make_fixture() {
   fixture=$1
   manifest=$2
   mkdir -p "$fixture/.github/workflows" \
+    "$fixture/desktop" \
     "$fixture/.github/release-notes" \
     "$fixture/scripts/brand-check" \
     "$fixture/specs/048-v100-release-cut/contracts" \
@@ -52,6 +53,16 @@ make_fixture() {
 module fixture
 
 go 1.25.0
+EOF
+  cat > "$fixture/desktop/go.mod" <<'EOF'
+module fixture/desktop
+
+go 1.25.0
+
+require github.com/wailsapp/wails/v2 v2.17.1
+EOF
+  cat > "$fixture/Makefile" <<'EOF'
+WAILS_VERSION = v2.17.1
 EOF
   cat > "$fixture/scripts/brand-check/main.go" <<'EOF'
 package main
@@ -78,7 +89,7 @@ jobs:
         working-directory: desktop
     steps:
       - run: go test -timeout=60m -race ./...
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
       - run: npm audit --audit-level=high && npm test && npm run build
       - run: echo cache-dependency-path: desktop/go.sum
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
@@ -252,7 +263,7 @@ jobs:
           node-version: 26
       - run: echo go-version-file: desktop/go.mod
       - run: echo cache-dependency-path: desktop/frontend/package-lock.json
-      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build
+      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
       - run: go build -o "$stage/gosched-tray.exe" ./cmd/gosched-tray
       - run: go build -o "$stage/gosched-indicator" ./cmd/gosched-indicator
@@ -326,6 +337,9 @@ if [ "\${1:-}" = list ]; then
   printf '%s\\n' $manifest
   exit 0
 fi
+if [ "\${1:-}" = gui ]; then
+  go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
+fi
 exit 2
 EOF
 }
@@ -339,6 +353,25 @@ run_automation_cases() {
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
   run_expect_pass approved sh "$CHECK" "$good"
+
+  for surface in runtime makefile verify ci release mixed-ci; do
+    mismatch="$tmp/wails-$surface"
+    cp -R "$good" "$mismatch"
+    case "$surface" in
+      runtime) target=desktop/go.mod ;;
+      makefile) target=Makefile ;;
+      verify) target=scripts/verify.sh ;;
+      ci) target=.github/workflows/ci.yml ;;
+      release) target=.github/workflows/release.yml ;;
+      mixed-ci) target=.github/workflows/ci.yml ;;
+    esac
+    if [ "$surface" = mixed-ci ]; then
+      printf '\n      - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.16.0 build\n' >> "$mismatch/$target"
+    else
+      sed 's/v2.17.1/v2.16.0/g' "$good/$target" > "$mismatch/$target"
+    fi
+    run_expect_fail "wails-$surface" 'Wails' sh "$CHECK" "$mismatch"
+  done
 
   for release_file in release.yml promote-release.yml promote-release-waived.yml; do
     for defect in missing bypass late conditional soft-failure; do
