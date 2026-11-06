@@ -780,7 +780,7 @@ func TestWindowsInstallerAdminGroupRejectsBrokenLifecycle(t *testing.T) {
 func TestWindowsInstallerGUIResourceContract(t *testing.T) {
 	workflow := string(readRepositoryFile(t, ".github", "workflows", "release.yml"))
 	required := []string{
-		"github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build",
+		productionWailsBuildFragment(t),
 		"desktop/build/bin/gosched-gui.exe",
 		`cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"`,
 		`cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"`,

@@ -6,9 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No additional changes recorded.
+
+## [2.0.1] - 2026-11-06
+
+Prepared maintenance source; this date records preparation, not public availability. Current public packages remain v2.0.0 until separately approved staging and promotion. #419 tracks actual delivery.
+
 ### Changed
 
-- Supply a self-contained first-task snapshot and failure/recovery guide, link it from install/CLI/desktop entry points, correct current desktop and shipped-feature descriptions, and expose the selected own Run ID separately from source-run correlation in Activity (S132, #417). The new desktop field is source-only until a later package is published.
+- Supply a self-contained first-task snapshot and failure/recovery guide, link it from install/CLI/desktop entry points, correct current desktop and shipped-feature descriptions, and expose the selected own Run ID separately from source-run correlation in Activity (S132, #417). The field is included in prepared v2.0.1 source and remains absent from public v2.0.0 packages.
 
 - Publish v2.0.0 from accepted S130 source, retain exact staged asset bytes through approved promotion, and align current release fallback and installation/README guidance with the actual public release (S131, #412).
 
@@ -18,6 +24,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - 2026-10-31 (S131): reconcile the pinned Windows installation guide after separately approved v2.0.0 publication through existing release and standing-waiver workflows; preserve tagged notes/comparison records, current-only state behavior and the attended native-testing disclosure. No release framework or historical upgrade qualification is introduced.
 
+### Fixed
+
+- Align Wails runtime, local build commands, CI and release tooling on 2.17.1 (#424); derive existing automation expectations from the declared runtime and reject mismatched CLI pins. The upstream Linux child-frame bridge correction does not establish application exploitability.
+
+- Integrate YAML 3.0.6, desktop/site Node types 26.6.6 and Fumadocs core/UI 16.17.9, with coherent module metadata and lockfiles (PRs #420-#423).
+
+### Maintenance decision
+
+- 2026-11-06 (S133, #419/#424): select v2.0.1 for presentation/documentation and dependency corrections without public contract or current-state format changes. Update pinned local/CI/release build commands together and retain all eight canonical gates. Preserve public v2.0.0 selection and historical release bytes; source review/merge, immutable tag/draft and concrete-asset promotion remain distinct owner decisions.
 
 ## [2.0.0] - 2026-10-31
 

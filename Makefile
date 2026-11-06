@@ -5,7 +5,7 @@
 GO        ?= go
 SH        ?= sh
 LDFLAGS   ?=
-WAILS_VERSION = v2.17.0
+WAILS_VERSION = v2.17.1
 
 .PHONY: all verify fmt fmt-check vet lint test test-race test-gui cover docs-check automation-check bench build build-daemon build-cli build-gui tidy clean
 
