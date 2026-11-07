@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-No additional changes recorded.
+### Changed
+
+- Reconcile README, website fallback/comparison selection and current first-task, desktop and installation availability guidance with published v2.0.1 (S135, #419). The selected own Run ID is available in the maintenance packages; preserve historical release records and the standing native-testing disclosure.
+
+### Decisions
+
+- 2026-11-06 (S135): publish accepted S134 source 25f42d6eb35ff0cec2753f0f2934396ba50df954 through separately approved exact-source staging and inspected-asset promotion, preserving the original package bytes. Update the pinned Windows installation guide's current availability notice through this reviewed source change. Retain the tagged v2.0.1 notes, comparison/review and preparation changelog section unchanged; public packages, source integration and deployed guide availability have separate delivery records.
 
 ## [2.0.1] - 2026-11-06
 

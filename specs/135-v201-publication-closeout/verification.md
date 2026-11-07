@@ -1,0 +1,37 @@
+# S135 Staging and Inspection Verification
+
+## Accepted source and release staging
+
+Source is 25f42d6eb35ff0cec2753f0f2934396ba50df954, the owner-merged S134 tree. Exact-main CI 42257930149 completed all 20 jobs, CodeQL 42257929978 and Pages 42257930034 succeeded. Fresh pre-tag S135 release-source/comparison checks passed, bound to the actual accepted source and recorded in .test-temp/s135/source-approval-check-jobs.foreground.log. Those source checks do not establish a package identity. The approved immutable tag and actual successful Release run supply separate staging identity.
+
+Release run 42329729594, attempt 1, completed successfully at 2026-11-07T02:38:09Z (November 6 in the owner's Eastern timezone). Its seven terminal-success jobs are retained in .test-temp/s135/staging-jobs-terminal.json, with run metadata and the full staging log beside it. All five checkout-bearing jobs logged the accepted source. Annotated tag f44358627c5e84b9e47681a1c3ecea4b1b241e1d still peels to the approved SHA after inspection.
+
+## Actual downloaded candidate
+
+Draft release 437271055 was resolved through authenticated listing using the existing release-promotion helper; every download used the selected release and asset IDs. The helper's selection and fresh draft-assets-01 directory are retained under .test-temp/s135. All eight actual sizes/SHA256 agree with GitHub's declared digests. Final authenticated readback found no release metadata or asset-selection changes. The [promotion inventory](promotion-inventory.md) is the concrete approval set.
+
+Six archive inspections found 15 expected Go executables with correct release build flag and target platform. Thirteen embed the accepted source revision. Two Wails GUI binaries omit VCS metadata, so their source lineage is external: immutable tag, successful exact-source build checkout/run and asset digest. Eight retained vcs.modified=true values reflect generated staging output and are not described as false or absent. Eighteen packaged README/LICENSE/CHANGELOG members match the unchanged tagged source exactly; the macOS bundle identifier/version also match.
+
+The existing Windows candidate guard passed. Fresh inspect-installer.ps1 read the downloaded MSI without installation and passed canonical identity, summary, icon, PATH, local-group and lifecycle-table relationships. Its generated manifest is byte-identical to the downloaded 449-byte manifest, binding product version 2.0.1, product code {C1743E66-7314-4EC5-B294-200AF58D4967}, the exact source, Release run 42329729594 attempt 1, MSI size 24064000 and SHA256 29fba3a0fd05185a011221748a779a6118c92f3c63cd04e9a43171ada72cc329.
+
+## Original failure and preservation
+
+The first private archive probe failed because its added assertion required an embedded Git revision in every executable. The observed macOS Wails binary has correct release/target metadata but no such field. The original package-inspection-jobs.foreground.log and archive-inspection-01 output are retained. Fresh corrected inspection writes archive-inspection-02, rejects present conflicting revisions and records missing revisions explicitly. All three corrected inspection jobs completed successfully. This is a corrected observation assumption, not a repaired product defect or a substituted source identity.
+
+The pre-inspection audit verified all 423 inherited evidence/diagnostic/helper inputs unchanged. The original v2.0.0 release 430039348 and its nine asset IDs/names/sizes/digests still match the S135 kickoff baseline. The live fallback remains v2.0.0; its future authorized transition is prepared privately and has not been applied. Original staging-log transport bytes are retained separately; the normalized text is UTF-8 without BOM, with encoding/hash receipts and no credential material.
+
+## Current record validation
+
+The foreground pre-promotion record check passed GitHub publication formatting and all 133 specification lifecycle records. Source text sanity checks found no UTF-8 BOM, mojibake or em dash in the 16 current S135/context/inventory text files. The post-inspection preservation audit found all 423 inherited inputs unchanged; 76 fresh staging/inspection files totaling 365044314 bytes are frozen in .test-temp/s135/staging-frozen-inputs.json. No new product defect was found.
+
+## Approved public promotion and independent readback
+
+The owner approved inspected release 437271055. Existing promote-release-waived.yml ran from reviewed main 25f42d6eb35ff0cec2753f0f2934396ba50df954 as run 42335391283 attempt 1 and completed successfully. Public/latest v2.0.1 was published at 2026-11-07T03:45:47Z. Fresh preflight verified the approved selection, tag and 78 frozen staging/record files unchanged. The existing workflow retained original assets and added checksum asset 719508417, 844 bytes, matching expected SHA256 e6fc144048ed7a93244134e3f6ab0021fccca1f89169a1e0f296f8dbeafa6e69.
+
+Fresh unauthenticated HTTPS downloads of all nine canonical public URLs passed size/SHA256 checks, all eight checksum entries and original asset-ID/byte preservation. The public Windows manifest is byte-identical to the inspected candidate. Private receipts are public-release-metadata-01.json, promotion-run-terminal.json and public-download-result-01.json under .test-temp/s135; source QA is not substituted for this readback. Promotion-triggered Pages run 42335466698 and trusted public HTTPS discovery are tracked separately from branch-guide integration.
+
+The nine current-discovery source files are updated only after that actual public readback. The intentional live-selector transition is recorded in discovery-source-transitions.json; the original 423-entry inventory remains intact and the other 422 inherited inputs plus 78 fresh staging/record files are the 500 immutable inputs for current verification. No historical record is silently reclassified as mutable.
+
+## Remaining source verification and owner boundary
+
+Current-discovery edits passed all eight foreground canonical gates in 4355.058 seconds. The source snapshot covered 2610 files, with zero source changes during execution and all 500 immutable inputs unchanged. The 31 independently frozen public evidence files are also unchanged. Frontend tests passed 168 cases, site unit tests passed seven cases, the static export covers 25 documents/30 routes, and all 11 production site browser cases passed with retries zero. Core coverage was engine 83.6%, schedule 89.1%, timezone 91.3%, store 80.9%, catchup 88.9% and logbus 91.1%. Existing format, vet, lint, root/desktop race, build, docs and automation gates passed without weakening security or tenancy surfaces. Exact release-source and comparison checks passed against immutable release source 25f42d6eb35ff0cec2753f0f2934396ba50df954. Current branch guides await owner integration and deployment. S134 source QA remains separately attributable and is not reused as new package/native proof. The released MSI was inspected without installation; its installed service lifecycle and attended GUI remain untested under the standing waiver. Hosted source CI retains separate native LocalSystem and compiled/silent-installer checks against its own builds. At local qualification before PR creation, zero S135 Codex requests had been used. The official PR records later head/check/review evidence under the maximum of two including automatic review. Final owner PR review/merge remains the stop boundary.
