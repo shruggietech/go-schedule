@@ -82,6 +82,7 @@ run_gate() {
       "$SH" scripts/automation-check.sh "$ROOT"
       "$SH" test/scripts/coverage-profile_test.sh
       "$SH" test/scripts/automation-check_test.sh automation
+      "$SH" test/scripts/maintainer-commands_test.sh
       ;;
     *)
       printf 'verify: unknown gate: %s\n' "$gate" >&2
