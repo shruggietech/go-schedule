@@ -13,3 +13,5 @@ Official PR publication is already authorized and follows local commit/checks. N
 ## Official PR and bounded review follow-up
 
 [PR #437](https://github.com/shruggietech/go-schedule/pull/437) is the official open review. Initial head 753fb15c5fca98e1a9ca57c3bb4e8ce90fe83889 has one automatic review request. Its continued-command finding is corrected within #435 with a failing-first regression and the original whole-step policy retained. The maximum remains two requests including automatic review. Final head/check/thread status is recorded in the PR after correction, with owner merge still pending.
+
+The second/final Code Review identifies #438 literal-root discovery. Its native and Windows-wrapper corrections have failing-first regressions, complete targeted policy verification and fresh CI after push. The two allowed requests are fully consumed; do not request a third review or copy provider command boilerplate into evidence. #433 now coordinates #434, #435, #436 and #438. Final review-fix SHA, checks and resolved-thread state are in the PR handoff; owner merge remains pending.

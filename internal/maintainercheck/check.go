@@ -268,3 +268,15 @@ func containsScalar(n *yaml.Node, want string) bool {
 	}
 	return false
 }
+
+// regularFile follows a literal path, retaining missing-file discovery semantics.
+func (c *checker) regularFile(file string) bool {
+	info, err := os.Stat(filepath.Join(c.root, file))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			c.report(file, fmt.Sprintf("inspect required file: %v", err))
+		}
+		return false
+	}
+	return info.Mode().IsRegular()
+}

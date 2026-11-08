@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- Evaluate automation and Spec-Kit lifecycle policy in-process through compatible shell commands, reuse one compiled checker across fixture cases, and preserve the existing eight gates (S136, #433). Audit executable action fields and actual publication prerequisites instead of comment matches or unrelated file order (#434, #435). Preserve exact dependency membership and unique Makefile pins in the native evaluator (#436).
+- Evaluate automation and Spec-Kit lifecycle policy in-process through compatible shell commands, reuse one compiled checker across fixture cases, and preserve the existing eight gates (S136, #433). Audit executable action fields and actual publication prerequisites instead of comment matches or unrelated file order (#434, #435). Preserve exact dependency membership and unique Makefile pins in the native evaluator (#436), and retain literal target roots during discovery and Windows argument handling (#438).
 
 - Reconcile README, website fallback/comparison selection and current first-task, desktop and installation availability guidance with published v2.0.1 (S135, #419). The selected own Run ID is available in the maintenance packages; preserve historical release records and the standing native-testing disclosure.
 

@@ -1,9 +1,24 @@
 package maintainercheck
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestReleaseNotesLiteralRoot(t *testing.T) {
+	for _, name := range []string{"checkout[1]", "checkout[unclosed"} {
+		t.Run(name, func(t *testing.T) {
+			root := filepath.Join(t.TempDir(), name)
+			put(t, root, ".github/release-notes/v1.2.3.md", "## Highlights\n\n- One.\n- Two.\n- Three.\n- Four.\n\nRead the [full changelog](https://github.com/shruggietech/go-schedule/blob/v1.2.3/CHANGELOG.md#123) for every change.\n")
+			c := newChecker(root)
+			c.releaseNotes()
+			if len(c.findings) != 0 {
+				t.Fatal(c.findings)
+			}
+		})
+	}
+}
 
 func TestComparisonOrderAndDependencies(t *testing.T) {
 	for _, tc := range []struct {

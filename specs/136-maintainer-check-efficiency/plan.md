@@ -56,3 +56,5 @@ Retain old source/timing under ignored .test-temp/s136. Capture original failure
 CI and CodeQL retain their existing pull-request/main triggers and jobs but explicitly select the PR head for checkout (fallback github.sha for non-PR events). This avoids qualifying a temporary merge checkout as the handoff candidate. The dated pinned-process decision is in CHANGELOG.md.
 
 CI qualification ArtifactOrigin labels use GOSCHED_CI_SOURCE_SHA, defined from the same selected checkout expression. The source-config regression keeps that metadata consistent with CI/CodeQL checkout. #436 preserves exact dependency membership and unique Makefile pin selection; no functional requirement or policy is weakened.
+
+Review correction #438 preserves roots as literal filesystem paths during specification/release-note discovery. Windows wrappers use existing shell builtins for native path output because implicit MSYS conversion leaves bracketed arguments unchanged. This retains the original quoted-root contract and adds no new dependency. The final review cap is exhausted after two requests; further verified corrections do not request another round.

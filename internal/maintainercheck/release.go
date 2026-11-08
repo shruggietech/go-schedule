@@ -2,6 +2,7 @@ package maintainercheck
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -180,19 +181,22 @@ var noteLink = regexp.MustCompile(`^Read the \[full changelog\]\(.+\) for every 
 
 func (c *checker) releaseNotes() {
 	dir := ".github/release-notes"
-	paths, err := filepath.Glob(filepath.Join(c.root, dir, "*.md"))
+	entries, err := os.ReadDir(filepath.Join(c.root, dir))
 	if err != nil {
-		c.report(dir, err.Error())
+		c.report(dir, fmt.Sprintf("read release-note directory: %v", err))
 		return
 	}
 	found := 0
-	for _, path := range paths {
-		base := filepath.Base(path)
+	for _, entry := range entries {
+		base := entry.Name()
 		if !noteTag.MatchString(base) {
 			continue
 		}
-		found++
 		file := filepath.ToSlash(filepath.Join(dir, base))
+		if !c.regularFile(file) {
+			continue
+		}
+		found++
 		text := c.read(file)
 		lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 		bullets, headings := 0, 0
@@ -218,6 +222,6 @@ func (c *checker) releaseNotes() {
 		c.require(file, strings.Count(text, "[full changelog](") == 1 && strings.Count(text, prefix) == 1, "expected exactly one tagged full changelog link")
 	}
 	if found == 0 {
-		c.report(dir, fmt.Sprintf("no tag-specific release notes found (%d files)", len(paths)))
+		c.report(dir, fmt.Sprintf("no tag-specific release notes found (%d files)", len(entries)))
 	}
 }

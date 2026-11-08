@@ -2,6 +2,7 @@ package maintainercheck
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -30,19 +31,33 @@ func metadata(text, key string) string {
 }
 func (c *checker) lifecycle() int {
 	inventory := c.read("specs/README.md")
-	paths, err := filepath.Glob(filepath.Join(c.root, "specs", "*-*", "spec.md"))
+	entries, err := os.ReadDir(filepath.Join(c.root, "specs"))
 	if err != nil {
-		c.report("specs", err.Error())
+		c.report("specs", fmt.Sprintf("read specification directory: %v", err))
 		return 0
 	}
 	found := 0
-	for _, path := range paths {
-		name := filepath.Base(filepath.Dir(path))
+	for _, entry := range entries {
+		name := entry.Name()
 		if !specPath.MatchString(name) {
 			continue
 		}
+		dir := filepath.Join("specs", name)
+		info, err := os.Stat(filepath.Join(c.root, dir))
+		if err != nil {
+			if !os.IsNotExist(err) {
+				c.report(dir, fmt.Sprintf("inspect specification directory: %v", err))
+			}
+			continue
+		}
+		if !info.IsDir() {
+			continue
+		}
+		file := filepath.ToSlash(filepath.Join(dir, "spec.md"))
+		if !c.regularFile(file) {
+			continue
+		}
 		found++
-		file := filepath.ToSlash(filepath.Join("specs", name, "spec.md"))
 		text := c.read(file)
 		state := metadata(text, "Status")
 		delivery := metadata(text, "Delivery")

@@ -8,7 +8,7 @@
 
 **Delivery**: Local implementation on review branch codex/136-maintainer-check-efficiency; all eight foreground gates passed. Official PR and owner merge remain separate delivery steps.
 
-**Input**: Owner kickoff of S136 under autopilot, automatic official PR publication and CI resolution, at most two Codex reviews including automatic review, stop before owner final review/merge. Outcome: #433, executable action-field correction #434, publication dependency correction #435 and pending-source exact-policy correction #436.
+**Input**: Owner kickoff of S136 under autopilot, automatic official PR publication and CI resolution, at most two Codex reviews including automatic review, stop before owner final review/merge. Outcome: #433, executable action-field correction #434, publication dependency correction #435 and pending-source exact-policy correction #436 and literal-root correction #438.
 
 ## User Scenarios & Testing
 
@@ -52,7 +52,7 @@ A maintainer uses the same commands and isolated roots on Windows, Linux or macO
 
 ### Edge Cases
 
-Missing directories/files; empty inventories; every lifecycle state; CRLF input; paths containing spaces; unknown/obsolete action versions; quoted/folded YAML; action-like comments and script strings; malformed/duplicate YAML keys; comparison checks later in the same run block; conditional or soft-failed source/comparison checks; unexpected children or helper failures.
+Missing directories/files; empty inventories; every lifecycle state; CRLF input; paths containing spaces or literal glob characters; unknown/obsolete action versions; quoted/folded YAML; action-like comments and script strings; malformed/duplicate YAML keys; comparison checks later in the same run block; conditional or soft-failed source/comparison checks; unexpected children or helper failures.
 
 ## Requirements
 

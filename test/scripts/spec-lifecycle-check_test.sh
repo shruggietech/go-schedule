@@ -121,4 +121,21 @@ mkdir -p "$missing_inventory/specs"
 printf '# Specification Lifecycle\n' > "$missing_inventory/specs/README.md"
 expect_fail missing-inventory 'missing inventory row' "$missing_inventory"
 
+# Exercise the public adapter as well as the reused native corpus binary.
+for leaf in 'root [1]' 'root [unclosed'; do
+  literal_root="$tmp/$leaf"
+  write_spec "$literal_root" Implemented 'commit abc1234'
+  write_tasks "$literal_root" x
+  write_inventory "$literal_root" Implemented
+  if ! output=$(sh "$ROOT/scripts/spec-lifecycle-check.sh" "$literal_root" 2>&1); then
+    fail "literal explicit wrapper root should pass; got: $output"
+  fi
+  assert_summary='spec-lifecycle-check: OK - 1 specification(s)'
+  case "$output" in *"$assert_summary"*) : ;; *) fail "wrapper selected the wrong explicit root: $output" ;; esac
+  if ! output=$(cd "$literal_root" && sh "$ROOT/scripts/spec-lifecycle-check.sh" 2>&1); then
+    fail "literal default wrapper root should pass; got: $output"
+  fi
+  case "$output" in *"$assert_summary"*) : ;; *) fail "wrapper selected the wrong default root: $output" ;; esac
+done
+
 printf 'spec-lifecycle-check-test: OK\n'

@@ -2,6 +2,7 @@ package maintainercheck
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -37,6 +38,19 @@ func TestLifecycleStates(t *testing.T) {
 			}
 			if tc.want != "" && !strings.Contains(got, tc.want) {
 				t.Fatalf("want %s got %s", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestLifecycleLiteralRoot(t *testing.T) {
+	for _, name := range []string{"checkout[1]", "checkout[unclosed"} {
+		t.Run(name, func(t *testing.T) {
+			root := filepath.Join(t.TempDir(), name)
+			lifecycleFixture(t, root, "Implemented", "commit abc1234", "- [x] T001 work\n", "")
+			count, findings := Lifecycle(root)
+			if count != 1 || len(findings) != 0 {
+				t.Fatal(count, findings)
 			}
 		})
 	}
