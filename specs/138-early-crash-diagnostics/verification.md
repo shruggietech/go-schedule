@@ -15,7 +15,7 @@ The installed specify, clarify, checklist, plan, tasks, analyze and implement wo
 | docs | PASS | Policy/architecture fixtures, seven site tests and 25-page static export |
 | automation | PASS | Timeout/policy/coverage guards, 96 policy cases, lifecycle corpus, 30 public adapters and bounded driver mutation |
 
-The final foreground aggregate started at 2026-11-08T22:20:06.729Z, finished at 2026-11-08T22:33:32.411Z, took 805.682 seconds and exited zero. The same run first executed the exact-source native pre-identity probe successfully. Its before/after audit found zero changes across 2666 frozen source files and zero drift across 757 protected evidence files. Private receipts are canonical-02-result.json, canonical-02-jobs.foreground.log and native-final-02-proof.json under .test-temp/s138.
+The full feature-implementation foreground aggregate started at 2026-11-08T22:20:06.729Z, finished at 2026-11-08T22:33:32.411Z, took 805.682 seconds and exited zero. The same run first executed the exact-source native pre-identity probe successfully. Its before/after audit found zero changes across 2666 frozen source files and zero drift across 757 protected evidence files. Private receipts are canonical-02-result.json, canonical-02-jobs.foreground.log and native-final-02-proof.json under .test-temp/s138.
 
 ## Final native proof and artifact readback
 
@@ -32,6 +32,12 @@ The failing-first parser API compilation, initial indirect import-cycle failure 
 The first full qualifier was deliberately interrupted after identifying an uncontained helper compiler path. Its owned process identity, interruption receipt and partial log remain private and are not counted as passing qualification. Final attempt 02 includes the corrected contained compiler path and supersedes that attempt for source qualification.
 
 An initial development query-bound foreground log was accidentally overwritten by a retry. query-bounds-log-provenance.json records that loss explicitly, and query-bounds-first-failure-transcript.txt is a labeled recovery from tool output rather than an original byte-identical log. Historical inputs were unaffected. Subsequent foreground paths are unique; the final protected-input audit passed.
+
+## 2026-11-08 hosted fixture correction
+
+Initial hosted CI on 6cd1e9dbbd682f3f27ef18adcf167aeb56ea5b24 passed 21 of 22 checks but rejected TestRuntimeEventReceiptIsSeparateArtifact on macOS. The fixture passed t.TempDir() through the platform temporary-root symlink, unlike the package's established canonicalTempDir(t) convention. The collector correctly refused that linked parent. [#443](https://github.com/shruggietech/go-schedule/issues/443) separately tracks this defect against the pending source; the same PR reuses the existing canonical helper for that single setup line. Production code and native query behavior are unchanged.
+
+The failed macOS job is 128885096293 in run 42531051328. Its complete decoded log is retained privately as ci-42531051328-attempt-1-macos-128885096293.log (28621 UTF-8 bytes, SHA-256 bfa021bf6ff9d2eb208c7426aa8cd2a904cc9a45cc300f17ad20d76536431748). The local incident package race suite passed after the correction, including existing caller-link rejection and platform-alias coverage. Formatting and lifecycle checks passed. Full hosted checks on the correction head and the remaining review allowance are recorded on the PR; the earlier full local aggregate is evidence for the feature implementation before this test-only fixture correction.
 
 ## Completion records and evidence boundaries
 

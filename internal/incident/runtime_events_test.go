@@ -106,7 +106,7 @@ func TestRuntimeEventBoundsAndFailures(t *testing.T) {
 	}
 }
 func TestRuntimeEventReceiptIsSeparateArtifact(t *testing.T) {
-	parent := t.TempDir()
+	parent := canonicalTempDir(t)
 	c, err := New(parent)
 	if err != nil {
 		t.Fatal(err)

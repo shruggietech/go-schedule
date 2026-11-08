@@ -27,6 +27,8 @@ Independent criterion: the investigation distinguishes the recovered event from 
 - [x] T007 Update CHANGELOG.md and specs/README.md, run focused checks and all eight foreground canonical gates, and audit source/evidence integrity.
 - [x] T008 Finalize specs/138-early-crash-diagnostics/verification.md and delivery.md with factual completion records and post-record consistency checks.
 
+- [x] T009 Correct #443 by reusing the established canonical temporary-directory fixture after the macOS CI finding; retain the failed job and qualify the corrected pending source.
+
 ## Dependencies and implementation strategy
 
 T001 precedes T002. Failing-first contracts precede T003, which feeds T004/T005. T006 is independently authored from retained evidence but uses the agreed receipt contract. T007/T008 follow implementation. Parser authoring and historical documentation affect different files and could run in parallel, but the primary agent executes source changes sequentially. The skill-directed research agent is read-only. Publish/review/merge operations are delivery evidence, not unchecked implementation tasks.
