@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -71,6 +72,7 @@ func observeScript(args []string, harness string, environment []string) (result 
 	var incidentErr error
 	var incidentPID int
 	var incidentHash string
+	var createdAt, exitedAt time.Time
 	if parent := os.Getenv("GOSCHEDULE_INCIDENT_DIR"); parent != "" {
 		incidentHash = scriptFileHash(executable)
 		incidentCapture, incidentErr = incident.New(parent)
@@ -113,6 +115,14 @@ func observeScript(args []string, harness string, environment []string) (result 
 						record.Collection.Detail = "An oversized owned artifact could not be removed. Inspect the private incident directory; the original script outcome is unchanged."
 					}
 				}
+				if incidentPID > 0 && result.code != 0 && result.code != -1 && runtime.GOOS == "windows" && (strings.EqualFold(filepath.Base(executable), "pwsh.exe") || strings.EqualFold(filepath.Base(executable), "pwsh")) {
+					artifact, err := incidentCapture.CollectRuntimeEvents(record.Target, createdAt, exitedAt, scriptRuntimeEvents)
+					record.Artifacts = append(record.Artifacts, artifact)
+					if err != nil {
+						record.Collection.Detail += " Runtime-event receipt could not be retained; the original result is unchanged."
+					}
+				}
+				record.Collection.DurationMS = time.Since(started).Milliseconds()
 				if err := incidentCapture.Save(record); err != nil {
 					record.Collection.Status = "failed"
 					record.Collection.Detail = "Incident metadata could not be retained; the original script outcome is unchanged."
@@ -134,6 +144,7 @@ func observeScript(args []string, harness string, environment []string) (result 
 	go func() { stderr <- captureScriptStream(pipes.Stderr) }()
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	result.err = process.Wait(ctx)
+	createdAt, exitedAt, _ = process.ExecutionTimes()
 	cancel()
 	if code, known := process.ExitCode(); known {
 		result.code = code

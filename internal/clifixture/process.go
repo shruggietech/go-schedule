@@ -19,12 +19,13 @@ type Command struct {
 
 // Process retains the exact process-tree capability created by StartProcess.
 type Process struct {
-	PID     int
-	done    chan struct{}
-	result  error
-	stop    func() error
-	once    sync.Once
-	stopErr error
+	PID                 int
+	done                chan struct{}
+	result              error
+	stop                func() error
+	once                sync.Once
+	stopErr             error
+	createdAt, exitedAt time.Time
 }
 
 // StartProcess establishes process-tree containment before child execution.
@@ -85,4 +86,15 @@ func (p *Process) Stop() error {
 		}
 	})
 	return p.stopErr
+}
+
+// ExecutionTimes returns native creation/exit times only for a completed process.
+// Unsupported or unavailable timing remains explicit instead of widening attribution.
+func (p *Process) ExecutionTimes() (time.Time, time.Time, bool) {
+	select {
+	case <-p.done:
+		return p.createdAt, p.exitedAt, !p.createdAt.IsZero() && !p.exitedAt.IsZero() && !p.exitedAt.Before(p.createdAt)
+	default:
+		return time.Time{}, time.Time{}, false
+	}
 }
