@@ -64,6 +64,11 @@ Do not "fix" this by editing `.golangci.yml` or `go.mod`. CI installs the Go ver
 
 The Make targets `verify`, `fmt-check`, `vet`, `lint`, `test-race`, `test-gui`, `cover`, `docs-check`, and `automation-check` delegate to the same driver. `make fmt`, `make tidy`, builds, and cleanup are mutating conveniences, not verification gates.
 
+The existing `sh scripts/automation-check.sh [root]` and `sh scripts/spec-lifecycle-check.sh [root]` commands load the native maintainer checker from their source checkout. Roots are literal directory paths, including brackets. On Git for Windows, shell builtins resolve an existing target to its native path before Go starts. An explicit relative root resolves from the caller directory; an isolated fixture never supplies the checker implementation. Already-resolved Go modules permit offline use. The automation command evaluates YAML action fields and actual publication prerequisites, scans lifecycle data in-process, and retains the existing trusted brand and gate-manifest helper commands. Windows console children are hidden and noninteractive. Helper failures remain failing results.
+
+The shell regression corpora build one checker and reuse it across their cases. Timing reports separate wrapper compilation, policy evaluation and other canonical gates; a faster checker is not a promised full-suite duration. Run `go test -race ./internal/maintainercheck ./scripts/maintainer-check` and `go test ./internal/maintainercheck -run '^$' -bench . -benchmem` for focused contract and evaluation measurements.
+
+
 ## Pinned artifacts
 
 These files change only with a **dated decision entry** in [`CHANGELOG.md`](CHANGELOG.md) explaining why:
