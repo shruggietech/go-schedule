@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  GOSCHED_CI_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   lint:
     name: Lint & vet
@@ -20,6 +23,8 @@ jobs:
       CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -43,6 +48,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -66,6 +73,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -96,6 +105,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -125,6 +136,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -157,6 +170,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: desktop/go.mod
@@ -217,7 +232,7 @@ jobs:
             -MsiPath $candidate `
             -EvidencePath (Join-Path $root 'compiled-msi.md') `
             -ArtifactClass candidate `
-            -ArtifactOrigin "CI build from commit $env:GITHUB_SHA"
+            -ArtifactOrigin "CI build from commit $env:GOSCHED_CI_SOURCE_SHA"
       - name: Exercise silent installer lifecycle contract
         shell: pwsh
         run: |
@@ -225,7 +240,7 @@ jobs:
           & ./test/windows/Invoke-InstallerContractCI.ps1 `
             -MsiPath (Join-Path $root 'go-schedule_s039-candidate.msi') `
             -EvidencePath (Join-Path $root 'silent-lifecycle.json') `
-            -ArtifactOrigin "CI build from commit $env:GITHUB_SHA" `
+            -ArtifactOrigin "CI build from commit $env:GOSCHED_CI_SOURCE_SHA" `
             -Confirm:$false
       - name: Upload compiled and silent MSI evidence
         if: always()
@@ -244,6 +259,8 @@ jobs:
       CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -260,6 +277,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -288,6 +307,8 @@ jobs:
         working-directory: desktop
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: desktop/go.mod
@@ -349,6 +370,8 @@ jobs:
         working-directory: desktop/frontend
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: 26
@@ -383,6 +406,8 @@ jobs:
       CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -408,6 +433,8 @@ jobs:
     # Canonical docs policy plus the exact static website build and link audit.
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod

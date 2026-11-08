@@ -7,6 +7,7 @@ ROOT=$(CDPATH='' cd "$(dirname "$0")/../.." && pwd)
 CHECK="$ROOT/scripts/automation-check.sh"
 VERIFY="$ROOT/scripts/verify.sh"
 MODE=${1:-all}
+CASE_COUNT=0
 
 fail() {
   printf 'automation-check-test: FAIL: %s\n' "$*" >&2
@@ -23,6 +24,7 @@ assert_contains() {
 }
 
 run_expect_pass() {
+  CASE_COUNT=$((CASE_COUNT + 1))
   label=$1
   shift
   if ! output=$("$@" 2>&1); then
@@ -31,6 +33,7 @@ run_expect_pass() {
 }
 
 run_expect_fail() {
+  CASE_COUNT=$((CASE_COUNT + 1))
   label=$1
   needle=$2
   shift 2
@@ -91,8 +94,8 @@ jobs:
       - run: go test -timeout=60m -race ./...
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
       - run: npm audit --audit-level=high && npm test && npm run build
-      - run: echo cache-dependency-path: desktop/go.sum
-      - run: echo cache-dependency-path: desktop/frontend/package-lock.json
+      - run: 'echo cache-dependency-path: desktop/go.sum'
+      - run: 'echo cache-dependency-path: desktop/frontend/package-lock.json'
       - run: echo desktop/build/bin/gosched-gui.exe
       - run: echo "gosched-tray.exe') ./cmd/gosched-tray"
       - run: go build -o desktop/build/bin/gosched-indicator ./cmd/gosched-indicator
@@ -198,8 +201,12 @@ updates:
 EOF
   cat > "$fixture/scripts/spec-lifecycle-check.sh" <<'EOF'
 #!/bin/sh
-printf 'fixture lifecycle OK\n'
+# Real lifecycle data below is evaluated in-process.
 EOF
+  mkdir -p "$fixture/specs/001-fixture"
+  printf "**Status**: Implemented\n**Delivery**: commit abc1234\n" > "$fixture/specs/001-fixture/spec.md"
+  printf -- "- [x] T001 Fixture task\n" > "$fixture/specs/001-fixture/tasks.md"
+  printf "| 001-fixture | Implemented | commit abc1234 |\n" > "$fixture/specs/README.md"
   cat > "$fixture/.github/workflows/codeql.yml" <<'EOF'
 name: CodeQL
 on:
@@ -261,8 +268,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 26
-      - run: echo go-version-file: desktop/go.mod
-      - run: echo cache-dependency-path: desktop/frontend/package-lock.json
+      - run: 'echo go-version-file: desktop/go.mod'
+      - run: 'echo cache-dependency-path: desktop/frontend/package-lock.json'
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
       - run: go build -o "$stage/gosched-tray.exe" ./cmd/gosched-tray
@@ -349,10 +356,12 @@ run_automation_cases() {
 
   tmp=$(mktemp -d "$ROOT/.automation-check-test.XXXXXX")
   trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+  (cd "$ROOT" && "${GO:-go}" build -o "$tmp/maintainer-check.exe" ./scripts/maintainer-check)
+  CHECK="$tmp/maintainer-check.exe"
   good="$tmp/good"
   make_fixture "$good" 'format vet lint race gui coverage docs automation'
 
-  run_expect_pass approved sh "$CHECK" "$good"
+  run_expect_pass approved "$CHECK" automation "$good"
 
   for surface in runtime makefile verify ci release mixed-ci; do
     mismatch="$tmp/wails-$surface"
@@ -370,7 +379,20 @@ run_automation_cases() {
     else
       sed 's/v2.17.1/v2.16.0/g' "$good/$target" > "$mismatch/$target"
     fi
-    run_expect_fail "wails-$surface" 'Wails' sh "$CHECK" "$mismatch"
+    run_expect_fail "wails-$surface" 'Wails' "$CHECK" automation "$mismatch"
+  done
+
+  for prefix in stale current empty; do
+    repeated="$tmp/wails-repeated-$prefix"
+    cp -R "$good" "$repeated"
+    case "$prefix" in
+      stale) pin=v2.16.0 ;;
+      current) pin=v2.17.1 ;;
+      empty) pin='' ;;
+    esac
+    printf 'WAILS_VERSION = %s\n' "$pin" > "$repeated/Makefile"
+    cat "$good/Makefile" >> "$repeated/Makefile"
+    run_expect_fail "wails-repeated-$prefix" 'Wails build version' "$CHECK" automation "$repeated"
   done
 
   for release_file in release.yml promote-release.yml promote-release-waived.yml; do
@@ -388,7 +410,7 @@ run_automation_cases() {
           grep 'go run ./scripts/comparison-check' "$good/.github/workflows/$release_file" >> "$target"
           ;;
       esac
-      run_expect_fail "comparison-$release_file-$defect" 'comparison review' sh "$CHECK" "$comparison_fixture"
+      run_expect_fail "comparison-$release_file-$defect" 'comparison review' "$CHECK" automation "$comparison_fixture"
     done
   done
 
@@ -409,7 +431,7 @@ run_automation_cases() {
         grep 'run: go run ./scripts/release-source-check' "$good/.github/workflows/release.yml" >> "$target"
         ;;
     esac
-    run_expect_fail "source-preflight-$defect" 'release source preflight' sh "$CHECK" "$source_fixture"
+    run_expect_fail "source-preflight-$defect" 'release source preflight' "$CHECK" automation "$source_fixture"
   done
 
   stale_tag_boundary="$tmp/stale-tag-boundary"
@@ -418,7 +440,7 @@ run_automation_cases() {
     "$good/specs/048-v100-release-cut/contracts/publication.md" > \
     "$stale_tag_boundary/specs/048-v100-release-cut/contracts/publication.md"
   run_expect_fail stale-tag-boundary 'S049 tag-boundary identity' \
-    sh "$CHECK" "$stale_tag_boundary"
+    "$CHECK" automation "$stale_tag_boundary"
 
   missing_packet_command="$tmp/missing-packet-command"
   cp -R "$good" "$missing_packet_command"
@@ -426,7 +448,7 @@ run_automation_cases() {
     "$good/test/windows/README.md" > \
     "$missing_packet_command/test/windows/README.md"
   run_expect_fail missing-packet-command 'operator disposition command' \
-    sh "$CHECK" "$missing_packet_command"
+    "$CHECK" automation "$missing_packet_command"
 
   missing_non_authority="$tmp/missing-non-authority"
   cp -R "$good" "$missing_non_authority"
@@ -434,7 +456,7 @@ run_automation_cases() {
     "$good/test/windows/README.md" > \
     "$missing_non_authority/test/windows/README.md"
   run_expect_fail missing-non-authority 'non-authority boundary' \
-    sh "$CHECK" "$missing_non_authority"
+    "$CHECK" automation "$missing_non_authority"
 
   generated_notes="$tmp/generated-notes"
   cp -R "$good" "$generated_notes"
@@ -442,7 +464,7 @@ run_automation_cases() {
     "$good/.github/workflows/release.yml" > \
     "$generated_notes/.github/workflows/release.yml"
   run_expect_fail generated-notes 'generated release notes must remain disabled' \
-    sh "$CHECK" "$generated_notes"
+    "$CHECK" automation "$generated_notes"
 
   fixed_body_path="$tmp/fixed-body-path"
   cp -R "$good" "$fixed_body_path"
@@ -450,28 +472,28 @@ run_automation_cases() {
     "$good/.github/workflows/release.yml" > \
     "$fixed_body_path/.github/workflows/release.yml"
   run_expect_fail fixed-body-path 'dynamic tag-specific release-note body path' \
-    sh "$CHECK" "$fixed_body_path"
+    "$CHECK" automation "$fixed_body_path"
 
   direct_main_push="$tmp/direct-main-push"
   cp -R "$good" "$direct_main_push"
   printf '      - run: git push origin HEAD:main\n' >> \
     "$direct_main_push/.github/workflows/release.yml"
   run_expect_fail direct-main-push 'must not invoke git' \
-    sh "$CHECK" "$direct_main_push"
+    "$CHECK" automation "$direct_main_push"
 
   quoted_main_push="$tmp/quoted-main-push"
   cp -R "$good" "$quoted_main_push"
   printf "      - run: git push origin 'HEAD:main'\n" >> \
     "$quoted_main_push/.github/workflows/release.yml"
   run_expect_fail quoted-main-push 'must not invoke git' \
-    sh "$CHECK" "$quoted_main_push"
+    "$CHECK" automation "$quoted_main_push"
 
   full_main_refspec="$tmp/full-main-refspec"
   cp -R "$good" "$full_main_refspec"
   printf '      - run: git push origin HEAD:refs/heads/main\n' >> \
     "$full_main_refspec/.github/workflows/release.yml"
   run_expect_fail full-main-refspec 'must not invoke git' \
-    sh "$CHECK" "$full_main_refspec"
+    "$CHECK" automation "$full_main_refspec"
 
   global_option_push="$tmp/global-option-push"
   cp -R "$good" "$global_option_push"
@@ -480,7 +502,7 @@ run_automation_cases() {
   printf '      - run: git -C "$GITHUB_WORKSPACE" push origin HEAD:main\n' >> \
     "$global_option_push/.github/workflows/release.yml"
   run_expect_fail global-option-push 'must not invoke git' \
-    sh "$CHECK" "$global_option_push"
+    "$CHECK" automation "$global_option_push"
 
   continued_push="$tmp/continued-push"
   cp -R "$good" "$continued_push"
@@ -490,7 +512,7 @@ run_automation_cases() {
     '            push origin HEAD:main' >> \
     "$continued_push/.github/workflows/release.yml"
   run_expect_fail continued-push 'must not invoke git' \
-    sh "$CHECK" "$continued_push"
+    "$CHECK" automation "$continued_push"
 
   folded_push="$tmp/folded-push"
   cp -R "$good" "$folded_push"
@@ -498,28 +520,28 @@ run_automation_cases() {
     '          push origin HEAD:main' >> \
     "$folded_push/.github/workflows/release.yml"
   run_expect_fail folded-push 'must not invoke git' \
-    sh "$CHECK" "$folded_push"
+    "$CHECK" automation "$folded_push"
 
   main_checkout="$tmp/main-checkout"
   cp -R "$good" "$main_checkout"
   printf '      - uses: actions/checkout@v7\n        with:\n          ref: main\n' >> \
     "$main_checkout/.github/workflows/release.yml"
   run_expect_fail main-checkout 'must inspect the tagged checkout' \
-    sh "$CHECK" "$main_checkout"
+    "$CHECK" automation "$main_checkout"
 
   quoted_main_checkout="$tmp/quoted-main-checkout"
   cp -R "$good" "$quoted_main_checkout"
   printf '      - uses: actions/checkout@v7\n        with:\n          ref: "main"\n' >> \
     "$quoted_main_checkout/.github/workflows/release.yml"
   run_expect_fail quoted-main-checkout 'must inspect the tagged checkout' \
-    sh "$CHECK" "$quoted_main_checkout"
+    "$CHECK" automation "$quoted_main_checkout"
 
   qualified_main_checkout="$tmp/qualified-main-checkout"
   cp -R "$good" "$qualified_main_checkout"
   printf "      - uses: actions/checkout@v7\n        with:\n          ref: 'refs/heads/main'\n" >> \
     "$qualified_main_checkout/.github/workflows/release.yml"
   run_expect_fail qualified-main-checkout 'must inspect the tagged checkout' \
-    sh "$CHECK" "$qualified_main_checkout"
+    "$CHECK" automation "$qualified_main_checkout"
 
   ungated_release="$tmp/ungated-release"
   cp -R "$good" "$ungated_release"
@@ -529,7 +551,7 @@ run_automation_cases() {
   printf '  gui: # desktop release\n    needs: readme-version\n' >> \
     "$ungated_release/.github/workflows/release.yml"
   run_expect_fail ungated-release 'README and exact-commit CI preflight dependencies' \
-    sh "$CHECK" "$ungated_release"
+    "$CHECK" automation "$ungated_release"
 
   nested_dependency="$tmp/nested-dependency"
   cp -R "$good" "$nested_dependency"
@@ -538,41 +560,41 @@ run_automation_cases() {
     "$good/.github/workflows/release.yml" > \
     "$nested_dependency/.github/workflows/release.yml"
   run_expect_fail nested-dependency 'README and exact-commit CI preflight dependencies' \
-    sh "$CHECK" "$nested_dependency"
+    "$CHECK" automation "$nested_dependency"
 
   missing_webkit="$tmp/missing-webkit"
   cp -R "$good" "$missing_webkit"
   sed 's/libwebkit2gtk-4.1-dev//' "$good/.github/workflows/release.yml" > \
     "$missing_webkit/.github/workflows/release.yml"
   run_expect_fail missing-webkit 'Linux Wails WebKit development headers' \
-    sh "$CHECK" "$missing_webkit"
+    "$CHECK" automation "$missing_webkit"
 
   public_staging="$tmp/public-staging"
   cp -R "$good" "$public_staging"
   sed '/draft: true/d' "$good/.github/workflows/release.yml" > \
     "$public_staging/.github/workflows/release.yml"
   run_expect_fail public-staging 'explicitly use draft: true' \
-    sh "$CHECK" "$public_staging"
+    "$CHECK" automation "$public_staging"
 
   staging_checksums="$tmp/staging-checksums"
   cp -R "$good" "$staging_checksums"
   printf '      - run: sha256sum * > SHA256SUMS.txt\n' >> \
     "$staging_checksums/.github/workflows/release.yml"
   run_expect_fail staging-checksums 'must not publish or create final checksums' \
-    sh "$CHECK" "$staging_checksums"
+    "$CHECK" automation "$staging_checksums"
 
   missing_promotion="$tmp/missing-promotion"
   cp -R "$good" "$missing_promotion"
   rm -f "$missing_promotion/.github/workflows/promote-release.yml"
   run_expect_fail missing-promotion 'promotion workflow not found' \
-    sh "$CHECK" "$missing_promotion"
+    "$CHECK" automation "$missing_promotion"
 
   rebuild_promotion="$tmp/rebuild-promotion"
   cp -R "$good" "$rebuild_promotion"
   printf '          go build ./cmd/gosched-gui\n' >> \
     "$rebuild_promotion/.github/workflows/promote-release.yml"
   run_expect_fail rebuild-promotion 'must not rebuild release artifacts' \
-    sh "$CHECK" "$rebuild_promotion"
+    "$CHECK" automation "$rebuild_promotion"
 
   ungated_promotion="$tmp/ungated-promotion"
   cp -R "$good" "$ungated_promotion"
@@ -580,7 +602,7 @@ run_automation_cases() {
     "$good/.github/workflows/promote-release.yml" > \
     "$ungated_promotion/.github/workflows/promote-release.yml"
   run_expect_fail ungated-promotion 'shared exact-candidate evidence gate' \
-    sh "$CHECK" "$ungated_promotion"
+    "$CHECK" automation "$ungated_promotion"
 
   no_candidate_gate="$tmp/no-candidate-gate"
   cp -R "$good" "$no_candidate_gate"
@@ -588,7 +610,7 @@ run_automation_cases() {
     "$good/.github/workflows/promote-release.yml" > \
     "$no_candidate_gate/.github/workflows/promote-release.yml"
   run_expect_fail no-candidate-gate 'independent candidate-manifest gate' \
-    sh "$CHECK" "$no_candidate_gate"
+    "$CHECK" automation "$no_candidate_gate"
 
   no_actions_read="$tmp/no-actions-read"
   cp -R "$good" "$no_actions_read"
@@ -596,7 +618,7 @@ run_automation_cases() {
     "$good/.github/workflows/promote-release.yml" > \
     "$no_actions_read/.github/workflows/promote-release.yml"
   run_expect_fail no-actions-read 'workflow-run read permission' \
-    sh "$CHECK" "$no_actions_read"
+    "$CHECK" automation "$no_actions_read"
 
   no_asset_allowlist="$tmp/no-asset-allowlist"
   cp -R "$good" "$no_asset_allowlist"
@@ -604,7 +626,7 @@ run_automation_cases() {
     "$good/.github/workflows/promote-release.yml" > \
     "$no_asset_allowlist/.github/workflows/promote-release.yml"
   run_expect_fail no-asset-allowlist 'exact draft asset allowlist' \
-    sh "$CHECK" "$no_asset_allowlist"
+    "$CHECK" automation "$no_asset_allowlist"
 
   no_attempt_job="$tmp/no-attempt-job"
   cp -R "$good" "$no_attempt_job"
@@ -613,7 +635,7 @@ run_automation_cases() {
     "$no_attempt_job/.github/workflows/promote-release.yml"
   run_expect_fail no-attempt-job \
     'candidate-producing workflow-attempt job validation' \
-    sh "$CHECK" "$no_attempt_job"
+    "$CHECK" automation "$no_attempt_job"
 
   no_tag_recheck="$tmp/no-tag-recheck"
   cp -R "$good" "$no_tag_recheck"
@@ -621,7 +643,7 @@ run_automation_cases() {
     "$good/.github/workflows/promote-release.yml" > \
     "$no_tag_recheck/.github/workflows/promote-release.yml"
   run_expect_fail no-tag-recheck 'last-moment tag identity check' \
-    sh "$CHECK" "$no_tag_recheck"
+    "$CHECK" automation "$no_tag_recheck"
 
   early_promotion="$tmp/early-promotion"
   cp -R "$good" "$early_promotion"
@@ -630,7 +652,7 @@ run_automation_cases() {
     "$good/.github/workflows/promote-release.yml" > \
     "$early_promotion/.github/workflows/promote-release.yml"
   run_expect_fail early-promotion 'not ordered safely' \
-    sh "$CHECK" "$early_promotion"
+    "$CHECK" automation "$early_promotion"
 
   missing_changelog="$tmp/missing-changelog"
   cp -R "$good" "$missing_changelog"
@@ -638,7 +660,7 @@ run_automation_cases() {
     "$good/.github/release-notes/v0.9.0.md" > \
     "$missing_changelog/.github/release-notes/v0.9.0.md"
   run_expect_fail missing-changelog 'tagged full changelog link' \
-    sh "$CHECK" "$missing_changelog"
+    "$CHECK" automation "$missing_changelog"
 
   too_few_highlights="$tmp/too-few-highlights"
   cp -R "$good" "$too_few_highlights"
@@ -646,7 +668,7 @@ run_automation_cases() {
     "$good/.github/release-notes/v0.9.0.md" > \
     "$too_few_highlights/.github/release-notes/v0.9.0.md"
   run_expect_fail too-few-highlights 'four to six highlight bullets' \
-    sh "$CHECK" "$too_few_highlights"
+    "$CHECK" automation "$too_few_highlights"
 
   too_many_highlights="$tmp/too-many-highlights"
   cp -R "$good" "$too_many_highlights"
@@ -657,47 +679,47 @@ run_automation_cases() {
     "$good/.github/release-notes/v0.9.0.md" > \
     "$too_many_highlights/.github/release-notes/v0.9.0.md"
   run_expect_fail too-many-highlights 'four to six highlight bullets' \
-    sh "$CHECK" "$too_many_highlights"
+    "$CHECK" automation "$too_many_highlights"
 
   exhaustive_copy="$tmp/exhaustive-copy"
   cp -R "$good" "$exhaustive_copy"
   printf '\n## Installation\n\nDownload the package for your platform.\n' >> \
     "$exhaustive_copy/.github/release-notes/v0.9.0.md"
   run_expect_fail exhaustive-copy 'highlights-only release copy' \
-    sh "$CHECK" "$exhaustive_copy"
+    "$CHECK" automation "$exhaustive_copy"
 
   paragraph_copy="$tmp/paragraph-copy"
   cp -R "$good" "$paragraph_copy"
   printf '\nInstall the package and register the service before first use.\n' >> \
     "$paragraph_copy/.github/release-notes/v0.9.0.md"
   run_expect_fail paragraph-copy 'highlights-only release copy' \
-    sh "$CHECK" "$paragraph_copy"
+    "$CHECK" automation "$paragraph_copy"
 
   h3_copy="$tmp/h3-copy"
   cp -R "$good" "$h3_copy"
   printf '\n### Installation\n\nRegister the service after extracting the package.\n' >> \
     "$h3_copy/.github/release-notes/v0.9.0.md"
   run_expect_fail h3-copy 'highlights-only release copy' \
-    sh "$CHECK" "$h3_copy"
+    "$CHECK" automation "$h3_copy"
 
   old="$tmp/old"
   cp -R "$good" "$old"
   sed 's#actions/checkout@v7#actions/checkout@v4#' \
     "$good/.github/workflows/ci.yml" > "$old/.github/workflows/ci.yml"
-  run_expect_fail obsolete 'actions/checkout@v4' sh "$CHECK" "$old"
+  run_expect_fail obsolete 'actions/checkout@v4' "$CHECK" automation "$old"
 
   old_node="$tmp/old-node"
   cp -R "$good" "$old_node"
   sed 's#actions/setup-node@v7#actions/setup-node@v6#' \
     "$good/.github/workflows/ci.yml" > "$old_node/.github/workflows/ci.yml"
-  run_expect_fail obsolete-node 'actions/setup-node@v6' sh "$CHECK" "$old_node"
+  run_expect_fail obsolete-node 'actions/setup-node@v6' "$CHECK" automation "$old_node"
 
   for action in configure-pages deploy-pages upload-pages-artifact; do
     case "$action" in configure-pages) former=v5 ;; *) former=v4 ;; esac
     old_pages="$tmp/old-$action"
     cp -R "$good" "$old_pages"
     printf '      - uses: actions/%s@%s\n' "$action" "$former" >> "$old_pages/.github/workflows/ci.yml"
-    run_expect_fail "obsolete-$action" "actions/$action@$former" sh "$CHECK" "$old_pages"
+    run_expect_fail "obsolete-$action" "actions/$action@$former" "$CHECK" automation "$old_pages"
   done
 
   old_node_runtime="$tmp/old-node-runtime"
@@ -707,7 +729,7 @@ run_automation_cases() {
     { print }
   ' "$good/.github/workflows/ci.yml" > "$old_node_runtime/.github/workflows/ci.yml"
   run_expect_fail old-node-runtime 'every CI Node runtime pin must use Node 26; found 24' \
-    sh "$CHECK" "$old_node_runtime"
+    "$CHECK" automation "$old_node_runtime"
 
   old_release_node_runtime="$tmp/old-release-node-runtime"
   cp -R "$good" "$old_release_node_runtime"
@@ -717,28 +739,28 @@ run_automation_cases() {
   ' "$good/.github/workflows/release.yml" > \
     "$old_release_node_runtime/.github/workflows/release.yml"
   run_expect_fail old-release-node-runtime 'every release Node runtime pin must use Node 26; found 24' \
-    sh "$CHECK" "$old_release_node_runtime"
+    "$CHECK" automation "$old_release_node_runtime"
 
   incomplete_wails_matrix="$tmp/incomplete-wails-matrix"
   cp -R "$good" "$incomplete_wails_matrix"
   sed 's/os: \[ubuntu-latest, macos-latest, windows-latest\]/os: [ubuntu-latest, windows-latest]/' \
     "$good/.github/workflows/ci.yml" > "$incomplete_wails_matrix/.github/workflows/ci.yml"
   run_expect_fail incomplete-wails-matrix 'three-platform production Wails matrix' \
-    sh "$CHECK" "$incomplete_wails_matrix"
+    "$CHECK" automation "$incomplete_wails_matrix"
 
   missing_production_desktop="$tmp/missing-production-desktop"
   cp -R "$good" "$missing_production_desktop"
-  sed '/^  wails-desktop:$/,/^  wails-desktop-browser-contract:$/d' \
+  sed '/^  wails-desktop:$/,/^  wails-desktop-browser-contract:$/ { /^  wails-desktop-browser-contract:$/!d; }' \
     "$good/.github/workflows/ci.yml" > "$missing_production_desktop/.github/workflows/ci.yml"
   run_expect_fail missing-production-desktop 'production Wails desktop job' \
-    sh "$CHECK" "$missing_production_desktop"
+    "$CHECK" automation "$missing_production_desktop"
 
   missing_v13_qualification="$tmp/missing-v13-qualification"
   cp -R "$good" "$missing_v13_qualification"
   sed '/^  v13-release-qualification:$/,$d' \
     "$good/.github/workflows/ci.yml" > "$missing_v13_qualification/.github/workflows/ci.yml"
   run_expect_fail missing-v13-qualification 'named v1.3 release qualification job' \
-    sh "$CHECK" "$missing_v13_qualification"
+    "$CHECK" automation "$missing_v13_qualification"
 
   incomplete_v13_matrix="$tmp/incomplete-v13-matrix"
   cp -R "$good" "$incomplete_v13_matrix"
@@ -751,7 +773,7 @@ run_automation_cases() {
     { print }
   ' "$good/.github/workflows/ci.yml" > "$incomplete_v13_matrix/.github/workflows/ci.yml"
   run_expect_fail incomplete-v13-matrix 'v13-release-qualification job missing three-platform matrix' \
-    sh "$CHECK" "$incomplete_v13_matrix"
+    "$CHECK" automation "$incomplete_v13_matrix"
 
   old_codeql="$tmp/old-codeql"
   cp -R "$good" "$old_codeql"
@@ -759,27 +781,27 @@ run_automation_cases() {
     "$good/.github/workflows/codeql.yml" > \
     "$old_codeql/.github/workflows/codeql.yml"
   run_expect_fail obsolete-codeql 'github/codeql-action/init@v3' \
-    sh "$CHECK" "$old_codeql"
+    "$CHECK" automation "$old_codeql"
 
   unknown="$tmp/unknown"
   cp -R "$good" "$unknown"
   printf '      - uses: example/unknown@v1\n' >> \
     "$unknown/.github/workflows/ci.yml"
-  run_expect_fail unknown 'example/unknown@v1' sh "$CHECK" "$unknown"
+  run_expect_fail unknown 'example/unknown@v1' "$CHECK" automation "$unknown"
 
   missing_trigger="$tmp/missing-trigger"
   cp -R "$good" "$missing_trigger"
   sed '/  schedule:/,/cron:/d' "$good/.github/workflows/codeql.yml" > \
     "$missing_trigger/.github/workflows/codeql.yml"
   run_expect_fail missing-trigger 'weekly schedule trigger' \
-    sh "$CHECK" "$missing_trigger"
+    "$CHECK" automation "$missing_trigger"
 
   insufficient_permission="$tmp/insufficient-permission"
   cp -R "$good" "$insufficient_permission"
   sed '/  security-events: write/d' "$good/.github/workflows/codeql.yml" > \
     "$insufficient_permission/.github/workflows/codeql.yml"
   run_expect_fail insufficient-permission 'security-events: write' \
-    sh "$CHECK" "$insufficient_permission"
+    "$CHECK" automation "$insufficient_permission"
 
   job_permission="$tmp/job-permission"
   cp -R "$good" "$job_permission"
@@ -787,7 +809,7 @@ run_automation_cases() {
     "$good/.github/workflows/codeql.yml" > \
     "$job_permission/.github/workflows/codeql.yml"
   run_expect_fail job-permission 'job-level permissions override' \
-    sh "$CHECK" "$job_permission"
+    "$CHECK" automation "$job_permission"
 
   invalid_schedule="$tmp/invalid-schedule"
   cp -R "$good" "$invalid_schedule"
@@ -795,7 +817,7 @@ run_automation_cases() {
     "$good/.github/workflows/codeql.yml" > \
     "$invalid_schedule/.github/workflows/codeql.yml"
   run_expect_fail invalid-schedule 'weekly schedule trigger' \
-    sh "$CHECK" "$invalid_schedule"
+    "$CHECK" automation "$invalid_schedule"
 
   missing_analysis="$tmp/missing-analysis"
   cp -R "$good" "$missing_analysis"
@@ -803,7 +825,7 @@ run_automation_cases() {
     "$good/.github/workflows/codeql.yml" > \
     "$missing_analysis/.github/workflows/codeql.yml"
   run_expect_fail missing-analysis 'CodeQL analyze step' \
-    sh "$CHECK" "$missing_analysis"
+    "$CHECK" automation "$missing_analysis"
 
   missing_gomod="$tmp/missing-gomod"
   cp -R "$good" "$missing_gomod"
@@ -811,14 +833,14 @@ run_automation_cases() {
     /  - package-ecosystem: github-actions/!d
   }' "$good/.github/dependabot.yml" > \
     "$missing_gomod/.github/dependabot.yml"
-  run_expect_fail missing-gomod 'gomod entry' sh "$CHECK" "$missing_gomod"
+  run_expect_fail missing-gomod 'gomod entry' "$CHECK" automation "$missing_gomod"
 
   noisy_cadence="$tmp/noisy-cadence"
   cp -R "$good" "$noisy_cadence"
   sed '0,/interval: weekly/s//interval: daily/' \
     "$good/.github/dependabot.yml" > \
     "$noisy_cadence/.github/dependabot.yml"
-  run_expect_fail noisy-cadence 'weekly cadence' sh "$CHECK" "$noisy_cadence"
+  run_expect_fail noisy-cadence 'weekly cadence' "$CHECK" automation "$noisy_cadence"
 
   missing_label="$tmp/missing-dependency-label"
   cp -R "$good" "$missing_label"
@@ -826,7 +848,7 @@ run_automation_cases() {
     "$good/.github/dependabot.yml" > \
     "$missing_label/.github/dependabot.yml"
   run_expect_fail missing-dependency-label 'dependencies label' \
-    sh "$CHECK" "$missing_label"
+    "$CHECK" automation "$missing_label"
 
   extra_ecosystem="$tmp/extra-ecosystem"
   cp -R "$good" "$extra_ecosystem"
@@ -836,7 +858,7 @@ run_automation_cases() {
     '    schedule:' \
     '      interval: weekly' >> "$extra_ecosystem/.github/dependabot.yml"
   run_expect_fail extra-ecosystem 'expected root Go, desktop Go, desktop npm, website npm, and GitHub Actions entries' \
-    sh "$CHECK" "$extra_ecosystem"
+    "$CHECK" automation "$extra_ecosystem"
 
   grouped_major="$tmp/grouped-major"
   cp -R "$good" "$grouped_major"
@@ -844,7 +866,7 @@ run_automation_cases() {
     "$good/.github/dependabot.yml" > \
     "$grouped_major/.github/dependabot.yml"
   run_expect_fail grouped-major 'must not group major updates' \
-    sh "$CHECK" "$grouped_major"
+    "$CHECK" automation "$grouped_major"
 
   grouped_security="$tmp/grouped-security"
   cp -R "$good" "$grouped_security"
@@ -852,7 +874,7 @@ run_automation_cases() {
     "$good/.github/dependabot.yml" > \
     "$grouped_security/.github/dependabot.yml"
   run_expect_fail grouped-security 'must not group security updates' \
-    sh "$CHECK" "$grouped_security"
+    "$CHECK" automation "$grouped_security"
 
   bracket_secret="$tmp/bracket-secret"
   cp -R "$good" "$bracket_secret"
@@ -860,7 +882,7 @@ run_automation_cases() {
     "$good/.github/workflows/codeql.yml" > \
     "$bracket_secret/.github/workflows/codeql.yml"
   run_expect_fail bracket-secret 'must not consume' \
-    sh "$CHECK" "$bracket_secret"
+    "$CHECK" automation "$bracket_secret"
 
   stale_brand="$tmp/stale-brand"
   cp -R "$good" "$stale_brand"
@@ -868,27 +890,27 @@ run_automation_cases() {
     "$good/.github/workflows/release.yml" > \
     "$stale_brand/.github/workflows/release.yml"
   run_expect_fail stale-brand 'canonical macOS ICNS' \
-    sh "$CHECK" "$stale_brand"
+    "$CHECK" automation "$stale_brand"
 
   missing_brand_check="$tmp/missing-brand-check"
   cp -R "$good" "$missing_brand_check"
   rm -rf "$missing_brand_check/scripts/brand-check"
   run_expect_fail missing-brand-check 'brand integrity command not found' \
-    sh "$CHECK" "$missing_brand_check"
+    "$CHECK" automation "$missing_brand_check"
 
   missing="$tmp/missing"
   make_fixture "$missing" 'format vet lint race gui coverage docs'
-  run_expect_fail missing 'gate manifest differs' sh "$CHECK" "$missing"
+  run_expect_fail missing 'gate manifest differs' "$CHECK" automation "$missing"
 
   duplicate="$tmp/duplicate"
   make_fixture "$duplicate" \
     'format vet lint race gui coverage docs automation automation'
-  run_expect_fail duplicate 'gate manifest differs' sh "$CHECK" "$duplicate"
+  run_expect_fail duplicate 'gate manifest differs' "$CHECK" automation "$duplicate"
 
   extra="$tmp/extra"
   make_fixture "$extra" \
     'format vet lint race gui coverage docs automation build'
-  run_expect_fail extra 'gate manifest differs' sh "$CHECK" "$extra"
+  run_expect_fail extra 'gate manifest differs' "$CHECK" automation "$extra"
 
   rm -rf "$tmp"
   trap - EXIT HUP INT TERM
@@ -925,4 +947,4 @@ case "$MODE" in
     ;;
 esac
 
-printf 'automation-check-test: OK (%s)\n' "$MODE"
+printf 'automation-check-test: OK (%s), %s assertion case(s)\n' "$MODE" "$CASE_COUNT"

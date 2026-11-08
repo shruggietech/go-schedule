@@ -47,7 +47,7 @@ write_tasks() {
 expect_pass() {
   label=$1
   root=$2
-  if ! output=$(sh "$CHECK" "$root" 2>&1); then
+  if ! output=$("$CHECK" lifecycle "$root" 2>&1); then
     fail "$label should pass; got: $output"
   fi
 }
@@ -56,7 +56,7 @@ expect_fail() {
   label=$1
   needle=$2
   root=$3
-  if output=$(sh "$CHECK" "$root" 2>&1); then
+  if output=$("$CHECK" lifecycle "$root" 2>&1); then
     fail "$label should fail"
   fi
   case "$output" in
@@ -69,6 +69,8 @@ expect_fail() {
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+(cd "$ROOT" && "${GO:-go}" build -o "$tmp/maintainer-check.exe" ./scripts/maintainer-check)
+CHECK="$tmp/maintainer-check.exe"
 
 good="$tmp/good"
 write_spec "$good" Implemented 'commit abc1234'
