@@ -151,6 +151,11 @@ func startContained(command Command, input, stdout, stderr *os.File) (*Process, 
 		if _, err := windows.WaitForSingleObject(child.Process, windows.INFINITE); err != nil {
 			return err
 		}
+		var created, exited, kernel, user windows.Filetime
+		if windows.GetProcessTimes(child.Process, &created, &exited, &kernel, &user) == nil && (created.HighDateTime != 0 || created.LowDateTime != 0) && (exited.HighDateTime != 0 || exited.LowDateTime != 0) {
+			p.createdAt = time.Unix(0, created.Nanoseconds()).UTC()
+			p.exitedAt = time.Unix(0, exited.Nanoseconds()).UTC()
+		}
 		var code uint32
 		if err := windows.GetExitCodeProcess(child.Process, &code); err != nil {
 			return err

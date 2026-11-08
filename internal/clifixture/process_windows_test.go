@@ -4,6 +4,7 @@ package clifixture
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -28,6 +29,11 @@ func TestWindowsOwnedChildDoesNotInheritUnrelatedHandles(t *testing.T) {
 				os.Exit(2)
 			}
 		}
+		var created, exited, kernel, user windows.Filetime
+		if windows.GetProcessTimes(windows.CurrentProcess(), &created, &exited, &kernel, &user) != nil {
+			os.Exit(4)
+		}
+		fmt.Fprint(os.Stdout, created.Nanoseconds())
 		os.Exit(0)
 	}
 	directory := t.TempDir()
@@ -51,5 +57,14 @@ func TestWindowsOwnedChildDoesNotInheritUnrelatedHandles(t *testing.T) {
 	defer cancel()
 	if err := p.Wait(ctx); err != nil {
 		t.Fatalf("unrelated inheritable handle leaked: %v", err)
+	}
+	created, exited, known := p.ExecutionTimes()
+	data, err := os.ReadFile(filepath.Join(directory, "stdout"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	childCreation, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil || !known || created.UnixNano() != childCreation || exited.Before(created) {
+		t.Fatalf("native process identity times lost: %s %v %v %v", data, known, created, exited)
 	}
 }
