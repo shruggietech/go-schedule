@@ -11,6 +11,7 @@ func TestComparisonOrderAndDependencies(t *testing.T) {
 		pass       bool
 	}{
 		{"same block before", "jobs:\n  publish:\n    steps:\n      - run: |\n          go run ./scripts/comparison-check -tag x -commit \"$TAG_COMMIT\"\n          gh release upload x y\n", true},
+		{"continued bypass", "jobs:\n  publish:\n    steps:\n      - run: |\n          go run ./scripts/comparison-check -tag x -commit \"$TAG_COMMIT\" \\\n            || true\n          gh release upload x y\n", false},
 		{"same block after", "jobs:\n  publish:\n    steps:\n      - run: |\n          gh release upload x y\n          go run ./scripts/comparison-check -tag x -commit \"$TAG_COMMIT\"\n", false},
 		{"unrelated job", "jobs:\n  review:\n    steps:\n      - run: go run ./scripts/comparison-check -tag x -commit \"$TAG_COMMIT\"\n  publish:\n    steps:\n      - run: gh release upload x y\n", false},
 		{"dependency", "jobs:\n  review:\n    steps:\n      - run: go run ./scripts/comparison-check -tag x -commit \"$TAG_COMMIT\"\n  publish:\n    needs: review\n    steps:\n      - run: gh release upload x y\n", true},

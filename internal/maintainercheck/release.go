@@ -133,7 +133,7 @@ func (c *checker) comparison(file string, n *yaml.Node) {
 			}
 			if matches != nil && !p.mutation && !has(job, "if") && !has(job, "continue-on-error") && !has(step, "if") && !has(step, "continue-on-error") {
 				command := run[matches[0]:matches[1]]
-				if strings.Contains(command, binding) && !strings.Contains(command, "||") && (mutation == nil || matches[0] < mutation[0]) {
+				if strings.Contains(command, binding) && !strings.Contains(run, "||") && (mutation == nil || matches[0] < mutation[0]) {
 					p.gate = true
 				}
 			}

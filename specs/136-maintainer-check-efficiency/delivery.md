@@ -9,3 +9,7 @@ The native checker retains the established shell commands and policies, removes 
 [Verification](verification.md) separates unchanged timings, original failing observations, intermediate source, final implementation qualification and post-qualification factual/configuration checks. Final canonical attempt 03 passed all eight gates in 482.232 seconds with zero source drift and 577 unchanged preserved inputs. Native final wrapper observations are lifecycle 0.444 seconds and automation 0.623 seconds.
 
 Official PR publication is already authorized and follows local commit/checks. No Codex review request has occurred at this local record; the cap remains two including automatic review. PR-head CI/review receipts and exact final SHA belong in the official PR handoff. Issues remain open until owner integration delivers their source outcome. Auto-merge stays disabled. No merge, tag, release promotion or installed-product operation is authorized or performed.
+
+## Official PR and bounded review follow-up
+
+[PR #437](https://github.com/shruggietech/go-schedule/pull/437) is the official open review. Initial head 753fb15c5fca98e1a9ca57c3bb4e8ce90fe83889 has one automatic review request. Its continued-command finding is corrected within #435 with a failing-first regression and the original whole-step policy retained. The maximum remains two requests including automatic review. Final head/check/thread status is recorded in the PR after correction, with owner merge still pending.

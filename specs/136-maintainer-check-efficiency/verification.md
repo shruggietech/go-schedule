@@ -35,3 +35,7 @@ Released-MSI installation and attended native GUI remain untested; S136 changes 
 ## Final record/configuration checks
 
 Focused native race/provenance tests, publication formatting, all 134 lifecycle entries, lint, the full automation gate with all 96 assertion cases and failure propagation passed after record/configuration finalization. Final benchmarks on this source: 133-spec lifecycle 14.563420 ms/op, 835742 B/op, 6853 allocations; small workflow evaluation 30.927 microseconds/op, 12012 B/op, 99 allocations. Earlier benchmark observations remain historical. Post-canonical differences are the candidate-origin configuration/guard and factual status, traceability and delivery records; the application and native policy implementation are unchanged.
+
+## Official PR review correction
+
+Official PR #437 opened on 753fb15c5fca98e1a9ca57c3bb4e8ce90fe83889. The first automatic Code Review found one continued-command bypass under #435: a trailing backslash can put the failure-suppression operator on the next physical line. The new discriminating regression fails before correction. The evaluator now conservatively rejects failure suppression anywhere in the comparison step, retaining the previous whole-step policy. Focused native race, lint, formatting, 134-spec lifecycle and all 96 automation assertions qualify this bounded policy correction; fresh exact-head hosted CI follows the review-fix push. Earlier full canonical evidence remains bound to its own source rather than relabeled as a new full run.
