@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Include lifecycle, public command root-selection and bounded driver-stop regressions in canonical automation and the existing native CI matrix (S137, #439), while retaining the same eight gates and compiled policy corpus.
+
 - Evaluate automation and Spec-Kit lifecycle policy in-process through compatible shell commands, reuse one compiled checker across fixture cases, and preserve the existing eight gates (S136, #433). Audit executable action fields and actual publication prerequisites instead of comment matches or unrelated file order (#434, #435). Preserve exact dependency membership and unique Makefile pins in the native evaluator (#436), and retain literal target roots during discovery and Windows argument handling (#438).
 
 - Reconcile README, website fallback/comparison selection and current first-task, desktop and installation availability guidance with published v2.0.1 (S135, #419). The selected own Run ID is available in the maintenance packages; preserve historical release records and the standing native-testing disclosure.
@@ -17,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - 2026-11-06 (S135): publish accepted S134 source 25f42d6eb35ff0cec2753f0f2934396ba50df954 through separately approved exact-source staging and inspected-asset promotion, preserving the original package bytes. Update the pinned Windows installation guide's current availability notice through this reviewed source change. Retain the tagged v2.0.1 notes, comparison/review and preparation changelog section unchanged; public packages, source integration and deployed guide availability have separate delivery records.
 
 - 2026-11-08 (S136): replace the two utility-process-heavy maintainer checkers with one native Go/YAML implementation using existing dependencies and evaluation-local reads. Retain the shell commands, all policy categories, canonical gate order, bounded hidden helper execution and historical evidence. Correct demonstrated parser defects and invalid synthetic fixture syntax without weakening rejection cases. CI and CodeQL check out the PR head explicitly, and CI artifact-origin labels select the same SHA, so hosted evidence names the actual handoff candidate; existing triggers, permissions, job scopes and gate order remain. No application, workflow authorization, timeout, package or release behavior changes.
+
+- 2026-11-08 (S137): make the shared maintainer-command corpus part of the canonical automation branch and existing three-platform native test job. Replace the real-checkout failure probe with an exact driver copy and inert child roles so a broken stopping rule remains finite without invoking real gates. Retain action pins, triggers, permissions, timeouts, dependencies, policy decisions and hidden Windows children. No product, installer or release behavior changes.
 
 ## [2.0.1] - 2026-11-06
 

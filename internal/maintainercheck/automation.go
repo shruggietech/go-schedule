@@ -172,6 +172,7 @@ func (c *checker) ci(file string, n *yaml.Node, version string) {
 	}
 	c.rules(file, n, requirecitext, version, "")
 	c.nodePins(file, "every CI Node runtime pin", n)
+	c.nativeCommandCorpus(file, n)
 	c.require(file, field(n, "jobs", "wails-desktop") != nil, "missing production Wails desktop job")
 	job := field(n, "jobs", "v13-release-qualification")
 	if job == nil {

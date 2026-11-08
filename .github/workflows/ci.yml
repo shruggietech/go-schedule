@@ -54,6 +54,9 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Maintainer command contracts
+        shell: bash
+        run: sh test/scripts/maintainer-commands_test.sh
       # The race detector requires cgo; the CI runners provide a C toolchain.
       # The production desktop is a separate Go module with native WebView
       # dependencies and is verified by the wails-desktop job below.
