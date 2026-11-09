@@ -1,0 +1,3 @@
+# Audit evidence model
+
+Candidate binds commit, exact source-content digest, dirty state, platform and executable SHA-256 identities. Observation binds a command/flag/workflow to expected/actual result, explicit execution kind, evidence spans, run identity and cleanup. Finding binds independently actionable behavior to affected observations and GitHub identity/disposition. Evidence distinguishes immutable private originals from inspected sanitized derivatives with separate hashes. Coverage transitions are planned to executed-pass, executed-fail, blocked or not-applicable; a blocked/adapter result never upgrades itself to native execution.

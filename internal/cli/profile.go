@@ -225,7 +225,7 @@ func newProfileRemoveCmd() *cobra.Command {
 
 func newProfilePairCmd() *cobra.Command {
 	var address, daemonID, pairingID, certificateFile, clientName, capability string
-	command := &cobra.Command{Use: "pair LABEL", Short: "Pair and save one remote daemon", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	command := &cobra.Command{Use: "pair LABEL", Short: "Pair and save one remote daemon", Long: "Pair and save one remote daemon. Supply the one-time pairing phrase through standard input, then send end-of-input (EOF). The command reads input to EOF before contacting the daemon. Pipe from a protected phrase source; do not put the phrase in command arguments or command history.", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		certificate, err := os.ReadFile(certificateFile)
 		if err != nil {
 			return fmt.Errorf("read trusted certificate: %w", err)

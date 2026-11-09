@@ -178,8 +178,7 @@ func newAlertsCmd() *cobra.Command {
 			if err := clientFor(cmd).AckAlert(ctx, a[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "acknowledged alert %s\n", a[0])
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"id": a[0], "status": "acknowledged"}, "acknowledged alert %s\n", a[0])
 		},
 	}
 	cmd.AddCommand(ack)

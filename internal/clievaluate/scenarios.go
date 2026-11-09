@@ -12,6 +12,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 	"github.com/shruggietech/go-schedule/v2/internal/cli"
+	"github.com/shruggietech/go-schedule/v2/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
@@ -295,6 +296,11 @@ func equalObservation(a, b any) bool {
 }
 
 func (s *session) before(ctx context.Context, definition step) error {
+	if definition.Hook == "wrong-identity" {
+		// Retrieve the owned credential successfully under the selected wrong
+		// identity, so this case reaches remote manifest comparison.
+		return clientsecret.NewWithBackend(s.recorder).Save(wrongDaemonID, s.vars["remote_credential"], s.vars["remote_token"])
+	}
 	if strings.HasPrefix(definition.Spec.ID, "smtp.") {
 		if err := s.smtpBefore(ctx, definition); err != nil {
 			return err

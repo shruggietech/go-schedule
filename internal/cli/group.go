@@ -168,8 +168,7 @@ func groupToggle(cmd *cobra.Command, id string, enabled bool) error {
 	if enabled {
 		state = "enabled"
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "group %s %s\n", id, state)
-	return nil
+	return printAcknowledgement(cmd, map[string]any{"id": id, "enabled": enabled}, "group %s %s\n", id, state)
 }
 
 func groupRm() *cobra.Command {
@@ -181,8 +180,7 @@ func groupRm() *cobra.Command {
 			if err := clientFor(cmd).DeleteGroup(ctx, a[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "deleted group %s\n", a[0])
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"id": a[0], "status": "deleted"}, "deleted group %s\n", a[0])
 		},
 	}
 }

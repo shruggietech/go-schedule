@@ -55,8 +55,7 @@ func serviceAction(action string, control serviceControlFunc, resolveDaemon func
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", action, msg)
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"action": action, "status": msg}, "%s: %s\n", action, msg)
 		},
 	}
 	if action == "install" {

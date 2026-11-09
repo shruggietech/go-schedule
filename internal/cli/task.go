@@ -19,9 +19,10 @@ import (
 const missingDateUsage = "what to do in a period with no matching date: skip|last_valid|next_valid"
 
 const (
-	timeBasisUsage  = "recurrence clock: wall_clock|elapsed|utc"
-	dstGapUsage     = "nonexistent local time: next_valid|skip"
-	dstOverlapUsage = "repeated local time: first|both|last"
+	timeBasisUsage          = "recurrence clock: wall_clock|elapsed|utc"
+	dstGapUsage             = "nonexistent local time: next_valid|skip"
+	dstOverlapUsage         = "repeated local time: first|both|last"
+	oneOffTimestampGuidance = "--at must be RFC3339 (e.g. 2026-08-04T09:00:00Z)"
 )
 
 func newTaskCmd() *cobra.Command {
@@ -73,7 +74,7 @@ func taskEdit() *cobra.Command {
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
 				if err != nil {
-					return fmt.Errorf("%w: --at must be RFC3339", errUsage)
+					return fmtUsage(oneOffTimestampGuidance)
 				}
 				req.At = &ts
 			}
@@ -159,7 +160,7 @@ func taskAdd() *cobra.Command {
 			if at != "" {
 				ts, err := time.Parse(time.RFC3339, at)
 				if err != nil {
-					return fmt.Errorf("%w: --at must be RFC3339 (e.g. 2026-08-04T09:00:00Z)", errUsage)
+					return fmtUsage(oneOffTimestampGuidance)
 				}
 				req.At = &ts
 			}
@@ -292,8 +293,7 @@ func toggle(cmd *cobra.Command, id string, enabled bool) error {
 	if enabled {
 		state = "enabled"
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "task %s %s\n", id, state)
-	return nil
+	return printAcknowledgement(cmd, map[string]any{"id": id, "enabled": enabled}, "task %s %s\n", id, state)
 }
 
 func taskRm() *cobra.Command {
@@ -305,8 +305,7 @@ func taskRm() *cobra.Command {
 			if err := clientFor(cmd).DeleteTask(ctx, a[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "deleted task %s\n", a[0])
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"id": a[0], "status": "deleted"}, "deleted task %s\n", a[0])
 		},
 	}
 }
@@ -320,8 +319,7 @@ func taskRunNow() *cobra.Command {
 			if err := clientFor(cmd).RunNow(ctx, a[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "triggered run for task %s\n", a[0])
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"id": a[0], "status": "accepted"}, "triggered run for task %s\n", a[0])
 		},
 	}
 }

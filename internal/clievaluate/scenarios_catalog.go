@@ -32,9 +32,6 @@ func behavioralSteps() []step {
 	edit := func(id, path, property, want string, args ...string) {
 		s := add(id, path, "update", 0, args...)
 		s.Assert = []assertion{{property, want}}
-		if path == "task enable" || path == "task disable" || path == "group enable" || path == "group disable" {
-			s.JSON = false
-		}
 	}
 	negative := func(id, path string, args ...string) { add(id, path, "validation", 2, args...) }
 	create("group.create", "group add", "group", "id", "group", "add", "QA 根", "--disabled")
@@ -53,20 +50,15 @@ func behavioralSteps() []step {
 	edit("task.restore-activation", "task edit", "tasks.${task}.schedule_id", "<nonempty>", "task", "edit", "${task}", "--schedule=every 24 hours", "--time-basis=wall_clock")
 	edit("task.enable", "task enable", "tasks.${task}.enabled", "true", "task", "enable", "${task}")
 	editedRun := add("task.execute-edited-inputs", "task run-now", "execution", 0, "task", "run-now", "${task}")
-	editedRun.JSON = false
 	editedRun.Hook = "run-edited"
 	edit("task.disable", "task disable", "tasks.${task}.enabled", "false", "task", "disable", "${task}")
 	s := add("task.execute-success", "task run-now", "execution", 0, "task", "run-now", "${base_task}")
-	s.JSON = false
 	s.Hook = "run-success"
 	s = add("task.execute-failure", "task run-now", "execution", 0, "task", "run-now", "${failure_task}")
-	s.JSON = false
 	s.Hook = "run-failure"
 	s = add("task.execute-missing", "task run-now", "execution", 0, "task", "run-now", "${missing_task}")
-	s.JSON = false
 	s.Hook = "run-missing"
 	s = add("task.execute-output-cap", "task run-now", "execution", 0, "task", "run-now", "${output_task}")
-	s.JSON = false
 	s.Hook = "run-cap"
 	create("task.one-off-disabled", "task add", "oneoff", "task.id", "task", "add", "QA oneoff", "--command", "${worker}", "--arg=fixture-child", "--at", "${future}", "--disabled")
 	create("task.startup-disabled", "task add", "startup", "task.id", "task", "add", "QA startup", "--command", "${worker}", "--arg=fixture-child", "--schedule=@reboot", "--disabled")
@@ -89,8 +81,7 @@ func behavioralSteps() []step {
 	read("runs.exact", "runs get", "runs", "get", "${run}")
 	read("runs.active", "runs active", "runs", "active")
 	read("alerts.list", "alerts", "alerts", "--unacked")
-	s = add("alerts.ack", "alerts ack", "update", 0, "alerts", "ack", "${alert}")
-	s.JSON = false
+	add("alerts.ack", "alerts ack", "update", 0, "alerts", "ack", "${alert}")
 	read("logs.read", "logs", "logs", "--severity=info", "--limit=8")
 	read("logs.metadata", "logs", "logs", "--metadata")
 	s = add("systems.summary", "systems summary", "read", 0, "systems", "summary", "--all")
@@ -105,17 +96,16 @@ func behavioralSteps() []step {
 	edit("chain.update", "chain update", "chains.${chain}.on_outcome", "any", "chain", "update", "${chain}", "--source", "${base_task}", "--target", "${second_task}", "--on=any")
 	negative("chain.cycle", "chain create", "chain", "create", "--source", "${second_task}", "--target", "${base_task}", "--on=success")
 	s = add("chain.propagation", "task run-now", "execution", 0, "task", "run-now", "${base_task}")
-	s.JSON = false
 	s.Hook = "chain-propagation"
-	add("chain.remove", "chain rm", "delete", 0, "chain", "rm", "${chain}").JSON = false
+	add("chain.remove", "chain rm", "delete", 0, "chain", "rm", "${chain}")
 	create("trigger.create", "trigger create", "trigger", "trigger.id", "trigger", "create", "--name=QA trigger", "--task", "${base_task}")
 	s = add("trigger.reveal", "trigger show", "read", 0, "trigger", "show", "${trigger}", "--reveal-key")
 	s.Save = []NamedValue{{Name: "trigger_key", Value: "key"}}
 	s.Hook = "trigger-secret"
 	read("trigger.list", "trigger list", "trigger", "list")
 	read("trigger.show", "trigger show", "trigger", "show", "${trigger}")
-	add("trigger.fire-first", "trigger fire", "execution", 0, "trigger", "fire", "${trigger_key}").JSON = false
-	add("trigger.fire-reusable", "trigger fire", "execution", 0, "trigger", "fire", "${trigger_key}").JSON = false
+	add("trigger.fire-first", "trigger fire", "execution", 0, "trigger", "fire", "${trigger_key}")
+	add("trigger.fire-reusable", "trigger fire", "execution", 0, "trigger", "fire", "${trigger_key}")
 	edit("trigger.rename", "trigger update", "triggers.${trigger}.name", "QA trigger renamed", "trigger", "update", "${trigger}", "--name=QA trigger renamed", "--task", "${second_task}")
 	add("trigger.disable", "trigger disable", "update", 0, "trigger", "disable", "${trigger}")
 	add("trigger.enable", "trigger enable", "update", 0, "trigger", "enable", "${trigger}")
@@ -123,8 +113,8 @@ func behavioralSteps() []step {
 	s.Save = []NamedValue{{Name: "rotated_key", Value: "key"}}
 	s.Hook = "trigger-secret"
 	add("trigger.old-key-rejected", "trigger fire", "validation", 1, "trigger", "fire", "${trigger_key}")
-	add("trigger.rotated-key", "trigger fire", "execution", 0, "trigger", "fire", "${rotated_key}").JSON = false
-	add("trigger.remove", "trigger rm", "delete", 0, "trigger", "rm", "${trigger}").JSON = false
+	add("trigger.rotated-key", "trigger fire", "execution", 0, "trigger", "fire", "${rotated_key}")
+	add("trigger.remove", "trigger rm", "delete", 0, "trigger", "rm", "${trigger}")
 	add("trigger.deleted-key", "trigger fire", "validation", 1, "trigger", "fire", "${rotated_key}")
 	create("trigger-set.create", "trigger set create", "trigger_set", "trigger_set.id", "trigger", "set", "create", "--name=QA set", "--task", "${base_task}", "--count=2", "--disabled")
 	read("trigger-set.list", "trigger set list", "trigger", "set", "list")
@@ -174,7 +164,7 @@ func behavioralSteps() []step {
 	read("notification.deliveries", "notification deliveries", "notification", "deliveries", "--channel", "${channel}", "--task", "${base_task}", "--limit=10")
 	negative("notification.malformed-policy", "notification task set", "notification", "task", "set", "${base_task}", "--file", "${bad_json}")
 	add("notification.channel-disable", "notification channel disable", "update", 0, "notification", "channel", "disable", "${channel}")
-	add("notification.channel-remove", "notification channel rm", "delete", 0, "notification", "channel", "rm", "${channel}").JSON = false
+	add("notification.channel-remove", "notification channel rm", "delete", 0, "notification", "channel", "rm", "${channel}")
 	create("smtp.create", "notification channel add", "smtp_channel", "id", "notification", "channel", "add", "QA SMTP", "--kind=smtp", "--smtp-host", "${smtp_host}", "--smtp-port", "${smtp_port}", "--smtp-tls=plain", "--smtp-from=sender@example.test", `--smtp-to="ops,night"@example.test,two@example.test`, "--smtp-timeout=5s", "--smtp-html", "--smtp-auth-file", "${smtp_auth_file}", "--disabled")
 	read("smtp.get", "notification channel get", "notification", "channel", "get", "${smtp_channel}")
 	edit("smtp.update", "notification channel update", "channels.${smtp_channel}.smtp.timeout_seconds", "3", "notification", "channel", "update", "${smtp_channel}", "--smtp-host", "${smtp_host}", "--smtp-port", "${smtp_port}", "--smtp-tls=plain", "--smtp-from=sender@example.test", `--smtp-to="ops,night"@example.test,two@example.test`, "--smtp-timeout=3s", "--smtp-html=false")
@@ -190,8 +180,6 @@ func behavioralSteps() []step {
 	s.Hook = "smtp-delivery"
 	s = add("smtp.task-delivery", "task run-now", "execution", 0, "task", "run-now", "${base_task}")
 	s.Hook = "run-smtp"
-	s.JSON = false
-	s.OutputContains = "triggered run for task"
 	s = add("smtp.remote-read", "notification channel get", "read", 0)
 	s.Spec.Argv = []string{"--json", "--profile", "${remote_profile}", "notification", "channel", "get", "${smtp_channel}"}
 	s.Spec.ExecutionKind = "command_harness"
@@ -199,7 +187,7 @@ func behavioralSteps() []step {
 	negative("smtp.header-injection", "notification channel add", "notification", "channel", "add", "invalid SMTP", "--kind=smtp", "--smtp-host", "${smtp_host}", "--smtp-from=sender@example.test\r\nBcc:bad@example.test", "--smtp-to=one@example.test")
 	negative("smtp.bad-auth", "notification channel rotate", "notification", "channel", "rotate", "${smtp_channel}", "--smtp-auth-file", "${bad_json}")
 	add("smtp.disable", "notification channel disable", "update", 0, "notification", "channel", "disable", "${smtp_channel}")
-	add("smtp.remove", "notification channel rm", "delete", 0, "notification", "channel", "rm", "${smtp_channel}").JSON = false
+	add("smtp.remove", "notification channel rm", "delete", 0, "notification", "channel", "rm", "${smtp_channel}")
 
 	read("actor.list", "actor list", "actor", "list")
 	create("actor.create", "actor create", "actor", "id", "actor", "create", "QA actor", "--kind=cli", "--capability=observe", "--expires=${future}")
@@ -243,7 +231,6 @@ func behavioralSteps() []step {
 	for _, action := range []string{"install", "uninstall", "start", "stop", "restart", "status"} {
 		s = add("service."+action, "service "+action, "host-adapter", 0, "service", action)
 		s.Spec.ExecutionKind = "command_harness"
-		s.JSON = false
 		s.Hook = "service-intent"
 		if action == "install" {
 			s.Spec.Argv = append(s.Spec.Argv, "--config", "${config}")
@@ -252,7 +239,6 @@ func behavioralSteps() []step {
 	s = add("gui.launch", "gui", "host-adapter", 0, "gui")
 	s.Spec.ExecutionKind = "command_harness"
 	s.Hook = "gui-intent"
-	s.JSON = false
 	for _, path := range []string{"preferences show", "preferences set", "preferences reset", "profile list", "profile show", "profile rename", "profile default set", "profile default show", "profile default reset", "profile remove"} {
 		args := strings.Fields(path)
 		switch path {
@@ -283,9 +269,9 @@ func behavioralSteps() []step {
 	s.Hook = "mcp-stdio"
 	s.JSON = false
 	negative("mcp.bad-port", "mcp http enable", "mcp", "http", "enable", "--port=-1")
-	add("task.remove", "task rm", "delete", 0, "task", "rm", "${task}").JSON = false
-	add("group.remove-child", "group rm", "delete", 0, "group", "rm", "${child_group}").JSON = false
-	add("group.remove", "group rm", "delete", 0, "group", "rm", "${group}").JSON = false
+	add("task.remove", "task rm", "delete", 0, "task", "rm", "${task}")
+	add("group.remove-child", "group rm", "delete", 0, "group", "rm", "${child_group}")
+	add("group.remove", "group rm", "delete", 0, "group", "rm", "${group}")
 	for i := range steps {
 		steps[i].Spec.Coverage = coverageFor(steps[i].Spec.CommandPath, steps[i].Spec.Argv)
 	}
