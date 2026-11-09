@@ -9,8 +9,6 @@ nav_order: 5
 **Applies to:** go-schedule 0.7.0 and later for import, explain, and export\
 **Source of truth:** `internal/cron/`, this document describes what the converter does, and the fidelity table below is the contract it holds to.
 
-> **Release status:** `cron convert`, direct cron input for `task add` and `task edit`, and cron entry in the desktop editor are currently unreleased changes planned for the first release after 0.8.0.
-
 go-schedule accepts schedules written the way you would say them, such as `every 15 minutes` and `weekdays at 09:00`, and also accepts a supported subset of conventional five-field cron such as `0 9 * * 1-5`, plus a bounded Quartz-style six-field form such as `*/30 * * * * *`. Every accepted form compiles to the same stored recurrence model before execution.
 
 But you probably already have a crontab, or need to translate one schedule. Cron is therefore supported for pure string conversion, task input, and as an **interchange format**: convert one string, supply it to `task add` or `task edit`, enter it in the desktop Schedule field, import a file, ask what a line means with upcoming runs, or export tasks back out.
