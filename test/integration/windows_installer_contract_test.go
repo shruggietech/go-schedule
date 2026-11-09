@@ -781,6 +781,8 @@ func TestWindowsInstallerGUIResourceContract(t *testing.T) {
 	workflow := string(readRepositoryFile(t, ".github", "workflows", "release.yml"))
 	required := []string{
 		productionWailsBuildFragment(t),
+		"go run ./scripts/desktop-build -version \"$VERSION\"",
+		"pwsh build/windows/verify_version.ps1",
 		"desktop/build/bin/gosched-gui.exe",
 		`cp brand/platform/macos/go-schedule.icns "$app/Contents/Resources/icon.icns"`,
 		`cp brand/platform/linux/go-schedule.desktop "$stage/share/applications/"`,

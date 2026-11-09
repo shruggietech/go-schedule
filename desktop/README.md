@@ -17,8 +17,11 @@ npm run test:e2e
 
 cd ..
 go test -race ./...
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build -clean
+cd ..
+go run ./scripts/desktop-build -- -clean
 ```
+
+The managed build command runs from the repository root and keeps the existing development label by default. Select a release with -version vMAJOR.MINOR.PATCH before --; it binds Go identity and Windows resources together and restores the original Wails configuration after the build.
 
 Linux native builds also use the `webkit2_41` build tag and require GTK 3 plus WebKitGTK 4.1 development packages. Generated frontend bindings, dependency directories, browser reports, and native build outputs are ignored.
 

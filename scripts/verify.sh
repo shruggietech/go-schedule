@@ -49,7 +49,8 @@ run_gate() {
       (
         cd desktop
         "$GO" test -timeout=60m -race ./...
-        "$GO" run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build -clean -tags webkit2_41
+        cd "$ROOT"
+        "$GO" run ./scripts/desktop-build -- -clean -tags webkit2_41
       )
       (
         cd desktop/frontend
