@@ -179,7 +179,7 @@ Select **Timing mode: Recurring**, enter every day at 09:00 in **Schedule**, and
 
 Choose **Run now**, then **Confirm run**. Acceptance opens **Activity**, but work may still be in progress. Set **Record type: Runs**, use **Search** with the task ID, select the particular run's time button, and inspect **State**, **Exit status** and **Combined stdout/stderr** in its **Run details** side pane. Use **Refresh** for a new snapshot. **Clear View** hides displayed records and acknowledges visible alerts; it does not delete history or repair a task.
 
-Published v2.0.1 displays the selected run's own **Run ID**, separately from **Source run** (an upstream completion-chain run). Earlier v2.0.0 packages require CLI --details history to find the own ID. See the [desktop reference](gui-fields.md) for all fields.
+Published v2.0.2 displays the selected run's own **Run ID**, separately from **Source run** (an upstream completion-chain run). Earlier v2.0.0 packages require CLI --details history to find the own ID. See the [desktop reference](gui-fields.md) for all fields.
 
 ## 6. Keep or retire the example
 

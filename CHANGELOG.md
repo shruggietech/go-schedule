@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Reconcile current release discovery, first-task and installation guidance and the website fallback with public v2.0.2. Label comparison product contexts with their original review date while identifying the published baseline (#444, #459). Preserve tagged release/comparison content and the accepted open Windows resource-version finding #458.
+
+### Decisions
+
+- 2026-11-09 (S140): publish the separately approved inspected release 438780666 from immutable fba288addcfce1769443b31ab25bd18b83a5e1e4 through the existing standing-waiver promotion workflow. Preserve the eight original assets and add the verified checksum inventory, independently read back all nine public files, then reconcile current discovery through this reviewed source change. Update the pinned Windows guide only after actual publication; preserve historical preparation sections, notes, comparisons/reviews and original failure evidence. Keep native/host-WSL coverage limits and #458 explicit, with no runtime, dependency, workflow or verification-policy change.
+
 ## [2.0.2] - 2026-11-08
 
 Source preparation for the next maintenance release. This date records preparation; v2.0.2 has not been tagged or published. Public packages remain v2.0.1.

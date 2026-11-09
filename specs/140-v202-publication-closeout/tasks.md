@@ -39,3 +39,14 @@
 Execute T001-T002 before source implementation. T003-T005 precede T006; T006 precedes T007. T008 defines the continuation without executing publication. T009 follows final dataset/review preparation; T010 follows all implementation. T011 follows actual successful observations. No new copy-mirroring tests are needed for declarative/prose changes; the existing structural, binding, website and canonical guards exercise their real contracts.
 
 The official push, PR monitoring and owner handoff follow completed implementation records. Tagging, draft staging, inspected-asset promotion and the later discovery PR are subsequent same-S140 continuation states, not unchecked pre-tag source tasks. No independent tasks require further agent delegation.
+
+## Post-publication continuation (2026-11-09)
+
+- [X] T012 [US3] Promote the approved immutable inventory through the existing workflow and independently verify nine public assets/eight checksum entries under .test-temp/s140/promotion-01/ (FR-005, FR-007, FR-008, FR-010).
+- [X] T013 [US3] Extend site/e2e/site.spec.ts with a failing-first published-baseline/dated-context regression for #459 (FR-011).
+- [X] T014 [US3] Reconcile current README.md, docs/install.md, docs/INSTALL-windows.md, docs/gui-fields.md, docs/first-task.md, docs/website.md and site/data/published.json; clarify site/app/compare/page.tsx and update the first-task browser expectation (FR-010, FR-011).
+- [X] T015 [US3] Record actual publication/inventory/known-defect limits in specs/140-v202-publication-closeout/ and verify all twelve production browser contracts without changing historical bindings (FR-005, FR-007, FR-008, FR-009, FR-010, FR-011).
+- [X] T016 Run all eight canonical foreground gates for the final discovery source and retain source/protected-evidence integrity (FR-005, FR-008).
+- [X] T017 Finalize lifecycle/tasks/specification inventory and run formatting, encoding, comparison/release-source and immutable-artifact checks before the already authorized official PR (FR-004, FR-005, FR-007, FR-008, FR-009, FR-010, FR-011).
+
+T012 is the prerequisite for current availability claims. T013 fails against the existing page before T014. T014 precedes browser validation and T015/T016; factual T017 records follow actual observations. The pre-tag tasks remain completed history. The final owner merge/deployment is a delivery boundary, not an unchecked source task.

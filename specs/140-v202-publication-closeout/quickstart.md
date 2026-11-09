@@ -8,3 +8,7 @@ Use the existing hidden foreground launcher with redirected noninteractive child
 4. Build the production website with SITE_RELEASE_TAG=v2.0.2 and run the existing eleven headless Chromium contracts with private outputs. Restore the default production build, confirm its comparison is v2.0.1 and run the same contracts with separate outputs.
 5. Run scripts/verify.sh all in the foreground: format, vet, lint, race, gui, coverage, docs and automation. The gui gate builds/tests without launching the application. Preserve exact source manifests and original evidence bytes.
 6. Run lifecycle, GitHub-format, UTF-8/BOM/mojibake and diff checks on final records, then publish the official source PR. Confirm exact-head terminal applicable checks, review findings and no auto-merge before owner handoff.
+
+## Published-source checkpoint (2026-11-09)
+
+After approved promotion, verify all nine public assets and the eight checksum entries against the frozen inspected inventory. Build the final fallback-selected v2.0.2 site and run all twelve production browser contracts, including a failing-first dated-context regression. Preserve tagged v2.0.2 and all earlier comparison/review, release-note and changelog preparation bytes. Run all eight canonical gates, then final lifecycle/encoding/history checks and exact-head hosted checks. The second automatic Codex review exhausts the cap; no manual provider review is requested.

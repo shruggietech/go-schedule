@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
-const selectedComparison = JSON.parse(readFileSync(new URL('../.source/comparison.json', import.meta.url), 'utf8')) as { tag: string };
+const selectedComparison = JSON.parse(readFileSync(new URL('../.source/comparison.json', import.meta.url), 'utf8')) as { tag: string; reviewed_at: string };
 
 test('home, keyboard entry, persistent appearance and public resources', async ({ page }) => {
  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -105,7 +105,7 @@ test('first-task entry points explain exact run inspection and same-task recover
  await expect(page.getByRole('heading', { level: 2, name: /Run and inspect the result/ })).toBeVisible();
  await expect(page.getByRole('heading', { level: 2, name: /Explain a failure and recover/ })).toBeVisible();
  await expect(page.locator('pre').filter({ hasText: 'gosched runs --task' }).first()).toBeVisible();
- await expect(page.getByText(/Published v2.0.1 displays the selected run's own/)).toBeVisible();
+ await expect(page.getByText(/Published v2.0.2 displays the selected run's own/)).toBeVisible();
  await page.screenshot({ path: testInfo.outputPath('first-task.png'), fullPage: true });
  for (const platform of ['windows', 'linux', 'macos']) {
   await page.goto('/docs/install/' + platform + '/');
@@ -116,4 +116,13 @@ test('first-task entry points explain exact run inspection and same-task recover
  await page.setViewportSize({ width: 390, height: 844 });
  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
  await page.screenshot({ path: testInfo.outputPath('first-task-mobile.png'), fullPage: true });
+});
+
+test('published baseline and review-dated product contexts remain distinct', async ({ page }) => {
+ await page.goto('/compare/');
+ await expect(page.locator('.comparison-meta')).toContainText('Published baseline: '+selectedComparison.tag);
+ const contexts=page.locator('details').filter({has:page.locator('summary',{hasText:'Product contexts reviewed on '+selectedComparison.reviewed_at})});
+ await contexts.locator('summary').click();
+ await expect(contexts.locator('li')).toHaveCount(8);
+ await expect(contexts).toContainText('For current go-schedule availability, use the published baseline linked above.');
 });

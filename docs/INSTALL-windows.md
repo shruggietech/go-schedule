@@ -10,7 +10,7 @@ nav_order: 1
 **Applies to:** MSI-based releases from 0.6.0 onward; Wails desktop guidance applies beginning with v1.4.0\
 **See also:** [`gosched` command reference](cli.md) · [Linux](INSTALL-linux.md) · [macOS](INSTALL-macos.md)
 
-> **Release status:** The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) identifies the published package, currently v2.0.1. Release promotion retains exact-source staging and artifact checks; the standing native-testing waiver leaves attended observations untested.
+> **Release status:** The [latest-release page](https://github.com/shruggietech/go-schedule/releases/latest) identifies the published package, currently v2.0.2. Release promotion retains exact-source staging and artifact checks; the standing native-testing waiver leaves attended observations untested.
 
 go-schedule installs as a formal Windows application via an `.msi` package. It puts the program in *Program Files*, runs the scheduler as an auto-starting **Windows service**, adds the install directory to `PATH`, and lets you choose Start Menu and desktop shortcuts. There is no "extract a zip and run an exe from Downloads" step.
 
