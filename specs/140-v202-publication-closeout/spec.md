@@ -1,12 +1,12 @@
 # Feature Specification: v2.0.2 publication closeout
 
-**Feature Branch**: `codex/140-v202-publication-closeout`
+**Feature Branch**: `codex/140-v202-publication-discovery`
 
 **Created**: 2026-11-08
 
 **Status**: Implemented
 
-**Delivery**: Pre-tag source review branch codex/140-v202-publication-closeout; [verification](verification.md), [delivery](delivery.md); owner final review/merge and later actual publication remain pending
+**Delivery**: Public v2.0.2 release 438780666 verified; final discovery review branch codex/140-v202-publication-discovery; [verification](verification.md), [delivery](delivery.md); owner final review/merge and deployed-guide reconciliation remain pending
 
 **Input**: Owner-approved S140 under [#444](https://github.com/shruggietech/go-schedule/issues/444): finish the v2.0.2 publication continuation, first delivering the missing comparison records through the pre-tag source PR. Push/open the official PR automatically, monitor CI and resolve findings, use at most two total Codex reviews including automatic review, and stop for owner final review/merge. Later exact-source tagging/draft staging, inspected-asset promotion and post-publication discovery remain the same S140 continuation with their existing explicit decisions. Preserve the prohibition on operator-desktop focus and non-admin operator interaction.
 
@@ -88,13 +88,13 @@ The owner can merge the pre-tag source work and then follow the remaining releas
 
 - **SC-001**: A maintainer can inspect all eight product contexts and 80 evidence cells, including every one of the seven competitor assessments, without an undocumented capability or edition assumption.
 - **SC-002**: All ten capabilities have explicit decisions, and the review identifies the exact three reviewed contents without changing a historical release record.
-- **SC-003**: Every remaining release stage has an explicit prerequisite and completion outcome; the current source handoff makes zero claims that v2.0.2 packages already exist or are public.
+- **SC-003**: Every remaining release stage has an explicit prerequisite and completion outcome; the pre-tag source handoff makes zero claims that v2.0.2 packages already exist or are public.
 - **SC-004**: Protected evidence remains unchanged and the work causes zero operator-desktop focus acquisition or non-admin operator interaction.
 
 ## Assumptions
 
 - The owner-approved S140 continuation starts at accepted main d5bb2632d24bbeb0615b041533acae4866761d28, whose source tree equals the reviewed S139 candidate.
-- This run ends at the first official pre-tag source PR ready for final owner review/merge. Tagging, staging, promotion and the later discovery PR stay in the same release continuation and are not unfinished source implementation tasks.
+- The first run ended at the official pre-tag source PR ready for final owner review/merge. Tagging, staging, promotion and the later discovery PR stay in the same release continuation and are not unfinished source implementation tasks.
 - The repository's existing comparison, release, standing-waiver, CI and review machinery remains the implementation path. No new framework, dependency, scheduling feature or verification policy is needed.
 - Original #355/#356 await matching evidence, and the owner-deferred clustered lane remains unchanged. The current maintenance comparison does not authorize those features.
 
@@ -107,3 +107,14 @@ No critical ambiguities detected. The owner accepted the ordered two-source-chec
 ## Bounded implementation discovery
 
 Deduplicated #453 removes the cron guide's obsolete unreleased-after-0.8.0 notice for functionality already shipped in v2.0.1. This documentation correction follows FR-009 and does not change cron behavior, supported dialects or fidelity. The pre-tag PR individually delivers #452, #453 and the pending-source highlight-contract correction #454 while #444 remains open.
+
+## Owner-approved publication/discovery continuation (2026-11-09)
+
+The owner merged #455, approved exact-source tagging/staging, then approved inspected release 438780666 for public/latest promotion with #458 open. The owner also authorizes the final same-S140 official PR, CI/finding resolution and a stop for final owner review/merge. One of two Codex reviews is already used; the final PR's automatic review consumes the remaining request. No additional provider review is authorized.
+
+- **FR-010**: After actual promotion and independent readback, current README, installation/desktop/first-task/website guidance and the local fallback MUST identify public v2.0.2 consistently, without changing historical release notes, changelog preparation sections or comparison/review bytes.
+- **FR-011**: The current comparison MUST distinguish the published baseline from product context dated to its existing review date, retaining all eight contexts and every capability/source field (#459).
+- **SC-005**: All nine public assets and eight checksum entries agree with the approved inventory; current discovery links select the actual public release.
+- **SC-006**: A reader can distinguish the published baseline from the dated historical context, and all contexts remain accessible without altering their historical bytes.
+
+No further clarification is required: #458 remains open by explicit owner choice; no packaged binary, installer, native UI, keyring, host network or deferred feature is changed. The final source PR delivers current discovery; #444 stays open until actual source integration/deployment. The old pre-tag constraints in FR-006 and SC-003 apply to that completed checkpoint, while FR-010 governs this post-publication checkpoint.
