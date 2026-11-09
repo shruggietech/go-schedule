@@ -2,6 +2,8 @@ package clievaluate
 
 import "strings"
 
+const wrongDaemonID = "wrong-daemon"
+
 func additionalSteps() []step {
 	steps := []step{}
 	add := func(id, path, class, kind string, exit int, hook string, args ...string) *step {
@@ -37,7 +39,7 @@ func additionalSteps() []step {
 	add("selector.explicit-tls", "health", "remote-target", "command_harness", 0, "remote-authority", "health", "--endpoint", "${remote}", "--daemon-id", "${daemon_id}", "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}", "--json")
 	add("selector.daemon-endpoint", "health", "remote-target", "command_harness", 0, "remote-authority", "health", "--daemon-endpoint", "${remote}", "--daemon-id", "${daemon_id}", "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}", "--json").Spec.Coverage = []string{" --daemon-endpoint"}
 	add("selector.wrong-certificate", "health", "validation", "command_harness", 2, "wrong-certificate", "health", "--endpoint", "${remote}", "--daemon-id", "${daemon_id}", "--credential-id", "${remote_credential}", "--certificate-file", "${bad_certificate}")
-	add("selector.wrong-identity", "health", "validation", "command_harness", 1, "unchanged", "health", "--endpoint", "${remote}", "--daemon-id=wrong-daemon", "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}")
+	add("selector.wrong-identity", "health", "validation", "command_harness", 1, "wrong-identity", "health", "--endpoint", "${remote}", "--daemon-id="+wrongDaemonID, "--credential-id", "${remote_credential}", "--certificate-file", "${certificate}").OutputContains = "remote daemon identity does not match the selected target"
 	add("selector.no-fallback", "health", "validation", "packaged_cli", 1, "no-fallback", "health", "--ipc-path", "${missing_ipc}")
 	add("selector.empty-ipc", "health", "validation", "command_harness", 2, "unchanged", "health", "--ipc-path=")
 	add("selector.empty-remote", "health", "validation", "command_harness", 2, "unchanged", "health", "--daemon-endpoint=")

@@ -139,8 +139,7 @@ func chainRemove() *cobra.Command {
 			if err := clientFor(cmd).DeleteChain(ctx, args[0]); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "deleted chain %s\n", args[0])
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"id": args[0], "status": "deleted"}, "deleted chain %s\n", args[0])
 		},
 	}
 }

@@ -24,8 +24,7 @@ func newGUICmd() *cobra.Command {
 			if err := stateFor(cmd).deps.LaunchGUI(bin); err != nil {
 				return fmt.Errorf("launch gui: %w", err)
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), "launched gosched-gui")
-			return nil
+			return printAcknowledgement(cmd, map[string]string{"status": "launched"}, "launched gosched-gui\n")
 		},
 	}
 	MarkLocal(command)
@@ -55,7 +54,7 @@ func guiPath() (string, error) {
 	}
 	p := filepath.Join(filepath.Dir(self), name)
 	if _, err := os.Stat(p); err != nil {
-		return "", fmt.Errorf("desktop binary not found next to gosched (looked for %s); build it with: cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build", p)
+		return "", fmt.Errorf("desktop binary not found next to gosched (looked for %s); run make build-gui at the repository root, then place the built %s beside gosched", p, name)
 	}
 	return p, nil
 }

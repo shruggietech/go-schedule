@@ -1,7 +1,5 @@
 // Command goschedd is the scheduler daemon. It hosts the engine, persistence,
-// and executor and serves the local API over IPC. In this foundational form it
-// loads config, opens the store, and serves health; the scheduling engine is
-// wired in during User Story 1.
+// and executor and serves local IPC plus explicitly configured remote APIs.
 package main
 
 import (
@@ -41,6 +39,10 @@ import (
 func main() {
 	configPath := flag.String("config", "", "path to config file (default: platform data directory/config.json when present)")
 	flag.Parse()
+	if flag.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "goschedd: unexpected argument %q; use --config PATH or --help\n", flag.Arg(0))
+		os.Exit(2)
+	}
 
 	if err := mainErr(*configPath); err != nil {
 		os.Stderr.WriteString("goschedd: " + err.Error() + "\n")

@@ -103,7 +103,7 @@ func (s *session) smtpPost(ctx context.Context, definition step, result executio
 			if runErr != nil {
 				return false, run, runErr
 			}
-			accepted = accepted && taskOK && strings.Contains(string(result.Out), "triggered run for task "+s.vars["base_task"])
+			accepted = accepted && taskOK && runAcknowledgesTask(result.Out, s.vars["base_task"], definition.JSON)
 			webhookOK := waitUntil(ctx, func() bool {
 				deliveries, err := s.api.ListNotificationDeliveries(ctx, notificationFilter(s.vars["second_channel"]))
 				if err != nil {
@@ -140,4 +140,15 @@ func (s *session) smtpPost(ctx context.Context, definition step, result executio
 		good = good && !channel.HasAuthorization
 	}
 	return good, channel, nil
+}
+
+func runAcknowledgesTask(output []byte, id string, structured bool) bool {
+	if !structured {
+		return strings.TrimSpace(string(output)) == "triggered run for task "+id
+	}
+	var acknowledgement struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	return json.Unmarshal(output, &acknowledgement) == nil && acknowledgement.ID == id && acknowledgement.Status == "accepted"
 }

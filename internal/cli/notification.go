@@ -223,8 +223,7 @@ func notificationChannelRemove() *cobra.Command {
 		if err := clientFor(cmd).DeleteNotificationChannel(ctx, args[0]); err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "deleted notification channel %s\n", args[0])
-		return nil
+		return printAcknowledgement(cmd, map[string]string{"id": args[0], "status": "deleted"}, "deleted notification channel %s\n", args[0])
 	}}
 }
 

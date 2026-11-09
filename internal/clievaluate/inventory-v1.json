@@ -11709,7 +11709,7 @@
     "path": "profile pair",
     "use": "pair LABEL",
     "short": "Pair and save one remote daemon",
-    "long": "",
+    "long": "Pair and save one remote daemon. Supply the one-time pairing phrase through standard input, then send end-of-input (EOF). The command reads input to EOF before contacting the daemon. Pipe from a protected phrase source; do not put the phrase in command arguments or command history.",
     "aliases": [],
     "hidden": false,
     "runnable": true,

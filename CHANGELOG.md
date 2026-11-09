@@ -6,15 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-11-08
+
+Source preparation for the next maintenance release. This date records preparation; v2.0.2 has not been tagged or published. Public packages remain v2.0.1.
+
+### Fixed
+
+- Honor global JSON output for task/group/chain, alert, notification removal and service/desktop acknowledgements, while preserving human output and reporting output-write failures without replaying mutations (S139, #445).
+- Reject unsupported daemon positional operands before configuration/state creation or startup (S139, #446).
+- Enforce selected structured acknowledgement contracts in the CLI catalogue, including exact task correlation for SMTP delivery, while retaining human fixture and independent application/receiver observations (S139, #447).
+- Replace obsolete missing-desktop build guidance with the maintained build target and expected sibling executable location (S139, #448).
+- Explain pairing standard input, show a usable one-off edit timestamp example, and give known graph-cycle corrections using actual CLI flags without replaying arbitrary server content (S139, #449).
+- Make the wrong-daemon CLI evaluation retrieve its owned fixture credential and require the intended remote identity refusal, preserving unchanged-state assertions (S139, #450).
+
 ### Changed
 
-- Supplement opt-in owned Windows PowerShell incident capture with bounded runtime-event evidence for pre-entry failures, preserving native results and independent dump status (S138, #441). Record recovered historical runtime evidence without closing the original #355/#356 causes.
-
-- Include lifecycle, public command root-selection and bounded driver-stop regressions in canonical automation and the existing native CI matrix (S137, #439), while retaining the same eight gates and compiled policy corpus.
+- Reconcile README, website fallback/comparison selection and current first-task, desktop and installation availability guidance with published v2.0.1 (S135, #419). The selected own Run ID is available in the maintenance packages; preserve historical release records and the standing native-testing disclosure.
 
 - Evaluate automation and Spec-Kit lifecycle policy in-process through compatible shell commands, reuse one compiled checker across fixture cases, and preserve the existing eight gates (S136, #433). Audit executable action fields and actual publication prerequisites instead of comment matches or unrelated file order (#434, #435). Preserve exact dependency membership and unique Makefile pins in the native evaluator (#436), and retain literal target roots during discovery and Windows argument handling (#438).
 
-- Reconcile README, website fallback/comparison selection and current first-task, desktop and installation availability guidance with published v2.0.1 (S135, #419). The selected own Run ID is available in the maintenance packages; preserve historical release records and the standing native-testing disclosure.
+- Include lifecycle, public command root-selection and bounded driver-stop regressions in canonical automation and the existing native CI matrix (S137, #439), while retaining the same eight gates and compiled policy corpus.
+
+- Supplement opt-in owned Windows PowerShell incident capture with bounded runtime-event evidence for pre-entry failures, preserving native results and independent dump status (S138, #441). Record recovered historical runtime evidence without closing the original #355/#356 causes.
 
 ### Decisions
 
@@ -25,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - 2026-11-08 (S137): make the shared maintainer-command corpus part of the canonical automation branch and existing three-platform native test job. Replace the real-checkout failure probe with an exact driver copy and inert child roles so a broken stopping rule remains finite without invoking real gates. Retain action pins, triggers, permissions, timeouts, dependencies, policy decisions and hidden Windows children. No product, installer or release behavior changes.
 
 - 2026-11-08 (S138): reuse the existing incident envelope and hidden contained launcher for a minimal Windows event readback adapter, with exact handle-derived process times, local attribution checks and fixed duration/count/byte limits. Keep the generic parser in incident and the platform adapter in the existing integration fixture boundary to preserve the dependency graph. Event evidence is independent of dump collection and cannot replace the native result or establish original cause. No dependency, verification timeout policy, installed-runtime/service or release change.
+
+- 2026-11-08 (S139): run the owner-approved full-product audit using existing source-bound Windows/WSL fixtures, immutable inputs and separate executable/adapter/native evidence. Operator-focus acquisition and non-admin operator requests are prohibited. Native UI and credential actions require established isolation; unavailable native displays and disabled WSL networking remain literal coverage limits, with no host reconfiguration or shared-desktop workaround. Prepare v2.0.2 as a maintenance correction, retaining published v2.0.1 discovery until actual promotion.
 
 ## [2.0.1] - 2026-11-06
 

@@ -1,0 +1,3 @@
+# Audit observation contract
+
+Retain existing version-1 CLI JSON/corpus/reviews contracts and seven-section renderer. Supplement them with a source-bound register for every non-catalogue entrypoint, product area, cross-platform direction and UI evidence kind. Each row names expected behavior, actual observation, status, source/binary identity, sanitized evidence and finding reference. GUI launches require proven isolation from the operator session before execution; Linux native secret access requires a proven isolated nonprompting session. No focus-taking fallback, manual handoff, global host reconfiguration or automatic historical-issue closure is permitted. Public text/images/metadata are inspected separately from private raw evidence.

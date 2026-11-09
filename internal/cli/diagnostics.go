@@ -52,7 +52,11 @@ func contextualCommandError(cmd *cobra.Command, args []string, err error) error 
 		}
 	case server.CodeValidation:
 		field := diagnosticField(status.Field)
-		if field == "watcher_paths" {
+		if field == "parent_id" && status.Message == "would create a group cycle" && cmd.Flag("parent") != nil {
+			message = fmt.Sprintf("%s: --parent would create a group cycle; choose a parent outside this group's descendants and different from the group itself", path)
+		} else if field == "target_task_id" && status.Message == "chain would create a cycle" && cmd.Flag("source") != nil && cmd.Flag("target") != nil {
+			message = fmt.Sprintf("%s: --source and --target would create a completion-chain cycle; choose different tasks with no chain path from the target back to the source", path)
+		} else if field == "watcher_paths" {
 			message = watcherBindingDiagnostic(cmd, status)
 		} else if field == "bundle" && len(args) > 0 && strings.Contains(cmd.Use, "<bundle-file>") {
 			message = fmt.Sprintf("%s: invalid bundle file %s; run gosched bundle validate %s to list the document and compatibility issues, then correct the bundle and preview again", path, diagnosticIdentity(args[0]), diagnosticIdentity(args[0]))
