@@ -55,7 +55,7 @@ Two local-environment traps, neither of which indicates a problem with the repo:
 Internal scheduling in UTC; per-task IANA timezone with DST (next-valid / first-occurrence); recurrence via RFC 5545 RRULE (rrule-go) behind a human-readable layer; injected `Clock` interface; `log/slog` structured logs; `go test -race`; dispatch latency p99 < 100ms. The GUI is built windowless (`-H windowsgui`) and tasks spawn with no console window.
 
 <!-- SPECKIT START -->
-Active implementation plan: [S139 full-product audit](specs/139-full-product-audit-v202/plan.md).
+Active implementation plan: [S140 v2.0.2 publication closeout](specs/140-v202-publication-closeout/plan.md).
 <!-- SPECKIT END -->
 
 ## Prelaunch state policy

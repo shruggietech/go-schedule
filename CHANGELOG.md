@@ -12,6 +12,7 @@ Source preparation for the next maintenance release. This date records preparati
 
 ### Fixed
 
+- Remove the obsolete cron guide notice that described already-shipped conversion and direct CLI/desktop cron input as unreleased (S140, #453).
 - Honor global JSON output for task/group/chain, alert, notification removal and service/desktop acknowledgements, while preserving human output and reporting output-write failures without replaying mutations (S139, #445).
 - Reject unsupported daemon positional operands before configuration/state creation or startup (S139, #446).
 - Enforce selected structured acknowledgement contracts in the CLI catalogue, including exact task correlation for SMTP delivery, while retaining human fixture and independent application/receiver observations (S139, #447).
@@ -40,6 +41,8 @@ Source preparation for the next maintenance release. This date records preparati
 - 2026-11-08 (S138): reuse the existing incident envelope and hidden contained launcher for a minimal Windows event readback adapter, with exact handle-derived process times, local attribution checks and fixed duration/count/byte limits. Keep the generic parser in incident and the platform adapter in the existing integration fixture boundary to preserve the dependency graph. Event evidence is independent of dump collection and cannot replace the native result or establish original cause. No dependency, verification timeout policy, installed-runtime/service or release change.
 
 - 2026-11-08 (S139): run the owner-approved full-product audit using existing source-bound Windows/WSL fixtures, immutable inputs and separate executable/adapter/native evidence. Operator-focus acquisition and non-admin operator requests are prohibited. Native UI and credential actions require established isolation; unavailable native displays and disabled WSL networking remain literal coverage limits, with no host reconfiguration or shared-desktop workaround. Prepare v2.0.2 as a maintenance correction, retaining published v2.0.1 discovery until actual promotion.
+
+- 2026-11-08 (S140): prepare the content-bound v2.0.2 comparison with all eight products, ten rows and 80 assessed cells. Preserve historical comparisons/reviews, explicit vendor uncertainty and prior evidence dates where current retrieval is inconclusive. Keep public discovery at v2.0.1 until separately approved exact-source staging and inspected-asset promotion; the pre-tag source checkpoint does not publish packages. Consolidate related documentation highlights within the existing release-note limit without changing that publication contract (#454).
 
 ## [2.0.1] - 2026-11-06
 
