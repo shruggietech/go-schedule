@@ -24,6 +24,13 @@ type fakeBackend struct {
 	fail         error
 }
 
+func (f *fakeBackend) ListJoins(context.Context) ([]domain.ParallelJoin, error) {
+	return []domain.ParallelJoin{}, nil
+}
+func (f *fakeBackend) ListJoinInstances(context.Context, domain.ParallelJoinInstanceFilter) ([]domain.ParallelJoinInstance, error) {
+	return []domain.ParallelJoinInstance{}, nil
+}
+
 func (f *fakeBackend) ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error) {
 	return f.tasks, f.fail
 }

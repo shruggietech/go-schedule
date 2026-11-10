@@ -221,8 +221,8 @@ func TestBundleV2SourcesRequireBindingsAndApplyAsDisabled(t *testing.T) {
 			t.Fatalf("export leaked %q", forbidden)
 		}
 	}
-	if !strings.Contains(export.Body.String(), bundle.SchemaV2) {
-		t.Fatal("export did not emit v2")
+	if !strings.Contains(export.Body.String(), bundle.SchemaV3) {
+		t.Fatal("export did not emit v3")
 	}
 	second := doJSON(t, s, http.MethodPost, "/v1/bundles/preview", BundleRequest{Bundle: doc})
 	if second.Code != http.StatusOK || json.Unmarshal(second.Body.Bytes(), &plan) != nil {

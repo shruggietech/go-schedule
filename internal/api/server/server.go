@@ -171,6 +171,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/trigger-sets/{id}/rotate", s.handleRotateTriggerSet)
 	s.mux.HandleFunc("POST /v1/trigger-sets/{id}/reveal", s.handleRevealTriggerSet)
 
+	s.mux.HandleFunc("GET /v1/joins", s.handleListJoins)
+	s.mux.HandleFunc("POST /v1/joins", s.handleCreateJoin)
+	s.mux.HandleFunc("GET /v1/joins/{id}", s.handleGetJoin)
+	s.mux.HandleFunc("PATCH /v1/joins/{id}", s.handleUpdateJoin)
+	s.mux.HandleFunc("DELETE /v1/joins/{id}", s.handleDeleteJoin)
+	s.mux.HandleFunc("GET /v1/join-instances", s.handleListJoinInstances)
+	s.mux.HandleFunc("GET /v1/join-instances/{id}", s.handleGetJoinInstance)
 	s.mux.HandleFunc("GET /v1/chains", s.handleListChains)
 	s.mux.HandleFunc("POST /v1/chains", s.handleCreateChain)
 	s.mux.HandleFunc("GET /v1/chains/{id}", s.handleGetChain)

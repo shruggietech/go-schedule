@@ -8,6 +8,13 @@ import (
 )
 
 type Backend interface {
+	CreateJoin(context.Context, server.JoinCreateRequest) (domain.ParallelJoin, error)
+	UpdateJoin(context.Context, string, server.JoinUpdateRequest) (domain.ParallelJoin, error)
+	DeleteJoin(context.Context, string) error
+	ListJoins(context.Context) ([]domain.ParallelJoin, error)
+	GetJoin(context.Context, string) (domain.ParallelJoin, error)
+	ListJoinInstances(context.Context, domain.ParallelJoinInstanceFilter) ([]domain.ParallelJoinInstance, error)
+	GetJoinInstance(context.Context, string) (domain.ParallelJoinInstance, error)
 	ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error)
 	ListChains(context.Context) ([]domain.CompletionChain, error)
 	GetChain(context.Context, string) (domain.CompletionChain, error)

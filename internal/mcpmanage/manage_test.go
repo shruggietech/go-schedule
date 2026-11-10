@@ -145,7 +145,7 @@ func TestDiscoveryAddsExactlySixManageTools(t *testing.T) {
 		}
 	}
 	sort.Strings(names)
-	want := []string{"chains_manage", "groups_manage", "notification_assignments_replace", "tasks_manage", "triggers_manage", "watchers_manage"}
+	want := []string{"chains_manage", "groups_manage", "joins_manage", "notification_assignments_replace", "tasks_manage", "triggers_manage", "watchers_manage"}
 	if strings.Join(names, ",") != strings.Join(want, ",") {
 		t.Fatalf("tools=%v", names)
 	}

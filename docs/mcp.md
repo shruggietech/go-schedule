@@ -36,7 +36,7 @@ Restart or reconnect the MCP host after changing its server configuration. The s
 
 Create a local MCP server entry named `go-schedule` whose command is `gosched` and whose ordered arguments are `mcp`, `serve`. Use an absolute executable path when the host does not inherit the installation directory in `PATH`. Do not add a URL, bearer credential, or shell wrapper to this stdio entry. The host owns the subprocess lifetime, stdio opens no listener, and removal consists of deleting that host configuration.
 
-The exact configuration-file syntax is host-specific. Preserve the command and argument boundary rather than combining it into one shell command string. After saving, reconnect the host and confirm that it discovers six resources, five continuation templates, and no tools.
+The exact configuration-file syntax is host-specific. Preserve the command and argument boundary rather than combining it into one shell command string. After saving, reconnect the host and confirm that it discovers eight resources, eleven templates (seven collection continuations, two exact join lookups and two nested branch continuations), and no tools.
 
 Observe is always the default. To let a trusted local host run, enable, or disable existing tasks or cancel one active execution, explicitly add `--permission operate` and a recognizable runtime client name:
 
@@ -113,11 +113,13 @@ Existing remote grants can be narrowed from Manage to Operate or Observe, from O
 | `goschedule://schedules/upcoming` | Upcoming schedule projections without executable or raw recurrence configuration. |
 | `goschedule://alerts/recent` | Recent bounded alert evidence. |
 | `goschedule://runs/recent` | Recent bounded run evidence and output excerpts. |
+| `goschedule://joins/definitions` | Bounded parallel block definitions with branch counts and nested continuation (Unreleased S144). |
+| `goschedule://joins/instances` | Exact entry-owned contributions, native Run IDs, target admission and blocked/resolved reasons (Unreleased S144). |
 | `goschedule://runs/active` | Exact active Run IDs, task IDs, lifecycle times, trigger kind and authored cancellation guidance, without output or execution inputs (Unreleased S143). |
 
 Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Persisted collections request only that page plus one lookahead record. Active runs are paged from the daemon's current in-memory execution snapshot. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field. Task and schedule reads use an allowlisted SQLite projection that never loads execution inputs, while run output and alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
 
-Observe sessions on local and remote transports advertise resources only. Operate sessions add exactly four operation tools. Manage sessions inherit those tools and add exactly six definition tools, with no direct database access, raw log resource, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
+Observe sessions on local and remote transports advertise resources only. Operate sessions add exactly four operation tools. Manage sessions inherit those tools and add exactly seven definition tools, with no direct database access, raw log resource, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
 
 ## Remote HTTPS authorization
 
@@ -174,3 +176,11 @@ Run `gosched health` as the same account. If it reports that the daemon is unava
 Protocol messages are written only to stdout. Startup or runtime diagnostics use stderr. If a host reports malformed protocol output, capture both streams separately and include the installed `gosched --version` and daemon version from `gosched health` in the report.
 
 For localhost HTTP, first run `gosched mcp http status`. A disabled result after restart is expected. An unavailable-port error means another process owns the selected port; disable any old endpoint or choose another port. `401 Unauthorized` means the client omitted the current one-time credential or retained a value from before rotation or restart. `403 Forbidden` means Host, Origin, or current actor authority did not satisfy the active policy. Do not weaken those checks by using `localhost`, a wildcard origin, a proxy, or a forwarded Host.
+
+## Parallel join authoring and observation (Unreleased S144)
+
+Current source advertises eight resources, eleven templates and eleven tools in Manage mode (four Operate tools and seven definition families). Public v2.0.3 retains its published interface. The new `joins_manage` family creates, updates or deletes one definition using named branch slots and existing task references, current Manage authority, exact daemon identity and the existing bounded request-ID result contract. It does not launch arbitrary commands or replay an uncertain mutation.
+
+Read `goschedule://joins/definitions` and `goschedule://joins/instances`, their opaque collection continuation URIs, or exact templates `goschedule://joins/definitions/{id}` and `goschedule://joins/instances/{id}`. Each exact object exposes `branches_next_uri` when its nested branches continue through `/{id}/branches/{cursor}`. Follow both outer and nested continuations; an omitted branch is never evidence of success. Reads are bounded at the shared API/SQLite projection and exclude command, environment, stdin, run-as and raw output fields.
+
+Slots referencing one task have separate invocation/delivery/Run identities. Only required successful invocations from the same entry instance permit one target admission. Observe waiting/blocked/resolved state and actual native results before using the existing exact-run cancellation tool. Editing a definition affects future instances, and deleting it resolves outstanding decisions without claiming already-started native work terminated.

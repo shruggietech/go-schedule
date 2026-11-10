@@ -31,9 +31,16 @@ func TestReadinessClassifiesCommandAndAutomaticSources(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := EvaluateReadiness(tt.task, tt.completion); !reflect.DeepEqual(got, tt.want) {
+			if got := EvaluateReadiness(tt.task, Sources{Completion: tt.completion}); !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("EvaluateReadiness = %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestJoinSourceIsIndependentAndTyped(t *testing.T) {
+	got := EvaluateReadiness(domain.Task{Command: "echo", Enabled: true, State: domain.TaskActive}, Sources{Join: true})
+	if !got.ActivationReady || len(got.AutomaticSources) != 1 || got.AutomaticSources[0] != SourceJoin {
+		t.Fatalf("readiness=%+v", got)
 	}
 }

@@ -16,7 +16,7 @@ func TestCurrentSchemaPreservesSMTPHistoryAndWebhookErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(24);"); err != nil {
+	if _, err := db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(25);"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -66,7 +66,7 @@ func TestCurrentSchemaPreservesSMTPHistoryAndWebhookErrors(t *testing.T) {
 			}
 		}
 		var n int
-		if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version WHERE version=24").Scan(&n); err != nil || n != 1 {
+		if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version WHERE version=25").Scan(&n); err != nil || n != 1 {
 			t.Fatalf("bootstrap repeated: %d %v", n, err)
 		}
 		rows, err := st.db.Query("PRAGMA foreign_key_check")

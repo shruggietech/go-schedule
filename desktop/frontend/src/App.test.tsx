@@ -7,6 +7,7 @@ import type { TaskBridge } from './tasks/model'
 import type { OperationsBridge } from './operations/model'
 import type { SettingsBridge, SettingsWorkspace } from './settings/model'
 import type { NotificationBridge } from './notifications/model'
+import type { AutomationBridge } from './automation/model'
 import type { SearchBridge, SearchSnapshot } from './search/model'
 
 const connected: ConnectionSnapshot = { generation: 1, revision: 2, state: 'connected', target: { id: 'local', displayName: 'This computer', platform: 'linux', version: '1.2.0', capabilities: ['tasks'], permissions: ['read'] }, message: 'Scheduler service is available.' }
@@ -57,11 +58,14 @@ describe('production shell', () => {
     const user = userEvent.setup()
     const remote: ConnectionSnapshot = { ...connected, target: { id: 'daemon-identity', profileId: 'profile-id', kind: 'remote', displayName: 'Production', endpoint: 'https://example.test', platform: 'linux', capabilities: ['tasks', 'schedule', 'activity'], permissions: ['read'] } }
     const remoteBridge: DesktopBridge = { ...bridge, snapshot: vi.fn().mockResolvedValue(remote) }
-    render(<App bridge={remoteBridge} tasks={tasks} settings={settings} />)
+    const automation = { workspace: vi.fn().mockResolvedValue({action:'load', outcome:'accepted', message:'Loaded', workspace:{ tasks:[], chains:[], triggers:[], triggerSets:[], watchers:[], joins:[], joinInstances:[], loadedAt:'current' }}) } as unknown as AutomationBridge
+    render(<App bridge={remoteBridge} tasks={tasks} settings={settings} automation={automation} />)
     expect(await screen.findByText('Observe-only connection')).toBeVisible()
     expect(await screen.findByRole('button', { name: 'Create task' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Automation Sources' }))
-    expect(screen.getByRole('heading', { name: 'Automation Sources is unavailable for remote targets' })).toBeVisible()
+    expect(await screen.findByRole('heading', {name:'Parallel joins'})).toBeVisible()
+    expect(screen.getByRole('button', {name:'Create parallel join'})).toBeDisabled()
+    expect(automation.workspace).toHaveBeenCalledWith('daemon-identity')
     await user.click(screen.getByRole('button', { name: 'Connection details' }))
     expect(screen.getByRole('dialog', { name: 'Production connection' })).toHaveTextContent('https://example.test')
   })

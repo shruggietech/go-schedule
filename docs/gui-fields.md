@@ -256,3 +256,11 @@ Notifications offers a transport selector when creating a channel. Transport is 
 | Remove credentials | Explicitly clears stored authentication on edit |
 
 The form labels each control for keyboard and assistive-technology access. Switching back to webhook clears draft SMTP credentials. Delivery details identify SMTP transport, numeric status and recipient outcomes; uncertain submission carries duplicate-risk text. See [Notifications](notifications.md) for validation and retry behavior.
+
+## Parallel joins in Automation (Unreleased S144)
+
+Automation is available for a connected current local or remote target with advertised `parallel-joins` support. Its full workspace includes existing chains and other automation definitions. Read-only users can inspect current definitions and instances; Manage authority is required to create, edit or delete them. The page identifies the selected connection and daemon installation identity, and switching targets clears old selections and prevents late results from mutating the new target's view.
+
+Create a parallel block by selecting an entry task, naming each branch and choosing its task, then selecting the joined target. Keyboard-accessible controls add or remove branch rows. Names and stable task IDs distinguish duplicate task names; repeated references to one task represent separate invocations. Saving preserves slot identities, and edits affect future entry executions. A stale edit requires refresh or deliberate overwrite rather than silently replacing a newer definition.
+
+Select a block to inspect exact instances and branch/delivery/Run IDs, outstanding prerequisites, blocked or resolved reasons and target admission. Activity retains the existing exact-run details and cancellation behavior. A rejected mutation, unavailable observation and uncertain mutation are distinct states. An ambiguous result keeps further mutation disabled until an authoritative observation of the same target succeeds; a failed refresh does not turn uncertainty into retry guidance. Reference-based in-flight guards also reject duplicate keyboard submissions.

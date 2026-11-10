@@ -38,11 +38,11 @@ func TestServerDiscoveryAndEveryApprovedResource(t *testing.T) {
 		t.Fatal("server advertised tools")
 	}
 	resources, err := clientSession.ListResources(ctx, nil)
-	if err != nil || len(resources.Resources) != 6 {
+	if err != nil || len(resources.Resources) != 8 {
 		t.Fatalf("resources = %+v, %v", resources, err)
 	}
 	templates, err := clientSession.ListResourceTemplates(ctx, nil)
-	if err != nil || len(templates.ResourceTemplates) != 5 {
+	if err != nil || len(templates.ResourceTemplates) != 11 {
 		t.Fatalf("templates = %+v, %v", templates, err)
 	}
 	for _, resource := range resources.Resources {

@@ -22,7 +22,7 @@ func additionalSteps() []step {
 	for _, entry := range []struct {
 		path string
 		args []string
-	}{{"task show", []string{"task", "show"}}, {"group edit", []string{"group", "edit"}}, {"chain show", []string{"chain", "show"}}, {"watcher show", []string{"watcher", "show"}}, {"trigger show", []string{"trigger", "show"}}, {"runs get", []string{"runs", "get"}}, {"runs cancel", []string{"runs", "cancel"}}} {
+	}{{"task show", []string{"task", "show"}}, {"group edit", []string{"group", "edit"}}, {"chain show", []string{"chain", "show"}}, {"watcher show", []string{"watcher", "show"}}, {"trigger show", []string{"trigger", "show"}}, {"runs get", []string{"runs", "get"}}, {"runs cancel", []string{"runs", "cancel"}}, {"join show", []string{"join", "show"}}, {"join instance", []string{"join", "instance"}}} {
 		args := append([]string{"--ipc-path", "${ipc}"}, entry.args...)
 		args = append(args, "missing-fixture-id")
 		if entry.path == "group edit" {
@@ -32,6 +32,23 @@ func additionalSteps() []step {
 	}
 	add("runs.cancel-finished-json", "runs cancel", "read", "packaged_cli", 0, "cancel-finished", "--json", "--ipc-path", "${ipc}", "runs", "cancel", "${run}").JSON = true
 	add("runs.cancel-finished-human", "runs cancel", "read", "packaged_cli", 0, "cancel-finished-human", "--ipc-path", "${ipc}", "runs", "cancel", "${run}")
+	joinCreate := add("join.create", "join create", "create", "packaged_cli", 0, "join-contract", "--json", "--ipc-path", "${ipc}", "join", "create", "--name=QA parallel", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file=-")
+	joinCreate.Input = "${join_branches_json}"
+	joinCreate.JSON = true
+	joinCreate.Save = []NamedValue{{Name: "join", Value: "id"}}
+	for _, view := range []string{"list", "show"} {
+		args := []string{"--json", "--ipc-path", "${ipc}", "join", view}
+		if view == "show" {
+			args = append(args, "${join}")
+		}
+		add("join."+view, "join "+view, "read", "packaged_cli", 0, "join-contract", args...).JSON = true
+	}
+	add("join.instances", "join instances", "read", "packaged_cli", 0, "join-instances-empty", "--json", "--ipc-path", "${ipc}", "join", "instances", "--join", "${join}", "--entry-run=unobserved-entry", "--state=waiting", "--limit=1", "--offset=0").JSON = true
+	add("join.update", "join update", "update", "packaged_cli", 0, "join-contract", "--json", "--ipc-path", "${ipc}", "join", "update", "${join}", "--name=QA updated parallel", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file", "${join_branches_file}").JSON = true
+	add("join.remove", "join rm", "delete", "packaged_cli", 0, "join-absent", "--json", "--ipc-path", "${ipc}", "join", "rm", "${join}").JSON = true
+	add("join.invalid-limit", "join instances", "validation", "packaged_cli", 2, "unchanged", "--ipc-path", "${ipc}", "join", "instances", "--limit=0")
+	badJoin := add("join.invalid-branches", "join create", "validation", "packaged_cli", 2, "unchanged", "--ipc-path", "${ipc}", "join", "create", "--name=invalid", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file=-")
+	badJoin.Input = `[{"name":"branch","task_id":"${failure_task}","task_name":"read-only"}]`
 	add("root.version", "", "version", "packaged_cli", 0, "version", "--version")
 	add("completion.callback", "__complete", "completion", "packaged_cli", 0, "completion", "__complete", "--help").Spec.Coverage = []string{"__complete --help"}
 	s := add("completion.no-desc", "__complete", "completion", "packaged_cli", 0, "completion", "__completeNoDesc", "")

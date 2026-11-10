@@ -13,6 +13,7 @@ const (
 	SourceCompletion AutomaticSource = "completion"
 	SourceTrigger    AutomaticSource = "trigger"
 	SourceWatcher    AutomaticSource = "filesystem_watcher"
+	SourceJoin       AutomaticSource = "parallel_join"
 )
 
 type ReadinessStatus string
@@ -40,19 +41,31 @@ func DisplayName(t domain.Task) string {
 	return t.Name
 }
 
-func EvaluateReadiness(t domain.Task, hasCompletionSource bool, automaticSourceFlags ...bool) Readiness {
+// Sources names independently configured automatic activation capabilities.
+type Sources struct {
+	Completion bool
+	Trigger    bool
+	Watcher    bool
+	Join       bool
+}
+
+// EvaluateReadiness classifies executable and automatic activation readiness.
+func EvaluateReadiness(t domain.Task, sources Sources) Readiness {
 	r := Readiness{CommandReady: strings.TrimSpace(t.Command) != ""}
 	if t.ScheduleID != "" {
 		r.AutomaticSources = append(r.AutomaticSources, SourceSchedule)
 	}
-	if hasCompletionSource {
+	if sources.Completion {
 		r.AutomaticSources = append(r.AutomaticSources, SourceCompletion)
 	}
-	if len(automaticSourceFlags) > 0 && automaticSourceFlags[0] {
+	if sources.Trigger {
 		r.AutomaticSources = append(r.AutomaticSources, SourceTrigger)
 	}
-	if len(automaticSourceFlags) > 1 && automaticSourceFlags[1] {
+	if sources.Watcher {
 		r.AutomaticSources = append(r.AutomaticSources, SourceWatcher)
+	}
+	if sources.Join {
+		r.AutomaticSources = append(r.AutomaticSources, SourceJoin)
 	}
 	r.ActivationReady = r.CommandReady && t.State == domain.TaskActive && len(r.AutomaticSources) > 0
 	switch {

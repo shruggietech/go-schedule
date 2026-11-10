@@ -17,6 +17,7 @@ import (
 	"github.com/shruggietech/go-schedule/v2/desktop/settings"
 	"github.com/shruggietech/go-schedule/v2/desktop/systems"
 	"github.com/shruggietech/go-schedule/v2/desktop/taskgroup"
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
 	"github.com/shruggietech/go-schedule/v2/internal/bundle"
 	"github.com/shruggietech/go-schedule/v2/internal/desktopcontrol"
 )
@@ -486,113 +487,248 @@ func (a *App) AcknowledgeAlerts(ids []string) operations.OperationResult {
 	return result
 }
 
-func (a *App) AutomationWorkspace() automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "load", Outcome: "unavailable", Message: "Automation sources are unavailable."}
-	}
-	return a.automation.Workspace(a.ctx)
-}
 func (a *App) SaveChain(d automation.ChainDraft) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "save_chain", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	ctx, message := a.automationContext(d.ExpectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "save_chain", Outcome: "rejected", Message: message}
 	}
-	return a.automation.SaveChain(a.ctx, d)
+	result := a.automation.SaveChain(ctx, d)
+	result.DaemonID = d.ExpectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) DeleteChain(id string) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "delete_chain", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) DeleteChain(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "delete_chain", Outcome: "rejected", Message: message}
 	}
-	return a.automation.DeleteChain(a.ctx, id)
+	result := a.automation.DeleteChain(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 func (a *App) SaveTrigger(d automation.TriggerDraft) automation.SecretResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.SecretResult{Action: "save_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	ctx, message := a.automationContext(d.ExpectedDaemonID, "manage")
+	if message != "" {
+		return automation.SecretResult{Action: "save_trigger", Outcome: "rejected", Message: message}
 	}
-	return a.automation.SaveTrigger(a.ctx, d)
+	result := a.automation.SaveTrigger(ctx, d)
+	result.DaemonID = d.ExpectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) SetTriggerEnabled(id string, enabled bool) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "toggle_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) SetTriggerEnabled(id string, enabled bool, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "toggle_trigger", Outcome: "rejected", Message: message}
 	}
-	return a.automation.SetTriggerEnabled(a.ctx, id, enabled)
+	result := a.automation.SetTriggerEnabled(ctx, id, enabled)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) RevealTrigger(id string) automation.SecretResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.SecretResult{Action: "reveal_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) RevealTrigger(id, expectedDaemonID string) automation.SecretResult {
+	ctx, message := a.automationContext(expectedDaemonID, "enroll")
+	if message != "" {
+		return automation.SecretResult{Action: "reveal_trigger", Outcome: "rejected", Message: message}
 	}
-	return a.automation.RevealTrigger(a.ctx, id)
+	result := a.automation.RevealTrigger(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) RotateTrigger(id string) automation.SecretResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.SecretResult{Action: "rotate_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) RotateTrigger(id, expectedDaemonID string) automation.SecretResult {
+	ctx, message := a.automationContext(expectedDaemonID, "enroll")
+	if message != "" {
+		return automation.SecretResult{Action: "rotate_trigger", Outcome: "rejected", Message: message}
 	}
-	return a.automation.RotateTrigger(a.ctx, id)
+	result := a.automation.RotateTrigger(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) FireTrigger(id string) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "fire_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) FireTrigger(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "operate")
+	if message != "" {
+		return automation.OperationResult{Action: "fire_trigger", Outcome: "rejected", Message: message}
 	}
-	return a.automation.FireTrigger(a.ctx, id)
+	result := a.automation.FireTrigger(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) DeleteTrigger(id string) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "delete_trigger", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) DeleteTrigger(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "delete_trigger", Outcome: "rejected", Message: message}
 	}
-	return a.automation.DeleteTrigger(a.ctx, id)
+	result := a.automation.DeleteTrigger(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 func (a *App) CreateTriggerSet(d automation.TriggerSetDraft) automation.SecretResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.SecretResult{Action: "create_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	ctx, message := a.automationContext(d.ExpectedDaemonID, "manage")
+	if message != "" {
+		return automation.SecretResult{Action: "create_trigger_set", Outcome: "rejected", Message: message}
 	}
-	return a.automation.CreateTriggerSet(a.ctx, d)
+	result := a.automation.CreateTriggerSet(ctx, d)
+	result.DaemonID = d.ExpectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) RetargetTriggerSet(id, target, updated string, overwrite bool) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "retarget_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) RetargetTriggerSet(id, target, original string, overwrite bool, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "retarget_trigger_set", Outcome: "rejected", Message: message}
 	}
-	return a.automation.RetargetTriggerSet(a.ctx, id, target, updated, overwrite)
+	result := a.automation.RetargetTriggerSet(ctx, id, target, original, overwrite)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) SetTriggerSetEnabled(id string, enabled bool) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "toggle_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) SetTriggerSetEnabled(id string, enabled bool, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "toggle_trigger_set", Outcome: "rejected", Message: message}
 	}
-	return a.automation.SetTriggerSetEnabled(a.ctx, id, enabled)
+	result := a.automation.SetTriggerSetEnabled(ctx, id, enabled)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) RevealTriggerSet(id string) automation.SecretResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.SecretResult{Action: "reveal_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) RevealTriggerSet(id, expectedDaemonID string) automation.SecretResult {
+	ctx, message := a.automationContext(expectedDaemonID, "enroll")
+	if message != "" {
+		return automation.SecretResult{Action: "reveal_trigger_set", Outcome: "rejected", Message: message}
 	}
-	return a.automation.RevealTriggerSet(a.ctx, id)
+	result := a.automation.RevealTriggerSet(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) RotateTriggerSet(id string) automation.SecretResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.SecretResult{Action: "rotate_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) RotateTriggerSet(id, expectedDaemonID string) automation.SecretResult {
+	ctx, message := a.automationContext(expectedDaemonID, "enroll")
+	if message != "" {
+		return automation.SecretResult{Action: "rotate_trigger_set", Outcome: "rejected", Message: message}
 	}
-	return a.automation.RotateTriggerSet(a.ctx, id)
+	result := a.automation.RotateTriggerSet(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) DeleteTriggerSet(id string) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "delete_trigger_set", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) DeleteTriggerSet(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "delete_trigger_set", Outcome: "rejected", Message: message}
 	}
-	return a.automation.DeleteTriggerSet(a.ctx, id)
+	result := a.automation.DeleteTriggerSet(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
 func (a *App) SaveFilesystemWatcher(d automation.WatcherDraft) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "save_watcher", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+	ctx, message := a.automationContext(d.ExpectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "save_watcher", Outcome: "rejected", Message: message}
 	}
-	return a.automation.SaveWatcher(a.ctx, d)
+	result := a.automation.SaveWatcher(ctx, d)
+	result.DaemonID = d.ExpectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) SetFilesystemWatcherEnabled(id string, enabled bool) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "toggle_watcher", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) SetFilesystemWatcherEnabled(id string, enabled bool, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "toggle_watcher", Outcome: "rejected", Message: message}
 	}
-	return a.automation.SetWatcherEnabled(a.ctx, id, enabled)
+	result := a.automation.SetWatcherEnabled(ctx, id, enabled)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
 }
-func (a *App) DeleteFilesystemWatcher(id string) automation.OperationResult {
-	if a.automation == nil || a.ctx == nil {
-		return automation.OperationResult{Action: "delete_watcher", Outcome: "unavailable", Message: "Automation sources are unavailable."}
+func (a *App) DeleteFilesystemWatcher(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "delete_watcher", Outcome: "rejected", Message: message}
 	}
-	return a.automation.DeleteWatcher(a.ctx, id)
+	result := a.automation.DeleteWatcher(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
+}
+func (a *App) SaveJoin(d automation.JoinDraft) automation.OperationResult {
+	ctx, message := a.automationJoinContext(d.ExpectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "save_join", Outcome: "rejected", Message: message}
+	}
+	result := a.automation.SaveJoin(ctx, d)
+	result.DaemonID = d.ExpectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
+}
+func (a *App) DeleteJoin(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationJoinContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "delete_join", Outcome: "rejected", Message: message}
+	}
+	result := a.automation.DeleteJoin(ctx, id)
+	result.DaemonID = expectedDaemonID
+	a.reconcileUncertain(result.Outcome)
+	return result
+}
+func (a *App) AutomationWorkspace(expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationContext(expectedDaemonID, "")
+	if message != "" {
+		return automation.OperationResult{Action: "load", Outcome: "unavailable", Message: message}
+	}
+	generation := a.manager.Snapshot().Generation
+	result := a.automation.Workspace(ctx)
+	after := a.manager.Snapshot()
+	if after.Target.ID != expectedDaemonID || after.Generation != generation || after.Stale || after.State != connection.StateConnected {
+		return automation.OperationResult{Action: "load", Outcome: "unavailable", Message: "The selected scheduler changed while reading Automation. Refresh the selected target."}
+	}
+	result.DaemonID = expectedDaemonID
+	return result
+}
+func (a *App) JoinInstances(id string, offset int, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationJoinContext(expectedDaemonID, "")
+	if message != "" {
+		return automation.OperationResult{Action: "load_join_instances", Outcome: "unavailable", Message: message}
+	}
+	result := a.automation.JoinInstances(ctx, id, offset)
+	result.DaemonID = expectedDaemonID
+	return result
+}
+func (a *App) JoinInstance(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationJoinContext(expectedDaemonID, "")
+	if message != "" {
+		return automation.OperationResult{Action: "load_join_instance", Outcome: "unavailable", Message: message}
+	}
+	result := a.automation.JoinInstance(ctx, id)
+	result.DaemonID = expectedDaemonID
+	return result
+}
+func (a *App) automationContext(expected, permission string) (context.Context, string) {
+	if a.automation == nil || a.ctx == nil || a.manager == nil {
+		return nil, "Connect to a scheduler before using Automation."
+	}
+	snapshot := a.manager.Snapshot()
+	if snapshot.State != connection.StateConnected || snapshot.Stale || expected == "" || snapshot.Target.ID != expected {
+		return nil, "The selected scheduler changed or is not current. Refresh before continuing."
+	}
+	if permission != "" {
+		allowed := false
+		for _, p := range snapshot.Target.Permissions {
+			if p == permission || p == "enroll" || (permission == "operate" && p == "manage") || (permission == "enroll" && snapshot.Target.Kind != "remote" && p == "manage") {
+				allowed = true
+			}
+		}
+		if !allowed {
+			return nil, "The current account lacks authority for this Automation action."
+		}
+	}
+	return client.ExpectDaemon(a.ctx, expected), ""
 }
 
 func (a *App) Workspace() taskgroup.OperationResult {
@@ -765,4 +901,17 @@ func (a *App) CancelRun(id, expectedDaemonID string) operations.OperationResult 
 	result := a.operations.CancelRun(a.ctx, id, expectedDaemonID)
 	a.reconcileUncertain(result.Outcome)
 	return result
+}
+
+func (a *App) automationJoinContext(expected, permission string) (context.Context, string) {
+	ctx, message := a.automationContext(expected, permission)
+	if message != "" {
+		return nil, message
+	}
+	for _, capability := range a.manager.Snapshot().Target.Capabilities {
+		if capability == "parallel-joins" {
+			return ctx, ""
+		}
+	}
+	return nil, "This scheduler does not support parallel joins. Update the selected scheduler."
 }

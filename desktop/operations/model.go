@@ -22,6 +22,10 @@ type ScheduleSnapshot struct {
 }
 
 type RunRecord struct {
+	DeliveryID         string `json:"deliveryId,omitempty"`
+	JoinInstanceID     string `json:"joinInstanceId,omitempty"`
+	JoinBranchID       string `json:"joinBranchId,omitempty"`
+	JoinRole           string `json:"joinRole,omitempty"`
 	CancellationStatus string `json:"cancellationStatus,omitempty"`
 	CancellationError  string `json:"cancellationError,omitempty"`
 	ID                 string `json:"id"`

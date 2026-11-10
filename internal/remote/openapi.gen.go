@@ -150,6 +150,69 @@ func (e Capability) Valid() bool {
 	}
 }
 
+// Defines values for ChainCreateRequestOnOutcome.
+const (
+	ChainCreateRequestOnOutcomeAny     ChainCreateRequestOnOutcome = "any"
+	ChainCreateRequestOnOutcomeFailure ChainCreateRequestOnOutcome = "failure"
+	ChainCreateRequestOnOutcomeSuccess ChainCreateRequestOnOutcome = "success"
+)
+
+// Valid indicates whether the value is a known member of the ChainCreateRequestOnOutcome enum.
+func (e ChainCreateRequestOnOutcome) Valid() bool {
+	switch e {
+	case ChainCreateRequestOnOutcomeAny:
+		return true
+	case ChainCreateRequestOnOutcomeFailure:
+		return true
+	case ChainCreateRequestOnOutcomeSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ChainUpdateRequestOnOutcome.
+const (
+	ChainUpdateRequestOnOutcomeAny     ChainUpdateRequestOnOutcome = "any"
+	ChainUpdateRequestOnOutcomeFailure ChainUpdateRequestOnOutcome = "failure"
+	ChainUpdateRequestOnOutcomeSuccess ChainUpdateRequestOnOutcome = "success"
+)
+
+// Valid indicates whether the value is a known member of the ChainUpdateRequestOnOutcome enum.
+func (e ChainUpdateRequestOnOutcome) Valid() bool {
+	switch e {
+	case ChainUpdateRequestOnOutcomeAny:
+		return true
+	case ChainUpdateRequestOnOutcomeFailure:
+		return true
+	case ChainUpdateRequestOnOutcomeSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CompletionChainOnOutcome.
+const (
+	CompletionChainOnOutcomeAny     CompletionChainOnOutcome = "any"
+	CompletionChainOnOutcomeFailure CompletionChainOnOutcome = "failure"
+	CompletionChainOnOutcomeSuccess CompletionChainOnOutcome = "success"
+)
+
+// Valid indicates whether the value is a known member of the CompletionChainOnOutcome enum.
+func (e CompletionChainOnOutcome) Valid() bool {
+	switch e {
+	case CompletionChainOnOutcomeAny:
+		return true
+	case CompletionChainOnOutcomeFailure:
+		return true
+	case CompletionChainOnOutcomeSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DaemonSearchSchema.
 const (
 	GoScheduleDaemonSearchV1 DaemonSearchSchema = "go-schedule.daemon-search.v1"
@@ -192,6 +255,75 @@ func (e IssuedCredentialState) Valid() bool {
 	case IssuedCredentialStateActive:
 		return true
 	case IssuedCredentialStateRevoked:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JoinDeliveryState.
+const (
+	JoinDeliveryStateClaimed   JoinDeliveryState = "claimed"
+	JoinDeliveryStateCompleted JoinDeliveryState = "completed"
+	JoinDeliveryStatePending   JoinDeliveryState = "pending"
+	JoinDeliveryStateResolved  JoinDeliveryState = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the JoinDeliveryState enum.
+func (e JoinDeliveryState) Valid() bool {
+	switch e {
+	case JoinDeliveryStateClaimed:
+		return true
+	case JoinDeliveryStateCompleted:
+		return true
+	case JoinDeliveryStatePending:
+		return true
+	case JoinDeliveryStateResolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JoinInstanceState.
+const (
+	JoinInstanceStateBlocked       JoinInstanceState = "blocked"
+	JoinInstanceStateCompleted     JoinInstanceState = "completed"
+	JoinInstanceStateResolved      JoinInstanceState = "resolved"
+	JoinInstanceStateTargetPending JoinInstanceState = "target_pending"
+	JoinInstanceStateWaiting       JoinInstanceState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the JoinInstanceState enum.
+func (e JoinInstanceState) Valid() bool {
+	switch e {
+	case JoinInstanceStateBlocked:
+		return true
+	case JoinInstanceStateCompleted:
+		return true
+	case JoinInstanceStateResolved:
+		return true
+	case JoinInstanceStateTargetPending:
+		return true
+	case JoinInstanceStateWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JoinRunRole.
+const (
+	Branch JoinRunRole = "branch"
+	Target JoinRunRole = "target"
+)
+
+// Valid indicates whether the value is a known member of the JoinRunRole enum.
+func (e JoinRunRole) Valid() bool {
+	switch e {
+	case Branch:
+		return true
+	case Target:
 		return true
 	default:
 		return false
@@ -801,6 +933,46 @@ type CancellationState string
 // Capability defines model for Capability.
 type Capability string
 
+// ChainCreateRequest defines model for ChainCreateRequest.
+type ChainCreateRequest struct {
+	OnOutcome    ChainCreateRequestOnOutcome `json:"on_outcome"`
+	SourceTaskId openapi_types.UUID          `json:"source_task_id"`
+	TargetTaskId openapi_types.UUID          `json:"target_task_id"`
+}
+
+// ChainCreateRequestOnOutcome defines model for ChainCreateRequest.OnOutcome.
+type ChainCreateRequestOnOutcome string
+
+// ChainUpdateRequest defines model for ChainUpdateRequest.
+type ChainUpdateRequest struct {
+	OnOutcome    *ChainUpdateRequestOnOutcome `json:"on_outcome,omitempty"`
+	SourceTaskId *openapi_types.UUID          `json:"source_task_id,omitempty"`
+	TargetTaskId *openapi_types.UUID          `json:"target_task_id,omitempty"`
+}
+
+// ChainUpdateRequestOnOutcome defines model for ChainUpdateRequest.OnOutcome.
+type ChainUpdateRequestOnOutcome string
+
+// CompletionChain defines model for CompletionChain.
+type CompletionChain struct {
+	CreatedAt      time.Time                `json:"created_at"`
+	Id             openapi_types.UUID       `json:"id"`
+	OnOutcome      CompletionChainOnOutcome `json:"on_outcome"`
+	SourceTaskId   openapi_types.UUID       `json:"source_task_id"`
+	SourceTaskName *string                  `json:"source_task_name,omitempty"`
+	TargetTaskId   openapi_types.UUID       `json:"target_task_id"`
+	TargetTaskName *string                  `json:"target_task_name,omitempty"`
+	UpdatedAt      time.Time                `json:"updated_at"`
+}
+
+// CompletionChainOnOutcome defines model for CompletionChain.OnOutcome.
+type CompletionChainOnOutcome string
+
+// CompletionChainList defines model for CompletionChainList.
+type CompletionChainList struct {
+	Chains []CompletionChain `json:"chains"`
+}
+
 // DaemonSearch defines model for DaemonSearch.
 type DaemonSearch struct {
 	ObservedAt time.Time          `json:"observed_at"`
@@ -902,6 +1074,39 @@ type IssuedCredential struct {
 
 // IssuedCredentialState defines model for IssuedCredential.State.
 type IssuedCredentialState string
+
+// JoinBranchInput defines model for JoinBranchInput.
+type JoinBranchInput struct {
+	Id     *string            `json:"id,omitempty"`
+	Name   string             `json:"name"`
+	TaskId openapi_types.UUID `json:"task_id"`
+}
+
+// JoinCreateRequest defines model for JoinCreateRequest.
+type JoinCreateRequest struct {
+	Branches     []JoinBranchInput  `json:"branches"`
+	EntryTaskId  openapi_types.UUID `json:"entry_task_id"`
+	Name         string             `json:"name"`
+	TargetTaskId openapi_types.UUID `json:"target_task_id"`
+}
+
+// JoinDeliveryState defines model for JoinDeliveryState.
+type JoinDeliveryState string
+
+// JoinInstanceState defines model for JoinInstanceState.
+type JoinInstanceState string
+
+// JoinRunRole defines model for JoinRunRole.
+type JoinRunRole string
+
+// JoinUpdateRequest defines model for JoinUpdateRequest.
+type JoinUpdateRequest struct {
+	Branches          *[]JoinBranchInput  `json:"branches,omitempty"`
+	EntryTaskId       *openapi_types.UUID `json:"entry_task_id,omitempty"`
+	ExpectedUpdatedAt *time.Time          `json:"expected_updated_at,omitempty"`
+	Name              *string             `json:"name,omitempty"`
+	TargetTaskId      *openapi_types.UUID `json:"target_task_id,omitempty"`
+}
 
 // Manifest defines model for Manifest.
 type Manifest struct {
@@ -1074,6 +1279,97 @@ type Occurrence struct {
 // OccurrenceKind defines model for Occurrence.Kind.
 type OccurrenceKind string
 
+// ParallelJoin defines model for ParallelJoin.
+type ParallelJoin struct {
+	BranchCount     int                  `json:"branch_count"`
+	BranchOffset    *int                 `json:"branch_offset,omitempty"`
+	Branches        []ParallelJoinBranch `json:"branches"`
+	CreatedAt       time.Time            `json:"created_at"`
+	EntryTaskId     openapi_types.UUID   `json:"entry_task_id"`
+	EntryTaskName   *string              `json:"entry_task_name,omitempty"`
+	HasMoreBranches *bool                `json:"has_more_branches,omitempty"`
+	Id              openapi_types.UUID   `json:"id"`
+	Name            string               `json:"name"`
+	TargetTaskId    openapi_types.UUID   `json:"target_task_id"`
+	TargetTaskName  *string              `json:"target_task_name,omitempty"`
+	TruncatedFields *[]string            `json:"truncated_fields,omitempty"`
+	UpdatedAt       time.Time            `json:"updated_at"`
+}
+
+// ParallelJoinBranch defines model for ParallelJoinBranch.
+type ParallelJoinBranch struct {
+	Id              string             `json:"id"`
+	Name            string             `json:"name"`
+	TaskId          openapi_types.UUID `json:"task_id"`
+	TaskName        *string            `json:"task_name,omitempty"`
+	TruncatedFields *[]string          `json:"truncated_fields,omitempty"`
+}
+
+// ParallelJoinInstance defines model for ParallelJoinInstance.
+type ParallelJoinInstance struct {
+	BranchCount              int                      `json:"branch_count"`
+	BranchOffset             *int                     `json:"branch_offset,omitempty"`
+	Branches                 []ParallelJoinInvocation `json:"branches"`
+	CompletedAt              *time.Time               `json:"completed_at,omitempty"`
+	CreatedAt                time.Time                `json:"created_at"`
+	DefinitionId             openapi_types.UUID       `json:"definition_id"`
+	DefinitionName           string                   `json:"definition_name"`
+	EntryRunId               openapi_types.UUID       `json:"entry_run_id"`
+	EntryTaskId              openapi_types.UUID       `json:"entry_task_id"`
+	EntryTaskName            *string                  `json:"entry_task_name,omitempty"`
+	HasMoreBranches          *bool                    `json:"has_more_branches,omitempty"`
+	Id                       openapi_types.UUID       `json:"id"`
+	Reason                   *string                  `json:"reason,omitempty"`
+	State                    JoinInstanceState        `json:"state"`
+	TargetCancellationError  *string                  `json:"target_cancellation_error,omitempty"`
+	TargetCancellationStatus *CancellationState       `json:"target_cancellation_status,omitempty"`
+	TargetDeliveryId         *openapi_types.UUID      `json:"target_delivery_id,omitempty"`
+	TargetDeliveryState      *JoinDeliveryState       `json:"target_delivery_state,omitempty"`
+	TargetEndedAt            *time.Time               `json:"target_ended_at,omitempty"`
+	TargetOutcome            *string                  `json:"target_outcome,omitempty"`
+	TargetRunId              *openapi_types.UUID      `json:"target_run_id,omitempty"`
+	TargetStartedAt          *time.Time               `json:"target_started_at,omitempty"`
+	TargetTaskId             openapi_types.UUID       `json:"target_task_id"`
+	TargetTaskName           *string                  `json:"target_task_name,omitempty"`
+	TruncatedFields          *[]string                `json:"truncated_fields,omitempty"`
+	UpdatedAt                time.Time                `json:"updated_at"`
+}
+
+// ParallelJoinInstanceList defines model for ParallelJoinInstanceList.
+type ParallelJoinInstanceList struct {
+	HasMore   bool                   `json:"has_more"`
+	Instances []ParallelJoinInstance `json:"instances"`
+	Limit     int                    `json:"limit"`
+	Offset    int                    `json:"offset"`
+}
+
+// ParallelJoinInvocation defines model for ParallelJoinInvocation.
+type ParallelJoinInvocation struct {
+	BranchId           string              `json:"branch_id"`
+	CancellationError  *string             `json:"cancellation_error,omitempty"`
+	CancellationStatus *CancellationState  `json:"cancellation_status,omitempty"`
+	DeliveryId         openapi_types.UUID  `json:"delivery_id"`
+	DeliveryState      JoinDeliveryState   `json:"delivery_state"`
+	EndedAt            *time.Time          `json:"ended_at,omitempty"`
+	Id                 openapi_types.UUID  `json:"id"`
+	Name               string              `json:"name"`
+	Outcome            *string             `json:"outcome,omitempty"`
+	Reason             *string             `json:"reason,omitempty"`
+	RunId              *openapi_types.UUID `json:"run_id,omitempty"`
+	StartedAt          *time.Time          `json:"started_at,omitempty"`
+	TaskId             openapi_types.UUID  `json:"task_id"`
+	TaskName           *string             `json:"task_name,omitempty"`
+	TruncatedFields    *[]string           `json:"truncated_fields,omitempty"`
+}
+
+// ParallelJoinList defines model for ParallelJoinList.
+type ParallelJoinList struct {
+	HasMore bool           `json:"has_more"`
+	Joins   []ParallelJoin `json:"joins"`
+	Limit   int            `json:"limit"`
+	Offset  int            `json:"offset"`
+}
+
 // Platform defines model for Platform.
 type Platform struct {
 	Architecture string `json:"architecture"`
@@ -1083,11 +1379,15 @@ type Platform struct {
 // Run defines model for Run.
 type Run struct {
 	// CancellationError Authored cleanup-failure guidance while execution remains active
-	CancellationError  *string            `json:"cancellation_error,omitempty"`
-	CancellationStatus *CancellationState `json:"cancellation_status,omitempty"`
-	EndedAt            *time.Time         `json:"ended_at,omitempty"`
-	ExitCode           *int               `json:"exit_code,omitempty"`
-	Id                 openapi_types.UUID `json:"id"`
+	CancellationError  *string             `json:"cancellation_error,omitempty"`
+	CancellationStatus *CancellationState  `json:"cancellation_status,omitempty"`
+	DeliveryId         *openapi_types.UUID `json:"delivery_id,omitempty"`
+	EndedAt            *time.Time          `json:"ended_at,omitempty"`
+	ExitCode           *int                `json:"exit_code,omitempty"`
+	Id                 openapi_types.UUID  `json:"id"`
+	JoinBranchId       *openapi_types.UUID `json:"join_branch_id,omitempty"`
+	JoinInstanceId     *openapi_types.UUID `json:"join_instance_id,omitempty"`
+	JoinRole           *JoinRunRole        `json:"join_role,omitempty"`
 
 	// Outcome Actual terminal outcome including canceled or cancellation_failed; empty while active
 	Outcome         string              `json:"outcome"`
@@ -1098,6 +1398,7 @@ type Run struct {
 	SourceTaskId    *openapi_types.UUID `json:"source_task_id,omitempty"`
 	SourceTriggerId *openapi_types.UUID `json:"source_trigger_id,omitempty"`
 	SourceWatcherId *openapi_types.UUID `json:"source_watcher_id,omitempty"`
+	StartFailed     *bool               `json:"start_failed,omitempty"`
 	StartedAt       *time.Time          `json:"started_at,omitempty"`
 	TaskId          openapi_types.UUID  `json:"task_id"`
 	Trigger         string              `json:"trigger"`
@@ -1365,6 +1666,41 @@ type GroupsListParams struct {
 	Tree *bool `form:"tree,omitempty" json:"tree,omitempty"`
 }
 
+// JoinsInstancesListParams defines parameters for JoinsInstancesList.
+type JoinsInstancesListParams struct {
+	Offset       *int               `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit        *int               `form:"limit,omitempty" json:"limit,omitempty"`
+	TextLimit    *int               `form:"text_limit,omitempty" json:"text_limit,omitempty"`
+	BranchOffset *int               `form:"branch_offset,omitempty" json:"branch_offset,omitempty"`
+	BranchLimit  *int               `form:"branch_limit,omitempty" json:"branch_limit,omitempty"`
+	JoinId       *string            `form:"join_id,omitempty" json:"join_id,omitempty"`
+	EntryRunId   *string            `form:"entry_run_id,omitempty" json:"entry_run_id,omitempty"`
+	State        *JoinInstanceState `form:"state,omitempty" json:"state,omitempty"`
+}
+
+// JoinsInstancesReadParams defines parameters for JoinsInstancesRead.
+type JoinsInstancesReadParams struct {
+	TextLimit    *int `form:"text_limit,omitempty" json:"text_limit,omitempty"`
+	BranchOffset *int `form:"branch_offset,omitempty" json:"branch_offset,omitempty"`
+	BranchLimit  *int `form:"branch_limit,omitempty" json:"branch_limit,omitempty"`
+}
+
+// JoinsListParams defines parameters for JoinsList.
+type JoinsListParams struct {
+	Offset       *int `form:"offset,omitempty" json:"offset,omitempty"`
+	Limit        *int `form:"limit,omitempty" json:"limit,omitempty"`
+	TextLimit    *int `form:"text_limit,omitempty" json:"text_limit,omitempty"`
+	BranchOffset *int `form:"branch_offset,omitempty" json:"branch_offset,omitempty"`
+	BranchLimit  *int `form:"branch_limit,omitempty" json:"branch_limit,omitempty"`
+}
+
+// JoinsReadParams defines parameters for JoinsRead.
+type JoinsReadParams struct {
+	TextLimit    *int `form:"text_limit,omitempty" json:"text_limit,omitempty"`
+	BranchOffset *int `form:"branch_offset,omitempty" json:"branch_offset,omitempty"`
+	BranchLimit  *int `form:"branch_limit,omitempty" json:"branch_limit,omitempty"`
+}
+
 // RunsListParams defines parameters for RunsList.
 type RunsListParams struct {
 	Task        *openapi_types.UUID `form:"task,omitempty" json:"task,omitempty"`
@@ -1402,11 +1738,23 @@ type BundlesPreviewJSONRequestBody BundlesPreviewJSONBody
 // BundlesValidateJSONRequestBody defines body for BundlesValidate for application/json ContentType.
 type BundlesValidateJSONRequestBody BundlesValidateJSONBody
 
+// ChainsCreateJSONRequestBody defines body for ChainsCreate for application/json ContentType.
+type ChainsCreateJSONRequestBody = ChainCreateRequest
+
+// ChainsUpdateJSONRequestBody defines body for ChainsUpdate for application/json ContentType.
+type ChainsUpdateJSONRequestBody = ChainUpdateRequest
+
 // EnrollmentExchangeJSONRequestBody defines body for EnrollmentExchange for application/json ContentType.
 type EnrollmentExchangeJSONRequestBody = EnrollmentRequest
 
 // GroupsNotificationsUpdateJSONRequestBody defines body for GroupsNotificationsUpdate for application/json ContentType.
 type GroupsNotificationsUpdateJSONRequestBody = NotificationAssignments
+
+// JoinsCreateJSONRequestBody defines body for JoinsCreate for application/json ContentType.
+type JoinsCreateJSONRequestBody = JoinCreateRequest
+
+// JoinsUpdateJSONRequestBody defines body for JoinsUpdate for application/json ContentType.
+type JoinsUpdateJSONRequestBody = JoinUpdateRequest
 
 // NotificationsChannelsCreateJSONRequestBody defines body for NotificationsChannelsCreate for application/json ContentType.
 type NotificationsChannelsCreateJSONRequestBody = NotificationChannelCreate
@@ -1543,7 +1891,7 @@ type ClientInterface interface {
 
 	// BundlesExport performs a GET /bundles/export (the `BundlesExport` operationId) request.
 	//
-	// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
+	// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent; unreleased source exports version 3 with parallel join definitions and no execution state.
 	BundlesExport(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
@@ -1572,6 +1920,31 @@ type ClientInterface interface {
 
 	// CalendarRead performs a GET /calendar (the `CalendarRead` operationId) request.
 	CalendarRead(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsList performs a GET /chains (the `ChainsList` operationId) request.
+	ChainsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsCreateWithBody performs a POST /chains (the `ChainsCreate` operationId) request,
+	// with any type of body and a specified content type.
+	ChainsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsCreate performs a POST /chains (the `ChainsCreate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	ChainsCreate(ctx context.Context, body ChainsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsDelete performs a DELETE /chains/{id} (the `ChainsDelete` operationId) request.
+	ChainsDelete(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsRead performs a GET /chains/{id} (the `ChainsRead` operationId) request.
+	ChainsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsUpdateWithBody performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	ChainsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ChainsUpdate performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	ChainsUpdate(ctx context.Context, id ID, body ChainsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// EnrollmentExchangeWithBody performs a POST /enroll (the `EnrollmentExchange` operationId) request,
 	// with any type of body and a specified content type.
@@ -1605,6 +1978,37 @@ type ClientInterface interface {
 
 	// HealthRead performs a GET /health (the `HealthRead` operationId) request.
 	HealthRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsInstancesList performs a GET /join-instances (the `JoinsInstancesList` operationId) request.
+	JoinsInstancesList(ctx context.Context, params *JoinsInstancesListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsInstancesRead performs a GET /join-instances/{id} (the `JoinsInstancesRead` operationId) request.
+	JoinsInstancesRead(ctx context.Context, id ID, params *JoinsInstancesReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsList performs a GET /joins (the `JoinsList` operationId) request.
+	JoinsList(ctx context.Context, params *JoinsListParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsCreateWithBody performs a POST /joins (the `JoinsCreate` operationId) request,
+	// with any type of body and a specified content type.
+	JoinsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsCreate performs a POST /joins (the `JoinsCreate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	JoinsCreate(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsDelete performs a DELETE /joins/{id} (the `JoinsDelete` operationId) request.
+	JoinsDelete(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsRead performs a GET /joins/{id} (the `JoinsRead` operationId) request.
+	JoinsRead(ctx context.Context, id ID, params *JoinsReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsUpdateWithBody performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	JoinsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsUpdate performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type.
+	JoinsUpdate(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ManifestRead performs a GET /manifest (the `ManifestRead` operationId) request.
 	ManifestRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1860,7 +2264,7 @@ func (c *Client) BundlesCompare(ctx context.Context, body BundlesCompareJSONRequ
 
 // BundlesExport performs a GET /bundles/export (the `BundlesExport` operationId) request.
 //
-// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
+// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent; unreleased source exports version 3 with parallel join definitions and no execution state.
 func (c *Client) BundlesExport(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBundlesExportRequest(c.Server)
 	if err != nil {
@@ -1940,6 +2344,101 @@ func (c *Client) BundlesValidate(ctx context.Context, body BundlesValidateJSONRe
 // CalendarRead performs a GET /calendar (the `CalendarRead` operationId) request.
 func (c *Client) CalendarRead(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCalendarReadRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsList performs a GET /chains (the `ChainsList` operationId) request.
+func (c *Client) ChainsList(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsListRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsCreateWithBody performs a POST /chains (the `ChainsCreate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) ChainsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsCreateRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsCreate performs a POST /chains (the `ChainsCreate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) ChainsCreate(ctx context.Context, body ChainsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsCreateRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsDelete performs a DELETE /chains/{id} (the `ChainsDelete` operationId) request.
+func (c *Client) ChainsDelete(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsDeleteRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsRead performs a GET /chains/{id} (the `ChainsRead` operationId) request.
+func (c *Client) ChainsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsUpdateWithBody performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) ChainsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsUpdateRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ChainsUpdate performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) ChainsUpdate(ctx context.Context, id ID, body ChainsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewChainsUpdateRequest(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2063,6 +2562,127 @@ func (c *Client) GroupsNotificationsUpdate(ctx context.Context, id ID, body Grou
 // HealthRead performs a GET /health (the `HealthRead` operationId) request.
 func (c *Client) HealthRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewHealthReadRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsInstancesList performs a GET /join-instances (the `JoinsInstancesList` operationId) request.
+func (c *Client) JoinsInstancesList(ctx context.Context, params *JoinsInstancesListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsInstancesListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsInstancesRead performs a GET /join-instances/{id} (the `JoinsInstancesRead` operationId) request.
+func (c *Client) JoinsInstancesRead(ctx context.Context, id ID, params *JoinsInstancesReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsInstancesReadRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsList performs a GET /joins (the `JoinsList` operationId) request.
+func (c *Client) JoinsList(ctx context.Context, params *JoinsListParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsListRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsCreateWithBody performs a POST /joins (the `JoinsCreate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) JoinsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsCreateRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsCreate performs a POST /joins (the `JoinsCreate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) JoinsCreate(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsCreateRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsDelete performs a DELETE /joins/{id} (the `JoinsDelete` operationId) request.
+func (c *Client) JoinsDelete(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsDeleteRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsRead performs a GET /joins/{id} (the `JoinsRead` operationId) request.
+func (c *Client) JoinsRead(ctx context.Context, id ID, params *JoinsReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsReadRequest(c.Server, id, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsUpdateWithBody performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
+// with any type of body and a specified content type.
+func (c *Client) JoinsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsUpdateRequestWithBody(c.Server, id, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsUpdate performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
+// Takes a body of the `application/json` content type.
+func (c *Client) JoinsUpdate(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsUpdateRequest(c.Server, id, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3078,6 +3698,188 @@ func NewCalendarReadRequest(server string, params *CalendarReadParams) (*http.Re
 	return req, nil
 }
 
+// NewChainsListRequest constructs an http.Request for the ChainsList method
+func NewChainsListRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/chains")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewChainsCreateRequest calls the generic ChainsCreate builder with application/json body
+func NewChainsCreateRequest(server string, body ChainsCreateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewChainsCreateRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewChainsCreateRequestWithBody constructs an http.Request for the ChainsCreate method, with any body, and a specified content type
+func NewChainsCreateRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/chains")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewChainsDeleteRequest constructs an http.Request for the ChainsDelete method
+func NewChainsDeleteRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/chains/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewChainsReadRequest constructs an http.Request for the ChainsRead method
+func NewChainsReadRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/chains/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewChainsUpdateRequest calls the generic ChainsUpdate builder with application/json body
+func NewChainsUpdateRequest(server string, id ID, body ChainsUpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewChainsUpdateRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewChainsUpdateRequestWithBody constructs an http.Request for the ChainsUpdate method, with any body, and a specified content type
+func NewChainsUpdateRequestWithBody(server string, id ID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/chains/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewEnrollmentExchangeRequest calls the generic EnrollmentExchange builder with application/json body
 func NewEnrollmentExchangeRequest(server string, body EnrollmentExchangeJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3337,6 +4139,537 @@ func NewHealthReadRequest(server string) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewJoinsInstancesListRequest constructs an http.Request for the JoinsInstancesList method
+func NewJoinsInstancesListRequest(server string, params *JoinsInstancesListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/join-instances")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TextLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "text_limit", *params.TextLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchOffset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_offset", *params.BranchOffset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_limit", *params.BranchLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JoinId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "join_id", *params.JoinId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.EntryRunId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "entry_run_id", *params.EntryRunId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewJoinsInstancesReadRequest constructs an http.Request for the JoinsInstancesRead method
+func NewJoinsInstancesReadRequest(server string, id ID, params *JoinsInstancesReadParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/join-instances/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.TextLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "text_limit", *params.TextLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchOffset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_offset", *params.BranchOffset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_limit", *params.BranchLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewJoinsListRequest constructs an http.Request for the JoinsList method
+func NewJoinsListRequest(server string, params *JoinsListParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/joins")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.TextLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "text_limit", *params.TextLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchOffset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_offset", *params.BranchOffset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_limit", *params.BranchLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewJoinsCreateRequest calls the generic JoinsCreate builder with application/json body
+func NewJoinsCreateRequest(server string, body JoinsCreateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewJoinsCreateRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewJoinsCreateRequestWithBody constructs an http.Request for the JoinsCreate method, with any body, and a specified content type
+func NewJoinsCreateRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/joins")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewJoinsDeleteRequest constructs an http.Request for the JoinsDelete method
+func NewJoinsDeleteRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/joins/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewJoinsReadRequest constructs an http.Request for the JoinsRead method
+func NewJoinsReadRequest(server string, id ID, params *JoinsReadParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/joins/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.TextLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "text_limit", *params.TextLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchOffset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_offset", *params.BranchOffset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_limit", *params.BranchLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewJoinsUpdateRequest calls the generic JoinsUpdate builder with application/json body
+func NewJoinsUpdateRequest(server string, id ID, body JoinsUpdateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewJoinsUpdateRequestWithBody(server, id, "application/json", bodyReader)
+}
+
+// NewJoinsUpdateRequestWithBody constructs an http.Request for the JoinsUpdate method, with any body, and a specified content type
+func NewJoinsUpdateRequestWithBody(server string, id ID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/joins/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -4599,7 +5932,7 @@ type ClientWithResponsesInterface interface {
 
 	// BundlesExportWithResponse performs a GET /bundles/export (the `BundlesExport` operationId) request.
 	//
-	// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
+	// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent; unreleased source exports version 3 with parallel join definitions and no execution state.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	BundlesExportWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*BundlesExportResponse, error)
@@ -4636,6 +5969,41 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	CalendarReadWithResponse(ctx context.Context, params *CalendarReadParams, reqEditors ...RequestEditorFn) (*CalendarReadResponse, error)
+
+	// ChainsListWithResponse performs a GET /chains (the `ChainsList` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ChainsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ChainsListResponse, error)
+
+	// ChainsCreateWithBodyWithResponse performs a POST /chains (the `ChainsCreate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ChainsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChainsCreateResponse, error)
+
+	// ChainsCreateWithResponse performs a POST /chains (the `ChainsCreate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	ChainsCreateWithResponse(ctx context.Context, body ChainsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*ChainsCreateResponse, error)
+
+	// ChainsDeleteWithResponse performs a DELETE /chains/{id} (the `ChainsDelete` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ChainsDeleteWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*ChainsDeleteResponse, error)
+
+	// ChainsReadWithResponse performs a GET /chains/{id} (the `ChainsRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ChainsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*ChainsReadResponse, error)
+
+	// ChainsUpdateWithBodyWithResponse performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	ChainsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChainsUpdateResponse, error)
+
+	// ChainsUpdateWithResponse performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	ChainsUpdateWithResponse(ctx context.Context, id ID, body ChainsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*ChainsUpdateResponse, error)
 
 	// EnrollmentExchangeWithBodyWithResponse performs a POST /enroll (the `EnrollmentExchange` operationId) request,
 	// with any type of body and a specified content type.
@@ -4683,6 +6051,51 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	HealthReadWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthReadResponse, error)
+
+	// JoinsInstancesListWithResponse performs a GET /join-instances (the `JoinsInstancesList` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsInstancesListWithResponse(ctx context.Context, params *JoinsInstancesListParams, reqEditors ...RequestEditorFn) (*JoinsInstancesListResponse, error)
+
+	// JoinsInstancesReadWithResponse performs a GET /join-instances/{id} (the `JoinsInstancesRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsInstancesReadWithResponse(ctx context.Context, id ID, params *JoinsInstancesReadParams, reqEditors ...RequestEditorFn) (*JoinsInstancesReadResponse, error)
+
+	// JoinsListWithResponse performs a GET /joins (the `JoinsList` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsListWithResponse(ctx context.Context, params *JoinsListParams, reqEditors ...RequestEditorFn) (*JoinsListResponse, error)
+
+	// JoinsCreateWithBodyWithResponse performs a POST /joins (the `JoinsCreate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error)
+
+	// JoinsCreateWithResponse performs a POST /joins (the `JoinsCreate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	JoinsCreateWithResponse(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error)
+
+	// JoinsDeleteWithResponse performs a DELETE /joins/{id} (the `JoinsDelete` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsDeleteWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*JoinsDeleteResponse, error)
+
+	// JoinsReadWithResponse performs a GET /joins/{id} (the `JoinsRead` operationId) request.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsReadWithResponse(ctx context.Context, id ID, params *JoinsReadParams, reqEditors ...RequestEditorFn) (*JoinsReadResponse, error)
+
+	// JoinsUpdateWithBodyWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
+	// with any type of body and a specified content type.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error)
+
+	// JoinsUpdateWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	JoinsUpdateWithResponse(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error)
 
 	// ManifestReadWithResponse performs a GET /manifest (the `ManifestRead` operationId) request.
 	//
@@ -5452,6 +6865,309 @@ func (r CalendarReadResponse) ContentType() string {
 	return ""
 }
 
+// ChainsListResponse401Headers the declared response headers of an HTTP 401 response for ChainsList
+type ChainsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type ChainsListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CompletionChainList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ChainsListResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ChainsListResponse) GetJSON200() *CompletionChainList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ChainsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r ChainsListResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r ChainsListResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChainsListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChainsListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChainsListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ChainsCreateResponse401Headers the declared response headers of an HTTP 401 response for ChainsCreate
+type ChainsCreateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type ChainsCreateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *CompletionChain
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ChainsCreateResponse401Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r ChainsCreateResponse) GetJSON201() *CompletionChain {
+	return r.JSON201
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ChainsCreateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r ChainsCreateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r ChainsCreateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChainsCreateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChainsCreateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChainsCreateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ChainsDeleteResponse401Headers the declared response headers of an HTTP 401 response for ChainsDelete
+type ChainsDeleteResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type ChainsDeleteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ChainsDeleteResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ChainsDeleteResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r ChainsDeleteResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r ChainsDeleteResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChainsDeleteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChainsDeleteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChainsDeleteResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ChainsReadResponse401Headers the declared response headers of an HTTP 401 response for ChainsRead
+type ChainsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type ChainsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CompletionChain
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ChainsReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ChainsReadResponse) GetJSON200() *CompletionChain {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ChainsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r ChainsReadResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r ChainsReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChainsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChainsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChainsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// ChainsUpdateResponse401Headers the declared response headers of an HTTP 401 response for ChainsUpdate
+type ChainsUpdateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type ChainsUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *CompletionChain
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *ChainsUpdateResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ChainsUpdateResponse) GetJSON200() *CompletionChain {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ChainsUpdateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r ChainsUpdateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r ChainsUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ChainsUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ChainsUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ChainsUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // EnrollmentExchangeResponse401Headers the declared response headers of an HTTP 401 response for EnrollmentExchange
 type EnrollmentExchangeResponse401Headers struct {
 	WWWAuthenticate *string
@@ -5817,6 +7533,433 @@ func (r HealthReadResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r HealthReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsInstancesListResponse401Headers the declared response headers of an HTTP 401 response for JoinsInstancesList
+type JoinsInstancesListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsInstancesListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParallelJoinInstanceList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsInstancesListResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r JoinsInstancesListResponse) GetJSON200() *ParallelJoinInstanceList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsInstancesListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsInstancesListResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsInstancesListResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsInstancesListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsInstancesListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsInstancesListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsInstancesReadResponse401Headers the declared response headers of an HTTP 401 response for JoinsInstancesRead
+type JoinsInstancesReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsInstancesReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParallelJoinInstance
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsInstancesReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r JoinsInstancesReadResponse) GetJSON200() *ParallelJoinInstance {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsInstancesReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsInstancesReadResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsInstancesReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsInstancesReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsInstancesReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsInstancesReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsListResponse401Headers the declared response headers of an HTTP 401 response for JoinsList
+type JoinsListResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsListResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParallelJoinList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsListResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r JoinsListResponse) GetJSON200() *ParallelJoinList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsListResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsListResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsListResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsListResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsListResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsListResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsCreateResponse401Headers the declared response headers of an HTTP 401 response for JoinsCreate
+type JoinsCreateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsCreateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *ParallelJoin
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsCreateResponse401Headers
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r JoinsCreateResponse) GetJSON201() *ParallelJoin {
+	return r.JSON201
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsCreateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsCreateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsCreateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsCreateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsCreateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsCreateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsDeleteResponse401Headers the declared response headers of an HTTP 401 response for JoinsDelete
+type JoinsDeleteResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsDeleteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsDeleteResponse401Headers
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsDeleteResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsDeleteResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsDeleteResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsDeleteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsDeleteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsDeleteResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsReadResponse401Headers the declared response headers of an HTTP 401 response for JoinsRead
+type JoinsReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParallelJoin
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r JoinsReadResponse) GetJSON200() *ParallelJoin {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsReadResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsReadResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsUpdateResponse401Headers the declared response headers of an HTTP 401 response for JoinsUpdate
+type JoinsUpdateResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsUpdateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParallelJoin
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *RequestTooLarge
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsUpdateResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r JoinsUpdateResponse) GetJSON200() *ParallelJoin {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsUpdateResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r JoinsUpdateResponse) GetJSON413() *RequestTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsUpdateResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsUpdateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsUpdateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsUpdateResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7446,7 +9589,7 @@ func (c *ClientWithResponses) BundlesCompareWithResponse(ctx context.Context, bo
 
 // BundlesExportWithResponse performs a GET /bundles/export (the `BundlesExport` operationId) request.
 //
-// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
+// Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent; unreleased source exports version 3 with parallel join definitions and no execution state.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) BundlesExportWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*BundlesExportResponse, error) {
@@ -7518,6 +9661,83 @@ func (c *ClientWithResponses) CalendarReadWithResponse(ctx context.Context, para
 		return nil, err
 	}
 	return ParseCalendarReadResponse(rsp)
+}
+
+// ChainsListWithResponse performs a GET /chains (the `ChainsList` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsListWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ChainsListResponse, error) {
+	rsp, err := c.ChainsList(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsListResponse(rsp)
+}
+
+// ChainsCreateWithBodyWithResponse performs a POST /chains (the `ChainsCreate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChainsCreateResponse, error) {
+	rsp, err := c.ChainsCreateWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsCreateResponse(rsp)
+}
+
+// ChainsCreateWithResponse performs a POST /chains (the `ChainsCreate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsCreateWithResponse(ctx context.Context, body ChainsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*ChainsCreateResponse, error) {
+	rsp, err := c.ChainsCreate(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsCreateResponse(rsp)
+}
+
+// ChainsDeleteWithResponse performs a DELETE /chains/{id} (the `ChainsDelete` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsDeleteWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*ChainsDeleteResponse, error) {
+	rsp, err := c.ChainsDelete(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsDeleteResponse(rsp)
+}
+
+// ChainsReadWithResponse performs a GET /chains/{id} (the `ChainsRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*ChainsReadResponse, error) {
+	rsp, err := c.ChainsRead(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsReadResponse(rsp)
+}
+
+// ChainsUpdateWithBodyWithResponse performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ChainsUpdateResponse, error) {
+	rsp, err := c.ChainsUpdateWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsUpdateResponse(rsp)
+}
+
+// ChainsUpdateWithResponse performs a PATCH /chains/{id} (the `ChainsUpdate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) ChainsUpdateWithResponse(ctx context.Context, id ID, body ChainsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*ChainsUpdateResponse, error) {
+	rsp, err := c.ChainsUpdate(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseChainsUpdateResponse(rsp)
 }
 
 // EnrollmentExchangeWithBodyWithResponse performs a POST /enroll (the `EnrollmentExchange` operationId) request,
@@ -7619,6 +9839,105 @@ func (c *ClientWithResponses) HealthReadWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseHealthReadResponse(rsp)
+}
+
+// JoinsInstancesListWithResponse performs a GET /join-instances (the `JoinsInstancesList` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsInstancesListWithResponse(ctx context.Context, params *JoinsInstancesListParams, reqEditors ...RequestEditorFn) (*JoinsInstancesListResponse, error) {
+	rsp, err := c.JoinsInstancesList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsInstancesListResponse(rsp)
+}
+
+// JoinsInstancesReadWithResponse performs a GET /join-instances/{id} (the `JoinsInstancesRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsInstancesReadWithResponse(ctx context.Context, id ID, params *JoinsInstancesReadParams, reqEditors ...RequestEditorFn) (*JoinsInstancesReadResponse, error) {
+	rsp, err := c.JoinsInstancesRead(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsInstancesReadResponse(rsp)
+}
+
+// JoinsListWithResponse performs a GET /joins (the `JoinsList` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsListWithResponse(ctx context.Context, params *JoinsListParams, reqEditors ...RequestEditorFn) (*JoinsListResponse, error) {
+	rsp, err := c.JoinsList(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsListResponse(rsp)
+}
+
+// JoinsCreateWithBodyWithResponse performs a POST /joins (the `JoinsCreate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error) {
+	rsp, err := c.JoinsCreateWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsCreateResponse(rsp)
+}
+
+// JoinsCreateWithResponse performs a POST /joins (the `JoinsCreate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsCreateWithResponse(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error) {
+	rsp, err := c.JoinsCreate(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsCreateResponse(rsp)
+}
+
+// JoinsDeleteWithResponse performs a DELETE /joins/{id} (the `JoinsDelete` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsDeleteWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*JoinsDeleteResponse, error) {
+	rsp, err := c.JoinsDelete(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsDeleteResponse(rsp)
+}
+
+// JoinsReadWithResponse performs a GET /joins/{id} (the `JoinsRead` operationId) request.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsReadWithResponse(ctx context.Context, id ID, params *JoinsReadParams, reqEditors ...RequestEditorFn) (*JoinsReadResponse, error) {
+	rsp, err := c.JoinsRead(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsReadResponse(rsp)
+}
+
+// JoinsUpdateWithBodyWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
+// with any type of body and a specified content type.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error) {
+	rsp, err := c.JoinsUpdateWithBody(ctx, id, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsUpdateResponse(rsp)
+}
+
+// JoinsUpdateWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsUpdateWithResponse(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error) {
+	rsp, err := c.JoinsUpdate(ctx, id, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsUpdateResponse(rsp)
 }
 
 // ManifestReadWithResponse performs a GET /manifest (the `ManifestRead` operationId) request.
@@ -8511,6 +10830,327 @@ func ParseCalendarReadResponse(rsp *http.Response) (*CalendarReadResponse, error
 	return response, nil
 }
 
+// ParseChainsListResponse parses an HTTP response from a ChainsListWithResponse call
+func ParseChainsListResponse(rsp *http.Response) (*ChainsListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChainsListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CompletionChainList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ChainsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseChainsCreateResponse parses an HTTP response from a ChainsCreateWithResponse call
+func ParseChainsCreateResponse(rsp *http.Response) (*ChainsCreateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChainsCreateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CompletionChain
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ChainsCreateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseChainsDeleteResponse parses an HTTP response from a ChainsDeleteWithResponse call
+func ParseChainsDeleteResponse(rsp *http.Response) (*ChainsDeleteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChainsDeleteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ChainsDeleteResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseChainsReadResponse parses an HTTP response from a ChainsReadWithResponse call
+func ParseChainsReadResponse(rsp *http.Response) (*ChainsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChainsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CompletionChain
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ChainsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseChainsUpdateResponse parses an HTTP response from a ChainsUpdateWithResponse call
+func ParseChainsUpdateResponse(rsp *http.Response) (*ChainsUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ChainsUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CompletionChain
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers ChainsUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseEnrollmentExchangeResponse parses an HTTP response from a EnrollmentExchangeWithResponse call
 func ParseEnrollmentExchangeResponse(rsp *http.Response) (*EnrollmentExchangeResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -8808,6 +11448,457 @@ func ParseHealthReadResponse(rsp *http.Response) (*HealthReadResponse, error) {
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseJoinsInstancesListResponse parses an HTTP response from a JoinsInstancesListWithResponse call
+func ParseJoinsInstancesListResponse(rsp *http.Response) (*JoinsInstancesListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsInstancesListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParallelJoinInstanceList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsInstancesListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsInstancesReadResponse parses an HTTP response from a JoinsInstancesReadWithResponse call
+func ParseJoinsInstancesReadResponse(rsp *http.Response) (*JoinsInstancesReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsInstancesReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParallelJoinInstance
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsInstancesReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsListResponse parses an HTTP response from a JoinsListWithResponse call
+func ParseJoinsListResponse(rsp *http.Response) (*JoinsListResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsListResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParallelJoinList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsListResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsCreateResponse parses an HTTP response from a JoinsCreateWithResponse call
+func ParseJoinsCreateResponse(rsp *http.Response) (*JoinsCreateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsCreateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ParallelJoin
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsCreateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsDeleteResponse parses an HTTP response from a JoinsDeleteWithResponse call
+func ParseJoinsDeleteResponse(rsp *http.Response) (*JoinsDeleteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsDeleteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsDeleteResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsReadResponse parses an HTTP response from a JoinsReadWithResponse call
+func ParseJoinsReadResponse(rsp *http.Response) (*JoinsReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParallelJoin
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsUpdateResponse parses an HTTP response from a JoinsUpdateWithResponse call
+func ParseJoinsUpdateResponse(rsp *http.Response) (*JoinsUpdateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsUpdateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParallelJoin
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest RequestTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
 	}
 
 	return response, nil

@@ -225,24 +225,15 @@ func validateCompletionChain(tx *sql.Tx, c *domain.CompletionChain, excludeID st
 			return fmt.Errorf("store: validate completion task: %w", err)
 		}
 	}
-	rows, err := tx.Query(`SELECT source_task_id,target_task_id FROM completion_chains WHERE id<>?`, excludeID)
+	graph, err := automationGraph(tx, excludeID)
 	if err != nil {
-		return fmt.Errorf("store: list completion graph: %w", err)
-	}
-	defer rows.Close()
-	graph := map[string][]string{}
-	for rows.Next() {
-		var source, target string
-		if err := rows.Scan(&source, &target); err != nil {
-			return fmt.Errorf("store: scan completion graph: %w", err)
-		}
-		graph[source] = append(graph[source], target)
+		return err
 	}
 	graph[c.SourceTaskID] = append(graph[c.SourceTaskID], c.TargetTaskID)
 	if reaches(graph, c.TargetTaskID, c.SourceTaskID, map[string]bool{}) {
 		return ErrChainCycle
 	}
-	return rows.Err()
+	return nil
 }
 
 func reaches(graph map[string][]string, from, target string, seen map[string]bool) bool {
@@ -269,64 +260,7 @@ func isUniqueConstraint(err error) bool {
 // delivery, and creates matching outgoing deliveries. Only success and failure
 // create downstream work.
 func (s *Store) RecordRunAndCreateDeliveries(r *domain.Run, incomingDeliveryID string) error {
-	if r.ID == "" {
-		r.ID = newID()
-	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return fmt.Errorf("store: begin record run: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	_, err = tx.Exec(`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID), nullStr(r.SourceTriggerID), nullStr(r.SourceWatcherID), boolToInt(r.StartFailed))
-	if err != nil {
-		return fmt.Errorf("store: record run: %w", err)
-	}
-	now := time.Now().UTC()
-	if incomingDeliveryID != "" {
-		res, err := tx.Exec(`UPDATE completion_deliveries SET state=?,completed_at=?,target_run_id=? WHERE id=? AND state=?`,
-			string(domain.DeliveryCompleted), fmtTime(now), r.ID, incomingDeliveryID, string(domain.DeliveryClaimed))
-		if err != nil {
-			return fmt.Errorf("store: complete delivery: %w", err)
-		}
-		if n, _ := res.RowsAffected(); n == 0 {
-			return fmt.Errorf("store: complete delivery %s: %w", incomingDeliveryID, ErrNotFound)
-		}
-	}
-	if r.Outcome == domain.OutcomeSuccess || r.Outcome == domain.OutcomeFailure {
-		rows, err := tx.Query(`SELECT id,target_task_id FROM completion_chains WHERE source_task_id=? AND (on_outcome=? OR on_outcome=?)`,
-			r.TaskID, string(r.Outcome), string(domain.CompletionOnAny))
-		if err != nil {
-			return fmt.Errorf("store: match completion chains: %w", err)
-		}
-		type match struct{ chainID, targetID string }
-		var matches []match
-		for rows.Next() {
-			var m match
-			if err := rows.Scan(&m.chainID, &m.targetID); err != nil {
-				_ = rows.Close()
-				return fmt.Errorf("store: scan completion match: %w", err)
-			}
-			matches = append(matches, m)
-		}
-		if err := rows.Close(); err != nil {
-			return fmt.Errorf("store: close completion matches: %w", err)
-		}
-		for _, m := range matches {
-			_, err := tx.Exec(`INSERT OR IGNORE INTO completion_deliveries(id,chain_id,source_task_id,target_task_id,source_run_id,state,created_at) VALUES(?,?,?,?,?,?,?)`,
-				newID(), m.chainID, r.TaskID, m.targetID, r.ID, string(domain.DeliveryPending), fmtTime(now))
-			if err != nil {
-				return fmt.Errorf("store: create completion delivery: %w", err)
-			}
-		}
-	}
-	if err := s.createRunNotificationDeliveries(tx, *r); err != nil {
-		return fmt.Errorf("store: create notification deliveries: %w", err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("store: commit run and deliveries: %w", err)
-	}
-	return nil
+	return s.recordRunAndDeliveries(r, incomingDeliveryID)
 }
 
 // RecoverCompletionDeliveries makes interrupted claims replayable.
@@ -350,7 +284,7 @@ func (s *Store) ClaimCompletionDeliveries(limit int) ([]domain.CompletionDeliver
 		return nil, fmt.Errorf("store: begin claim deliveries: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	rows, err := tx.Query(`SELECT id,chain_id,source_task_id,target_task_id,source_run_id,state,attempts,created_at,claimed_at,completed_at,target_run_id,resolution FROM completion_deliveries WHERE state=? ORDER BY created_at,id LIMIT ?`, string(domain.DeliveryPending), limit)
+	rows, err := tx.Query(deliverySelect+` WHERE state=? ORDER BY created_at,id LIMIT ?`, string(domain.DeliveryPending), limit)
 	if err != nil {
 		return nil, fmt.Errorf("store: list pending deliveries: %w", err)
 	}
@@ -388,14 +322,31 @@ func (s *Store) ClaimCompletionDeliveries(limit int) ([]domain.CompletionDeliver
 
 // ResolveCompletionDelivery terminally records a delivery that did not execute.
 func (s *Store) ResolveCompletionDelivery(id, reason string) error {
-	res, err := s.db.Exec(`UPDATE completion_deliveries SET state=?,completed_at=?,resolution=? WHERE id=? AND state=?`,
-		string(domain.DeliveryResolved), fmtTime(time.Now().UTC()), reason, id, string(domain.DeliveryClaimed))
-	return affected(res, err, "resolve completion delivery")
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	d, err := scanDelivery(tx.QueryRow(deliverySelect+" WHERE id=?", id))
+	if err != nil {
+		return err
+	}
+	if d.State == domain.DeliveryCompleted || d.State == domain.DeliveryResolved {
+		return tx.Commit()
+	}
+	now := s.now().UTC()
+	if _, err := tx.Exec("UPDATE completion_deliveries SET state=?,completed_at=?,resolution=? WHERE id=? AND state IN (?,?)", string(domain.DeliveryResolved), fmtTime(now), reason, id, string(domain.DeliveryPending), string(domain.DeliveryClaimed)); err != nil {
+		return err
+	}
+	if err := resolveJoinDelivery(tx, d, reason, now); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // ListCompletionDeliveries returns delivery state for tests and diagnostics.
 func (s *Store) ListCompletionDeliveries() ([]domain.CompletionDelivery, error) {
-	rows, err := s.db.Query(`SELECT id,chain_id,source_task_id,target_task_id,source_run_id,state,attempts,created_at,claimed_at,completed_at,target_run_id,resolution FROM completion_deliveries ORDER BY created_at,id`)
+	rows, err := s.db.Query(deliverySelect + ` ORDER BY created_at,id`)
 	if err != nil {
 		return nil, fmt.Errorf("store: list completion deliveries: %w", err)
 	}
@@ -411,11 +362,16 @@ func (s *Store) ListCompletionDeliveries() ([]domain.CompletionDelivery, error) 
 	return out, rows.Err()
 }
 
+const deliverySelect = `SELECT id,chain_id,source_task_id,target_task_id,source_run_id,state,attempts,created_at,claimed_at,completed_at,target_run_id,resolution,role,join_instance_id,join_branch_id FROM completion_deliveries`
+
 func scanDelivery(sc scanner) (domain.CompletionDelivery, error) {
 	var d domain.CompletionDelivery
 	var state, created string
 	var claimed, completed, targetRun sql.NullString
-	if err := sc.Scan(&d.ID, &d.ChainID, &d.SourceTaskID, &d.TargetTaskID, &d.SourceRunID, &state, &d.Attempts, &created, &claimed, &completed, &targetRun, &d.Resolution); err != nil {
+	if err := sc.Scan(&d.ID, &d.ChainID, &d.SourceTaskID, &d.TargetTaskID, &d.SourceRunID, &state, &d.Attempts, &created, &claimed, &completed, &targetRun, &d.Resolution, &d.Role, &d.JoinInstanceID, &d.JoinBranchID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return d, ErrNotFound
+		}
 		return d, fmt.Errorf("store: scan completion delivery: %w", err)
 	}
 	d.State = domain.DeliveryState(state)

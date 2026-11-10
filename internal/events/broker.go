@@ -14,15 +14,17 @@ import (
 type Kind string
 
 const (
-	KindRun        Kind = "run"
-	KindAlert      Kind = "alert"
-	KindLog        Kind = "log"
-	KindTask       Kind = "task"
-	KindGroup      Kind = "group"
-	KindChain      Kind = "chain"
-	KindTrigger    Kind = "trigger"
-	KindTriggerSet Kind = "trigger_set"
-	KindWatcher    Kind = "filesystem_watcher"
+	KindRun          Kind = "run"
+	KindAlert        Kind = "alert"
+	KindLog          Kind = "log"
+	KindTask         Kind = "task"
+	KindGroup        Kind = "group"
+	KindChain        Kind = "chain"
+	KindJoin         Kind = "join"
+	KindJoinInstance Kind = "join_instance"
+	KindTrigger      Kind = "trigger"
+	KindTriggerSet   Kind = "trigger_set"
+	KindWatcher      Kind = "filesystem_watcher"
 )
 
 // Verb describes a change to an entity in a task/group event.
@@ -55,6 +57,18 @@ type ChainEvent struct {
 	Chain *domain.CompletionChain `json:"chain,omitempty"`
 }
 
+// JoinInstanceEvent invalidates one durable instance without copying its history.
+type JoinInstanceEvent struct {
+	ID string `json:"id"`
+}
+
+// JoinEvent identifies a parallel definition change without native execution inputs.
+type JoinEvent struct {
+	Verb Verb                 `json:"verb"`
+	ID   string               `json:"id"`
+	Join *domain.ParallelJoin `json:"join,omitempty"`
+}
+
 // TriggerEvent describes an external-trigger change without carrying its key.
 type TriggerEvent struct {
 	Verb    Verb                    `json:"verb"`
@@ -79,16 +93,18 @@ type WatcherEvent struct {
 
 // Event is a single notification delivered to subscribers.
 type Event struct {
-	Kind       Kind              `json:"kind"`
-	Run        *domain.Run       `json:"run,omitempty"`
-	Alert      *domain.Alert     `json:"alert,omitempty"`
-	Log        *domain.LogRecord `json:"log,omitempty"`
-	Task       *TaskEvent        `json:"task,omitempty"`
-	Group      *GroupEvent       `json:"group,omitempty"`
-	Chain      *ChainEvent       `json:"chain,omitempty"`
-	Trigger    *TriggerEvent     `json:"trigger,omitempty"`
-	TriggerSet *TriggerSetEvent  `json:"trigger_set,omitempty"`
-	Watcher    *WatcherEvent     `json:"filesystem_watcher,omitempty"`
+	Kind         Kind               `json:"kind"`
+	Run          *domain.Run        `json:"run,omitempty"`
+	Alert        *domain.Alert      `json:"alert,omitempty"`
+	Log          *domain.LogRecord  `json:"log,omitempty"`
+	Task         *TaskEvent         `json:"task,omitempty"`
+	Group        *GroupEvent        `json:"group,omitempty"`
+	Chain        *ChainEvent        `json:"chain,omitempty"`
+	Join         *JoinEvent         `json:"join,omitempty"`
+	JoinInstance *JoinInstanceEvent `json:"join_instance,omitempty"`
+	Trigger      *TriggerEvent      `json:"trigger,omitempty"`
+	TriggerSet   *TriggerSetEvent   `json:"trigger_set,omitempty"`
+	Watcher      *WatcherEvent      `json:"filesystem_watcher,omitempty"`
 }
 
 // Broker fans out events to all current subscribers.
@@ -192,4 +208,14 @@ func (b *Broker) SubscriberCount() int {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return len(b.subs)
+}
+
+// PublishJoin broadcasts reusable parallel definition changes.
+func (b *Broker) PublishJoin(verb Verb, id string, join *domain.ParallelJoin) {
+	b.Publish(Event{Kind: KindJoin, Join: &JoinEvent{Verb: verb, ID: id, Join: join}})
+}
+
+// PublishJoinInstance invalidates an exact instance after durable resolution.
+func (b *Broker) PublishJoinInstance(id string) {
+	b.Publish(Event{Kind: KindJoinInstance, JoinInstance: &JoinInstanceEvent{ID: id}})
 }

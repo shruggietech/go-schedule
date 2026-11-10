@@ -12,7 +12,7 @@ func TestCurrentSchemaAddsExternalTriggersAndRunProvenance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24)`); err != nil {
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(25)`); err != nil {
 		t.Fatal(err)
 	}
 	_ = db.Close()

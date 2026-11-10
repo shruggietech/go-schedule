@@ -12,7 +12,7 @@ func TestCurrentSchemaAddsTriggerSetsAndPreservesStandaloneTriggers(t *testing.T
 		t.Fatal(err)
 	}
 
-	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(24)`); err != nil {
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(25)`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO schedules(id,kind,human_summary,expression) VALUES('schedule','once','',''); INSERT INTO tasks(id,name,command,args_json,working_dir,env_json,run_as,enabled,timezone,schedule_id,overlap_policy,catchup_policy,state,created_at,updated_at) VALUES('task','target','echo','[]','','{}','',1,'UTC','schedule','queue_one','one','active','2026-09-05T00:00:00Z','2026-09-05T00:00:00Z'); INSERT INTO external_triggers(id,name,key,target_task_id,enabled,created_at,updated_at) VALUES('trigger','standalone','gst_secret','task',1,'2026-09-05T00:00:00Z','2026-09-05T00:00:00Z')`); err != nil {

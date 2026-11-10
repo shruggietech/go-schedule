@@ -216,8 +216,7 @@ export function App({
   const remote = snapshot.target.kind === "remote";
   const unsupportedRemote =
     remote &&
-    (route === "automation" ||
-      route === "agentAccess");
+    route === "agentAccess";
   const canOperate =
     snapshot.state === "connected" &&
     (!remote || snapshot.target.permissions.includes("operate"));
@@ -339,8 +338,14 @@ export function App({
         </>
       ) : route === "automation" ? (
         <AutomationPage
+          key={snapshot.target.id}
           bridge={automation}
-          available={snapshot.state === "connected"}
+          daemonID={snapshot.target.id}
+          targetName={targetContext}
+          canManage={canManage && !snapshot.stale}
+          canEnroll={canEnroll && !snapshot.stale}
+          joinsSupported={snapshot.target.capabilities.includes("parallel-joins")}
+          available={snapshot.state === "connected" && !snapshot.stale}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0
           }

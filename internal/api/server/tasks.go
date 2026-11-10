@@ -334,7 +334,7 @@ func (s *Server) handleRunNow(w http.ResponseWriter, r *http.Request) {
 		s.notFoundOr(w, err)
 		return
 	}
-	if !tasklogic.EvaluateReadiness(task, false).CommandReady {
+	if !tasklogic.EvaluateReadiness(task, tasklogic.Sources{}).CommandReady {
 		writeError(w, http.StatusBadRequest, CodeValidation, "command", "configure a command before running this task")
 		return
 	}
@@ -455,12 +455,13 @@ func (s *Server) taskDetail(task domain.Task, sch *domain.Schedule, now time.Tim
 	hasCompletion, _ := s.store.TaskHasIncomingCompletion(task.ID)
 	hasTrigger, _ := s.store.TaskHasEnabledTrigger(task.ID)
 	hasWatcher, _ := s.store.TaskHasEnabledWatcher(task.ID)
-	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger, hasWatcher), PolicySummary: policySummary, NextRuns: runs}
+	hasJoin, _ := s.store.TaskHasJoinSource(task.ID)
+	return TaskResponse{Task: task, Schedule: sch, Readiness: tasklogic.EvaluateReadiness(task, tasklogic.Sources{Completion: hasCompletion, Trigger: hasTrigger, Watcher: hasWatcher, Join: hasJoin}), PolicySummary: policySummary, NextRuns: runs}
 }
 
 func taskObservationResponse(observation store.TaskObservation, now time.Time, textLimit int) TaskObservationResponse {
 	task := observation.Task
-	readiness := tasklogic.EvaluateReadiness(task, observation.HasCompletion, observation.HasTrigger, observation.HasWatcher)
+	readiness := tasklogic.EvaluateReadiness(task, tasklogic.Sources{Completion: observation.HasCompletion, Trigger: observation.HasTrigger, Watcher: observation.HasWatcher, Join: observation.HasJoin})
 	response := TaskObservationResponse{ID: task.ID, GroupID: task.GroupID, Enabled: task.Enabled, State: task.State, Timezone: task.Timezone, Readiness: readiness.Status, HasSchedule: observation.Schedule != nil, UpdatedAt: task.UpdatedAt}
 	response.Name, response.NameTruncated = boundObservationText(task.Name, textLimit)
 	response.NameTruncated = response.NameTruncated || observation.NameTruncated

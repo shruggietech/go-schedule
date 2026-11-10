@@ -37,6 +37,7 @@ Maintainers can evaluate the complete command inventory with the [unattended CLI
 - [`preferences`](#preferences)
 - [`cron`](#cron)
 - [`group`](#group)
+- [`join`](#join-unreleased-s144)
 - [`trigger`](#trigger)
 - [`watcher`](#watcher)
 - [`runs`](#runs)
@@ -752,3 +753,28 @@ The notification channel verbs also support `--kind smtp`. Supply `--smtp-host`,
 Create and rotate accept `--smtp-auth-file PATH` or `--smtp-auth-file -` for bounded UTF-8 JSON from a file or standard input. The object is `{"username":"...","password":"..."}`; `{}` clears authentication during rotation. Values are never returned by get/list/history. Human history includes each recipient's state, numeric SMTP status and authored explanation. JSON keeps the same command response shape with additive SMTP settings and recipient fields.
 
 See [Notifications](notifications.md#smtp-email-channels) for all settings, encryption choices, provider setup, retries and portable local-credential binding.
+
+## `join` (Unreleased S144)
+
+A parallel join starts its own named branch invocations after a successful entry run, then admits one target after every exact branch succeeds. It never combines unrelated latest task results. Create existing Prepare, Export A, Export B and Publish tasks first, then write a UTF-8 branch array:
+
+```text
+[{"id":"export-a","name":"Export A","task_id":"EXPORT_A_ID"},{"id":"export-b","name":"Export B","task_id":"EXPORT_B_ID"}]
+```
+
+```sh
+gosched join create --name "Prepare exports" --entry PREPARE_ID --target PUBLISH_ID --branches-file branches.json
+gosched join list
+gosched join show JOIN_ID
+gosched task run-now PREPARE_ID
+gosched join instances --join JOIN_ID --limit 100 --offset 0
+gosched join instance INSTANCE_ID
+gosched join update JOIN_ID --name "Revised exports" --branches-file branches.json
+gosched join rm JOIN_ID
+```
+
+`--branches-file -` reads exactly one JSON array from stdin. Branch inputs accept only `id`, `name` and `task_id`; an omitted slot ID is assigned by the daemon. Two named slots may reference the same task and retain distinct invocation, delivery and Run IDs. Branch and target tasks must satisfy the current enabled/group, command and overlap policies. Defining a relationship does not override those policies or enable a task.
+
+`instances` accepts `--entry-run`, `--state` (waiting, target_pending, completed, blocked or resolved), `--limit` (1 through 1000) and nonnegative `--offset`. `instance` shows the exact entry, slot/invocation identities, native run outcomes, target admission and blocked/resolved reasons. Every command supports global `--json` and deliberate remote selection. Existing `runs cancel RUN_ID` cancels only that exact execution; it does not cancel sibling branches.
+
+Edits affect future entry executions. Deletion resolves outstanding decisions; already executing native work retains its actual final result. Failed, canceled, skipped or ineligible branches cannot satisfy a success join. Pending work is durable across restart, with the existing at-least-once external-command crash boundary. Version 3 portable bundles include definitions and remap task references, excluding instances, contributions, deliveries and run history. Older version 1 and version 2 documents remain readable. Public v2.0.3 does not include joins.

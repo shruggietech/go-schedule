@@ -84,6 +84,10 @@ func remoteEventProjection(event events.Event) (remoteEvent, bool) {
 		projected.ResourceID, projected.Verb = event.Task.ID, event.Task.Verb
 	case event.Group != nil:
 		projected.ResourceID, projected.Verb = event.Group.ID, event.Group.Verb
+	case event.Join != nil:
+		projected.ResourceID, projected.Verb = event.Join.ID, event.Join.Verb
+	case event.JoinInstance != nil:
+		projected.ResourceID = event.JoinInstance.ID
 	case event.Chain != nil:
 		projected.ResourceID, projected.Verb = event.Chain.ID, event.Chain.Verb
 	case event.Trigger != nil:

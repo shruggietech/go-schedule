@@ -76,6 +76,8 @@ func resourceOffset(uri, base string) (int, error) {
 func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int) (Envelope, error) {
 	result := Envelope{SchemaVersion: SchemaVersion, Permission: Permission, GeneratedAt: timestamp(a.now()), Trust: TrustNotice}
 	switch kind {
+	case "join_definitions", "join_instances":
+		return a.joinEnvelope(ctx, kind, baseURI, offset)
 	case "health":
 		if offset != 0 {
 			return Envelope{}, errInvalidCursor

@@ -1,0 +1,5 @@
+import { act, renderHook, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { useAutomationWorkspace } from './store'
+import type { AutomationBridge, OperationResult } from './model'
+describe('Automation mutation reconciliation',()=>{it('keeps uncertainty and older observations after refresh failure',async()=>{const initial:OperationResult={action:'load',outcome:'accepted',message:'Current',workspace:{tasks:[],chains:[],triggers:[],triggerSets:[],watchers:[],loadedAt:'initial'}};const bridge={workspace:vi.fn().mockResolvedValueOnce(initial).mockResolvedValue({action:'load',outcome:'unavailable',message:'Offline'})} as unknown as AutomationBridge;const {result}=renderHook(()=>useAutomationWorkspace(bridge));await waitFor(()=>expect(result.current.workspace?.loadedAt).toBe('initial'));act(()=>result.current.accept({action:'save_chain',outcome:'uncertain',message:'Inspect current state'}));await act(()=>result.current.load());expect(result.current.status?.outcome).toBe('uncertain');expect(result.current.workspace?.loadedAt).toBe('initial')})})

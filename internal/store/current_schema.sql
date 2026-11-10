@@ -57,19 +57,82 @@ CREATE TABLE completion_chains (
 );
 
 CREATE TABLE completion_deliveries (
-	id             TEXT PRIMARY KEY,
-	chain_id       TEXT NOT NULL,
-	source_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-	target_task_id TEXT NOT NULL,
-	source_run_id  TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-	state          TEXT NOT NULL,
-	attempts       INTEGER NOT NULL DEFAULT 0,
-	created_at     TEXT NOT NULL,
-	claimed_at     TEXT,
-	completed_at   TEXT,
-	target_run_id  TEXT REFERENCES runs(id) ON DELETE SET NULL,
-	resolution     TEXT NOT NULL DEFAULT '',
-	UNIQUE(chain_id, source_run_id)
+ id TEXT PRIMARY KEY,
+ chain_id TEXT NOT NULL DEFAULT '',
+ source_task_id TEXT NOT NULL,
+ target_task_id TEXT NOT NULL,
+ source_run_id TEXT NOT NULL,
+ role TEXT NOT NULL DEFAULT 'chain' CHECK(role IN ('chain','join_branch','join_target')),
+ join_instance_id TEXT NOT NULL DEFAULT '',
+ join_branch_id TEXT NOT NULL DEFAULT '',
+ state TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0,
+ created_at TEXT NOT NULL,
+ claimed_at TEXT,
+ completed_at TEXT,
+ target_run_id TEXT,
+ resolution TEXT NOT NULL DEFAULT '',
+ CHECK((role='chain' AND chain_id<>'' AND join_instance_id='' AND join_branch_id='') OR (role='join_branch' AND chain_id='' AND join_instance_id<>'' AND join_branch_id<>'') OR (role='join_target' AND chain_id='' AND join_instance_id<>'' AND join_branch_id=''))
+);
+
+CREATE TABLE parallel_joins (
+ id TEXT PRIMARY KEY,
+ name TEXT NOT NULL,
+ entry_task_id TEXT NOT NULL REFERENCES tasks(id),
+ target_task_id TEXT NOT NULL REFERENCES tasks(id),
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL
+);
+
+CREATE TABLE parallel_join_branches (
+ join_id TEXT NOT NULL REFERENCES parallel_joins(id) ON DELETE CASCADE,
+ id TEXT NOT NULL,
+ position INTEGER NOT NULL,
+ name TEXT NOT NULL,
+ task_id TEXT NOT NULL REFERENCES tasks(id),
+ PRIMARY KEY(join_id,id),
+ UNIQUE(join_id,position),
+ UNIQUE(join_id,name)
+);
+
+CREATE TABLE parallel_join_instances (
+ id TEXT PRIMARY KEY,
+ definition_id TEXT NOT NULL,
+ definition_name TEXT NOT NULL,
+ entry_task_id TEXT NOT NULL,
+ entry_task_name TEXT NOT NULL,
+ entry_run_id TEXT NOT NULL,
+ target_task_id TEXT NOT NULL,
+ target_task_name TEXT NOT NULL,
+ state TEXT NOT NULL CHECK(state IN ('waiting','target_pending','completed','blocked','resolved')),
+ reason TEXT NOT NULL DEFAULT '',
+ target_delivery_id TEXT NOT NULL DEFAULT '',
+ target_run_id TEXT NOT NULL DEFAULT '',
+ target_outcome TEXT NOT NULL DEFAULT '',
+ target_started_at TEXT,
+ target_ended_at TEXT,
+ created_at TEXT NOT NULL,
+ updated_at TEXT NOT NULL,
+ completed_at TEXT,
+ UNIQUE(definition_id,entry_run_id)
+);
+
+CREATE TABLE parallel_join_invocations (
+ id TEXT PRIMARY KEY,
+ instance_id TEXT NOT NULL REFERENCES parallel_join_instances(id) ON DELETE CASCADE,
+ branch_id TEXT NOT NULL,
+ position INTEGER NOT NULL,
+ name TEXT NOT NULL,
+ task_id TEXT NOT NULL,
+ task_name TEXT NOT NULL,
+ delivery_id TEXT NOT NULL UNIQUE,
+ run_id TEXT NOT NULL DEFAULT '',
+ outcome TEXT NOT NULL DEFAULT '',
+ reason TEXT NOT NULL DEFAULT '',
+ started_at TEXT,
+ ended_at TEXT,
+ UNIQUE(instance_id,branch_id),
+ UNIQUE(instance_id,position)
 );
 
 CREATE TABLE daemon_identity (
@@ -233,7 +296,7 @@ CREATE TABLE runs (
 	exit_code     INTEGER,
 	output        TEXT NOT NULL DEFAULT '',
 	trigger       TEXT NOT NULL
-, source_task_id TEXT, source_run_id TEXT, output_truncated INTEGER NOT NULL DEFAULT 0, source_trigger_id TEXT, source_watcher_id TEXT, start_failed INTEGER NOT NULL DEFAULT 0 CHECK(start_failed IN (0,1)));
+, source_task_id TEXT, source_run_id TEXT, output_truncated INTEGER NOT NULL DEFAULT 0, source_trigger_id TEXT, source_watcher_id TEXT, start_failed INTEGER NOT NULL DEFAULT 0 CHECK(start_failed IN (0,1)), delivery_id TEXT NOT NULL DEFAULT '', join_instance_id TEXT NOT NULL DEFAULT '', join_branch_id TEXT NOT NULL DEFAULT '', join_role TEXT NOT NULL DEFAULT '');
 
 CREATE TABLE schedules (
 	id            TEXT PRIMARY KEY,
@@ -336,3 +399,12 @@ CREATE INDEX idx_runs_task ON runs(task_id);
 CREATE INDEX idx_tasks_group ON tasks(group_id);
 
 CREATE INDEX idx_tasks_state ON tasks(state);
+
+CREATE UNIQUE INDEX idx_completion_delivery_chain_identity ON completion_deliveries(chain_id,source_run_id) WHERE role='chain';
+CREATE UNIQUE INDEX idx_completion_delivery_branch_identity ON completion_deliveries(join_instance_id,join_branch_id) WHERE role='join_branch';
+CREATE UNIQUE INDEX idx_completion_delivery_target_identity ON completion_deliveries(join_instance_id) WHERE role='join_target';
+CREATE INDEX idx_parallel_joins_entry ON parallel_joins(entry_task_id);
+CREATE INDEX idx_parallel_join_branches_task ON parallel_join_branches(task_id);
+CREATE INDEX idx_parallel_join_instances_created ON parallel_join_instances(created_at,id);
+CREATE INDEX idx_parallel_join_instances_definition ON parallel_join_instances(definition_id,created_at,id);
+CREATE INDEX idx_parallel_join_invocations_task ON parallel_join_invocations(task_id,instance_id);

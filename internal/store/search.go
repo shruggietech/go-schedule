@@ -195,7 +195,11 @@ func (s *Store) taskEnableReady(id string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	readiness := task.EvaluateReadiness(taskValue, completion, trigger, watcher)
+	join, err := taskHasJoinSource(s.db, id)
+	if err != nil {
+		return false, err
+	}
+	readiness := task.EvaluateReadiness(taskValue, task.Sources{Completion: completion, Trigger: trigger, Watcher: watcher, Join: join})
 	return taskValue.State == domain.TaskActive && readiness.CommandReady && readiness.ActivationReady, nil
 }
 

@@ -20,6 +20,9 @@ const SchemaV1 = "go-schedule.bundle/v1"
 // SchemaV2 adds source and notification policy intent without changing v1.
 const SchemaV2 = "go-schedule.bundle/v2"
 
+// SchemaV3 adds exact named parallel block definitions without runtime state.
+const SchemaV3 = "go-schedule.bundle/v3"
+
 // Document carries portable automation intent. It deliberately has no daemon
 // identity, credentials, raw trigger keys, notification endpoints, run history,
 // command, working directory, environment, or run-as identity.
@@ -29,6 +32,7 @@ type Document struct {
 	Groups               []Group              `json:"groups,omitempty"`
 	Tasks                []Task               `json:"tasks,omitempty"`
 	Chains               []Chain              `json:"chains,omitempty"`
+	Joins                []Join               `json:"joins,omitempty"`
 	ExternalTriggers     []ExternalTrigger    `json:"external_triggers,omitempty"`
 	TriggerSets          []TriggerSet         `json:"trigger_sets,omitempty"`
 	Watchers             []Watcher            `json:"watchers,omitempty"`
@@ -199,6 +203,13 @@ func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
 		}
 	}
 	sort.Slice(doc.SMTPChannels, func(i, j int) bool { return doc.SMTPChannels[i].Name < doc.SMTPChannels[j].Name })
+	for i := range doc.Joins {
+		doc.Joins[i].Name = strings.TrimSpace(doc.Joins[i].Name)
+		for j := range doc.Joins[i].Branches {
+			doc.Joins[i].Branches[j].Name = strings.TrimSpace(doc.Joins[i].Branches[j].Name)
+		}
+	}
+	sort.Slice(doc.Joins, func(i, j int) bool { return doc.Joins[i].PortableID < doc.Joins[j].PortableID })
 	issues := Validate(doc)
 	sort.Slice(doc.Groups, func(i, j int) bool { return doc.Groups[i].PortableID < doc.Groups[j].PortableID })
 	sort.Slice(doc.Tasks, func(i, j int) bool { return doc.Tasks[i].PortableID < doc.Tasks[j].PortableID })
@@ -231,7 +242,7 @@ func issueKey(issue Issue) string {
 // Validate checks the versioned format, durable identities, and cross-object references.
 func Validate(doc Document) []Issue {
 	issues := validateSMTPChannels(doc)
-	if doc.Schema != SchemaV1 && doc.Schema != SchemaV2 {
+	if doc.Schema != SchemaV1 && doc.Schema != SchemaV2 && doc.Schema != SchemaV3 {
 		issues = append(issues, Issue{Kind: "schema", Message: fmt.Sprintf("unsupported bundle schema %q", doc.Schema)})
 	}
 	if doc.Schema == SchemaV1 && (len(doc.ExternalTriggers) > 0 || len(doc.TriggerSets) > 0 || len(doc.Watchers) > 0 || len(doc.NotificationPolicies) > 0 || len(doc.SMTPChannels) > 0) {
@@ -299,7 +310,11 @@ func Validate(doc Document) []Issue {
 			issues = append(issues, Issue{Kind: "chain", Identity: chain.PortableID, Message: "chain outcome must be success, failure, or any"})
 		}
 	}
-	issues = append(issues, validateChainGraph(doc.Chains)...)
+	for _, join := range doc.Joins {
+		add("join", join.PortableID, join.Name)
+	}
+	issues = append(issues, validateJoins(doc, tasks)...)
+	issues = append(issues, validateAutomationGraph(doc.Chains, doc.Joins)...)
 	for _, trigger := range doc.ExternalTriggers {
 		add("external_trigger", trigger.PortableID, trigger.Name)
 		if !tasks[trigger.TargetTaskID] {
@@ -389,7 +404,18 @@ func ValidateProjectedChains(source, target Document) []Issue {
 	for _, chain := range projected {
 		chains = append(chains, chain)
 	}
-	return validateChainGraph(chains)
+	joins := map[string]Join{}
+	for _, join := range target.Joins {
+		joins[join.PortableID] = join
+	}
+	for _, join := range source.Joins {
+		joins[join.PortableID] = join
+	}
+	list := make([]Join, 0, len(joins))
+	for _, join := range joins {
+		list = append(list, join)
+	}
+	return validateAutomationGraph(chains, list)
 }
 
 func validOutcome(outcome string) bool {
@@ -464,6 +490,16 @@ func Preview(id, daemonID string, source, target Document) Plan {
 	targetTaskNames := nameIndex(target.Tasks, func(v Task) string { return v.Name }, func(v Task) string { return v.PortableID })
 	for _, v := range canonical.Tasks {
 		plan.Items = append(plan.Items, compareTask(v, targetTasks[v.PortableID], targetTaskNames[v.Name]))
+	}
+	targetJoins := mapByID(target.Joins, func(v Join) string { return v.PortableID })
+	for _, v := range canonical.Joins {
+		item := comparePortable("join", v.PortableID, v.Name, v, targetJoins[v.PortableID])
+		plan.Items = append(plan.Items, sourceNameConflict(item, target.Joins, v.Name, func(v Join) string { return v.Name }))
+	}
+	for _, v := range target.Joins {
+		if _, found := findPortable(canonical.Joins, v.PortableID, func(v Join) string { return v.PortableID }); !found {
+			plan.Items = append(plan.Items, Item{Kind: "join", PortableID: v.PortableID, Name: v.Name, Action: ActionTargetOnly, Message: "exists only on target"})
+		}
 	}
 	targetChains := mapByID(target.Chains, func(v Chain) string { return v.PortableID })
 	for _, v := range canonical.Chains {

@@ -3,10 +3,12 @@ package clievaluate
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"slices"
 	"strings"
 
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
 	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 	"github.com/shruggietech/go-schedule/v2/internal/clientsecret"
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
@@ -109,4 +111,26 @@ func (s *session) assignmentPost(ctx context.Context, definition step) (bool, an
 		good = good && found
 	}
 	return good, map[string]any{"expected": expected, "actual": actual}, nil
+}
+
+// joinPost reads the daemon independently of the command response.
+func (s *session) joinPost(ctx context.Context, definition step) (bool, any, error) {
+	if definition.Hook == "join-instances-empty" {
+		instances, err := s.api.ListJoinInstances(ctx, domain.ParallelJoinInstanceFilter{DefinitionID: s.vars["join"], EntryRunID: "unobserved-entry", State: domain.JoinInstanceWaiting, Limit: 1})
+		return err == nil && len(instances) == 0, instances, err
+	}
+	join, err := s.api.GetJoin(ctx, s.vars["join"])
+	if definition.Hook == "join-absent" {
+		var apiErr *client.StatusError
+		return errors.As(err, &apiErr) && apiErr.Code == server.CodeNotFound, map[string]any{"join_id": s.vars["join"], "absent": err != nil}, nil
+	}
+	name := "QA parallel"
+	if definition.Spec.ID == "join.update" {
+		name = "QA updated parallel"
+	}
+	good := err == nil && join.Name == name && join.EntryTaskID == s.vars["base_task"] && join.TargetTaskID == s.vars["output_task"] && len(join.Branches) == 2
+	for i, branch := range join.Branches {
+		good = good && i < 2 && branch.TaskID == s.vars["failure_task"] && branch.ID == []string{"export-a", "export-b"}[i] && branch.Name == []string{"Export A", "Export B"}[i]
+	}
+	return good, join, err
 }

@@ -352,8 +352,8 @@ func TestDuplicateSourceRunInsertionCannotDuplicateDelivery(t *testing.T) {
 		t.Fatal(err)
 	}
 	for attempt := 0; attempt < 100; attempt++ {
-		if err := st.RecordRunAndCreateDeliveries(&run, ""); err == nil {
-			t.Fatalf("duplicate source run insertion %d unexpectedly succeeded", attempt)
+		if err := st.RecordRunAndCreateDeliveries(&run, ""); err != nil {
+			t.Fatalf("idempotent source run observation %d: %v", attempt, err)
 		}
 	}
 	deliveries, err := st.ListCompletionDeliveries()

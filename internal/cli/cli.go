@@ -95,6 +95,7 @@ func newRootWithDependencies(deps Dependencies) *cobra.Command {
 		newSystemsCmd(),
 		newSearchCmd(),
 		newChainCmd(),
+		newJoinCmd(),
 		newTriggerCmd(),
 		newWatcherCmd(),
 		newCronCmd(),

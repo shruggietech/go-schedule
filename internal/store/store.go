@@ -19,8 +19,12 @@ import (
 
 // Store wraps a SQLite database connection.
 type Store struct {
-	db  *sql.DB
-	now func() time.Time
+	db                  *sql.DB
+	now                 func() time.Time
+	completionAdmission *sql.Stmt
+	runInsert           *sql.Stmt
+	automationMatches   *sql.Stmt
+	chainDeliveryInsert *sql.Stmt
 }
 
 // Open opens (creating if needed) the current-format database at path and
@@ -60,16 +64,28 @@ func Open(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if err := s.prepareHotStatements(); err != nil {
+		_ = s.Close()
+		return nil, err
+	}
 	return s, nil
 }
 
 // Close closes the underlying database.
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error {
+	var result error
+	for _, stmt := range []*sql.Stmt{s.completionAdmission, s.runInsert, s.automationMatches, s.chainDeliveryInsert} {
+		if stmt != nil {
+			result = errors.Join(result, stmt.Close())
+		}
+	}
+	return errors.Join(result, s.db.Close())
+}
 
 // PoolStats returns connection-pool metadata without acquiring a SQL connection.
 func (s *Store) PoolStats() sql.DBStats { return s.db.Stats() }
 
-const currentSchemaVersion = 24
+const currentSchemaVersion = 25
 
 //go:embed current_schema.sql
 var currentSchema string
