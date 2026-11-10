@@ -159,6 +159,7 @@ type JoinDraft struct {
 }
 
 type OperationResult struct {
+	Join      *domain.ParallelJoin          `json:"join,omitempty"`
 	DaemonID  string                        `json:"daemonId,omitempty"`
 	Instances []domain.ParallelJoinInstance `json:"instances,omitempty"`
 	Instance  *domain.ParallelJoinInstance  `json:"instance,omitempty"`

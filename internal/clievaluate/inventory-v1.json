@@ -7209,7 +7209,7 @@
   {
     "path": "join show",
     "use": "show \u003cjoin-id\u003e",
-    "short": "Show a complete parallel join definition",
+    "short": "Show a parallel join observation and every branch",
     "long": "",
     "aliases": [],
     "hidden": false,

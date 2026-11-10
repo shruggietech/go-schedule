@@ -174,6 +174,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/joins", s.handleListJoins)
 	s.mux.HandleFunc("POST /v1/joins", s.handleCreateJoin)
 	s.mux.HandleFunc("GET /v1/joins/{id}", s.handleGetJoin)
+	s.mux.HandleFunc("GET /v1/joins/{id}/definition", s.handleGetJoinDefinition)
 	s.mux.HandleFunc("PATCH /v1/joins/{id}", s.handleUpdateJoin)
 	s.mux.HandleFunc("DELETE /v1/joins/{id}", s.handleDeleteJoin)
 	s.mux.HandleFunc("GET /v1/join-instances", s.handleListJoinInstances)

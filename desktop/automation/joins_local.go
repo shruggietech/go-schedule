@@ -28,3 +28,8 @@ func (b *LocalBackend) ListJoinInstances(c context.Context, f domain.ParallelJoi
 func (b *LocalBackend) GetJoinInstance(c context.Context, id string) (domain.ParallelJoinInstance, error) {
 	return b.daemon.GetJoinInstance(c, id)
 }
+
+// GetJoinDefinition reads complete authoring text from the selected backend.
+func (b *LocalBackend) GetJoinDefinition(c context.Context, id string) (domain.ParallelJoin, error) {
+	return b.daemon.GetJoinDefinition(c, id)
+}

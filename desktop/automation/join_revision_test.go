@@ -2,17 +2,22 @@ package automation
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/shruggietech/go-schedule/v2/internal/api/client"
 	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
-	"testing"
-	"time"
 )
 
 type revisionBackend struct {
 	fakeBackend
 	request server.JoinUpdateRequest
 	err     error
+}
+
+func (b *revisionBackend) GetJoinDefinition(context.Context, string) (domain.ParallelJoin, error) {
+	return domain.ParallelJoin{ID: "join", Name: "Previous", EntryTaskID: "previous-entry", TargetTaskID: "previous-target", UpdatedAt: time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)}, nil
 }
 
 func (b *revisionBackend) UpdateJoin(_ context.Context, _ string, r server.JoinUpdateRequest) (domain.ParallelJoin, error) {

@@ -30,3 +30,7 @@ Select explicit join CRUD and bounded definition/instance observation with neste
 ## Competitive and execution boundaries
 
 The owner prioritizes the dependent-workflow gap in the maintained competitor matrix. This source increment improves parallel orchestration without rewriting published v2.0.3 comparisons/reviews or claiming full visual-language parity. Cluster work remains explicitly deferred. All execution remains hidden, unattended and no-focus; actual native Wails UI is not used. Source publication and in-scope CI/review fixes are already authorized, limited to two total Codex reviews and owner final merge.
+
+## 2026-11-10: final-review authoring fidelity
+
+#476 demonstrates that bounded names copied into a full replacement form can overwrite accepted data. Keep observation and authoring contracts separate: one configuration-only, paged, audited Manage read supplies exact writable text; bounded Observe/MCP/runtime reads remain unchanged. Rejecting all edits to long names would narrow the product, and unbounded generic transport would unnecessarily change the access boundary. Reuse the current read/permission/catalogue foundations, align join-only JSON budgets with existing 2 MiB portable configuration operations, and send sparse updates against a fresh complete revision. This adds no persistent state or service and preserves existing names, task identities and explicit stale-overwrite decisions.

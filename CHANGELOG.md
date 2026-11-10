@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Revalidate queued automatic work against current task/group and relationship eligibility before native execution (#471).
 - Preserve uncertain Automation mutation outcomes across failed refreshes, prevent duplicate in-flight submissions and enable the full identity-pinned remote Automation workspace (#472, #470).
 - Allow complete join branch replacements to remove slots without retaining stale observation counts, and preserve existing Automation workspaces when the selected scheduler does not support joins (#474, #475).
+- Preserve complete join and branch names during edits by loading full authoring data and sending only changed fields, retaining bounded observations and explicit truncation output (#476).
 
 ### Decisions
 

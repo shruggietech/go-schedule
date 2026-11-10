@@ -411,6 +411,7 @@ paths:
       responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoinList"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
     post:
       operationId: joins.create
+      description: Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/JoinCreateRequest"}}}}
       responses: {"201": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
   /joins/{id}:
@@ -424,11 +425,21 @@ paths:
       responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
     patch:
       operationId: joins.update
+      description: Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/JoinUpdateRequest"}}}}
       responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
     delete:
       operationId: joins.delete
       responses: {"204": {$ref: "#/components/responses/NoContent"}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /joins/{id}/definition:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: joins.definition.read
+      description: Manage-authorized audited authoring snapshot with complete writable names, task references and revision; task display labels and runtime state are omitted. Branches remain paged.
+      parameters:
+        - {name: branch_offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: branch_limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+      responses: {"200": {description: Complete writable definition page, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid branch paging}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Current Manage authority is required}, "404": {description: Definition not found}, "409": {description: Selected daemon identity conflict}}
   /join-instances:
     get:
       operationId: joins.instances.list

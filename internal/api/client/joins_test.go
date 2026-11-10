@@ -3,10 +3,12 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
@@ -50,5 +52,28 @@ func TestJoinMutationOmitsObservedMetadata(t *testing.T) {
 	_, err := c.CreateJoin(context.Background(), server.JoinCreateRequest{Name: "X", Branches: []domain.ParallelJoinBranch{{ID: "a", Name: "A", TaskID: "task", TaskName: "Observed", TruncatedFields: []string{"name"}}}})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestJoinDefinitionAuthoringRefusesMixedPageRevisions(t *testing.T) {
+	c := NewInProcess(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/definition") {
+			t.Fatalf("unexpected path=%s", r.URL.Path)
+		}
+		v := domain.ParallelJoin{ID: "join", Name: strings.Repeat("長", 10000), UpdatedAt: time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC), BranchCount: 2, HasMoreBranches: true, Branches: []domain.ParallelJoinBranch{{ID: "first", Name: strings.Repeat("λ", 10000), TaskID: "task"}}}
+		if r.URL.Query().Get("branch_offset") == "1" {
+			v.UpdatedAt = v.UpdatedAt.Add(time.Second)
+			v.BranchOffset = 1
+			v.HasMoreBranches = false
+			v.Branches = []domain.ParallelJoinBranch{{ID: "second", Name: "B", TaskID: "task"}}
+		}
+		if err := json.NewEncoder(w).Encode(v); err != nil {
+			t.Error(err)
+		}
+	}))
+	_, err := c.GetJoinDefinition(context.Background(), "join")
+	var status *StatusError
+	if !errors.As(err, &status) || status.Code != server.CodeConflict {
+		t.Fatalf("mixed page result=%v", err)
 	}
 }

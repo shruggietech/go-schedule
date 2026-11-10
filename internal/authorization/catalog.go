@@ -86,6 +86,7 @@ var catalog = []Operation{
 	op("GET", "/v1/joins", "joins.list", domain.CapabilityObserve, "join", AuditNone),
 	op("POST", "/v1/joins", "joins.create", domain.CapabilityManage, "join", AuditMutation),
 	op("GET", "/v1/joins/{id}", "joins.read", domain.CapabilityObserve, "join", AuditNone),
+	op("GET", "/v1/joins/{id}/definition", "joins.definition.read", domain.CapabilityManage, "join", AuditPrivilegedRead),
 	op("PATCH", "/v1/joins/{id}", "joins.update", domain.CapabilityManage, "join", AuditMutation),
 	op("DELETE", "/v1/joins/{id}", "joins.delete", domain.CapabilityManage, "join", AuditMutation),
 	op("GET", "/v1/join-instances", "joins.instances.list", domain.CapabilityObserve, "join_instance", AuditNone),

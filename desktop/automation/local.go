@@ -13,6 +13,7 @@ type Backend interface {
 	DeleteJoin(context.Context, string) error
 	ListJoins(context.Context) ([]domain.ParallelJoin, error)
 	GetJoin(context.Context, string) (domain.ParallelJoin, error)
+	GetJoinDefinition(context.Context, string) (domain.ParallelJoin, error)
 	ListJoinInstances(context.Context, domain.ParallelJoinInstanceFilter) ([]domain.ParallelJoinInstance, error)
 	GetJoinInstance(context.Context, string) (domain.ParallelJoinInstance, error)
 	ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error)

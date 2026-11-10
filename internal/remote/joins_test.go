@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	apis "github.com/shruggietech/go-schedule/v2/internal/api/server"
@@ -98,7 +99,7 @@ func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) {
 		handler.ServeHTTP(out, req)
 		return out
 	}
-	body := apis.JoinCreateRequest{Name: "block", EntryTaskID: tasks[0].ID, TargetTaskID: tasks[2].ID, Branches: []domain.ParallelJoinBranch{{ID: "a", Name: "a", TaskID: tasks[1].ID}}}
+	body := apis.JoinCreateRequest{Name: strings.Repeat("N", 160000), EntryTaskID: tasks[0].ID, TargetTaskID: tasks[2].ID, Branches: []domain.ParallelJoinBranch{{ID: "a", Name: strings.Repeat("B", 140000), TaskID: tasks[1].ID}}}
 	if denied := request(http.MethodPost, "/api/v1/joins", observer.Token, "", body); denied.Code != 403 {
 		t.Fatalf("observe mutation=%d %s", denied.Code, denied.Body.String())
 	}
@@ -113,6 +114,45 @@ func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) {
 	for _, route := range []string{"/api/v1/joins", "/api/v1/joins/" + join.ID, "/api/v1/join-instances?join_id=" + join.ID, "/api/v1/chains"} {
 		if read := request(http.MethodGet, route, observer.Token, "", nil); read.Code != 200 {
 			t.Fatalf("read %s=%d %s", route, read.Code, read.Body.String())
+		}
+	}
+	definitionPath := "/api/v1/joins/" + join.ID + "/definition"
+	if denied := request(http.MethodGet, definitionPath, observer.Token, "", nil); denied.Code != http.StatusForbidden {
+		t.Fatalf("observer authoring=%d", denied.Code)
+	}
+	definition := request(http.MethodGet, definitionPath, manager.Token, "", nil)
+	var editable domain.ParallelJoin
+	if definition.Code != http.StatusOK || json.Unmarshal(definition.Body.Bytes(), &editable) != nil || editable.Name != body.Name || len(editable.Branches) != 1 || editable.Branches[0].Name != body.Branches[0].Name {
+		t.Fatalf("remote authoring text status=%d name length=%d", definition.Code, len(editable.Name))
+	}
+	if operation, ok := lookup(http.MethodGet, definitionPath); !ok || operation.Capability != domain.CapabilityManage || operation.Retry != RetrySafe || operation.Audit != authorization.AuditPrivilegedRead {
+		t.Fatalf("authoring operation=%+v found=%v", operation, ok)
+	}
+	rawBody, err := json.Marshal(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongMIME := httptest.NewRequest(http.MethodPost, "/api/v1/joins", bytes.NewReader(rawBody))
+	wrongMIME.Header.Set("Authorization", "Bearer "+manager.Token)
+	wrongMIME.Header.Set("Content-Type", "text/plain")
+	mimeResponse := httptest.NewRecorder()
+	handler.ServeHTTP(mimeResponse, wrongMIME)
+	if mimeResponse.Code != http.StatusUnsupportedMediaType {
+		t.Fatalf("join MIME=%d", mimeResponse.Code)
+	}
+	oversized := body
+	oversized.Name = strings.Repeat("X", 2<<20)
+	if rejected := request(http.MethodPost, "/api/v1/joins", manager.Token, "", oversized); rejected.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("remote join oversize=%d", rejected.Code)
+	}
+	for _, raw := range []string{`{"name":"changed","unknown":true}`, `{"name":"changed"} {}`} {
+		bad := httptest.NewRequest(http.MethodPatch, "/api/v1/joins/"+join.ID, strings.NewReader(raw))
+		bad.Header.Set("Authorization", "Bearer "+manager.Token)
+		bad.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, bad)
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("remote invalid JSON=%d", response.Code)
 		}
 	}
 	name := "changed"

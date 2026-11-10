@@ -1,11 +1,18 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/shruggietech/go-schedule/v2/internal/api/client"
+	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
 func TestJoinCommandsExposeCompleteLifecycle(t *testing.T) {
@@ -48,5 +55,49 @@ func TestJoinBranchesRejectReadOnlyMetadataAndDuplicateIdentity(t *testing.T) {
 		if err == nil || calls != 0 {
 			t.Fatalf("err=%v calls=%d", err, calls)
 		}
+	}
+}
+
+func TestJoinShowReportsBoundedHumanTextWithoutChangingJSON(t *testing.T) {
+	for _, branchOnly := range []bool{false, true} {
+		t.Run(fmt.Sprintf("branch_only_%v", branchOnly), func(t *testing.T) {
+			v := domain.ParallelJoin{ID: "join", Name: strings.Repeat("長", 1365), EntryTaskID: "entry", TargetTaskID: "target", BranchCount: 1, Branches: []domain.ParallelJoinBranch{{ID: "slot", Name: "Branch", TaskID: "task"}}}
+			if branchOnly {
+				v.Branches[0].TruncatedFields = []string{"name"}
+			} else {
+				v.TruncatedFields = []string{"name"}
+			}
+			c := client.NewInProcess(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/v1/joins/join" {
+					t.Errorf("observation used authoring path: %s", r.URL.Path)
+				}
+				if err := json.NewEncoder(w).Encode(v); err != nil {
+					t.Error(err)
+				}
+			}))
+			for _, asJSON := range []bool{false, true} {
+				var out, diagnostic bytes.Buffer
+				args := []string{"join", "show", "join"}
+				if asJSON {
+					args = append(args, "--json")
+				}
+				root := newRootWithDependencies(Dependencies{Client: c, Out: &out, Err: &diagnostic})
+				root.SetArgs(args)
+				if err := root.Execute(); err != nil {
+					t.Fatal(err)
+				}
+				if asJSON {
+					var result domain.ParallelJoin
+					if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+						t.Fatalf("JSON output gained human prose: %v", err)
+					}
+					if !joinObservationTruncated(result) {
+						t.Error("JSON omitted truncation metadata")
+					}
+				} else if !strings.Contains(out.String(), "some display text is truncated") {
+					t.Error("human observation omitted actual truncation notice")
+				}
+			}
+		})
 	}
 }

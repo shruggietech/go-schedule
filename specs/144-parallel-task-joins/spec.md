@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implemented on review branch codex/144-parallel-task-joins in PR #473. The corrected candidate, including #474/#475, passed all eight foreground gates, current owned Windows/Linux packaged execution and complete headless desktop coverage. One automatic Codex review is consumed; the second/final permitted review and fresh exact-head hosted CI follow publication. Final owner review and merge remain pending; no release is published. See [verification](verification.md) and [delivery](delivery.md).
+**Delivery**: Implemented on review branch codex/144-parallel-task-joins in PR #473. All 32 implementation tasks and the complete corrected eight-gate local run pass. Both permitted Codex reviews are consumed, and all three findings have functional corrections; final #476 changes are qualified by focused/full tests and fresh exact-head CI rather than a third Codex review. Final owner review and merge remain pending.
 
 **Input**: Owner kickoff for S144 implements [#470](https://github.com/shruggietech/go-schedule/issues/470), prioritized from the maintained competitor matrix's dependent-workflow gap.
 

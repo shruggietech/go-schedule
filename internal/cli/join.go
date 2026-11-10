@@ -120,7 +120,7 @@ func joinList() *cobra.Command {
 	}}
 }
 func joinShow() *cobra.Command {
-	return &cobra.Command{Use: "show <join-id>", Short: "Show a complete parallel join definition", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	return &cobra.Command{Use: "show <join-id>", Short: "Show a parallel join observation and every branch", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx, cancel := reqCtx(cmd)
 		defer cancel()
 		v, err := clientFor(cmd).GetJoin(ctx, args[0])
@@ -131,6 +131,9 @@ func joinShow() *cobra.Command {
 			return printJSONTo(cmd.OutOrStdout(), v)
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\nentry: %s (%s)\ntarget: %s (%s)\nupdated: %s\n", v.ID, v.Name, v.EntryTaskName, v.EntryTaskID, v.TargetTaskName, v.TargetTaskID, v.UpdatedAt.Format("2006-01-02T15:04:05.999999999Z07:00"))
+		if joinObservationTruncated(v) {
+			fmt.Fprintln(cmd.OutOrStdout(), "Note: some display text is truncated; use --json to identify the affected fields.")
+		}
 		for _, b := range v.Branches {
 			fmt.Fprintf(cmd.OutOrStdout(), "branch %s: %s, task %s (%s)\n", b.ID, b.Name, b.TaskName, b.TaskID)
 		}
@@ -236,4 +239,16 @@ func printJoinInstance(cmd *cobra.Command, v domain.ParallelJoinInstance) {
 	for _, b := range v.Branches {
 		fmt.Fprintf(cmd.OutOrStdout(), "branch %s (%s), invocation %s, task %s, delivery %s %s, run %s, outcome %s: %s\n", b.Name, b.BranchID, b.ID, b.TaskID, b.DeliveryID, b.DeliveryState, b.RunID, b.Outcome, b.Reason)
 	}
+}
+
+func joinObservationTruncated(v domain.ParallelJoin) bool {
+	if len(v.TruncatedFields) > 0 {
+		return true
+	}
+	for _, branch := range v.Branches {
+		if len(branch.TruncatedFields) > 0 {
+			return true
+		}
+	}
+	return false
 }

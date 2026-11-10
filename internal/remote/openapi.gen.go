@@ -1701,6 +1701,12 @@ type JoinsReadParams struct {
 	BranchLimit  *int `form:"branch_limit,omitempty" json:"branch_limit,omitempty"`
 }
 
+// JoinsDefinitionReadParams defines parameters for JoinsDefinitionRead.
+type JoinsDefinitionReadParams struct {
+	BranchOffset *int `form:"branch_offset,omitempty" json:"branch_offset,omitempty"`
+	BranchLimit  *int `form:"branch_limit,omitempty" json:"branch_limit,omitempty"`
+}
+
 // RunsListParams defines parameters for RunsList.
 type RunsListParams struct {
 	Task        *openapi_types.UUID `form:"task,omitempty" json:"task,omitempty"`
@@ -1990,10 +1996,14 @@ type ClientInterface interface {
 
 	// JoinsCreateWithBody performs a POST /joins (the `JoinsCreate` operationId) request,
 	// with any type of body and a specified content type.
+	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 	JoinsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// JoinsCreate performs a POST /joins (the `JoinsCreate` operationId) request.
 	// Takes a body of the `application/json` content type.
+	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 	JoinsCreate(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// JoinsDelete performs a DELETE /joins/{id} (the `JoinsDelete` operationId) request.
@@ -2004,11 +2014,20 @@ type ClientInterface interface {
 
 	// JoinsUpdateWithBody performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
 	// with any type of body and a specified content type.
+	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 	JoinsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// JoinsUpdate performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
 	// Takes a body of the `application/json` content type.
+	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 	JoinsUpdate(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// JoinsDefinitionRead performs a GET /joins/{id}/definition (the `JoinsDefinitionRead` operationId) request.
+	//
+	// Manage-authorized audited authoring snapshot with complete writable names, task references and revision; task display labels and runtime state are omitted. Branches remain paged.
+	JoinsDefinitionRead(ctx context.Context, id ID, params *JoinsDefinitionReadParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ManifestRead performs a GET /manifest (the `ManifestRead` operationId) request.
 	ManifestRead(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2613,6 +2632,8 @@ func (c *Client) JoinsList(ctx context.Context, params *JoinsListParams, reqEdit
 
 // JoinsCreateWithBody performs a POST /joins (the `JoinsCreate` operationId) request,
 // with any type of body and a specified content type.
+//
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 func (c *Client) JoinsCreateWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewJoinsCreateRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -2627,6 +2648,8 @@ func (c *Client) JoinsCreateWithBody(ctx context.Context, contentType string, bo
 
 // JoinsCreate performs a POST /joins (the `JoinsCreate` operationId) request.
 // Takes a body of the `application/json` content type.
+//
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 func (c *Client) JoinsCreate(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewJoinsCreateRequest(c.Server, body)
 	if err != nil {
@@ -2667,6 +2690,8 @@ func (c *Client) JoinsRead(ctx context.Context, id ID, params *JoinsReadParams, 
 
 // JoinsUpdateWithBody performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
 // with any type of body and a specified content type.
+//
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 func (c *Client) JoinsUpdateWithBody(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewJoinsUpdateRequestWithBody(c.Server, id, contentType, body)
 	if err != nil {
@@ -2681,8 +2706,25 @@ func (c *Client) JoinsUpdateWithBody(ctx context.Context, id ID, contentType str
 
 // JoinsUpdate performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
 // Takes a body of the `application/json` content type.
+//
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 func (c *Client) JoinsUpdate(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewJoinsUpdateRequest(c.Server, id, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// JoinsDefinitionRead performs a GET /joins/{id}/definition (the `JoinsDefinitionRead` operationId) request.
+//
+// Manage-authorized audited authoring snapshot with complete writable names, task references and revision; task display labels and runtime state are omitted. Branches remain paged.
+func (c *Client) JoinsDefinitionRead(ctx context.Context, id ID, params *JoinsDefinitionReadParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewJoinsDefinitionReadRequest(c.Server, id, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4674,6 +4716,79 @@ func NewJoinsUpdateRequestWithBody(server string, id ID, contentType string, bod
 	return req, nil
 }
 
+// NewJoinsDefinitionReadRequest constructs an http.Request for the JoinsDefinitionRead method
+func NewJoinsDefinitionReadRequest(server string, id ID, params *JoinsDefinitionReadParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/joins/%s/definition", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.BranchOffset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_offset", *params.BranchOffset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.BranchLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch_limit", *params.BranchLimit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewManifestReadRequest constructs an http.Request for the ManifestRead method
 func NewManifestReadRequest(server string) (*http.Request, error) {
 	var err error
@@ -6070,11 +6185,15 @@ type ClientWithResponsesInterface interface {
 	// JoinsCreateWithBodyWithResponse performs a POST /joins (the `JoinsCreate` operationId) request,
 	// with any type of body and a specified content type.
 	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	JoinsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error)
 
 	// JoinsCreateWithResponse performs a POST /joins (the `JoinsCreate` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 	JoinsCreateWithResponse(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error)
 
 	// JoinsDeleteWithResponse performs a DELETE /joins/{id} (the `JoinsDelete` operationId) request.
@@ -6090,12 +6209,23 @@ type ClientWithResponsesInterface interface {
 	// JoinsUpdateWithBodyWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
 	// with any type of body and a specified content type.
 	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	JoinsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error)
 
 	// JoinsUpdateWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 	JoinsUpdateWithResponse(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error)
+
+	// JoinsDefinitionReadWithResponse performs a GET /joins/{id}/definition (the `JoinsDefinitionRead` operationId) request.
+	//
+	// Manage-authorized audited authoring snapshot with complete writable names, task references and revision; task display labels and runtime state are omitted. Branches remain paged.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	JoinsDefinitionReadWithResponse(ctx context.Context, id ID, params *JoinsDefinitionReadParams, reqEditors ...RequestEditorFn) (*JoinsDefinitionReadResponse, error)
 
 	// ManifestReadWithResponse performs a GET /manifest (the `ManifestRead` operationId) request.
 	//
@@ -7960,6 +8090,61 @@ func (r JoinsUpdateResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r JoinsUpdateResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// JoinsDefinitionReadResponse401Headers the declared response headers of an HTTP 401 response for JoinsDefinitionRead
+type JoinsDefinitionReadResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type JoinsDefinitionReadResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ParallelJoin
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *JoinsDefinitionReadResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r JoinsDefinitionReadResponse) GetJSON200() *ParallelJoin {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r JoinsDefinitionReadResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r JoinsDefinitionReadResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r JoinsDefinitionReadResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r JoinsDefinitionReadResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r JoinsDefinitionReadResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -9877,6 +10062,8 @@ func (c *ClientWithResponses) JoinsListWithResponse(ctx context.Context, params 
 // JoinsCreateWithBodyWithResponse performs a POST /joins (the `JoinsCreate` operationId) request,
 // with any type of body and a specified content type.
 //
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) JoinsCreateWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error) {
 	rsp, err := c.JoinsCreateWithBody(ctx, contentType, body, reqEditors...)
@@ -9888,6 +10075,8 @@ func (c *ClientWithResponses) JoinsCreateWithBodyWithResponse(ctx context.Contex
 
 // JoinsCreateWithResponse performs a POST /joins (the `JoinsCreate` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 func (c *ClientWithResponses) JoinsCreateWithResponse(ctx context.Context, body JoinsCreateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsCreateResponse, error) {
 	rsp, err := c.JoinsCreate(ctx, body, reqEditors...)
 	if err != nil {
@@ -9921,6 +10110,8 @@ func (c *ClientWithResponses) JoinsReadWithResponse(ctx context.Context, id ID, 
 // JoinsUpdateWithBodyWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request,
 // with any type of body and a specified content type.
 //
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
+//
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) JoinsUpdateWithBodyWithResponse(ctx context.Context, id ID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error) {
 	rsp, err := c.JoinsUpdateWithBody(ctx, id, contentType, body, reqEditors...)
@@ -9932,12 +10123,27 @@ func (c *ClientWithResponses) JoinsUpdateWithBodyWithResponse(ctx context.Contex
 
 // JoinsUpdateWithResponse performs a PATCH /joins/{id} (the `JoinsUpdate` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
 func (c *ClientWithResponses) JoinsUpdateWithResponse(ctx context.Context, id ID, body JoinsUpdateJSONRequestBody, reqEditors ...RequestEditorFn) (*JoinsUpdateResponse, error) {
 	rsp, err := c.JoinsUpdate(ctx, id, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseJoinsUpdateResponse(rsp)
+}
+
+// JoinsDefinitionReadWithResponse performs a GET /joins/{id}/definition (the `JoinsDefinitionRead` operationId) request.
+//
+// Manage-authorized audited authoring snapshot with complete writable names, task references and revision; task display labels and runtime state are omitted. Branches remain paged.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) JoinsDefinitionReadWithResponse(ctx context.Context, id ID, params *JoinsDefinitionReadParams, reqEditors ...RequestEditorFn) (*JoinsDefinitionReadResponse, error) {
+	rsp, err := c.JoinsDefinitionRead(ctx, id, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseJoinsDefinitionReadResponse(rsp)
 }
 
 // ManifestReadWithResponse performs a GET /manifest (the `ManifestRead` operationId) request.
@@ -11891,6 +12097,64 @@ func ParseJoinsUpdateResponse(rsp *http.Response) (*JoinsUpdateResponse, error) 
 	switch {
 	case rsp.StatusCode == 401:
 		var headers JoinsUpdateResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseJoinsDefinitionReadResponse parses an HTTP response from a JoinsDefinitionReadWithResponse call
+func ParseJoinsDefinitionReadResponse(rsp *http.Response) (*JoinsDefinitionReadResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &JoinsDefinitionReadResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParallelJoin
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case rsp.StatusCode == 400:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers JoinsDefinitionReadResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {

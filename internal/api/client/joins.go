@@ -61,7 +61,7 @@ func (c *Client) GetJoinPage(ctx context.Context, id string, branchOffset, branc
 	return out, err
 }
 
-// ListJoins returns complete definitions from bounded daemon pages.
+// ListJoins returns observations with every branch; display text remains bounded.
 func (c *Client) ListJoins(ctx context.Context) ([]domain.ParallelJoin, error) {
 	out := []domain.ParallelJoin{}
 	for offset := 0; ; {
@@ -88,7 +88,7 @@ func (c *Client) ListJoins(ctx context.Context) ([]domain.ParallelJoin, error) {
 	}
 }
 
-// GetJoin returns every branch from a consistent definition revision.
+// GetJoin returns every observed branch from one revision; use GetJoinDefinition for writable text.
 func (c *Client) GetJoin(ctx context.Context, id string) (domain.ParallelJoin, error) {
 	out, err := c.GetJoinPage(ctx, id, 0, 100, 0)
 	if err != nil {
@@ -184,4 +184,36 @@ func writableJoinBranches(values []domain.ParallelJoinBranch) []domain.ParallelJ
 		out[i] = domain.ParallelJoinBranch{ID: v.ID, Name: v.Name, TaskID: v.TaskID}
 	}
 	return out
+}
+
+// GetJoinDefinitionPage reads full writable authoring text under Manage authority, with bounded branch paging.
+func (c *Client) GetJoinDefinitionPage(ctx context.Context, id string, branchOffset, branchLimit int) (domain.ParallelJoin, error) {
+	var out domain.ParallelJoin
+	q := joinQuery(0, 0, branchOffset, branchLimit, 0)
+	err := c.do(ctx, http.MethodGet, withQuery("/v1/joins/"+url.PathEscape(id)+"/definition", q), nil, &out)
+	return out, err
+}
+
+// GetJoinDefinition assembles a complete editable definition without truncating accepted names.
+func (c *Client) GetJoinDefinition(ctx context.Context, id string) (domain.ParallelJoin, error) {
+	out, err := c.GetJoinDefinitionPage(ctx, id, 0, 100)
+	if err != nil {
+		return out, err
+	}
+	for out.HasMoreBranches {
+		offset := len(out.Branches)
+		page, err := c.GetJoinDefinitionPage(ctx, id, offset, 100)
+		if err != nil {
+			return out, err
+		}
+		if !page.UpdatedAt.Equal(out.UpdatedAt) || page.BranchCount != out.BranchCount {
+			return out, &StatusError{Code: server.CodeConflict, Message: "join changed while reading its editable definition; reload before editing"}
+		}
+		if page.BranchOffset != offset || len(page.Branches) == 0 {
+			return out, fmt.Errorf("join authoring branch page made no progress")
+		}
+		out.Branches = append(out.Branches, page.Branches...)
+		out.HasMoreBranches = page.HasMoreBranches
+	}
+	return out, nil
 }

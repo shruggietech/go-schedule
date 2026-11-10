@@ -925,3 +925,19 @@ func parallelJoinsSupported(capabilities []string) bool {
 	}
 	return false
 }
+
+// JoinDefinition reads full authoring text for the exact rendered Manage-authorized scheduler.
+func (a *App) JoinDefinition(id, expectedDaemonID string) automation.OperationResult {
+	ctx, message := a.automationJoinContext(expectedDaemonID, "manage")
+	if message != "" {
+		return automation.OperationResult{Action: "load_join_definition", Outcome: "rejected", Message: message}
+	}
+	generation := a.manager.Snapshot().Generation
+	result := a.automation.JoinDefinition(ctx, id)
+	after := a.manager.Snapshot()
+	if after.Target.ID != expectedDaemonID || after.Generation != generation || after.Stale || after.State != connection.StateConnected {
+		return automation.OperationResult{Action: "load_join_definition", Outcome: "unavailable", Message: "The selected scheduler changed while loading the editable definition. Open it again on the selected target."}
+	}
+	result.DaemonID = expectedDaemonID
+	return result
+}

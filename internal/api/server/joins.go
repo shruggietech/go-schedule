@@ -91,8 +91,7 @@ func joinInputBranches(branches []domain.ParallelJoinBranch) []domain.ParallelJo
 
 func (s *Server) handleCreateJoin(w http.ResponseWriter, r *http.Request) {
 	var req JoinCreateRequest
-	if err := decodeSingleJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid join JSON; provide one definition with name, entry_task_id, branches and target_task_id")
+	if !decodeJoinDefinitionRequest(w, r, &req) {
 		return
 	}
 	join := domain.ParallelJoin{Name: req.Name, EntryTaskID: req.EntryTaskID, TargetTaskID: req.TargetTaskID, Branches: joinInputBranches(req.Branches)}
@@ -106,8 +105,7 @@ func (s *Server) handleCreateJoin(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleUpdateJoin(w http.ResponseWriter, r *http.Request) {
 	var req JoinUpdateRequest
-	if err := decodeSingleJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, CodeValidation, "body", "invalid join JSON")
+	if !decodeJoinDefinitionRequest(w, r, &req) {
 		return
 	}
 	if req.Name == nil && req.EntryTaskID == nil && req.TargetTaskID == nil && req.Branches == nil {

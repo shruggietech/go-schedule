@@ -64,3 +64,8 @@ Deliver the complete parallel block in one source PR, including #471/#472 and re
 
 - [x] T029 [P] Correct #474 complete branch replacement metadata and retain failing-first remove/add/reorder/identity/CAS API regressions in internal/api/server (FR-001, FR-009, FR-010, FR-011).
 - [x] T030 [P] Correct #475 capability-aware complete Automation workspace and post-mutation refreshes, retaining unsupported-capability and advertised-failure regressions in desktop/automation and desktop app/frontend (FR-011, FR-013, FR-014, FR-019).
+
+## Second and final review correction (2026-11-10)
+
+- [x] T031 [P] Correct #476 with full writable config-only Store/API authoring pages, Manage/audit/remote policy and consistent join-only strict 2 MiB request bounds, preserving bounded observations in internal/store, internal/api/server, internal/authorization and internal/remote (FR-001, FR-006, FR-010, FR-011, FR-013, FR-014).
+- [x] T032 [P] Correct #476 with complete client/service/editor hydration, sparse writes, exact revision/target fencing and truthful CLI truncation output in internal/api/client, internal/cli and desktop; retain actual long-Unicode/paging/CAS/read-race regressions (FR-001, FR-006, FR-011, FR-013, FR-014, FR-019).
