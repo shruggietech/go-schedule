@@ -85,7 +85,7 @@ func (s *Store) Close() error {
 // PoolStats returns connection-pool metadata without acquiring a SQL connection.
 func (s *Store) PoolStats() sql.DBStats { return s.db.Stats() }
 
-const currentSchemaVersion = 25
+const currentSchemaVersion = 26
 
 //go:embed current_schema.sql
 var currentSchema string

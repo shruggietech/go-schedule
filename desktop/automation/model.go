@@ -147,15 +147,18 @@ type WatcherDraft struct {
 }
 
 type JoinDraft struct {
-	ID                string                      `json:"id"`
-	Name              string                      `json:"name"`
-	EntryTaskID       string                      `json:"entryTaskId"`
-	TargetTaskID      string                      `json:"targetTaskId"`
-	Branches          []domain.ParallelJoinBranch `json:"branches"`
-	OriginalUpdatedAt string                      `json:"originalUpdatedAt"`
-	ExpectedDaemonID  string                      `json:"expectedDaemonId"`
-	IsNew             bool                        `json:"isNew"`
-	OverwriteStale    bool                        `json:"overwriteStale"`
+	ID                string                         `json:"id"`
+	Name              string                         `json:"name"`
+	EntryTaskID       string                         `json:"entryTaskId"`
+	TargetTaskID      string                         `json:"targetTaskId"`
+	RecoveryTaskID    string                         `json:"recoveryTaskId"`
+	RecoveryOn        []domain.JoinRecoveryCondition `json:"recoveryOn"`
+	CleanupTaskID     string                         `json:"cleanupTaskId"`
+	Branches          []domain.ParallelJoinBranch    `json:"branches"`
+	OriginalUpdatedAt string                         `json:"originalUpdatedAt"`
+	ExpectedDaemonID  string                         `json:"expectedDaemonId"`
+	IsNew             bool                           `json:"isNew"`
+	OverwriteStale    bool                           `json:"overwriteStale"`
 }
 
 type OperationResult struct {

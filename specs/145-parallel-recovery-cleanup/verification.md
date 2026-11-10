@@ -1,0 +1,73 @@
+# S145 verification
+
+## Candidate and boundaries
+
+Accepted baseline cd4eb94f41e98383f6505099f15de84205b98d13. Branch codex/145-parallel-recovery-cleanup implements #477, including preservation #478 and join output #479. Current-only schema 26, conditional portable v4, no release or historical comparison mutation. Owner final review and merge remain the stop boundary; at most two Codex reviews including automatic. No operator focus, visible native console, installed-service mutation or host network change is used.
+
+## Failing-first and focused qualification
+
+Store regressions first demonstrated absent policy fidelity, settlements and ordered continuations. Engine/API regressions cover no-start-only progress, active siblings, failed cancellation feedback, queue/worker admission and exact separate live stages. API/portable cases retain authority/identity/audit, strict MIME/input bounds, full Unicode authoring, explicit [], remapping/drift/atomic graph and preview/apply capability checks. Interfaces first demonstrated absent CLI flags, omitted MCP projection, ignored desktop draft fields and missing editor controls. Final focused client/CLI/MCP/desktop race, vet, pinned lint, actual 101-slot long-Unicode facade-to-Store sparse/CAS/no-op regression and 193 frontend tests passed. Original failing receipts are retained privately.
+
+#478 preserves the exact prior branch/invocation blocked reason when a success-only instance later observes its sibling. #479 propagates actual Cobra io.ErrClosedPipe failures through human join create/update/show/instances/instance without replay; list already retained its flush error. #479 is also present in accepted baseline source, while #478 was a pending-S145 preservation regression. No exact pre-fix pending-source hash is claimed for #478.
+
+## Owned native and browser observations
+
+The first actual Windows packaged run passed retained S144 execution plus all five new S145 cases in 37.498s. New cases cover two overlapping entries with repeated branch tasks and finite success-target-as-cleanup reuse; failure waits for a sibling and failed recovery before cleanup; exact cancellation waits for a sibling; disabled selected recovery resolves no-start and wakes cleanup; explicit [] selects no follow-up but still cleans up and exports config-only v4. Exact entry/invocation/delivery/native stage identity and cleanup ordering are checked against actual recorded results. The good existing owned-runtime harness is shared rather than duplicated.
+
+The full synthetic headless Chromium suite passed all 39 cases in 35.1s, including recovery causes, vertical routing, separate no-start/native stage evidence and accessibility assertions. Screenshots use synthetic data. Fresh actual Linux/WSL Store/API race passed in 46.885s/17.186s; retained S144 and five new packaged cases passed together in 55.310s. WSL reported mirrored-network initialization error0x8007054f and fell back to networkingModeNone; cached modules enabled actual Linux execution, but no fresh cross-host network result is asserted. Native Wails window interaction remains unverified. Subsequent store performance changes require separately refreshed runtime evidence.
+
+## CLI catalogue and documentation
+
+Retained intentional metadata drift and then effective-flag coverage failures preceded refreshing the actual 161-command inventory. Executable create/update scenarios now exercise all six new effective flag surfaces, and independent daemon readback requires exact recovery/cleanup references and distinguishes explicit [] from missing/default policy. Failing-first postcondition tests rejected the earlier blind acceptance before their correction. Inventory/flag/postcondition checks pass. OpenAPI generation passed with all input, settlement, route and exact stage fields; the current guide passed policy, seven site tests and 25-page static export.
+
+## Initial paired measurement and follow-up
+
+The initial accepted implementation and candidate pair uses the same live Engine.Start/FakeClock fanout harness; dispatch still uses its historical direct-worker harness. The original accepted archive is retained. Each iteration still executes one source plus100 distinct targets on100 workers and asserts target SourceRunID/TriggerCompletion. Same workstation/toolchain, GOMAXPROCS=2,50 iterations and five samples. Median dispatch 131,898 ns to 58,676 ns; fanout 100: 25,304,400 ns to 18,297,006 ns; old last-branch decision 470,054 ns to 667,314 ns. New recovery/cleanup decision medians 725,388 ns/762,584 ns. Other runtime jobs finished before the measurement began. Inputs and nominal latency thresholds were not changed.
+
+The isolated last-branch increase is retained rather than hidden. Root identified repeated reads of one transaction-local decision snapshot and cleanup delivery ID. The proportional optimization removes these reads, aggregates cause presence once and avoids identity readback after a fresh insert, without caching state between calls or weakening fresh admission checks. Original source bytes and measurements are retained.
+
+## Optimized pre-review paired measurement
+
+The final pair gives both Dispatch and FanOut100 a real Engine.Start/Ready/cancellation lifecycle with a fixed FakeClock. The exact same self-contained benchmark file is copied into a separate accepted-implementation checkout; production source remains accepted cd4eb94. Original source archive and earlier harness/samples remain retained. The runner is a synthetic no-op; actual external-process execution is established separately above. Workloads remain 8 dispatch workers, or one source/100 targets/100 workers; 50 iterations and five samples, GOMAXPROCS=2, same workstation/toolchain. No latency threshold is changed.
+
+Final medians: ordinary dispatch 98,566 ns to 103,898 ns (+5.41%); full 100-target completion 27,186,786 ns to 20,316,308 ns (-25.27%); existing atomic last-branch decision 477,188 ns to 680,140 ns (+42.53%, +0.203ms). New recovery and cleanup decision medians 670,806 ns and 657,856 ns. The isolated final-branch allocations are reduced from the initial candidate roughly 934 to 872 per operation. Other heavy verification jobs finished before paired measurement.
+
+Principle IV recorded exception: the isolated last-branch increase above 10 percent is accepted for durable explicit settlement and route/stage identity/outcome evidence. Redundant same-transaction reads, per-cause query roundtrips and fresh-insert readback have been removed. The remaining additional 0.203ms isolated decision cost stays below 1ms; the complete 100-target execution workload improves 25.27 percent. Avoiding the durable correctness records or introducing a cross-call result cache would weaken S145 ownership/reopen semantics. The nominal 2,000-sample p99 dispatch limit remains 100ms and will run unchanged in the complete acceptance gate. This is not a blanket loaded-system or external-command latency claim.
+
+#479 was independently reproduced against accepted cd4eb94 with the baseline-compatible writer regression: five human command paths returned nil despite io.ErrClosedPipe and one API call; list already returned the error. Final source CLI race and lint pass. Fresh optimized-source Linux/runtime and frozen whole-source qualification remain pending at this checkpoint.
+
+## Refreshed optimized-source runtime
+
+After the transaction-local optimization, generated remote contract tests passed. Fresh Linux/WSL Store/API race passed in 47.375s/17.260s, and retained S144 plus five new native packaged cases passed in 55.857s. Both observed owned Linux evidence directories were copied into this slice's private receipts. The final complete 39-case synthetic browser run also passes with the completed-lifecycle fixture matching actual cleanup no-start semantics; element-framed control/recovery/cleanup screenshots were inspected without acquiring desktop focus. Full frozen-source acceptance follows.
+
+## Frozen complete acceptance and closeout
+
+The complete watched foreground `sh scripts/verify.sh all` passed on 2026-11-10 from 10:27:42.070Z to 10:44:21.494Z (999.424s). Format, vet, pinned lint (zero issues), root race, desktop, coverage, docs and automation all succeeded. The run retained identical source across 2,859 paths and all 23,628 protected inputs, with zero drift in either manifest. The preceding canonical-01 wrapper failed JavaScript parsing before any gate ran; its failed setup script/log remain retained, and canonical-02 is the separate corrected complete run.
+
+Root race includes fresh actual owned Windows packaged execution. The desktop gate passed module race tests, native Wails compilation, all 193 frontend tests and the production bundle. Core statement coverage is engine 88.2%, schedule 89.1%, timezone 91.3%, store 81.6%, catchup 88.9% and logbus 91.1%, above the unchanged 80% requirement. Documentation passed seven site cases and 25-page export. Automation passed 97 assertion cases, lifecycle fixtures, 30 public adapter cases and the bounded verification-driver mutation. The existing nominal latency test is unchanged and passed in root race.
+
+Only the specification status/delivery, two completed task markers, this verification record, delivery record and inventory row are changed after the frozen run. Final format, lifecycle, encoding, privacy and integrity checks qualify that factual closeout before commit/publication. All 30 implementation tasks are complete; PR publication, CI/review and owner merge remain separate workflow evidence. No release or package availability is claimed.
+
+## First official review and bounded correction
+
+Official PR #480 opened at ce0b702a674a878f6f8730d9b2152271a3381508. Its first automatic Codex review reported #481: committed follow-up work could be observed before the finished native predecessor released its overlap reservation, incorrectly skipping a same-task cleanup under OverlapSkip. The preceding canonical/native observations remain evidence for their exact pre-fix source, not qualification of this correction. Deterministic stage-reuse and genuine-overlap coverage, two additional actual native packaged cases and a refreshed complete run qualify the changed boundary before the authorized review-fix push. At most one additional Codex review remains.
+
+## Complete #481 correction and refreshed qualification
+
+The original four deterministic #481 cases cover success/cleanup and recovery/cleanup task reuse under OverlapSkip, genuine other active work and queue-one handoff. The native-return fix passed full engine race in 10.463s, vet and pinned lint. Actual Linux engine race passed in 9.880s and retained S144 plus seven S145 native cases in 66.266s. Those receipts precede the additional no-start correction and remain separately retained.
+
+A related deterministic red then demonstrated false cleanup skips in both reserved worker and queue-one no-start paths: recovery had no Run ID and no remaining predecessor, but restoring eligibility before an independent drain still found the stale rejected reservation. The reservation-aware correction retires exactly an owned rejection before publication; initial unreserved draining never retires another execution. Read-error, shutdown, true-active-other and the original publication controls pass. A test-fixture-only attempt supplied a nonexistent existing chain ID; that failed observation is retained and the fixture was corrected to create its own chain. Full final engine race passed in 11.563s, with vet and pinned lint zero issues.
+
+Fresh final-source Linux engine race passed in 10.383s; retained S144 and all seven S145 packaged cases passed in 55.868s, including two added single-entry success/recovery task-as-cleanup cases under OverlapSkip. Only the observed owned evidence roots were copied into fresh private directories. No Linux networking restoration, cross-host result or native Wails interaction is inferred. The frontend and browser fixture source remains unchanged from the inspected 39-case headless qualification.
+
+A third paired run qualifies the complete corrected engine using the same accepted implementation, identical live-engine harness hash, fixed workload, 50 iterations and five samples, GOMAXPROCS=2 and synthetic no-op runner. Median dispatch 98,892 ns to 102,472 ns (+3.62%); full 100-target completion 24,844,798 ns to 21,870,446 ns (-11.97%); isolated last-branch 402,620 ns to 489,042 ns (+21.46%, +0.086422ms). New recovery/cleanup decision medians 715,370 ns/651,908 ns. All earlier raw samples are retained. Separate run timing variation is not attributed to the ownership fix.
+
+The same Principle IV exception remains bounded: explicit durable settlement/routing adds an isolated 0.086422ms in the final pair, while the complete 100-target workload improves 11.97%. Redundant reads are already removed, no cross-call cache is added, and actual ownership/fresh admission is retained. The unchanged nominal 2,000-sample 100ms p99 assertion will run again in complete frozen acceptance. Only that complete corrected candidate may be pushed for final review.
+
+## Corrected frozen acceptance and local completion
+
+The complete corrected candidate passed watched foreground `sh scripts/verify.sh all` on 2026-11-10 from 11:09:51.184Z to 11:26:02.505Z (971.321s). All eight gates passed: format, vet, pinned lint (zero issues), root race, desktop, coverage, docs and automation. Source remained byte-identical across 2,861 files, with all 23,903 protected retained inputs unchanged. This complete run qualifies the native-return and reserved no-start ownership corrections together.
+
+The root integration package passed in 307.390s, including actual Windows execution of all seven S145 scenarios. Desktop race, native compilation, 193 frontend cases and production build passed. Core coverage is engine 87.9%, schedule 89.1%, timezone 91.3%, store 81.6%, catchup 88.9% and logbus 91.1%, above the unchanged 80% gate. Docs passed seven cases and 25-page export. Automation passed 97 assertions, lifecycle, 30 adapter cases and bounded driver mutation. The nominal dispatch-latency assertion is unchanged and passed.
+
+Only these factual status/task/verification/delivery records and the specification inventory row change after the frozen run. Final publication-format/lifecycle, UTF8/no-BOM/mojibake/privacy and retained-input integrity checks qualify that closeout. All 30 implementation tasks are complete; final PR SHA, hosted checks and bounded review state are workflow evidence on official PR #480. One automatic review was consumed at local acceptance and one follow-up remains permitted. Owner final review and merge remain the stop boundary.

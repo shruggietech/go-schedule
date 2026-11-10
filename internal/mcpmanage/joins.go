@@ -50,19 +50,25 @@ type JoinBranch struct {
 
 // JoinCreate carries only writable parallel block fields.
 type JoinCreate struct {
-	Name         string       `json:"name"`
-	EntryTaskID  string       `json:"entry_task_id"`
-	TargetTaskID string       `json:"target_task_id"`
-	Branches     []JoinBranch `json:"branches"`
+	Name           string                          `json:"name"`
+	EntryTaskID    string                          `json:"entry_task_id"`
+	TargetTaskID   string                          `json:"target_task_id"`
+	RecoveryTaskID string                          `json:"recovery_task_id,omitempty"`
+	RecoveryOn     *[]domain.JoinRecoveryCondition `json:"recovery_on,omitempty"`
+	CleanupTaskID  string                          `json:"cleanup_task_id,omitempty"`
+	Branches       []JoinBranch                    `json:"branches"`
 }
 
 // JoinUpdate preserves omission and revision preconditions for one block.
 type JoinUpdate struct {
-	Name              *string       `json:"name,omitempty"`
-	EntryTaskID       *string       `json:"entry_task_id,omitempty"`
-	TargetTaskID      *string       `json:"target_task_id,omitempty"`
-	Branches          *[]JoinBranch `json:"branches,omitempty"`
-	ExpectedUpdatedAt *time.Time    `json:"expected_updated_at,omitempty"`
+	Name              *string                         `json:"name,omitempty"`
+	EntryTaskID       *string                         `json:"entry_task_id,omitempty"`
+	TargetTaskID      *string                         `json:"target_task_id,omitempty"`
+	RecoveryTaskID    *string                         `json:"recovery_task_id,omitempty"`
+	RecoveryOn        *[]domain.JoinRecoveryCondition `json:"recovery_on,omitempty"`
+	CleanupTaskID     *string                         `json:"cleanup_task_id,omitempty"`
+	Branches          *[]JoinBranch                   `json:"branches,omitempty"`
+	ExpectedUpdatedAt *time.Time                      `json:"expected_updated_at,omitempty"`
 }
 
 func joinBranches(in []JoinBranch) []domain.ParallelJoinBranch {
@@ -73,10 +79,10 @@ func joinBranches(in []JoinBranch) []domain.ParallelJoinBranch {
 	return out
 }
 func (v JoinCreate) request() server.JoinCreateRequest {
-	return server.JoinCreateRequest{Name: v.Name, EntryTaskID: v.EntryTaskID, TargetTaskID: v.TargetTaskID, Branches: joinBranches(v.Branches)}
+	return server.JoinCreateRequest{Name: v.Name, EntryTaskID: v.EntryTaskID, TargetTaskID: v.TargetTaskID, RecoveryTaskID: v.RecoveryTaskID, RecoveryOn: v.RecoveryOn, CleanupTaskID: v.CleanupTaskID, Branches: joinBranches(v.Branches)}
 }
 func (v JoinUpdate) request() server.JoinUpdateRequest {
-	r := server.JoinUpdateRequest{Name: v.Name, EntryTaskID: v.EntryTaskID, TargetTaskID: v.TargetTaskID, ExpectedUpdatedAt: v.ExpectedUpdatedAt}
+	r := server.JoinUpdateRequest{Name: v.Name, EntryTaskID: v.EntryTaskID, TargetTaskID: v.TargetTaskID, RecoveryTaskID: v.RecoveryTaskID, RecoveryOn: v.RecoveryOn, CleanupTaskID: v.CleanupTaskID, ExpectedUpdatedAt: v.ExpectedUpdatedAt}
 	if v.Branches != nil {
 		b := joinBranches(*v.Branches)
 		r.Branches = &b

@@ -345,6 +345,7 @@ export function App({
           canManage={canManage && !snapshot.stale}
           canEnroll={canEnroll && !snapshot.stale}
           joinsSupported={snapshot.target.capabilities.includes("parallel-joins")}
+          recoverySupported={snapshot.target.capabilities.includes("parallel-join-recovery")}
           available={snapshot.state === "connected" && !snapshot.stale}
           refreshToken={
             snapshot.state === "connected" ? snapshot.generation : 0

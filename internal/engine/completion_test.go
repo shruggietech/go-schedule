@@ -29,6 +29,33 @@ func (r *completionRunner) Run(_ context.Context, task domain.Task, scheduledFor
 	return run
 }
 
+// startCompletionEngine exercises completion wakes through the actual event loop.
+// The explicit stop runs before each test closes its store.
+func startCompletionEngine(t *testing.T, st *store.Store, runner Runner, configure ...func(*Engine)) (*Engine, func()) {
+	t.Helper()
+	e := New(st, clock.NewFake(time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)), runner, testLogger(), 4)
+	for _, apply := range configure {
+		apply(e)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- e.Start(ctx) }()
+	select {
+	case <-e.Ready():
+	case <-time.After(5 * time.Second):
+		cancel()
+		t.Fatal("completion engine did not become ready")
+	}
+	return e, func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Error("completion engine did not drain and stop")
+		}
+	}
+}
+
 func addChain(t *testing.T, st *store.Store, source, target domain.Task, outcome domain.CompletionOutcome) domain.CompletionChain {
 	t.Helper()
 	chain := domain.CompletionChain{SourceTaskID: source.ID, TargetTaskID: target.ID, OnOutcome: outcome}
@@ -65,7 +92,8 @@ func TestCompletionChainDispatchesMultiHopWithCorrelation(t *testing.T) {
 	addChain(t, st, a, b, domain.CompletionOnSuccess)
 	addChain(t, st, b, c, domain.CompletionOnAny)
 	runner := &completionRunner{outcomes: map[string]domain.RunOutcome{}, runs: make(chan domain.Run, 8)}
-	e := newEngine(st, runner)
+	e, stop := startCompletionEngine(t, st, runner)
+	defer stop()
 
 	e.dispatch(a, time.Now().UTC(), domain.TriggerManual)
 	_ = waitRun(t, runner.runs, a.ID)
@@ -110,13 +138,14 @@ func TestCompletionChainHonorsOutcomeAndResolvesIneligibleTarget(t *testing.T) {
 		outcomes: map[string]domain.RunOutcome{source.ID: domain.OutcomeFailure},
 		runs:     make(chan domain.Run, 8),
 	}
-	e := newEngine(st, runner)
+	e, stop := startCompletionEngine(t, st, runner)
+	defer stop()
 	e.dispatch(source, time.Now().UTC(), domain.TriggerManual)
 	_ = waitRun(t, runner.runs, source.ID)
 	_ = waitRun(t, runner.runs, failureTarget.ID)
 	waitFor(t, func() bool {
 		deliveries, _ := st.ListCompletionDeliveries()
-		return len(deliveries) == 2 && deliveries[0].State != domain.DeliveryClaimed && deliveries[1].State != domain.DeliveryClaimed
+		return len(deliveries) == 2 && (deliveries[0].State == domain.DeliveryCompleted || deliveries[0].State == domain.DeliveryResolved) && (deliveries[1].State == domain.DeliveryCompleted || deliveries[1].State == domain.DeliveryResolved)
 	}, "failure and any delivery resolution")
 	if runs, _ := st.ListRuns(successTarget.ID, 0); len(runs) != 0 {
 		t.Fatalf("success-only target ran after failure: %+v", runs)

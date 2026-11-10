@@ -266,3 +266,18 @@ Create a parallel block by selecting an entry task, naming each branch and choos
 Select a block to inspect exact instances and branch/delivery/Run IDs, outstanding prerequisites, blocked or resolved reasons and target admission. Activity retains the existing exact-run details and cancellation behavior. A rejected mutation, unavailable observation and uncertain mutation are distinct states. An ambiguous result keeps further mutation disabled until an authoritative observation of the same target succeeds; a failed refresh does not turn uncertainty into retry guidance. Reference-based in-flight guards also reject duplicate keyboard submissions.
 
 Before an existing parallel join opens for editing, the desktop loads its complete writable configuration under current Manage authority. Workspace cards remain bounded observations; their clipped labels are never copied into a writable draft. Full Unicode names and every branch page are retained. Saving sends only actual changes against a fresh complete revision, so changing a target preserves untouched names and branch data. A failed or late full load leaves the editor closed with its authored error; stale saves retain the existing refresh/explicit-overwrite choice.
+
+## Recovery and cleanup in a parallel block (Unreleased S145)
+
+A selected daemon advertising parallel-join-recovery enables optional recovery and cleanup controls alongside the existing successful target. A base-only compatible daemon retains ordinary join authoring and inspection.
+
+| Control | Meaning |
+| --- | --- |
+| Recovery task | Existing task to admit for matching unsuccessful branch causes; None removes recovery from future instances. |
+| Recovery causes | Failure defaults on when adding recovery. Canceled, skipped and not started are separate choices. No checked causes means an explicit empty policy, not a restored failure default. |
+| Cleanup task | Existing task admitted after every branch and the selected follow-up settles; None removes cleanup from future instances. |
+| Routing order | Vertical preview explains branch settlement, success/recovery/no selected follow-up, then final cleanup. |
+
+All controls support keyboard navigation. Existing definitions load complete writable names, references, revisions and causes before editing. Sparse saves preserve untouched fields and explicit empty policies. Current selected-daemon, stale revision, late-read, duplicate-submit and uncertain-result behavior remains unchanged.
+
+Exact instance inspection separates the selected aggregate route, branch settlement and the success, recovery and cleanup stages. Each stage retains its own native Run ID, outcome, cancellation status, settlement and reason; a no-start resolution does not invent a run. Cleanup stays waiting while a sibling or selected follow-up still owns native work. A cancellation request that failed is not evidence that work ended. Activity labels each actual branch, success target, recovery and cleanup role and retains exact-run cancellation.

@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -92,6 +93,9 @@ func (s *Store) UpdateParallelJoinIfUnchanged(j *domain.ParallelJoin, expected *
 }
 
 func normalizeParallelJoin(j *domain.ParallelJoin) error {
+	if err := normalizeJoinRecovery(j); err != nil {
+		return err
+	}
 	j.Name = strings.TrimSpace(j.Name)
 	if j.Name == "" {
 		return fmt.Errorf("%w: name is required", ErrInvalidJoin)
@@ -125,6 +129,12 @@ func normalizeParallelJoin(j *domain.ParallelJoin) error {
 
 func validateParallelJoinReferences(tx *sql.Tx, j domain.ParallelJoin) error {
 	refs := []struct{ name, id string }{{"entry", j.EntryTaskID}, {"target", j.TargetTaskID}}
+	if j.RecoveryTaskID != "" {
+		refs = append(refs, struct{ name, id string }{"recovery", j.RecoveryTaskID})
+	}
+	if j.CleanupTaskID != "" {
+		refs = append(refs, struct{ name, id string }{"cleanup", j.CleanupTaskID})
+	}
 	for _, b := range j.Branches {
 		refs = append(refs, struct{ name, id string }{"branch " + b.Name, b.TaskID})
 	}
@@ -142,7 +152,11 @@ func validateParallelJoinReferences(tx *sql.Tx, j domain.ParallelJoin) error {
 }
 
 func insertParallelJoin(tx *sql.Tx, j domain.ParallelJoin) error {
-	if _, err := tx.Exec("INSERT INTO parallel_joins(id,name,entry_task_id,target_task_id,created_at,updated_at) VALUES(?,?,?,?,?,?)", j.ID, j.Name, j.EntryTaskID, j.TargetTaskID, fmtTime(j.CreatedAt), fmtTime(j.UpdatedAt)); err != nil {
+	conditions, err := json.Marshal(j.RecoveryOn)
+	if err != nil {
+		return fmt.Errorf("store: encode recovery conditions: %w", err)
+	}
+	if _, err := tx.Exec("INSERT INTO parallel_joins(id,name,entry_task_id,target_task_id,recovery_task_id,recovery_on_json,cleanup_task_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)", j.ID, j.Name, j.EntryTaskID, j.TargetTaskID, nullStr(j.RecoveryTaskID), string(conditions), nullStr(j.CleanupTaskID), fmtTime(j.CreatedAt), fmtTime(j.UpdatedAt)); err != nil {
 		return fmt.Errorf("store: save parallel join: %w", err)
 	}
 	for i, b := range j.Branches {
@@ -297,7 +311,14 @@ func disableJoinDestinations(tx *sql.Tx, j domain.ParallelJoin) error {
 			return err
 		}
 	}
-	return disableIfNotActivationReady(tx, j.TargetTaskID)
+	for _, id := range []string{j.TargetTaskID, j.RecoveryTaskID, j.CleanupTaskID} {
+		if id != "" {
+			if err := disableIfNotActivationReady(tx, id); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // GetParallelJoin returns a complete reusable definition.
@@ -378,15 +399,18 @@ func (s *Store) ListParallelJoinsPageContext(ctx context.Context, offset, limit,
 
 func readParallelJoin(ctx context.Context, tx *sql.Tx, id string, branchOffset, branchLimit, textLimit int) (domain.ParallelJoin, error) {
 	var j domain.ParallelJoin
-	var created, updated string
-	q := "SELECT j.id," + joinTextSQL("j.name", textLimit) + ",j.entry_task_id," + joinTextSQL("e.name", textLimit) + ",j.target_task_id," + joinTextSQL("t.name", textLimit) + ",j.created_at,j.updated_at,(SELECT COUNT(*) FROM parallel_join_branches WHERE join_id=j.id) FROM parallel_joins j JOIN tasks e ON e.id=j.entry_task_id JOIN tasks t ON t.id=j.target_task_id WHERE j.id=?"
-	if err := tx.QueryRowContext(ctx, q, id).Scan(&j.ID, &j.Name, &j.EntryTaskID, &j.EntryTaskName, &j.TargetTaskID, &j.TargetTaskName, &created, &updated, &j.BranchCount); err != nil {
+	var created, updated, recoveryJSON string
+	q := "SELECT j.id," + joinTextSQL("j.name", textLimit) + ",j.entry_task_id," + joinTextSQL("e.name", textLimit) + ",j.target_task_id," + joinTextSQL("t.name", textLimit) + ",COALESCE(j.recovery_task_id,'')," + joinTextSQL("COALESCE(r.name,'')", textLimit) + ",j.recovery_on_json,COALESCE(j.cleanup_task_id,'')," + joinTextSQL("COALESCE(c.name,'')", textLimit) + ",j.created_at,j.updated_at,(SELECT COUNT(*) FROM parallel_join_branches WHERE join_id=j.id) FROM parallel_joins j JOIN tasks e ON e.id=j.entry_task_id JOIN tasks t ON t.id=j.target_task_id LEFT JOIN tasks r ON r.id=j.recovery_task_id LEFT JOIN tasks c ON c.id=j.cleanup_task_id WHERE j.id=?"
+	if err := tx.QueryRowContext(ctx, q, id).Scan(&j.ID, &j.Name, &j.EntryTaskID, &j.EntryTaskName, &j.TargetTaskID, &j.TargetTaskName, &j.RecoveryTaskID, &j.RecoveryTaskName, &recoveryJSON, &j.CleanupTaskID, &j.CleanupTaskName, &created, &updated, &j.BranchCount); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return j, ErrNotFound
 		}
 		return j, fmt.Errorf("store: read parallel join: %w", err)
 	}
 	var err error
+	if err = json.Unmarshal([]byte(recoveryJSON), &j.RecoveryOn); err != nil {
+		return j, fmt.Errorf("store: decode recovery conditions: %w", err)
+	}
 	j.CreatedAt, err = parseTime(created)
 	if err != nil {
 		return j, err
@@ -398,6 +422,8 @@ func readParallelJoin(ctx context.Context, tx *sql.Tx, id string, branchOffset, 
 	truncateJoinText(&j.Name, "name", textLimit, &j.TruncatedFields)
 	truncateJoinText(&j.EntryTaskName, "entry_task_name", textLimit, &j.TruncatedFields)
 	truncateJoinText(&j.TargetTaskName, "target_task_name", textLimit, &j.TruncatedFields)
+	truncateJoinText(&j.RecoveryTaskName, "recovery_task_name", textLimit, &j.TruncatedFields)
+	truncateJoinText(&j.CleanupTaskName, "cleanup_task_name", textLimit, &j.TruncatedFields)
 	q, args := pageSQL("SELECT b.id,"+joinTextSQL("b.name", textLimit)+",b.task_id,"+joinTextSQL("t.name", textLimit)+" FROM parallel_join_branches b JOIN tasks t ON t.id=b.task_id WHERE b.join_id=? ORDER BY b.position", branchOffset, branchLimit)
 	args = append([]any{id}, args...)
 	rows, err := tx.QueryContext(ctx, q, args...)
@@ -483,7 +509,7 @@ func validateAutomationGraph(tx *sql.Tx) error {
 	return nil
 }
 func automationGraph(tx *sql.Tx, excludeChain string) (map[string][]string, error) {
-	rows, err := tx.Query("SELECT source_task_id,target_task_id FROM completion_chains WHERE id<>? UNION ALL SELECT j.entry_task_id,b.task_id FROM parallel_joins j JOIN parallel_join_branches b ON b.join_id=j.id UNION ALL SELECT b.task_id,j.target_task_id FROM parallel_joins j JOIN parallel_join_branches b ON b.join_id=j.id", excludeChain)
+	rows, err := tx.Query("SELECT source_task_id,target_task_id FROM completion_chains WHERE id<>? UNION ALL SELECT j.entry_task_id,b.task_id FROM parallel_joins j JOIN parallel_join_branches b ON b.join_id=j.id UNION ALL SELECT entry_task_id,target_task_id FROM parallel_joins UNION ALL SELECT entry_task_id,recovery_task_id FROM parallel_joins WHERE recovery_task_id IS NOT NULL UNION ALL SELECT entry_task_id,cleanup_task_id FROM parallel_joins WHERE cleanup_task_id IS NOT NULL", excludeChain)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ func TestCurrentSchemaPreservesExistingStateAndAddsNotifications(t *testing.T) {
 	}
 	defer db.Close()
 
-	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(25)`); err != nil {
+	if _, err := db.Exec(currentSchema + `INSERT INTO schema_version(version) VALUES(26)`); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Close(); err != nil {
@@ -29,8 +29,8 @@ func TestCurrentSchemaPreservesExistingStateAndAddsNotifications(t *testing.T) {
 	}
 	defer st.Close()
 	var version int
-	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != 25 {
-		t.Fatalf("schema version=%d err=%v, want 25", version, err)
+	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil || version != currentSchemaVersion {
+		t.Fatalf("schema version=%d err=%v, want current marker", version, err)
 	}
 	for _, table := range []string{"notification_channels", "notification_assignments", "notification_deliveries"} {
 		var name string

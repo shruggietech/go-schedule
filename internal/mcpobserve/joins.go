@@ -27,7 +27,7 @@ func (a *adapter) joinEnvelope(ctx context.Context, kind, base string, offset in
 	if !ok {
 		return Envelope{}, errors.New("unavailable: parallel join observations are unavailable")
 	}
-	e := Envelope{SchemaVersion: SchemaVersion, Permission: Permission, GeneratedAt: timestamp(a.now()), Trust: TrustNotice, UntrustedFields: []string{"data[].name", "data[].definition_name", "data[].branches[].name", "data[].reason", "data[].branches[].reason"}}
+	e := Envelope{SchemaVersion: SchemaVersion, Permission: Permission, GeneratedAt: timestamp(a.now()), Trust: TrustNotice, UntrustedFields: []string{"data[].name", "data[].definition_name", "data[].branches[].name", "data[].reason", "data[].branches[].reason", "data[].recovery_task_name", "data[].cleanup_task_name", "data[].target_reason", "data[].recovery_reason", "data[].cleanup_reason"}}
 	items := []map[string]any{}
 	more := false
 	if kind == "join_definitions" {
@@ -62,6 +62,8 @@ func joinDefinitionData(v domain.ParallelJoin) map[string]any {
 		branches = append(branches, map[string]any{"id": b.ID, "name": b.Name, "task_id": b.TaskID, "task_name": b.TaskName, "truncated_fields": b.TruncatedFields})
 	}
 	out := map[string]any{"id": v.ID, "name": v.Name, "entry_task_id": v.EntryTaskID, "entry_task_name": v.EntryTaskName, "target_task_id": v.TargetTaskID, "target_task_name": v.TargetTaskName, "branches": branches, "branch_count": v.BranchCount, "branch_offset": v.BranchOffset, "has_more_branches": v.HasMoreBranches, "created_at": timestamp(v.CreatedAt), "updated_at": timestamp(v.UpdatedAt), "truncated_fields": v.TruncatedFields}
+	out["recovery_task_id"], out["recovery_task_name"], out["recovery_on"] = v.RecoveryTaskID, v.RecoveryTaskName, v.RecoveryOn
+	out["cleanup_task_id"], out["cleanup_task_name"] = v.CleanupTaskID, v.CleanupTaskName
 	if v.HasMoreBranches {
 		out["branches_next_uri"] = joinDefinitionsURI + "/" + url.PathEscape(v.ID) + "/branches/" + encodeCursor(v.BranchOffset+len(v.Branches))
 	}
@@ -70,9 +72,16 @@ func joinDefinitionData(v domain.ParallelJoin) map[string]any {
 func joinInstanceData(v domain.ParallelJoinInstance) map[string]any {
 	branches := []map[string]any{}
 	for _, b := range v.Branches {
-		branches = append(branches, map[string]any{"id": b.ID, "branch_id": b.BranchID, "name": b.Name, "task_id": b.TaskID, "task_name": b.TaskName, "delivery_id": b.DeliveryID, "delivery_state": b.DeliveryState, "run_id": b.RunID, "outcome": b.Outcome, "reason": b.Reason, "started_at": optionalTimestamp(b.StartedAt), "ended_at": optionalTimestamp(b.EndedAt), "cancellation_status": b.CancellationStatus, "cancellation_error": b.CancellationError, "truncated_fields": b.TruncatedFields})
+		branches = append(branches, map[string]any{"id": b.ID, "branch_id": b.BranchID, "name": b.Name, "task_id": b.TaskID, "task_name": b.TaskName, "delivery_id": b.DeliveryID, "delivery_state": b.DeliveryState, "run_id": b.RunID, "outcome": b.Outcome, "settlement": b.Settlement, "settled_at": optionalTimestamp(b.SettledAt), "reason": b.Reason, "started_at": optionalTimestamp(b.StartedAt), "ended_at": optionalTimestamp(b.EndedAt), "cancellation_status": b.CancellationStatus, "cancellation_error": b.CancellationError, "truncated_fields": b.TruncatedFields})
 	}
 	out := map[string]any{"id": v.ID, "definition_id": v.DefinitionID, "definition_name": v.DefinitionName, "entry_task_id": v.EntryTaskID, "entry_task_name": v.EntryTaskName, "entry_run_id": v.EntryRunID, "target_task_id": v.TargetTaskID, "target_task_name": v.TargetTaskName, "state": v.State, "reason": v.Reason, "branches": branches, "branch_count": v.BranchCount, "branch_offset": v.BranchOffset, "has_more_branches": v.HasMoreBranches, "target_delivery_id": v.TargetDeliveryID, "target_delivery_state": v.TargetDeliveryState, "target_run_id": v.TargetRunID, "target_outcome": v.TargetOutcome, "target_started_at": optionalTimestamp(v.TargetStartedAt), "target_ended_at": optionalTimestamp(v.TargetEndedAt), "target_cancellation_status": v.TargetCancellationStatus, "target_cancellation_error": v.TargetCancellationError, "created_at": timestamp(v.CreatedAt), "updated_at": timestamp(v.UpdatedAt), "completed_at": optionalTimestamp(v.CompletedAt), "truncated_fields": v.TruncatedFields}
+	out["recovery_task_id"], out["recovery_task_name"], out["recovery_on"] = v.RecoveryTaskID, v.RecoveryTaskName, v.RecoveryOn
+	out["cleanup_task_id"], out["cleanup_task_name"] = v.CleanupTaskID, v.CleanupTaskName
+	out["selected_route"] = v.SelectedRoute
+	out["target_settlement"], out["target_settled_at"], out["target_reason"] = v.TargetSettlement, optionalTimestamp(v.TargetSettledAt), v.TargetReason
+	for key, value := range map[string]any{"recovery_delivery_id": v.RecoveryDeliveryID, "recovery_delivery_state": v.RecoveryDeliveryState, "recovery_run_id": v.RecoveryRunID, "recovery_outcome": v.RecoveryOutcome, "recovery_started_at": optionalTimestamp(v.RecoveryStartedAt), "recovery_ended_at": optionalTimestamp(v.RecoveryEndedAt), "recovery_cancellation_status": v.RecoveryCancellationStatus, "recovery_cancellation_error": v.RecoveryCancellationError, "recovery_settlement": v.RecoverySettlement, "recovery_settled_at": optionalTimestamp(v.RecoverySettledAt), "recovery_reason": v.RecoveryReason, "cleanup_delivery_id": v.CleanupDeliveryID, "cleanup_delivery_state": v.CleanupDeliveryState, "cleanup_run_id": v.CleanupRunID, "cleanup_outcome": v.CleanupOutcome, "cleanup_started_at": optionalTimestamp(v.CleanupStartedAt), "cleanup_ended_at": optionalTimestamp(v.CleanupEndedAt), "cleanup_cancellation_status": v.CleanupCancellationStatus, "cleanup_cancellation_error": v.CleanupCancellationError, "cleanup_settlement": v.CleanupSettlement, "cleanup_settled_at": optionalTimestamp(v.CleanupSettledAt), "cleanup_reason": v.CleanupReason} {
+		out[key] = value
+	}
 	if v.HasMoreBranches {
 		out["branches_next_uri"] = joinInstancesURI + "/" + url.PathEscape(v.ID) + "/branches/" + encodeCursor(v.BranchOffset+len(v.Branches))
 	}
@@ -105,7 +114,7 @@ func (a *adapter) readJoinExact(base string) mcp.ResourceHandler {
 		}
 		ctx, cancel := context.WithTimeout(ctx, a.timeout)
 		defer cancel()
-		e := Envelope{SchemaVersion: SchemaVersion, Permission: Permission, GeneratedAt: timestamp(a.now()), Trust: TrustNotice, UntrustedFields: []string{"data.name", "data.definition_name", "data.reason", "data.branches[].name", "data.branches[].reason"}}
+		e := Envelope{SchemaVersion: SchemaVersion, Permission: Permission, GeneratedAt: timestamp(a.now()), Trust: TrustNotice, UntrustedFields: []string{"data.name", "data.definition_name", "data.reason", "data.branches[].name", "data.branches[].reason", "data.recovery_task_name", "data.cleanup_task_name", "data.target_reason", "data.recovery_reason", "data.cleanup_reason"}}
 		if base == joinDefinitionsURI {
 			v, err := r.GetJoinPage(ctx, id, offset, PageLimit, TextLimit)
 			if err != nil {

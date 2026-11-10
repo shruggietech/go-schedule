@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Correlate entry-owned parallel task invocations and admit one target after every exact branch succeeds, with durable restart-aware state, bounded observation, CLI/API/MCP/desktop authoring and portable version 3 definitions (S144, #470).
 
+- Add correlated recovery conditions and ordered final cleanup to parallel blocks, retaining separate exact native outcomes, complete authoring, all control surfaces and portable version 4 routing configuration (S145, #477).
+
 ### Fixed
 
 - Negotiate desktop connections using supported API v1 instead of rejecting v2.x product versions (#466).
@@ -23,11 +25,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Allow complete join branch replacements to remove slots without retaining stale observation counts, and preserve existing Automation workspaces when the selected scheduler does not support joins (#474, #475).
 - Preserve complete join and branch names during edits by loading full authoring data and sending only changed fields, retaining bounded observations and explicit truncation output (#476).
 
+- Preserve the exact original blocked cause for success-only joins after sibling settlement, and propagate join human-output write failures without replaying accepted API mutations (S145, #478, #479).
+- Retire completed native or definitively rejected admission overlap reservations before publishing correlated follow-ups, so success or recovery can reuse the cleanup task under skip overlap without losing cleanup (#481).
+
 ### Decisions
 
 - 2026-11-09 (S143): own exact Windows jobs and Unix process groups before execution, retain ordinary command/background behavior and intentional native breakaway, and apply one five-second cleanup allowance only after cancellation. Retain ownership and capacity after unconfirmed cleanup. Store distinct terminal outcomes in existing schema 24, suppress cancellation chains and outbound policy streak changes, and expose bounded active-run discovery to MCP. Public v2.0.3 and existing release/native-testing disclosures remain unchanged.
 
 - 2026-11-10 (S144): reuse completion deliveries for named branch invocations and atomic all-success target admission, with typed automatic sources, immutable instance snapshots, schema 25, mixed chain/join graph validation and portable v3 configuration. Keep current execution authority and overlap policy, exact native cancellation, the at-least-once external crash boundary and future-only edits. Advance the dependent-workflow capability without claiming full visual parity, changing historical comparison snapshots or resuming owner-deferred clusters.
+
+- 2026-11-10 (S145): extend the existing delivery lifecycle with explicit actual/no-start settlement, separate success/recovery/cleanup identities and schema 26. Preserve omitted versus empty recovery policy across full authoring and conditional portable v4, retaining base v3 compatibility. Coalesce completion progress in the existing engine event loop and validate entry-to-owned-destination causal edges, allowing finite task reuse while rejecting automatic cascades. Retain current admission/cancellation ownership, future-only edits, non-mutating obsolete-state refusal and the external-command crash boundary; release and historical comparison bytes remain unchanged.
 
 ### Changed
 

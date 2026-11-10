@@ -43,7 +43,12 @@ func TestS144RemoteAutomationOperations(t *testing.T) {
 	}
 }
 
-func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) {
+func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) { testRemoteJoinCRUD(t, false) }
+
+func TestS145RemoteRecoveryCleanupHonorsAuthorityAndDaemon(t *testing.T) { testRemoteJoinCRUD(t, true) }
+
+func testRemoteJoinCRUD(t *testing.T, routing bool) {
+	t.Helper()
 	st, err := store.Open(":memory:")
 	if err != nil {
 		t.Fatal(err)
@@ -53,7 +58,7 @@ func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tasks := make([]domain.Task, 3)
+	tasks := make([]domain.Task, 5)
 	for i := range tasks {
 		tasks[i] = domain.Task{Name: "task", Timezone: "UTC", State: domain.TaskActive}
 		if err := st.CreateTask(&tasks[i]); err != nil {
@@ -100,6 +105,10 @@ func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) {
 		return out
 	}
 	body := apis.JoinCreateRequest{Name: strings.Repeat("N", 160000), EntryTaskID: tasks[0].ID, TargetTaskID: tasks[2].ID, Branches: []domain.ParallelJoinBranch{{ID: "a", Name: strings.Repeat("B", 140000), TaskID: tasks[1].ID}}}
+	if routing {
+		empty := []domain.JoinRecoveryCondition{}
+		body.RecoveryTaskID, body.CleanupTaskID, body.RecoveryOn = tasks[3].ID, tasks[4].ID, &empty
+	}
 	if denied := request(http.MethodPost, "/api/v1/joins", observer.Token, "", body); denied.Code != 403 {
 		t.Fatalf("observe mutation=%d %s", denied.Code, denied.Body.String())
 	}
@@ -124,6 +133,9 @@ func TestS144RemoteJoinCRUDHonorsAuthorityAndDaemon(t *testing.T) {
 	var editable domain.ParallelJoin
 	if definition.Code != http.StatusOK || json.Unmarshal(definition.Body.Bytes(), &editable) != nil || editable.Name != body.Name || len(editable.Branches) != 1 || editable.Branches[0].Name != body.Branches[0].Name {
 		t.Fatalf("remote authoring text status=%d name length=%d", definition.Code, len(editable.Name))
+	}
+	if routing && (editable.RecoveryTaskID != tasks[3].ID || editable.CleanupTaskID != tasks[4].ID || editable.RecoveryOn == nil || len(editable.RecoveryOn) != 0) {
+		t.Fatalf("remote routing intent changed: %+v", editable)
 	}
 	if operation, ok := lookup(http.MethodGet, definitionPath); !ok || operation.Capability != domain.CapabilityManage || operation.Retry != RetrySafe || operation.Audit != authorization.AuditPrivilegedRead {
 		t.Fatalf("authoring operation=%+v found=%v", operation, ok)

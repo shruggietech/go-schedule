@@ -775,8 +775,29 @@ gosched join rm JOIN_ID
 
 `--branches-file -` reads exactly one JSON array from stdin. Branch inputs accept only `id`, `name` and `task_id`; an omitted slot ID is assigned by the daemon. Two named slots may reference the same task and retain distinct invocation, delivery and Run IDs. Branch and target tasks must satisfy the current enabled/group, command and overlap policies. Defining a relationship does not override those policies or enable a task.
 
-`instances` accepts `--entry-run`, `--state` (waiting, target_pending, completed, blocked or resolved), `--limit` (1 through 1000) and nonnegative `--offset`. `instance` shows the exact entry, slot/invocation identities, native run outcomes, target admission and blocked/resolved reasons. Every command supports global `--json` and deliberate remote selection. Existing `runs cancel RUN_ID` cancels only that exact execution; it does not cancel sibling branches.
+`instances` accepts `--entry-run`, `--state` (waiting, target_pending, recovery_pending, cleanup_pending, completed, blocked or resolved), `--limit` (1 through 1000) and nonnegative `--offset`. `instance` shows the exact entry, slot/invocation identities, native run outcomes, target admission and blocked/resolved reasons. Every command supports global `--json` and deliberate remote selection. Existing `runs cancel RUN_ID` cancels only that exact execution; it does not cancel sibling branches.
 
 Edits affect future entry executions. Deletion resolves outstanding decisions; already executing native work retains its actual final result. Failed, canceled, skipped or ineligible branches cannot satisfy a success join. Pending work is durable across restart, with the existing at-least-once external-command crash boundary. Version 3 portable bundles include definitions and remap task references, excluding instances, contributions, deliveries and run history. Older version 1 and version 2 documents remain readable. Public v2.0.3 does not include joins.
 
 `join show` is an observation with every branch and bounded display text. Human output reports actual truncation; JSON retains `truncated_fields`. The complete writable configuration is available through the Manage authoring API used by the desktop. CLI updates send the fields or complete branch file explicitly supplied by the caller.
+
+## Parallel recovery and final cleanup (Unreleased S145)
+
+Add existing Recover and Cleanup task IDs to a parallel block:
+
+```sh
+gosched join create --name "Recover exports" --entry PREPARE_ID --target PUBLISH_ID --branches-file branches.json --recovery RECOVER_ID --recovery-on failure,canceled,skipped,not_started --cleanup CLEANUP_ID
+gosched join update JOIN_ID --recovery-on none
+gosched join update JOIN_ID --recovery=
+gosched join update JOIN_ID --cleanup=
+gosched join instances --join JOIN_ID --state cleanup_pending
+gosched join instance INSTANCE_ID --json
+```
+
+The optional --recovery target defaults to the failure cause when --recovery-on is omitted. Select failure, canceled, skipped and not_started explicitly; --recovery-on none sends [] and deliberately selects no recovery cause. none cannot be mixed with other causes. Explicit empty recovery/cleanup IDs clear those future-definition fields; omitted flags preserve existing values. Branch definitions and complete Unicode names retain the existing full-file/sparse-update behavior.
+
+After every branch settles, all-success selects Publish; an unsuccessful aggregate selects Recover only if a configured cause matches. Cleanup waits for the chosen follow-up's terminal result or definitive no-start. If no follow-up is selected, cleanup can proceed after all branches settle. Human and JSON exact-instance views retain the selected route and separate success/recovery/cleanup identities, outcomes, settlement and reasons. Admission or a failed cancellation request does not establish native completion.
+
+These fields require the selected daemon's parallel-join-recovery capability; compatible base-only targets remain usable. Portable export uses version 4 when routing options require it and version 3 for unchanged base-only joins. New references are remapped and explicit [] is retained, while all runtime state stays outside the document. Current source uses schema 26 and refuses obsolete state non-mutatingly. Public v2.0.3 remains unchanged.
+
+Join human-output write failures return nonzero while retaining their output-error cause. A mutation may already have completed before its response could be printed; inspect current state before deliberately retrying it. Commands never replay an accepted mutation because printing failed.

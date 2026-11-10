@@ -2,6 +2,7 @@ package automation
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -23,11 +24,21 @@ func (s *Service) SaveJoin(ctx context.Context, d JoinDraft) OperationResult {
 	if len(d.Branches) == 0 {
 		return rejected("save_join", "branches", "Add at least one named branch.")
 	}
+	if d.RecoveryTaskID != "" && d.RecoveryOn == nil {
+		d.RecoveryOn = []domain.JoinRecoveryCondition{domain.JoinRecoveryOnFailure}
+	}
+	if d.RecoveryTaskID == "" && len(d.RecoveryOn) > 0 {
+		return rejected("save_join", "recoveryOn", "Select a recovery task before choosing recovery conditions.")
+	}
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 	id := d.ID
 	if d.IsNew {
-		v, err := s.backend.CreateJoin(c, server.JoinCreateRequest{Name: d.Name, EntryTaskID: d.EntryTaskID, TargetTaskID: d.TargetTaskID, Branches: d.Branches})
+		request := server.JoinCreateRequest{Name: d.Name, EntryTaskID: d.EntryTaskID, TargetTaskID: d.TargetTaskID, Branches: d.Branches, RecoveryTaskID: d.RecoveryTaskID, CleanupTaskID: d.CleanupTaskID}
+		if d.RecoveryTaskID != "" {
+			request.RecoveryOn = &d.RecoveryOn
+		}
+		v, err := s.backend.CreateJoin(c, request)
 		if err != nil {
 			return failure("save_join", err)
 		}
@@ -57,10 +68,19 @@ func (s *Service) SaveJoin(ctx context.Context, d JoinDraft) OperationResult {
 		if current.TargetTaskID != d.TargetTaskID {
 			r.TargetTaskID = &d.TargetTaskID
 		}
+		if current.RecoveryTaskID != d.RecoveryTaskID {
+			r.RecoveryTaskID = &d.RecoveryTaskID
+		}
+		if !slices.Equal(current.RecoveryOn, d.RecoveryOn) || (d.RecoveryTaskID != "" && current.RecoveryTaskID == "") {
+			r.RecoveryOn = &d.RecoveryOn
+		}
+		if current.CleanupTaskID != d.CleanupTaskID {
+			r.CleanupTaskID = &d.CleanupTaskID
+		}
 		if !sameJoinBranches(current.Branches, d.Branches) {
 			r.Branches = &d.Branches
 		}
-		if r.Name == nil && r.EntryTaskID == nil && r.TargetTaskID == nil && r.Branches == nil {
+		if r.Name == nil && r.EntryTaskID == nil && r.TargetTaskID == nil && r.Branches == nil && r.RecoveryTaskID == nil && r.RecoveryOn == nil && r.CleanupTaskID == nil {
 			return s.refreshed(ctx, "save_join", "No changes were submitted; the loaded definition already matches.", id)
 		}
 		if _, err := s.backend.UpdateJoin(c, id, r); err != nil {

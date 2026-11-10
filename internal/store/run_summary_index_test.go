@@ -13,8 +13,8 @@ func TestCurrentSchemaIndexesBoundedFailureSummaryQueries(t *testing.T) {
 	if err := st.db.QueryRow(`SELECT MAX(version) FROM schema_version`).Scan(&version); err != nil {
 		t.Fatal(err)
 	}
-	if version != 25 {
-		t.Fatalf("schema version=%d, want 25", version)
+	if version != currentSchemaVersion {
+		t.Fatalf("schema version=%d, want current marker", version)
 	}
 	rows, err := st.db.Query(`EXPLAIN QUERY PLAN SELECT COUNT(*) FROM runs WHERE outcome=? AND COALESCE(ended_at,scheduled_for)>=? AND COALESCE(ended_at,scheduled_for)<=?`, "failure", fmtTime(time.Now().Add(-24*time.Hour)), fmtTime(time.Now()))
 	if err != nil {

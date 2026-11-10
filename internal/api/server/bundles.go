@@ -786,6 +786,17 @@ func (s *Server) bundleDocument() (bundle.Document, error) {
 			return doc, err
 		}
 		value := bundle.Join{PortableID: id, Name: join.Name, EntryTaskID: taskIDs[join.EntryTaskID], TargetTaskID: taskIDs[join.TargetTaskID], Branches: []bundle.JoinBranch{}}
+		value.RecoveryTaskID, value.CleanupTaskID = taskIDs[join.RecoveryTaskID], taskIDs[join.CleanupTaskID]
+		if join.RecoveryTaskID != "" {
+			causes := make([]string, 0, len(join.RecoveryOn))
+			for _, cause := range join.RecoveryOn {
+				causes = append(causes, string(cause))
+			}
+			value.RecoveryOn = &causes
+		}
+		if join.RecoveryTaskID != "" || join.CleanupTaskID != "" {
+			doc.Schema = bundle.SchemaV4
+		}
 		for _, branch := range join.Branches {
 			value.Branches = append(value.Branches, bundle.JoinBranch{ID: branch.ID, Name: branch.Name, TaskID: taskIDs[branch.TaskID]})
 		}

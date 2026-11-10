@@ -3,9 +3,11 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
@@ -97,44 +99,78 @@ func (s *Store) ListParallelJoinInstancesContext(ctx context.Context, f domain.P
 	}
 	return out, nil
 }
+
+type joinStageProjection struct {
+	prefix                        string
+	deliveryID                    *string
+	deliveryState                 *domain.DeliveryState
+	runID                         *string
+	outcome                       *domain.RunOutcome
+	settlement                    *domain.JoinSettlement
+	reason                        *string
+	started, ended, settled       sql.NullString
+	startedAt, endedAt, settledAt **time.Time
+}
+
 func readJoinInstance(ctx context.Context, tx *sql.Tx, id string, branchOffset, branchLimit, textLimit int) (domain.ParallelJoinInstance, error) {
 	var j domain.ParallelJoinInstance
-	var state, created, updated string
-	var completed, started, ended sql.NullString
-	q := "SELECT i.id,i.definition_id," + joinTextSQL("i.definition_name", textLimit) + ",i.entry_task_id," + joinTextSQL("i.entry_task_name", textLimit) + ",i.entry_run_id,i.target_task_id," + joinTextSQL("i.target_task_name", textLimit) + ",i.state," + joinTextSQL("i.reason", textLimit) + ",i.target_delivery_id,COALESCE(d.state,''),i.target_run_id,i.target_outcome,i.target_started_at,i.target_ended_at,i.created_at,i.updated_at,i.completed_at,(SELECT COUNT(*) FROM parallel_join_invocations WHERE instance_id=i.id) FROM parallel_join_instances i LEFT JOIN completion_deliveries d ON d.id=i.target_delivery_id WHERE i.id=?"
-	if err := tx.QueryRowContext(ctx, q, id).Scan(&j.ID, &j.DefinitionID, &j.DefinitionName, &j.EntryTaskID, &j.EntryTaskName, &j.EntryRunID, &j.TargetTaskID, &j.TargetTaskName, &state, &j.Reason, &j.TargetDeliveryID, &j.TargetDeliveryState, &j.TargetRunID, &j.TargetOutcome, &started, &ended, &created, &updated, &completed, &j.BranchCount); err != nil {
+	var created, updated, recoveryJSON string
+	var completed sql.NullString
+	stages := []joinStageProjection{
+		{prefix: "target", deliveryID: &j.TargetDeliveryID, deliveryState: &j.TargetDeliveryState, runID: &j.TargetRunID, outcome: &j.TargetOutcome, settlement: &j.TargetSettlement, reason: &j.TargetReason, startedAt: &j.TargetStartedAt, endedAt: &j.TargetEndedAt, settledAt: &j.TargetSettledAt},
+		{prefix: "recovery", deliveryID: &j.RecoveryDeliveryID, deliveryState: &j.RecoveryDeliveryState, runID: &j.RecoveryRunID, outcome: &j.RecoveryOutcome, settlement: &j.RecoverySettlement, reason: &j.RecoveryReason, startedAt: &j.RecoveryStartedAt, endedAt: &j.RecoveryEndedAt, settledAt: &j.RecoverySettledAt},
+		{prefix: "cleanup", deliveryID: &j.CleanupDeliveryID, deliveryState: &j.CleanupDeliveryState, runID: &j.CleanupRunID, outcome: &j.CleanupOutcome, settlement: &j.CleanupSettlement, reason: &j.CleanupReason, startedAt: &j.CleanupStartedAt, endedAt: &j.CleanupEndedAt, settledAt: &j.CleanupSettledAt},
+	}
+	columns := []string{"i.id", "i.definition_id", joinTextSQL("i.definition_name", textLimit), "i.entry_task_id", joinTextSQL("i.entry_task_name", textLimit), "i.entry_run_id", "i.target_task_id", joinTextSQL("i.target_task_name", textLimit), "i.recovery_task_id", joinTextSQL("i.recovery_task_name", textLimit), "i.recovery_on_json", "i.cleanup_task_id", joinTextSQL("i.cleanup_task_name", textLimit), "i.selected_route", "i.state", joinTextSQL("i.reason", textLimit), "i.created_at", "i.updated_at", "i.completed_at", "(SELECT COUNT(*) FROM parallel_join_invocations WHERE instance_id=i.id)"}
+	dest := []any{&j.ID, &j.DefinitionID, &j.DefinitionName, &j.EntryTaskID, &j.EntryTaskName, &j.EntryRunID, &j.TargetTaskID, &j.TargetTaskName, &j.RecoveryTaskID, &j.RecoveryTaskName, &recoveryJSON, &j.CleanupTaskID, &j.CleanupTaskName, &j.SelectedRoute, &j.State, &j.Reason, &created, &updated, &completed, &j.BranchCount}
+	joins := ""
+	for n := range stages {
+		v := &stages[n]
+		alias := fmt.Sprintf("d%d", n)
+		prefix := "i." + v.prefix
+		columns = append(columns, prefix+"_delivery_id", "COALESCE("+alias+".state,'')", prefix+"_run_id", prefix+"_outcome", prefix+"_started_at", prefix+"_ended_at", prefix+"_settlement", prefix+"_settled_at", joinTextSQL("COALESCE("+alias+".resolution,'')", textLimit))
+		dest = append(dest, v.deliveryID, v.deliveryState, v.runID, v.outcome, &v.started, &v.ended, v.settlement, &v.settled, v.reason)
+		joins += " LEFT JOIN completion_deliveries " + alias + " ON " + alias + ".id=" + prefix + "_delivery_id"
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT "+strings.Join(columns, ",")+" FROM parallel_join_instances i"+joins+" WHERE i.id=?", id).Scan(dest...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return j, ErrNotFound
 		}
 		return j, err
 	}
-	j.State = domain.JoinInstanceState(state)
+	if err := json.Unmarshal([]byte(recoveryJSON), &j.RecoveryOn); err != nil {
+		return j, fmt.Errorf("store: decode instance recovery conditions: %w", err)
+	}
 	var err error
-	j.CreatedAt, err = parseTime(created)
-	if err != nil {
+	if j.CreatedAt, err = parseTime(created); err != nil {
 		return j, err
 	}
-	j.UpdatedAt, err = parseTime(updated)
-	if err != nil {
+	if j.UpdatedAt, err = parseTime(updated); err != nil {
 		return j, err
 	}
-	j.CompletedAt, err = parseTimePtr(completed)
-	if err != nil {
+	if j.CompletedAt, err = parseTimePtr(completed); err != nil {
 		return j, err
 	}
-	j.TargetStartedAt, err = parseTimePtr(started)
-	if err != nil {
-		return j, err
+	for n := range stages {
+		v := &stages[n]
+		if *v.startedAt, err = parseTimePtr(v.started); err != nil {
+			return j, err
+		}
+		if *v.endedAt, err = parseTimePtr(v.ended); err != nil {
+			return j, err
+		}
+		if *v.settledAt, err = parseTimePtr(v.settled); err != nil {
+			return j, err
+		}
+		truncateJoinText(v.reason, v.prefix+"_reason", textLimit, &j.TruncatedFields)
 	}
-	j.TargetEndedAt, err = parseTimePtr(ended)
-	if err != nil {
-		return j, err
+	for _, v := range []struct {
+		value *string
+		field string
+	}{{&j.DefinitionName, "definition_name"}, {&j.EntryTaskName, "entry_task_name"}, {&j.TargetTaskName, "target_task_name"}, {&j.RecoveryTaskName, "recovery_task_name"}, {&j.CleanupTaskName, "cleanup_task_name"}, {&j.Reason, "reason"}} {
+		truncateJoinText(v.value, v.field, textLimit, &j.TruncatedFields)
 	}
-	truncateJoinText(&j.DefinitionName, "definition_name", textLimit, &j.TruncatedFields)
-	truncateJoinText(&j.EntryTaskName, "entry_task_name", textLimit, &j.TruncatedFields)
-	truncateJoinText(&j.TargetTaskName, "target_task_name", textLimit, &j.TruncatedFields)
-	truncateJoinText(&j.Reason, "reason", textLimit, &j.TruncatedFields)
-	q, args := pageSQL("SELECT v.id,v.branch_id,"+joinTextSQL("v.name", textLimit)+",v.task_id,"+joinTextSQL("v.task_name", textLimit)+",v.delivery_id,d.state,v.run_id,v.outcome,"+joinTextSQL("v.reason", textLimit)+",v.started_at,v.ended_at FROM parallel_join_invocations v JOIN completion_deliveries d ON d.id=v.delivery_id WHERE v.instance_id=? ORDER BY v.position", branchOffset, branchLimit)
+	q, args := pageSQL("SELECT v.id,v.branch_id,"+joinTextSQL("v.name", textLimit)+",v.task_id,"+joinTextSQL("v.task_name", textLimit)+",v.delivery_id,d.state,v.run_id,v.outcome,v.settlement,v.settled_at,"+joinTextSQL("v.reason", textLimit)+",v.started_at,v.ended_at FROM parallel_join_invocations v JOIN completion_deliveries d ON d.id=v.delivery_id WHERE v.instance_id=? ORDER BY v.position", branchOffset, branchLimit)
 	args = append([]any{id}, args...)
 	rows, err := tx.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -143,23 +179,24 @@ func readJoinInstance(ctx context.Context, tx *sql.Tx, id string, branchOffset, 
 	defer rows.Close()
 	j.Branches = []domain.ParallelJoinInvocation{}
 	for rows.Next() {
-		var b domain.ParallelJoinInvocation
-		var started, ended sql.NullString
-		if err := rows.Scan(&b.ID, &b.BranchID, &b.Name, &b.TaskID, &b.TaskName, &b.DeliveryID, &b.DeliveryState, &b.RunID, &b.Outcome, &b.Reason, &started, &ended); err != nil {
+		var v domain.ParallelJoinInvocation
+		var started, ended, settled sql.NullString
+		if err := rows.Scan(&v.ID, &v.BranchID, &v.Name, &v.TaskID, &v.TaskName, &v.DeliveryID, &v.DeliveryState, &v.RunID, &v.Outcome, &v.Settlement, &settled, &v.Reason, &started, &ended); err != nil {
 			return j, err
 		}
-		b.StartedAt, err = parseTimePtr(started)
-		if err != nil {
+		if v.StartedAt, err = parseTimePtr(started); err != nil {
 			return j, err
 		}
-		b.EndedAt, err = parseTimePtr(ended)
-		if err != nil {
+		if v.EndedAt, err = parseTimePtr(ended); err != nil {
 			return j, err
 		}
-		truncateJoinText(&b.Name, "name", textLimit, &b.TruncatedFields)
-		truncateJoinText(&b.TaskName, "task_name", textLimit, &b.TruncatedFields)
-		truncateJoinText(&b.Reason, "reason", textLimit, &b.TruncatedFields)
-		j.Branches = append(j.Branches, b)
+		if v.SettledAt, err = parseTimePtr(settled); err != nil {
+			return j, err
+		}
+		truncateJoinText(&v.Name, "name", textLimit, &v.TruncatedFields)
+		truncateJoinText(&v.TaskName, "task_name", textLimit, &v.TruncatedFields)
+		truncateJoinText(&v.Reason, "reason", textLimit, &v.TruncatedFields)
+		j.Branches = append(j.Branches, v)
 	}
 	j.BranchOffset = max(branchOffset, 0)
 	j.HasMoreBranches = j.BranchOffset+len(j.Branches) < j.BranchCount
@@ -172,8 +209,12 @@ func (s *Store) createJoinInstances(tx *sql.Tx, r domain.Run, now time.Time, ids
 		if err != nil {
 			return err
 		}
+		conditions, err := json.Marshal(j.RecoveryOn)
+		if err != nil {
+			return fmt.Errorf("store: encode snapshot recovery conditions: %w", err)
+		}
 		instanceID := newID()
-		res, err := tx.Exec("INSERT OR IGNORE INTO parallel_join_instances(id,definition_id,definition_name,entry_task_id,entry_task_name,entry_run_id,target_task_id,target_task_name,state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)", instanceID, j.ID, j.Name, j.EntryTaskID, j.EntryTaskName, r.ID, j.TargetTaskID, j.TargetTaskName, string(domain.JoinInstanceWaiting), fmtTime(now), fmtTime(now))
+		res, err := tx.Exec("INSERT OR IGNORE INTO parallel_join_instances(id,definition_id,definition_name,entry_task_id,entry_task_name,entry_run_id,target_task_id,target_task_name,recovery_task_id,recovery_task_name,recovery_on_json,cleanup_task_id,cleanup_task_name,state,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", instanceID, j.ID, j.Name, j.EntryTaskID, j.EntryTaskName, r.ID, j.TargetTaskID, j.TargetTaskName, j.RecoveryTaskID, j.RecoveryTaskName, string(conditions), j.CleanupTaskID, j.CleanupTaskName, string(domain.JoinInstanceWaiting), fmtTime(now), fmtTime(now))
 		if err != nil {
 			return err
 		}
@@ -201,57 +242,50 @@ func recordJoinResult(tx *sql.Tx, d domain.CompletionDelivery, r domain.Run, now
 	if d.Role == domain.DeliveryRoleChain {
 		return nil
 	}
-	var state domain.JoinInstanceState
-	var targetTaskID string
-	if err := tx.QueryRow("SELECT state,target_task_id FROM parallel_join_instances WHERE id=?", d.JoinInstanceID).Scan(&state, &targetTaskID); err != nil {
+	settlement, err := nativeJoinSettlement(r)
+	if err != nil {
 		return err
 	}
-	if d.Role == domain.DeliveryRoleJoinTarget {
-		next := domain.JoinInstanceCompleted
-		if state == domain.JoinInstanceResolved {
-			next = state
+	decision, err := readJoinDecision(tx, d.JoinInstanceID)
+	if err != nil {
+		return err
+	}
+	if d.Role == domain.DeliveryRoleJoinBranch {
+		var name string
+		if err := tx.QueryRow("SELECT name FROM parallel_join_invocations WHERE instance_id=? AND id=? AND delivery_id=? AND task_id=?", d.JoinInstanceID, d.JoinBranchID, d.ID, r.TaskID).Scan(&name); err != nil {
+			return fmt.Errorf("store: exact join branch binding: %w", err)
 		}
-		_, err := tx.Exec("UPDATE parallel_join_instances SET state=?,target_run_id=?,target_outcome=?,target_started_at=?,target_ended_at=?,updated_at=?,completed_at=? WHERE id=?", string(next), r.ID, string(r.Outcome), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), fmtTime(now), fmtTime(now), d.JoinInstanceID)
-		return err
+		reason := ""
+		if settlement != domain.JoinSettlementSuccess {
+			reason = "branch " + name + " (" + d.JoinBranchID + ") finished " + string(r.Outcome)
+			if r.StartFailed {
+				reason += " before native command start"
+			}
+		}
+		if _, err := tx.Exec("UPDATE parallel_join_invocations SET run_id=?,outcome=?,settlement=?,settled_at=?,reason=CASE WHEN ?='' THEN reason ELSE ? END,started_at=?,ended_at=? WHERE id=?", r.ID, string(r.Outcome), string(settlement), fmtTime(now), reason, reason, fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), d.JoinBranchID); err != nil {
+			return err
+		}
+		if decision.state == domain.JoinInstanceResolved {
+			return nil
+		}
+		if settlement != domain.JoinSettlementSuccess {
+			if err := blockLegacyJoin(tx, &decision, reason, now); err != nil {
+				return err
+			}
+		}
+	} else {
+		prefix, _, err := joinStage(d.Role)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec("UPDATE parallel_join_instances SET "+prefix+"_run_id=?,"+prefix+"_outcome=?,"+prefix+"_started_at=?,"+prefix+"_ended_at=?,"+prefix+"_settlement=?,"+prefix+"_settled_at=?,updated_at=? WHERE id=?", r.ID, string(r.Outcome), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), string(settlement), fmtTime(now), fmtTime(now), d.JoinInstanceID); err != nil {
+			return err
+		}
+		if err := decision.setSettlement(d.Role, settlement); err != nil {
+			return err
+		}
 	}
-	var name string
-	if err := tx.QueryRow("SELECT name FROM parallel_join_invocations WHERE instance_id=? AND id=? AND delivery_id=? AND task_id=?", d.JoinInstanceID, d.JoinBranchID, d.ID, r.TaskID).Scan(&name); err != nil {
-		return fmt.Errorf("store: exact join branch binding: %w", err)
-	}
-	reason := ""
-	if r.Outcome != domain.OutcomeSuccess {
-		reason = "branch " + name + " (" + d.JoinBranchID + ") finished " + string(r.Outcome)
-	}
-	if _, err := tx.Exec("UPDATE parallel_join_invocations SET run_id=?,outcome=?,reason=CASE WHEN ?='' THEN reason ELSE ? END,started_at=?,ended_at=? WHERE id=?", r.ID, string(r.Outcome), reason, reason, fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt), d.JoinBranchID); err != nil {
-		return err
-	}
-	if state == domain.JoinInstanceResolved {
-		return nil
-	}
-	if r.Outcome != domain.OutcomeSuccess {
-		_, err := tx.Exec("UPDATE parallel_join_instances SET state=?,reason=CASE WHEN state=? THEN reason ELSE ? END,updated_at=? WHERE id=? AND state IN (?,?)", string(domain.JoinInstanceBlocked), string(domain.JoinInstanceBlocked), reason, fmtTime(now), d.JoinInstanceID, string(domain.JoinInstanceWaiting), string(domain.JoinInstanceBlocked))
-		return err
-	}
-	if state != domain.JoinInstanceWaiting {
-		return nil
-	}
-	var outstanding int
-	if err := tx.QueryRow("SELECT COUNT(*) FROM parallel_join_invocations WHERE instance_id=? AND outcome<>?", d.JoinInstanceID, string(domain.OutcomeSuccess)).Scan(&outstanding); err != nil {
-		return err
-	}
-	if outstanding != 0 {
-		return nil
-	}
-	deliveryID := newID()
-	if _, err := tx.Exec("INSERT OR IGNORE INTO completion_deliveries(id,source_task_id,target_task_id,source_run_id,role,join_instance_id,state,created_at) VALUES(?,?,?,?,?,?,?,?)", deliveryID, d.SourceTaskID, targetTaskID, d.SourceRunID, string(domain.DeliveryRoleJoinTarget), d.JoinInstanceID, string(domain.DeliveryPending), fmtTime(now)); err != nil {
-		return err
-	}
-	var chosenID string
-	if err := tx.QueryRow("SELECT id FROM completion_deliveries WHERE join_instance_id=? AND role=?", d.JoinInstanceID, string(domain.DeliveryRoleJoinTarget)).Scan(&chosenID); err != nil {
-		return err
-	}
-	_, err := tx.Exec("UPDATE parallel_join_instances SET state=?,target_delivery_id=?,updated_at=? WHERE id=? AND state=?", string(domain.JoinInstanceTargetPending), chosenID, fmtTime(now), d.JoinInstanceID, string(domain.JoinInstanceWaiting))
-	return err
+	return advanceJoinInstance(tx, &decision, now)
 }
 
 func invalidateJoinInstances(tx *sql.Tx, definitionID, taskID, reason string, now time.Time) error {
@@ -262,8 +296,8 @@ func invalidateJoinInstances(tx *sql.Tx, definitionID, taskID, reason string, no
 		args = append(args, definitionID)
 	}
 	if taskID != "" {
-		q += " AND (entry_task_id=? OR target_task_id=? OR EXISTS(SELECT 1 FROM parallel_join_invocations v WHERE v.instance_id=parallel_join_instances.id AND v.task_id=?))"
-		args = append(args, taskID, taskID, taskID)
+		q += " AND (entry_task_id=? OR target_task_id=? OR recovery_task_id=? OR cleanup_task_id=? OR EXISTS(SELECT 1 FROM parallel_join_invocations v WHERE v.instance_id=parallel_join_instances.id AND v.task_id=?))"
+		args = append(args, taskID, taskID, taskID, taskID, taskID)
 	}
 	rows, err := tx.Query(q, args...)
 	if err != nil {
@@ -304,7 +338,7 @@ func invalidateJoinInstances(tx *sql.Tx, definitionID, taskID, reason string, no
 }
 
 func disableInstanceDestinations(tx *sql.Tx, instanceID string) error {
-	rows, err := tx.Query("SELECT task_id FROM parallel_join_invocations WHERE instance_id=? UNION SELECT target_task_id FROM parallel_join_instances WHERE id=?", instanceID, instanceID)
+	rows, err := tx.Query("SELECT task_id FROM parallel_join_invocations WHERE instance_id=? UNION SELECT target_task_id FROM parallel_join_instances WHERE id=? UNION SELECT recovery_task_id FROM parallel_join_instances WHERE id=? AND recovery_task_id<>'' UNION SELECT cleanup_task_id FROM parallel_join_instances WHERE id=? AND cleanup_task_id<>''", instanceID, instanceID, instanceID, instanceID)
 	if err != nil {
 		return err
 	}
@@ -370,8 +404,8 @@ func completionDeliveryReady(tx *sql.Tx, d domain.CompletionDelivery) (bool, str
 		return err == nil, "", err
 	}
 	var state domain.JoinInstanceState
-	var definitionID, entryID, sourceRun, targetID, targetDelivery string
-	err := tx.QueryRow("SELECT state,definition_id,entry_task_id,entry_run_id,target_task_id,target_delivery_id FROM parallel_join_instances WHERE id=?", d.JoinInstanceID).Scan(&state, &definitionID, &entryID, &sourceRun, &targetID, &targetDelivery)
+	var definitionID, entryID, sourceRun string
+	err := tx.QueryRow("SELECT state,definition_id,entry_task_id,entry_run_id FROM parallel_join_instances WHERE id=?", d.JoinInstanceID).Scan(&state, &definitionID, &entryID, &sourceRun)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, "parallel join instance no longer exists", nil
 	}
@@ -392,8 +426,17 @@ func completionDeliveryReady(tx *sql.Tx, d domain.CompletionDelivery) (bool, str
 	if d.SourceTaskID != entryID || d.SourceRunID != sourceRun {
 		return false, "parallel join source binding does not match", nil
 	}
-	if d.Role == domain.DeliveryRoleJoinTarget {
-		return state == domain.JoinInstanceTargetPending && d.TargetTaskID == targetID && d.ID == targetDelivery, "parallel join target is not eligible for this instance", nil
+	if d.Role != domain.DeliveryRoleJoinBranch {
+		prefix, expected, err := joinStage(d.Role)
+		if err != nil {
+			return false, "unsupported completion delivery role", err
+		}
+		var targetID, deliveryID string
+		var settlement domain.JoinSettlement
+		if err := tx.QueryRow("SELECT "+prefix+"_task_id,"+prefix+"_delivery_id,"+prefix+"_settlement FROM parallel_join_instances WHERE id=?", d.JoinInstanceID).Scan(&targetID, &deliveryID, &settlement); err != nil {
+			return false, "", err
+		}
+		return state == expected && d.TargetTaskID == targetID && d.ID == deliveryID && settlement == domain.JoinSettlementPending, "parallel join " + prefix + " is not eligible for this instance", nil
 	}
 	if d.Role != domain.DeliveryRoleJoinBranch {
 		return false, "unsupported completion delivery role", nil
@@ -413,22 +456,45 @@ func resolveJoinDelivery(tx *sql.Tx, d domain.CompletionDelivery, reason string,
 	if d.Role == domain.DeliveryRoleChain {
 		return nil
 	}
+	decision, err := readJoinDecision(tx, d.JoinInstanceID)
+	if err != nil {
+		return err
+	}
+	if decision.state == domain.JoinInstanceResolved {
+		return nil
+	}
 	if d.Role == domain.DeliveryRoleJoinBranch {
 		var name string
 		if err := tx.QueryRow("SELECT name FROM parallel_join_invocations WHERE id=? AND instance_id=?", d.JoinBranchID, d.JoinInstanceID).Scan(&name); err != nil {
 			return err
 		}
 		reason = "branch " + name + " (" + d.JoinBranchID + "): " + reason
-		if _, err := tx.Exec("UPDATE parallel_join_invocations SET reason=? WHERE id=? AND outcome=''", reason, d.JoinBranchID); err != nil {
+		if _, err := tx.Exec("UPDATE parallel_join_invocations SET reason=?,settlement=?,settled_at=? WHERE id=? AND outcome='' AND settlement=''", reason, string(domain.JoinSettlementNotStarted), fmtTime(now), d.JoinBranchID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec("UPDATE parallel_join_instances SET state=?,reason=CASE WHEN state=? THEN reason ELSE ? END,updated_at=? WHERE id=? AND state IN (?,?)", string(domain.JoinInstanceBlocked), string(domain.JoinInstanceBlocked), reason, fmtTime(now), d.JoinInstanceID, string(domain.JoinInstanceWaiting), string(domain.JoinInstanceBlocked)); err != nil {
+		if err := blockLegacyJoin(tx, &decision, reason, now); err != nil {
 			return err
 		}
 	} else {
-		if _, err := tx.Exec("UPDATE parallel_join_instances SET state=?,reason=?,updated_at=?,completed_at=? WHERE id=? AND state=?", string(domain.JoinInstanceResolved), reason, fmtTime(now), fmtTime(now), d.JoinInstanceID, string(domain.JoinInstanceTargetPending)); err != nil {
+		prefix, _, err := joinStage(d.Role)
+		if err != nil {
 			return err
 		}
+		if _, err := tx.Exec("UPDATE parallel_join_instances SET "+prefix+"_settlement=?,"+prefix+"_settled_at=?,updated_at=? WHERE id=?", string(domain.JoinSettlementNotStarted), fmtTime(now), fmtTime(now), d.JoinInstanceID); err != nil {
+			return err
+		}
+		if err := decision.setSettlement(d.Role, domain.JoinSettlementNotStarted); err != nil {
+			return err
+		}
+		if decision.recovery == "" && decision.cleanup == "" {
+			if _, err := tx.Exec("UPDATE parallel_join_instances SET state=?,reason=?,updated_at=?,completed_at=? WHERE id=?", string(domain.JoinInstanceResolved), reason, fmtTime(now), fmtTime(now), d.JoinInstanceID); err != nil {
+				return err
+			}
+			decision.state = domain.JoinInstanceResolved
+		}
+	}
+	if err := advanceJoinInstance(tx, &decision, now); err != nil {
+		return err
 	}
 	return disableInstanceDestinations(tx, d.JoinInstanceID)
 }
@@ -444,6 +510,10 @@ func correlateDeliveryRun(r *domain.Run, d domain.CompletionDelivery) {
 		r.JoinRole = "branch"
 	case domain.DeliveryRoleJoinTarget:
 		r.JoinRole = "target"
+	case domain.DeliveryRoleJoinRecovery:
+		r.JoinRole = "recovery"
+	case domain.DeliveryRoleJoinCleanup:
+		r.JoinRole = "cleanup"
 	default:
 		r.JoinRole = ""
 	}

@@ -662,6 +662,9 @@ func (a *App) SaveJoin(d automation.JoinDraft) automation.OperationResult {
 	if message != "" {
 		return automation.OperationResult{Action: "save_join", Outcome: "rejected", Message: message}
 	}
+	if (d.RecoveryTaskID != "" || d.CleanupTaskID != "" || len(d.RecoveryOn) > 0) && !parallelJoinRecoverySupported(a.manager.Snapshot().Target.Capabilities) {
+		return automation.OperationResult{Action: "save_join", Outcome: "rejected", Message: "This scheduler does not support parallel recovery and cleanup. Update the selected scheduler or keep an ordinary success-only join."}
+	}
 	result := a.automation.SaveJoin(ctx, d)
 	result.DaemonID = d.ExpectedDaemonID
 	a.reconcileUncertain(result.Outcome)
@@ -940,4 +943,13 @@ func (a *App) JoinDefinition(id, expectedDaemonID string) automation.OperationRe
 	}
 	result.DaemonID = expectedDaemonID
 	return result
+}
+
+func parallelJoinRecoverySupported(capabilities []string) bool {
+	for _, capability := range capabilities {
+		if capability == "parallel-join-recovery" {
+			return true
+		}
+	}
+	return false
 }

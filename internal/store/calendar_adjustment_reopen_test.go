@@ -55,7 +55,7 @@ func TestCurrentSchemaDefaultsEmptyAndPersistsAdjustment(t *testing.T) {
 		t.Fatalf("adjustment after reopen = %q", got.CalendarAdjustment)
 	}
 	var count int
-	if err := st.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=25`).Scan(&count); err != nil || count != 1 {
-		t.Fatalf("v6 rows=%d err=%v", count, err)
+	if err := st.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=?`, currentSchemaVersion).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("current marker rows=%d err=%v", count, err)
 	}
 }

@@ -11,7 +11,7 @@ func TestCurrentSchemaPreservesRunHistoryWithoutRetiredTriggers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(25);"); err != nil {
+	if _, err := db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(26);"); err != nil {
 		t.Fatal(err)
 	}
 

@@ -58,6 +58,7 @@ type Engine struct {
 	queued        map[string]pendingRun // one queued pending run, by task ID
 
 	reload                chan struct{}
+	completionWake        chan struct{}
 	ready                 chan struct{}
 	readyOnce             sync.Once
 	runCtx                context.Context
@@ -76,19 +77,20 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 		workers = 1
 	}
 	engine := &Engine{
-		store:         st,
-		clk:           clk,
-		runner:        runner,
-		log:           log,
-		sem:           make(chan struct{}, workers),
-		tasks:         map[string]taskCtx{},
-		next:          map[string]time.Time{},
-		running:       map[string]int{},
-		cancellations: map[string]*runCancellation{},
-		active:        map[string]domain.Run{},
-		queued:        map[string]pendingRun{},
-		reload:        make(chan struct{}, 1),
-		ready:         make(chan struct{}),
+		store:          st,
+		clk:            clk,
+		runner:         runner,
+		log:            log,
+		sem:            make(chan struct{}, workers),
+		tasks:          map[string]taskCtx{},
+		next:           map[string]time.Time{},
+		running:        map[string]int{},
+		cancellations:  map[string]*runCancellation{},
+		active:         map[string]domain.Run{},
+		queued:         map[string]pendingRun{},
+		reload:         make(chan struct{}, 1),
+		completionWake: make(chan struct{}, 1),
+		ready:          make(chan struct{}),
 	}
 	engine.watchers = watchruntime.New(st, engine, clk, log)
 	return engine
@@ -195,6 +197,11 @@ func (e *Engine) Start(ctx context.Context) error {
 				timer.Stop()
 			}
 			e.recompute(e.clk.Now())
+		case <-e.completionWake:
+			if timer != nil {
+				timer.Stop()
+			}
+			e.drainCompletionDeliveries()
 		case now := <-wake:
 			e.runDue(now)
 		}
@@ -365,8 +372,11 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		e.sem <- struct{}{}
 		defer func() { <-e.sem }()
 		if origin.deliveryID != "" {
-			fresh, ok := e.eligibleCompletionTask(origin.deliveryID)
-			if !ok || e.runCtx.Err() != nil {
+			fresh, ok := e.eligibleCompletionTask(origin.deliveryID, &task)
+			if !ok {
+				return
+			}
+			if e.runCtx.Err() != nil {
 				e.finish(task)
 				return
 			}
@@ -405,12 +415,16 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		e.cancellations[active.ID].result = &observed
 		e.active[active.ID] = observed
 		e.mu.Unlock()
+		// The runner has actually terminated. Retire this overlap reservation
+		// before its result can commit successor deliveries visible to any
+		// concurrent drain. Keep terminal active/cancellation metadata until
+		// persistence finishes, and preserve any other or queued reservation.
+		e.finish(task)
 		e.recordRun(run, origin.deliveryID)
 		e.mu.Lock()
 		delete(e.active, active.ID)
 		delete(e.cancellations, active.ID)
 		e.mu.Unlock()
-		e.finish(task)
 	}()
 }
 
@@ -432,9 +446,7 @@ func (e *Engine) recordRun(run domain.Run, incomingDeliveryID string) {
 	if e.onNotify != nil {
 		e.onNotify()
 	}
-	if e.runCtx.Err() == nil {
-		e.drainCompletionDeliveries()
-	}
+	e.wakeCompletionDeliveries()
 }
 
 // drainCompletionDeliveries claims durable pending work in bounded batches and
@@ -455,7 +467,7 @@ func (e *Engine) drainCompletionDeliveries() {
 			if e.runCtx.Err() != nil {
 				return
 			}
-			task, ok := e.eligibleCompletionTask(delivery.ID)
+			task, ok := e.eligibleCompletionTask(delivery.ID, nil)
 			if !ok {
 				continue
 			}
@@ -472,7 +484,7 @@ func (e *Engine) drainCompletionDeliveries() {
 				joinRole:       completionJoinRole(delivery.Role),
 			})
 		}
-		if len(deliveries) < 100 {
+		if len(deliveries) == 0 {
 			return
 		}
 	}
@@ -487,6 +499,7 @@ func (e *Engine) resolveCompletionDelivery(id, instanceID, reason string) {
 	if instanceID != "" && e.onJoinInstanceChanged != nil {
 		e.onJoinInstanceChanged(instanceID)
 	}
+	e.wakeCompletionDeliveries()
 }
 
 // finish marks a task no longer running and dispatches any queued pending run.
@@ -506,9 +519,8 @@ func (e *Engine) finish(task domain.Task) {
 	e.mu.Unlock()
 	if queued {
 		if pending.origin.deliveryID != "" {
-			fresh, ok := e.eligibleCompletionTask(pending.origin.deliveryID)
+			fresh, ok := e.eligibleCompletionTask(pending.origin.deliveryID, &task)
 			if !ok {
-				e.finish(task)
 				return
 			}
 			task = fresh

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,10 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/shruggietech/go-schedule/v2/internal/api/client"
 	"github.com/shruggietech/go-schedule/v2/internal/api/server"
 	"github.com/shruggietech/go-schedule/v2/internal/bundle"
-	"github.com/shruggietech/go-schedule/v2/internal/clifixture"
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
 )
 
@@ -44,86 +41,8 @@ func TestS144OwnedTaskProcess(t *testing.T) {
 }
 
 func TestPackagedCLIParallelJoinsCorrelateNativeRuns(t *testing.T) {
-	w, err := clifixture.NewWorkspace("")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cleanupReady := true
-	t.Cleanup(func() {
-		if cleanupReady {
-			if err := w.CleanupRuntime(); err != nil {
-				t.Error(err)
-			}
-		} else {
-			t.Logf("retained owned runtime: %s", w.Runtime)
-		}
-	})
-	w.Config.WorkerPoolSize = 4
-	config, err := json.Marshal(w.Config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(w.ConfigPath, config, 0600); err != nil {
-		t.Fatal(err)
-	}
-	bin := filepath.Join(w.Runtime, "bin")
-	if err := os.Mkdir(bin, 0700); err != nil {
-		t.Fatal(err)
-	}
-	cliBinary := preparePackagedCandidate(t, bin, "gosched", "gosched")
-	daemonBinary := preparePackagedCandidate(t, bin, "goschedd", "goschedd")
-	daemon, err := clifixture.StartProcess(clifixture.Command{Executable: daemonBinary, Arguments: []string{"--config", w.ConfigPath}, Directory: w.Runtime, StdoutPath: filepath.Join(w.Evidence, "daemon-out.jsonl"), StderrPath: filepath.Join(w.Evidence, "daemon-err.txt")})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := daemon.Stop(); err != nil {
-			cleanupReady = false
-			t.Error(err)
-		}
-	})
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer cancel()
-	api := client.New(w.IPCPath)
-	if err := waitForV13Health(ctx, api); err != nil {
-		t.Fatal(err)
-	}
-	if err := w.Bind(ctx, api, daemon.PID); err != nil {
-		t.Fatal(err)
-	}
-	seq := 0
-	call := func(human bool, args ...string) []byte {
-		t.Helper()
-		if err := w.Guard(ctx, api); err != nil {
-			t.Fatal(err)
-		}
-		seq++
-		argv := []string{"--ipc-path", w.IPCPath}
-		if !human {
-			argv = append(argv, "--json")
-		}
-		argv = append(argv, args...)
-		out, diagnostic := filepath.Join(w.Evidence, fmt.Sprintf("%02d-out.txt", seq)), filepath.Join(w.Evidence, fmt.Sprintf("%02d-err.txt", seq))
-		p, err := clifixture.StartProcess(clifixture.Command{Executable: cliBinary, Arguments: argv, Directory: w.Runtime, StdoutPath: out, StderrPath: diagnostic})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() {
-			if err := p.Stop(); err != nil {
-				cleanupReady = false
-				t.Error(err)
-			}
-		}()
-		if err := p.Wait(ctx); err != nil {
-			d, _ := os.ReadFile(diagnostic)
-			t.Fatalf("CLI %v: %v %s", args, err, d)
-		}
-		data, err := os.ReadFile(out)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return data
-	}
+	h := newOwnedPackagedCLI(t, 4)
+	w, api, ctx, call := h.workspace, h.api, h.ctx, h.call
 	task := func(name, role, gate string) string {
 		t.Helper()
 		created, err := api.CreateTask(ctx, server.TaskCreateRequest{Name: name, Command: os.Args[0], Args: []string{"-test.run=^TestS144OwnedTaskProcess$"}, Env: map[string]string{"GO_SCHEDULE_S144_ROLE": role, "GO_SCHEDULE_S144_GATE": gate}, WorkingDir: w.Runtime, OverlapPolicy: string(domain.OverlapAllowConcurrent)})

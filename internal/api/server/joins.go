@@ -14,19 +14,25 @@ import (
 
 // JoinCreateRequest defines an entry, named invocation slots and joined target.
 type JoinCreateRequest struct {
-	Name         string                      `json:"name"`
-	EntryTaskID  string                      `json:"entry_task_id"`
-	Branches     []domain.ParallelJoinBranch `json:"branches"`
-	TargetTaskID string                      `json:"target_task_id"`
+	Name           string                          `json:"name"`
+	EntryTaskID    string                          `json:"entry_task_id"`
+	Branches       []domain.ParallelJoinBranch     `json:"branches"`
+	TargetTaskID   string                          `json:"target_task_id"`
+	RecoveryTaskID string                          `json:"recovery_task_id,omitempty"`
+	RecoveryOn     *[]domain.JoinRecoveryCondition `json:"recovery_on,omitempty"`
+	CleanupTaskID  string                          `json:"cleanup_task_id,omitempty"`
 }
 
 // JoinUpdateRequest changes supplied fields, optionally refusing a stale revision.
 type JoinUpdateRequest struct {
-	Name              *string                      `json:"name,omitempty"`
-	EntryTaskID       *string                      `json:"entry_task_id,omitempty"`
-	Branches          *[]domain.ParallelJoinBranch `json:"branches,omitempty"`
-	TargetTaskID      *string                      `json:"target_task_id,omitempty"`
-	ExpectedUpdatedAt *time.Time                   `json:"expected_updated_at,omitempty"`
+	Name              *string                         `json:"name,omitempty"`
+	EntryTaskID       *string                         `json:"entry_task_id,omitempty"`
+	Branches          *[]domain.ParallelJoinBranch    `json:"branches,omitempty"`
+	TargetTaskID      *string                         `json:"target_task_id,omitempty"`
+	RecoveryTaskID    *string                         `json:"recovery_task_id,omitempty"`
+	RecoveryOn        *[]domain.JoinRecoveryCondition `json:"recovery_on,omitempty"`
+	CleanupTaskID     *string                         `json:"cleanup_task_id,omitempty"`
+	ExpectedUpdatedAt *time.Time                      `json:"expected_updated_at,omitempty"`
 }
 
 type joinBranchInput struct {
@@ -38,10 +44,13 @@ type joinBranchInput struct {
 // UnmarshalJSON accepts writable branch fields only while preserving shared Go DTO types.
 func (req *JoinCreateRequest) UnmarshalJSON(data []byte) error {
 	var wire struct {
-		Name         string            `json:"name"`
-		EntryTaskID  string            `json:"entry_task_id"`
-		TargetTaskID string            `json:"target_task_id"`
-		Branches     []joinBranchInput `json:"branches"`
+		Name           string                          `json:"name"`
+		EntryTaskID    string                          `json:"entry_task_id"`
+		TargetTaskID   string                          `json:"target_task_id"`
+		RecoveryTaskID string                          `json:"recovery_task_id"`
+		RecoveryOn     *[]domain.JoinRecoveryCondition `json:"recovery_on"`
+		CleanupTaskID  string                          `json:"cleanup_task_id"`
+		Branches       []joinBranchInput               `json:"branches"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -49,6 +58,7 @@ func (req *JoinCreateRequest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	req.Name, req.EntryTaskID, req.TargetTaskID = wire.Name, wire.EntryTaskID, wire.TargetTaskID
+	req.RecoveryTaskID, req.RecoveryOn, req.CleanupTaskID = wire.RecoveryTaskID, wire.RecoveryOn, wire.CleanupTaskID
 	req.Branches = make([]domain.ParallelJoinBranch, len(wire.Branches))
 	for i, b := range wire.Branches {
 		req.Branches[i] = domain.ParallelJoinBranch{ID: b.ID, Name: b.Name, TaskID: b.TaskID}
@@ -59,11 +69,14 @@ func (req *JoinCreateRequest) UnmarshalJSON(data []byte) error {
 // UnmarshalJSON retains PATCH omission semantics and rejects read-only metadata.
 func (req *JoinUpdateRequest) UnmarshalJSON(data []byte) error {
 	var wire struct {
-		Name              *string            `json:"name"`
-		EntryTaskID       *string            `json:"entry_task_id"`
-		TargetTaskID      *string            `json:"target_task_id"`
-		Branches          *[]joinBranchInput `json:"branches"`
-		ExpectedUpdatedAt *time.Time         `json:"expected_updated_at"`
+		Name              *string                         `json:"name"`
+		EntryTaskID       *string                         `json:"entry_task_id"`
+		TargetTaskID      *string                         `json:"target_task_id"`
+		RecoveryTaskID    *string                         `json:"recovery_task_id"`
+		RecoveryOn        *[]domain.JoinRecoveryCondition `json:"recovery_on"`
+		CleanupTaskID     *string                         `json:"cleanup_task_id"`
+		Branches          *[]joinBranchInput              `json:"branches"`
+		ExpectedUpdatedAt *time.Time                      `json:"expected_updated_at"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -71,6 +84,7 @@ func (req *JoinUpdateRequest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	req.Name, req.EntryTaskID, req.TargetTaskID, req.ExpectedUpdatedAt = wire.Name, wire.EntryTaskID, wire.TargetTaskID, wire.ExpectedUpdatedAt
+	req.RecoveryTaskID, req.RecoveryOn, req.CleanupTaskID = wire.RecoveryTaskID, wire.RecoveryOn, wire.CleanupTaskID
 	if wire.Branches != nil {
 		branches := make([]domain.ParallelJoinBranch, len(*wire.Branches))
 		for i, b := range *wire.Branches {
@@ -95,6 +109,10 @@ func (s *Server) handleCreateJoin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	join := domain.ParallelJoin{Name: req.Name, EntryTaskID: req.EntryTaskID, TargetTaskID: req.TargetTaskID, Branches: joinInputBranches(req.Branches)}
+	join.RecoveryTaskID, join.CleanupTaskID = req.RecoveryTaskID, req.CleanupTaskID
+	if req.RecoveryOn != nil {
+		join.RecoveryOn = append([]domain.JoinRecoveryCondition{}, (*req.RecoveryOn)...)
+	}
 	if err := s.store.CreateParallelJoin(&join); err != nil {
 		s.joinError(w, err)
 		return
@@ -108,7 +126,7 @@ func (s *Server) handleUpdateJoin(w http.ResponseWriter, r *http.Request) {
 	if !decodeJoinDefinitionRequest(w, r, &req) {
 		return
 	}
-	if req.Name == nil && req.EntryTaskID == nil && req.TargetTaskID == nil && req.Branches == nil {
+	if req.Name == nil && req.EntryTaskID == nil && req.TargetTaskID == nil && req.Branches == nil && req.RecoveryTaskID == nil && req.RecoveryOn == nil && req.CleanupTaskID == nil {
 		writeError(w, http.StatusBadRequest, CodeValidation, "body", "provide at least one join field")
 		return
 	}
@@ -125,6 +143,19 @@ func (s *Server) handleUpdateJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.TargetTaskID != nil {
 		join.TargetTaskID = *req.TargetTaskID
+	}
+	if req.RecoveryTaskID != nil {
+		previous := join.RecoveryTaskID
+		join.RecoveryTaskID = *req.RecoveryTaskID
+		if (join.RecoveryTaskID == "" || previous == "") && req.RecoveryOn == nil {
+			join.RecoveryOn = nil
+		}
+	}
+	if req.RecoveryOn != nil {
+		join.RecoveryOn = append([]domain.JoinRecoveryCondition{}, (*req.RecoveryOn)...)
+	}
+	if req.CleanupTaskID != nil {
+		join.CleanupTaskID = *req.CleanupTaskID
 	}
 	if req.Branches != nil {
 		join.Branches = joinInputBranches(*req.Branches)
@@ -240,9 +271,9 @@ func (s *Server) handleListJoinInstances(w http.ResponseWriter, r *http.Request)
 	}
 	state := domain.JoinInstanceState(r.URL.Query().Get("state"))
 	switch state {
-	case "", domain.JoinInstanceWaiting, domain.JoinInstanceTargetPending, domain.JoinInstanceCompleted, domain.JoinInstanceBlocked, domain.JoinInstanceResolved:
+	case "", domain.JoinInstanceWaiting, domain.JoinInstanceTargetPending, domain.JoinInstanceRecoveryPending, domain.JoinInstanceCleanupPending, domain.JoinInstanceCompleted, domain.JoinInstanceBlocked, domain.JoinInstanceResolved:
 	default:
-		writeError(w, http.StatusBadRequest, CodeValidation, "state", "state must be waiting, target_pending, completed, blocked, or resolved")
+		writeError(w, http.StatusBadRequest, CodeValidation, "state", "state must be waiting, target_pending, recovery_pending, cleanup_pending, completed, blocked, or resolved")
 		return
 	}
 	active := s.joinActiveRuns() // Sample first: a subsequent durable terminal result always wins.
@@ -284,7 +315,7 @@ func mergeJoinActive(instance *domain.ParallelJoinInstance, active map[string]do
 	for i := range instance.Branches {
 		branch := &instance.Branches[i]
 		run, ok := active[branch.DeliveryID]
-		if !ok || (branch.DeliveryState != domain.DeliveryClaimed && branch.DeliveryState != domain.DeliveryResolved) || branch.Outcome != "" || run.TaskID != branch.TaskID || run.JoinInstanceID != instance.ID || run.JoinBranchID != branch.ID || run.JoinRole != "branch" {
+		if !ok || (branch.DeliveryState != domain.DeliveryClaimed && branch.DeliveryState != domain.DeliveryResolved) || branch.Outcome != "" || branch.Settlement != domain.JoinSettlementPending || run.TaskID != branch.TaskID || run.JoinInstanceID != instance.ID || run.JoinBranchID != branch.ID || run.JoinRole != "branch" {
 			continue
 		}
 		branch.RunID, branch.StartedAt, branch.EndedAt, branch.Outcome = run.ID, run.StartedAt, run.EndedAt, run.Outcome
@@ -295,15 +326,22 @@ func mergeJoinActive(instance *domain.ParallelJoinInstance, active map[string]do
 			branch.TruncatedFields = append(branch.TruncatedFields, "cancellation_error")
 		}
 	}
-	run, ok := active[instance.TargetDeliveryID]
-	if ok && (instance.TargetDeliveryState == domain.DeliveryClaimed || instance.TargetDeliveryState == domain.DeliveryResolved) && instance.TargetOutcome == "" && run.TaskID == instance.TargetTaskID && run.JoinInstanceID == instance.ID && run.JoinRole == "target" {
-		instance.TargetRunID, instance.TargetStartedAt, instance.TargetEndedAt, instance.TargetOutcome = run.ID, run.StartedAt, run.EndedAt, run.Outcome
-		instance.TargetCancellationStatus = run.CancellationStatus
-		var truncated bool
-		instance.TargetCancellationError, truncated = boundObservationText(run.CancellationError, textLimit)
-		if truncated {
-			instance.TruncatedFields = append(instance.TruncatedFields, "target_cancellation_error")
-		}
+	mergeJoinStageActive(instance, active, textLimit, "target", instance.TargetTaskID, instance.TargetDeliveryID, instance.TargetDeliveryState, instance.TargetSettlement, &instance.TargetRunID, &instance.TargetOutcome, &instance.TargetStartedAt, &instance.TargetEndedAt, &instance.TargetCancellationStatus, &instance.TargetCancellationError)
+	mergeJoinStageActive(instance, active, textLimit, "recovery", instance.RecoveryTaskID, instance.RecoveryDeliveryID, instance.RecoveryDeliveryState, instance.RecoverySettlement, &instance.RecoveryRunID, &instance.RecoveryOutcome, &instance.RecoveryStartedAt, &instance.RecoveryEndedAt, &instance.RecoveryCancellationStatus, &instance.RecoveryCancellationError)
+	mergeJoinStageActive(instance, active, textLimit, "cleanup", instance.CleanupTaskID, instance.CleanupDeliveryID, instance.CleanupDeliveryState, instance.CleanupSettlement, &instance.CleanupRunID, &instance.CleanupOutcome, &instance.CleanupStartedAt, &instance.CleanupEndedAt, &instance.CleanupCancellationStatus, &instance.CleanupCancellationError)
+}
+
+func mergeJoinStageActive(instance *domain.ParallelJoinInstance, active map[string]domain.Run, textLimit int, role, taskID, deliveryID string, state domain.DeliveryState, settlement domain.JoinSettlement, runID *string, outcome *domain.RunOutcome, started, ended **time.Time, cancellationStatus, cancellationError *string) {
+	run, ok := active[deliveryID]
+	if !ok || (state != domain.DeliveryClaimed && state != domain.DeliveryResolved) || *outcome != "" || settlement != domain.JoinSettlementPending || run.TaskID != taskID || run.JoinInstanceID != instance.ID || run.JoinRole != role {
+		return
+	}
+	*runID, *started, *ended, *outcome = run.ID, run.StartedAt, run.EndedAt, run.Outcome
+	*cancellationStatus = run.CancellationStatus
+	value, truncated := boundObservationText(run.CancellationError, textLimit)
+	*cancellationError = value
+	if truncated {
+		instance.TruncatedFields = append(instance.TruncatedFields, role+"_cancellation_error")
 	}
 }
 

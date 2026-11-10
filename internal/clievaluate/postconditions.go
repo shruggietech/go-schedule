@@ -125,10 +125,12 @@ func (s *session) joinPost(ctx context.Context, definition step) (bool, any, err
 		return errors.As(err, &apiErr) && apiErr.Code == server.CodeNotFound, map[string]any{"join_id": s.vars["join"], "absent": err != nil}, nil
 	}
 	name := "QA parallel"
+	causes := []domain.JoinRecoveryCondition{domain.JoinRecoveryOnFailure, domain.JoinRecoveryOnCanceled}
 	if definition.Spec.ID == "join.update" {
 		name = "QA updated parallel"
+		causes = []domain.JoinRecoveryCondition{}
 	}
-	good := err == nil && join.Name == name && join.EntryTaskID == s.vars["base_task"] && join.TargetTaskID == s.vars["output_task"] && len(join.Branches) == 2
+	good := err == nil && join.Name == name && join.EntryTaskID == s.vars["base_task"] && join.TargetTaskID == s.vars["output_task"] && len(join.Branches) == 2 && join.RecoveryTaskID == s.vars["second_task"] && join.CleanupTaskID == s.vars["output_task"] && join.RecoveryOn != nil && slices.Equal(join.RecoveryOn, causes)
 	for i, branch := range join.Branches {
 		good = good && i < 2 && branch.TaskID == s.vars["failure_task"] && branch.ID == []string{"export-a", "export-b"}[i] && branch.Name == []string{"Export A", "Export B"}[i]
 	}

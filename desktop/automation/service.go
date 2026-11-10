@@ -414,7 +414,7 @@ func safeError(err error) (string, string, string) {
 		if status.Code == server.CodeAuditUnavailable || status.Code == server.CodeInternal {
 			return "uncertain", "", "The scheduler could not prove the mutation outcome. Refresh authoritative state before deciding whether to retry."
 		}
-		fields := map[string]string{"entry_task_id": "entryTaskId", "branches": "branches", "name": "name", "source_task_id": "sourceTaskId", "target_task_id": "targetTaskId", "on_outcome": "onOutcome", "kind": "kind", "path": "path", "pattern": "pattern", "debounce": "debounce", "stability": "stability", "count": "count"}
+		fields := map[string]string{"entry_task_id": "entryTaskId", "recovery_task_id": "recoveryTaskId", "recovery_on": "recoveryOn", "cleanup_task_id": "cleanupTaskId", "branches": "branches", "name": "name", "source_task_id": "sourceTaskId", "target_task_id": "targetTaskId", "on_outcome": "onOutcome", "kind": "kind", "path": "path", "pattern": "pattern", "debounce": "debounce", "stability": "stability", "count": "count"}
 		field := fields[status.Field]
 		if status.Code == server.CodeNotFound {
 			return "rejected", field, "The selected automation source no longer exists."

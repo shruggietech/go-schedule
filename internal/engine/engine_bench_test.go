@@ -43,11 +43,14 @@ func BenchmarkDispatch(b *testing.B) {
 	}
 
 	done := make(chan struct{}, 256)
-	eng := New(st, clock.NewReal(), noopRunner{}, testLogger(), 8)
-	eng.runCtx = context.Background()
-	eng.SetOnRun(func(domain.Run) { done <- struct{}{} })
-
 	now := time.Now().UTC()
+	eng := New(st, clock.NewFake(now), noopRunner{}, testLogger(), 8)
+	eng.SetOnRun(func(domain.Run) { done <- struct{}{} })
+	ctx, cancel := context.WithCancel(context.Background())
+	stopped := make(chan error, 1)
+	go func() { stopped <- eng.Start(ctx) }()
+	<-eng.Ready()
+	defer func() { cancel(); <-stopped }()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		eng.dispatch(task, now, domain.TriggerManual)
@@ -84,17 +87,36 @@ func BenchmarkCompletionFanOut100(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-	done := make(chan struct{}, 128)
-	eng := New(st, clock.NewReal(), noopRunner{}, testLogger(), 100)
-	eng.runCtx = context.Background()
-	eng.SetOnRun(func(domain.Run) { done <- struct{}{} })
+	done := make(chan domain.Run, 128)
+	eng := New(st, clock.NewFake(time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)), noopRunner{}, testLogger(), 100)
+	eng.SetOnRun(func(run domain.Run) { done <- run })
+	ctx, cancel := context.WithCancel(context.Background())
+	stopped := make(chan error, 1)
+	go func() { stopped <- eng.Start(ctx) }()
+	<-eng.Ready()
+	defer func() { cancel(); <-stopped }()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		eng.dispatch(source, time.Now().UTC(), domain.TriggerManual)
+		eng.dispatch(source, eng.clk.Now(), domain.TriggerManual)
+		seen := make(map[string]domain.Run, 101)
 		for completed := 0; completed < 101; completed++ {
-			<-done
+			run := <-done
+			if _, duplicate := seen[run.TaskID]; duplicate {
+				b.Fatalf("duplicate target execution for %s", run.TaskID)
+			}
+			seen[run.TaskID] = run
+		}
+		sourceRun, ok := seen[source.ID]
+		if !ok {
+			b.Fatal("missing source execution")
+		}
+		for id, run := range seen {
+			if id != source.ID && (run.SourceRunID != sourceRun.ID || run.Trigger != domain.TriggerCompletion) {
+				b.Fatalf("uncorrelated target execution: %+v", run)
+			}
 		}
 	}
+	b.StopTimer()
 }
 
 // BenchmarkNextRun measures the per-task next-run computation, the hot path when

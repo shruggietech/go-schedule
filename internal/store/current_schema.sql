@@ -62,7 +62,7 @@ CREATE TABLE completion_deliveries (
  source_task_id TEXT NOT NULL,
  target_task_id TEXT NOT NULL,
  source_run_id TEXT NOT NULL,
- role TEXT NOT NULL DEFAULT 'chain' CHECK(role IN ('chain','join_branch','join_target')),
+ role TEXT NOT NULL DEFAULT 'chain' CHECK(role IN ('chain','join_branch','join_target','join_recovery','join_cleanup')),
  join_instance_id TEXT NOT NULL DEFAULT '',
  join_branch_id TEXT NOT NULL DEFAULT '',
  state TEXT NOT NULL,
@@ -72,11 +72,14 @@ CREATE TABLE completion_deliveries (
  completed_at TEXT,
  target_run_id TEXT,
  resolution TEXT NOT NULL DEFAULT '',
- CHECK((role='chain' AND chain_id<>'' AND join_instance_id='' AND join_branch_id='') OR (role='join_branch' AND chain_id='' AND join_instance_id<>'' AND join_branch_id<>'') OR (role='join_target' AND chain_id='' AND join_instance_id<>'' AND join_branch_id=''))
+ CHECK((role='chain' AND chain_id<>'' AND join_instance_id='' AND join_branch_id='') OR (role='join_branch' AND chain_id='' AND join_instance_id<>'' AND join_branch_id<>'') OR (role IN ('join_target','join_recovery','join_cleanup') AND chain_id='' AND join_instance_id<>'' AND join_branch_id=''))
 );
 
 CREATE TABLE parallel_joins (
  id TEXT PRIMARY KEY,
+ recovery_task_id TEXT REFERENCES tasks(id),
+ recovery_on_json TEXT NOT NULL DEFAULT '[]',
+ cleanup_task_id TEXT REFERENCES tasks(id),
  name TEXT NOT NULL,
  entry_task_id TEXT NOT NULL REFERENCES tasks(id),
  target_task_id TEXT NOT NULL REFERENCES tasks(id),
@@ -97,6 +100,28 @@ CREATE TABLE parallel_join_branches (
 
 CREATE TABLE parallel_join_instances (
  id TEXT PRIMARY KEY,
+ recovery_task_id TEXT NOT NULL DEFAULT '',
+ recovery_task_name TEXT NOT NULL DEFAULT '',
+ recovery_on_json TEXT NOT NULL DEFAULT '[]',
+ cleanup_task_id TEXT NOT NULL DEFAULT '',
+ cleanup_task_name TEXT NOT NULL DEFAULT '',
+ selected_route TEXT NOT NULL DEFAULT '' CHECK(selected_route IN ('','success','recovery','none')),
+ target_settlement TEXT NOT NULL DEFAULT '' CHECK(target_settlement IN ('','success','failure','canceled','skipped','not_started')),
+ target_settled_at TEXT,
+ recovery_delivery_id TEXT NOT NULL DEFAULT '',
+ recovery_run_id TEXT NOT NULL DEFAULT '',
+ recovery_outcome TEXT NOT NULL DEFAULT '',
+ recovery_started_at TEXT,
+ recovery_ended_at TEXT,
+ recovery_settlement TEXT NOT NULL DEFAULT '' CHECK(recovery_settlement IN ('','success','failure','canceled','skipped','not_started')),
+ recovery_settled_at TEXT,
+ cleanup_delivery_id TEXT NOT NULL DEFAULT '',
+ cleanup_run_id TEXT NOT NULL DEFAULT '',
+ cleanup_outcome TEXT NOT NULL DEFAULT '',
+ cleanup_started_at TEXT,
+ cleanup_ended_at TEXT,
+ cleanup_settlement TEXT NOT NULL DEFAULT '' CHECK(cleanup_settlement IN ('','success','failure','canceled','skipped','not_started')),
+ cleanup_settled_at TEXT,
  definition_id TEXT NOT NULL,
  definition_name TEXT NOT NULL,
  entry_task_id TEXT NOT NULL,
@@ -104,7 +129,7 @@ CREATE TABLE parallel_join_instances (
  entry_run_id TEXT NOT NULL,
  target_task_id TEXT NOT NULL,
  target_task_name TEXT NOT NULL,
- state TEXT NOT NULL CHECK(state IN ('waiting','target_pending','completed','blocked','resolved')),
+ state TEXT NOT NULL CHECK(state IN ('waiting','target_pending','recovery_pending','cleanup_pending','completed','blocked','resolved')),
  reason TEXT NOT NULL DEFAULT '',
  target_delivery_id TEXT NOT NULL DEFAULT '',
  target_run_id TEXT NOT NULL DEFAULT '',
@@ -119,6 +144,8 @@ CREATE TABLE parallel_join_instances (
 
 CREATE TABLE parallel_join_invocations (
  id TEXT PRIMARY KEY,
+ settlement TEXT NOT NULL DEFAULT '' CHECK(settlement IN ('','success','failure','canceled','skipped','not_started')),
+ settled_at TEXT,
  instance_id TEXT NOT NULL REFERENCES parallel_join_instances(id) ON DELETE CASCADE,
  branch_id TEXT NOT NULL,
  position INTEGER NOT NULL,
@@ -402,7 +429,8 @@ CREATE INDEX idx_tasks_state ON tasks(state);
 
 CREATE UNIQUE INDEX idx_completion_delivery_chain_identity ON completion_deliveries(chain_id,source_run_id) WHERE role='chain';
 CREATE UNIQUE INDEX idx_completion_delivery_branch_identity ON completion_deliveries(join_instance_id,join_branch_id) WHERE role='join_branch';
-CREATE UNIQUE INDEX idx_completion_delivery_target_identity ON completion_deliveries(join_instance_id) WHERE role='join_target';
+CREATE UNIQUE INDEX idx_completion_delivery_followup_identity ON completion_deliveries(join_instance_id) WHERE role IN ('join_target','join_recovery');
+CREATE UNIQUE INDEX idx_completion_delivery_cleanup_identity ON completion_deliveries(join_instance_id) WHERE role='join_cleanup';
 CREATE INDEX idx_parallel_joins_entry ON parallel_joins(entry_task_id);
 CREATE INDEX idx_parallel_join_branches_task ON parallel_join_branches(task_id);
 CREATE INDEX idx_parallel_join_instances_created ON parallel_join_instances(created_at,id);
