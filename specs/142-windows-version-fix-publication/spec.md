@@ -4,9 +4,9 @@
 
 **Created**: 2026-11-09
 
-**Status**: In Progress
+**Status**: Implemented
 
-**Delivery**: Release-preparation source complete and locally verified; actual package publication and discovery reconciliation continue under existing full owner authorization.
+**Delivery**: Public/latest v2.0.3 release 439902909 and all nine anonymous downloads are verified. Current-discovery source is implemented and locally verified on continuation branch codex/142-v203-publication-closeout; its final integration/deployment continues automatically under existing full owner authorization.
 
 **Input**: Owner directs completion of the release without further confirmation and closure of issues already corrected in code. Track actual publication in #462.
 

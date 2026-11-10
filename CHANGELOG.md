@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Reconcile current README, first-task, installation, desktop and website discovery with public v2.0.3, including the corrected Windows version identity. Preserve tagged release notes, comparison/review and earlier release bytes (S142, #462).
+
 ## [2.0.3] - 2026-11-09
 
 Maintenance release for Windows build and package version identity.

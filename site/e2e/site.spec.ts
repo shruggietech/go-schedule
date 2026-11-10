@@ -105,7 +105,7 @@ test('first-task entry points explain exact run inspection and same-task recover
  await expect(page.getByRole('heading', { level: 2, name: /Run and inspect the result/ })).toBeVisible();
  await expect(page.getByRole('heading', { level: 2, name: /Explain a failure and recover/ })).toBeVisible();
  await expect(page.locator('pre').filter({ hasText: 'gosched runs --task' }).first()).toBeVisible();
- await expect(page.getByText(/Published v2.0.2 displays the selected run's own/)).toBeVisible();
+ await expect(page.getByText(/Published v2.0.3 displays the selected run's own/)).toBeVisible();
  await page.screenshot({ path: testInfo.outputPath('first-task.png'), fullPage: true });
  for (const platform of ['windows', 'linux', 'macos']) {
   await page.goto('/docs/install/' + platform + '/');

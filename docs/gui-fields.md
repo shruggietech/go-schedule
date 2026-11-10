@@ -5,7 +5,7 @@ nav_order: 4
 
 # GUI task editor, field reference
 
-Published v2.0.2 includes the selected own Run ID field described below, alongside cron entry and SMTP channels.
+Published v2.0.3 includes the selected own Run ID field described below, alongside cron entry and SMTP channels.
 
 This page explains every field in the Wails desktop's **Create task** / **Edit** dialog: what it accepts, what's required, and what each option means. It's the desktop counterpart to the CLI contract in [`specs/001-task-scheduler/contracts/cli.md`](https://github.com/shruggietech/go-schedule/blob/main/specs/001-task-scheduler/contracts/cli.md).
 
@@ -230,7 +230,7 @@ Create a task named `platform check`, leave it inactive, and use the command for
 | macOS | `/usr/bin/sw_vers` | Product name, version, and build information |
 | Linux | `uname -a` | A kernel and system information line |
 
-These platform-native commands are read-only, noninteractive, start no listener, make no network request, write no file, and exit promptly. In a fresh new-task editor, press Tab once in the empty Command line field to insert the matching command. Select **Preview** to inspect the exact Program and Arguments, save with **Save inactive task**, choose **Run now** and **Confirm run**, then inspect the particular record in **Activity**. Select its time button to open the **Run details** side pane and **Combined stdout/stderr**. Published v2.0.2 shows its own **Run ID**, distinct from **Source run**; v2.0.0 users can obtain the exact ID through `gosched runs --task TASK_ID --details`. Acceptance alone does not establish completion.
+These platform-native commands are read-only, noninteractive, start no listener, make no network request, write no file, and exit promptly. In a fresh new-task editor, press Tab once in the empty Command line field to insert the matching command. Select **Preview** to inspect the exact Program and Arguments, save with **Save inactive task**, choose **Run now** and **Confirm run**, then inspect the particular record in **Activity**. Select its time button to open the **Run details** side pane and **Combined stdout/stderr**. Published v2.0.3 shows its own **Run ID**, distinct from **Source run**; v2.0.0 users can obtain the exact ID through `gosched runs --task TASK_ID --details`. Acceptance alone does not establish completion.
 
 ## SMTP channels
 
