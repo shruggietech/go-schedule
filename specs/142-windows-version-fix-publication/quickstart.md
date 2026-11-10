@@ -1,0 +1,3 @@
+# Validation
+
+Run source and comparison guards against the actual committed candidate. Run all eight canonical gates in the hidden foreground launcher. Follow exact-head CI and review findings, merge the source checkpoint, then tag the accepted source. Inspect all eight staged assets, including extracted Windows GUI resources and MSI rows, without executing the desktop. Promote through the existing standing-waiver workflow and anonymously verify all nine public downloads/checksums. Update current discovery, verify deployment and close delivered issue outcomes. No additional confirmation pauses apply.

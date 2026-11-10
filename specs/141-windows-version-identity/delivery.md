@@ -9,3 +9,7 @@ All eight implementation tasks are complete. The 710.147-second foreground aggre
 ## Final source-owned qualification (2026-11-09)
 
 The Windows resource template is explicitly tracked. The fresh-resource build passed, and the final eight-gate aggregate passed in 716.617 seconds, with zero drift across 2724 enumerated source files and 8401 protected inputs. The immediate CI native-exit guard has separate native-refusal/status-propagation contrasts and fresh affected contract/automation checks. The source and public release boundary remain unchanged.
+
+## Owner integration
+
+The owner squash-merged [PR #461](https://github.com/shruggietech/go-schedule/pull/461) as ed09b0828a0b6b8fb62fc989cb7f78aff0d61874, with the exact reviewed tree 82fe54ddfbffa9c3fd66630373591dc4c11c370f. All 23 latest merged-main checks passed, including the recovered Pages deployment. #458 is closed as completed; actual maintenance-package delivery continues under S142 and #462.
