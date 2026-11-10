@@ -16,8 +16,8 @@ Independent criterion: one exact aggregate selects only success or configured re
 - [x] T004 [US1] Implement schema26 initialization/refusal, complete definition/snapshot projections and unique stage identities in internal/store/current_schema.sql, joins.go and join_definition.go (FR-001, FR-004, FR-006, FR-007, FR-014, FR-016).
 - [x] T005 [US1] Preserve #478 exact legacy blocked reasons and implement transactional branch settlement and selected follow-up advancement in internal/store/join_instances.go and join_runs.go (FR-002, FR-003, FR-004, FR-006, FR-007).
 - [x] T006 [US1] Extend causal graph, activation/readiness, immutable snapshot eligibility and invalidation in internal/store/chains.go, completion_admission.go, join_sources.go, join_delete.go and internal/task (FR-008, FR-009, FR-010, FR-015).
-- [x] T007 [P] [US1] Write failing no-start wake, active sibling/failed cancellation, queued/capacity and exact role regressions in internal/engine/recovery_test.go (FR-002, FR-003, FR-006, FR-008, FR-015).
-- [x] T008 [US1] Implement coalesced event-loop wake, zero-claim drain termination and new exact roles in internal/engine/engine.go and delivery.go (FR-002, FR-003, FR-006, FR-008, FR-015).
+- [x] T007 [P] [US1] Write failing no-start wake, active sibling/failed cancellation, queued/capacity, exact role and #481 skip-policy same-task reuse regressions in internal/engine/recovery_test.go, recovery_overlap_test.go and recovery_no_start_overlap_test.go (FR-002, FR-003, FR-006, FR-008, FR-015).
+- [x] T008 [US1] Implement coalesced event-loop wake, zero-claim drain termination, #481 ownership-before-publication and new exact roles in internal/engine/engine.go and delivery.go (FR-002, FR-003, FR-006, FR-008, FR-015).
 - [x] T009 [P] [US1] Write failing authority/identity/audit/strict policy and live stage merge tests in internal/api/server and internal/remote join tests (FR-001, FR-004, FR-011, FR-014).
 - [x] T010 [US1] Extend join DTOs, full authoring, bounded exact observations/state filters and capability manifest in internal/api/server and remote regressions (FR-001, FR-004, FR-011, FR-014).
 

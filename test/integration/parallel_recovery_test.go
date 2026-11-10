@@ -55,6 +55,8 @@ func TestPackagedParallelRecovery(t *testing.T) {
 		entries         int
 		repeated        bool
 		reuseCleanup    bool
+		reuseRecovery   bool
+		overlapSkip     bool
 		recoveryFails   bool
 		disableRecovery bool
 		emptyConditions bool
@@ -64,6 +66,8 @@ func TestPackagedParallelRecovery(t *testing.T) {
 		{name: "cancel_waits_for_sibling", cause: "canceled", entries: 1},
 		{name: "no_start_followup_wakes_cleanup", cause: "failure", entries: 1, disableRecovery: true},
 		{name: "explicit_empty_policy_still_cleans_up", cause: "failure", entries: 1, emptyConditions: true},
+		{name: "success_cleanup_reuse_with_skip", entries: 1, reuseCleanup: true, overlapSkip: true},
+		{name: "recovery_cleanup_reuse_with_skip", cause: "failure", entries: 1, reuseRecovery: true, overlapSkip: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -81,7 +85,11 @@ func TestPackagedParallelRecovery(t *testing.T) {
 			}
 			task := func(label, role, result, gate string) string {
 				t.Helper()
-				v, err := api.CreateTask(ctx, server.TaskCreateRequest{Name: tc.name + " " + label, Command: os.Args[0], Args: []string{"-test.run=^TestS145OwnedTaskProcess$"}, Env: map[string]string{"GO_SCHEDULE_S145_ROLE": role, "GO_SCHEDULE_S145_RESULT": result, "GO_SCHEDULE_S145_GATE": gate, "GO_SCHEDULE_S145_READY": ready}, WorkingDir: w.Runtime, OverlapPolicy: string(domain.OverlapAllowConcurrent)})
+				policy := domain.OverlapAllowConcurrent
+				if tc.overlapSkip && (role == "publish" || role == "recover") {
+					policy = domain.OverlapSkip
+				}
+				v, err := api.CreateTask(ctx, server.TaskCreateRequest{Name: tc.name + " " + label, Command: os.Args[0], Args: []string{"-test.run=^TestS145OwnedTaskProcess$"}, Env: map[string]string{"GO_SCHEDULE_S145_ROLE": role, "GO_SCHEDULE_S145_RESULT": result, "GO_SCHEDULE_S145_GATE": gate, "GO_SCHEDULE_S145_READY": ready}, WorkingDir: w.Runtime, OverlapPolicy: string(policy)})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -103,6 +111,9 @@ func TestPackagedParallelRecovery(t *testing.T) {
 			cleanup := task("Cleanup", "cleanup", "success", "")
 			if tc.reuseCleanup {
 				cleanup = publish
+			}
+			if tc.reuseRecovery {
+				cleanup = recovery
 			}
 			branches := []domain.ParallelJoinBranch{{ID: "a", Name: "Export A", TaskID: a}, {ID: "b", Name: "Export B", TaskID: b}}
 			if tc.repeated {
@@ -341,7 +352,7 @@ func TestPackagedParallelRecovery(t *testing.T) {
 	if _, err := api.Health(ctx); err != nil {
 		t.Fatal(err)
 	}
-	receipt := map[string]any{"packaged_cli": true, "scenarios": len(cases), "overlapping_entries": 2, "finite_role_reuse": true, "repeated_task_slots": true, "failure_waits_for_sibling": true, "cancellation_waits_for_sibling": true, "failed_recovery_then_cleanup": true, "no_start_followup_wakes_cleanup": true, "explicit_empty_policy": true, "portable_v4_config_only": true}
+	receipt := map[string]any{"packaged_cli": true, "scenarios": len(cases), "overlapping_entries": 2, "finite_role_reuse": true, "success_cleanup_skip_reuse": true, "recovery_cleanup_skip_reuse": true, "repeated_task_slots": true, "failure_waits_for_sibling": true, "cancellation_waits_for_sibling": true, "failed_recovery_then_cleanup": true, "no_start_followup_wakes_cleanup": true, "explicit_empty_policy": true, "portable_v4_config_only": true}
 	data, err := json.MarshalIndent(receipt, "", "  ")
 	if err != nil {
 		t.Fatal(err)

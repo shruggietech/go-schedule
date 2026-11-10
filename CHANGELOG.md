@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Preserve complete join and branch names during edits by loading full authoring data and sending only changed fields, retaining bounded observations and explicit truncation output (#476).
 
 - Preserve the exact original blocked cause for success-only joins after sibling settlement, and propagate join human-output write failures without replaying accepted API mutations (S145, #478, #479).
+- Retire completed native or definitively rejected admission overlap reservations before publishing correlated follow-ups, so success or recovery can reuse the cleanup task under skip overlap without losing cleanup (#481).
 
 ### Decisions
 

@@ -372,8 +372,11 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		e.sem <- struct{}{}
 		defer func() { <-e.sem }()
 		if origin.deliveryID != "" {
-			fresh, ok := e.eligibleCompletionTask(origin.deliveryID)
-			if !ok || e.runCtx.Err() != nil {
+			fresh, ok := e.eligibleCompletionTask(origin.deliveryID, &task)
+			if !ok {
+				return
+			}
+			if e.runCtx.Err() != nil {
 				e.finish(task)
 				return
 			}
@@ -412,12 +415,16 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		e.cancellations[active.ID].result = &observed
 		e.active[active.ID] = observed
 		e.mu.Unlock()
+		// The runner has actually terminated. Retire this overlap reservation
+		// before its result can commit successor deliveries visible to any
+		// concurrent drain. Keep terminal active/cancellation metadata until
+		// persistence finishes, and preserve any other or queued reservation.
+		e.finish(task)
 		e.recordRun(run, origin.deliveryID)
 		e.mu.Lock()
 		delete(e.active, active.ID)
 		delete(e.cancellations, active.ID)
 		e.mu.Unlock()
-		e.finish(task)
 	}()
 }
 
@@ -460,7 +467,7 @@ func (e *Engine) drainCompletionDeliveries() {
 			if e.runCtx.Err() != nil {
 				return
 			}
-			task, ok := e.eligibleCompletionTask(delivery.ID)
+			task, ok := e.eligibleCompletionTask(delivery.ID, nil)
 			if !ok {
 				continue
 			}
@@ -512,9 +519,8 @@ func (e *Engine) finish(task domain.Task) {
 	e.mu.Unlock()
 	if queued {
 		if pending.origin.deliveryID != "" {
-			fresh, ok := e.eligibleCompletionTask(pending.origin.deliveryID)
+			fresh, ok := e.eligibleCompletionTask(pending.origin.deliveryID, &task)
 			if !ok {
-				e.finish(task)
 				return
 			}
 			task = fresh

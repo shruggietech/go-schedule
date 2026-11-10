@@ -6,7 +6,7 @@
 
 **Status**: Implemented
 
-**Delivery**: Implemented on review branch `codex/145-parallel-recovery-cleanup`: #477 correlated recovery and cleanup with #478/#479 corrections. Complete frozen eight-gate acceptance, actual owned Windows/Linux cases and 39 headless browser cases pass; [verification](verification.md) and [delivery](delivery.md). Official PR/CI continue under owner authorization with at most two Codex reviews including automatic. Stop for owner final review and merge.
+**Delivery**: Implemented on review branch `codex/145-parallel-recovery-cleanup`, official PR #480: #477 with #478/#479/#481 corrections. Corrected complete frozen eight-gate acceptance passed, with actual Windows/Linux seven-case recovery execution and 39 headless browser cases on unchanged frontend source; [verification](verification.md) and [delivery](delivery.md). One of at most two Codex reviews used at local acceptance; final hosted/PR review facts are recorded on the PR. Stop for owner final review and merge.
 
 **Input**: Extend the accepted S144 parallel block with outcome-based recovery and final cleanup across all maintained interfaces.
 
