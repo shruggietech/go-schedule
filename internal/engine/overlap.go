@@ -37,7 +37,7 @@ func (e *Engine) dispatch(task domain.Task, scheduledFor time.Time, trigger doma
 
 func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, origin dispatchOrigin) {
 	e.mu.Lock()
-	if e.running[task.ID] {
+	if e.running[task.ID] > 0 {
 		switch task.OverlapPolicy {
 		case domain.OverlapSkip:
 			e.mu.Unlock()
@@ -75,7 +75,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 			return
 		}
 	}
-	e.running[task.ID] = true
+	e.running[task.ID]++
 	e.mu.Unlock()
 	e.launch(task, scheduledFor, origin)
 }

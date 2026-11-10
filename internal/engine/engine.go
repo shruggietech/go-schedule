@@ -16,6 +16,7 @@ import (
 	"github.com/shruggietech/go-schedule/v2/internal/catchup"
 	"github.com/shruggietech/go-schedule/v2/internal/clock"
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/runcontrol"
 	"github.com/shruggietech/go-schedule/v2/internal/schedule"
 	"github.com/shruggietech/go-schedule/v2/internal/store"
 	watchruntime "github.com/shruggietech/go-schedule/v2/internal/watcher"
@@ -48,12 +49,13 @@ type Engine struct {
 	log    *slog.Logger
 	sem    chan struct{} // bounded worker pool
 
-	mu      sync.Mutex
-	tasks   map[string]taskCtx   // active tasks by ID
-	next    map[string]time.Time // next scheduled run (UTC) by task ID
-	running map[string]bool
-	active  map[string]domain.Run
-	queued  map[string]pendingRun // one queued pending run, by task ID
+	mu            sync.Mutex
+	tasks         map[string]taskCtx   // active tasks by ID
+	next          map[string]time.Time // next scheduled run (UTC) by task ID
+	running       map[string]int       // reserved and executing runs per task
+	active        map[string]domain.Run
+	cancellations map[string]*runCancellation
+	queued        map[string]pendingRun // one queued pending run, by task ID
 
 	reload       chan struct{}
 	ready        chan struct{}
@@ -73,18 +75,19 @@ func New(st *store.Store, clk clock.Clock, runner Runner, log *slog.Logger, work
 		workers = 1
 	}
 	engine := &Engine{
-		store:   st,
-		clk:     clk,
-		runner:  runner,
-		log:     log,
-		sem:     make(chan struct{}, workers),
-		tasks:   map[string]taskCtx{},
-		next:    map[string]time.Time{},
-		running: map[string]bool{},
-		active:  map[string]domain.Run{},
-		queued:  map[string]pendingRun{},
-		reload:  make(chan struct{}, 1),
-		ready:   make(chan struct{}),
+		store:         st,
+		clk:           clk,
+		runner:        runner,
+		log:           log,
+		sem:           make(chan struct{}, workers),
+		tasks:         map[string]taskCtx{},
+		next:          map[string]time.Time{},
+		running:       map[string]int{},
+		cancellations: map[string]*runCancellation{},
+		active:        map[string]domain.Run{},
+		queued:        map[string]pendingRun{},
+		reload:        make(chan struct{}, 1),
+		ready:         make(chan struct{}),
 	}
 	engine.watchers = watchruntime.New(st, engine, clk, log)
 	return engine
@@ -359,23 +362,37 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		defer func() { <-e.sem }()
 		started := e.clk.Now().UTC()
 		active := domain.Run{ID: uuid.NewString(), TaskID: task.ID, ScheduledFor: scheduledFor, StartedAt: &started, Trigger: origin.trigger, SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID}
+		runCtx, cancel := context.WithCancelCause(e.runCtx)
+		defer cancel(nil)
+		runCtx = runcontrol.WithFailureReporter(runCtx, func(err error) { e.cancellationFailed(active.ID, err) })
 		e.mu.Lock()
 		e.active[active.ID] = active
+		e.cancellations[active.ID] = &runCancellation{cancel: cancel}
 		e.mu.Unlock()
 		if e.onRunStarted != nil {
 			e.onRunStarted(active)
 		}
 
-		run := e.runner.Run(e.runCtx, task, scheduledFor, origin.trigger)
+		run := e.runner.Run(runCtx, task, scheduledFor, origin.trigger)
 		run.ID = active.ID
 		run.Trigger = origin.trigger
 		run.SourceTaskID = origin.sourceTaskID
 		run.SourceRunID = origin.sourceRunID
 		run.SourceTriggerID = origin.sourceTriggerID
 		run.SourceWatcherID = origin.sourceWatcherID
+		if run.StartedAt == nil {
+			run.StartedAt = active.StartedAt
+		}
+		e.mu.Lock()
+		observed := run
+		observed.Output = "" // Active observation stays metadata-only while persistence completes.
+		e.cancellations[active.ID].result = &observed
+		e.active[active.ID] = observed
+		e.mu.Unlock()
 		e.recordRun(run, origin.deliveryID)
 		e.mu.Lock()
 		delete(e.active, active.ID)
+		delete(e.cancellations, active.ID)
 		e.mu.Unlock()
 		e.finish(task)
 	}()
@@ -469,15 +486,19 @@ func (e *Engine) resolveCompletionDelivery(id, reason string) {
 // finish marks a task no longer running and dispatches any queued pending run.
 func (e *Engine) finish(task domain.Task) {
 	e.mu.Lock()
-	e.running[task.ID] = false
-	pending, queued := e.queued[task.ID]
-	delete(e.queued, task.ID)
-	e.mu.Unlock()
-
-	if queued {
-		e.mu.Lock()
-		e.running[task.ID] = true
+	if e.running[task.ID] > 1 {
+		e.running[task.ID]--
 		e.mu.Unlock()
+		return
+	}
+	delete(e.running, task.ID)
+	pending, queued := e.queued[task.ID]
+	if queued {
+		delete(e.queued, task.ID)
+		e.running[task.ID] = 1
+	}
+	e.mu.Unlock()
+	if queued {
 		e.launch(task, pending.scheduledFor, pending.origin)
 	}
 }

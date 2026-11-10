@@ -288,3 +288,5 @@ func TestCachedResultRejectsStaleDaemonIdentity(t *testing.T) {
 }
 
 func jsonMarshal(value any) ([]byte, error) { return json.Marshal(value) }
+
+func (emptyReader) ListActiveRuns(context.Context) ([]domain.Run, error) { return []domain.Run{}, nil }

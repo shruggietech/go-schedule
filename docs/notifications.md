@@ -46,6 +46,10 @@ The first transition into a problem creates one notification. Repeated runs matc
 
 Daemon health uses opt-in healthy-presence heartbeats because a stopped process cannot send its own outage message. Set `--health-interval` on a channel. Each heartbeat includes `daemon.status=healthy` and `daemon.next_expected_at`; the receiver reports an outage when that deadline passes without another heartbeat. Zero disables heartbeats. Disabled channels do not create heartbeats.
 
+### Cancellation outcomes (Unreleased S143)
+
+Explicit cancellation records `canceled` or `cancellation_failed`, rather than a natural task failure. These outcomes do not increment or clear outbound failure streaks, produce duration/failure/recovery deliveries, or trigger any completion chain, including an `any` chain. The existing `run_finished` event still reports the actual terminal outcome. Cancellation cleanup that remains unconfirmed stays active until the daemon genuinely reaps the owned work. Published v2.0.3 does not include active-run cancellation.
+
 ## Policy precedence
 
 One scope supplies the complete effective policy. Direct task assignments replace all inherited assignments. Without direct task assignments, the nearest ancestor group containing assignments supplies the policy and replaces more distant group policies. A task with no configured scope in its ancestry sends no notifications. This replacement rule prevents duplicate alerts and makes `gosched notification task effective` explain the source unambiguously.

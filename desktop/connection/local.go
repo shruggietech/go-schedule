@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/shruggietech/go-schedule/v2/internal/api/client"
@@ -34,14 +33,14 @@ func (b *LocalBackend) Health(ctx context.Context) (Health, error) {
 	if err != nil {
 		return Health{}, safeFailure(err)
 	}
-	if value.Status != "ok" || !compatibleVersion(value.Version) {
+	if value.Status != "ok" || strings.TrimSpace(value.Version) == "" {
 		return Health{}, &Failure{State: StateIncompatible, Message: "This scheduler version is not compatible with the desktop app.", Action: "Update the scheduler service."}
 	}
 	manifest, err := b.daemon.Manifest(ctx)
 	if err != nil {
 		return Health{}, safeFailure(err)
 	}
-	if manifest.InstallationID == "" || manifest.DisplayName == "" || manifest.ProductVersion != value.Version {
+	if manifest.InstallationID == "" || manifest.DisplayName == "" || manifest.ProductVersion != value.Version || !supportsAPI(manifest.LocalAPIVersions) {
 		return Health{}, &Failure{State: StateIncompatible, Message: "This scheduler identity manifest is not compatible with the desktop app.", Action: "Update the scheduler service."}
 	}
 	return Health{ID: manifest.InstallationID, DisplayName: manifest.DisplayName, Platform: manifest.Platform.OS, Architecture: manifest.Platform.Architecture, Version: manifest.ProductVersion, Capabilities: append([]string(nil), manifest.Capabilities...), Permissions: append([]string(nil), localPermissions...)}, nil
@@ -56,10 +55,14 @@ func (b *LocalBackend) StreamEvents(ctx context.Context, publish func(DomainEven
 	})
 }
 
-func compatibleVersion(version string) bool {
-	majorText := strings.SplitN(strings.TrimPrefix(version, "v"), ".", 2)[0]
-	major, err := strconv.Atoi(majorText)
-	return err == nil && (major == 0 || major == 1)
+// supportsAPI negotiates the wire contract independently of product release numbering.
+func supportsAPI(versions []string) bool {
+	for _, version := range versions {
+		if version == "v1" {
+			return true
+		}
+	}
+	return false
 }
 
 func safeFailure(err error) error {

@@ -12,6 +12,8 @@ type Backend interface {
 	GetCalendar(context.Context, time.Time, time.Time) (server.CalendarResponse, error)
 	ListRuns(context.Context, string, int) ([]domain.Run, error)
 	ListActiveRuns(context.Context) ([]domain.Run, error)
+	GetRun(context.Context, string) (domain.Run, error)
+	CancelRun(context.Context, string) (domain.RunCancellation, error)
 	ListLogs(context.Context, string, int) (server.LogsResponse, error)
 	ListAlertsLimited(context.Context, bool, int) ([]domain.Alert, error)
 	AckAlert(context.Context, string) error
@@ -40,9 +42,7 @@ func (b *LocalBackend) ListAlertsLimited(ctx context.Context, unacked bool, limi
 	return b.daemon.ListAlertsLimited(ctx, unacked, limit)
 }
 func (b *LocalBackend) GetRun(ctx context.Context, id string) (domain.Run, error) {
-	return b.daemon.(interface {
-		GetRun(context.Context, string) (domain.Run, error)
-	}).GetRun(ctx, id)
+	return b.daemon.GetRun(ctx, id)
 }
 func (b *LocalBackend) ListAlertsPage(ctx context.Context, unacked bool, offset, limit, messageLimit int) ([]domain.Alert, error) {
 	return b.daemon.(interface {
@@ -51,4 +51,9 @@ func (b *LocalBackend) ListAlertsPage(ctx context.Context, unacked bool, offset,
 }
 func (b *LocalBackend) AckAlert(ctx context.Context, id string) error {
 	return b.daemon.AckAlert(ctx, id)
+}
+
+// CancelRun forwards an exact execution request without replay or outcome inference.
+func (b *LocalBackend) CancelRun(ctx context.Context, id string) (domain.RunCancellation, error) {
+	return b.daemon.CancelRun(ctx, id)
 }

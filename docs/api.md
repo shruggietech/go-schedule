@@ -43,6 +43,22 @@ The [daemon identity lifecycle](daemon-identity.md) defines stable installation 
 
 The current manifest reports local API `v1`, no remote API version, and `local_only` operating mode. It excludes hostnames, network addresses, storage paths, accounts, environment values, commands, credentials, trigger keys, scheduler records, and lifecycle timestamps. A stale reset confirmation returns `409 conflict`; invalid names and malformed requests return `400 validation_failed`; neither failure mutates state. `GET /v1/health` remains unchanged.
 
+## Exact active-run cancellation (Unreleased S143)
+
+A scheduler that implements cancellation advertises `run-cancellation` in its manifest. Desktop connection compatibility uses advertised API `v1`, including v2.x products, alongside the existing health, identity and actor checks; the product version is not an API-major allowlist.
+
+`POST /v1/runs/{id}/cancel` (remote `POST /api/v1/runs/{id}/cancel`) accepts an empty body and requires Operate authority. The shared mutation audit names operation `runs.cancel` and the exact run target. Clients must not automatically replay an ambiguous mutation. Read active runs and the exact run before deciding whether another request is appropriate.
+
+| Status | Result |
+| --- | --- |
+| `202` | `run_id`, `task_id`, `status: requested`, and transient `cancellation_status`/`cancellation_error` when present. Termination remains pending. |
+| `200` | `status: already_finished` and the actual `outcome`; no duplicate run or result rewrite. |
+| `404` | No such Run ID. |
+| `409` | The record is a non-executable queued, skipped or catch-up marker. |
+| `401` / `403` | Existing authentication or actor-authority failure. |
+
+Active observations expose `cancellation_status: requested|failed` and bounded operator guidance in `cancellation_error`. These fields are transient, not additional SQLite columns. Final `canceled` and `cancellation_failed` outcomes persist through existing schema-24 history with timestamps, actual native exit result and bounded output. A cleanup deadline does not release unreaped work or claim a terminal result. Existing natural completion wins once observed; completion chains and outbound failure/recovery policies ignore cancellation outcomes. See [CLI cancellation](cli.md#runs-cancel-run_id-unreleased-s143) for the owned process-tree boundary. Published v2.0.3 does not include this endpoint.
+
 ## Bounded system summary
 
 `GET /v1/system-summary` and its authenticated remote equivalent `GET /api/v1/system-summary` return one daemon-owned `go-schedule.system-summary.v1` observation for the desktop All Systems view. Observe authority is sufficient. The response reports its observation time, active-task count, nearest upcoming occurrence in the next 24 hours, failed-run count in the previous 24 hours, current unacknowledged-alert count, and failed or retrying notification-delivery count in the previous 24 hours. Each category includes at most one safe representative identifier for drill-down.

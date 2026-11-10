@@ -97,6 +97,18 @@ paths:
     get:
       operationId: runs.read
       responses: {"200": {$ref: "#/components/responses/Run"}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /runs/{id}/cancel:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    post:
+      operationId: runs.cancel
+      description: Requests cancellation of one exact active execution. Acceptance is not proof of termination; observe active runs and final history.
+      responses:
+        "202": {$ref: "#/components/responses/RunCancellation"}
+        "200": {$ref: "#/components/responses/RunCancellation"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {description: Existing credential lacks operating authority}
+        "404": {description: Run ID is unknown}
+        "409": {description: Known history marker is not an active execution}
   /alerts:
     get:
       operationId: alerts.list
@@ -387,6 +399,7 @@ components:
     Group: {description: Group detail, content: {application/json: {schema: {$ref: "#/components/schemas/Group"}}}}
     RunList: {description: Run collection, content: {application/json: {schema: {$ref: "#/components/schemas/RunList"}}}}
     Run: {description: Run detail, content: {application/json: {schema: {$ref: "#/components/schemas/Run"}}}}
+    RunCancellation: {description: Exact-run cancellation acknowledgement, content: {application/json: {schema: {$ref: "#/components/schemas/RunCancellation"}}}}
     AlertList: {description: Alert collection, content: {application/json: {schema: {$ref: "#/components/schemas/AlertList"}}}}
     Calendar: {description: Calendar window, content: {application/json: {schema: {$ref: "#/components/schemas/Calendar"}}}}
     SystemSummary: {description: Bounded operational observation, content: {application/json: {schema: {$ref: "#/components/schemas/SystemSummary"}}}}
@@ -828,7 +841,9 @@ components:
         scheduled_for: {type: string, format: date-time}
         started_at: {type: string, format: date-time}
         ended_at: {type: string, format: date-time}
-        outcome: {type: string}
+        outcome: {type: string, description: Actual terminal outcome including canceled or cancellation_failed; empty while active}
+        cancellation_status: {$ref: "#/components/schemas/CancellationState"}
+        cancellation_error: {type: string, description: Authored cleanup-failure guidance while execution remains active}
         exit_code: {type: integer}
         output: {type: string}
         output_truncated: {type: boolean}
@@ -837,6 +852,18 @@ components:
         source_run_id: {type: string, format: uuid}
         source_trigger_id: {type: string, format: uuid}
         source_watcher_id: {type: string, format: uuid}
+    CancellationState: {type: string, enum: [requested, failed]}
+    RunCancellation:
+      type: object
+      additionalProperties: false
+      required: [run_id, task_id, status]
+      properties:
+        run_id: {type: string, format: uuid}
+        task_id: {type: string, format: uuid}
+        status: {type: string, enum: [requested, already_finished]}
+        outcome: {type: string, description: The observed terminal result for already_finished}
+        cancellation_status: {$ref: "#/components/schemas/CancellationState"}
+        cancellation_error: {type: string}
     AlertList:
       type: object
       additionalProperties: false

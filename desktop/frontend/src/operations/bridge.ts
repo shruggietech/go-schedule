@@ -10,6 +10,7 @@ export function createOperationsBridge(nativeWindow: NativeWindow = window): Ope
     scheduleWindow: (days) => call('ScheduleWindow', 'load_schedule', days),
     activityWorkspace: () => call('ActivityWorkspace', 'load_activity'),
 	activityRecord: (kind, id) => call('ActivityRecord', 'load_activity_record', kind, id),
+    cancelRun: (id, daemonID) => call('CancelRun', 'cancel_run', id, daemonID),
     acknowledgeAlert: (id) => call('AcknowledgeAlert', 'acknowledge_alerts', id),
     acknowledgeAlerts: (ids) => call('AcknowledgeAlerts', 'acknowledge_alerts', ids),
     subscribe: (listener) => nativeWindow.runtime?.EventsOn?.('desktop:event', listener) ?? (() => undefined),

@@ -19,6 +19,7 @@ import (
 
 type fakeOperationClient struct {
 	runs    int
+	cancels int
 	toggles int
 	err     error
 	access  domain.Capability
@@ -67,7 +68,7 @@ func validInput() Input {
 	return Input{DaemonID: uuid.NewString(), TaskID: "task-1", RequestID: uuid.NewString()}
 }
 
-func TestDiscoveryExposesExactlyThreeOperateTools(t *testing.T) {
+func TestDiscoveryExposesExactlyFourOperateTools(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	implementation := &mcp.Implementation{Name: "operate-test", Version: "test"}
@@ -105,7 +106,7 @@ func TestDiscoveryExposesExactlyThreeOperateTools(t *testing.T) {
 		}
 	}
 	sort.Strings(names)
-	want := []string{"tasks_disable", "tasks_enable", "tasks_run_now"}
+	want := []string{"runs_cancel", "tasks_disable", "tasks_enable", "tasks_run_now"}
 	if len(names) != len(want) {
 		t.Fatalf("tool names=%v", names)
 	}
@@ -186,4 +187,35 @@ func TestExecutorReturnsStableOutcomeClasses(t *testing.T) {
 			t.Fatalf("err=%v outcome=%s result=%+v", test.err, result.Outcome, result)
 		}
 	}
+}
+
+func (f *fakeOperationClient) CancelRun(_ context.Context, id string) (domain.RunCancellation, error) {
+	f.cancels++
+	return domain.RunCancellation{RunID: id, TaskID: "task-1", Status: "requested"}, f.err
+}
+func TestCancelRunSharesTargetCacheAndRechecksRevocation(t *testing.T) {
+	f := &fakeOperationClient{}
+	e := New(f)
+	id := uuid.NewString()
+	req := uuid.NewString()
+	input := CancelInput{DaemonID: id, RunID: "run-1", RequestID: req}
+	r := e.executeCancel(context.Background(), input)
+	again := e.executeCancel(context.Background(), input)
+	if r.Outcome != OutcomeAccepted || r.RunID != "run-1" || r.Status != "requested" || r != again || f.cancels != 1 {
+		t.Fatalf("r=%+v again=%+v calls=%d", r, again, f.cancels)
+	}
+	conflict := e.execute(context.Background(), "tasks.enable", Input{DaemonID: id, TaskID: "run-1", RequestID: req})
+	if conflict.Outcome != OutcomeRejected || f.toggles != 0 {
+		t.Fatalf("conflict=%+v toggles=%d", conflict, f.toggles)
+	}
+	f.verify = &client.StatusError{Code: server.CodeForbidden}
+	f.err = f.verify
+	denied := e.executeCancel(context.Background(), input)
+	if denied.Outcome != OutcomeDenied || f.cancels != 2 {
+		t.Fatalf("denied=%+v calls=%d", denied, f.cancels)
+	}
+}
+
+func (hostileObserveReader) ListActiveRuns(context.Context) ([]domain.Run, error) {
+	return []domain.Run{}, nil
 }

@@ -16,17 +16,19 @@ import (
 )
 
 const (
-	healthURI    = "goschedule://daemon/health"
-	tasksURI     = "goschedule://tasks/active"
-	schedulesURI = "goschedule://schedules/upcoming"
-	alertsURI    = "goschedule://alerts/recent"
-	runsURI      = "goschedule://runs/recent"
+	healthURI     = "goschedule://daemon/health"
+	tasksURI      = "goschedule://tasks/active"
+	schedulesURI  = "goschedule://schedules/upcoming"
+	alertsURI     = "goschedule://alerts/recent"
+	runsURI       = "goschedule://runs/recent"
+	activeRunsURI = "goschedule://runs/active"
 )
 
 type readClient interface {
 	Health(context.Context) (server.HealthResponse, error)
 	ListTaskObservations(context.Context, string, string, bool, int, int, int) ([]server.TaskObservationResponse, error)
 	ListRunsPage(context.Context, string, int, int, int) ([]domain.Run, error)
+	ListActiveRuns(context.Context) ([]domain.Run, error)
 	ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
 }
 
@@ -126,6 +128,27 @@ func (a *adapter) envelope(ctx context.Context, kind, baseURI string, offset int
 		}
 		page, metadata := boundedPage(items, offset, baseURI)
 		result.UntrustedFields = []string{"data[].message"}
+		result.Page, result.Data = metadata, page
+		return result, nil
+	case "active_runs":
+		runs, err := a.client.ListActiveRuns(ctx)
+		if err != nil {
+			return Envelope{}, err
+		}
+		sort.Slice(runs, func(i, j int) bool {
+			if runs[i].ScheduledFor.Equal(runs[j].ScheduledFor) {
+				return runs[i].ID > runs[j].ID
+			}
+			return runs[i].ScheduledFor.After(runs[j].ScheduledFor)
+		})
+		items := make([]ActiveRunSummary, 0, len(runs))
+		for _, run := range runs {
+			items = append(items, safeActiveRun(run))
+		}
+		page, metadata, err := paginate(items, offset, baseURI)
+		if err != nil {
+			return Envelope{}, err
+		}
 		result.Page, result.Data = metadata, page
 		return result, nil
 	case "runs":
@@ -258,4 +281,16 @@ func safeError(err error) error {
 		return errors.New("incompatible_response: the daemon could not provide this observation")
 	}
 	return errors.New("internal_error: observation failed")
+}
+
+func safeActiveRun(run domain.Run) ActiveRunSummary {
+	guidance, status := "", ""
+	switch run.CancellationStatus {
+	case "requested", "failed":
+		status = run.CancellationStatus
+	}
+	if status == "failed" {
+		guidance = "Process termination could not be confirmed. This execution remains active; inspect its authoritative state before retrying."
+	}
+	return ActiveRunSummary{ID: run.ID, TaskID: run.TaskID, ScheduledFor: timestamp(run.ScheduledFor), StartedAt: optionalTimestamp(run.StartedAt), TriggerKind: string(run.Trigger), CancellationStatus: status, CancellationError: guidance}
 }

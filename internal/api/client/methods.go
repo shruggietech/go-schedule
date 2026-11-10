@@ -395,6 +395,21 @@ func (c *Client) ListActiveRuns(ctx context.Context) ([]domain.Run, error) {
 	return out.Runs, err
 }
 
+// CancelRun requests cancellation of one exact active execution. An acknowledgement
+// does not establish termination; the run's authoritative observation does.
+func (c *Client) CancelRun(ctx context.Context, id string) (domain.RunCancellation, error) {
+	var out domain.RunCancellation
+	target := c.target()
+	err := target.do(ctx, http.MethodPost, "/v1/runs/"+url.PathEscape(id)+"/cancel", nil, &out)
+	if err == nil && (out.RunID != id || (out.Status != "requested" && out.Status != "already_finished") || (out.Status == "already_finished" && out.Outcome == "")) {
+		err = fmt.Errorf("api: cancellation response does not identify the requested run and status")
+		if target.remote {
+			err = &MutationUncertainError{Operation: "cancel run", Cause: err}
+		}
+	}
+	return out, err
+}
+
 // GetRun returns one run by exact identity.
 func (c *Client) GetRun(ctx context.Context, id string) (domain.Run, error) {
 	var out domain.Run

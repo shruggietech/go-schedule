@@ -1,6 +1,8 @@
 // Package operations exposes transport-neutral schedule and activity models.
 package operations
 
+import "github.com/shruggietech/go-schedule/v2/internal/domain"
+
 type ScheduleOccurrence struct {
 	ID       string `json:"id"`
 	TaskID   string `json:"taskId"`
@@ -20,21 +22,23 @@ type ScheduleSnapshot struct {
 }
 
 type RunRecord struct {
-	ID              string `json:"id"`
-	TaskID          string `json:"taskId"`
-	ScheduledFor    string `json:"scheduledFor"`
-	StartedAt       string `json:"startedAt,omitempty"`
-	EndedAt         string `json:"endedAt,omitempty"`
-	State           string `json:"state"`
-	Outcome         string `json:"outcome,omitempty"`
-	ExitCode        *int   `json:"exitCode,omitempty"`
-	Output          string `json:"output"`
-	OutputTruncated bool   `json:"outputTruncated"`
-	Trigger         string `json:"trigger"`
-	SourceTaskID    string `json:"sourceTaskId,omitempty"`
-	SourceRunID     string `json:"sourceRunId,omitempty"`
-	SourceTriggerID string `json:"sourceTriggerId,omitempty"`
-	SourceWatcherID string `json:"sourceWatcherId,omitempty"`
+	CancellationStatus string `json:"cancellationStatus,omitempty"`
+	CancellationError  string `json:"cancellationError,omitempty"`
+	ID                 string `json:"id"`
+	TaskID             string `json:"taskId"`
+	ScheduledFor       string `json:"scheduledFor"`
+	StartedAt          string `json:"startedAt,omitempty"`
+	EndedAt            string `json:"endedAt,omitempty"`
+	State              string `json:"state"`
+	Outcome            string `json:"outcome,omitempty"`
+	ExitCode           *int   `json:"exitCode,omitempty"`
+	Output             string `json:"output"`
+	OutputTruncated    bool   `json:"outputTruncated"`
+	Trigger            string `json:"trigger"`
+	SourceTaskID       string `json:"sourceTaskId,omitempty"`
+	SourceRunID        string `json:"sourceRunId,omitempty"`
+	SourceTriggerID    string `json:"sourceTriggerId,omitempty"`
+	SourceWatcherID    string `json:"sourceWatcherId,omitempty"`
 }
 
 type LogRecord struct {
@@ -68,10 +72,11 @@ type ActivityWorkspace struct {
 }
 
 type OperationResult struct {
-	Action   string             `json:"action"`
-	Outcome  string             `json:"outcome"`
-	Message  string             `json:"message"`
-	Field    string             `json:"field,omitempty"`
-	Schedule *ScheduleSnapshot  `json:"schedule,omitempty"`
-	Activity *ActivityWorkspace `json:"activity,omitempty"`
+	Cancellation *domain.RunCancellation `json:"cancellation,omitempty"`
+	Action       string                  `json:"action"`
+	Outcome      string                  `json:"outcome"`
+	Message      string                  `json:"message"`
+	Field        string                  `json:"field,omitempty"`
+	Schedule     *ScheduleSnapshot       `json:"schedule,omitempty"`
+	Activity     *ActivityWorkspace      `json:"activity,omitempty"`
 }

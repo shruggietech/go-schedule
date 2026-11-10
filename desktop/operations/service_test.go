@@ -49,7 +49,7 @@ func (s *stubBackend) GetRun(_ context.Context, id string) (domain.Run, error) {
 			return run, nil
 		}
 	}
-	return domain.Run{}, errors.New("run not found")
+	return domain.Run{}, &client.StatusError{Code: server.CodeNotFound, Message: "run not found"}
 }
 func (s *stubBackend) ListLogs(context.Context, string, int) (server.LogsResponse, error) {
 	if s.errAt == "logs" {
@@ -183,4 +183,8 @@ func TestAcknowledgeAlertReportsUncertainRemoteMutationSafely(t *testing.T) {
 	if result.Outcome != "uncertain" || result.Message != "The remote request may have completed. Refresh the selected scheduler before deciding whether to try again." {
 		t.Fatalf("result=%+v", result)
 	}
+}
+
+func (s *stubBackend) CancelRun(_ context.Context, id string) (domain.RunCancellation, error) {
+	return domain.RunCancellation{RunID: id, Status: "requested"}, nil
 }

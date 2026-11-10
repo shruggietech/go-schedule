@@ -63,7 +63,7 @@ func observationRoute(path string) string {
 
 var observationVocabulary = func() map[string]bool {
 	vocabulary := map[string]bool{}
-	for _, part := range strings.Fields("v1 health manifest runtime-info tasks groups chains triggers trigger-sets filesystem-watchers notification notification-channels notification-deliveries channels assignments deliveries test enabled authorization access current actors credentials pairings mcp http sessions logs runs alerts active settings schedules preview run-now enable disable rotate revoke reveal fire retarget ack system summary search bundles export import plan audit") {
+	for _, part := range strings.Fields("v1 health manifest runtime-info tasks groups chains triggers trigger-sets filesystem-watchers notification notification-channels notification-deliveries channels assignments deliveries test enabled authorization access current actors credentials pairings mcp http sessions logs runs alerts active settings schedules preview run-now cancel enable disable rotate revoke reveal fire retarget ack system summary search bundles export import plan audit") {
 		vocabulary[part] = true
 	}
 	return vocabulary

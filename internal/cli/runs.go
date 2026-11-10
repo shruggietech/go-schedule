@@ -17,7 +17,7 @@ func newRunsCmd() *cobra.Command {
 	var details bool
 	cmd := &cobra.Command{
 		Use:   "runs",
-		Short: "Show run history",
+		Short: "Show run history and control active executions",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if limit < 0 {
@@ -38,7 +38,7 @@ func newRunsCmd() *cobra.Command {
 	cmd.Flags().StringVar(&task, "task", "", "filter by task ID")
 	cmd.Flags().IntVar(&limit, "limit", 50, "maximum rows (0 uses the daemon default)")
 	cmd.Flags().BoolVar(&details, "details", false, "include run identities, lifecycle timestamps, captured output and provenance")
-	cmd.AddCommand(newActiveRunsCmd(), newGetRunCmd())
+	cmd.AddCommand(newActiveRunsCmd(), newGetRunCmd(), newCancelRunCmd())
 	return cmd
 }
 
@@ -125,7 +125,7 @@ func writeRunDetail(w io.Writer, run domain.Run) error {
 	if run.ExitCode != nil {
 		exit = fmt.Sprint(*run.ExitCode)
 	}
-	_, err := fmt.Fprintf(w, "Run ID: %s\nTask ID: %s\nScheduled: %s\nStarted: %s\nEnded: %s\nState: %s\nOutcome: %s\nExit code: %s\nStart failed: %t\nTrigger: %s\nSource task: %s\nSource run: %s\nSource trigger: %s\nSource watcher: %s\nOutput truncated: %t\nOutput:\n%s\n", run.ID, run.TaskID, run.ScheduledFor.Format(time.RFC3339Nano), started, ended, state, displayOrDash(string(run.Outcome)), exit, run.StartFailed, run.Trigger, displayOrDash(run.SourceTaskID), displayOrDash(run.SourceRunID), displayOrDash(run.SourceTriggerID), displayOrDash(run.SourceWatcherID), run.OutputTruncated, run.Output)
+	_, err := fmt.Fprintf(w, "Run ID: %s\nTask ID: %s\nScheduled: %s\nStarted: %s\nEnded: %s\nState: %s\nOutcome: %s\nExit code: %s\nStart failed: %t\nCancellation status: %s\nCancellation error: %s\nTrigger: %s\nSource task: %s\nSource run: %s\nSource trigger: %s\nSource watcher: %s\nOutput truncated: %t\nOutput:\n%s\n", run.ID, run.TaskID, run.ScheduledFor.Format(time.RFC3339Nano), started, ended, state, displayOrDash(string(run.Outcome)), exit, run.StartFailed, displayOrDash(run.CancellationStatus), displayOrDash(run.CancellationError), run.Trigger, displayOrDash(run.SourceTaskID), displayOrDash(run.SourceRunID), displayOrDash(run.SourceTriggerID), displayOrDash(run.SourceWatcherID), run.OutputTruncated, run.Output)
 	return err
 }
 
@@ -183,4 +183,24 @@ func newAlertsCmd() *cobra.Command {
 	}
 	cmd.AddCommand(ack)
 	return cmd
+}
+
+func newCancelRunCmd() *cobra.Command {
+	return &cobra.Command{Use: "cancel RUN_ID", Short: "Request cancellation of one active execution by its exact Run ID", Long: "Request cancellation of one active run on the selected scheduler. Find its Run ID with gosched runs active. A requested acknowledgement does not establish termination; inspect gosched runs get RUN_ID for the final outcome.", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := reqCtx(cmd)
+		defer cancel()
+		result, err := clientFor(cmd).CancelRun(ctx, args[0])
+		if err != nil {
+			return err
+		}
+		if jsonOutput(cmd) {
+			return printJSONTo(cmd.OutOrStdout(), result)
+		}
+		if result.Status == "already_finished" {
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "run %s already finished (outcome %s)\n", result.RunID, result.Outcome)
+			return err
+		}
+		_, err = fmt.Fprintf(cmd.OutOrStdout(), "cancellation requested for run %s; inspect its final outcome with gosched runs get %s\n", result.RunID, result.RunID)
+		return err
+	}}
 }

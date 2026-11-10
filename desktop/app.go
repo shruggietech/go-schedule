@@ -732,3 +732,37 @@ func (a *App) Quit() ActionResult {
 	a.native.Quit(a.ctx)
 	return ActionResult{Action: "quit", Outcome: "accepted", Message: "Closing go-schedule."}
 }
+
+// CancelRun requests cancellation only for the exact rendered scheduler identity.
+func (a *App) CancelRun(id, expectedDaemonID string) operations.OperationResult {
+	reject := func(message string) operations.OperationResult {
+		return operations.OperationResult{Action: "cancel_run", Outcome: "rejected", Message: message}
+	}
+	if a.operations == nil || a.ctx == nil || a.manager == nil {
+		return reject("Connect to a scheduler before canceling a run.")
+	}
+	snapshot := a.manager.Snapshot()
+	if snapshot.State != connection.StateConnected || snapshot.Stale || expectedDaemonID == "" || snapshot.Target.ID != expectedDaemonID {
+		return reject("The selected scheduler changed or is not current. Refresh before canceling the run.")
+	}
+	allowed, supported := false, false
+	for _, permission := range snapshot.Target.Permissions {
+		if permission == "operate" || permission == "manage" || permission == "enroll" {
+			allowed = true
+		}
+	}
+	for _, capability := range snapshot.Target.Capabilities {
+		if capability == "run-cancellation" {
+			supported = true
+		}
+	}
+	if !allowed {
+		return reject("The current account is not authorized to cancel runs.")
+	}
+	if !supported {
+		return reject("This scheduler does not support run cancellation. Update the selected scheduler.")
+	}
+	result := a.operations.CancelRun(a.ctx, id, expectedDaemonID)
+	a.reconcileUncertain(result.Outcome)
+	return result
+}

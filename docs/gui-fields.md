@@ -33,6 +33,14 @@ The **Create task** dialog contains labeled task fields, **Timing**, and collaps
 
 For a supplied script, input, exact run inspection and same-task failure recovery, follow [Your first useful task](first-task.md). CLI add with a complete command and schedule activates the task immediately; new desktop tasks are saved inactive.
 
+## Cancel an active run (Unreleased S143)
+
+Open an active execution's exact **Run details** in **Activity**, then choose **Cancel run**. The action targets the displayed Run ID and daemon installation identity. It is available only for a connected, current target with Operate authority and advertised `run-cancellation` support. Canceling one execution leaves other runs and the task's scheduling definition alone.
+
+The pane distinguishes a cancellation request from actual termination and shows cleanup failure or an uncertain response explicitly. It refreshes the exact run for up to eight seconds after admission; expiry leaves termination unconfirmed with **Refresh** available. Refresh preserves the selected exact record even after it leaves the bounded recent list. Final outcomes display **Canceled** or **Cancellation failed**, alongside the native exit result and captured output. A natural completion already observed by the daemon keeps its outcome.
+
+This control is in S143 source, not public v2.0.3 packages. An older daemon without the capability requires an upgrade. Local and remote connection compatibility follows the daemon's supported API versions rather than rejecting every product version above v1.
+
 ## At a glance
 
 | Field | Required | Format / options | Default |
