@@ -1,0 +1,20 @@
+{
+  "tag": "v2.0.3",
+  "source_ref": "refs/tags/v2.0.3",
+  "reviewed_at": "2026-11-09",
+  "dataset_sha256": "17100c94d8cf07d9d68421a17ddb61ab4838dbcb8e44a028f1efe943afd67cfe",
+  "changelog_sha256": "dfd9bd3165a1e8f6418d3a591bb53d8bcf2eb37050b1ada16878aa8d12e009ba",
+  "notes_sha256": "16995ad9463f26b0f7322fa4d5240cc4fb1d0a4fd71589d35cf3ba32cf5edd45",
+  "decisions": {
+    "scheduling": "no-change",
+    "events": "no-change",
+    "dependencies": "no-change",
+    "interfaces": "no-change",
+    "remote": "no-change",
+    "observability": "no-change",
+    "access": "no-change",
+    "mcp": "no-change",
+    "highavailability": "no-change",
+    "license": "no-change"
+  }
+}

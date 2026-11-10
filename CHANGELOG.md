@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-11-09
+
+Maintenance release for Windows build and package version identity.
+
 ### Changed
 
 - Bind Windows desktop resource, application and installer identity to the selected build version, retaining explicit development labeling and refusing compiled metadata mismatches (S141, #458).
@@ -13,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Reconcile current release discovery, first-task and installation guidance and the website fallback with public v2.0.2. Label comparison product contexts with their original review date while identifying the published baseline (#444, #459). Preserve tagged release/comparison content and the accepted open Windows resource-version finding #458.
 
 ### Decisions
+
+- 2026-11-09 (S142): publish the integrated Windows version-identity fix through the existing release workflows under full owner authorization, including source integration, tagging, inspection and public promotion. Close delivered issue outcomes; retire the remaining unproven historical runtime investigation without claiming its cause was corrected. Preserve prior releases and the standing native-testing disclosure.
 
 - 2026-11-09 (S141): route maintained desktop builds through a hidden, noninteractive version-aware launcher, restore exact Wails configuration after each build, and inspect compiled PE/MSI identity before upload. Preserve a nonzero builder exit before CI staging continues. Update existing build-pin policy resolution for the shared launcher without changing supported tool versions or weakening verification gates. Preserve published v2.0.2 bytes and native runtime limits.
 
