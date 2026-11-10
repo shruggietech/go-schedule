@@ -188,3 +188,19 @@ func TestAcknowledgeAlertReportsUncertainRemoteMutationSafely(t *testing.T) {
 func (s *stubBackend) CancelRun(_ context.Context, id string) (domain.RunCancellation, error) {
 	return domain.RunCancellation{RunID: id, Status: "requested"}, nil
 }
+
+func TestActivityJoinAttributionDoesNotAssociateOrdinarySameTaskRuns(t *testing.T) {
+	now := time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC)
+	backend := &stubBackend{runs: []domain.Run{{ID: "join-run", TaskID: "same", ScheduledFor: now, JoinInstanceID: "instance", JoinBranchID: "invocation", JoinRole: "branch", DeliveryID: "delivery"}, {ID: "ordinary-run", TaskID: "same", ScheduledFor: now}}}
+	r := NewService(backend).ActivityWorkspace(context.Background())
+	if r.Outcome != "accepted" || len(r.Activity.Runs) != 2 {
+		t.Fatalf("result=%+v", r)
+	}
+	records := map[string]RunRecord{}
+	for _, v := range r.Activity.Runs {
+		records[v.ID] = v
+	}
+	if records["join-run"].JoinInstanceID != "instance" || records["join-run"].JoinBranchID != "invocation" || records["join-run"].DeliveryID != "delivery" || records["ordinary-run"].JoinInstanceID != "" {
+		t.Fatalf("records=%+v", records)
+	}
+}

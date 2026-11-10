@@ -280,6 +280,15 @@ func (s *session) seed(ctx context.Context) error {
 		}
 		s.vars[definition.variable] = created.Task.ID
 	}
+	branches, err := json.Marshal([]map[string]string{{"id": "export-a", "name": "Export A", "task_id": s.vars["failure_task"]}, {"id": "export-b", "name": "Export B", "task_id": s.vars["failure_task"]}})
+	if err != nil {
+		return err
+	}
+	s.vars["join_branches_json"] = string(branches)
+	s.vars["join_branches_file"] = filepath.Join(s.w.Runtime, "join-branches.json")
+	if err := s.writeOwned(s.vars["join_branches_file"], branches); err != nil {
+		return err
+	}
 	missing, err := s.api.CreateTask(ctx, server.TaskCreateRequest{Name: "QA missing executable", Command: filepath.Join(s.w.Runtime, "tasks", "missing-executable"), Timezone: "UTC"})
 	if err != nil {
 		return err
@@ -416,7 +425,7 @@ func (s *session) snapshot(ctx context.Context) (map[string]any, error) {
 	calls := []struct {
 		name string
 		load func() (any, error)
-	}{{"tasks", func() (any, error) { return s.api.ListTasks(ctx, "", "") }}, {"groups", func() (any, error) { return s.api.ListGroups(ctx) }}, {"chains", func() (any, error) { return s.api.ListChains(ctx) }}, {"triggers", func() (any, error) { return s.api.ListTriggers(ctx) }}, {"sets", func() (any, error) { return s.api.ListTriggerSets(ctx) }}, {"watchers", func() (any, error) { return s.api.ListFilesystemWatchers(ctx) }}, {"channels", func() (any, error) { return s.api.ListNotificationChannels(ctx) }}, {"actors", func() (any, error) { return s.api.ListActors(ctx) }}, {"credentials", func() (any, error) { return s.api.ListCredentials(ctx) }}, {"pairings", func() (any, error) { return s.api.ListPairings(ctx) }}}
+	}{{"tasks", func() (any, error) { return s.api.ListTasks(ctx, "", "") }}, {"groups", func() (any, error) { return s.api.ListGroups(ctx) }}, {"chains", func() (any, error) { return s.api.ListChains(ctx) }}, {"joins", func() (any, error) { return s.api.ListJoins(ctx) }}, {"triggers", func() (any, error) { return s.api.ListTriggers(ctx) }}, {"sets", func() (any, error) { return s.api.ListTriggerSets(ctx) }}, {"watchers", func() (any, error) { return s.api.ListFilesystemWatchers(ctx) }}, {"channels", func() (any, error) { return s.api.ListNotificationChannels(ctx) }}, {"actors", func() (any, error) { return s.api.ListActors(ctx) }}, {"credentials", func() (any, error) { return s.api.ListCredentials(ctx) }}, {"pairings", func() (any, error) { return s.api.ListPairings(ctx) }}}
 	for _, call := range calls {
 		value, err := call.load()
 		if err != nil {

@@ -85,8 +85,8 @@ func TestOfficialSDKNegotiatesManageSurface(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list tools: %v", err)
 	}
-	if len(tools.Tools) != 10 {
-		t.Fatalf("manage tools=%d, want 10", len(tools.Tools))
+	if len(tools.Tools) != 11 {
+		t.Fatalf("manage tools=%d, want 11", len(tools.Tools))
 	}
 }
 
@@ -100,7 +100,7 @@ func TestAuthoritySurfacesAreMonotonic(t *testing.T) {
 	}{
 		{domain.CapabilityObserve, 0},
 		{domain.CapabilityOperate, 4},
-		{domain.CapabilityManage, 10},
+		{domain.CapabilityManage, 11},
 	} {
 		t.Run(string(test.capability), func(t *testing.T) {
 			server := handler.newServer(&grant{actorID: "actor", capability: test.capability})

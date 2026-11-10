@@ -33,6 +33,20 @@ type Operation struct {
 }
 
 var operations = []Operation{
+	{Method: http.MethodGet, RemotePath: "/api/v1/chains", LocalPath: "/v1/chains", ID: "chains.list", Retry: RetrySafe},
+	{Method: http.MethodPost, RemotePath: "/api/v1/chains", LocalPath: "/v1/chains", ID: "chains.create", Retry: RetryNever, BodyLimit: 256 << 10},
+	{Method: http.MethodGet, RemotePath: "/api/v1/chains/{id}", LocalPath: "/v1/chains/{id}", ID: "chains.read", Retry: RetrySafe},
+	{Method: http.MethodPatch, RemotePath: "/api/v1/chains/{id}", LocalPath: "/v1/chains/{id}", ID: "chains.update", Retry: RetryNever, BodyLimit: 256 << 10},
+	{Method: http.MethodDelete, RemotePath: "/api/v1/chains/{id}", LocalPath: "/v1/chains/{id}", ID: "chains.delete", Retry: RetryNever},
+	{Method: http.MethodGet, RemotePath: "/api/v1/joins", LocalPath: "/v1/joins", ID: "joins.list", Retry: RetrySafe},
+	{Method: http.MethodPost, RemotePath: "/api/v1/joins", LocalPath: "/v1/joins", ID: "joins.create", Retry: RetryNever, BodyLimit: 2 << 20},
+	{Method: http.MethodGet, RemotePath: "/api/v1/joins/{id}", LocalPath: "/v1/joins/{id}", ID: "joins.read", Retry: RetrySafe},
+	{Method: http.MethodGet, RemotePath: "/api/v1/joins/{id}/definition", LocalPath: "/v1/joins/{id}/definition", ID: "joins.definition.read", Retry: RetrySafe},
+	{Method: http.MethodPatch, RemotePath: "/api/v1/joins/{id}", LocalPath: "/v1/joins/{id}", ID: "joins.update", Retry: RetryNever, BodyLimit: 2 << 20},
+	{Method: http.MethodDelete, RemotePath: "/api/v1/joins/{id}", LocalPath: "/v1/joins/{id}", ID: "joins.delete", Retry: RetryNever},
+	{Method: http.MethodGet, RemotePath: "/api/v1/join-instances", LocalPath: "/v1/join-instances", ID: "joins.instances.list", Retry: RetrySafe},
+	{Method: http.MethodGet, RemotePath: "/api/v1/join-instances/{id}", LocalPath: "/v1/join-instances/{id}", ID: "joins.instances.read", Retry: RetrySafe},
+
 	{Method: http.MethodGet, RemotePath: "/api/v1/health", LocalPath: "/v1/health", ID: "health.read", Retry: RetrySafe, Public: true},
 	{Method: http.MethodGet, RemotePath: "/api/v1/manifest", LocalPath: "/v1/manifest", ID: "manifest.read", Retry: RetrySafe, Public: true},
 	{Method: http.MethodPost, RemotePath: "/api/v1/enroll", ID: "enrollment.exchange", Retry: RetryNever, BodyLimit: 4096, Public: true},

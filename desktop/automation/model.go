@@ -1,6 +1,8 @@
 // Package automation exposes transport-neutral automation-source administration models.
 package automation
 
+import "github.com/shruggietech/go-schedule/v2/internal/domain"
+
 type TaskChoice struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -83,15 +85,18 @@ type WatcherSummary struct {
 }
 
 type Workspace struct {
-	Tasks       []TaskChoice        `json:"tasks"`
-	Chains      []ChainSummary      `json:"chains"`
-	Triggers    []TriggerSummary    `json:"triggers"`
-	TriggerSets []TriggerSetSummary `json:"triggerSets"`
-	Watchers    []WatcherSummary    `json:"watchers"`
-	LoadedAt    string              `json:"loadedAt"`
+	Joins         []domain.ParallelJoin         `json:"joins"`
+	JoinInstances []domain.ParallelJoinInstance `json:"joinInstances"`
+	Tasks         []TaskChoice                  `json:"tasks"`
+	Chains        []ChainSummary                `json:"chains"`
+	Triggers      []TriggerSummary              `json:"triggers"`
+	TriggerSets   []TriggerSetSummary           `json:"triggerSets"`
+	Watchers      []WatcherSummary              `json:"watchers"`
+	LoadedAt      string                        `json:"loadedAt"`
 }
 
 type ChainDraft struct {
+	ExpectedDaemonID  string `json:"expectedDaemonId"`
 	ID                string `json:"id"`
 	SourceTaskID      string `json:"sourceTaskId"`
 	TargetTaskID      string `json:"targetTaskId"`
@@ -102,6 +107,7 @@ type ChainDraft struct {
 }
 
 type TriggerDraft struct {
+	ExpectedDaemonID  string `json:"expectedDaemonId"`
 	ID                string `json:"id"`
 	Name              string `json:"name"`
 	TargetTaskID      string `json:"targetTaskId"`
@@ -112,6 +118,7 @@ type TriggerDraft struct {
 }
 
 type TriggerSetDraft struct {
+	ExpectedDaemonID  string `json:"expectedDaemonId"`
 	ID                string `json:"id"`
 	Name              string `json:"name"`
 	TargetTaskID      string `json:"targetTaskId"`
@@ -123,6 +130,7 @@ type TriggerSetDraft struct {
 }
 
 type WatcherDraft struct {
+	ExpectedDaemonID  string `json:"expectedDaemonId"`
 	ID                string `json:"id"`
 	Name              string `json:"name"`
 	Kind              string `json:"kind"`
@@ -138,13 +146,29 @@ type WatcherDraft struct {
 	OverwriteStale    bool   `json:"overwriteStale"`
 }
 
+type JoinDraft struct {
+	ID                string                      `json:"id"`
+	Name              string                      `json:"name"`
+	EntryTaskID       string                      `json:"entryTaskId"`
+	TargetTaskID      string                      `json:"targetTaskId"`
+	Branches          []domain.ParallelJoinBranch `json:"branches"`
+	OriginalUpdatedAt string                      `json:"originalUpdatedAt"`
+	ExpectedDaemonID  string                      `json:"expectedDaemonId"`
+	IsNew             bool                        `json:"isNew"`
+	OverwriteStale    bool                        `json:"overwriteStale"`
+}
+
 type OperationResult struct {
-	Action    string     `json:"action"`
-	Outcome   string     `json:"outcome"`
-	Message   string     `json:"message"`
-	Field     string     `json:"field,omitempty"`
-	EntityID  string     `json:"entityId,omitempty"`
-	Workspace *Workspace `json:"workspace,omitempty"`
+	Join      *domain.ParallelJoin          `json:"join,omitempty"`
+	DaemonID  string                        `json:"daemonId,omitempty"`
+	Instances []domain.ParallelJoinInstance `json:"instances,omitempty"`
+	Instance  *domain.ParallelJoinInstance  `json:"instance,omitempty"`
+	Action    string                        `json:"action"`
+	Outcome   string                        `json:"outcome"`
+	Message   string                        `json:"message"`
+	Field     string                        `json:"field,omitempty"`
+	EntityID  string                        `json:"entityId,omitempty"`
+	Workspace *Workspace                    `json:"workspace,omitempty"`
 }
 
 type Secret struct {
@@ -154,6 +178,7 @@ type Secret struct {
 }
 
 type SecretResult struct {
+	DaemonID string   `json:"daemonId,omitempty"`
 	Action   string   `json:"action"`
 	Outcome  string   `json:"outcome"`
 	Message  string   `json:"message"`

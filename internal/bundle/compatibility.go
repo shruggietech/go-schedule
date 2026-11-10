@@ -11,6 +11,9 @@ type TargetProfile struct {
 // TargetCompatibility derives requirements from bundle contents and reports missing target support in stable order.
 func TargetCompatibility(doc Document, target TargetProfile) []Issue {
 	kinds := make([]string, 0, 7)
+	if len(doc.Joins) > 0 {
+		kinds = append(kinds, "join")
+	}
 	if len(doc.Chains) > 0 {
 		kinds = append(kinds, "chain")
 	}
@@ -51,6 +54,8 @@ func targetCompatibilityKinds(kinds []string, target TargetProfile) []Issue {
 	hasWatcher := false
 	for _, kind := range kinds {
 		switch kind {
+		case "join":
+			requiredSet["parallel-joins"] = true
 		case "chain":
 			requiredSet["chains"] = true
 		case "group":

@@ -15,7 +15,7 @@ func TestCurrentBootstrapRecordsOneMarker(t *testing.T) {
 	if err := st.db.QueryRow("SELECT COUNT(*), MAX(version) FROM schema_version").Scan(&count, &version); err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 || version != 24 {
+	if count != 1 || version != 25 {
 		t.Fatalf("fresh marker rows=%d version=%d; want one marker24", count, version)
 	}
 	var enabled int
@@ -29,7 +29,7 @@ func TestUnsupportedStoreRefusesWithoutChangingFile(t *testing.T) {
 		"CREATE TABLE unrelated(value TEXT); INSERT INTO unrelated VALUES('keep');",
 		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(25);",
 		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(23);",
-		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(24);",
+		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(25);",
 	} {
 		t.Run(seed, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "unsupported.db")
@@ -114,7 +114,7 @@ func TestCurrentStorePreservesAcceptedMarkerHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for version := 1; version < 24; version++ {
+	for version := 1; version < 25; version++ {
 		if _, err := db.Exec("INSERT INTO schema_version VALUES(?)", version); err != nil {
 			t.Fatal(err)
 		}
@@ -129,7 +129,7 @@ func TestCurrentStorePreservesAcceptedMarkerHistory(t *testing.T) {
 	}
 	defer st.Close()
 	var markers, groups int
-	if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version").Scan(&markers); err != nil || markers != 24 {
+	if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version").Scan(&markers); err != nil || markers != 25 {
 		t.Fatalf("marker history changed: %d %v", markers, err)
 	}
 	if err := st.db.QueryRow("SELECT COUNT(*) FROM groups WHERE id='persisted'").Scan(&groups); err != nil || groups != 1 {

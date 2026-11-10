@@ -151,7 +151,7 @@ paths:
   /bundles/export:
     get:
       operationId: bundles.export
-      description: Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent.
+      description: Returns a versioned secret-free portable automation document. Version 2 adds source and notification policy intent; unreleased source exports version 3 with parallel join definitions and no execution state.
       responses: {"200": {description: Portable automation bundle}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /bundles/validate:
     post:
@@ -379,6 +379,89 @@ paths:
             application/json:
               schema: {$ref: "#/components/schemas/NotificationAssignments"}
         "401": {$ref: "#/components/responses/Unauthorized"}
+  /chains:
+    get:
+      operationId: chains.list
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/CompletionChainList"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+    post:
+      operationId: chains.create
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ChainCreateRequest"}}}}
+      responses: {"201": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/CompletionChain"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /chains/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: chains.read
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/CompletionChain"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+    patch:
+      operationId: chains.update
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ChainUpdateRequest"}}}}
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/CompletionChain"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+    delete:
+      operationId: chains.delete
+      responses: {"204": {$ref: "#/components/responses/NoContent"}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /joins:
+    get:
+      operationId: joins.list
+      parameters:
+        - {name: offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+        - {name: text_limit, in: query, schema: {type: integer, minimum: 1, maximum: 16384}}
+        - {name: branch_offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: branch_limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoinList"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+    post:
+      operationId: joins.create
+      description: Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/JoinCreateRequest"}}}}
+      responses: {"201": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /joins/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: joins.read
+      parameters:
+        - {name: text_limit, in: query, schema: {type: integer, minimum: 1, maximum: 16384}}
+        - {name: branch_offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: branch_limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+    patch:
+      operationId: joins.update
+      description: Strict single JSON document with a 2 MiB request budget, matching portable configuration operations; unknown fields and trailing values are rejected.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/JoinUpdateRequest"}}}}
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+    delete:
+      operationId: joins.delete
+      responses: {"204": {$ref: "#/components/responses/NoContent"}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /joins/{id}/definition:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: joins.definition.read
+      description: Manage-authorized audited authoring snapshot with complete writable names, task references and revision; task display labels and runtime state are omitted. Branches remain paged.
+      parameters:
+        - {name: branch_offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: branch_limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+      responses: {"200": {description: Complete writable definition page, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoin"}}}}, "400": {description: Invalid branch paging}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Current Manage authority is required}, "404": {description: Definition not found}, "409": {description: Selected daemon identity conflict}}
+  /join-instances:
+    get:
+      operationId: joins.instances.list
+      parameters:
+        - {name: offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+        - {name: text_limit, in: query, schema: {type: integer, minimum: 1, maximum: 16384}}
+        - {name: branch_offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: branch_limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+        - {name: join_id, in: query, schema: {type: string}}
+        - {name: entry_run_id, in: query, schema: {type: string}}
+        - {name: state, in: query, schema: {$ref: "#/components/schemas/JoinInstanceState"}}
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoinInstanceList"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
+  /join-instances/{id}:
+    parameters: [{$ref: "#/components/parameters/ID"}]
+    get:
+      operationId: joins.instances.read
+      parameters:
+        - {name: text_limit, in: query, schema: {type: integer, minimum: 1, maximum: 16384}}
+        - {name: branch_offset, in: query, schema: {type: integer, minimum: 0}}
+        - {name: branch_limit, in: query, schema: {type: integer, minimum: 1, maximum: 1000}}
+      responses: {"200": {description: Success, content: {application/json: {schema: {$ref: "#/components/schemas/ParallelJoinInstance"}}}}, "400": {description: Invalid definition or paging query}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {description: Insufficient current actor authority}, "404": {description: Definition or referenced identity was not found}, "409": {description: Stale expected definition revision}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, description: A 256-bit opaque base64url credential issued once during enrollment or rotation.}
@@ -852,6 +935,11 @@ components:
         source_run_id: {type: string, format: uuid}
         source_trigger_id: {type: string, format: uuid}
         source_watcher_id: {type: string, format: uuid}
+        delivery_id: {type: string, format: uuid}
+        join_instance_id: {type: string, format: uuid}
+        join_branch_id: {type: string, format: uuid}
+        join_role: {$ref: "#/components/schemas/JoinRunRole"}
+        start_failed: {type: boolean}
     CancellationState: {type: string, enum: [requested, failed]}
     RunCancellation:
       type: object
@@ -953,3 +1041,161 @@ components:
           additionalProperties: false
           required: [code, message]
           properties: {code: {type: string}, field: {type: string}, message: {type: string}}
+    CompletionChain:
+      type: object
+      additionalProperties: false
+      required: [id, source_task_id, target_task_id, on_outcome, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        source_task_id: {type: string, format: uuid}
+        source_task_name: {type: string}
+        target_task_id: {type: string, format: uuid}
+        target_task_name: {type: string}
+        on_outcome: {type: string, enum: [success, failure, any]}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    CompletionChainList:
+      type: object
+      additionalProperties: false
+      required: [chains]
+      properties:
+        chains: {type: array, items: {$ref: "#/components/schemas/CompletionChain"}}
+    ChainCreateRequest:
+      type: object
+      required: [source_task_id, target_task_id, on_outcome]
+      properties:
+        source_task_id: {type: string, format: uuid}
+        target_task_id: {type: string, format: uuid}
+        on_outcome: {type: string, enum: [success, failure, any]}
+    ChainUpdateRequest:
+      type: object
+      properties:
+        source_task_id: {type: string, format: uuid}
+        target_task_id: {type: string, format: uuid}
+        on_outcome: {type: string, enum: [success, failure, any]}
+    JoinBranchInput:
+      type: object
+      additionalProperties: false
+      required: [name, task_id]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        task_id: {type: string, format: uuid}
+    JoinCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, entry_task_id, target_task_id, branches]
+      properties:
+        name: {type: string}
+        entry_task_id: {type: string, format: uuid}
+        target_task_id: {type: string, format: uuid}
+        branches: {type: array, items: {$ref: "#/components/schemas/JoinBranchInput"}}
+    JoinUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: {type: string}
+        entry_task_id: {type: string, format: uuid}
+        target_task_id: {type: string, format: uuid}
+        branches: {type: array, items: {$ref: "#/components/schemas/JoinBranchInput"}}
+        expected_updated_at: {type: string, format: date-time}
+    ParallelJoinBranch:
+      type: object
+      additionalProperties: false
+      required: [id, name, task_id]
+      properties:
+        id: {type: string}
+        name: {type: string}
+        task_id: {type: string, format: uuid}
+        task_name: {type: string}
+        truncated_fields: {type: array, items: {type: string}}
+    ParallelJoin:
+      type: object
+      additionalProperties: false
+      required: [id, name, entry_task_id, target_task_id, branches, created_at, updated_at, branch_count]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        entry_task_id: {type: string, format: uuid}
+        entry_task_name: {type: string}
+        target_task_id: {type: string, format: uuid}
+        target_task_name: {type: string}
+        branches: {type: array, items: {$ref: "#/components/schemas/ParallelJoinBranch"}}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        branch_count: {type: integer, minimum: 0}
+        branch_offset: {type: integer, minimum: 0}
+        has_more_branches: {type: boolean}
+        truncated_fields: {type: array, items: {type: string}}
+    ParallelJoinInvocation:
+      type: object
+      additionalProperties: false
+      required: [id, branch_id, name, task_id, delivery_id, delivery_state]
+      properties:
+        id: {type: string, format: uuid}
+        branch_id: {type: string}
+        name: {type: string}
+        task_id: {type: string, format: uuid}
+        task_name: {type: string}
+        delivery_id: {type: string, format: uuid}
+        delivery_state: {$ref: "#/components/schemas/JoinDeliveryState"}
+        run_id: {type: string, format: uuid}
+        outcome: {type: string}
+        reason: {type: string}
+        started_at: {type: string, format: date-time}
+        ended_at: {type: string, format: date-time}
+        cancellation_status: {$ref: "#/components/schemas/CancellationState"}
+        cancellation_error: {type: string}
+        truncated_fields: {type: array, items: {type: string}}
+    ParallelJoinInstance:
+      type: object
+      additionalProperties: false
+      required: [id, definition_id, definition_name, entry_task_id, entry_run_id, target_task_id, branches, state, created_at, updated_at, branch_count]
+      properties:
+        id: {type: string, format: uuid}
+        definition_id: {type: string, format: uuid}
+        definition_name: {type: string}
+        entry_task_id: {type: string, format: uuid}
+        entry_task_name: {type: string}
+        entry_run_id: {type: string, format: uuid}
+        target_task_id: {type: string, format: uuid}
+        target_task_name: {type: string}
+        branches: {type: array, items: {$ref: "#/components/schemas/ParallelJoinInvocation"}}
+        state: {$ref: "#/components/schemas/JoinInstanceState"}
+        reason: {type: string}
+        target_delivery_id: {type: string, format: uuid}
+        target_delivery_state: {$ref: "#/components/schemas/JoinDeliveryState"}
+        target_run_id: {type: string, format: uuid}
+        target_outcome: {type: string}
+        target_started_at: {type: string, format: date-time}
+        target_ended_at: {type: string, format: date-time}
+        target_cancellation_status: {$ref: "#/components/schemas/CancellationState"}
+        target_cancellation_error: {type: string}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        completed_at: {type: string, format: date-time}
+        branch_count: {type: integer, minimum: 0}
+        branch_offset: {type: integer, minimum: 0}
+        has_more_branches: {type: boolean}
+        truncated_fields: {type: array, items: {type: string}}
+    ParallelJoinList:
+      type: object
+      additionalProperties: false
+      required: [joins, has_more, offset, limit]
+      properties:
+        joins: {type: array, items: {$ref: "#/components/schemas/ParallelJoin"}}
+        has_more: {type: boolean}
+        offset: {type: integer, minimum: 0}
+        limit: {type: integer, minimum: 1, maximum: 1000}
+    ParallelJoinInstanceList:
+      type: object
+      additionalProperties: false
+      required: [instances, has_more, offset, limit]
+      properties:
+        instances: {type: array, items: {$ref: "#/components/schemas/ParallelJoinInstance"}}
+        has_more: {type: boolean}
+        offset: {type: integer, minimum: 0}
+        limit: {type: integer, minimum: 1, maximum: 1000}
+    JoinInstanceState: {type: string, enum: [waiting, target_pending, completed, blocked, resolved]}
+    JoinDeliveryState: {type: string, enum: [pending, claimed, completed, resolved]}
+    JoinRunRole: {type: string, enum: [branch, target]}

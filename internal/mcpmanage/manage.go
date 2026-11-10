@@ -44,6 +44,9 @@ type manageClient interface {
 	CreateGroup(context.Context, server.GroupCreateRequest) (domain.Group, error)
 	UpdateGroup(context.Context, string, server.GroupUpdateRequest) (domain.Group, error)
 	DeleteGroup(context.Context, string) error
+	CreateJoin(context.Context, server.JoinCreateRequest) (domain.ParallelJoin, error)
+	UpdateJoin(context.Context, string, server.JoinUpdateRequest) (domain.ParallelJoin, error)
+	DeleteJoin(context.Context, string) error
 	CreateChain(context.Context, server.ChainCreateRequest) (domain.CompletionChain, error)
 	UpdateChain(context.Context, string, server.ChainUpdateRequest) (domain.CompletionChain, error)
 	DeleteChain(context.Context, string) error
@@ -186,7 +189,7 @@ func New(c manageClient, requireConfirmation bool) *Executor {
 	return &Executor{client: c, requireConfirmation: requireConfirmation, now: time.Now, cache: make(map[string]cached)}
 }
 
-// AddTools adds exactly six bounded Manage tools.
+// AddTools adds exactly seven bounded Manage tools.
 func AddTools(s *mcp.Server, e *Executor) {
 	closed, destructive := false, true
 	annotations := func(title string) *mcp.ToolAnnotations {
@@ -194,6 +197,7 @@ func AddTools(s *mcp.Server, e *Executor) {
 	}
 	mcp.AddTool(s, &mcp.Tool{Name: "tasks_manage", Title: "Manage one task definition", Description: "Create, update, or delete one task through the scheduler API. Environment and stdin values are intentionally unavailable.", Annotations: annotations("Manage task")}, e.taskHandler())
 	mcp.AddTool(s, &mcp.Tool{Name: "groups_manage", Title: "Manage one task group", Description: "Create, update, or delete one task group through the scheduler API.", Annotations: annotations("Manage group")}, e.groupHandler())
+	mcp.AddTool(s, &mcp.Tool{Name: "joins_manage", Title: "Manage one parallel join", Description: "Create, update, or delete one parallel block with exact named branches.", Annotations: annotations("Manage parallel join")}, e.joinHandler())
 	mcp.AddTool(s, &mcp.Tool{Name: "chains_manage", Title: "Manage one completion chain", Description: "Create, update, or delete one completion chain through the scheduler API.", Annotations: annotations("Manage completion chain")}, e.chainHandler())
 	mcp.AddTool(s, &mcp.Tool{Name: "triggers_manage", Title: "Manage one external trigger", Description: "Create, update, or delete one trigger. Generated trigger credentials are never returned.", Annotations: annotations("Manage trigger")}, e.triggerHandler())
 	mcp.AddTool(s, &mcp.Tool{Name: "watchers_manage", Title: "Manage one filesystem watcher", Description: "Create, update, or delete one watcher through the scheduler API.", Annotations: annotations("Manage watcher")}, e.watcherHandler())

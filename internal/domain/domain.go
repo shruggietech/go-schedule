@@ -302,6 +302,10 @@ type Schedule struct {
 
 // Run is a single execution record (append-only history).
 type Run struct {
+	DeliveryID     string `json:"delivery_id,omitempty"`
+	JoinInstanceID string `json:"join_instance_id,omitempty"`
+	JoinBranchID   string `json:"join_branch_id,omitempty"`
+	JoinRole       string `json:"join_role,omitempty"`
 	// CancellationStatus and CancellationError describe only active ownership; terminal outcome persists in history.
 	CancellationStatus string     `json:"cancellation_status,omitempty"`
 	CancellationError  string     `json:"cancellation_error,omitempty"`
@@ -393,18 +397,21 @@ type CompletionChain struct {
 // CompletionDelivery is the durable processing record for one chain and one
 // immutable source run.
 type CompletionDelivery struct {
-	ID           string        `json:"id"`
-	ChainID      string        `json:"chain_id"`
-	SourceTaskID string        `json:"source_task_id"`
-	TargetTaskID string        `json:"target_task_id"`
-	SourceRunID  string        `json:"source_run_id"`
-	State        DeliveryState `json:"state"`
-	Attempts     int           `json:"attempts"`
-	CreatedAt    time.Time     `json:"created_at"`
-	ClaimedAt    *time.Time    `json:"claimed_at,omitempty"`
-	CompletedAt  *time.Time    `json:"completed_at,omitempty"`
-	TargetRunID  string        `json:"target_run_id,omitempty"`
-	Resolution   string        `json:"resolution,omitempty"`
+	Role           CompletionDeliveryRole `json:"role,omitempty"`
+	JoinInstanceID string                 `json:"join_instance_id,omitempty"`
+	JoinBranchID   string                 `json:"join_branch_id,omitempty"`
+	ID             string                 `json:"id"`
+	ChainID        string                 `json:"chain_id"`
+	SourceTaskID   string                 `json:"source_task_id"`
+	TargetTaskID   string                 `json:"target_task_id"`
+	SourceRunID    string                 `json:"source_run_id"`
+	State          DeliveryState          `json:"state"`
+	Attempts       int                    `json:"attempts"`
+	CreatedAt      time.Time              `json:"created_at"`
+	ClaimedAt      *time.Time             `json:"claimed_at,omitempty"`
+	CompletedAt    *time.Time             `json:"completed_at,omitempty"`
+	TargetRunID    string                 `json:"target_run_id,omitempty"`
+	Resolution     string                 `json:"resolution,omitempty"`
 }
 
 // LogRecord is a single structured log entry surfaced in the GUI Logs view and

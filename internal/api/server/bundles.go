@@ -523,7 +523,7 @@ func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths
 			outcomes = append(outcomes, s.applyBundleTask(task))
 		}
 	}
-	outcomes = append(outcomes, s.applyBundleChains(doc.Chains, plan)...)
+	outcomes = append(outcomes, s.applyBundleRelationships(doc, plan)...)
 	for _, source := range doc.ExternalTriggers {
 		if bundlePlanChanges(plan, "external_trigger", source.PortableID) {
 			outcomes = append(outcomes, s.applyBundleExternalTrigger(source))
@@ -553,53 +553,6 @@ func (s *Server) applyBundle(doc bundle.Document, plan bundle.Plan, watcherPaths
 		if item.Action == bundle.ActionTargetOnly || item.Action == bundle.ActionUnchanged || item.Action == bundle.ActionConflict {
 			outcomes = append(outcomes, item)
 		}
-	}
-	return outcomes
-}
-
-func (s *Server) applyBundleChains(sources []bundle.Chain, plan bundle.Plan) []bundle.Item {
-	outcomes := []bundle.Item{}
-	updates := []domain.CompletionChain{}
-	updateItems := []bundle.Item{}
-	creates := []bundle.Chain{}
-	for _, source := range sources {
-		if !bundlePlanChanges(plan, "chain", source.PortableID) {
-			continue
-		}
-		item := bundle.Item{Kind: "chain", PortableID: source.PortableID, Name: source.PortableID}
-		sourceID, sourceErr := s.store.ObjectIDForPortableID("task", source.SourceTaskID)
-		targetID, targetErr := s.store.ObjectIDForPortableID("task", source.TargetTaskID)
-		if sourceErr != nil || targetErr != nil {
-			item.Action, item.Message = bundle.ActionFailed, "chain task was not applied"
-			outcomes = append(outcomes, item)
-			continue
-		}
-		id, err := s.store.ObjectIDForPortableID("chain", source.PortableID)
-		if errors.Is(err, store.ErrNotFound) {
-			creates = append(creates, source)
-			continue
-		}
-		if err != nil {
-			item.Action, item.Message = bundle.ActionFailed, err.Error()
-			outcomes = append(outcomes, item)
-			continue
-		}
-		updates = append(updates, domain.CompletionChain{ID: id, SourceTaskID: sourceID, TargetTaskID: targetID, OnOutcome: domain.CompletionOutcome(source.OnOutcome)})
-		updateItems = append(updateItems, item)
-	}
-	if err := s.store.ReplaceCompletionChains(updates); err != nil {
-		for _, item := range updateItems {
-			item.Action, item.Message = bundle.ActionFailed, err.Error()
-			outcomes = append(outcomes, item)
-		}
-	} else {
-		for _, item := range updateItems {
-			item.Action = bundle.ActionApplied
-			outcomes = append(outcomes, item)
-		}
-	}
-	for _, source := range creates {
-		outcomes = append(outcomes, s.applyBundleChain(source))
 	}
 	return outcomes
 }
@@ -769,47 +722,8 @@ func (s *Server) createBundleSchedule(source bundle.Task) (string, error) {
 	return input.Schedule.ID, nil
 }
 
-func (s *Server) applyBundleChain(source bundle.Chain) bundle.Item {
-	item := bundle.Item{Kind: "chain", PortableID: source.PortableID, Name: source.PortableID}
-	sourceID, err := s.store.ObjectIDForPortableID("task", source.SourceTaskID)
-	if err != nil {
-		item.Action, item.Message = bundle.ActionFailed, "source task was not applied"
-		return item
-	}
-	targetID, err := s.store.ObjectIDForPortableID("task", source.TargetTaskID)
-	if err != nil {
-		item.Action, item.Message = bundle.ActionFailed, "target task was not applied"
-		return item
-	}
-	id, err := s.store.ObjectIDForPortableID("chain", source.PortableID)
-	chain := domain.CompletionChain{ID: id, SourceTaskID: sourceID, TargetTaskID: targetID, OnOutcome: domain.CompletionOutcome(source.OnOutcome)}
-	if errors.Is(err, store.ErrNotFound) {
-		chain.ID = ""
-		if err := s.store.CreateCompletionChain(&chain); err != nil {
-			item.Action, item.Message = bundle.ActionFailed, err.Error()
-			return item
-		}
-		if err := s.store.BindPortableID("chain", chain.ID, source.PortableID); err != nil {
-			item.Action, item.Message = bundle.ActionUncertain, err.Error()
-			return item
-		}
-		item.Action = bundle.ActionApplied
-		return item
-	}
-	if err != nil {
-		item.Action, item.Message = bundle.ActionFailed, err.Error()
-		return item
-	}
-	if err := s.store.UpdateCompletionChain(&chain); err != nil {
-		item.Action, item.Message = bundle.ActionFailed, err.Error()
-		return item
-	}
-	item.Action = bundle.ActionApplied
-	return item
-}
-
 func (s *Server) bundleDocument() (bundle.Document, error) {
-	doc := bundle.Document{Schema: bundle.SchemaV2, Groups: []bundle.Group{}, Tasks: []bundle.Task{}, Chains: []bundle.Chain{}, Exclusions: []bundle.Issue{}}
+	doc := bundle.Document{Schema: bundle.SchemaV3, Groups: []bundle.Group{}, Tasks: []bundle.Task{}, Chains: []bundle.Chain{}, Exclusions: []bundle.Issue{}}
 	groups, err := s.store.ListGroups()
 	if err != nil {
 		return doc, err
@@ -861,6 +775,21 @@ func (s *Server) bundleDocument() (bundle.Document, error) {
 			return doc, err
 		}
 		doc.Chains = append(doc.Chains, bundle.Chain{PortableID: id, SourceTaskID: taskIDs[chain.SourceTaskID], TargetTaskID: taskIDs[chain.TargetTaskID], OnOutcome: string(chain.OnOutcome)})
+	}
+	joins, err := s.store.ListParallelJoins()
+	if err != nil {
+		return doc, err
+	}
+	for _, join := range joins {
+		id, err := s.store.PortableID("join", join.ID)
+		if err != nil {
+			return doc, err
+		}
+		value := bundle.Join{PortableID: id, Name: join.Name, EntryTaskID: taskIDs[join.EntryTaskID], TargetTaskID: taskIDs[join.TargetTaskID], Branches: []bundle.JoinBranch{}}
+		for _, branch := range join.Branches {
+			value.Branches = append(value.Branches, bundle.JoinBranch{ID: branch.ID, Name: branch.Name, TaskID: taskIDs[branch.TaskID]})
+		}
+		doc.Joins = append(doc.Joins, value)
 	}
 	triggers, err := s.store.ListExternalTriggers()
 	if err != nil {

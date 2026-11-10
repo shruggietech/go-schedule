@@ -156,7 +156,7 @@ func newCommandIdentity(path string, before, after map[string]any) (string, erro
 	if len(parts) == 0 {
 		return "", errors.New("human creation command path is missing")
 	}
-	entity := map[string]string{"task": "tasks", "group": "groups", "chain": "chains", "actor": "actors", "pairing": "pairings", "trigger": "triggers", "watcher": "watchers", "notification": "channels"}[parts[0]]
+	entity := map[string]string{"task": "tasks", "group": "groups", "chain": "chains", "join": "joins", "actor": "actors", "pairing": "pairings", "trigger": "triggers", "watcher": "watchers", "notification": "channels"}[parts[0]]
 	if len(parts) > 1 && parts[0] == "trigger" && parts[1] == "set" {
 		entity = "sets"
 	}

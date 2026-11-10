@@ -24,6 +24,13 @@ type fakeBackend struct {
 	fail         error
 }
 
+func (f *fakeBackend) ListJoins(context.Context) ([]domain.ParallelJoin, error) {
+	return []domain.ParallelJoin{}, nil
+}
+func (f *fakeBackend) ListJoinInstances(context.Context, domain.ParallelJoinInstanceFilter) ([]domain.ParallelJoinInstance, error) {
+	return []domain.ParallelJoinInstance{}, nil
+}
+
 func (f *fakeBackend) ListTaskDetails(context.Context, string, string) ([]server.TaskResponse, error) {
 	return f.tasks, f.fail
 }
@@ -60,7 +67,7 @@ func TestWorkspaceIsCompleteSecretFreeAndHonest(t *testing.T) {
 		sets:     []server.TriggerSetResponse{{ID: "set-1", Name: "Fleet", TargetTaskID: "task-1", TargetTaskName: "Build", MemberCount: 2, EnabledCount: 1, UpdatedAt: now, Members: []server.TriggerResponse{{ID: "member-1", Name: "Member", TargetTaskID: "task-1", TargetTaskName: "Build", SetPosition: 1, Enabled: true, Readiness: "ready", UpdatedAt: now}, {ID: "member-2", Name: "Paused", TargetTaskID: "task-1", TargetTaskName: "Build", SetPosition: 2, Enabled: false, Readiness: "disabled", Reason: "Trigger is disabled.", UpdatedAt: now}}}},
 		watchers: []server.FilesystemWatcherResponse{{ID: "watcher-1", Name: "Inbox", Kind: domain.WatcherDirectory, Path: `C:\very\long\inbox`, TargetTaskID: "task-1", TargetTaskName: "Build", Enabled: true, Health: domain.WatcherHealth{State: domain.WatcherDegraded, Reason: "permission denied"}, Readiness: "ready", UpdatedAt: now}},
 	}
-	result := NewService(fake).Workspace(context.Background())
+	result := NewService(fake).Workspace(context.Background(), true)
 	if result.Outcome != "accepted" || result.Workspace == nil {
 		t.Fatalf("result=%+v", result)
 	}
@@ -80,7 +87,7 @@ func TestWorkspaceIsCompleteSecretFreeAndHonest(t *testing.T) {
 }
 
 func TestWorkspaceRejectsPartialSnapshots(t *testing.T) {
-	result := NewService(&fakeBackend{fail: errors.New("offline")}).Workspace(context.Background())
+	result := NewService(&fakeBackend{fail: errors.New("offline")}).Workspace(context.Background(), true)
 	if result.Outcome != "unavailable" || result.Workspace != nil {
 		t.Fatalf("result=%+v", result)
 	}

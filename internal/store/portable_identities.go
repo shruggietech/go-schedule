@@ -47,6 +47,8 @@ func (s *Store) ObjectIDForPortableID(kind, portableID string) (string, error) {
 		table = "tasks"
 	case "chain":
 		table = "completion_chains"
+	case "join":
+		table = "parallel_joins"
 	case "external_trigger":
 		table = "external_triggers"
 	case "trigger_set":

@@ -243,7 +243,7 @@ func (s *Store) GetScheduleContext(ctx context.Context, id string) (domain.Sched
 // CreateTask inserts t, assigning an ID and timestamps when empty.
 func (s *Store) CreateTask(t *domain.Task) error {
 	normalizeTaskSchedulePolicy(t)
-	readiness := tasklogic.EvaluateReadiness(*t, false)
+	readiness := tasklogic.EvaluateReadiness(*t, tasklogic.Sources{})
 	if !readiness.CommandReady || !readiness.ActivationReady || t.State != domain.TaskActive {
 		t.Enabled = false
 	}
@@ -301,7 +301,11 @@ func (s *Store) UpdateTask(t *domain.Task) error {
 	if err != nil {
 		return err
 	}
-	readiness := tasklogic.EvaluateReadiness(*t, hasCompletion, hasTrigger, hasWatcher)
+	hasJoin, err := taskHasJoinSource(tx, t.ID)
+	if err != nil {
+		return err
+	}
+	readiness := tasklogic.EvaluateReadiness(*t, tasklogic.Sources{Completion: hasCompletion, Trigger: hasTrigger, Watcher: hasWatcher, Join: hasJoin})
 	if !readiness.CommandReady || !readiness.ActivationReady || t.State != domain.TaskActive {
 		t.Enabled = false
 	}
@@ -377,6 +381,7 @@ type TaskObservation struct {
 	HasCompletion    bool
 	HasTrigger       bool
 	HasWatcher       bool
+	HasJoin          bool
 }
 
 // ListTaskObservations returns a stable, page-sized task projection without
@@ -396,6 +401,7 @@ func (s *Store) ListTaskObservationsContext(ctx context.Context, groupID, state 
 	 EXISTS(SELECT 1 FROM completion_chains c WHERE c.target_task_id=t.id),
 	 EXISTS(SELECT 1 FROM external_triggers e WHERE e.target_task_id=t.id AND e.enabled=1),
 	 EXISTS(SELECT 1 FROM filesystem_watchers w WHERE w.target_task_id=t.id AND w.enabled=1),
+ ` + joinSourceExistsSQL("t.id") + `,
 	 s.id,s.kind,s.rrule,s.anchor,s.elapsed_epoch,s.run_at,s.trigger_id,s.calendar_adjustment,
 	 CAST(substr(CAST(s.human_summary AS BLOB),1,?) AS TEXT),
 	 CASE WHEN length(CAST(s.human_summary AS BLOB))>? THEN 1 ELSE 0 END
@@ -422,13 +428,13 @@ func (s *Store) ListTaskObservationsContext(ctx context.Context, groupID, state 
 	observations := make([]TaskObservation, 0, limit)
 	for rows.Next() {
 		var observation TaskObservation
-		var enabled, nameTruncated, summaryTruncated, commandReady, hasCompletion, hasTrigger, hasWatcher int
+		var enabled, nameTruncated, summaryTruncated, commandReady, hasCompletion, hasTrigger, hasWatcher, hasJoin int
 		var overlap, catchup, missingDate, timeBasis, dstGap, dstOverlap, stateValue, updated string
 		var scheduleID, scheduleKind, rrule, anchor, elapsedEpoch, runAt, triggerID, adjustment, summary sql.NullString
 		if err := rows.Scan(&observation.Task.ID, &observation.Task.Name, &nameTruncated,
 			&observation.Task.GroupID, &enabled, &observation.Task.Timezone, &observation.Task.ScheduleID,
 			&overlap, &catchup, &missingDate, &timeBasis, &dstGap, &dstOverlap, &stateValue, &updated, &commandReady,
-			&hasCompletion, &hasTrigger, &hasWatcher, &scheduleID, &scheduleKind, &rrule, &anchor, &elapsedEpoch, &runAt, &triggerID, &adjustment, &summary, &summaryTruncated); err != nil {
+			&hasCompletion, &hasTrigger, &hasWatcher, &hasJoin, &scheduleID, &scheduleKind, &rrule, &anchor, &elapsedEpoch, &runAt, &triggerID, &adjustment, &summary, &summaryTruncated); err != nil {
 			return nil, fmt.Errorf("store: scan task observation: %w", err)
 		}
 		observation.Task.Enabled = enabled != 0
@@ -449,6 +455,7 @@ func (s *Store) ListTaskObservationsContext(ctx context.Context, groupID, state 
 		observation.HasCompletion = hasCompletion != 0
 		observation.HasTrigger = hasTrigger != 0
 		observation.HasWatcher = hasWatcher != 0
+		observation.HasJoin = hasJoin != 0
 		if scheduleID.Valid {
 			sch := domain.Schedule{ID: scheduleID.String, Kind: domain.ScheduleKind(scheduleKind.String), RRULE: rrule.String, TriggerID: triggerID.String, CalendarAdjustment: domain.CalendarAdjustment(adjustment.String), HumanSummary: summary.String}
 			var parseErr error
@@ -502,7 +509,11 @@ func (s *Store) SetTaskEnabled(id string, enabled bool) error {
 		if err != nil {
 			return err
 		}
-		readiness := tasklogic.EvaluateReadiness(task, hasCompletion, hasTrigger, hasWatcher)
+		hasJoin, err := taskHasJoinSource(tx, id)
+		if err != nil {
+			return err
+		}
+		readiness := tasklogic.EvaluateReadiness(task, tasklogic.Sources{Completion: hasCompletion, Trigger: hasTrigger, Watcher: hasWatcher, Join: hasJoin})
 		switch {
 		case task.State != domain.TaskActive:
 			return ErrTaskTerminal
@@ -543,6 +554,12 @@ func (s *Store) DeleteTask(id string) error {
 		targets = append(targets, target)
 	}
 	if err := rows.Close(); err != nil {
+		return err
+	}
+	if err := s.deleteTaskJoinBindings(tx, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("DELETE FROM completion_deliveries WHERE role='chain' AND source_task_id=?", id); err != nil {
 		return err
 	}
 	res, err := tx.Exec(`DELETE FROM tasks WHERE id=?`, id)
@@ -657,7 +674,11 @@ func disableIfNotActivationReady(tx *sql.Tx, id string) error {
 	if err != nil {
 		return err
 	}
-	if task.ScheduleID == "" && !hasCompletion && !hasTrigger && !hasWatcher {
+	hasJoin, err := taskHasJoinSource(tx, id)
+	if err != nil {
+		return err
+	}
+	if task.ScheduleID == "" && !hasCompletion && !hasTrigger && !hasWatcher && !hasJoin {
 		_, err = tx.Exec(`UPDATE tasks SET enabled=0,updated_at=? WHERE id=?`, fmtTime(time.Now().UTC()), id)
 	}
 	return err
@@ -670,12 +691,7 @@ func (s *Store) CreateRun(r *domain.Run) error {
 	if r.ID == "" {
 		r.ID = newID()
 	}
-	_, err := s.db.Exec(
-		`INSERT INTO runs(id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed)
-		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		r.ID, r.TaskID, fmtTime(r.ScheduledFor), fmtTimePtr(r.StartedAt), fmtTimePtr(r.EndedAt),
-		string(r.Outcome), nullInt(r.ExitCode), r.Output, boolToInt(r.OutputTruncated), string(r.Trigger), nullStr(r.SourceTaskID), nullStr(r.SourceRunID), nullStr(r.SourceTriggerID), nullStr(r.SourceWatcherID), boolToInt(r.StartFailed),
-	)
+	_, err := insertRun(s.db, *r)
 	if err != nil {
 		return fmt.Errorf("store: create run: %w", err)
 	}
@@ -684,7 +700,7 @@ func (s *Store) CreateRun(r *domain.Run) error {
 
 // GetRun returns the run by exact ID, or ErrNotFound.
 func (s *Store) GetRun(id string) (domain.Run, error) {
-	row := s.db.QueryRow(`SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,output,output_truncated,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed FROM runs WHERE id=?`, id)
+	row := s.db.QueryRow(runSelect+` WHERE id=?`, id)
 	return scanRun(row)
 }
 
@@ -704,7 +720,7 @@ func (s *Store) ListRunsPage(taskID string, offset, limit, outputLimit int) ([]d
 		outputExpr = `COALESCE(CAST(substr(CAST(output AS BLOB),1,?) AS TEXT),''),CASE WHEN output_truncated=1 OR length(CAST(output AS BLOB))>? THEN 1 ELSE 0 END`
 		args = append(args, outputLimit, outputLimit)
 	}
-	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed FROM runs`
+	q := `SELECT id,task_id,scheduled_for,started_at,ended_at,outcome,exit_code,` + outputExpr + `,trigger,source_task_id,source_run_id,source_trigger_id,source_watcher_id,start_failed,delivery_id,join_instance_id,join_branch_id,join_role FROM runs`
 	if taskID != "" {
 		q += ` WHERE task_id=?`
 		args = append(args, taskID)
@@ -744,7 +760,7 @@ func scanRun(sc scanner) (domain.Run, error) {
 	var truncated, startFailed int
 	var outcome, trigger, scheduled string
 	var sourceTask, sourceRun, sourceTrigger, sourceWatcher sql.NullString
-	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun, &sourceTrigger, &sourceWatcher, &startFailed); err != nil {
+	if err := sc.Scan(&r.ID, &r.TaskID, &scheduled, &started, &ended, &outcome, &exit, &r.Output, &truncated, &trigger, &sourceTask, &sourceRun, &sourceTrigger, &sourceWatcher, &startFailed, &r.DeliveryID, &r.JoinInstanceID, &r.JoinBranchID, &r.JoinRole); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Run{}, ErrNotFound
 		}

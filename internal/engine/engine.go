@@ -57,16 +57,17 @@ type Engine struct {
 	cancellations map[string]*runCancellation
 	queued        map[string]pendingRun // one queued pending run, by task ID
 
-	reload       chan struct{}
-	ready        chan struct{}
-	readyOnce    sync.Once
-	runCtx       context.Context
-	runWG        sync.WaitGroup // tracks in-flight runs for graceful drain
-	onRun        func(domain.Run)
-	onRunStarted func(domain.Run)
-	onAlert      func(domain.Alert)
-	onNotify     func()
-	watchers     *watchruntime.Manager
+	reload                chan struct{}
+	ready                 chan struct{}
+	readyOnce             sync.Once
+	runCtx                context.Context
+	runWG                 sync.WaitGroup // tracks in-flight runs for graceful drain
+	onRun                 func(domain.Run)
+	onRunStarted          func(domain.Run)
+	onJoinInstanceChanged func(string)
+	onAlert               func(domain.Alert)
+	onNotify              func()
+	watchers              *watchruntime.Manager
 }
 
 // New constructs an Engine. workers bounds concurrent task executions.
@@ -100,6 +101,9 @@ func (e *Engine) SetOnRun(f func(domain.Run)) { e.onRun = f }
 // SetOnRunStarted registers a callback invoked after an execution becomes
 // visible in ActiveRuns and before the runner begins work.
 func (e *Engine) SetOnRunStarted(f func(domain.Run)) { e.onRunStarted = f }
+
+// SetOnJoinInstanceChanged reports committed resolutions that have no native Run.
+func (e *Engine) SetOnJoinInstanceChanged(f func(string)) { e.onJoinInstanceChanged = f }
 
 // SetOnAlert registers a callback invoked after each alert is raised (used to
 // stream alerts to GUI clients).
@@ -360,8 +364,16 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		defer e.runWG.Done()
 		e.sem <- struct{}{}
 		defer func() { <-e.sem }()
+		if origin.deliveryID != "" {
+			fresh, ok := e.eligibleCompletionTask(origin.deliveryID)
+			if !ok || e.runCtx.Err() != nil {
+				e.finish(task)
+				return
+			}
+			task = fresh
+		}
 		started := e.clk.Now().UTC()
-		active := domain.Run{ID: uuid.NewString(), TaskID: task.ID, ScheduledFor: scheduledFor, StartedAt: &started, Trigger: origin.trigger, SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID}
+		active := domain.Run{ID: uuid.NewString(), TaskID: task.ID, ScheduledFor: scheduledFor, StartedAt: &started, Trigger: origin.trigger, SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID, DeliveryID: origin.deliveryID, JoinInstanceID: origin.joinInstanceID, JoinBranchID: origin.joinBranchID, JoinRole: origin.joinRole}
 		runCtx, cancel := context.WithCancelCause(e.runCtx)
 		defer cancel(nil)
 		runCtx = runcontrol.WithFailureReporter(runCtx, func(err error) { e.cancellationFailed(active.ID, err) })
@@ -380,6 +392,10 @@ func (e *Engine) launch(task domain.Task, scheduledFor time.Time, origin dispatc
 		run.SourceRunID = origin.sourceRunID
 		run.SourceTriggerID = origin.sourceTriggerID
 		run.SourceWatcherID = origin.sourceWatcherID
+		run.DeliveryID = origin.deliveryID
+		run.JoinInstanceID = origin.joinInstanceID
+		run.JoinBranchID = origin.joinBranchID
+		run.JoinRole = origin.joinRole
 		if run.StartedAt == nil {
 			run.StartedAt = active.StartedAt
 		}
@@ -439,34 +455,21 @@ func (e *Engine) drainCompletionDeliveries() {
 			if e.runCtx.Err() != nil {
 				return
 			}
-			if _, err := e.store.GetCompletionChain(delivery.ChainID); err != nil {
-				e.resolveCompletionDelivery(delivery.ID, "completion chain no longer exists")
-				continue
-			}
-			task, err := e.store.GetTask(delivery.TargetTaskID)
-			if err != nil {
-				e.resolveCompletionDelivery(delivery.ID, "target task no longer exists")
-				continue
-			}
-			if !task.Enabled || task.State != domain.TaskActive {
-				e.resolveCompletionDelivery(delivery.ID, "target task is disabled or inactive")
-				continue
-			}
-			if enabled, err := e.store.GroupChainEnabled(task.GroupID); err != nil {
-				e.resolveCompletionDelivery(delivery.ID, "target group eligibility could not be read")
-				continue
-			} else if !enabled {
-				e.resolveCompletionDelivery(delivery.ID, "target group chain is disabled")
+			task, ok := e.eligibleCompletionTask(delivery.ID)
+			if !ok {
 				continue
 			}
 			e.log.Info("engine: dispatch completion delivery", "delivery", delivery.ID, "chain", delivery.ChainID,
 				"source_task", delivery.SourceTaskID, "source_run", delivery.SourceRunID, "target_task", delivery.TargetTaskID,
 				"attempt", delivery.Attempts)
 			e.dispatchWithOrigin(task, e.clk.Now(), dispatchOrigin{
-				trigger:      domain.TriggerCompletion,
-				sourceTaskID: delivery.SourceTaskID,
-				sourceRunID:  delivery.SourceRunID,
-				deliveryID:   delivery.ID,
+				trigger:        domain.TriggerCompletion,
+				sourceTaskID:   delivery.SourceTaskID,
+				sourceRunID:    delivery.SourceRunID,
+				deliveryID:     delivery.ID,
+				joinInstanceID: delivery.JoinInstanceID,
+				joinBranchID:   delivery.JoinBranchID,
+				joinRole:       completionJoinRole(delivery.Role),
 			})
 		}
 		if len(deliveries) < 100 {
@@ -475,12 +478,15 @@ func (e *Engine) drainCompletionDeliveries() {
 	}
 }
 
-func (e *Engine) resolveCompletionDelivery(id, reason string) {
+func (e *Engine) resolveCompletionDelivery(id, instanceID, reason string) {
 	if err := e.store.ResolveCompletionDelivery(id, reason); err != nil {
 		e.log.Error("engine: resolve completion delivery", "delivery", id, "reason", reason, "err", err)
 		return
 	}
 	e.log.Warn("engine: completion delivery resolved without execution", "delivery", id, "reason", reason)
+	if instanceID != "" && e.onJoinInstanceChanged != nil {
+		e.onJoinInstanceChanged(instanceID)
+	}
 }
 
 // finish marks a task no longer running and dispatches any queued pending run.
@@ -499,6 +505,14 @@ func (e *Engine) finish(task domain.Task) {
 	}
 	e.mu.Unlock()
 	if queued {
+		if pending.origin.deliveryID != "" {
+			fresh, ok := e.eligibleCompletionTask(pending.origin.deliveryID)
+			if !ok {
+				e.finish(task)
+				return
+			}
+			task = fresh
+		}
 		e.launch(task, pending.scheduledFor, pending.origin)
 	}
 }

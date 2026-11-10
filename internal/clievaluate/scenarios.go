@@ -385,7 +385,7 @@ func (s *session) persistedIntent(definition step, args []string, before, after 
 	if definition.Spec.ScenarioClass == "local-persistence" {
 		return true
 	}
-	entity := map[string]string{"task": "tasks", "group": "groups", "chain": "chains", "trigger": "triggers", "watcher": "watchers", "actor": "actors", "credential": "credentials"}[root[0]]
+	entity := map[string]string{"task": "tasks", "group": "groups", "chain": "chains", "join": "joins", "trigger": "triggers", "watcher": "watchers", "actor": "actors", "credential": "credentials"}[root[0]]
 	if root[0] == "trigger" && len(root) > 1 && root[1] == "set" {
 		entity = "sets"
 	}
@@ -405,7 +405,7 @@ func (s *session) persistedIntent(definition step, args []string, before, after 
 	if _, exists := fieldAt(after, entity+"."+id); !exists {
 		return false
 	}
-	fields := map[string]string{"name": "name", "task": "target_task_id", "source": "source_task_id", "target": "target_task_id", "capability": "capability", "state": "state", "pattern": "pattern", "kind": "kind", "path": "path", "recursive": "recursive", "on": "on_outcome"}
+	fields := map[string]string{"name": "name", "task": "target_task_id", "source": "source_task_id", "entry": "entry_task_id", "target": "target_task_id", "capability": "capability", "state": "state", "pattern": "pattern", "kind": "kind", "path": "path", "recursive": "recursive", "on": "on_outcome"}
 	for i, arg := range args {
 		if !strings.HasPrefix(arg, "--") {
 			continue
@@ -443,6 +443,9 @@ func (s *session) persistedIntent(definition step, args []string, before, after 
 }
 
 func (s *session) after(ctx context.Context, definition step, result execution, body any) (bool, any, error) {
+	if strings.HasPrefix(definition.Hook, "join-") && result.Code == 0 {
+		return s.joinPost(ctx, definition)
+	}
 	if strings.HasPrefix(definition.Spec.ID, "smtp.") {
 		return s.smtpPost(ctx, definition, result)
 	}

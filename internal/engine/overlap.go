@@ -21,6 +21,9 @@ type dispatchOrigin struct {
 	sourceTriggerID string
 	sourceWatcherID string
 	deliveryID      string
+	joinInstanceID  string
+	joinBranchID    string
+	joinRole        string
 }
 
 // dispatch applies the task's overlap policy and either runs the task now,
@@ -45,6 +48,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 				TaskID: task.ID, ScheduledFor: scheduledFor,
 				Outcome: domain.OutcomeSkipped, Trigger: origin.trigger,
 				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID,
+				DeliveryID: origin.deliveryID, JoinInstanceID: origin.joinInstanceID, JoinBranchID: origin.joinBranchID, JoinRole: origin.joinRole,
 			}, origin.deliveryID)
 			return
 
@@ -55,9 +59,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 			if _, already := e.queued[task.ID]; already {
 				e.mu.Unlock()
 				if origin.deliveryID != "" {
-					if err := e.store.ResolveCompletionDelivery(origin.deliveryID, "collapsed by queue-one overlap policy"); err != nil {
-						e.log.Error("engine: resolve collapsed completion delivery", "delivery", origin.deliveryID, "err", err)
-					}
+					e.resolveCompletionDelivery(origin.deliveryID, origin.joinInstanceID, "collapsed by queue-one overlap policy")
 				}
 				return // one already pending; drop extra triggers
 			}
@@ -71,6 +73,7 @@ func (e *Engine) dispatchWithOrigin(task domain.Task, scheduledFor time.Time, or
 				TaskID: task.ID, ScheduledFor: scheduledFor,
 				Outcome: domain.OutcomeQueued, Trigger: origin.trigger,
 				SourceTaskID: origin.sourceTaskID, SourceRunID: origin.sourceRunID, SourceTriggerID: origin.sourceTriggerID, SourceWatcherID: origin.sourceWatcherID,
+				DeliveryID: origin.deliveryID, JoinInstanceID: origin.joinInstanceID, JoinBranchID: origin.joinBranchID, JoinRole: origin.joinRole,
 			}, "")
 			return
 		}

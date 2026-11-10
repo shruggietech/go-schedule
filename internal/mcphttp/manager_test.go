@@ -378,7 +378,7 @@ func TestOfficialSDKHTTPDiscoveryAndSupportedRevisions(t *testing.T) {
 		t.Fatal("HTTP advertised tools")
 	}
 	resources, err := session.ListResources(ctx, nil)
-	if err != nil || len(resources.Resources) != 6 {
+	if err != nil || len(resources.Resources) != 8 {
 		t.Fatalf("resources=%+v err=%v", resources, err)
 	}
 	if _, err := session.ReadResource(ctx, &mcp.ReadResourceParams{URI: resources.Resources[0].URI}); err != nil {
@@ -512,7 +512,7 @@ func TestManageHTTPDiscoveryIncludesOperateAndConfirmationPolicy(t *testing.T) {
 	}
 	defer session.Close()
 	listed, err := session.ListTools(ctx, nil)
-	if err != nil || len(listed.Tools) != 10 {
+	if err != nil || len(listed.Tools) != 11 {
 		t.Fatalf("tools=%+v err=%v", listed, err)
 	}
 	if _, err := manager.Disable(context.Background()); err != nil {

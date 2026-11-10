@@ -137,6 +137,7 @@ func runDaemon(ctx context.Context, cfg config.Config, configPath string) error 
 	go func() { notifyErr <- dispatcher.Run(ctx) }()
 	eng.SetOnRun(broker.PublishRun)
 	eng.SetOnRunStarted(broker.PublishRun)
+	eng.SetOnJoinInstanceChanged(broker.PublishJoinInstance)
 	eng.SetOnAlert(broker.PublishAlert)
 	eng.SetOnNotificationCommitted(dispatcher.Wake)
 	eng.SetOnWatcherHealth(func(watcher domain.FilesystemWatcher, health domain.WatcherHealth) {

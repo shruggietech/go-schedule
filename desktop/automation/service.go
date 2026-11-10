@@ -21,7 +21,7 @@ type Service struct{ backend Backend }
 
 func NewService(backend Backend) *Service { return &Service{backend: backend} }
 
-func (s *Service) Workspace(ctx context.Context) OperationResult {
+func (s *Service) Workspace(ctx context.Context, joinsSupported bool) OperationResult {
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 	tasks, err := s.backend.ListTaskDetails(c, "", "")
@@ -45,6 +45,19 @@ func (s *Service) Workspace(ctx context.Context) OperationResult {
 		return failure("load", err)
 	}
 	workspace := buildWorkspace(tasks, chains, triggers, sets, watchers)
+	workspace.Joins = []domain.ParallelJoin{}
+	workspace.JoinInstances = []domain.ParallelJoinInstance{}
+	if joinsSupported {
+		joins, err := s.backend.ListJoins(c)
+		if err != nil {
+			return failure("load", err)
+		}
+		instances, err := s.backend.ListJoinInstances(c, domain.ParallelJoinInstanceFilter{Limit: 100})
+		if err != nil {
+			return failure("load", err)
+		}
+		workspace.Joins, workspace.JoinInstances = joins, instances
+	}
 	return accepted("load", "Automation sources are up to date.", "", &workspace)
 }
 
@@ -329,7 +342,7 @@ func (s *Service) mutate(ctx context.Context, action, id string, fn func(context
 	return s.refreshed(ctx, action, "Automation source action accepted.", id)
 }
 func (s *Service) refreshed(ctx context.Context, action, message, id string) OperationResult {
-	loaded := s.Workspace(ctx)
+	loaded := s.Workspace(ctx, joinSupport(ctx))
 	if loaded.Outcome != "accepted" {
 		return accepted(action, message+" Refresh the workspace to see the latest state.", id, nil)
 	}
@@ -373,6 +386,18 @@ func secretRejected(action, field, message string) SecretResult {
 }
 func failure(action string, err error) OperationResult {
 	outcome, field, message := safeError(err)
+	var status *client.StatusError
+	if action == "save_join" && errors.As(err, &status) && status.Code == server.CodeConflict {
+		return staleResult(action, "")
+	}
+	if action == "save_join" && status != nil && status.Code == server.CodeValidation {
+		if strings.HasPrefix(status.Field, "branches") {
+			field = "branches"
+		}
+		if len(status.Message) > 0 && len(status.Message) <= 512 && !strings.ContainsAny(status.Message, "\r\n\x00") {
+			message = status.Message
+		}
+	}
 	return OperationResult{Action: action, Outcome: outcome, Field: field, Message: message}
 }
 func secretFailure(action string, err error) SecretResult {
@@ -380,14 +405,21 @@ func secretFailure(action string, err error) SecretResult {
 	return SecretResult{Action: action, Outcome: outcome, Field: field, Message: message}
 }
 func safeError(err error) (string, string, string) {
+	var uncertain *client.MutationUncertainError
+	if errors.As(err, &uncertain) {
+		return "uncertain", "", "The request may have completed. Refresh this scheduler before deciding whether to try again."
+	}
 	var status *client.StatusError
 	if errors.As(err, &status) {
-		fields := map[string]string{"name": "name", "source_task_id": "sourceTaskId", "target_task_id": "targetTaskId", "on_outcome": "onOutcome", "kind": "kind", "path": "path", "pattern": "pattern", "debounce": "debounce", "stability": "stability", "count": "count"}
+		if status.Code == server.CodeAuditUnavailable || status.Code == server.CodeInternal {
+			return "uncertain", "", "The scheduler could not prove the mutation outcome. Refresh authoritative state before deciding whether to retry."
+		}
+		fields := map[string]string{"entry_task_id": "entryTaskId", "branches": "branches", "name": "name", "source_task_id": "sourceTaskId", "target_task_id": "targetTaskId", "on_outcome": "onOutcome", "kind": "kind", "path": "path", "pattern": "pattern", "debounce": "debounce", "stability": "stability", "count": "count"}
 		field := fields[status.Field]
 		if status.Code == server.CodeNotFound {
 			return "rejected", field, "The selected automation source no longer exists."
 		}
 		return "rejected", field, "The request was rejected. Review the highlighted field and try again."
 	}
-	return "unavailable", "", "The local scheduler service is unavailable. Try again."
+	return "unavailable", "", "The selected scheduler service is unavailable. Try again."
 }

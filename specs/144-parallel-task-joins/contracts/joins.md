@@ -1,0 +1,35 @@
+# S144 shared contracts
+
+## Domain and store
+
+Use the domain structures named in data-model.md. Definition display and instance observations include BranchCount, BranchOffset and HasMoreBranches metadata so bounded nested reads never imply a complete branch list. Instance filters have DefinitionID, EntryRunID, State, Offset, Limit, TextLimit, BranchOffset and BranchLimit. Zero internal branch/text limits mean full data; public bounded callers pass explicit limits. No new product branch-count eligibility restriction is introduced.
+
+Store methods: CreateParallelJoin(*ParallelJoin), UpdateParallelJoin(*ParallelJoin), UpdateParallelJoinIfUnchanged(*ParallelJoin,*time.Time), ReplaceParallelJoins([]ParallelJoin), GetParallelJoin(id), ListParallelJoins(), DeleteParallelJoin(id), GetParallelJoinInstance(id), ListParallelJoinInstances(filter), GetCompletionDelivery(id), CompletionDeliveryReady(id) (bool,reason,error). Add bounded definition and exact-instance page variants taking offset/limit/text/branch paging. A shared ReplaceAutomationRelationships(chains,joins) transaction validates the final mixed graph and replaces selected identities while retaining target-only records and immutable runtime snapshots. Update revision mismatch maps to conflict; normal update without precondition is explicit overwrite.
+
+Run fields are DeliveryID, JoinInstanceID, JoinBranchID and JoinRole, all optional snake_case JSON. Delivery Role values are chain/join_branch/join_target; JoinBranchID refers to instance invocation ID. Ordinary and join final evidence use the same native result path. Snapshot readiness is retained while old bindings still own pending work. Typed task.Sources has Completion, Trigger, Watcher and Join booleans; EvaluateReadiness(task,sources) replaces positional optional flags coherently.
+
+## API/client
+
+Definitions: GET/POST /v1/joins; GET/PATCH/DELETE /v1/joins/{id}. Observations: GET /v1/join-instances with join_id, entry_run_id, state, offset, limit and bounded text/branch parameters; GET /v1/join-instances/{id} with branch paging. Remote equivalents use /api/v1 and the same authority/identity handlers. Create=201, reads/update=200, delete=204; established validation/not-found/conflict/authority/audit errors remain. Reads Observe/RetrySafe; definition writes Manage/RetryNever/AuditMutation. Advertise parallel-joins capability. Also register current chain CRUD in remote operations so the full Automation workspace loads.
+
+DTO names JoinCreateRequest and JoinUpdateRequest; fields name, entry_task_id, branches and target_task_id; PATCH pointer semantics plus optional expected_updated_at for atomic stale protection. Client methods CreateJoin, ListJoins, GetJoin, UpdateJoin, DeleteJoin, ListJoinInstances and GetJoinInstance, with bounded page variants for MCP. Collections use joins/instances envelopes. Sample active metadata before persisted instance observations so persisted terminal evidence wins. Do not expose execution inputs or output through joins.
+
+## CLI, MCP and desktop
+
+CLI primary family: join create/list/show/update/rm/instances/instance. Use existing human/JSON conventions; create/update accepts structured branches from --branches-file path|- rather than a delimiter grammar, with --name/--entry/--target scalar flags. Exact instance inspection remains available outside recent pages.
+
+MCP adds joins_manage using current Manage action/daemon/request-ID cache/revocation/confirmation policy. Observe adds goschedule://joins/definitions and goschedule://joins/instances with ordinary continuation pages plus exact-definition/exact-instance and branch-page templates as needed. Bound at storage/API query and expose count/truncation/continuation for nested branches. No raw execution or process output. Final resource/template/tool counts are asserted from actual registration.
+
+Desktop Automation adds definition authoring and exact instance inspection with selected targetName, captured daemonID, current connection and Manage guard. Observe can read. Drafts retain branch IDs and originalUpdatedAt; overwrite is explicit and uncertainty is not overwrite. Shared Automation mutation classification includes ordinary/secret results; failed refresh never clears uncertainty. Event invalidation uses join definition changes and real task/run/chain events; no native process polling. Activity shows optional join/delivery identities on actual runs and retains S143 exact-run cancellation. Portable v3 joins preserve branch IDs/names and remap all task references, omit runtime state and participate in drift/final mixed-cycle validation.
+
+## Settled signature details
+
+Store page variants: ListParallelJoinsPage(offset,limit,textLimit,branchOffset,branchLimit), GetParallelJoinPage(id,branchOffset,branchLimit,textLimit), GetParallelJoinInstancePage(id,branchOffset,branchLimit,textLimit). Supply Context variants of bounded reads so API/MCP request cancellation covers SQL pool waits. Instance filter carries Offset/Limit/TextLimit/BranchOffset/BranchLimit. Shared replacement signature ReplaceAutomationRelationships(chains []domain.CompletionChain, joins []domain.ParallelJoin) error replaces only submitted identities, retaining other records. Store stale update uses UpdateParallelJoinIfUnchanged(join,*time.Time), mapping ErrStaleJoin to409. Definition branches preserve supplied IDs, generate missing IDs on create/new rows, and have unique nonempty names within a definition; repeated TaskID is valid.
+
+Instance persisted states are waiting, blocked, target_pending, completed, resolved; delivery phases plus active metadata distinguish admitted/claimed/running work. Runtime BranchID field is the definition slot identity; invocation ID is the distinct ParallelJoinInvocation.ID referenced by Delivery.JoinBranchID. Instance.DefinitionID is the historical definition snapshot identifier. Run.JoinRole values branch/target, and Run.DeliveryID identifies exact native work. There is no redundant Run.JoinID or new running-state table.
+
+## Full-fidelity authoring after final review
+
+GET /v1/joins/{id}/definition (remote /api/v1/joins/{id}/definition), operation joins.definition.read, is a Manage-authorized audited privileged read and retry-safe. It returns complete writable ID/name/task-reference/revision fields, with branch_offset/branch_limit paging and without task display labels or runtime data. Client GetJoinDefinition assembles branch pages only while the definition revision remains unchanged. Default list/detail Observe and MCP/runtime projections retain their existing text and row bounds.
+
+Desktop Edit explicitly hydrates this authoring snapshot before creating a draft; late or failed loads cannot seed a writable partial form. Save compares against a fresh full definition and sends only changed fields, enforcing stale revision rejection and store CAS. No-op edits perform no mutation. Join create/update use strict single-document JSON and the existing 2 MiB configuration-operation budget on local/remote transports, retaining MIME, identity, authority and audit checks. No per-name ban or unbounded transport mode is introduced.

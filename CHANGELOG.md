@@ -10,15 +10,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Cancel an exact active Run ID through local/remote API, CLI, controlled MCP and desktop Activity. Retain actual native exit/output, distinguish requested from terminated or unconfirmed cleanup, keep unreaped work owned, and preserve task scheduling and other concurrent executions (S143, #465).
 
+- Correlate entry-owned parallel task invocations and admit one target after every exact branch succeeds, with durable restart-aware state, bounded observation, CLI/API/MCP/desktop authoring and portable version 3 definitions (S144, #470).
+
 ### Fixed
 
 - Negotiate desktop connections using supported API v1 instead of rejecting v2.x product versions (#466).
 - Retain per-task overlap accounting until every concurrent execution finishes (#467).
 - Refresh selected exact Activity runs without replacing their view with the bounded recent list (#468).
 
+- Revalidate queued automatic work against current task/group and relationship eligibility before native execution (#471).
+- Preserve uncertain Automation mutation outcomes across failed refreshes, prevent duplicate in-flight submissions and enable the full identity-pinned remote Automation workspace (#472, #470).
+- Allow complete join branch replacements to remove slots without retaining stale observation counts, and preserve existing Automation workspaces when the selected scheduler does not support joins (#474, #475).
+- Preserve complete join and branch names during edits by loading full authoring data and sending only changed fields, retaining bounded observations and explicit truncation output (#476).
+
 ### Decisions
 
 - 2026-11-09 (S143): own exact Windows jobs and Unix process groups before execution, retain ordinary command/background behavior and intentional native breakaway, and apply one five-second cleanup allowance only after cancellation. Retain ownership and capacity after unconfirmed cleanup. Store distinct terminal outcomes in existing schema 24, suppress cancellation chains and outbound policy streak changes, and expose bounded active-run discovery to MCP. Public v2.0.3 and existing release/native-testing disclosures remain unchanged.
+
+- 2026-11-10 (S144): reuse completion deliveries for named branch invocations and atomic all-success target admission, with typed automatic sources, immutable instance snapshots, schema 25, mixed chain/join graph validation and portable v3 configuration. Keep current execution authority and overlap policy, exact native cancellation, the at-least-once external crash boundary and future-only edits. Advance the dependent-workflow capability without claiming full visual parity, changing historical comparison snapshots or resuming owner-deferred clusters.
 
 ### Changed
 

@@ -28,11 +28,11 @@ func TestConformanceDiscoveryIsObserveOnlyAndHostileContentCannotEscalate(t *tes
 	}
 	defer session.Close()
 	resources, err := session.ListResources(ctx, nil)
-	if err != nil || len(resources.Resources) != 6 {
+	if err != nil || len(resources.Resources) != 8 {
 		t.Fatalf("resources=%+v err=%v", resources, err)
 	}
 	templates, err := session.ListResourceTemplates(ctx, nil)
-	if err != nil || len(templates.ResourceTemplates) != 5 {
+	if err != nil || len(templates.ResourceTemplates) != 11 {
 		t.Fatalf("templates=%+v err=%v", templates, err)
 	}
 	tools, err := session.ListTools(ctx, nil)
@@ -66,7 +66,7 @@ func TestConformanceDefinitionsHaveExactJSONContract(t *testing.T) {
 		}
 		seen[definition.uri] = true
 	}
-	if len(seen) != 6 {
+	if len(seen) != 8 {
 		t.Fatalf("resource count = %d", len(seen))
 	}
 }

@@ -137,15 +137,15 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 					t.Error("complete snapshot lost owned task")
 					return
 				}
-				if len(d.requests) != 10 {
-					t.Errorf("request observations %d, want 10", len(d.requests))
+				if len(d.requests) != 11 {
+					t.Errorf("request observations %d, want 11", len(d.requests))
 					return
 				}
 			}
 		}()
 	}
 	wg.Wait()
-	t.Log("32 complete snapshots, 320 typed requests over the owned native IPC endpoint, no retries")
+	t.Log("32 complete snapshots, 352 typed requests over the owned native IPC endpoint, no retries")
 	t.Run("held_request_cancellation", func(t *testing.T) {
 		holdCredentials.Store(true)
 		defer holdCredentials.Store(false)
@@ -234,7 +234,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 		// The create request releases both reads at server receipt, so reads
 		// and writes proceed together over the shared store. Channels establish overlap without sleeps or retries.
 		var workers sync.WaitGroup
-		requests := []string{"tasks", "groups", "chains", "triggers", "sets", "watchers", "channels", "actors", "credentials", "pairings", "profiles", "host_intents", "preferences"}
+		requests := []string{"tasks", "groups", "chains", "joins", "triggers", "sets", "watchers", "channels", "actors", "credentials", "pairings", "profiles", "host_intents", "preferences"}
 		for round := 0; round < 16; round++ {
 			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			gate := &ownedSnapshotGate{ready: make(chan struct{}, 2), release: make(chan struct{})}
@@ -257,8 +257,8 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 					if _, ok := fieldAt(snapshot, "tasks."+task.ID); !ok {
 						t.Error("mixed complete snapshot lost owned task")
 					}
-					if len(d.requests) != 10 {
-						t.Errorf("mixed request observations %d, want 10", len(d.requests))
+					if len(d.requests) != 11 {
+						t.Errorf("mixed request observations %d, want 11", len(d.requests))
 					}
 				}()
 			}
@@ -298,7 +298,7 @@ func testOwnedIPCSnapshots(t *testing.T, storage string) {
 		if err != nil || len(groups) != 0 {
 			t.Fatalf("mixed mutation state: groups=%+v error=%v", groups, err)
 		}
-		t.Logf("%s: 32 complete snapshots overlap exactly 16 create/delete pairs, all 13 state keys retained", storage)
+		t.Logf("%s: 32 complete snapshots overlap exactly 16 create/delete pairs, all 14 state keys retained", storage)
 	})
 
 	// A successful recorded host command must not become a failed command when

@@ -93,6 +93,14 @@ func safeDomainEvent(event events.Event) (string, string) {
 		if event.Group != nil {
 			return "group." + string(event.Group.Verb), event.Group.ID
 		}
+	case events.KindJoin:
+		if event.Join != nil {
+			return "join." + string(event.Join.Verb), event.Join.ID
+		}
+	case events.KindJoinInstance:
+		if event.JoinInstance != nil {
+			return "join_instance.changed", event.JoinInstance.ID
+		}
 	case events.KindChain:
 		if event.Chain != nil {
 			return "chain." + string(event.Chain.Verb), event.Chain.ID

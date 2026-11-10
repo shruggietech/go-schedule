@@ -167,7 +167,7 @@ func TestCurrentSchemaTasksIdempotentReopen(t *testing.T) {
 	defer func() { _ = st2.Close() }()
 
 	var rows int
-	if err := st2.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=24`).Scan(&rows); err != nil {
+	if err := st2.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=25`).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 1 {

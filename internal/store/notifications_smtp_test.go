@@ -18,7 +18,7 @@ func TestCurrentNotificationSchemaPreservesWebhookState(t *testing.T) {
 		t.Fatal(err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err = db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(24);"); err != nil {
+	if _, err = db.Exec(currentSchema + "INSERT INTO schema_version(version) VALUES(25);"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -69,7 +69,7 @@ func TestCurrentNotificationSchemaPreservesWebhookState(t *testing.T) {
 		}
 	}
 	var v int
-	if err := st.db.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&v); err != nil || v != 24 {
+	if err := st.db.QueryRow("SELECT MAX(version) FROM schema_version").Scan(&v); err != nil || v != 25 {
 		t.Fatalf("version %d %v", v, err)
 	}
 	var table string
