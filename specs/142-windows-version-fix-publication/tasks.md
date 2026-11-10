@@ -16,8 +16,8 @@
 
 ## Current discovery and closeout
 
-- [ ] T006 Reconcile current docs and fallback with actual public v2.0.3 (FR-003).
-- [ ] T007 Verify historical integrity, privacy and final lifecycle records (FR-005, FR-006).
+- [x] T006 Reconcile current docs and fallback with actual public v2.0.3 (FR-003).
+- [x] T007 Verify historical integrity, privacy and final lifecycle records (FR-005, FR-006).
 
 ## Dependencies and strategy
 
