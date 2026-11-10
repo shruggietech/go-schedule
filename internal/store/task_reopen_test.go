@@ -167,10 +167,10 @@ func TestCurrentSchemaTasksIdempotentReopen(t *testing.T) {
 	defer func() { _ = st2.Close() }()
 
 	var rows int
-	if err := st2.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=25`).Scan(&rows); err != nil {
+	if err := st2.db.QueryRow(`SELECT COUNT(*) FROM schema_version WHERE version=?`, currentSchemaVersion).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 1 {
-		t.Fatalf("bootstrap v5 recorded %d times, want exactly 1", rows)
+		t.Fatalf("current bootstrap marker recorded %d times, want exactly 1", rows)
 	}
 }

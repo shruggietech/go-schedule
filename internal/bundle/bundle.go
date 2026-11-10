@@ -23,6 +23,9 @@ const SchemaV2 = "go-schedule.bundle/v2"
 // SchemaV3 adds exact named parallel block definitions without runtime state.
 const SchemaV3 = "go-schedule.bundle/v3"
 
+// SchemaV4 adds correlated recovery and cleanup configuration without runtime state.
+const SchemaV4 = "go-schedule.bundle/v4"
+
 // Document carries portable automation intent. It deliberately has no daemon
 // identity, credentials, raw trigger keys, notification endpoints, run history,
 // command, working directory, environment, or run-as identity.
@@ -152,11 +155,12 @@ type Item struct {
 // Plan records a deterministic, reviewed comparison of one document and one
 // selected daemon snapshot. Apply must echo every binding value.
 type Plan struct {
-	ID                string `json:"id"`
-	BundleDigest      string `json:"bundle_digest"`
-	TargetDaemonID    string `json:"target_daemon_id"`
-	TargetFingerprint string `json:"target_fingerprint"`
-	Items             []Item `json:"items"`
+	ID                   string   `json:"id"`
+	BundleDigest         string   `json:"bundle_digest"`
+	TargetDaemonID       string   `json:"target_daemon_id"`
+	TargetFingerprint    string   `json:"target_fingerprint"`
+	Items                []Item   `json:"items"`
+	RequiredCapabilities []string `json:"required_capabilities,omitempty"`
 }
 
 // Decode rejects unknown and trailing JSON so a reviewed bundle always has the
@@ -204,6 +208,7 @@ func Canonicalize(doc Document) (Document, []byte, string, []Issue) {
 	}
 	sort.Slice(doc.SMTPChannels, func(i, j int) bool { return doc.SMTPChannels[i].Name < doc.SMTPChannels[j].Name })
 	for i := range doc.Joins {
+		normalizeJoinRecovery(&doc.Joins[i])
 		doc.Joins[i].Name = strings.TrimSpace(doc.Joins[i].Name)
 		for j := range doc.Joins[i].Branches {
 			doc.Joins[i].Branches[j].Name = strings.TrimSpace(doc.Joins[i].Branches[j].Name)
@@ -242,7 +247,7 @@ func issueKey(issue Issue) string {
 // Validate checks the versioned format, durable identities, and cross-object references.
 func Validate(doc Document) []Issue {
 	issues := validateSMTPChannels(doc)
-	if doc.Schema != SchemaV1 && doc.Schema != SchemaV2 && doc.Schema != SchemaV3 {
+	if doc.Schema != SchemaV1 && doc.Schema != SchemaV2 && doc.Schema != SchemaV3 && doc.Schema != SchemaV4 {
 		issues = append(issues, Issue{Kind: "schema", Message: fmt.Sprintf("unsupported bundle schema %q", doc.Schema)})
 	}
 	if doc.Schema == SchemaV1 && (len(doc.ExternalTriggers) > 0 || len(doc.TriggerSets) > 0 || len(doc.Watchers) > 0 || len(doc.NotificationPolicies) > 0 || len(doc.SMTPChannels) > 0) {
@@ -465,7 +470,7 @@ func Fingerprint(target Document) string { _, _, digest, _ := Canonicalize(targe
 func Preview(id, daemonID string, source, target Document) Plan {
 	canonical, _, digest, issues := Canonicalize(source)
 	target, _, _, _ = Canonicalize(target)
-	plan := Plan{ID: id, BundleDigest: digest, TargetDaemonID: daemonID, TargetFingerprint: Fingerprint(target), Items: make([]Item, 0)}
+	plan := Plan{RequiredCapabilities: RequiredCapabilities(canonical), ID: id, BundleDigest: digest, TargetDaemonID: daemonID, TargetFingerprint: Fingerprint(target), Items: make([]Item, 0)}
 	if len(issues) > 0 {
 		for _, issue := range issues {
 			plan.Items = append(plan.Items, Item{Kind: issue.Kind, PortableID: issue.Identity, Action: ActionInvalid, Message: issue.Message})

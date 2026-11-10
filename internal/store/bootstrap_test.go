@@ -15,8 +15,8 @@ func TestCurrentBootstrapRecordsOneMarker(t *testing.T) {
 	if err := st.db.QueryRow("SELECT COUNT(*), MAX(version) FROM schema_version").Scan(&count, &version); err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 || version != 25 {
-		t.Fatalf("fresh marker rows=%d version=%d; want one marker24", count, version)
+	if count != 1 || version != currentSchemaVersion {
+		t.Fatalf("fresh marker rows=%d version=%d; want one current marker", count, version)
 	}
 	var enabled int
 	if err := st.db.QueryRow("PRAGMA foreign_keys").Scan(&enabled); err != nil || enabled != 1 {
@@ -27,7 +27,7 @@ func TestCurrentBootstrapRecordsOneMarker(t *testing.T) {
 func TestUnsupportedStoreRefusesWithoutChangingFile(t *testing.T) {
 	for _, seed := range []string{
 		"CREATE TABLE unrelated(value TEXT); INSERT INTO unrelated VALUES('keep');",
-		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(25);",
+		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(26);",
 		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(23);",
 		"CREATE TABLE schema_version(version INTEGER NOT NULL); INSERT INTO schema_version VALUES(25);",
 	} {
@@ -114,7 +114,7 @@ func TestCurrentStorePreservesAcceptedMarkerHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for version := 1; version < 25; version++ {
+	for version := 1; version < currentSchemaVersion; version++ {
 		if _, err := db.Exec("INSERT INTO schema_version VALUES(?)", version); err != nil {
 			t.Fatal(err)
 		}
@@ -129,7 +129,7 @@ func TestCurrentStorePreservesAcceptedMarkerHistory(t *testing.T) {
 	}
 	defer st.Close()
 	var markers, groups int
-	if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version").Scan(&markers); err != nil || markers != 25 {
+	if err := st.db.QueryRow("SELECT COUNT(*) FROM schema_version").Scan(&markers); err != nil || markers != currentSchemaVersion {
 		t.Fatalf("marker history changed: %d %v", markers, err)
 	}
 	if err := st.db.QueryRow("SELECT COUNT(*) FROM groups WHERE id='persisted'").Scan(&groups); err != nil || groups != 1 {

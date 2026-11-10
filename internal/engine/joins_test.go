@@ -22,8 +22,13 @@ func TestS144ParallelBlockOwnsExactSameTaskBranches(t *testing.T) {
 		t.Fatal(err)
 	}
 	runner := &completionRunner{outcomes: map[string]domain.RunOutcome{}, runs: make(chan domain.Run, 8)}
-	e := newEngine(st, runner)
+	e, stop := startCompletionEngine(t, st, runner)
+	defer stop()
 	e.dispatch(entry, time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC), domain.TriggerManual)
+	waitFor(t, func() bool {
+		instances, err := st.ListParallelJoinInstances(domain.ParallelJoinInstanceFilter{DefinitionID: join.ID})
+		return err == nil && len(instances) == 1 && instances[0].State == domain.JoinInstanceCompleted
+	}, "exact join terminal decision")
 	e.runWG.Wait()
 	instances, err := st.ListParallelJoinInstances(domain.ParallelJoinInstanceFilter{DefinitionID: join.ID})
 	if err != nil {
@@ -101,8 +106,13 @@ func TestS144CanceledBranchBlocksOnlyItsInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 	runner := &completionRunner{outcomes: map[string]domain.RunOutcome{branch.ID: domain.OutcomeCanceled}, runs: make(chan domain.Run, 4)}
-	e := newEngine(st, runner)
+	e, stop := startCompletionEngine(t, st, runner)
+	defer stop()
 	e.dispatch(entry, time.Now().UTC(), domain.TriggerManual)
+	waitFor(t, func() bool {
+		instances, err := st.ListParallelJoinInstances(domain.ParallelJoinInstanceFilter{DefinitionID: join.ID})
+		return err == nil && len(instances) == 1 && instances[0].State == domain.JoinInstanceBlocked && instances[0].Branches[0].Outcome == domain.OutcomeCanceled
+	}, "exact join terminal decision")
 	e.runWG.Wait()
 	instances, err := st.ListParallelJoinInstances(domain.ParallelJoinInstanceFilter{DefinitionID: join.ID})
 	if err != nil {

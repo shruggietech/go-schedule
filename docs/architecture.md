@@ -60,3 +60,15 @@ Definition edits affect future instances; deletion explicitly resolves decisions
 This implements a bounded parallel/all-success workflow increment. The published v2.0.3 competitor matrix and historical review snapshots remain unchanged; neither a full visual workflow language nor deferred clustered scheduling is claimed.
 
 Join authoring uses a separate audited Manage configuration projection with full writable names and consistent branch pages. SQL omits task display labels at the source, while ordinary Observe/MCP/runtime reads retain their limits. The editor hydrates this projection before opening and uses sparse revision-checked updates; it never treats an observation prefix as complete editable state. Join-only strict JSON request budgets match the existing 2 MiB portable configuration boundary, without an unbounded transport mode or new name restriction.
+
+## Parallel recovery and cleanup (Unreleased S145)
+
+Current schema 26 adds optional recovery and cleanup to the same immutable parallel instance. Each branch records actual success, failure, canceled, skipped or definitive not_started settlement. A blocked success decision alone is not settlement; queued work and live failed-cancellation feedback remain owned. The aggregate route is selected only after every owned branch settles.
+
+All-success selects the existing target. An unsuccessful aggregate selects configured recovery when any cause matches recovery_on; omitted conditions default to failure, while [] deliberately matches none. Cleanup waits for the chosen success/recovery follow-up's actual terminal result or definitive no-start. If no follow-up is selected, cleanup can proceed after all branch settlements. Success, recovery and cleanup retain separate native outcomes, settlement, delivery/run identities and reasons.
+
+One transaction creates at most one success-or-recovery delivery and one cleanup delivery. Result and pre-native resolution commits coalesce a wake consumed by the existing engine loop, which drains until no deliveries remain. No new polling loop, service or goroutine is introduced. Definition/task invalidation remains a separate resolved tombstone; it never proves an already-started command stopped, and late native results cannot revive automatic work.
+
+The combined causal graph uses ordinary chain edges and each join entry's potential owned destinations. Finite reuse of a task across branch/follow-up/cleanup roles does not create an artificial task self-cycle. Actual possible chain/join cascades back to their entry are rejected. Every new stage retains current initial/queue/worker eligibility, authority and overlap checks; edits remain future-only.
+
+The manifest advertises parallel-join-recovery alongside base parallel-joins. Portable v4 carries new routing configuration and remaps every reference, with required capabilities retained through preview/apply. Base-only joins still export v3. Current schema-26 reopen is supported; obsolete schema 25 is refused without conversion or automatic deletion. Source functionality remains distinct from public v2.0.3 and its preserved comparison snapshot.

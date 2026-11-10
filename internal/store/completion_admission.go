@@ -87,8 +87,10 @@ const completionAdmissionSQL = `SELECT
  d.id,d.chain_id,d.source_task_id,d.target_task_id,d.source_run_id,d.state,d.attempts,d.created_at,d.claimed_at,d.completed_at,d.target_run_id,d.resolution,d.role,d.join_instance_id,d.join_branch_id,
  CASE d.role
  WHEN 'chain' THEN EXISTS(SELECT 1 FROM completion_chains c WHERE c.id=d.chain_id)
- WHEN 'join_branch' THEN COALESCE(j.id IS NOT NULL AND i.state IN ('waiting','blocked') AND d.source_task_id=i.entry_task_id AND d.source_run_id=i.entry_run_id AND v.task_id=d.target_task_id AND v.delivery_id=d.id AND v.outcome='',0)
- WHEN 'join_target' THEN COALESCE(j.id IS NOT NULL AND i.state='target_pending' AND d.source_task_id=i.entry_task_id AND d.source_run_id=i.entry_run_id AND d.target_task_id=i.target_task_id AND d.id=i.target_delivery_id,0)
+ WHEN 'join_branch' THEN COALESCE(j.id IS NOT NULL AND i.state IN ('waiting','blocked') AND d.source_task_id=i.entry_task_id AND d.source_run_id=i.entry_run_id AND v.task_id=d.target_task_id AND v.delivery_id=d.id AND v.outcome='' AND v.settlement='',0)
+ WHEN 'join_target' THEN COALESCE(j.id IS NOT NULL AND i.state='target_pending' AND d.source_task_id=i.entry_task_id AND d.source_run_id=i.entry_run_id AND d.target_task_id=i.target_task_id AND d.id=i.target_delivery_id AND i.target_settlement='',0)
+ WHEN 'join_recovery' THEN COALESCE(j.id IS NOT NULL AND i.state='recovery_pending' AND d.source_task_id=i.entry_task_id AND d.source_run_id=i.entry_run_id AND d.target_task_id=i.recovery_task_id AND d.id=i.recovery_delivery_id AND i.recovery_settlement='',0)
+ WHEN 'join_cleanup' THEN COALESCE(j.id IS NOT NULL AND i.state='cleanup_pending' AND d.source_task_id=i.entry_task_id AND d.source_run_id=i.entry_run_id AND d.target_task_id=i.cleanup_task_id AND d.id=i.cleanup_delivery_id AND i.cleanup_settlement='',0)
  ELSE 0 END,
  CASE WHEN COALESCE(t.group_id,'')='' THEN 1 ELSE
  (WITH RECURSIVE ancestors(id,parent_id,enabled) AS (

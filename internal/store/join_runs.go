@@ -63,7 +63,11 @@ func (s *Store) recordRunAndDeliveries(r *domain.Run, incomingID string) error {
 				if incoming.Role == domain.DeliveryRoleJoinBranch {
 					err = tx.QueryRow("SELECT outcome,started_at,ended_at FROM parallel_join_invocations WHERE id=? AND instance_id=?", incoming.JoinBranchID, incoming.JoinInstanceID).Scan(&outcome, &started, &ended)
 				} else {
-					err = tx.QueryRow("SELECT target_outcome,target_started_at,target_ended_at FROM parallel_join_instances WHERE id=?", incoming.JoinInstanceID).Scan(&outcome, &started, &ended)
+					prefix, _, stageErr := joinStage(incoming.Role)
+					if stageErr != nil {
+						return stageErr
+					}
+					err = tx.QueryRow("SELECT "+prefix+"_outcome,"+prefix+"_started_at,"+prefix+"_ended_at FROM parallel_join_instances WHERE id=?", incoming.JoinInstanceID).Scan(&outcome, &started, &ended)
 				}
 				if err != nil {
 					return err

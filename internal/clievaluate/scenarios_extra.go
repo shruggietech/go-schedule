@@ -32,7 +32,7 @@ func additionalSteps() []step {
 	}
 	add("runs.cancel-finished-json", "runs cancel", "read", "packaged_cli", 0, "cancel-finished", "--json", "--ipc-path", "${ipc}", "runs", "cancel", "${run}").JSON = true
 	add("runs.cancel-finished-human", "runs cancel", "read", "packaged_cli", 0, "cancel-finished-human", "--ipc-path", "${ipc}", "runs", "cancel", "${run}")
-	joinCreate := add("join.create", "join create", "create", "packaged_cli", 0, "join-contract", "--json", "--ipc-path", "${ipc}", "join", "create", "--name=QA parallel", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file=-")
+	joinCreate := add("join.create", "join create", "create", "packaged_cli", 0, "join-contract", "--json", "--ipc-path", "${ipc}", "join", "create", "--name=QA parallel", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file=-", "--recovery", "${second_task}", "--recovery-on=failure,canceled", "--cleanup", "${output_task}")
 	joinCreate.Input = "${join_branches_json}"
 	joinCreate.JSON = true
 	joinCreate.Save = []NamedValue{{Name: "join", Value: "id"}}
@@ -44,7 +44,7 @@ func additionalSteps() []step {
 		add("join."+view, "join "+view, "read", "packaged_cli", 0, "join-contract", args...).JSON = true
 	}
 	add("join.instances", "join instances", "read", "packaged_cli", 0, "join-instances-empty", "--json", "--ipc-path", "${ipc}", "join", "instances", "--join", "${join}", "--entry-run=unobserved-entry", "--state=waiting", "--limit=1", "--offset=0").JSON = true
-	add("join.update", "join update", "update", "packaged_cli", 0, "join-contract", "--json", "--ipc-path", "${ipc}", "join", "update", "${join}", "--name=QA updated parallel", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file", "${join_branches_file}").JSON = true
+	add("join.update", "join update", "update", "packaged_cli", 0, "join-contract", "--json", "--ipc-path", "${ipc}", "join", "update", "${join}", "--name=QA updated parallel", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file", "${join_branches_file}", "--recovery", "${second_task}", "--recovery-on=none", "--cleanup", "${output_task}").JSON = true
 	add("join.remove", "join rm", "delete", "packaged_cli", 0, "join-absent", "--json", "--ipc-path", "${ipc}", "join", "rm", "${join}").JSON = true
 	add("join.invalid-limit", "join instances", "validation", "packaged_cli", 2, "unchanged", "--ipc-path", "${ipc}", "join", "instances", "--limit=0")
 	badJoin := add("join.invalid-branches", "join create", "validation", "packaged_cli", 2, "unchanged", "--ipc-path", "${ipc}", "join", "create", "--name=invalid", "--entry", "${base_task}", "--target", "${output_task}", "--branches-file=-")

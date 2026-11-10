@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -18,13 +19,16 @@ func (s *Store) GetParallelJoinDefinitionPageContext(ctx context.Context, id str
 	}
 	defer func() { _ = tx.Rollback() }()
 	var j domain.ParallelJoin
-	var created, updated string
-	err = tx.QueryRowContext(ctx, "SELECT j.id,j.name,j.entry_task_id,j.target_task_id,j.created_at,j.updated_at,(SELECT COUNT(*) FROM parallel_join_branches b WHERE b.join_id=j.id) FROM parallel_joins j WHERE j.id=?", id).Scan(&j.ID, &j.Name, &j.EntryTaskID, &j.TargetTaskID, &created, &updated, &j.BranchCount)
+	var created, updated, recoveryJSON string
+	err = tx.QueryRowContext(ctx, "SELECT j.id,j.name,j.entry_task_id,j.target_task_id,COALESCE(j.recovery_task_id,''),j.recovery_on_json,COALESCE(j.cleanup_task_id,''),j.created_at,j.updated_at,(SELECT COUNT(*) FROM parallel_join_branches b WHERE b.join_id=j.id) FROM parallel_joins j WHERE j.id=?", id).Scan(&j.ID, &j.Name, &j.EntryTaskID, &j.TargetTaskID, &j.RecoveryTaskID, &recoveryJSON, &j.CleanupTaskID, &created, &updated, &j.BranchCount)
 	if errors.Is(err, sql.ErrNoRows) {
 		return j, ErrNotFound
 	}
 	if err != nil {
 		return j, fmt.Errorf("store: read parallel join definition: %w", err)
+	}
+	if err = json.Unmarshal([]byte(recoveryJSON), &j.RecoveryOn); err != nil {
+		return j, fmt.Errorf("store: decode recovery conditions: %w", err)
 	}
 	j.CreatedAt, err = parseTime(created)
 	if err != nil {

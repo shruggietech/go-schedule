@@ -25,7 +25,24 @@ func completionJoinRole(role domain.CompletionDeliveryRole) string {
 		return "branch"
 	case domain.DeliveryRoleJoinTarget:
 		return "target"
+	case domain.DeliveryRoleJoinRecovery:
+		return "recovery"
+	case domain.DeliveryRoleJoinCleanup:
+		return "cleanup"
 	default:
 		return ""
+	}
+}
+
+// wakeCompletionDeliveries coalesces committed automatic work into the existing
+// event loop. In particular, no-start resolutions can create new work without
+// a subsequent native completion to wake it.
+func (e *Engine) wakeCompletionDeliveries() {
+	if e.runCtx.Err() != nil {
+		return
+	}
+	select {
+	case e.completionWake <- struct{}{}:
+	default:
 	}
 }

@@ -6589,6 +6589,17 @@
         "required": false
       },
       {
+        "name": "cleanup",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "cleanup task ID; runs after branches and selected follow-up settle; empty clears on update",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "credential-id",
         "shorthand": "",
         "type": "string",
@@ -6694,6 +6705,28 @@
         "default": "",
         "usage": "saved remote profile ID or unambiguous label",
         "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "recovery",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "recovery task ID; on update an empty value clears recovery",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "recovery-on",
+        "shorthand": "",
+        "type": "stringSlice",
+        "default": "[]",
+        "usage": "comma-separated failure,canceled,skipped,not_started; omitted defaults to failure, none selects no causes",
+        "scope": "local",
         "hidden": false,
         "deprecated": "",
         "required": false
@@ -6978,7 +7011,7 @@
         "shorthand": "",
         "type": "string",
         "default": "",
-        "usage": "waiting, blocked, target_pending, completed or resolved",
+        "usage": "waiting, blocked, target_pending, recovery_pending, cleanup_pending, completed or resolved",
         "scope": "local",
         "hidden": false,
         "deprecated": "",
@@ -7348,6 +7381,17 @@
         "required": false
       },
       {
+        "name": "cleanup",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "cleanup task ID; runs after branches and selected follow-up settle; empty clears on update",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
         "name": "credential-id",
         "shorthand": "",
         "type": "string",
@@ -7453,6 +7497,28 @@
         "default": "",
         "usage": "saved remote profile ID or unambiguous label",
         "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "recovery",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "recovery task ID; on update an empty value clears recovery",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "recovery-on",
+        "shorthand": "",
+        "type": "stringSlice",
+        "default": "[]",
+        "usage": "comma-separated failure,canceled,skipped,not_started; omitted defaults to failure, none selects no causes",
+        "scope": "local",
         "hidden": false,
         "deprecated": "",
         "required": false

@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Store) deleteTaskJoinBindings(tx *sql.Tx, id string) error {
-	rows, err := tx.Query("SELECT j.id FROM parallel_joins j WHERE j.entry_task_id=? OR j.target_task_id=? OR EXISTS(SELECT 1 FROM parallel_join_branches b WHERE b.join_id=j.id AND b.task_id=?)", id, id, id)
+	rows, err := tx.Query("SELECT j.id FROM parallel_joins j WHERE j.entry_task_id=? OR j.target_task_id=? OR j.recovery_task_id=? OR j.cleanup_task_id=? OR EXISTS(SELECT 1 FROM parallel_join_branches b WHERE b.join_id=j.id AND b.task_id=?)", id, id, id, id, id)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (s *Store) deleteTaskJoinBindings(tx *sql.Tx, id string) error {
 		for _, b := range j.Branches {
 			definitions = append(definitions, b.TaskID)
 		}
-		definitions = append(definitions, j.TargetTaskID)
+		definitions = append(definitions, j.TargetTaskID, j.RecoveryTaskID, j.CleanupTaskID)
 	}
 	reason := fmt.Sprintf("required task %s was deleted", id)
 	if err := invalidateJoinInstances(tx, "", id, reason, s.now().UTC()); err != nil {
@@ -51,7 +51,7 @@ func (s *Store) deleteTaskJoinBindings(tx *sql.Tx, id string) error {
 		}
 	}
 	for _, destination := range definitions {
-		if destination != id {
+		if destination != "" && destination != id {
 			if err := disableIfNotActivationReady(tx, destination); err != nil {
 				return err
 			}

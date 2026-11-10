@@ -110,6 +110,24 @@ func (s *Server) bundleJoin(source bundle.Join, id string) (domain.ParallelJoin,
 		return join, fmt.Errorf("join target task was not applied: %w", err)
 	}
 	join.EntryTaskID, join.TargetTaskID = entry, target
+	if source.RecoveryTaskID != "" {
+		join.RecoveryTaskID, err = s.store.ObjectIDForPortableID("task", source.RecoveryTaskID)
+		if err != nil {
+			return join, fmt.Errorf("join recovery task was not applied: %w", err)
+		}
+	}
+	if source.CleanupTaskID != "" {
+		join.CleanupTaskID, err = s.store.ObjectIDForPortableID("task", source.CleanupTaskID)
+		if err != nil {
+			return join, fmt.Errorf("join cleanup task was not applied: %w", err)
+		}
+	}
+	if source.RecoveryOn != nil {
+		join.RecoveryOn = make([]domain.JoinRecoveryCondition, 0, len(*source.RecoveryOn))
+		for _, cause := range *source.RecoveryOn {
+			join.RecoveryOn = append(join.RecoveryOn, domain.JoinRecoveryCondition(cause))
+		}
+	}
 	for _, branch := range source.Branches {
 		taskID, err := s.store.ObjectIDForPortableID("task", branch.TaskID)
 		if err != nil {

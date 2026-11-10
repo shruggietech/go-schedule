@@ -162,7 +162,7 @@ paths:
   /bundles/preview:
     post:
       operationId: bundles.preview
-      description: Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+      description: Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
       requestBody: {required: true, content: {application/json: {schema: {type: object, additionalProperties: true}}}}
       responses: {"200": {description: Target-bound bundle plan}, "401": {$ref: "#/components/responses/Unauthorized"}, "413": {$ref: "#/components/responses/RequestTooLarge"}}
   /bundles/compare:
@@ -1089,6 +1089,9 @@ components:
         name: {type: string}
         entry_task_id: {type: string, format: uuid}
         target_task_id: {type: string, format: uuid}
+        recovery_task_id: {type: string, description: Optional recovery task ID; an empty string clears it on PATCH.}
+        recovery_on: {type: array, items: {$ref: "#/components/schemas/JoinRecoveryCondition"}, description: Omitted policy defaults to failure when recovery is configured; an explicit empty array matches no cause.}
+        cleanup_task_id: {type: string, description: Optional final cleanup task ID; an empty string clears it on PATCH.}
         branches: {type: array, items: {$ref: "#/components/schemas/JoinBranchInput"}}
     JoinUpdateRequest:
       type: object
@@ -1097,6 +1100,9 @@ components:
         name: {type: string}
         entry_task_id: {type: string, format: uuid}
         target_task_id: {type: string, format: uuid}
+        recovery_task_id: {type: string, description: Optional recovery task ID; an empty string clears it on PATCH.}
+        recovery_on: {type: array, items: {$ref: "#/components/schemas/JoinRecoveryCondition"}, description: Omitted policy defaults to failure when recovery is configured; an explicit empty array matches no cause.}
+        cleanup_task_id: {type: string, description: Optional final cleanup task ID; an empty string clears it on PATCH.}
         branches: {type: array, items: {$ref: "#/components/schemas/JoinBranchInput"}}
         expected_updated_at: {type: string, format: date-time}
     ParallelJoinBranch:
@@ -1112,7 +1118,7 @@ components:
     ParallelJoin:
       type: object
       additionalProperties: false
-      required: [id, name, entry_task_id, target_task_id, branches, created_at, updated_at, branch_count]
+      required: [id, name, entry_task_id, target_task_id, recovery_on, branches, created_at, updated_at, branch_count]
       properties:
         id: {type: string, format: uuid}
         name: {type: string}
@@ -1120,6 +1126,11 @@ components:
         entry_task_name: {type: string}
         target_task_id: {type: string, format: uuid}
         target_task_name: {type: string}
+        recovery_task_id: {type: string}
+        recovery_task_name: {type: string}
+        recovery_on: {type: array, items: {$ref: "#/components/schemas/JoinRecoveryCondition"}}
+        cleanup_task_id: {type: string}
+        cleanup_task_name: {type: string}
         branches: {type: array, items: {$ref: "#/components/schemas/ParallelJoinBranch"}}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
@@ -1141,6 +1152,8 @@ components:
         delivery_state: {$ref: "#/components/schemas/JoinDeliveryState"}
         run_id: {type: string, format: uuid}
         outcome: {type: string}
+        settlement: {$ref: "#/components/schemas/JoinSettlement"}
+        settled_at: {type: string, format: date-time}
         reason: {type: string}
         started_at: {type: string, format: date-time}
         ended_at: {type: string, format: date-time}
@@ -1150,7 +1163,7 @@ components:
     ParallelJoinInstance:
       type: object
       additionalProperties: false
-      required: [id, definition_id, definition_name, entry_task_id, entry_run_id, target_task_id, branches, state, created_at, updated_at, branch_count]
+      required: [id, definition_id, definition_name, entry_task_id, entry_run_id, target_task_id, recovery_on, branches, state, created_at, updated_at, branch_count]
       properties:
         id: {type: string, format: uuid}
         definition_id: {type: string, format: uuid}
@@ -1160,6 +1173,12 @@ components:
         entry_run_id: {type: string, format: uuid}
         target_task_id: {type: string, format: uuid}
         target_task_name: {type: string}
+        recovery_task_id: {type: string}
+        recovery_task_name: {type: string}
+        recovery_on: {type: array, items: {$ref: "#/components/schemas/JoinRecoveryCondition"}}
+        cleanup_task_id: {type: string}
+        cleanup_task_name: {type: string}
+        selected_route: {$ref: "#/components/schemas/JoinSelectedRoute"}
         branches: {type: array, items: {$ref: "#/components/schemas/ParallelJoinInvocation"}}
         state: {$ref: "#/components/schemas/JoinInstanceState"}
         reason: {type: string}
@@ -1171,6 +1190,31 @@ components:
         target_ended_at: {type: string, format: date-time}
         target_cancellation_status: {$ref: "#/components/schemas/CancellationState"}
         target_cancellation_error: {type: string}
+        target_settlement: {$ref: "#/components/schemas/JoinSettlement"}
+        target_settled_at: {type: string, format: date-time}
+        target_reason: {type: string}
+        recovery_delivery_id: {type: string, format: uuid}
+        recovery_delivery_state: {$ref: "#/components/schemas/JoinDeliveryState"}
+        recovery_run_id: {type: string, format: uuid}
+        recovery_outcome: {type: string}
+        recovery_started_at: {type: string, format: date-time}
+        recovery_ended_at: {type: string, format: date-time}
+        recovery_cancellation_status: {$ref: "#/components/schemas/CancellationState"}
+        recovery_cancellation_error: {type: string}
+        recovery_settlement: {$ref: "#/components/schemas/JoinSettlement"}
+        recovery_settled_at: {type: string, format: date-time}
+        recovery_reason: {type: string}
+        cleanup_delivery_id: {type: string, format: uuid}
+        cleanup_delivery_state: {$ref: "#/components/schemas/JoinDeliveryState"}
+        cleanup_run_id: {type: string, format: uuid}
+        cleanup_outcome: {type: string}
+        cleanup_started_at: {type: string, format: date-time}
+        cleanup_ended_at: {type: string, format: date-time}
+        cleanup_cancellation_status: {$ref: "#/components/schemas/CancellationState"}
+        cleanup_cancellation_error: {type: string}
+        cleanup_settlement: {$ref: "#/components/schemas/JoinSettlement"}
+        cleanup_settled_at: {type: string, format: date-time}
+        cleanup_reason: {type: string}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
         completed_at: {type: string, format: date-time}
@@ -1196,6 +1240,9 @@ components:
         has_more: {type: boolean}
         offset: {type: integer, minimum: 0}
         limit: {type: integer, minimum: 1, maximum: 1000}
-    JoinInstanceState: {type: string, enum: [waiting, target_pending, completed, blocked, resolved]}
+    JoinRecoveryCondition: {type: string, enum: [failure, canceled, skipped, not_started]}
+    JoinSettlement: {type: string, enum: [success, failure, canceled, skipped, not_started]}
+    JoinSelectedRoute: {type: string, enum: [success, recovery, none]}
+    JoinInstanceState: {type: string, enum: [waiting, target_pending, recovery_pending, cleanup_pending, completed, blocked, resolved]}
     JoinDeliveryState: {type: string, enum: [pending, claimed, completed, resolved]}
-    JoinRunRole: {type: string, enum: [branch, target]}
+    JoinRunRole: {type: string, enum: [branch, target, recovery, cleanup]}

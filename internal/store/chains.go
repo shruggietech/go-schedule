@@ -24,7 +24,7 @@ func (s *Store) CreateCompletionChain(c *domain.CompletionChain) error {
 	if c.ID == "" {
 		c.ID = newID()
 	}
-	now := time.Now().UTC()
+	now := s.now().UTC()
 	if c.CreatedAt.IsZero() {
 		c.CreatedAt = now
 	}

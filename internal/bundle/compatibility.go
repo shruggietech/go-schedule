@@ -13,6 +13,12 @@ func TargetCompatibility(doc Document, target TargetProfile) []Issue {
 	kinds := make([]string, 0, 7)
 	if len(doc.Joins) > 0 {
 		kinds = append(kinds, "join")
+		for _, join := range doc.Joins {
+			if joinUsesRecovery(join) {
+				kinds = append(kinds, "join_recovery")
+				break
+			}
+		}
 	}
 	if len(doc.Chains) > 0 {
 		kinds = append(kinds, "chain")
@@ -35,7 +41,7 @@ func TargetCompatibility(doc Document, target TargetProfile) []Issue {
 	if len(doc.Watchers) > 0 {
 		kinds = append(kinds, "watcher")
 	}
-	return targetCompatibilityKinds(kinds, target)
+	return targetCompatibilityKinds(kinds, target, nil)
 }
 
 // PlanTargetCompatibility checks the reviewed item families before a client forwards apply.
@@ -46,14 +52,20 @@ func PlanTargetCompatibility(plan Plan, target TargetProfile) []Issue {
 			kinds = append(kinds, item.Kind)
 		}
 	}
-	return targetCompatibilityKinds(kinds, target)
+	return targetCompatibilityKinds(kinds, target, plan.RequiredCapabilities)
 }
 
-func targetCompatibilityKinds(kinds []string, target TargetProfile) []Issue {
+func targetCompatibilityKinds(kinds []string, target TargetProfile, extra []string) []Issue {
 	requiredSet := map[string]bool{"bundles": true}
+	for _, capability := range extra {
+		requiredSet[capability] = true
+	}
 	hasWatcher := false
 	for _, kind := range kinds {
 		switch kind {
+		case "join_recovery":
+			requiredSet["parallel-joins"] = true
+			requiredSet["parallel-join-recovery"] = true
 		case "join":
 			requiredSet["parallel-joins"] = true
 		case "chain":
@@ -94,4 +106,16 @@ func targetCompatibilityKinds(kinds []string, target TargetProfile) []Issue {
 		issues = append(issues, Issue{Kind: "target_platform", Identity: "watchers", Message: "selected daemon has an unknown or unsupported watcher platform; select a Windows, Linux, or macOS daemon"})
 	}
 	return issues
+}
+
+// RequiredCapabilities retains content-derived support requirements in a reviewed plan.
+func RequiredCapabilities(doc Document) []string {
+	issues := TargetCompatibility(doc, TargetProfile{})
+	out := make([]string, 0, len(issues))
+	for _, issue := range issues {
+		if issue.Kind == "target_capability" {
+			out = append(out, issue.Identity)
+		}
+	}
+	return out
 }

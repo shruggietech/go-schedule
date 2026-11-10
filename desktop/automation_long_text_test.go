@@ -186,8 +186,116 @@ func mapKeys(v map[string]json.RawMessage) []string {
 type authoringAppHealth struct {
 	appBackend
 	daemonID string
+	recovery bool
 }
 
 func (b authoringAppHealth) Health(context.Context) (connection.Health, error) {
-	return connection.Health{ID: b.daemonID, DisplayName: "Owned authoring daemon", Version: "v2.0.3", Permissions: []string{"manage"}, Capabilities: []string{"parallel-joins"}}, nil
+	capabilities := []string{"parallel-joins"}
+	if b.recovery {
+		capabilities = append(capabilities, "parallel-join-recovery")
+	}
+	return connection.Health{ID: b.daemonID, DisplayName: "Owned authoring daemon", Version: "v2.0.3", Permissions: []string{"manage"}, Capabilities: capabilities}, nil
+}
+
+func TestJoinRecoveryFullAuthoringFacadePreservesEmptyPolicyAndNames(t *testing.T) {
+	st, err := store.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = st.Close() })
+	api := server.New(st, nil, nil, nil, "", slog.New(slog.DiscardHandler))
+	var patches [][]byte
+	c := client.NewInProcess(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch && strings.HasPrefix(r.URL.Path, "/v1/joins/") {
+			raw, e := io.ReadAll(r.Body)
+			if e != nil {
+				t.Error(e)
+			}
+			patches = append(patches, raw)
+			r.Body = io.NopCloser(bytes.NewReader(raw))
+		}
+		api.Handler().ServeHTTP(w, r)
+	}))
+	ctx := context.Background()
+	tasks := make([]domain.Task, 6)
+	for i := range tasks {
+		v, e := c.CreateTask(ctx, server.TaskCreateRequest{Name: fmt.Sprintf("Fixture %d", i), Command: "echo", Schedule: "every hour", Timezone: "UTC"})
+		if e != nil {
+			t.Fatal(e)
+		}
+		tasks[i] = v.Task
+	}
+	branches := make([]domain.ParallelJoinBranch, 101)
+	for i := range branches {
+		branches[i] = domain.ParallelJoinBranch{ID: fmt.Sprintf("slot-%03d", i), Name: fmt.Sprintf("Branch %d", i), TaskID: tasks[1].ID}
+	}
+	branches[100].Name = "Last " + strings.Repeat("長λ🙂", 2000)
+	conditions := []domain.JoinRecoveryCondition{}
+	created, err := c.CreateJoin(ctx, server.JoinCreateRequest{Name: "Complete " + strings.Repeat("長λ🙂", 2000), EntryTaskID: tasks[0].ID, TargetTaskID: tasks[2].ID, RecoveryTaskID: tasks[3].ID, RecoveryOn: &conditions, CleanupTaskID: tasks[4].ID, Branches: branches})
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := c.Manifest(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ready := make(chan struct{}, 1)
+	app := newApp(authoringAppHealth{daemonID: manifest.InstallationID, recovery: true}, cancellationAppEmitter{ready}, nil, appServices{automation: automation.NewService(automation.NewLocalBackend(c))})
+	appCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	app.startup(appCtx)
+	defer app.shutdown(context.Background())
+	select {
+	case <-ready:
+	case <-time.After(time.Second):
+		t.Fatal("no authoring daemon")
+	}
+	loaded := app.JoinDefinition(created.ID, manifest.InstallationID)
+	if loaded.Outcome != "accepted" || loaded.Join == nil {
+		t.Fatalf("load=%+v", loaded)
+	}
+	v := *loaded.Join
+	if v.RecoveryOn == nil || len(v.RecoveryOn) != 0 || v.RecoveryTaskID != tasks[3].ID || v.CleanupTaskID != tasks[4].ID || v.Name != created.Name || len(v.Branches) != 101 || v.Branches[100].Name != branches[100].Name {
+		t.Fatalf("incomplete authoring read: recovery=%v branches=%d", v.RecoveryOn, len(v.Branches))
+	}
+	d := automation.JoinDraft{ExpectedDaemonID: manifest.InstallationID, ID: v.ID, Name: v.Name, EntryTaskID: v.EntryTaskID, TargetTaskID: tasks[5].ID, RecoveryTaskID: v.RecoveryTaskID, RecoveryOn: v.RecoveryOn, CleanupTaskID: v.CleanupTaskID, Branches: v.Branches, OriginalUpdatedAt: v.UpdatedAt.Format(time.RFC3339Nano)}
+	saved := app.SaveJoin(d)
+	if saved.Outcome != "accepted" {
+		t.Fatalf("save=%+v", saved)
+	}
+	if len(patches) != 1 {
+		t.Fatalf("patches=%d", len(patches))
+	}
+	var packet map[string]json.RawMessage
+	if err = json.Unmarshal(patches[0], &packet); err != nil {
+		t.Fatal(err)
+	}
+	if len(packet) != 2 || packet["target_task_id"] == nil || packet["expected_updated_at"] == nil {
+		t.Fatalf("sparse patch keys=%v", mapKeys(packet))
+	}
+	got, err := st.GetParallelJoin(created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.RecoveryOn == nil || len(got.RecoveryOn) != 0 || got.RecoveryTaskID != v.RecoveryTaskID || got.CleanupTaskID != v.CleanupTaskID || got.Name != created.Name || got.Branches[100].Name != branches[100].Name {
+		t.Fatal("target edit erased complete routing configuration or names")
+	}
+	if stale := app.SaveJoin(d); stale.Outcome != "stale" || len(patches) != 1 {
+		t.Fatalf("stale=%+v patches=%d", stale, len(patches))
+	}
+	d.OriginalUpdatedAt = got.UpdatedAt.Format(time.RFC3339Nano)
+	if noOp := app.SaveJoin(d); noOp.Outcome != "accepted" || !strings.Contains(noOp.Message, "No changes") || len(patches) != 1 {
+		t.Fatalf("no-op=%+v patches=%d", noOp, len(patches))
+	}
+	d.RecoveryOn = []domain.JoinRecoveryCondition{domain.JoinRecoveryOnFailure, domain.JoinRecoveryOnCanceled}
+	if changed := app.SaveJoin(d); changed.Outcome != "accepted" {
+		t.Fatalf("policy change=%+v", changed)
+	}
+	packet = nil
+	if err = json.Unmarshal(patches[1], &packet); err != nil {
+		t.Fatal(err)
+	}
+	if len(packet) != 2 || packet["recovery_on"] == nil {
+		t.Fatalf("policy-only patch=%v", mapKeys(packet))
+	}
 }

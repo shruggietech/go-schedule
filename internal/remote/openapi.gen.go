@@ -287,11 +287,13 @@ func (e JoinDeliveryState) Valid() bool {
 
 // Defines values for JoinInstanceState.
 const (
-	JoinInstanceStateBlocked       JoinInstanceState = "blocked"
-	JoinInstanceStateCompleted     JoinInstanceState = "completed"
-	JoinInstanceStateResolved      JoinInstanceState = "resolved"
-	JoinInstanceStateTargetPending JoinInstanceState = "target_pending"
-	JoinInstanceStateWaiting       JoinInstanceState = "waiting"
+	JoinInstanceStateBlocked         JoinInstanceState = "blocked"
+	JoinInstanceStateCleanupPending  JoinInstanceState = "cleanup_pending"
+	JoinInstanceStateCompleted       JoinInstanceState = "completed"
+	JoinInstanceStateRecoveryPending JoinInstanceState = "recovery_pending"
+	JoinInstanceStateResolved        JoinInstanceState = "resolved"
+	JoinInstanceStateTargetPending   JoinInstanceState = "target_pending"
+	JoinInstanceStateWaiting         JoinInstanceState = "waiting"
 )
 
 // Valid indicates whether the value is a known member of the JoinInstanceState enum.
@@ -299,7 +301,11 @@ func (e JoinInstanceState) Valid() bool {
 	switch e {
 	case JoinInstanceStateBlocked:
 		return true
+	case JoinInstanceStateCleanupPending:
+		return true
 	case JoinInstanceStateCompleted:
+		return true
+	case JoinInstanceStateRecoveryPending:
 		return true
 	case JoinInstanceStateResolved:
 		return true
@@ -312,18 +318,96 @@ func (e JoinInstanceState) Valid() bool {
 	}
 }
 
+// Defines values for JoinRecoveryCondition.
+const (
+	JoinRecoveryConditionCanceled   JoinRecoveryCondition = "canceled"
+	JoinRecoveryConditionFailure    JoinRecoveryCondition = "failure"
+	JoinRecoveryConditionNotStarted JoinRecoveryCondition = "not_started"
+	JoinRecoveryConditionSkipped    JoinRecoveryCondition = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the JoinRecoveryCondition enum.
+func (e JoinRecoveryCondition) Valid() bool {
+	switch e {
+	case JoinRecoveryConditionCanceled:
+		return true
+	case JoinRecoveryConditionFailure:
+		return true
+	case JoinRecoveryConditionNotStarted:
+		return true
+	case JoinRecoveryConditionSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JoinRunRole.
 const (
-	Branch JoinRunRole = "branch"
-	Target JoinRunRole = "target"
+	JoinRunRoleBranch   JoinRunRole = "branch"
+	JoinRunRoleCleanup  JoinRunRole = "cleanup"
+	JoinRunRoleRecovery JoinRunRole = "recovery"
+	JoinRunRoleTarget   JoinRunRole = "target"
 )
 
 // Valid indicates whether the value is a known member of the JoinRunRole enum.
 func (e JoinRunRole) Valid() bool {
 	switch e {
-	case Branch:
+	case JoinRunRoleBranch:
 		return true
-	case Target:
+	case JoinRunRoleCleanup:
+		return true
+	case JoinRunRoleRecovery:
+		return true
+	case JoinRunRoleTarget:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JoinSelectedRoute.
+const (
+	JoinSelectedRouteNone     JoinSelectedRoute = "none"
+	JoinSelectedRouteRecovery JoinSelectedRoute = "recovery"
+	JoinSelectedRouteSuccess  JoinSelectedRoute = "success"
+)
+
+// Valid indicates whether the value is a known member of the JoinSelectedRoute enum.
+func (e JoinSelectedRoute) Valid() bool {
+	switch e {
+	case JoinSelectedRouteNone:
+		return true
+	case JoinSelectedRouteRecovery:
+		return true
+	case JoinSelectedRouteSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JoinSettlement.
+const (
+	JoinSettlementCanceled   JoinSettlement = "canceled"
+	JoinSettlementFailure    JoinSettlement = "failure"
+	JoinSettlementNotStarted JoinSettlement = "not_started"
+	JoinSettlementSkipped    JoinSettlement = "skipped"
+	JoinSettlementSuccess    JoinSettlement = "success"
+)
+
+// Valid indicates whether the value is a known member of the JoinSettlement enum.
+func (e JoinSettlement) Valid() bool {
+	switch e {
+	case JoinSettlementCanceled:
+		return true
+	case JoinSettlementFailure:
+		return true
+	case JoinSettlementNotStarted:
+		return true
+	case JoinSettlementSkipped:
+		return true
+	case JoinSettlementSuccess:
 		return true
 	default:
 		return false
@@ -1084,10 +1168,19 @@ type JoinBranchInput struct {
 
 // JoinCreateRequest defines model for JoinCreateRequest.
 type JoinCreateRequest struct {
-	Branches     []JoinBranchInput  `json:"branches"`
-	EntryTaskId  openapi_types.UUID `json:"entry_task_id"`
-	Name         string             `json:"name"`
-	TargetTaskId openapi_types.UUID `json:"target_task_id"`
+	Branches []JoinBranchInput `json:"branches"`
+
+	// CleanupTaskId Optional final cleanup task ID; an empty string clears it on PATCH.
+	CleanupTaskId *string            `json:"cleanup_task_id,omitempty"`
+	EntryTaskId   openapi_types.UUID `json:"entry_task_id"`
+	Name          string             `json:"name"`
+
+	// RecoveryOn Omitted policy defaults to failure when recovery is configured; an explicit empty array matches no cause.
+	RecoveryOn *[]JoinRecoveryCondition `json:"recovery_on,omitempty"`
+
+	// RecoveryTaskId Optional recovery task ID; an empty string clears it on PATCH.
+	RecoveryTaskId *string            `json:"recovery_task_id,omitempty"`
+	TargetTaskId   openapi_types.UUID `json:"target_task_id"`
 }
 
 // JoinDeliveryState defines model for JoinDeliveryState.
@@ -1096,16 +1189,34 @@ type JoinDeliveryState string
 // JoinInstanceState defines model for JoinInstanceState.
 type JoinInstanceState string
 
+// JoinRecoveryCondition defines model for JoinRecoveryCondition.
+type JoinRecoveryCondition string
+
 // JoinRunRole defines model for JoinRunRole.
 type JoinRunRole string
 
+// JoinSelectedRoute defines model for JoinSelectedRoute.
+type JoinSelectedRoute string
+
+// JoinSettlement defines model for JoinSettlement.
+type JoinSettlement string
+
 // JoinUpdateRequest defines model for JoinUpdateRequest.
 type JoinUpdateRequest struct {
-	Branches          *[]JoinBranchInput  `json:"branches,omitempty"`
+	Branches *[]JoinBranchInput `json:"branches,omitempty"`
+
+	// CleanupTaskId Optional final cleanup task ID; an empty string clears it on PATCH.
+	CleanupTaskId     *string             `json:"cleanup_task_id,omitempty"`
 	EntryTaskId       *openapi_types.UUID `json:"entry_task_id,omitempty"`
 	ExpectedUpdatedAt *time.Time          `json:"expected_updated_at,omitempty"`
 	Name              *string             `json:"name,omitempty"`
-	TargetTaskId      *openapi_types.UUID `json:"target_task_id,omitempty"`
+
+	// RecoveryOn Omitted policy defaults to failure when recovery is configured; an explicit empty array matches no cause.
+	RecoveryOn *[]JoinRecoveryCondition `json:"recovery_on,omitempty"`
+
+	// RecoveryTaskId Optional recovery task ID; an empty string clears it on PATCH.
+	RecoveryTaskId *string             `json:"recovery_task_id,omitempty"`
+	TargetTaskId   *openapi_types.UUID `json:"target_task_id,omitempty"`
 }
 
 // Manifest defines model for Manifest.
@@ -1281,19 +1392,24 @@ type OccurrenceKind string
 
 // ParallelJoin defines model for ParallelJoin.
 type ParallelJoin struct {
-	BranchCount     int                  `json:"branch_count"`
-	BranchOffset    *int                 `json:"branch_offset,omitempty"`
-	Branches        []ParallelJoinBranch `json:"branches"`
-	CreatedAt       time.Time            `json:"created_at"`
-	EntryTaskId     openapi_types.UUID   `json:"entry_task_id"`
-	EntryTaskName   *string              `json:"entry_task_name,omitempty"`
-	HasMoreBranches *bool                `json:"has_more_branches,omitempty"`
-	Id              openapi_types.UUID   `json:"id"`
-	Name            string               `json:"name"`
-	TargetTaskId    openapi_types.UUID   `json:"target_task_id"`
-	TargetTaskName  *string              `json:"target_task_name,omitempty"`
-	TruncatedFields *[]string            `json:"truncated_fields,omitempty"`
-	UpdatedAt       time.Time            `json:"updated_at"`
+	BranchCount      int                     `json:"branch_count"`
+	BranchOffset     *int                    `json:"branch_offset,omitempty"`
+	Branches         []ParallelJoinBranch    `json:"branches"`
+	CleanupTaskId    *string                 `json:"cleanup_task_id,omitempty"`
+	CleanupTaskName  *string                 `json:"cleanup_task_name,omitempty"`
+	CreatedAt        time.Time               `json:"created_at"`
+	EntryTaskId      openapi_types.UUID      `json:"entry_task_id"`
+	EntryTaskName    *string                 `json:"entry_task_name,omitempty"`
+	HasMoreBranches  *bool                   `json:"has_more_branches,omitempty"`
+	Id               openapi_types.UUID      `json:"id"`
+	Name             string                  `json:"name"`
+	RecoveryOn       []JoinRecoveryCondition `json:"recovery_on"`
+	RecoveryTaskId   *string                 `json:"recovery_task_id,omitempty"`
+	RecoveryTaskName *string                 `json:"recovery_task_name,omitempty"`
+	TargetTaskId     openapi_types.UUID      `json:"target_task_id"`
+	TargetTaskName   *string                 `json:"target_task_name,omitempty"`
+	TruncatedFields  *[]string               `json:"truncated_fields,omitempty"`
+	UpdatedAt        time.Time               `json:"updated_at"`
 }
 
 // ParallelJoinBranch defines model for ParallelJoinBranch.
@@ -1307,32 +1423,63 @@ type ParallelJoinBranch struct {
 
 // ParallelJoinInstance defines model for ParallelJoinInstance.
 type ParallelJoinInstance struct {
-	BranchCount              int                      `json:"branch_count"`
-	BranchOffset             *int                     `json:"branch_offset,omitempty"`
-	Branches                 []ParallelJoinInvocation `json:"branches"`
-	CompletedAt              *time.Time               `json:"completed_at,omitempty"`
-	CreatedAt                time.Time                `json:"created_at"`
-	DefinitionId             openapi_types.UUID       `json:"definition_id"`
-	DefinitionName           string                   `json:"definition_name"`
-	EntryRunId               openapi_types.UUID       `json:"entry_run_id"`
-	EntryTaskId              openapi_types.UUID       `json:"entry_task_id"`
-	EntryTaskName            *string                  `json:"entry_task_name,omitempty"`
-	HasMoreBranches          *bool                    `json:"has_more_branches,omitempty"`
-	Id                       openapi_types.UUID       `json:"id"`
-	Reason                   *string                  `json:"reason,omitempty"`
-	State                    JoinInstanceState        `json:"state"`
-	TargetCancellationError  *string                  `json:"target_cancellation_error,omitempty"`
-	TargetCancellationStatus *CancellationState       `json:"target_cancellation_status,omitempty"`
-	TargetDeliveryId         *openapi_types.UUID      `json:"target_delivery_id,omitempty"`
-	TargetDeliveryState      *JoinDeliveryState       `json:"target_delivery_state,omitempty"`
-	TargetEndedAt            *time.Time               `json:"target_ended_at,omitempty"`
-	TargetOutcome            *string                  `json:"target_outcome,omitempty"`
-	TargetRunId              *openapi_types.UUID      `json:"target_run_id,omitempty"`
-	TargetStartedAt          *time.Time               `json:"target_started_at,omitempty"`
-	TargetTaskId             openapi_types.UUID       `json:"target_task_id"`
-	TargetTaskName           *string                  `json:"target_task_name,omitempty"`
-	TruncatedFields          *[]string                `json:"truncated_fields,omitempty"`
-	UpdatedAt                time.Time                `json:"updated_at"`
+	BranchCount                int                      `json:"branch_count"`
+	BranchOffset               *int                     `json:"branch_offset,omitempty"`
+	Branches                   []ParallelJoinInvocation `json:"branches"`
+	CleanupCancellationError   *string                  `json:"cleanup_cancellation_error,omitempty"`
+	CleanupCancellationStatus  *CancellationState       `json:"cleanup_cancellation_status,omitempty"`
+	CleanupDeliveryId          *openapi_types.UUID      `json:"cleanup_delivery_id,omitempty"`
+	CleanupDeliveryState       *JoinDeliveryState       `json:"cleanup_delivery_state,omitempty"`
+	CleanupEndedAt             *time.Time               `json:"cleanup_ended_at,omitempty"`
+	CleanupOutcome             *string                  `json:"cleanup_outcome,omitempty"`
+	CleanupReason              *string                  `json:"cleanup_reason,omitempty"`
+	CleanupRunId               *openapi_types.UUID      `json:"cleanup_run_id,omitempty"`
+	CleanupSettledAt           *time.Time               `json:"cleanup_settled_at,omitempty"`
+	CleanupSettlement          *JoinSettlement          `json:"cleanup_settlement,omitempty"`
+	CleanupStartedAt           *time.Time               `json:"cleanup_started_at,omitempty"`
+	CleanupTaskId              *string                  `json:"cleanup_task_id,omitempty"`
+	CleanupTaskName            *string                  `json:"cleanup_task_name,omitempty"`
+	CompletedAt                *time.Time               `json:"completed_at,omitempty"`
+	CreatedAt                  time.Time                `json:"created_at"`
+	DefinitionId               openapi_types.UUID       `json:"definition_id"`
+	DefinitionName             string                   `json:"definition_name"`
+	EntryRunId                 openapi_types.UUID       `json:"entry_run_id"`
+	EntryTaskId                openapi_types.UUID       `json:"entry_task_id"`
+	EntryTaskName              *string                  `json:"entry_task_name,omitempty"`
+	HasMoreBranches            *bool                    `json:"has_more_branches,omitempty"`
+	Id                         openapi_types.UUID       `json:"id"`
+	Reason                     *string                  `json:"reason,omitempty"`
+	RecoveryCancellationError  *string                  `json:"recovery_cancellation_error,omitempty"`
+	RecoveryCancellationStatus *CancellationState       `json:"recovery_cancellation_status,omitempty"`
+	RecoveryDeliveryId         *openapi_types.UUID      `json:"recovery_delivery_id,omitempty"`
+	RecoveryDeliveryState      *JoinDeliveryState       `json:"recovery_delivery_state,omitempty"`
+	RecoveryEndedAt            *time.Time               `json:"recovery_ended_at,omitempty"`
+	RecoveryOn                 []JoinRecoveryCondition  `json:"recovery_on"`
+	RecoveryOutcome            *string                  `json:"recovery_outcome,omitempty"`
+	RecoveryReason             *string                  `json:"recovery_reason,omitempty"`
+	RecoveryRunId              *openapi_types.UUID      `json:"recovery_run_id,omitempty"`
+	RecoverySettledAt          *time.Time               `json:"recovery_settled_at,omitempty"`
+	RecoverySettlement         *JoinSettlement          `json:"recovery_settlement,omitempty"`
+	RecoveryStartedAt          *time.Time               `json:"recovery_started_at,omitempty"`
+	RecoveryTaskId             *string                  `json:"recovery_task_id,omitempty"`
+	RecoveryTaskName           *string                  `json:"recovery_task_name,omitempty"`
+	SelectedRoute              *JoinSelectedRoute       `json:"selected_route,omitempty"`
+	State                      JoinInstanceState        `json:"state"`
+	TargetCancellationError    *string                  `json:"target_cancellation_error,omitempty"`
+	TargetCancellationStatus   *CancellationState       `json:"target_cancellation_status,omitempty"`
+	TargetDeliveryId           *openapi_types.UUID      `json:"target_delivery_id,omitempty"`
+	TargetDeliveryState        *JoinDeliveryState       `json:"target_delivery_state,omitempty"`
+	TargetEndedAt              *time.Time               `json:"target_ended_at,omitempty"`
+	TargetOutcome              *string                  `json:"target_outcome,omitempty"`
+	TargetReason               *string                  `json:"target_reason,omitempty"`
+	TargetRunId                *openapi_types.UUID      `json:"target_run_id,omitempty"`
+	TargetSettledAt            *time.Time               `json:"target_settled_at,omitempty"`
+	TargetSettlement           *JoinSettlement          `json:"target_settlement,omitempty"`
+	TargetStartedAt            *time.Time               `json:"target_started_at,omitempty"`
+	TargetTaskId               openapi_types.UUID       `json:"target_task_id"`
+	TargetTaskName             *string                  `json:"target_task_name,omitempty"`
+	TruncatedFields            *[]string                `json:"truncated_fields,omitempty"`
+	UpdatedAt                  time.Time                `json:"updated_at"`
 }
 
 // ParallelJoinInstanceList defines model for ParallelJoinInstanceList.
@@ -1356,6 +1503,8 @@ type ParallelJoinInvocation struct {
 	Outcome            *string             `json:"outcome,omitempty"`
 	Reason             *string             `json:"reason,omitempty"`
 	RunId              *openapi_types.UUID `json:"run_id,omitempty"`
+	SettledAt          *time.Time          `json:"settled_at,omitempty"`
+	Settlement         *JoinSettlement     `json:"settlement,omitempty"`
 	StartedAt          *time.Time          `json:"started_at,omitempty"`
 	TaskId             openapi_types.UUID  `json:"task_id"`
 	TaskName           *string             `json:"task_name,omitempty"`
@@ -1903,13 +2052,13 @@ type ClientInterface interface {
 	// BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 	BundlesPreviewWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BundlesPreview performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 	// Takes a body of the `application/json` content type.
 	//
-	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 	BundlesPreview(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BundlesValidateWithBody performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
@@ -2299,7 +2448,7 @@ func (c *Client) BundlesExport(ctx context.Context, reqEditors ...RequestEditorF
 // BundlesPreviewWithBody performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 // with any type of body and a specified content type.
 //
-// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 func (c *Client) BundlesPreviewWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBundlesPreviewRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -2315,7 +2464,7 @@ func (c *Client) BundlesPreviewWithBody(ctx context.Context, contentType string,
 // BundlesPreview performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 // Takes a body of the `application/json` content type.
 //
-// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 func (c *Client) BundlesPreview(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBundlesPreviewRequest(c.Server, body)
 	if err != nil {
@@ -6055,7 +6204,7 @@ type ClientWithResponsesInterface interface {
 	// BundlesPreviewWithBodyWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 	// with any type of body and a specified content type.
 	//
-	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	BundlesPreviewWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error)
@@ -6063,7 +6212,7 @@ type ClientWithResponsesInterface interface {
 	// BundlesPreviewWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
-	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+	// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 	BundlesPreviewWithResponse(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error)
 
 	// BundlesValidateWithBodyWithResponse performs a POST /bundles/validate (the `BundlesValidate` operationId) request,
@@ -9788,7 +9937,7 @@ func (c *ClientWithResponses) BundlesExportWithResponse(ctx context.Context, req
 // BundlesPreviewWithBodyWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request,
 // with any type of body and a specified content type.
 //
-// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 //
 // Returns a wrapper object for the known response body format(s).
 func (c *ClientWithResponses) BundlesPreviewWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error) {
@@ -9802,7 +9951,7 @@ func (c *ClientWithResponses) BundlesPreviewWithBodyWithResponse(ctx context.Con
 // BundlesPreviewWithResponse performs a POST /bundles/preview (the `BundlesPreview` operationId) request.
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
-// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document.
+// Creates a short-lived target-bound plan without target mutation. Optional watcher_paths bind new watchers to absolute target-local paths outside the bundle document. Plans retain required_capabilities for recovery/cleanup configuration so apply rechecks parallel-join-recovery support on the same selected daemon.
 func (c *ClientWithResponses) BundlesPreviewWithResponse(ctx context.Context, body BundlesPreviewJSONRequestBody, reqEditors ...RequestEditorFn) (*BundlesPreviewResponse, error) {
 	rsp, err := c.BundlesPreview(ctx, body, reqEditors...)
 	if err != nil {
