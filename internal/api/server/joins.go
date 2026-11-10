@@ -130,6 +130,10 @@ func (s *Server) handleUpdateJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Branches != nil {
 		join.Branches = joinInputBranches(*req.Branches)
+		join.BranchCount = len(join.Branches)
+		join.BranchOffset = 0
+		join.HasMoreBranches = false
+		join.TruncatedFields = nil
 	}
 	if err := s.store.UpdateParallelJoinIfUnchanged(&join, req.ExpectedUpdatedAt); err != nil {
 		s.joinError(w, err)

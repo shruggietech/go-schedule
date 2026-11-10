@@ -682,8 +682,9 @@ func (a *App) AutomationWorkspace(expectedDaemonID string) automation.OperationR
 	if message != "" {
 		return automation.OperationResult{Action: "load", Outcome: "unavailable", Message: message}
 	}
-	generation := a.manager.Snapshot().Generation
-	result := a.automation.Workspace(ctx)
+	selected := a.manager.Snapshot()
+	generation := selected.Generation
+	result := a.automation.Workspace(ctx, parallelJoinsSupported(selected.Target.Capabilities))
 	after := a.manager.Snapshot()
 	if after.Target.ID != expectedDaemonID || after.Generation != generation || after.Stale || after.State != connection.StateConnected {
 		return automation.OperationResult{Action: "load", Outcome: "unavailable", Message: "The selected scheduler changed while reading Automation. Refresh the selected target."}
@@ -728,7 +729,7 @@ func (a *App) automationContext(expected, permission string) (context.Context, s
 			return nil, "The current account lacks authority for this Automation action."
 		}
 	}
-	return client.ExpectDaemon(a.ctx, expected), ""
+	return automation.WithJoinSupport(client.ExpectDaemon(a.ctx, expected), parallelJoinsSupported(snapshot.Target.Capabilities)), ""
 }
 
 func (a *App) Workspace() taskgroup.OperationResult {
@@ -914,4 +915,13 @@ func (a *App) automationJoinContext(expected, permission string) (context.Contex
 		}
 	}
 	return nil, "This scheduler does not support parallel joins. Update the selected scheduler."
+}
+
+func parallelJoinsSupported(capabilities []string) bool {
+	for _, capability := range capabilities {
+		if capability == "parallel-joins" {
+			return true
+		}
+	}
+	return false
 }

@@ -262,3 +262,59 @@ func TestS144DeletedJoinAPIStillExposesOwnedActiveRun(t *testing.T) {
 		t.Fatalf("deleted active=%+v", instance)
 	}
 }
+
+func TestS144JoinAPIBranchReplacementRemovesAddsAndReorders(t *testing.T) {
+	s := newTestServer(t)
+	entry := apiTask(t, s, "entry")
+	branch := apiTask(t, s, "branch")
+	target := apiTask(t, s, "target")
+	first := domain.ParallelJoinBranch{ID: "first", Name: "first", TaskID: branch.ID}
+	second := domain.ParallelJoinBranch{ID: "second", Name: "second", TaskID: branch.ID}
+	third := domain.ParallelJoinBranch{ID: "third", Name: "third", TaskID: branch.ID}
+	created := doJSON(t, s, http.MethodPost, "/v1/joins", JoinCreateRequest{Name: "block", EntryTaskID: entry.ID, TargetTaskID: target.ID, Branches: []domain.ParallelJoinBranch{first, second}})
+	var join domain.ParallelJoin
+	if created.Code != http.StatusCreated || json.Unmarshal(created.Body.Bytes(), &join) != nil {
+		t.Fatalf("create=%d %s", created.Code, created.Body.String())
+	}
+	initialRevision := join.UpdatedAt
+	for _, step := range []struct {
+		name     string
+		branches []domain.ParallelJoinBranch
+	}{
+		{"remove", []domain.ParallelJoinBranch{first}},
+		{"add", []domain.ParallelJoinBranch{first, third}},
+		{"reorder", []domain.ParallelJoinBranch{third, first}},
+	} {
+		updated := doJSON(t, s, http.MethodPatch, "/v1/joins/"+join.ID, JoinUpdateRequest{Branches: &step.branches, ExpectedUpdatedAt: &join.UpdatedAt})
+		if updated.Code != http.StatusOK {
+			t.Fatalf("%s status=%d body=%s", step.name, updated.Code, updated.Body.String())
+		}
+		if err := json.Unmarshal(updated.Body.Bytes(), &join); err != nil {
+			t.Fatal(err)
+		}
+		if len(join.Branches) != len(step.branches) || join.BranchCount != len(step.branches) || join.BranchOffset != 0 || join.HasMoreBranches || len(join.TruncatedFields) != 0 {
+			t.Fatalf("%s observation metadata=%+v", step.name, join)
+		}
+		persisted, err := s.store.GetParallelJoin(join.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(persisted.Branches) != len(step.branches) {
+			t.Fatalf("%s persisted=%+v", step.name, persisted)
+		}
+		for i, want := range step.branches {
+			if join.Branches[i].ID != want.ID || persisted.Branches[i].ID != want.ID || persisted.Branches[i].TaskID != want.TaskID {
+				t.Fatalf("%s slot %d identity changed: response=%+v persisted=%+v", step.name, i, join, persisted)
+			}
+		}
+	}
+	staleBranches := []domain.ParallelJoinBranch{first, second}
+	stale := doJSON(t, s, http.MethodPatch, "/v1/joins/"+join.ID, JoinUpdateRequest{Branches: &staleBranches, ExpectedUpdatedAt: &initialRevision})
+	if stale.Code != http.StatusConflict {
+		t.Fatalf("stale replacement=%d %s", stale.Code, stale.Body.String())
+	}
+	persisted, err := s.store.GetParallelJoin(join.ID)
+	if err != nil || len(persisted.Branches) != 2 || persisted.Branches[0].ID != third.ID || persisted.Branches[1].ID != first.ID {
+		t.Fatalf("stale replacement changed slots: %+v err=%v", persisted, err)
+	}
+}

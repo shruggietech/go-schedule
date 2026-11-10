@@ -21,7 +21,7 @@ type Service struct{ backend Backend }
 
 func NewService(backend Backend) *Service { return &Service{backend: backend} }
 
-func (s *Service) Workspace(ctx context.Context) OperationResult {
+func (s *Service) Workspace(ctx context.Context, joinsSupported bool) OperationResult {
 	c, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 	tasks, err := s.backend.ListTaskDetails(c, "", "")
@@ -44,16 +44,20 @@ func (s *Service) Workspace(ctx context.Context) OperationResult {
 	if err != nil {
 		return failure("load", err)
 	}
-	joins, err := s.backend.ListJoins(c)
-	if err != nil {
-		return failure("load", err)
-	}
-	instances, err := s.backend.ListJoinInstances(c, domain.ParallelJoinInstanceFilter{Limit: 100})
-	if err != nil {
-		return failure("load", err)
-	}
 	workspace := buildWorkspace(tasks, chains, triggers, sets, watchers)
-	workspace.Joins, workspace.JoinInstances = joins, instances
+	workspace.Joins = []domain.ParallelJoin{}
+	workspace.JoinInstances = []domain.ParallelJoinInstance{}
+	if joinsSupported {
+		joins, err := s.backend.ListJoins(c)
+		if err != nil {
+			return failure("load", err)
+		}
+		instances, err := s.backend.ListJoinInstances(c, domain.ParallelJoinInstanceFilter{Limit: 100})
+		if err != nil {
+			return failure("load", err)
+		}
+		workspace.Joins, workspace.JoinInstances = joins, instances
+	}
 	return accepted("load", "Automation sources are up to date.", "", &workspace)
 }
 
@@ -338,7 +342,7 @@ func (s *Service) mutate(ctx context.Context, action, id string, fn func(context
 	return s.refreshed(ctx, action, "Automation source action accepted.", id)
 }
 func (s *Service) refreshed(ctx context.Context, action, message, id string) OperationResult {
-	loaded := s.Workspace(ctx)
+	loaded := s.Workspace(ctx, joinSupport(ctx))
 	if loaded.Outcome != "accepted" {
 		return accepted(action, message+" Refresh the workspace to see the latest state.", id, nil)
 	}

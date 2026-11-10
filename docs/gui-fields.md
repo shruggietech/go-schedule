@@ -259,7 +259,7 @@ The form labels each control for keyboard and assistive-technology access. Switc
 
 ## Parallel joins in Automation (Unreleased S144)
 
-Automation is available for a connected current local or remote target with advertised `parallel-joins` support. Its full workspace includes existing chains and other automation definitions. Read-only users can inspect current definitions and instances; Manage authority is required to create, edit or delete them. The page identifies the selected connection and daemon installation identity, and switching targets clears old selections and prevents late results from mutating the new target's view.
+Automation uses the selected connected local or remote target. Parallel join controls require advertised `parallel-joins` support; a compatible target without it retains its existing supported Automation definitions without calls to unsupported join endpoints. The full workspace includes existing chains and other automation definitions. Read-only users can inspect current definitions and instances; Manage authority is required to create, edit or delete them. The page identifies the selected connection and daemon installation identity, and switching targets clears old selections and prevents late results from mutating the new target's view.
 
 Create a parallel block by selecting an entry task, naming each branch and choosing its task, then selecting the joined target. Keyboard-accessible controls add or remove branch rows. Names and stable task IDs distinguish duplicate task names; repeated references to one task represent separate invocations. Saving preserves slot identities, and edits affect future entry executions. A stale edit requires refresh or deliberate overwrite rather than silently replacing a newer definition.
 

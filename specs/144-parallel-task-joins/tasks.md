@@ -59,3 +59,8 @@ T001 -> T002 -> independent [P] store (T003-T005), engine/API/portable (T006-T01
 ## Implementation strategy
 
 Deliver the complete parallel block in one source PR, including #471/#472 and required remote chain CRUD. A backend-only partial result is not S144 completion. Push/PR/CI/review are continuing authorized publication workflow, not unchecked implementation tasks.
+
+## First review corrections (2026-11-10)
+
+- [x] T029 [P] Correct #474 complete branch replacement metadata and retain failing-first remove/add/reorder/identity/CAS API regressions in internal/api/server (FR-001, FR-009, FR-010, FR-011).
+- [x] T030 [P] Correct #475 capability-aware complete Automation workspace and post-mutation refreshes, retaining unsupported-capability and advertised-failure regressions in desktop/automation and desktop app/frontend (FR-011, FR-013, FR-014, FR-019).

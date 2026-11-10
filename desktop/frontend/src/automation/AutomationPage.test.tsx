@@ -115,3 +115,5 @@ describe('AutomationPage', () => {
     await user.click(create); await user.type(screen.getByLabelText('Name'), 'New hook'); await user.selectOptions(screen.getByLabelText('Target task'), 'task-1'); await user.click(screen.getByRole('button', { name: 'Save' })); expect(await screen.findByText('secret-value')).toBeVisible(); await user.click(screen.getByRole('button', { name: 'Close' })); expect(create).toHaveFocus()
   })
 })
+
+it('shows an advertised capability load rejection instead of indefinite loading',async()=>{render(<AutomationPage bridge={mockBridge({workspace:vi.fn().mockResolvedValue({action:'load',outcome:'rejected',message:'The advertised join endpoint could not be read.'})})} daemonID="advertised" joinsSupported/>);expect(await screen.findByRole('heading',{name:'Automation sources are unavailable'})).toBeVisible();expect(screen.getByText('The advertised join endpoint could not be read.')).toBeVisible();expect(screen.queryByRole('heading',{name:'Loading automation sources'})).not.toBeInTheDocument()})
