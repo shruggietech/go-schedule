@@ -63,3 +63,7 @@ describe('ActivityPage', () => {
     expect(screen.getByRole('button', { name: 'Acknowledge alert' })).toBeDisabled()
   })
 })
+
+ it('Refresh retains an exact selected record instead of replacing it with recent activity', async () => {
+ const api=bridge();api.activityRecord=vi.fn().mockResolvedValue({...accepted,activity:{...workspace,runs:[{...workspace.runs[0],id:'exact-run'}]}});const user=userEvent.setup();render(<ActivityPage bridge={api} available refreshToken={1} initialRecordId="exact-run" initialRecordKind="run"/>);await screen.findByText('exact-run');await user.click(screen.getByRole('button',{name:'Refresh'}));await waitFor(()=>expect(api.activityRecord).toHaveBeenCalledTimes(2));expect(api.activityWorkspace).not.toHaveBeenCalled();
+ });

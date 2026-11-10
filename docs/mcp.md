@@ -11,6 +11,8 @@ nav_order: 7.5
 
 go-schedule provides optional local Model Context Protocol access for inspecting scheduler state and, after explicit opt-in, operating existing tasks or managing bounded automation definitions. The preferred stdio mode starts only when an MCP host launches `gosched mcp serve`, communicates through standard input and standard output, and opens no network listener. Clients that cannot launch stdio can use a separately enabled authenticated endpoint bound only to numeric IPv4 loopback. The daemon must already be running, and the account controlling either mode must already have access to its Unix socket or Windows named pipe.
 
+S143 source adds the active-runs resource and cancellation tool described below. These are not in public v2.0.3, which exposes five resources, four continuation templates, three Operate tools and nine Manage tools.
+
 ## Add it to Codex
 
 Install go-schedule normally and confirm `gosched health` succeeds from the same account that runs Codex. Then add the local stdio server:
@@ -34,15 +36,15 @@ Restart or reconnect the MCP host after changing its server configuration. The s
 
 Create a local MCP server entry named `go-schedule` whose command is `gosched` and whose ordered arguments are `mcp`, `serve`. Use an absolute executable path when the host does not inherit the installation directory in `PATH`. Do not add a URL, bearer credential, or shell wrapper to this stdio entry. The host owns the subprocess lifetime, stdio opens no listener, and removal consists of deleting that host configuration.
 
-The exact configuration-file syntax is host-specific. Preserve the command and argument boundary rather than combining it into one shell command string. After saving, reconnect the host and confirm that it discovers five resources, four continuation templates, and no tools.
+The exact configuration-file syntax is host-specific. Preserve the command and argument boundary rather than combining it into one shell command string. After saving, reconnect the host and confirm that it discovers six resources, five continuation templates, and no tools.
 
-Observe is always the default. To let a trusted local host run, enable, or disable existing tasks, explicitly add `--permission operate` and a recognizable runtime client name:
+Observe is always the default. To let a trusted local host run, enable, or disable existing tasks or cancel one active execution, explicitly add `--permission operate` and a recognizable runtime client name:
 
 ```text
 codex mcp add go-schedule-operate -- gosched mcp serve --permission operate --name "Codex task operator"
 ```
 
-An Operate server exposes the same bounded resources plus exactly `tasks_run_now`, `tasks_enable`, and `tasks_disable`. Each call requires the exact daemon installation UUID, existing task ID, and a caller-generated request UUID. Reuse a request UUID only for a retry of the identical operation and target. Operate cannot create, edit, delete, or reconfigure tasks, groups, schedules, triggers, notification channels, connections, actors, or credentials.
+An Operate server exposes the same bounded resources plus exactly `tasks_run_now`, `tasks_enable`, `tasks_disable`, and `runs_cancel`. Each call requires the exact daemon installation UUID, existing task ID (or exact Run ID for `runs_cancel`), and a caller-generated request UUID. Reuse a request UUID only for a retry of the identical operation and target. Operate cannot create, edit, delete, or reconfigure tasks, groups, schedules, triggers, notification channels, connections, actors, or credentials.
 
 To let a deliberately trusted host manage automation definitions, explicitly choose Manage:
 
@@ -50,7 +52,7 @@ To let a deliberately trusted host manage automation definitions, explicitly cho
 codex mcp add go-schedule-manage -- gosched mcp serve --permission manage --name "Codex definition manager"
 ```
 
-Manage inherits the three Operate tools and adds exactly `tasks_manage`, `groups_manage`, `chains_manage`, `triggers_manage`, `watchers_manage`, and `notification_assignments_replace`. Each family tool changes one definition per call through the ordinary local API. Bulk mutation, actor administration, enrollment, credential reveal, direct database access, and raw filesystem access are unavailable. Task environment and stdin values are intentionally absent from the MCP schema. Trigger creation returns the new trigger identity but withholds its generated key; an Enroll-authorized human client owns later credential handling.
+Manage inherits the four Operate tools and adds exactly `tasks_manage`, `groups_manage`, `chains_manage`, `triggers_manage`, `watchers_manage`, and `notification_assignments_replace`. Each family tool changes one definition per call through the ordinary local API. Bulk mutation, actor administration, enrollment, credential reveal, direct database access, and raw filesystem access are unavailable. Task environment and stdin values are intentionally absent from the MCP schema. Trigger creation returns the new trigger identity but withholds its generated key; an Enroll-authorized human client owns later credential handling.
 
 Attended environments can require an explicit confirmation field on every Manage call without imposing prompts on unattended deployments:
 
@@ -68,7 +70,7 @@ gosched mcp http enable --port 43123 --name "Local desktop host"
 
 The command prints `http://127.0.0.1:43123/mcp` and a cryptographically random bearer credential exactly once. Copy both values into the local client's Streamable HTTP configuration. Do not place the credential in URLs, shell history, issue reports, or logs. `gosched mcp http status` reports the client name, permission, endpoint, successful request count, and a non-secret fingerprint. The client name and aggregate evidence are runtime-only. They contain no request content, failed-attempt history, or peer metadata.
 
-To enable the same three Operate tools over localhost HTTP, make the permission explicit:
+To enable the same four Operate tools over localhost HTTP, make the permission explicit:
 
 ```text
 gosched mcp http enable --port 43123 --name "Local desktop operator" --permission operate
@@ -111,10 +113,11 @@ Existing remote grants can be narrowed from Manage to Operate or Observe, from O
 | `goschedule://schedules/upcoming` | Upcoming schedule projections without executable or raw recurrence configuration. |
 | `goschedule://alerts/recent` | Recent bounded alert evidence. |
 | `goschedule://runs/recent` | Recent bounded run evidence and output excerpts. |
+| `goschedule://runs/active` | Exact active Run IDs, task IDs, lifecycle times, trigger kind and authored cancellation guidance, without output or execution inputs (Unreleased S143). |
 
-Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Each read requests only that page plus one lookahead record. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field. Task and schedule reads use an allowlisted SQLite projection that never loads execution inputs, while run output and alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
+Collections contain at most 100 records per page and provide an opaque continuation URI when another page is available. Persisted collections request only that page plus one lookahead record. Active runs are paged from the daemon's current in-memory execution snapshot. One output excerpt is capped at 8 KiB. Other user-controlled text is capped at 2 KiB. Truncation is explicit for every bounded field. Task and schedule reads use an allowlisted SQLite projection that never loads execution inputs, while run output and alert messages are clipped in SQLite before they enter daemon memory or cross IPC.
 
-Observe sessions on local and remote transports advertise resources only. Operate sessions add exactly three task tools. Manage sessions inherit those tools and add exactly six definition tools, with no direct database access, raw log resource, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
+Observe sessions on local and remote transports advertise resources only. Operate sessions add exactly four operation tools. Manage sessions inherit those tools and add exactly six definition tools, with no direct database access, raw log resource, permission administration, enrollment, or credential reveal. Enabling localhost HTTP does not enable remote JSON or remote MCP access and does not change CLI, GUI, Unix-socket, or Windows-named-pipe authorization.
 
 ## Remote HTTPS authorization
 
@@ -126,9 +129,17 @@ The token endpoint returns an opaque, short-lived, memory-only bearer. It is val
 
 ## Operate results and retry safety
 
-Every Operate result has a stable schema version, permission, operation, daemon ID, task ID, request ID, outcome, and bounded message. `accepted` means the daemon authoritatively accepted the operation. `rejected` means validation, target state, or request identity prevented it. `denied` means current server-owned authority prevented it. `uncertain` means the client did not receive authoritative completion evidence; inspect current task state and Activity before deciding whether to retry.
+Every Operate result has a stable schema version, permission, operation, daemon ID, target task ID or Run ID, request ID, outcome, and bounded message. `accepted` means the daemon authoritatively accepted the operation. `rejected` means validation, target state, or request identity prevented it. `denied` means current server-owned authority prevented it. `uncertain` means the client did not receive authoritative completion evidence; inspect current task state and Activity before deciding whether to retry.
 
 The runtime session remembers a bounded set of request IDs for ten minutes. Repeating the same request ID with the same operation and target returns the first result without another mutation. Reusing it for another operation or target is rejected. This in-memory retry boundary ends with the MCP process or localhost listener, so callers must still reconcile uncertain outcomes rather than replaying blindly after a restart.
+
+## Cancel an exact active run (Unreleased S143)
+
+Read `goschedule://runs/active` to obtain the exact Run ID without accessing raw output or execution inputs. Pages contain at most 100 records, use opaque continuation URIs, and may change as executions finish. An unavailable active observation returns an error rather than substituting persisted history. Other user-controlled text retains the existing bounds; failure guidance is authored text, not raw process errors.
+
+Call `runs_cancel` with the selected `daemon_id`, exact `run_id`, and new `request_id`. Operate authority is required; current revocation and request-ID deduplication checks remain in force. An accepted cancellation contains its API acknowledgement, which may still be `requested`; it does not establish termination. Re-read active or recent run evidence to reconcile the outcome. An already-finished target preserves its actual outcome. Uncertain responses require observation before any deliberate retry. Canceling a run leaves its task and other runs alone.
+
+The sixth resource and fourth Operate tool are S143 source additions and are not included in public v2.0.3. Current S143 Manage sessions expose ten tools (four operations plus six definition families). Older daemons without cancellation support reject the operation explicitly.
 
 ## Manage results, deletes, and compatibility
 

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Cancel an exact active Run ID through local/remote API, CLI, controlled MCP and desktop Activity. Retain actual native exit/output, distinguish requested from terminated or unconfirmed cleanup, keep unreaped work owned, and preserve task scheduling and other concurrent executions (S143, #465).
+
+### Fixed
+
+- Negotiate desktop connections using supported API v1 instead of rejecting v2.x product versions (#466).
+- Retain per-task overlap accounting until every concurrent execution finishes (#467).
+- Refresh selected exact Activity runs without replacing their view with the bounded recent list (#468).
+
+### Decisions
+
+- 2026-11-09 (S143): own exact Windows jobs and Unix process groups before execution, retain ordinary command/background behavior and intentional native breakaway, and apply one five-second cleanup allowance only after cancellation. Retain ownership and capacity after unconfirmed cleanup. Store distinct terminal outcomes in existing schema 24, suppress cancellation chains and outbound policy streak changes, and expose bounded active-run discovery to MCP. Public v2.0.3 and existing release/native-testing disclosures remain unchanged.
+
 ### Changed
 
 - Reconcile current README, first-task, installation, desktop and website discovery with public v2.0.3, including the corrected Windows version identity. Preserve tagged release notes, comparison/review and earlier release bytes (S142, #462).

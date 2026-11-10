@@ -95,6 +95,9 @@ func (s *Server) writeManifest(w http.ResponseWriter, r *http.Request) {
 	}
 	remoteVersions := []string{}
 	capabilities := append([]string(nil), daemonCapabilities...)
+	if _, ok := s.sched.(runCanceler); ok {
+		capabilities = append(capabilities, "run-cancellation")
+	}
 	if s.remoteMCP {
 		capabilities = append(capabilities, "remote-mcp")
 	}

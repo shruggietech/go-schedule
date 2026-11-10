@@ -378,7 +378,7 @@ func TestOfficialSDKHTTPDiscoveryAndSupportedRevisions(t *testing.T) {
 		t.Fatal("HTTP advertised tools")
 	}
 	resources, err := session.ListResources(ctx, nil)
-	if err != nil || len(resources.Resources) != 5 {
+	if err != nil || len(resources.Resources) != 6 {
 		t.Fatalf("resources=%+v err=%v", resources, err)
 	}
 	if _, err := session.ReadResource(ctx, &mcp.ReadResourceParams{URI: resources.Resources[0].URI}); err != nil {
@@ -461,7 +461,7 @@ func TestOperateHTTPDiscoveryExecutionAndDisableRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	listed, err := session.ListTools(ctx, nil)
-	if err != nil || len(listed.Tools) != 3 {
+	if err != nil || len(listed.Tools) != 4 {
 		t.Fatalf("tools=%+v err=%v", listed, err)
 	}
 	called, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "tasks_run_now", Arguments: map[string]any{"daemon_id": uuid.NewString(), "task_id": "task-1", "request_id": uuid.NewString()}})
@@ -512,7 +512,7 @@ func TestManageHTTPDiscoveryIncludesOperateAndConfirmationPolicy(t *testing.T) {
 	}
 	defer session.Close()
 	listed, err := session.ListTools(ctx, nil)
-	if err != nil || len(listed.Tools) != 9 {
+	if err != nil || len(listed.Tools) != 10 {
 		t.Fatalf("tools=%+v err=%v", listed, err)
 	}
 	if _, err := manager.Disable(context.Background()); err != nil {
@@ -638,3 +638,9 @@ func rawInitialize(t *testing.T, endpoint, credential, revision string) int {
 func stringPort(port int) string {
 	return strconv.Itoa(port)
 }
+
+func (f *fakeOperator) CancelRun(_ context.Context, id string) (domain.RunCancellation, error) {
+	return domain.RunCancellation{RunID: id, Status: "requested"}, nil
+}
+
+func (fakeReader) ListActiveRuns(context.Context) ([]domain.Run, error) { return []domain.Run{}, nil }

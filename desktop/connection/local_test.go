@@ -34,7 +34,7 @@ func (f localDaemonFake) StreamEvents(ctx context.Context, publish func(events.E
 }
 
 func TestLocalBackendNegotiatesSafeThisComputerContract(t *testing.T) {
-	backend := NewLocalBackend(localDaemonFake{health: server.HealthResponse{Status: "ok", Version: "1.2.0"}, manifest: server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "Workshop", ProductVersion: "1.2.0", Capabilities: []string{"notifications", "tasks"}, Platform: server.ManifestPlatform{OS: "windows", Architecture: "amd64"}}})
+	backend := NewLocalBackend(localDaemonFake{health: server.HealthResponse{Status: "ok", Version: "1.2.0"}, manifest: server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "Workshop", ProductVersion: "1.2.0", LocalAPIVersions: []string{"v1"}, Capabilities: []string{"notifications", "tasks"}, Platform: server.ManifestPlatform{OS: "windows", Architecture: "amd64"}}})
 	health, err := backend.Health(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +57,7 @@ func contains(values []string, wanted string) bool {
 }
 
 func TestLocalBackendRejectsIncompatibleVersion(t *testing.T) {
-	backend := NewLocalBackend(localDaemonFake{health: server.HealthResponse{Status: "ok", Version: "2.0.0"}})
+	backend := NewLocalBackend(localDaemonFake{health: server.HealthResponse{Status: "ok", Version: "v2.0.3"}, manifest: server.ManifestResponse{InstallationID: "daemon-1", DisplayName: "Owned", ProductVersion: "v2.0.3", LocalAPIVersions: []string{"v2"}}})
 	_, err := backend.Health(context.Background())
 	var failure *Failure
 	if !errors.As(err, &failure) || failure.State != StateIncompatible {

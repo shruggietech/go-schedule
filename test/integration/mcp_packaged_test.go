@@ -30,11 +30,11 @@ func TestPackagedMCPCommandDiscovery(t *testing.T) {
 	}
 	defer session.Close()
 	resources, err := session.ListResources(ctx, nil)
-	if err != nil || len(resources.Resources) != 5 {
+	if err != nil || len(resources.Resources) != 6 {
 		t.Fatalf("resources=%+v err=%v", resources, err)
 	}
 	templates, err := session.ListResourceTemplates(ctx, nil)
-	if err != nil || len(templates.ResourceTemplates) != 4 {
+	if err != nil || len(templates.ResourceTemplates) != 5 {
 		t.Fatalf("templates=%+v err=%v", templates, err)
 	}
 	tools, err := session.ListTools(ctx, nil)

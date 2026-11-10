@@ -99,6 +99,7 @@ var catalog = []Operation{
 	op("GET", "/v1/runs", "runs.list", domain.CapabilityObserve, "run", AuditNone),
 	op("GET", "/v1/runs/active", "runs.active.list", domain.CapabilityObserve, "run", AuditNone),
 	op("GET", "/v1/runs/{id}", "runs.read", domain.CapabilityObserve, "run", AuditNone),
+	op("POST", "/v1/runs/{id}/cancel", "runs.cancel", domain.CapabilityOperate, "run", AuditMutation),
 	op("GET", "/v1/notification-channels", "notifications.channels.list", domain.CapabilityObserve, "notification_channel", AuditNone),
 	op("POST", "/v1/notification-channels", "notifications.channels.create", domain.CapabilityManage, "notification_channel", AuditMutation),
 	op("GET", "/v1/notification-channels/{id}", "notifications.channels.read", domain.CapabilityObserve, "notification_channel", AuditNone),

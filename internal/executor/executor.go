@@ -7,6 +7,7 @@ package executor
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
 	"github.com/shruggietech/go-schedule/v2/internal/platform"
+	"github.com/shruggietech/go-schedule/v2/internal/runcontrol"
 )
 
 // Executor runs commands and produces Run records.
@@ -37,7 +39,19 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 	start := time.Now().UTC()
 	run := domain.Run{TaskID: task.ID, ScheduledFor: scheduledFor, StartedAt: &start, Trigger: trigger}
 
-	cmd := exec.CommandContext(ctx, task.Command, task.Args...)
+	if err := ctx.Err(); err != nil {
+		end := time.Now().UTC()
+		run.EndedAt = &end
+		if errors.Is(context.Cause(ctx), runcontrol.ErrRequested) {
+			run.Outcome = domain.OutcomeCanceled
+		} else {
+			run.Outcome = domain.OutcomeFailure
+			run.StartFailed = true
+			run.Output = err.Error()
+		}
+		return run
+	}
+	cmd := exec.Command(task.Command, task.Args...)
 	if task.WorkingDir != "" {
 		cmd.Dir = task.WorkingDir
 	}
@@ -60,25 +74,33 @@ func (e *Executor) Run(ctx context.Context, task domain.Task, scheduledFor time.
 		return run
 	}
 
-	cmd.Stdout = buf
-	cmd.Stderr = buf
-
-	err := cmd.Run()
+	result := executeOwned(ctx, cmd, buf)
+	err := result.err
 	end := time.Now().UTC()
 	run.EndedAt = &end
 	run.Output = buf.String()
 	run.OutputTruncated = buf.Truncated()
 
-	if err != nil {
+	if result.code != nil {
+		run.ExitCode = result.code
+	}
+	if result.canceled {
+		run.Outcome = domain.OutcomeCanceled
+		if result.cleanupFailed {
+			run.Outcome = domain.OutcomeCancellationFailed
+		}
+		if result.diagnostic != nil {
+			captureDiagnostic(buf, &run, "cancellation cleanup: "+result.diagnostic.Error())
+		}
+		return run
+	}
+	if err != nil || result.diagnostic != nil {
 		run.Outcome = domain.OutcomeFailure
-		if ee, ok := err.(*exec.ExitError); ok {
-			code := ee.ExitCode()
-			run.ExitCode = &code
-		} else if run.Output == "" {
-			run.StartFailed = true
+		run.StartFailed = !result.started
+		if result.diagnostic != nil {
+			captureDiagnostic(buf, &run, "process collection: "+result.diagnostic.Error())
+		} else if run.StartFailed && run.Output == "" {
 			captureDiagnostic(buf, &run, fmt.Sprintf("process start failed for %q: %v", task.Command, err))
-		} else {
-			run.StartFailed = true
 		}
 		return run
 	}

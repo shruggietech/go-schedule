@@ -101,3 +101,14 @@ func optionalTimestamp(value *time.Time) *string {
 	formatted := timestamp(*value)
 	return &formatted
 }
+
+// ActiveRunSummary exposes execution identity and lifecycle metadata without executable configuration or process output.
+type ActiveRunSummary struct {
+	ID                 string  `json:"id"`
+	TaskID             string  `json:"task_id"`
+	ScheduledFor       string  `json:"scheduled_for"`
+	StartedAt          *string `json:"started_at,omitempty"`
+	TriggerKind        string  `json:"trigger_kind"`
+	CancellationStatus string  `json:"cancellation_status,omitempty"`
+	CancellationError  string  `json:"cancellation_error,omitempty"`
+}

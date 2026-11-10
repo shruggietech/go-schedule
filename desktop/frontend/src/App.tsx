@@ -365,6 +365,8 @@ export function App({
           available={snapshot.state === "connected"}
           targetName={targetContext}
           canMutate={canOperate}
+          daemonID={snapshot.target.id}
+          cancellationSupported={snapshot.target.capabilities.includes('run-cancellation')}
           initialRecordId={drilldown?.destination === "activity" ? drilldown.recordId : undefined}
 		  initialRecordKind={drilldown?.destination === "activity" ? drilldown.recordKind : undefined}
           refreshToken={

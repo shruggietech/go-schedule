@@ -108,6 +108,24 @@ func (e AuditEventResult) Valid() bool {
 	}
 }
 
+// Defines values for CancellationState.
+const (
+	CancellationStateFailed    CancellationState = "failed"
+	CancellationStateRequested CancellationState = "requested"
+)
+
+// Valid indicates whether the value is a known member of the CancellationState enum.
+func (e CancellationState) Valid() bool {
+	switch e {
+	case CancellationStateFailed:
+		return true
+	case CancellationStateRequested:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Capability.
 const (
 	Enroll  Capability = "enroll"
@@ -315,6 +333,24 @@ func (e OccurrenceKind) Valid() bool {
 	case Past:
 		return true
 	case Scheduled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunCancellationStatus.
+const (
+	RunCancellationStatusAlreadyFinished RunCancellationStatus = "already_finished"
+	RunCancellationStatusRequested       RunCancellationStatus = "requested"
+)
+
+// Valid indicates whether the value is a known member of the RunCancellationStatus enum.
+func (e RunCancellationStatus) Valid() bool {
+	switch e {
+	case RunCancellationStatusAlreadyFinished:
+		return true
+	case RunCancellationStatusRequested:
 		return true
 	default:
 		return false
@@ -759,6 +795,9 @@ type Calendar struct {
 	To          time.Time    `json:"to"`
 }
 
+// CancellationState defines model for CancellationState.
+type CancellationState string
+
 // Capability defines model for Capability.
 type Capability string
 
@@ -1043,9 +1082,14 @@ type Platform struct {
 
 // Run defines model for Run.
 type Run struct {
-	EndedAt         *time.Time          `json:"ended_at,omitempty"`
-	ExitCode        *int                `json:"exit_code,omitempty"`
-	Id              openapi_types.UUID  `json:"id"`
+	// CancellationError Authored cleanup-failure guidance while execution remains active
+	CancellationError  *string            `json:"cancellation_error,omitempty"`
+	CancellationStatus *CancellationState `json:"cancellation_status,omitempty"`
+	EndedAt            *time.Time         `json:"ended_at,omitempty"`
+	ExitCode           *int               `json:"exit_code,omitempty"`
+	Id                 openapi_types.UUID `json:"id"`
+
+	// Outcome Actual terminal outcome including canceled or cancellation_failed; empty while active
 	Outcome         string              `json:"outcome"`
 	Output          *string             `json:"output,omitempty"`
 	OutputTruncated *bool               `json:"output_truncated,omitempty"`
@@ -1058,6 +1102,21 @@ type Run struct {
 	TaskId          openapi_types.UUID  `json:"task_id"`
 	Trigger         string              `json:"trigger"`
 }
+
+// RunCancellation defines model for RunCancellation.
+type RunCancellation struct {
+	CancellationError  *string            `json:"cancellation_error,omitempty"`
+	CancellationStatus *CancellationState `json:"cancellation_status,omitempty"`
+
+	// Outcome The observed terminal result for already_finished
+	Outcome *string               `json:"outcome,omitempty"`
+	RunId   openapi_types.UUID    `json:"run_id"`
+	Status  RunCancellationStatus `json:"status"`
+	TaskId  openapi_types.UUID    `json:"task_id"`
+}
+
+// RunCancellationStatus defines model for RunCancellation.Status.
+type RunCancellationStatus string
 
 // RunList defines model for RunList.
 type RunList struct {
@@ -1603,6 +1662,11 @@ type ClientInterface interface {
 
 	// RunsRead performs a GET /runs/{id} (the `RunsRead` operationId) request.
 	RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RunsCancel performs a POST /runs/{id}/cancel (the `RunsCancel` operationId) request.
+	//
+	// Requests cancellation of one exact active execution. Acceptance is not proof of termination; observe active runs and final history.
+	RunsCancel(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SearchRead performs a GET /search (the `SearchRead` operationId) request.
 	//
@@ -2226,6 +2290,21 @@ func (c *Client) RunsActiveList(ctx context.Context, reqEditors ...RequestEditor
 // RunsRead performs a GET /runs/{id} (the `RunsRead` operationId) request.
 func (c *Client) RunsRead(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRunsReadRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RunsCancel performs a POST /runs/{id}/cancel (the `RunsCancel` operationId) request.
+//
+// Requests cancellation of one exact active execution. Acceptance is not proof of termination; observe active runs and final history.
+func (c *Client) RunsCancel(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRunsCancelRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -3798,6 +3877,40 @@ func NewRunsReadRequest(server string, id ID) (*http.Request, error) {
 	return req, nil
 }
 
+// NewRunsCancelRequest constructs an http.Request for the RunsCancel method
+func NewRunsCancelRequest(server string, id ID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "id", id, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/runs/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewSearchReadRequest constructs an http.Request for the SearchRead method
 func NewSearchReadRequest(server string, params *SearchReadParams) (*http.Request, error) {
 	var err error
@@ -4655,6 +4768,13 @@ type ClientWithResponsesInterface interface {
 	//
 	// Returns a wrapper object for the known response body format(s).
 	RunsReadWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*RunsReadResponse, error)
+
+	// RunsCancelWithResponse performs a POST /runs/{id}/cancel (the `RunsCancel` operationId) request.
+	//
+	// Requests cancellation of one exact active execution. Acceptance is not proof of termination; observe active runs and final history.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	RunsCancelWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*RunsCancelResponse, error)
 
 	// SearchReadWithResponse performs a GET /search (the `SearchRead` operationId) request.
 	//
@@ -6452,6 +6572,68 @@ func (r RunsReadResponse) ContentType() string {
 	return ""
 }
 
+// RunsCancelResponse401Headers the declared response headers of an HTTP 401 response for RunsCancel
+type RunsCancelResponse401Headers struct {
+	WWWAuthenticate *string
+}
+
+type RunsCancelResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RunCancellation
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *RunCancellation
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers401 the parsed response headers for an HTTP 401 response
+	Headers401 *RunsCancelResponse401Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RunsCancelResponse) GetJSON200() *RunCancellation {
+	return r.JSON200
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r RunsCancelResponse) GetJSON202() *RunCancellation {
+	return r.JSON202
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RunsCancelResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r RunsCancelResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RunsCancelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RunsCancelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RunsCancelResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // SearchReadResponse401Headers the declared response headers of an HTTP 401 response for SearchRead
 type SearchReadResponse401Headers struct {
 	WWWAuthenticate *string
@@ -7624,6 +7806,19 @@ func (c *ClientWithResponses) RunsReadWithResponse(ctx context.Context, id ID, r
 		return nil, err
 	}
 	return ParseRunsReadResponse(rsp)
+}
+
+// RunsCancelWithResponse performs a POST /runs/{id}/cancel (the `RunsCancel` operationId) request.
+//
+// Requests cancellation of one exact active execution. Acceptance is not proof of termination; observe active runs and final history.
+//
+// Returns a wrapper object for the known response body format(s).
+func (c *ClientWithResponses) RunsCancelWithResponse(ctx context.Context, id ID, reqEditors ...RequestEditorFn) (*RunsCancelResponse, error) {
+	rsp, err := c.RunsCancel(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRunsCancelResponse(rsp)
 }
 
 // SearchReadWithResponse performs a GET /search (the `SearchRead` operationId) request.
@@ -9225,6 +9420,68 @@ func ParseRunsReadResponse(rsp *http.Response) (*RunsReadResponse, error) {
 	switch {
 	case rsp.StatusCode == 401:
 		var headers RunsReadResponse401Headers
+		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.WWWAuthenticate = &value
+		}
+		response.Headers401 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRunsCancelResponse parses an HTTP response from a RunsCancelWithResponse call
+func ParseRunsCancelResponse(rsp *http.Response) (*RunsCancelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RunsCancelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunCancellation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RunCancellation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
+
+	case rsp.StatusCode == 404:
+		break // No content-type
+
+	case rsp.StatusCode == 409:
+		break // No content-type
+
+	}
+
+	switch {
+	case rsp.StatusCode == 401:
+		var headers RunsCancelResponse401Headers
 		if values := rsp.Header.Values("WWW-Authenticate"); len(values) > 0 {
 			var value string
 			if err := runtime.BindStyledParameterWithOptions("simple", "WWW-Authenticate", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {

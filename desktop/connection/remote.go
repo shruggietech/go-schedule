@@ -61,7 +61,7 @@ func (backend *RemoteBackend) Health(ctx context.Context) (Health, error) {
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
-	if health.Status != "ok" || !compatibleVersion(health.Version) {
+	if health.Status != "ok" || strings.TrimSpace(health.Version) == "" {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected remote scheduler version is incompatible.", Action: "Update the remote scheduler or select another connection."}
 	}
 	identityCtx, cancelIdentity := context.WithTimeout(ctx, remoteStageTimeout)
@@ -70,7 +70,7 @@ func (backend *RemoteBackend) Health(ctx context.Context) (Health, error) {
 	if err != nil {
 		return Health{}, remoteFailure(err)
 	}
-	if manifest.ProductVersion != health.Version || len(manifest.RemoteAPIVersions) == 0 {
+	if manifest.InstallationID == "" || manifest.DisplayName == "" || manifest.ProductVersion != health.Version || !supportsAPI(manifest.RemoteAPIVersions) {
 		return Health{}, &Failure{State: StateIncompatible, Message: "The selected daemon does not advertise a compatible remote API.", Action: "Update the remote scheduler."}
 	}
 	accessCtx, cancelAccess := context.WithTimeout(ctx, remoteStageTimeout)

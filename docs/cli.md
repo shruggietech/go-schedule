@@ -455,6 +455,16 @@ The `SOURCE TASK` and `SOURCE RUN` columns identify the upstream completion for 
 
 S107 adds `runs active`, `runs get RUN_ID` and `runs --details`. Detail includes run/task IDs, lifecycle timestamps, captured output/truncation, start failure and source task/run/trigger/watcher correlations. Default history text and JSON arrays retain their formats. `--limit 0` preserves the existing daemon-default query behavior.
 
+### `runs cancel RUN_ID` (Unreleased S143)
+
+Request cancellation of one active execution on the selected daemon. Discover its exact Run ID with `gosched runs active`, then run `gosched runs cancel RUN_ID` (or add `--json`). Remote profiles use the same command and require Operate authority. Cancellation does not disable the task, remove its future schedule, or cancel other runs of that task.
+
+A `requested` acknowledgement means the request was admitted, not that the process has stopped. Inspect `gosched runs get RUN_ID` for the persisted actual result; while it remains pending, `gosched runs active` includes cancellation status and cleanup guidance. Repeating a request for a completed execution returns `already_finished` with its actual outcome and creates no new run. Unknown IDs fail; queued, skipped and catch-up marker records are not executable targets.
+
+A terminated canceled execution records `canceled`, its native exit result, captured output and timestamps. Cleanup that cannot be confirmed within five seconds becomes visibly unconfirmed while the daemon retains ownership and worker capacity; once genuinely reaped, it records `cancellation_failed`. Natural completion already observed by the daemon keeps its actual outcome. Cancellation outcomes do not trigger completion chains or change outbound failure/recovery streaks.
+
+The executor targets the run's own Windows job or Unix process group. Work that deliberately escapes that ownership (for example, an explicitly breakaway Windows child or a Unix child creating a separate session) is outside the owned cancellation target. Ordinary command, input, credentials and background-work behavior remain available. This capability is in S143 source and is not included in published v2.0.3 packages.
+
 ## `trigger`
 
 

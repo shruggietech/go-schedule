@@ -1,10 +1,14 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/shruggietech/go-schedule/v2/internal/domain"
+	"github.com/shruggietech/go-schedule/v2/internal/runcontrol"
+	"github.com/shruggietech/go-schedule/v2/internal/store"
 )
 
 func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
@@ -94,4 +98,42 @@ func (s *Server) handleAckAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// runCanceler is optional for persistence-only API consumers.
+type runCanceler interface {
+	CancelRun(context.Context, string) (domain.RunCancellation, error)
+}
+
+func (s *Server) handleCancelRun(w http.ResponseWriter, r *http.Request) {
+	if r.ContentLength != 0 {
+		writeError(w, http.StatusBadRequest, CodeValidation, "body", "run cancellation takes only the Run ID; send an empty request body")
+		return
+	}
+	source, ok := s.sched.(runCanceler)
+	if !ok {
+		writeError(w, http.StatusServiceUnavailable, CodeInternal, "run", "this daemon does not support active-run cancellation")
+		return
+	}
+	if err := r.Context().Err(); err != nil {
+		writeError(w, http.StatusRequestTimeout, CodeConflict, "run", "cancellation request ended before admission")
+		return
+	}
+	result, err := source.CancelRun(r.Context(), r.PathValue("id"))
+	switch {
+	case err == nil:
+		status := http.StatusAccepted
+		if result.Status == "already_finished" {
+			status = http.StatusOK
+		}
+		writeJSON(w, status, result)
+	case errors.Is(err, runcontrol.ErrNotActive):
+		writeError(w, http.StatusConflict, CodeConflict, "run", "this history record is not an active execution; select an active Run ID")
+	case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
+		writeError(w, http.StatusRequestTimeout, CodeConflict, "run", "cancellation request ended before admission; refresh the run before retrying")
+	case errors.Is(err, store.ErrNotFound):
+		writeError(w, http.StatusNotFound, CodeNotFound, "run", "Run ID was not found; refresh active executions or history")
+	default:
+		s.notFoundOr(w, err)
+	}
 }

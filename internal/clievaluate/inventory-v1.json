@@ -12225,7 +12225,7 @@
   {
     "path": "runs",
     "use": "runs",
-    "short": "Show run history",
+    "short": "Show run history and control active executions",
     "long": "",
     "aliases": [],
     "hidden": false,
@@ -12435,6 +12435,116 @@
         "type": "bool",
         "default": "false",
         "usage": "help for active",
+        "scope": "local",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "ipc-path",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit absolute local socket path or Windows named pipe",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "json",
+        "shorthand": "",
+        "type": "bool",
+        "default": "false",
+        "usage": "machine-readable JSON output",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "profile",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "saved remote profile ID or unambiguous label",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      }
+    ]
+  },
+  {
+    "path": "runs cancel",
+    "use": "cancel RUN_ID",
+    "short": "Request cancellation of one active execution by its exact Run ID",
+    "long": "Request cancellation of one active run on the selected scheduler. Find its Run ID with gosched runs active. A requested acknowledgement does not establish termination; inspect gosched runs get RUN_ID for the final outcome.",
+    "aliases": [],
+    "hidden": false,
+    "runnable": true,
+    "flags": [
+      {
+        "name": "certificate-file",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "trusted PEM certificate file for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "credential-id",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "native credential reference for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote daemon HTTPS origin (independent of webhook --endpoint)",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "daemon-id",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "expected daemon installation ID for an explicit target",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "endpoint",
+        "shorthand": "",
+        "type": "string",
+        "default": "",
+        "usage": "explicit remote HTTPS origin",
+        "scope": "inherited",
+        "hidden": false,
+        "deprecated": "",
+        "required": false
+      },
+      {
+        "name": "help",
+        "shorthand": "h",
+        "type": "bool",
+        "default": "false",
+        "usage": "help for cancel",
         "scope": "local",
         "hidden": false,
         "deprecated": "",

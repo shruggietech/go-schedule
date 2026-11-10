@@ -22,7 +22,7 @@ func additionalSteps() []step {
 	for _, entry := range []struct {
 		path string
 		args []string
-	}{{"task show", []string{"task", "show"}}, {"group edit", []string{"group", "edit"}}, {"chain show", []string{"chain", "show"}}, {"watcher show", []string{"watcher", "show"}}, {"trigger show", []string{"trigger", "show"}}, {"runs get", []string{"runs", "get"}}} {
+	}{{"task show", []string{"task", "show"}}, {"group edit", []string{"group", "edit"}}, {"chain show", []string{"chain", "show"}}, {"watcher show", []string{"watcher", "show"}}, {"trigger show", []string{"trigger", "show"}}, {"runs get", []string{"runs", "get"}}, {"runs cancel", []string{"runs", "cancel"}}} {
 		args := append([]string{"--ipc-path", "${ipc}"}, entry.args...)
 		args = append(args, "missing-fixture-id")
 		if entry.path == "group edit" {
@@ -30,6 +30,8 @@ func additionalSteps() []step {
 		}
 		add("negative.missing."+strings.ReplaceAll(entry.path, " ", "."), entry.path, "validation", "packaged_cli", 1, "unchanged", args...)
 	}
+	add("runs.cancel-finished-json", "runs cancel", "read", "packaged_cli", 0, "cancel-finished", "--json", "--ipc-path", "${ipc}", "runs", "cancel", "${run}").JSON = true
+	add("runs.cancel-finished-human", "runs cancel", "read", "packaged_cli", 0, "cancel-finished-human", "--ipc-path", "${ipc}", "runs", "cancel", "${run}")
 	add("root.version", "", "version", "packaged_cli", 0, "version", "--version")
 	add("completion.callback", "__complete", "completion", "packaged_cli", 0, "completion", "__complete", "--help").Spec.Coverage = []string{"__complete --help"}
 	s := add("completion.no-desc", "__complete", "completion", "packaged_cli", 0, "completion", "__completeNoDesc", "")

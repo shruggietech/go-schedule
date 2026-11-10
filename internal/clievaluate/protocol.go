@@ -40,7 +40,7 @@ func (s *session) mcpProtocol(ctx context.Context, permission string, confirmati
 		err = errors.Join(err, e)
 		if e == nil {
 			observations["resources"] = listed
-			good = good && len(listed.Resources) == 5
+			good = good && len(listed.Resources) == 6
 			for _, resource := range listed.Resources {
 				read, e := connection.ReadResource(childCtx, &mcp.ReadResourceParams{URI: resource.URI})
 				if e != nil {

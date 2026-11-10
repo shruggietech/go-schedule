@@ -137,11 +137,13 @@ const (
 type RunOutcome string
 
 const (
-	OutcomeSuccess  RunOutcome = "success"
-	OutcomeFailure  RunOutcome = "failure"
-	OutcomeSkipped  RunOutcome = "skipped"
-	OutcomeCaughtUp RunOutcome = "caught_up"
-	OutcomeQueued   RunOutcome = "queued"
+	OutcomeCanceled           RunOutcome = "canceled"
+	OutcomeCancellationFailed RunOutcome = "cancellation_failed"
+	OutcomeSuccess            RunOutcome = "success"
+	OutcomeFailure            RunOutcome = "failure"
+	OutcomeSkipped            RunOutcome = "skipped"
+	OutcomeCaughtUp           RunOutcome = "caught_up"
+	OutcomeQueued             RunOutcome = "queued"
 )
 
 // RunTrigger records what caused a run.
@@ -300,14 +302,17 @@ type Schedule struct {
 
 // Run is a single execution record (append-only history).
 type Run struct {
-	ID           string     `json:"id"`
-	TaskID       string     `json:"task_id"`
-	ScheduledFor time.Time  `json:"scheduled_for"`
-	StartedAt    *time.Time `json:"started_at,omitempty"`
-	EndedAt      *time.Time `json:"ended_at,omitempty"`
-	Outcome      RunOutcome `json:"outcome"`
-	ExitCode     *int       `json:"exit_code,omitempty"`
-	Output       string     `json:"output,omitempty"`
+	// CancellationStatus and CancellationError describe only active ownership; terminal outcome persists in history.
+	CancellationStatus string     `json:"cancellation_status,omitempty"`
+	CancellationError  string     `json:"cancellation_error,omitempty"`
+	ID                 string     `json:"id"`
+	TaskID             string     `json:"task_id"`
+	ScheduledFor       time.Time  `json:"scheduled_for"`
+	StartedAt          *time.Time `json:"started_at,omitempty"`
+	EndedAt            *time.Time `json:"ended_at,omitempty"`
+	Outcome            RunOutcome `json:"outcome"`
+	ExitCode           *int       `json:"exit_code,omitempty"`
+	Output             string     `json:"output,omitempty"`
 	// OutputTruncated reports that the configured capture cap discarded one or
 	// more output bytes. It is metadata so the retained output stays within cap.
 	OutputTruncated bool       `json:"output_truncated,omitempty"`

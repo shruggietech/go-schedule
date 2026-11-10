@@ -189,6 +189,7 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /v1/runs", s.handleListRuns)
 	s.mux.HandleFunc("GET /v1/runs/active", s.handleListActiveRuns)
+	s.mux.HandleFunc("POST /v1/runs/{id}/cancel", s.handleCancelRun)
 	s.mux.HandleFunc("GET /v1/runs/{id}", s.handleGetRun)
 
 	s.mux.HandleFunc("GET /v1/notification-channels", s.handleListNotificationChannels)

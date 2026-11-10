@@ -37,6 +37,7 @@ type observeReader interface {
 	Health(context.Context) (server.HealthResponse, error)
 	ListTaskObservations(context.Context, string, string, bool, int, int, int) ([]server.TaskObservationResponse, error)
 	ListRunsPage(context.Context, string, int, int, int) ([]domain.Run, error)
+	ListActiveRuns(context.Context) ([]domain.Run, error)
 	ListAlertsPage(context.Context, bool, int, int, int) ([]domain.Alert, error)
 }
 

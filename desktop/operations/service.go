@@ -92,9 +92,27 @@ func (s *Service) ActivityRecord(ctx context.Context, kind, id string) Operation
 		if !ok {
 			return OperationResult{Action: "load_activity_record", Outcome: "rejected", Message: "This scheduler cannot load an exact run record."}
 		}
-		run, err := reader.GetRun(c, id)
+		active, err := s.backend.ListActiveRuns(c)
 		if err != nil {
 			return failure("load_activity_record", err)
+		}
+		run, err := reader.GetRun(c, id)
+		if err != nil {
+			var status *client.StatusError
+			if !errors.As(err, &status) || status.Code != server.CodeNotFound {
+				return failure("load_activity_record", err)
+			}
+			found := false
+			for _, candidate := range active {
+				if candidate.ID == id {
+					run = candidate
+					found = true
+					break
+				}
+			}
+			if !found {
+				return failure("load_activity_record", err)
+			}
 		}
 		workspace := buildActivity([]domain.Run{run}, server.LogsResponse{Logs: []domain.LogRecord{}}, []domain.Alert{}, s.now())
 		return OperationResult{Action: "load_activity_record", Outcome: "accepted", Message: "Opened the selected run record.", Activity: &workspace}
@@ -142,7 +160,7 @@ func mergeRuns(persisted, active []domain.Run) []domain.Run {
 func buildActivity(runs []domain.Run, logs server.LogsResponse, alerts []domain.Alert, loadedAt time.Time) ActivityWorkspace {
 	workspace := ActivityWorkspace{Runs: make([]RunRecord, 0, len(runs)), Logs: make([]LogRecord, 0, len(logs.Logs)), Alerts: make([]AlertRecord, 0, len(alerts)), LogPath: logs.LogPath, LoadedAt: loadedAt.UTC().Format(time.RFC3339Nano)}
 	for _, value := range runs {
-		workspace.Runs = append(workspace.Runs, RunRecord{ID: value.ID, TaskID: value.TaskID, ScheduledFor: timestamp(value.ScheduledFor), StartedAt: optionalTimestamp(value.StartedAt), EndedAt: optionalTimestamp(value.EndedAt), State: runState(value.Outcome, value.StartedAt != nil, value.EndedAt != nil), Outcome: string(value.Outcome), ExitCode: value.ExitCode, Output: value.Output, OutputTruncated: value.OutputTruncated, Trigger: string(value.Trigger), SourceTaskID: value.SourceTaskID, SourceRunID: value.SourceRunID, SourceTriggerID: value.SourceTriggerID, SourceWatcherID: value.SourceWatcherID})
+		workspace.Runs = append(workspace.Runs, RunRecord{ID: value.ID, TaskID: value.TaskID, ScheduledFor: timestamp(value.ScheduledFor), StartedAt: optionalTimestamp(value.StartedAt), EndedAt: optionalTimestamp(value.EndedAt), CancellationStatus: value.CancellationStatus, CancellationError: value.CancellationError, State: runState(value.Outcome, value.StartedAt != nil, value.EndedAt != nil), Outcome: string(value.Outcome), ExitCode: value.ExitCode, Output: value.Output, OutputTruncated: value.OutputTruncated, Trigger: string(value.Trigger), SourceTaskID: value.SourceTaskID, SourceRunID: value.SourceRunID, SourceTriggerID: value.SourceTriggerID, SourceWatcherID: value.SourceWatcherID})
 	}
 	for _, value := range logs.Logs {
 		workspace.Logs = append(workspace.Logs, LogRecord{ID: value.ID, Time: timestamp(value.Time), Severity: severity(value.Severity), Source: fallback(value.Source, "daemon"), Message: fallback(value.Message, "No message"), TaskID: value.TaskID, RunID: value.RunID, Detail: attributeDetail(value.Attrs)})
@@ -181,7 +199,7 @@ func (s *Service) AcknowledgeAlerts(ctx context.Context, ids []string) Operation
 
 func runState(outcome domain.RunOutcome, started, ended bool) string {
 	switch outcome {
-	case domain.OutcomeSuccess, domain.OutcomeFailure, domain.OutcomeSkipped, domain.OutcomeCaughtUp, domain.OutcomeQueued:
+	case domain.OutcomeSuccess, domain.OutcomeFailure, domain.OutcomeSkipped, domain.OutcomeCaughtUp, domain.OutcomeQueued, domain.OutcomeCanceled, domain.OutcomeCancellationFailed:
 		return string(outcome)
 	}
 	if started && !ended {
@@ -234,4 +252,37 @@ func failure(action string, err error) OperationResult {
 		return OperationResult{Action: action, Outcome: "rejected", Message: "The request was rejected. Review the selected filters and try again."}
 	}
 	return OperationResult{Action: action, Outcome: "unavailable", Message: "The local scheduler service is unavailable. Try again."}
+}
+
+// CancelRun requests cancellation bound to the selected daemon and exact execution.
+func (s *Service) CancelRun(ctx context.Context, id, daemonID string) OperationResult {
+	if strings.TrimSpace(id) == "" || strings.TrimSpace(daemonID) == "" {
+		return OperationResult{Action: "cancel_run", Outcome: "rejected", Message: "Select an active run on the current scheduler before canceling it."}
+	}
+	c, cancel := context.WithTimeout(client.ExpectDaemon(ctx, daemonID), callTimeout)
+	defer cancel()
+	ack, err := s.backend.CancelRun(c, id)
+	if err != nil {
+		var status *client.StatusError
+		if errors.As(err, &status) {
+			message := ""
+			switch status.Code {
+			case server.CodeNotFound:
+				message = "The selected run no longer exists. Refresh Activity before choosing a run."
+			case server.CodeConflict:
+				message = "The selected run is not active or the scheduler identity changed. Refresh the selected scheduler."
+			case server.CodeForbidden:
+				message = "The current account is not authorized to cancel this run."
+			}
+			if message != "" {
+				return OperationResult{Action: "cancel_run", Outcome: "rejected", Message: message}
+			}
+		}
+		return failure("cancel_run", err)
+	}
+	message := fmt.Sprintf("Cancellation requested for run %s. Wait for its final run outcome to confirm termination.", ack.RunID)
+	if ack.Status == "already_finished" {
+		message = fmt.Sprintf("Run %s already finished with outcome %s.", ack.RunID, ack.Outcome)
+	}
+	return OperationResult{Action: "cancel_run", Outcome: "accepted", Message: message, Cancellation: &ack}
 }

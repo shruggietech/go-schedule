@@ -18,6 +18,8 @@ import (
 )
 
 type fakeReader struct {
+	active        []domain.Run
+	activeErr     error
 	health        server.HealthResponse
 	tasks         []server.TaskObservationResponse
 	runs          []domain.Run
@@ -237,4 +239,9 @@ func TestReadBoundsTimeoutAndCancellation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func (f *fakeReader) ListActiveRuns(ctx context.Context) ([]domain.Run, error) {
+	f.seenCtx = ctx
+	return f.active, f.activeErr
 }

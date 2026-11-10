@@ -460,6 +460,22 @@ func (s *session) after(ctx context.Context, definition step, result execution, 
 		}
 		return false, actors, err
 	}
+	if definition.Hook == "cancel-finished" || definition.Hook == "cancel-finished-human" {
+		run, err := s.api.GetRun(ctx, s.vars["run"])
+		if err != nil {
+			return false, nil, err
+		}
+		unchanged := run.EndedAt != nil && (run.Outcome == domain.OutcomeSuccess || run.Outcome == domain.OutcomeFailure) && run.CancellationStatus == "" && run.CancellationError == ""
+		if definition.Hook == "cancel-finished-human" {
+			text := string(result.Out)
+			return unchanged && strings.Contains(text, run.ID) && strings.Contains(text, "already finished") && strings.Contains(text, string(run.Outcome)), run, nil
+		}
+		var acknowledgement domain.RunCancellation
+		if err := json.Unmarshal(result.Out, &acknowledgement); err != nil {
+			return false, run, err
+		}
+		return unchanged && acknowledgement.RunID == run.ID && acknowledgement.TaskID == run.TaskID && acknowledgement.Status == "already_finished" && acknowledgement.Outcome == run.Outcome && acknowledgement.CancellationStatus == "" && acknowledgement.CancellationError == "", map[string]any{"run": run, "acknowledgement": acknowledgement}, nil
+	}
 	if definition.Hook == "inherited-policy" {
 		policy, err := s.api.EffectiveTaskNotificationPolicy(ctx, s.vars["base_task"])
 		return policy.SourceScopeType == domain.NotificationScopeGroup && policy.SourceScopeID == s.vars["base_group"] && len(policy.Assignments) == 2, policy, err

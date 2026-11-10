@@ -60,7 +60,7 @@ func (s *session) httpPost(ctx context.Context, definition step, body any) (bool
 		resources, e := connection.ListResources(ctx, nil)
 		listed = resources
 		err = errors.Join(err, e)
-		good = good && e == nil && len(resources.Resources) == 5
+		good = good && e == nil && len(resources.Resources) == 6
 		if err == nil {
 			passed, details, e := s.manageProtocol(ctx, connection)
 			good = good && passed

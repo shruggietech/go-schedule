@@ -30,6 +30,7 @@ const (
 type operationClient interface {
 	SetTaskEnabled(context.Context, string, bool) error
 	RunNow(context.Context, string) error
+	CancelRun(context.Context, string) (domain.RunCancellation, error)
 	VerifyAccess(context.Context) (domain.Capability, error)
 }
 
@@ -39,15 +40,27 @@ type Input struct {
 	RequestID string `json:"request_id" jsonschema:"a caller-generated UUID reused only for retries of this exact operation"`
 }
 
+// CancelInput binds a cancellation to an exact daemon, execution and retry identity.
+type CancelInput struct {
+	DaemonID  string `json:"daemon_id" jsonschema:"the exact daemon installation UUID"`
+	RunID     string `json:"run_id" jsonschema:"the exact active execution Run ID"`
+	RequestID string `json:"request_id" jsonschema:"a caller-generated UUID reused only for retries of this exact operation"`
+}
+
 type Result struct {
-	SchemaVersion string `json:"schema_version"`
-	Permission    string `json:"permission"`
-	Operation     string `json:"operation"`
-	DaemonID      string `json:"daemon_id"`
-	TaskID        string `json:"task_id"`
-	RequestID     string `json:"request_id"`
-	Outcome       string `json:"outcome"`
-	Message       string `json:"message"`
+	RunID              string            `json:"run_id,omitempty"`
+	Status             string            `json:"status,omitempty"`
+	RunOutcome         domain.RunOutcome `json:"run_outcome,omitempty"`
+	CancellationStatus string            `json:"cancellation_status,omitempty"`
+	CancellationError  string            `json:"cancellation_error,omitempty"`
+	SchemaVersion      string            `json:"schema_version"`
+	Permission         string            `json:"permission"`
+	Operation          string            `json:"operation"`
+	DaemonID           string            `json:"daemon_id"`
+	TaskID             string            `json:"task_id,omitempty"`
+	RequestID          string            `json:"request_id"`
+	Outcome            string            `json:"outcome"`
+	Message            string            `json:"message"`
 }
 
 const (
@@ -75,13 +88,17 @@ func New(client operationClient) *Executor {
 	return &Executor{client: client, now: time.Now, cache: make(map[string]cached)}
 }
 
-// AddTools exposes exactly the three issue #178 operations.
+// AddTools exposes existing task controls and exact-run cancellation.
 func AddTools(mcpServer *mcp.Server, executor *Executor) {
 	closed := false
 	destructive := true
 	annotations := func(title string, idempotent bool) *mcp.ToolAnnotations {
 		return &mcp.ToolAnnotations{Title: title, ReadOnlyHint: false, DestructiveHint: &destructive, IdempotentHint: idempotent, OpenWorldHint: &closed}
 	}
+	mcp.AddTool(mcpServer, &mcp.Tool{Name: "runs_cancel", Title: "Cancel an active run", Description: "Request cancellation for one exact active Run ID on the named daemon. Accepted means requested, not confirmed termination; inspect the final run outcome. Reuse request_id only for this exact operation.", Annotations: annotations("Cancel active run", true)}, func(ctx context.Context, _ *mcp.CallToolRequest, input CancelInput) (*mcp.CallToolResult, Result, error) {
+		result := executor.executeCancel(ctx, input)
+		return &mcp.CallToolResult{IsError: result.Outcome != OutcomeAccepted}, result, nil
+	})
 	mcp.AddTool(mcpServer, &mcp.Tool{Name: "tasks_run_now", Title: "Run an existing task now", Description: "Request one immediate run on the exact named daemon and task. Reuse request_id only when retrying this exact call.", Annotations: annotations("Run task now", false)}, executor.handler("tasks.run_now"))
 	mcp.AddTool(mcpServer, &mcp.Tool{Name: "tasks_enable", Title: "Enable an existing task", Description: "Enable one existing task without changing its definition.", Annotations: annotations("Enable task", true)}, executor.handler("tasks.enable"))
 	mcp.AddTool(mcpServer, &mcp.Tool{Name: "tasks_disable", Title: "Disable an existing task", Description: "Disable one existing task without changing or deleting its definition.", Annotations: annotations("Disable task", true)}, executor.handler("tasks.disable"))
@@ -96,7 +113,14 @@ func (e *Executor) handler(operation string) mcp.ToolHandlerFor[Input, Result] {
 
 func (e *Executor) execute(ctx context.Context, operation string, input Input) Result {
 	base := Result{SchemaVersion: SchemaVersion, Permission: Permission, Operation: operation, DaemonID: input.DaemonID, TaskID: input.TaskID, RequestID: input.RequestID}
+	if operation == "runs.cancel" {
+		base.RunID = input.TaskID
+		base.TaskID = ""
+	}
 	if message := validate(input); message != "" {
+		if operation == "runs.cancel" {
+			message = strings.ReplaceAll(message, "task_id", "run_id")
+		}
 		base.Outcome, base.Message = OutcomeRejected, message
 		return base
 	}
@@ -119,10 +143,10 @@ func (e *Executor) execute(ctx context.Context, operation string, input Input) R
 			base.Outcome, base.Message = classify(operation, accessErr)
 			return base
 		}
-		base.Outcome, base.Message = classify(operation, e.invoke(callCtx, operation, input.TaskID))
+		e.apply(callCtx, operation, input.TaskID, &base)
 		return base
 	}
-	base.Outcome, base.Message = classify(operation, e.invoke(callCtx, operation, input.TaskID))
+	e.apply(callCtx, operation, input.TaskID, &base)
 	if len(e.cache) >= cacheLimit {
 		e.evictOldest()
 	}
@@ -166,6 +190,8 @@ func classify(operation string, err error) (string, string) {
 		switch operation {
 		case "tasks.run_now":
 			return OutcomeAccepted, "Run request accepted."
+		case "runs.cancel":
+			return OutcomeAccepted, "Cancellation requested. Inspect the run outcome to confirm termination."
 		case "tasks.enable":
 			return OutcomeAccepted, "Task enabled."
 		default:
@@ -219,5 +245,35 @@ func (e *Executor) evictOldest() {
 }
 
 func (r Result) String() string {
+	if r.RunID != "" {
+		return fmt.Sprintf("%s %s for run %s on daemon %s", r.Outcome, r.Operation, r.RunID, r.DaemonID)
+	}
 	return fmt.Sprintf("%s %s for task %s on daemon %s", r.Outcome, r.Operation, r.TaskID, r.DaemonID)
+}
+
+// executeCancel adapts the run-specific public input to the shared operation cache.
+func (e *Executor) executeCancel(ctx context.Context, input CancelInput) Result {
+	return e.execute(ctx, "runs.cancel", Input{DaemonID: input.DaemonID, TaskID: input.RunID, RequestID: input.RequestID})
+}
+
+func (e *Executor) apply(ctx context.Context, operation, target string, result *Result) {
+	var err error
+	if operation == "runs.cancel" {
+		var ack domain.RunCancellation
+		ack, err = e.client.CancelRun(ctx, target)
+		if err == nil {
+			result.Status = ack.Status
+			result.RunOutcome = ack.Outcome
+			result.CancellationStatus = ack.CancellationStatus
+			if ack.CancellationError != "" {
+				result.CancellationError = safeMessage(ack.CancellationError)
+			}
+		}
+	} else {
+		err = e.invoke(ctx, operation, target)
+	}
+	result.Outcome, result.Message = classify(operation, err)
+	if err == nil && operation == "runs.cancel" && result.Status == "already_finished" {
+		result.Message = "The selected run already finished; its terminal outcome is unchanged."
+	}
 }
