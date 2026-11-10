@@ -8,9 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Bind Windows desktop resource, application and installer identity to the selected build version, retaining explicit development labeling and refusing compiled metadata mismatches (S141, #458).
+
 - Reconcile current release discovery, first-task and installation guidance and the website fallback with public v2.0.2. Label comparison product contexts with their original review date while identifying the published baseline (#444, #459). Preserve tagged release/comparison content and the accepted open Windows resource-version finding #458.
 
 ### Decisions
+
+- 2026-11-09 (S141): route maintained desktop builds through a hidden, noninteractive version-aware launcher, restore exact Wails configuration after each build, and inspect compiled PE/MSI identity before upload. Preserve a nonzero builder exit before CI staging continues. Update existing build-pin policy resolution for the shared launcher without changing supported tool versions or weakening verification gates. Preserve published v2.0.2 bytes and native runtime limits.
 
 - 2026-11-09 (S140): publish the separately approved inspected release 438780666 from immutable fba288addcfce1769443b31ab25bd18b83a5e1e4 through the existing standing-waiver promotion workflow. Preserve the eight original assets and add the verified checksum inventory, independently read back all nine public files, then reconcile current discovery through this reviewed source change. Update the pinned Windows guide only after actual publication; preserve historical preparation sections, notes, comparisons/reviews and original failure evidence. Keep native/host-WSL coverage limits and #458 explicit, with no runtime, dependency, workflow or verification-policy change.
 

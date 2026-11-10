@@ -16,7 +16,11 @@ func productionWailsBuildFragment(t *testing.T) string {
 			fields = fields[1:]
 		}
 		if len(fields) >= 2 && fields[0] == "github.com/wailsapp/wails/v2" {
-			return "github.com/wailsapp/wails/v2/cmd/wails@" + fields[1] + " build"
+			builder := string(readRepositoryFile(t, "scripts", "desktop-build", "main.go"))
+			if !strings.Contains(builder, "github.com/wailsapp/wails/v2/cmd/wails@"+fields[1]+"\"") {
+				t.Fatal("managed desktop builder does not pin the production Wails runtime")
+			}
+			return "go run ./scripts/desktop-build"
 		}
 	}
 	t.Fatal("desktop module is missing its production Wails runtime dependency")

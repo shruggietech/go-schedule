@@ -236,11 +236,11 @@ jobs:
           stage="go-schedule-desktop_${VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir -p "$stage"
           if [ "${{ matrix.goos }}" = "linux" ]; then
-            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build -clean -tags webkit2_41 -ldflags "$BASE")
+            go run ./scripts/desktop-build -version "$VERSION" -ldflags "-s -w" -- -clean -tags webkit2_41
             cp desktop/build/bin/gosched-gui "$stage/gosched-gui"
             go build -ldflags "$BASE" -o "$stage/gosched-indicator" ./cmd/gosched-indicator
           else
-            (cd desktop && go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build -clean -ldflags "$BASE ${{ matrix.ldflags }}")
+            go run ./scripts/desktop-build -version "$VERSION" -ldflags "-s -w ${{ matrix.ldflags }}" -- -clean
           fi
           if [ "${{ matrix.goos }}" = "windows" ]; then
             cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
@@ -289,6 +289,7 @@ jobs:
               -d Version="${VER_NUMERIC}" \
               -d StageDir="$(pwd -W 2>/dev/null || pwd)/${stage}" \
               -o "dist/go-schedule_${VERSION}_windows_amd64.msi"
+            pwsh build/windows/verify_version.ps1 -ExePath "$stage/gosched-gui.exe" -Version "$VERSION" -MsiPath "dist/go-schedule_${VERSION}_windows_amd64.msi"
             pwsh test/windows/inspect-installer.ps1 \
               -MsiPath "dist/go-schedule_${VERSION}_windows_amd64.msi" \
               -ArtifactClass candidate \

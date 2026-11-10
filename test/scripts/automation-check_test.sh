@@ -56,10 +56,11 @@ run_automation_cases() {
 
   run_expect_pass approved "$CHECK" automation "$good"
 
-  for surface in runtime makefile verify ci release mixed-ci; do
+  for surface in runtime makefile verify ci release mixed-ci managed; do
     mismatch="$tmp/wails-$surface"
     cp -R "$good" "$mismatch"
     case "$surface" in
+      managed) target=scripts/desktop-build/main.go ;;
       runtime) target=desktop/go.mod ;;
       makefile) target=Makefile ;;
       verify) target=scripts/verify.sh ;;

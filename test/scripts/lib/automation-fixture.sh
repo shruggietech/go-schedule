@@ -9,6 +9,8 @@ make_fixture() (
     "$fixture/scripts/brand-check" \
     "$fixture/specs/048-v100-release-cut/contracts" \
     "$fixture/test/windows"
+  mkdir -p "$fixture/scripts/desktop-build"
+  printf 'package main\n// github.com/wailsapp/wails/v2/cmd/wails@v2.17.1\n' > "$fixture/scripts/desktop-build/main.go"
   cat > "$fixture/go.mod" <<'EOF'
 module fixture
 
@@ -56,6 +58,7 @@ jobs:
         working-directory: desktop
     steps:
       - run: go test -timeout=60m -race ./...
+      - run: go run ./scripts/desktop-build
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
       - run: npm audit --audit-level=high && npm test && npm run build
       - run: 'echo cache-dependency-path: desktop/go.sum'
@@ -234,6 +237,7 @@ jobs:
           node-version: 26
       - run: 'echo go-version-file: desktop/go.mod'
       - run: 'echo cache-dependency-path: desktop/frontend/package-lock.json'
+      - run: go run ./scripts/desktop-build
       - run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.1 build
       - run: cp desktop/build/bin/gosched-gui.exe "$stage/gosched-gui.exe"
       - run: go build -o "$stage/gosched-tray.exe" ./cmd/gosched-tray

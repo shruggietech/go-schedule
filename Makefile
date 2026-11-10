@@ -4,6 +4,7 @@
 
 GO        ?= go
 SH        ?= sh
+VERSION   ?= 0.0.1-dev
 LDFLAGS   ?=
 WAILS_VERSION = v2.17.1
 
@@ -49,11 +50,11 @@ build-cli:
 
 # Wails needs Node and platform WebView development prerequisites.
 build-gui:
-	cd desktop && $(GO) run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -tags webkit2_41
+	$(GO) run ./scripts/desktop-build -version "$(VERSION)" -ldflags "$(LDFLAGS)" -- -clean -tags webkit2_41
 
 # Wails uses the windowless Windows linker mode for its production desktop.
 build-gui-windows:
-	cd desktop && $(GO) run github.com/wailsapp/wails/v2/cmd/wails@$(WAILS_VERSION) build -clean -platform windows/amd64
+	$(GO) run ./scripts/desktop-build -version "$(VERSION)" -ldflags "$(LDFLAGS)" -- -clean -platform windows/amd64
 
 test-gui:
 	$(SH) scripts/verify.sh gui

@@ -103,6 +103,12 @@ func (c *checker) automation() {
 			text = c.read(file)
 		}
 		pins := wailsCLI.FindAllString(text, -1)
+		if strings.Contains(text, "./scripts/desktop-build") {
+			managed := wailsCLI.FindAllString(c.read("scripts/desktop-build/main.go"), -1)
+			for _, pin := range managed {
+				pins = append(pins, strings.TrimRight(pin, "\"',"))
+			}
+		}
 		if len(pins) == 0 {
 			c.report(file, "missing explicit Wails CLI pin")
 		}

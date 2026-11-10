@@ -70,3 +70,11 @@ desktop/build/bin/
 desktop/build/*/
 desktop/frontend/package.json.md5
 desktop/frontend/wailsjs/
+
+# Exclusive managed desktop build ownership
+/desktop/.version-build.lock
+
+# Maintain the version template while ignoring other generated Windows assets.
+!desktop/build/windows/
+desktop/build/windows/*
+!desktop/build/windows/info.json
