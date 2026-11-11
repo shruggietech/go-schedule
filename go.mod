@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/Microsoft/go-winio v0.6.4
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
-	github.com/emersion/go-smtp v0.25.0
+	github.com/emersion/go-smtp v0.25.1
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/godbus/dbus/v5 v5.2.4
 	github.com/gogpu/systray v0.3.0
