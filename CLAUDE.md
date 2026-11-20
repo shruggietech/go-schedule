@@ -61,3 +61,7 @@ Current plan: specs/145-parallel-recovery-cleanup/plan.md
 ## Prelaunch state policy
 
 Prelaunch state policy: the owner confirms that the project has no users. Historical database, preference, configuration, and helper-state migrations and old-version upgrade qualification are not required. Initialize the current format directly, preserve valid current-state reopen and persistence, and refuse obsolete or malformed state with explicit reset guidance. Never convert or delete persisted state automatically. Current correctness, atomicity, access security, repair, and removal requirements remain enforced. See [S128](specs/128-prelaunch-baseline/spec.md) and constitution version 4.0.0.
+
+## Workflowy
+
+Follow the Workflowy project opt-in in [AGENTS.md](AGENTS.md) and load the repository-local [workflowy skill](.agents/skills/workflowy/SKILL.md), including its backfill and MCP guides.
